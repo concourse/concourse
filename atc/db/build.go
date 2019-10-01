@@ -1244,7 +1244,16 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	inputs := []BuildInput{}
 	outputs := []BuildOutput{}
 
-	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", "inputs.first_occurrence").
+	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", `COALESCE(inputs.first_occurrence, NOT EXISTS (
+			SELECT 1
+			FROM build_resource_config_version_inputs i, builds b
+			WHERE versions.version_md5 = i.version_md5
+			AND resources.resource_config_scope_id = versions.resource_config_scope_id
+			AND resources.id = i.resource_id
+			AND b.job_id = builds.job_id
+			AND i.build_id = b.id
+			AND i.build_id < builds.id
+		))`).
 		From("resource_config_versions versions, build_resource_config_version_inputs inputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
 		Where(sq.NotEq{"versions.check_order": 0}).
@@ -1270,14 +1279,14 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 
 	for rows.Next() {
 		var (
-			inputName       string
-			firstOccurrence bool
-			versionBlob     string
-			version         atc.Version
-			resourceID      int
+			inputName   string
+			firstOcc    bool
+			versionBlob string
+			version     atc.Version
+			resourceID  int
 		)
 
-		err = rows.Scan(&inputName, &resourceID, &versionBlob, &firstOccurrence)
+		err = rows.Scan(&inputName, &resourceID, &versionBlob, &firstOcc)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1291,7 +1300,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			Name:            inputName,
 			Version:         version,
 			ResourceID:      resourceID,
-			FirstOccurrence: firstOccurrence,
+			FirstOccurrence: firstOcc,
 		})
 	}
 

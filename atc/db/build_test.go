@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
@@ -766,6 +767,115 @@ var _ = Describe("Build", func() {
 
 			Expect(inputs).To(BeEmpty())
 			Expect(outputs).To(BeEmpty())
+		})
+
+		Context("when the first occurrence is empty", func() {
+			var build db.Build
+
+			BeforeEach(func() {
+				var err error
+				build, err = job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				// save a normal 'get'
+				err = job.SaveNextInputMapping(db.InputMapping{
+					"some-input": db.InputResult{
+						Input: &db.AlgorithmInput{
+							AlgorithmVersion: db.AlgorithmVersion{
+								Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "1"})),
+								ResourceID: resource1.ID(),
+							},
+							FirstOccurrence: true,
+						},
+						PassedBuildIDs: []int{},
+					},
+					"some-other-input": db.InputResult{
+						Input: &db.AlgorithmInput{
+							AlgorithmVersion: db.AlgorithmVersion{
+								Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "2"})),
+								ResourceID: resource1.ID(),
+							},
+							FirstOccurrence: true,
+						},
+						PassedBuildIDs: []int{},
+					},
+				}, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				_, found, err := build.AdoptInputsAndPipes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				_, err = psql.Update("build_resource_config_version_inputs").
+					Set("first_occurrence", nil).
+					Where(sq.Eq{
+						"build_id":    build.ID(),
+						"resource_id": resource1.ID(),
+						"version_md5": convertToMD5(atc.Version{"ver": "1"}),
+					}).
+					RunWith(dbConn).
+					Exec()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("determines the first occurrence to be true", func() {
+				inputs, outputs, err := build.Resources()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(outputs).To(BeEmpty())
+				Expect(inputs).To(ConsistOf([]db.BuildInput{
+					{Name: "some-input", Version: atc.Version{"ver": "1"}, ResourceID: resource1.ID(), FirstOccurrence: true},
+					{Name: "some-other-input", Version: atc.Version{"ver": "2"}, ResourceID: resource1.ID(), FirstOccurrence: true},
+				}))
+			})
+
+			Context("when the a build with those inputs already exist", func() {
+				var newBuild db.Build
+
+				BeforeEach(func() {
+					var err error
+					newBuild, err = job.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
+
+					// save a normal 'get'
+					err = job.SaveNextInputMapping(db.InputMapping{
+						"some-input": db.InputResult{
+							Input: &db.AlgorithmInput{
+								AlgorithmVersion: db.AlgorithmVersion{
+									Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "1"})),
+									ResourceID: resource1.ID(),
+								},
+								FirstOccurrence: false,
+							},
+							PassedBuildIDs: []int{},
+						},
+					}, true)
+					Expect(err).NotTo(HaveOccurred())
+
+					_, found, err := newBuild.AdoptInputsAndPipes()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					_, err = psql.Update("build_resource_config_version_inputs").
+						Set("first_occurrence", nil).
+						Where(sq.Eq{
+							"build_id":    newBuild.ID(),
+							"resource_id": resource1.ID(),
+							"version_md5": convertToMD5(atc.Version{"ver": "1"}),
+						}).
+						RunWith(dbConn).
+						Exec()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("determines the first occurrence to be false", func() {
+					inputs, outputs, err := newBuild.Resources()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(outputs).To(BeEmpty())
+					Expect(inputs).To(ConsistOf([]db.BuildInput{
+						{Name: "some-input", Version: atc.Version{"ver": "1"}, ResourceID: resource1.ID(), FirstOccurrence: false},
+					}))
+				})
+			})
 		})
 	})
 

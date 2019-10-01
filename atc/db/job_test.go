@@ -1577,13 +1577,6 @@ var _ = Describe("Job", func() {
 			Expect(nextPendings[0].ID()).To(Equal(build1DB.ID()))
 		})
 
-		It("is in the list of pending builds", func() {
-			nextPendingBuilds, err := pipeline.GetAllPendingBuilds()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
-			Expect(nextPendingBuilds["some-job"]).To(Equal([]db.Build{build1DB}))
-		})
-
 		Context("and another build for a different pipeline is created with the same job name", func() {
 			BeforeEach(func() {
 				otherBuild, err := otherJob.CreateBuild()
@@ -1601,13 +1594,6 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(nextPendingBuilds).To(Equal([]db.Build{build1DB}))
 			})
-
-			It("does not change pending builds", func() {
-				nextPendingBuilds, err := pipeline.GetAllPendingBuilds()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
-				Expect(nextPendingBuilds["some-job"]).To(Equal([]db.Build{build1DB}))
-			})
 		})
 
 		Context("when scheduled", func() {
@@ -1624,13 +1610,6 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(nextPendingBuilds).NotTo(BeEmpty())
 				Expect(nextPendingBuilds[0].ID()).To(Equal(build1DB.ID()))
-			})
-
-			It("remains in the list of pending builds", func() {
-				nextPendingBuilds, err := pipeline.GetAllPendingBuilds()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(nextPendingBuilds["some-job"]).To(HaveLen(1))
-				Expect(nextPendingBuilds["some-job"][0].ID()).To(Equal(build1DB.ID()))
 			})
 		})
 
@@ -1694,13 +1673,6 @@ var _ = Describe("Job", func() {
 					Expect(nextPendingBuilds).To(HaveLen(2))
 					Expect(nextPendingBuilds[0].ID()).To(Equal(build1DB.ID()))
 					Expect(nextPendingBuilds[1].ID()).To(Equal(build2DB.ID()))
-				})
-
-				It("remains in the list of pending builds", func() {
-					nextPendingBuilds, err := pipeline.GetAllPendingBuilds()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(nextPendingBuilds["some-job"]).To(HaveLen(2))
-					Expect(nextPendingBuilds["some-job"]).To(ConsistOf(build1DB, build2DB))
 				})
 			})
 		})

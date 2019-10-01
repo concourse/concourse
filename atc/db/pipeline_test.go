@@ -1012,26 +1012,6 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
-	Describe("GetPendingBuilds/GetAllPendingBuilds", func() {
-		Context("when a build is created", func() {
-			BeforeEach(func() {
-				_, err := job.CreateBuild()
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("returns the build", func() {
-				pendingBuildsForJob, err := job.GetPendingBuilds()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(pendingBuildsForJob).To(HaveLen(1))
-
-				pendingBuilds, err := pipeline.GetAllPendingBuilds()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(pendingBuilds).To(HaveLen(1))
-				Expect(pendingBuilds["job-name"]).ToNot(BeNil())
-			})
-		})
-	})
-
 	Describe("Dashboard", func() {
 		It("returns a Dashboard object with a DashboardJob corresponding to each configured job", func() {
 			job, found, err := pipeline.Job("job-name")
