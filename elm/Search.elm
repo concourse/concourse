@@ -1,4 +1,4 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Browser
 import Dict exposing (Dict)
@@ -11,6 +11,10 @@ import Json.Decode as JD
 import Json.Decode.Extra as JDE exposing (andMap)
 import Maybe.Extra as ME
 import Query
+import Time
+
+
+port emitSearchTerm : String -> Cmd msg
 
 
 type alias Doc =
@@ -25,6 +29,7 @@ type alias Model =
     { query : String
     , docs : BooklitIndex
     , result : Dict String DocumentResult
+    , queryEventEmitted : Bool
     }
 
 
@@ -44,6 +49,12 @@ type alias BooklitDocument =
 type Msg
     = DocumentsFetched (Result Http.Error BooklitIndex)
     | SetQuery String
+    | EmitQueryEvent
+
+
+searchEmitInterval : Float
+searchEmitInterval =
+    500
 
 
 main : Program () Model Msg
@@ -52,7 +63,7 @@ main =
         { init = always init
         , update = update
         , view = view
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }
 
 
@@ -61,6 +72,7 @@ init =
     ( { docs = Dict.empty
       , query = ""
       , result = Dict.empty
+      , queryEventEmitted = False
       }
     , Cmd.batch
         [ Http.send DocumentsFetched <|
@@ -80,7 +92,26 @@ update msg model =
                 ( model, Cmd.none )
 
         SetQuery query ->
-            ( performSearch { model | query = String.toLower query }, Cmd.none )
+            let
+                updatedQuery =
+                    { model
+                        | query = String.toLower query
+                        , queryEventEmitted = False
+                    }
+            in
+            ( performSearch updatedQuery, Cmd.none )
+
+        EmitQueryEvent ->
+            if model.queryEventEmitted || String.length model.query < 2 then
+                ( model, Cmd.none )
+
+            else
+                ( { model | queryEventEmitted = True }, emitSearchTerm model.query )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Time.every searchEmitInterval (always EmitQueryEvent)
 
 
 performSearch : Model -> Model
