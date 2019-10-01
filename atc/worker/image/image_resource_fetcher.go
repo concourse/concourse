@@ -157,7 +157,7 @@ func (i *imageResourceFetcher) Fetch(
 	}
 
 	processSpec := runtime.ProcessSpec{
-		Path:         "/opt/resource/out",
+		Path:         "/opt/resource/in",
 		Args:         []string{resource.ResourcesDir("get")},
 		StdoutWriter: i.imageFetchingDelegate.Stdout(),
 		StderrWriter: i.imageFetchingDelegate.Stderr(),

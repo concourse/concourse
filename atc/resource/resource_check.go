@@ -2,14 +2,10 @@ package resource
 
 import (
 	"context"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/runtime"
 )
-
-type checkRequest struct {
-	Source  atc.Source  `json:"source"`
-	Version atc.Version `json:"version"`
-}
 
 func (resource *resource) Check(
 	ctx context.Context,
@@ -17,11 +13,15 @@ func (resource *resource) Check(
 	runnable runtime.Runnable) ([]atc.Version, error) {
 	var versions []atc.Version
 
-	err := runnable.RunScript(
+	inputArgs, err := resource.Signature()
+	if err != nil {
+		return versions, err
+	}
+	err = runnable.RunScript(
 		ctx,
 		spec.Path,
 		nil,
-		checkRequest{resource.source, resource.version},
+		inputArgs,
 		&versions,
 		nil,
 		false,

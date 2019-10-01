@@ -14,12 +14,17 @@ func (resource *resource) Put(
 ) (runtime.VersionResult, error) {
 	vr := &runtime.VersionResult{}
 
-	err := runnable.RunScript(
+	inputArgs, err := resource.Signature()
+	if err != nil {
+		return *vr, err
+	}
+
+	err = runnable.RunScript(
 		ctx,
 		spec.Path,
 		[]string{spec.Dir},
-		resource,
-		&vr,
+		inputArgs,
+		vr,
 		spec.StderrWriter,
 		true,
 	)

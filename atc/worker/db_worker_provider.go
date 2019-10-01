@@ -37,6 +37,7 @@ type dbWorkerProvider struct {
 func NewDBWorkerProvider(
 	lockFactory lock.LockFactory,
 	retryBackOffFactory retryhttp.BackOffFactory,
+	fetcher Fetcher,
 	imageFactory ImageFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
@@ -52,6 +53,7 @@ func NewDBWorkerProvider(
 	return &dbWorkerProvider{
 		lockFactory:                       lockFactory,
 		retryBackOffFactory:               retryBackOffFactory,
+		resourceFetcher:                   fetcher,
 		imageFactory:                      imageFactory,
 		dbResourceCacheFactory:            dbResourceCacheFactory,
 		dbResourceConfigFactory:           dbResourceConfigFactory,

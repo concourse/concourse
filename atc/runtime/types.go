@@ -72,7 +72,7 @@ type Runnable interface {
 		context.Context,
 		string,
 		[]string,
-		interface{},
+		[]byte,
 		interface{},
 		io.Writer,
 		bool,

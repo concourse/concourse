@@ -197,7 +197,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 
 	resourceDir := resource.ResourcesDir("get")
 	processSpec := runtime.ProcessSpec{
-		Path:         "/opt/resource/out",
+		Path:         "/opt/resource/in",
 		Args:         []string{resourceDir},
 		StdoutWriter: step.delegate.Stdout(),
 		StderrWriter: step.delegate.Stderr(),

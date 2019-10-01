@@ -13,11 +13,16 @@ func (resource *resource) Get(
 ) (runtime.VersionResult, error) {
 	var vr runtime.VersionResult
 
-	err := runnable.RunScript(
+	inputArgs, err := resource.Signature()
+	if err != nil {
+		return vr, err
+	}
+
+	err = runnable.RunScript(
 		ctx,
 		spec.Path,
-		[]string{spec.Dir},
-		resource,
+		spec.Args,
+		inputArgs,
 		&vr,
 		spec.StderrWriter,
 		true,

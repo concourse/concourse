@@ -20,6 +20,7 @@ var ErrMissingVolume = errors.New("volume mounted to container is missing")
 
 type Container interface {
 	gclient.Container
+	runtime.Runnable
 
 	Destroy() error
 
@@ -28,16 +29,6 @@ type Container interface {
 	WorkerName() string
 
 	MarkAsHijacked() error
-
-	RunScript(
-		context.Context,
-		string,
-		[]string,
-		interface{},
-		interface{},
-		io.Writer,
-		bool,
-	) error
 }
 
 type gardenWorkerContainer struct {
@@ -157,17 +148,11 @@ func (container *gardenWorkerContainer) RunScript(
 	ctx context.Context,
 	path string,
 	args []string,
-	input interface{},
+	input []byte,
 	output interface{},
 	logDest io.Writer,
 	recoverable bool,
 ) error {
-
-	request, err := json.Marshal(input)
-	if err != nil {
-		return err
-	}
-
 	if recoverable {
 		result, _ := container.Properties()
 		code := result[runtime.ResourceResultPropertyName]
@@ -180,7 +165,7 @@ func (container *gardenWorkerContainer) RunScript(
 	stderr := new(bytes.Buffer)
 
 	processIO := garden.ProcessIO{
-		Stdin:  bytes.NewBuffer(request),
+		Stdin:  bytes.NewBuffer(input),
 		Stdout: stdout,
 	}
 
@@ -191,6 +176,7 @@ func (container *gardenWorkerContainer) RunScript(
 	}
 
 	var process garden.Process
+	var err error
 
 	if recoverable {
 		process, err = container.Attach(ctx, runtime.ResourceProcessID, processIO)
