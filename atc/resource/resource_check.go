@@ -2,10 +2,14 @@ package resource
 
 import (
 	"context"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/runtime"
 )
+
+type checkRequest struct {
+	Source  atc.Source  `json:"source"`
+	Version atc.Version `json:"version"`
+}
 
 func (resource *resource) Check(
 	ctx context.Context,
@@ -17,7 +21,7 @@ func (resource *resource) Check(
 		ctx,
 		spec.Path,
 		nil,
-		resource,
+		checkRequest{resource.source, resource.version},
 		&versions,
 		nil,
 		false,
