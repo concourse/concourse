@@ -1,6 +1,8 @@
 port module Main exposing (main)
 
 import Browser
+import Browser.Dom as BD
+import Browser.Events as BE
 import Dict exposing (Dict)
 import Dict.Extra as DE
 import Html exposing (Html, div, text)
@@ -11,6 +13,7 @@ import Json.Decode as JD
 import Json.Decode.Extra as JDE exposing (andMap)
 import Maybe.Extra as ME
 import Query
+import Task
 import Time
 
 
@@ -50,6 +53,9 @@ type Msg
     = DocumentsFetched (Result Http.Error BooklitIndex)
     | SetQuery String
     | EmitQueryEvent
+    | KeyDown String
+    | SearchInputFocused (Result BD.Error ())
+    | SearchInputBlurred (Result BD.Error ())
 
 
 searchEmitInterval : Float
@@ -108,10 +114,34 @@ update msg model =
             else
                 ( { model | queryEventEmitted = True }, emitSearchTerm model.query )
 
+        KeyDown s ->
+            case s of
+                "/" ->
+                    ( model
+                    , Task.attempt SearchInputFocused <| BD.focus "search-input"
+                    )
+
+                "Escape" ->
+                    ( model
+                    , Task.attempt SearchInputBlurred <| BD.blur "search-input"
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        SearchInputFocused _ ->
+            ( model, Cmd.none )
+
+        SearchInputBlurred _ ->
+            ( model, Cmd.none )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every searchEmitInterval (always EmitQueryEvent)
+    Sub.batch
+        [ Time.every searchEmitInterval (always EmitQueryEvent)
+        , BE.onKeyDown <| JD.map KeyDown <| JD.field "key" JD.string
+        ]
 
 
 performSearch : Model -> Model
@@ -149,6 +179,7 @@ view model =
         [ Html.input
             [ HA.type_ "search"
             , HA.class "search-input"
+            , HA.id "search-input"
             , HE.onInput SetQuery
             , HA.placeholder "Search the docs…"
             , HA.required True
@@ -188,7 +219,7 @@ suggestedOrder a b =
 
 
 viewDocumentResult : Model -> DocumentResult -> Html Msg
-viewDocumentResult model { tag, result, doc } =
+viewDocumentResult model ({ tag, result, doc } as dr) =
     Html.li []
         [ Html.a [ HA.href doc.location ]
             [ Html.article []
