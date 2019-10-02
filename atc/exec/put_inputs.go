@@ -75,9 +75,9 @@ type putFooBarInput struct {
 	artifact runtime.Artifact
 }
 
-func (s *putFooBarInput) Artifact() runtime.Artifact { return s.artifact }
+func (s putFooBarInput) Artifact() runtime.Artifact { return s.artifact }
 
-func (s *putFooBarInput) DestinationPath() string {
+func (s putFooBarInput) DestinationPath() string {
 	return resource.ResourcesDir("put/" + string(s.name))
 }
 

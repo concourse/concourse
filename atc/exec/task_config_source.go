@@ -81,10 +81,6 @@ func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lag
 	if !found {
 		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.ConfigPath}
 	}
-	fmt.Println("================================= OMG task config source FetchConfig")
-	fmt.Printf("\n\n%#v\n\n", artifact)
-	fmt.Println(filePath)
-	fmt.Println("================================= OMG task config source FetchConfig2")
 	stream, err := configSource.Client.StreamFileFromArtifact(ctx, logger, artifact, filePath)
 	if err != nil {
 		if err == baggageclaim.ErrFileNotFound {

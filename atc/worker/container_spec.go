@@ -86,13 +86,26 @@ type ImageSpec struct {
 type ImageResource struct {
 	Type    string
 	Source  atc.Source
-	Params  *atc.Params
-	Version *atc.Version
+	Params  atc.Params
+	Version atc.Version
 }
 
 type ContainerLimits struct {
 	CPU    *uint64
 	Memory *uint64
+}
+
+type inputSource struct {
+	source ArtifactSource
+	path   string
+}
+
+func (src inputSource) Source() ArtifactSource {
+	return src.source
+}
+
+func (src inputSource) DestinationPath() string {
+	return src.path
 }
 
 var GardenLimitDefault = uint64(0)

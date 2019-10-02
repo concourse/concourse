@@ -3,7 +3,6 @@ package worker
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"time"
 
@@ -89,15 +88,9 @@ func (f *fetcher) Fetch(
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
 
-	//lockName, err := lockName(lockType)
-	//if err != nil {
-	//	return result, nil, err
-	//}
-	//
 	result, volume, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
-	if err != ErrFailedToGetLock {
-		fmt.Printf("=== fetcher->Fetch: got error but not ErrFailedToGetLock ==== err: %#v\n\n", err)
-		return result, nil, err
+	if err == nil || err != ErrFailedToGetLock {
+		return result, volume, err
 	}
 
 	for {
@@ -112,7 +105,6 @@ func (f *fetcher) Fetch(
 				return result, nil, err
 			}
 
-			fmt.Printf("=== fetcher->Fetch: got NO err\n")
 			return result, volume, nil
 
 		case <-ctx.Done():

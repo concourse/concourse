@@ -3,7 +3,6 @@ package worker
 import (
 	"context"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -173,6 +172,12 @@ func (client *client) RunTaskStep(
 	processSpec runtime.ProcessSpec,
 	events chan runtime.Event,
 ) TaskResult {
+	var err error
+	err = client.wireInputsAndCaches(logger, &containerSpec)
+	if err != nil {
+		return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
+	}
+
 	chosenWorker, err := client.chooseTaskWorker(
 		ctx,
 		logger,
@@ -301,8 +306,6 @@ func (client *client) RunGetStep(
 	strategy ContainerPlacementStrategy,
 	containerMetadata db.ContainerMetadata,
 	resourceTypes atc.VersionedResourceTypes,
-	//source atc.Source,
-	//params atc.Params,
 	resource resource.Resource,
 	resourceDir string,
 	delegate ImageFetchingDelegate,
@@ -324,14 +327,6 @@ func (client *client) RunGetStep(
 		return GetResult{}, err
 	}
 
-	// figure out the lockname earlier, because we have all the info
-	//lockType := resourceInstanceLockID{
-	//	Type:       containerSpec.ImageSpec.ResourceType,
-	//	Version:    cache.Version(),
-	//	Source:     resource.Source(),
-	//	Params:     resource.Params(),
-	//	WorkerName: chosenWorker.Name(),
-	//}
 	sign, err := resource.Signature()
 	lockName := lockName(sign, chosenWorker.Name())
 
@@ -339,7 +334,6 @@ func (client *client) RunGetStep(
 	//	EventType: runtime.StartingEvent,
 	//}
 
-	// start of dependency on resource -> worker
 	getResult, _, err := chosenWorker.Fetch(
 		ctx,
 		logger,
@@ -374,6 +368,7 @@ func (client *client) RunGetStep(
 	}
 	return getResult, nil
 }
+
 func (client *client) chooseTaskWorker(
 	ctx context.Context,
 	logger lager.Logger,
@@ -515,6 +510,10 @@ func (client *client) RunPutStep(
 ) PutResult {
 
 	vr := runtime.VersionResult{}
+	err := client.wireInputsAndCaches(logger, &containerSpec)
+	if err != nil {
+		return PutResult{Status: -1, VersionResult: vr, Err: err}
+	}
 
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
@@ -578,15 +577,44 @@ func (client *client) RunPutStep(
 	return result
 }
 
-func (client *client) StreamFileFromArtifact(ctx context.Context, logger lager.Logger, artifact runtime.Artifact, filePath string) (io.ReadCloser, error) {
-	var getArtifact runtime.GetArtifact
-	var ok bool
+func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSpec) error {
+	var inputs []InputSource
 
-	if getArtifact, ok = artifact.(runtime.GetArtifact); !ok {
-		return nil, errors.New("unrecognized task config artifact type")
+	for _, foobar := range spec.InputFooBars {
+		artifact := foobar.Artifact()
+
+		var (
+			artifactVolume Volume
+			found          bool
+			err            error
+		)
+		if _, ok := artifact.(*runtime.TaskCacheArtifact); ok {
+			// task caches may not have a volume, it will be discovered on
+			// the worker later. We do not stream task caches
+			artifactVolume = nil
+		} else {
+			artifactVolume, found, err = client.FindVolume(logger, spec.TeamID, artifact.ID())
+			if err != nil {
+				return err
+			}
+			if !found {
+				// TODO: if task cache artifact, there may not be a volume, so don't error out
+				return fmt.Errorf("volume not found for artifact id %v type %T", artifact.ID(), artifact)
+			}
+		}
+
+		source := NewArtifactSource(artifact, artifactVolume)
+
+		inputs = append(inputs, inputSource{source, foobar.DestinationPath()})
+
 	}
 
-	artifactVolume, found, err := client.FindVolume(logger, 0, getArtifact.ID())
+	spec.Inputs = inputs
+	return nil
+}
+
+func (client *client) StreamFileFromArtifact(ctx context.Context, logger lager.Logger, artifact runtime.Artifact, filePath string) (io.ReadCloser, error) {
+	artifactVolume, found, err := client.FindVolume(logger, 0, artifact.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -594,8 +622,8 @@ func (client *client) StreamFileFromArtifact(ctx context.Context, logger lager.L
 		return nil, baggageclaim.ErrVolumeNotFound
 	}
 
-	source := getArtifactSource{
-		artifact: getArtifact,
+	source := artifactSource{
+		artifact: artifact,
 		volume:   artifactVolume,
 	}
 	return source.StreamFile(ctx, logger, filePath)

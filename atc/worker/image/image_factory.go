@@ -63,7 +63,7 @@ func (f *imageFactory) GetImage(
 			w.ImageResource{
 				Type:   resourceType.Type,
 				Source: resourceType.Source,
-				Params: &resourceType.Params,
+				Params: resourceType.Params,
 			},
 			resourceType.Version,
 			teamID,
@@ -82,9 +82,7 @@ func (f *imageFactory) GetImage(
 
 	if imageSpec.ImageResource != nil {
 		var version atc.Version
-		if imageSpec.ImageResource.Version != nil {
-			version = *imageSpec.ImageResource.Version
-		}
+		version = imageSpec.ImageResource.Version
 
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
 			worker,

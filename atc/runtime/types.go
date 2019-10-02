@@ -63,7 +63,7 @@ type TaskArtifact struct {
 	VolumeHandle string
 }
 
-func (art *TaskArtifact) ID() string {
+func (art TaskArtifact) ID() string {
 	return art.VolumeHandle
 }
 

@@ -122,10 +122,7 @@ func (i *imageResourceFetcher) Fetch(
 		}
 	}
 
-	var params atc.Params
-	if i.imageResource.Params != nil {
-		params = *i.imageResource.Params
-	}
+	params := i.imageResource.Params
 
 	resourceCache, err := i.dbResourceCacheFactory.FindOrCreateResourceCache(
 		db.ForContainer(container.ID()),
@@ -315,7 +312,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
-	checkingResource := resource.NewResource(i.imageResource.Source, *i.imageResource.Params, *i.imageResource.Version)
+	checkingResource := resource.NewResource(i.imageResource.Source, i.imageResource.Params, i.imageResource.Version)
 	versions, err := checkingResource.Check(context.TODO(), processSpec, imageContainer)
 	if err != nil {
 		return nil, err

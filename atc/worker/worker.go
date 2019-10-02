@@ -511,6 +511,8 @@ func (worker *gardenWorker) createVolumes(
 		}
 	}
 
+	// we create COW volumes for task caches too, in case multiple builds
+	// are running the same task
 	cowMounts, err := worker.cloneLocalVolumes(
 		logger,
 		spec.TeamID,

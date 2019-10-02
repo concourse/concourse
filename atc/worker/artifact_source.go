@@ -3,7 +3,6 @@ package worker
 import (
 	"archive/tar"
 	"context"
-	"errors"
 	"io"
 
 	"github.com/DataDog/zstd"
@@ -35,63 +34,31 @@ type ArtifactSource interface {
 	VolumeOn(lager.Logger, Worker) (Volume, bool, error)
 }
 
-type getArtifactSource struct {
-	artifact runtime.GetArtifact
-	volume   Volume
-}
-
-func (source *getArtifactSource) StreamTo(ctx context.Context, logger lager.Logger, dest ArtifactDestination) error {
-	return streamToHelper(ctx, source.volume, logger, dest)
-}
-
-func (source *getArtifactSource) StreamFile(ctx context.Context, logger lager.Logger, path string) (io.ReadCloser, error) {
-	return streamFileHelper(ctx, source.volume, logger, path)
-}
-func (source *getArtifactSource) VolumeOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
-	return worker.LookupVolume(logger, source.artifact.ID())
-}
-
-type taskArtifactSource struct {
+type artifactSource struct {
 	artifact runtime.Artifact
 	volume   Volume
 }
 
-func (source *taskArtifactSource) StreamTo(ctx context.Context, logger lager.Logger, dest ArtifactDestination) error {
-	return streamToHelper(ctx, source.volume, logger, dest)
+func NewArtifactSource(artifact runtime.Artifact, volume Volume) ArtifactSource {
+	return &artifactSource{artifact: artifact, volume: volume}
 }
 
-func (source *taskArtifactSource) StreamFile(ctx context.Context, logger lager.Logger, path string) (io.ReadCloser, error) {
-	return streamFileHelper(ctx, source.volume, logger, path)
-}
-
-func (source *taskArtifactSource) VolumeOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
-	return worker.LookupVolume(logger, source.artifact.ID())
-}
-
-type taskCacheArtifactSource struct {
-	artifact runtime.Artifact
-	volume   Volume
-}
-
-//TODO: do we want these to be implemented?
+//TODO: do we want these to be implemented for task cache source?
 // It was not used before
-func (source *taskCacheArtifactSource) StreamTo(ctx context.Context, logger lager.Logger, dest ArtifactDestination) error {
+func (source *artifactSource) StreamTo(ctx context.Context, logger lager.Logger, dest ArtifactDestination) error {
 	return streamToHelper(ctx, source.volume, logger, dest)
 }
 
-func (source *taskCacheArtifactSource) StreamFile(ctx context.Context, logger lager.Logger, path string) (io.ReadCloser, error) {
+func (source *artifactSource) StreamFile(ctx context.Context, logger lager.Logger, path string) (io.ReadCloser, error) {
 	return streamFileHelper(ctx, source.volume, logger, path)
 }
 
-func (source *taskCacheArtifactSource) VolumeOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
-
-	if taskCacheArt, ok := source.artifact.(runtime.TaskCacheArtifact); ok {
-		return worker.FindVolumeForTaskCache(logger, taskCacheArt.TeamID, taskCacheArt.JobID, taskCacheArt.StepName, taskCacheArt.Path)
-	} else {
-		logger.Fatal("incorrect-artifact-type-for-TaskCacheArtifactSource", errors.New("ded"), nil)
-		panic(source.artifact)
+func (source *artifactSource) VolumeOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
+	if taskCacheArtifact, ok := source.artifact.(runtime.TaskCacheArtifact); ok {
+		return worker.FindVolumeForTaskCache(logger, taskCacheArtifact.TeamID, taskCacheArtifact.JobID, taskCacheArtifact.StepName, taskCacheArtifact.Path)
 	}
 
+	return worker.LookupVolume(logger, source.artifact.ID())
 }
 
 func streamToHelper(
@@ -102,6 +69,10 @@ func streamToHelper(
 	logger lager.Logger,
 	destination ArtifactDestination,
 ) error {
+	// TODO: doing this for the taskCache case
+	if s == nil {
+		return nil
+	}
 	logger.Debug("start")
 
 	defer logger.Debug("end")

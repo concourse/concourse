@@ -247,7 +247,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		//	return nil, err
 		//}
 
-		state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.Name), &getResult.GetArtifact)
+		state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.Name), getResult.GetArtifact)
 
 		if step.plan.Resource != "" {
 			step.delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
