@@ -284,58 +284,63 @@ handleDelivery delivery ( model, effects ) =
             )
 
         EventsReceived result ->
-            case result of
-                Ok envelopes ->
-                    case
-                        envelopes
-                            |> List.filterMap
-                                (\{ data } ->
-                                    case data of
-                                        STModels.BuildStatus status date ->
-                                            Just ( status, date )
-
-                                        _ ->
-                                            Nothing
+            Result.toMaybe result
+                |> Maybe.map
+                    (List.filter
+                        (.url
+                            >> String.endsWith
+                                ("/api/v1/builds/"
+                                    ++ String.fromInt model.id
+                                    ++ "/events"
                                 )
-                            |> List.Extra.last
-                    of
-                        Just ( status, date ) ->
-                            let
-                                newStatus =
-                                    if Concourse.BuildStatus.isRunning model.status then
-                                        status
+                        )
+                    )
+                |> Maybe.map
+                    (List.filterMap
+                        (\{ data } ->
+                            case data of
+                                STModels.BuildStatus status date ->
+                                    Just ( status, date )
 
-                                    else
-                                        model.status
-                            in
-                            ( { model
-                                | history =
-                                    List.Extra.updateIf (.id >> (==) model.id)
-                                        (\item -> { item | status = newStatus })
-                                        model.history
-                                , duration =
-                                    let
-                                        dur =
-                                            model.duration
-                                    in
-                                    { dur
-                                        | finishedAt =
-                                            if Concourse.BuildStatus.isRunning status then
-                                                dur.finishedAt
+                                _ ->
+                                    Nothing
+                        )
+                    )
+                |> Maybe.andThen List.Extra.last
+                |> Maybe.map
+                    (\( status, date ) ->
+                        let
+                            newStatus =
+                                if Concourse.BuildStatus.isRunning model.status then
+                                    status
 
-                                            else
-                                                Just date
-                                    }
-                                , status = newStatus
-                              }
-                            , effects
-                            )
+                                else
+                                    model.status
+                        in
+                        ( { model
+                            | history =
+                                List.Extra.updateIf (.id >> (==) model.id)
+                                    (\item -> { item | status = newStatus })
+                                    model.history
+                            , duration =
+                                let
+                                    dur =
+                                        model.duration
+                                in
+                                { dur
+                                    | finishedAt =
+                                        if Concourse.BuildStatus.isRunning status then
+                                            dur.finishedAt
 
-                        Nothing ->
-                            ( model, effects )
-
-                _ ->
-                    ( model, effects )
+                                        else
+                                            Just date
+                                }
+                            , status = newStatus
+                          }
+                        , effects
+                        )
+                    )
+                |> Maybe.withDefault ( model, effects )
 
         _ ->
             ( model, effects )

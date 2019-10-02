@@ -4,6 +4,7 @@ import Application.Models exposing (Session)
 import Build.Header.Header as Header
 import Build.Header.Models as Models
 import Build.Header.Views as Views
+import Build.StepTree.Models as STModels
 import Common
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -11,6 +12,7 @@ import Expect
 import HoverState
 import Message.Callback as Callback
 import Message.Effects as Effects
+import Message.Subscription as Subscription
 import RemoteData
 import ScreenSize
 import Set
@@ -97,6 +99,39 @@ all =
                         )
                     |> Tuple.second
                     |> Common.notContains (Effects.FetchBuildHistory jobId Nothing)
+        , test "status event from wrong build is discarded" <|
+            \_ ->
+                let
+                    jobId =
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , jobName = "job"
+                        }
+
+                    build =
+                        { id = 0
+                        , name = "4"
+                        , job = Just jobId
+                        , status = model.status
+                        , duration = model.duration
+                        , reapTime = Nothing
+                        }
+                in
+                ( model, [] )
+                    |> Header.handleCallback
+                        (Callback.BuildFetched <| Ok ( 0, build ))
+                    |> Header.handleDelivery
+                        (Subscription.EventsReceived <|
+                            Ok
+                                [ { data = STModels.BuildStatus BuildStatusStarted <| Time.millisToPosix 0
+                                  , url = "http://localhost:8080/api/v1/builds/1/events"
+                                  }
+                                ]
+                        )
+                    |> Tuple.first
+                    |> Header.header session
+                    |> .backgroundColor
+                    |> Expect.equal BuildStatusPending
         ]
 
 
