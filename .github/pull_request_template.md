@@ -12,6 +12,7 @@ Fixes # .
 
 # Why do we need this PR?
 > No issue number? Please give us a few lines of context describing the need for this PR.
+> Please review the [Anti-patterns page](https://github.com/concourse/concourse/wiki/Anti-Patterns) first.
 
 
 # Changes proposed in this pull request
@@ -22,7 +23,7 @@ Fixes # .
 *
 
 # Contributor Checklist
-> Are the following items included as part of this PR?
+> Are the following items included as part of this PR? Please delete checkbox items that don't apply.
 - [ ] Unit tests
 - [ ] Integration tests (if applicable)
 - [ ] Updated documentation (located at https://github.com/concourse/docs)
