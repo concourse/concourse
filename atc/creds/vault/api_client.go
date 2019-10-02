@@ -3,6 +3,7 @@ package vault
 import (
 	"fmt"
 	"path"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -20,6 +21,8 @@ type APIClient struct {
 	authConfig AuthConfig
 
 	clientValue *atomic.Value
+
+	renewable bool
 }
 
 // NewAPIClient with the associated authorization config and underlying vault client.
@@ -32,6 +35,8 @@ func NewAPIClient(logger lager.Logger, apiURL string, tlsConfig *vaultapi.TLSCon
 		authConfig: authConfig,
 
 		clientValue: &atomic.Value{},
+
+		renewable: true,
 	}
 
 	client, err := ac.baseClient()
@@ -120,12 +125,21 @@ func (ac *APIClient) Login() (time.Duration, error) {
 // construction. Must be called after a successful login. Returns a
 // duration after which renew must be called again.
 func (ac *APIClient) Renew() (time.Duration, error) {
+	if !ac.renewable {
+		return time.Second, nil
+	}
+
 	logger := ac.logger.Session("renew")
 
 	client := ac.client()
 
 	secret, err := client.Auth().Token().RenewSelf(0)
 	if err != nil {
+		// When tests with a Vault dev server, renew is not allowed.
+		if strings.Index(err.Error(), "lease is not renewable") > 0 {
+			ac.renewable = false
+			return time.Second, nil
+		}
 		logger.Error("failed", err)
 		return time.Second, err
 	}
