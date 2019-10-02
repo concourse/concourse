@@ -254,7 +254,7 @@ func populateTimeCells(startTime time.Time, endTime time.Time) (ui.TableCell, ui
 		durationCell.Contents = endTime.Sub(startTime).String()
 	}
 
-	if startTime == zeroTime && endTime == zeroTime {
+	if startTime == zeroTime {
 		durationCell.Contents = "n/a"
 	}
 
