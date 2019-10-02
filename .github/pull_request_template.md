@@ -1,3 +1,4 @@
+> Please remove all the lines starting with '>'
 > Hi there! Thanks for submitting a pull request to Concourse! 
 > If you haven't already, please take a look at our [Code of Conduct](https://github.com/concourse/concourse/blob/master/CODE_OF_CONDUCT.md) and our [Contributing Guide](https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md).
 > 
