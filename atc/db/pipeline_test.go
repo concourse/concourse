@@ -14,15 +14,19 @@ import (
 
 var _ = Describe("Pipeline", func() {
 	var (
-		pipeline       db.Pipeline
-		team           db.Team
-		pipelineConfig atc.Config
-		job            db.Job
+		pipeline        db.Pipeline
+		team            db.Team
+		destinationTeam db.Team
+		pipelineConfig  atc.Config
+		job             db.Job
 	)
 
 	BeforeEach(func() {
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
+		Expect(err).ToNot(HaveOccurred())
+
+		destinationTeam, err = teamFactory.CreateTeam(atc.Team{Name: "destination-team"})
 		Expect(err).ToNot(HaveOccurred())
 
 		pipelineConfig = atc.Config{
@@ -213,6 +217,19 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		It("renames the pipeline", func() {
+			pipeline, found, err := team.Pipeline("oopsies")
+			Expect(pipeline.Name()).To(Equal("oopsies"))
+			Expect(found).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	Describe("Move", func() {
+		JustBeforeEach(func() {
+			Expect(pipeline.Move("main", "dev")).To(Succeed())
+		})
+
+		It("moves the pipeline from source to destinamtion team", func() {
 			pipeline, found, err := team.Pipeline("oopsies")
 			Expect(pipeline.Name()).To(Equal("oopsies"))
 			Expect(found).To(BeTrue())
@@ -1099,6 +1116,69 @@ var _ = Describe("Pipeline", func() {
 		var resourceConfigScope db.ResourceConfigScope
 
 		It("removes the pipeline and all of its data", func() {
+			By("populating resources table")
+			resource, found, err := pipeline.Resource("some-resource")
+			Expect(found).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			By("populating resource versions")
+			err = resourceConfigScope.SaveVersions([]atc.Version{
+				{
+					"key": "value",
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			By("populating builds")
+			job, found, err := pipeline.Job("job-name")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("populating build inputs")
+			err = build.UseInputs([]db.BuildInput{
+				db.BuildInput{
+					Name:       "build-input",
+					ResourceID: resource.ID(),
+					Version:    atc.Version{"key": "value"},
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			By("populating build outputs")
+			err = build.SaveOutput("some-type", atc.Source{"some": "source"}, atc.VersionedResourceTypes{}, atc.Version{"key": "value"}, nil, "some-output-name", "some-resource")
+			Expect(err).ToNot(HaveOccurred())
+
+			By("populating build events")
+			err = build.SaveEvent(event.StartTask{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = pipeline.Destroy()
+			Expect(err).ToNot(HaveOccurred())
+
+			found, err = pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			found, err = build.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			_, found, err = team.Pipeline(pipeline.Name())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+	})
+
+	Describe("Move", func() {
+		var resourceConfigScope db.ResourceConfigScope
+
+		It("moves the pipeline to the specified team", func() {
 			By("populating resources table")
 			resource, found, err := pipeline.Resource("some-resource")
 			Expect(found).To(BeTrue())

@@ -653,6 +653,40 @@ func (p *pipeline) Rename(name string) error {
 	return err
 }
 
+func (p *pipeline) Move(sourceTeamName, destinationTeamName string) error {
+	destinationTeamID, err := psql.Select("id").
+		From("teams").
+		Where(sq.Eq{
+			"name": destinationTeamName,
+		}).
+		RunWith(p.conn).Query()
+
+	_, err = psql.Update("pipelines").
+		Set("team_id", destinationTeamID).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("builds").
+		Set("team_id", destinationTeamID).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (p *pipeline) Destroy() error {
 	_, err := psql.Delete("pipelines").
 		Where(sq.Eq{
