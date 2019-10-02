@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/yaml"
+
 	_ "github.com/lib/pq"
 
 	gclient "code.cloudfoundry.org/garden/client"
@@ -529,21 +531,30 @@ func VolumesByResourceType(name string) []string {
 }
 
 func WaitForDeploymentAndCompileLocks() {
+	cloudConfig := Start(nil, "bosh", "cloud-config")
+	<-cloudConfig.Exited
+	cc := struct {
+		Compilation struct {
+			Workers int
+		}
+	}{}
+	yaml.Unmarshal(cloudConfig.Out.Contents(), &cc)
+	numCompilationVms := cc.Compilation.Workers
 	for {
 		locks := Bosh("locks", "--column", "type", "--column", "resource", "--column", "task id")
-		shouldWait := false
+		isDeploymentLockClaimed := false
+		numCompileLocksClaimed := 0
 
 		for _, lock := range ParseTable(string(locks.Out.Contents())) {
 			if lock[0] == "deployment" && lock[1] == DeploymentName {
 				fmt.Fprintf(GinkgoWriter, "waiting for deployment lock (task id %s)...\n", lock[2])
-				shouldWait = true
+				isDeploymentLockClaimed = true
 			} else if lock[0] == "compile" {
-				fmt.Fprintf(GinkgoWriter, "waiting for compile lock (task id %s)...\n", lock[2])
-				shouldWait = true
+				numCompileLocksClaimed += 1
 			}
 		}
 
-		if shouldWait {
+		if isDeploymentLockClaimed || numCompileLocksClaimed >= numCompilationVms {
 			time.Sleep(5 * time.Second)
 		} else {
 			break
