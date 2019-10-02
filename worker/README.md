@@ -14,10 +14,16 @@
   ## about
 
   *worker* is the workhorse of Concourse. It's responsible for the creation
-  and deletion of the containers in which the pipeline tasks are executed.
+  and deletion of the containers in which the pipeline operations
+  (get, check, put, task) are executed.
 
-  A worker node registers with the web node and is then used for executing
-  builds and performing resource checks. It doesn't really decide much on its own.
+  A worker node registers with the web node(s) and is then used for executing
+  builds and performing resource checks.
+
+  The ATC component in the web node(s) decides how to allocate containers
+  to workers that have been registered in the pool, using the configured
+  container-placement-strategy. It also manages the container deletion on the workers
+  via database calls and the Garden API on the workers.
 
   A worker node runs the following 2 GO API's
 
