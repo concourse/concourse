@@ -688,6 +688,71 @@ var _ = Describe("ContainerRepository", func() {
 				Expect(result.RowsAffected()).To(Equal(int64(1)))
 			})
 		})
+
+		Context("when worker is in stalled state", func() {
+			BeforeEach(func() {
+				gracePeriod = 3 * time.Minute
+
+				_, err = psql.Insert("workers").SetMap(map[string]interface{}{
+					"name": "stalled-worker",
+					"state": "stalled",
+				}).RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = psql.Insert("workers").SetMap(map[string]interface{}{
+					"name": "not-stalled-worker",
+					"state": "running",
+				}).RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
+
+				// containers 2 & 3 are now eligible for deletion, but 3 is on a stalled worker
+				_, err = psql.Update("containers").
+					Set("missing_since", today.Add(-5 * time.Minute)).
+					Set("worker_name", "not-stalled-worker").
+					Where(sq.Eq{"handle": "some-handle-2"}).
+					RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = psql.Update("containers").
+					Set("worker_name", "stalled-worker").
+					Where(sq.Eq{"handle": "some-handle-3"}).
+					RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("deletes containers missing for more than grace period, on unstalled workers", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(rowsAffected).To(Equal(1))
+			})
+
+			It("does not delete containers on stalled workers", func() {
+				result, err := psql.Select("*").From("containers").
+					RunWith(dbConn).Exec()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(3)))
+
+				result, err = psql.Select("*").From("containers").
+					Where(sq.Eq{"handle": "some-handle-1"}).RunWith(dbConn).Exec()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+				result, err = psql.Select("*").From("containers").
+					Where(sq.Eq{"handle": "some-handle-2"}).RunWith(dbConn).Exec()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(0)))
+
+				result, err = psql.Select("*").From("containers").
+					Where(sq.Eq{"handle": "some-handle-3"}).RunWith(dbConn).Exec()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+				result, err = psql.Select("*").From("containers").
+					Where(sq.Eq{"handle": "some-handle-4"}).RunWith(dbConn).Exec()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+			})
+
+		})
 	})
 
 	Describe("RemoveDestroyingContainers", func() {

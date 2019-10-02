@@ -140,11 +140,19 @@ func (repository *containerRepository) FindDestroyingContainers(workerName strin
 }
 
 func (repository *containerRepository) RemoveMissingContainers(gracePeriod time.Duration) (int, error) {
+	stalledWorkers, err := stalledWorkerNames(repository.conn)
+	if err != nil {
+		return 0, err
+	}
+
 	result, err := psql.Delete("containers").
 		Where(
 			sq.And{
 				sq.Eq{
 					"state": []string{atc.ContainerStateCreated, atc.ContainerStateFailed},
+				},
+				sq.NotEq{
+					"worker_name": stalledWorkers,
 				},
 				sq.Gt{
 					"NOW() - missing_since": fmt.Sprintf("%.0f seconds", gracePeriod.Seconds()),
@@ -266,6 +274,26 @@ func (repository *containerRepository) FindOrphanedContainers() ([]CreatingConta
 	}
 
 	return creatingContainers, createdContainers, destroyingContainers, nil
+}
+
+func stalledWorkerNames(conn Conn) ([]string, error) {
+	var stalledWorkers []string
+	rows, err := psql.Select("name").Where(sq.Eq{"state": "stalled"}).From("workers").RunWith(conn).Query()
+	if err != nil {
+		return stalledWorkers, err
+	}
+	defer Close(rows)
+
+	for rows.Next() {
+		var workerName string
+		err = rows.Scan(&workerName)
+		if err != nil {
+			return []string{}, err
+		}
+
+		stalledWorkers = append(stalledWorkers, workerName)
+	}
+	return stalledWorkers, nil
 }
 
 func selectContainers(asOptional ...string) sq.SelectBuilder {
