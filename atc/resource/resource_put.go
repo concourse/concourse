@@ -10,7 +10,7 @@ import (
 func (resource *resource) Put(
 	ctx context.Context,
 	spec runtime.ProcessSpec,
-	runnable runtime.Runnable,
+	runnable runtime.Runner,
 ) (runtime.VersionResult, error) {
 	vr := &runtime.VersionResult{}
 

@@ -178,6 +178,12 @@ func (client *client) RunTaskStep(
 		return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
 	}
 
+	if containerSpec.ImageSpec.ImageArtifact != nil {
+		err = client.wireImageVolume(logger, &containerSpec.ImageSpec)
+		if err != nil {
+			return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
+		}
+	}
 	chosenWorker, err := client.chooseTaskWorker(
 		ctx,
 		logger,
@@ -588,28 +594,43 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 			found          bool
 			err            error
 		)
-		if _, ok := artifact.(*runtime.TaskCacheArtifact); ok {
+		if cache, ok := artifact.(*runtime.CacheArtifact); ok {
 			// task caches may not have a volume, it will be discovered on
 			// the worker later. We do not stream task caches
-			artifactVolume = nil
+			artifactSrc := NewCacheArtifactSource(*cache)
+			inputs = append(inputs, inputSource{artifactSrc, foobar.DestinationPath()})
 		} else {
 			artifactVolume, found, err = client.FindVolume(logger, spec.TeamID, artifact.ID())
 			if err != nil {
 				return err
 			}
 			if !found {
-				// TODO: if task cache artifact, there may not be a volume, so don't error out
 				return fmt.Errorf("volume not found for artifact id %v type %T", artifact.ID(), artifact)
 			}
+
+			source := NewStreamableArtifactSource(artifact, artifactVolume)
+			inputs = append(inputs, inputSource{source, foobar.DestinationPath()})
 		}
-
-		source := NewArtifactSource(artifact, artifactVolume)
-
-		inputs = append(inputs, inputSource{source, foobar.DestinationPath()})
-
 	}
 
 	spec.Inputs = inputs
+	return nil
+}
+
+func (client *client) wireImageVolume(logger lager.Logger, spec *ImageSpec) error {
+
+	imageArtifact := spec.ImageArtifact
+
+	artifactVolume, found, err := client.FindVolume(logger, 0, imageArtifact.ID())
+	if err != nil {
+		return err
+	}
+	if !found {
+		return fmt.Errorf("volume not found for artifact id %v type %T", imageArtifact.ID(), imageArtifact)
+	}
+
+	spec.ImageArtifactSource = NewStreamableArtifactSource(imageArtifact, artifactVolume)
+
 	return nil
 }
 

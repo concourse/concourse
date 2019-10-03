@@ -14,9 +14,19 @@ import (
 
 //go:generate counterfeiter . ArtifactSource
 
+type ArtifactSource interface {
+	// ExistsOn attempts to locate a volume equivalent to this source on the
+	// given worker. If a volume can be found, it will be used directly. If not,
+	// `StreamTo` will be used to copy the data to the destination instead.
+	ExistsOn(lager.Logger, Worker) (Volume, bool, error)
+}
+
+//go:generate counterfeiter . StreamableArtifactSource
+
 // Source represents data produced by the steps, that can be transferred to
 // other steps.
-type ArtifactSource interface {
+type StreamableArtifactSource interface {
+	ArtifactSource
 	// StreamTo copies the data from the source to the destination. Note that
 	// this potentially uses a lot of network transfer, for larger artifacts, as
 	// the ATC will effectively act as a middleman.
@@ -27,11 +37,6 @@ type ArtifactSource interface {
 	//
 	// If the file cannot be found, FileNotFoundError should be returned.
 	StreamFile(context.Context, lager.Logger, string) (io.ReadCloser, error)
-
-	// VolumeOn attempts to locate a volume equivalent to this source on the
-	// given worker. If a volume can be found, it will be used directly. If not,
-	// `StreamTo` will be used to copy the data to the destination instead.
-	VolumeOn(lager.Logger, Worker) (Volume, bool, error)
 }
 
 type artifactSource struct {
@@ -39,12 +44,10 @@ type artifactSource struct {
 	volume   Volume
 }
 
-func NewArtifactSource(artifact runtime.Artifact, volume Volume) ArtifactSource {
+func NewStreamableArtifactSource(artifact runtime.Artifact, volume Volume) StreamableArtifactSource {
 	return &artifactSource{artifact: artifact, volume: volume}
 }
 
-//TODO: do we want these to be implemented for task cache source?
-// It was not used before
 func (source *artifactSource) StreamTo(ctx context.Context, logger lager.Logger, dest ArtifactDestination) error {
 	return streamToHelper(ctx, source.volume, logger, dest)
 }
@@ -53,12 +56,20 @@ func (source *artifactSource) StreamFile(ctx context.Context, logger lager.Logge
 	return streamFileHelper(ctx, source.volume, logger, path)
 }
 
-func (source *artifactSource) VolumeOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
-	if taskCacheArtifact, ok := source.artifact.(runtime.TaskCacheArtifact); ok {
-		return worker.FindVolumeForTaskCache(logger, taskCacheArtifact.TeamID, taskCacheArtifact.JobID, taskCacheArtifact.StepName, taskCacheArtifact.Path)
-	}
-
+func (source *artifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
 	return worker.LookupVolume(logger, source.artifact.ID())
+}
+
+type cacheArtifactSource struct {
+	runtime.CacheArtifact
+}
+
+func NewCacheArtifactSource(artifact runtime.CacheArtifact) ArtifactSource {
+	return &cacheArtifactSource{artifact}
+}
+
+func (source *cacheArtifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
+	return worker.FindVolumeForTaskCache(logger, source.TeamID, source.JobID, source.StepName, source.Path)
 }
 
 func streamToHelper(
@@ -69,10 +80,6 @@ func streamToHelper(
 	logger lager.Logger,
 	destination ArtifactDestination,
 ) error {
-	// TODO: doing this for the taskCache case
-	if s == nil {
-		return nil
-	}
 	logger.Debug("start")
 
 	defer logger.Debug("end")

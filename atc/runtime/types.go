@@ -36,18 +36,19 @@ type GetRequest struct {
 	Source atc.Source `json:"source"`
 	Params atc.Params `json:"params,omitempty"`
 }
+
 type Artifact interface {
 	ID() string
 }
 
-type TaskCacheArtifact struct {
+type CacheArtifact struct {
 	TeamID   int
 	JobID    int
 	StepName string
 	Path     string
 }
 
-func (art TaskCacheArtifact) ID() string {
+func (art CacheArtifact) ID() string {
 	return fmt.Sprintf("%d, %d, %s, %s", art.TeamID, art.JobID, art.StepName, art.Path)
 }
 
@@ -67,7 +68,7 @@ func (art TaskArtifact) ID() string {
 	return art.VolumeHandle
 }
 
-type Runnable interface {
+type Runner interface {
 	RunScript(
 		context.Context,
 		string,

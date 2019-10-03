@@ -491,7 +491,7 @@ func (worker *gardenWorker) createVolumes(
 	nonlocalInputs := make([]mountableRemoteInput, 0)
 
 	for _, inputSource := range spec.Inputs {
-		inputSourceVolume, found, err := inputSource.Source().VolumeOn(logger, worker)
+		inputSourceVolume, found, err := inputSource.Source().ExistsOn(logger, worker)
 		if err != nil {
 			return nil, err
 		}
@@ -640,9 +640,11 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 		}
 
 		g.Go(func() error {
-			err = nonLocalInput.desiredArtifact.StreamTo(groupCtx, logger.Session("stream-to", destData), inputVolume)
-			if err != nil {
-				return err
+			if streamable, ok := nonLocalInput.desiredArtifact.(StreamableArtifactSource); ok {
+				err = streamable.StreamTo(groupCtx, logger.Session("stream-to", destData), inputVolume)
+				if err != nil {
+					return err
+				}
 			}
 
 			mounts[i] = VolumeMount{

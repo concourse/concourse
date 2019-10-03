@@ -116,7 +116,7 @@ func NewTaskStep(
 //
 // If the script exits successfully, the outputs specified in the TaskConfig
 // are registered with the artifact.Repository. If no outputs are specified, the
-// task's entire working directory is registered as an ArtifactSource under the
+// task's entire working directory is registered as an StreamableArtifactSource under the
 // name of the task.
 func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
@@ -325,7 +325,7 @@ func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Rep
 	}
 
 	for _, cacheConfig := range config.Caches {
-		cacheArt := &runtime.TaskCacheArtifact{
+		cacheArt := &runtime.CacheArtifact{
 			TeamID:   step.metadata.TeamID,
 			JobID:    step.metadata.JobID,
 			StepName: step.plan.Name,

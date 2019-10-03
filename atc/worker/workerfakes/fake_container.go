@@ -218,13 +218,13 @@ type FakeContainer struct {
 		result1 garden.Process
 		result2 error
 	}
-	RunScriptStub        func(context.Context, string, []string, interface{}, interface{}, io.Writer, bool) error
+	RunScriptStub        func(context.Context, string, []string, []byte, interface{}, io.Writer, bool) error
 	runScriptMutex       sync.RWMutex
 	runScriptArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
 		arg3 []string
-		arg4 interface{}
+		arg4 []byte
 		arg5 interface{}
 		arg6 io.Writer
 		arg7 bool
@@ -1303,11 +1303,16 @@ func (fake *FakeContainer) RunReturnsOnCall(i int, result1 garden.Process, resul
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) RunScript(arg1 context.Context, arg2 string, arg3 []string, arg4 interface{}, arg5 interface{}, arg6 io.Writer, arg7 bool) error {
+func (fake *FakeContainer) RunScript(arg1 context.Context, arg2 string, arg3 []string, arg4 []byte, arg5 interface{}, arg6 io.Writer, arg7 bool) error {
 	var arg3Copy []string
 	if arg3 != nil {
 		arg3Copy = make([]string, len(arg3))
 		copy(arg3Copy, arg3)
+	}
+	var arg4Copy []byte
+	if arg4 != nil {
+		arg4Copy = make([]byte, len(arg4))
+		copy(arg4Copy, arg4)
 	}
 	fake.runScriptMutex.Lock()
 	ret, specificReturn := fake.runScriptReturnsOnCall[len(fake.runScriptArgsForCall)]
@@ -1315,12 +1320,12 @@ func (fake *FakeContainer) RunScript(arg1 context.Context, arg2 string, arg3 []s
 		arg1 context.Context
 		arg2 string
 		arg3 []string
-		arg4 interface{}
+		arg4 []byte
 		arg5 interface{}
 		arg6 io.Writer
 		arg7 bool
-	}{arg1, arg2, arg3Copy, arg4, arg5, arg6, arg7})
-	fake.recordInvocation("RunScript", []interface{}{arg1, arg2, arg3Copy, arg4, arg5, arg6, arg7})
+	}{arg1, arg2, arg3Copy, arg4Copy, arg5, arg6, arg7})
+	fake.recordInvocation("RunScript", []interface{}{arg1, arg2, arg3Copy, arg4Copy, arg5, arg6, arg7})
 	fake.runScriptMutex.Unlock()
 	if fake.RunScriptStub != nil {
 		return fake.RunScriptStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
@@ -1338,13 +1343,13 @@ func (fake *FakeContainer) RunScriptCallCount() int {
 	return len(fake.runScriptArgsForCall)
 }
 
-func (fake *FakeContainer) RunScriptCalls(stub func(context.Context, string, []string, interface{}, interface{}, io.Writer, bool) error) {
+func (fake *FakeContainer) RunScriptCalls(stub func(context.Context, string, []string, []byte, interface{}, io.Writer, bool) error) {
 	fake.runScriptMutex.Lock()
 	defer fake.runScriptMutex.Unlock()
 	fake.RunScriptStub = stub
 }
 
-func (fake *FakeContainer) RunScriptArgsForCall(i int) (context.Context, string, []string, interface{}, interface{}, io.Writer, bool) {
+func (fake *FakeContainer) RunScriptArgsForCall(i int) (context.Context, string, []string, []byte, interface{}, io.Writer, bool) {
 	fake.runScriptMutex.RLock()
 	defer fake.runScriptMutex.RUnlock()
 	argsForCall := fake.runScriptArgsForCall[i]

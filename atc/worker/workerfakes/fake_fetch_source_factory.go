@@ -13,22 +13,20 @@ import (
 )
 
 type FakeFetchSourceFactory struct {
-	NewFetchSourceStub        func(lager.Logger, worker.Worker, atc.Source, atc.Params, db.ContainerOwner, string, db.UsedResourceCache, resource.Resource, atc.VersionedResourceTypes, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata, worker.ImageFetchingDelegate) worker.FetchSource
+	NewFetchSourceStub        func(lager.Logger, worker.Worker, db.ContainerOwner, string, db.UsedResourceCache, resource.Resource, atc.VersionedResourceTypes, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata, worker.ImageFetchingDelegate) worker.FetchSource
 	newFetchSourceMutex       sync.RWMutex
 	newFetchSourceArgsForCall []struct {
 		arg1  lager.Logger
 		arg2  worker.Worker
-		arg3  atc.Source
-		arg4  atc.Params
-		arg5  db.ContainerOwner
-		arg6  string
-		arg7  db.UsedResourceCache
-		arg8  resource.Resource
-		arg9  atc.VersionedResourceTypes
-		arg10 worker.ContainerSpec
-		arg11 runtime.ProcessSpec
-		arg12 db.ContainerMetadata
-		arg13 worker.ImageFetchingDelegate
+		arg3  db.ContainerOwner
+		arg4  string
+		arg5  db.UsedResourceCache
+		arg6  resource.Resource
+		arg7  atc.VersionedResourceTypes
+		arg8  worker.ContainerSpec
+		arg9  runtime.ProcessSpec
+		arg10 db.ContainerMetadata
+		arg11 worker.ImageFetchingDelegate
 	}
 	newFetchSourceReturns struct {
 		result1 worker.FetchSource
@@ -40,28 +38,26 @@ type FakeFetchSourceFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetchSourceFactory) NewFetchSource(arg1 lager.Logger, arg2 worker.Worker, arg3 atc.Source, arg4 atc.Params, arg5 db.ContainerOwner, arg6 string, arg7 db.UsedResourceCache, arg8 resource.Resource, arg9 atc.VersionedResourceTypes, arg10 worker.ContainerSpec, arg11 runtime.ProcessSpec, arg12 db.ContainerMetadata, arg13 worker.ImageFetchingDelegate) worker.FetchSource {
+func (fake *FakeFetchSourceFactory) NewFetchSource(arg1 lager.Logger, arg2 worker.Worker, arg3 db.ContainerOwner, arg4 string, arg5 db.UsedResourceCache, arg6 resource.Resource, arg7 atc.VersionedResourceTypes, arg8 worker.ContainerSpec, arg9 runtime.ProcessSpec, arg10 db.ContainerMetadata, arg11 worker.ImageFetchingDelegate) worker.FetchSource {
 	fake.newFetchSourceMutex.Lock()
 	ret, specificReturn := fake.newFetchSourceReturnsOnCall[len(fake.newFetchSourceArgsForCall)]
 	fake.newFetchSourceArgsForCall = append(fake.newFetchSourceArgsForCall, struct {
 		arg1  lager.Logger
 		arg2  worker.Worker
-		arg3  atc.Source
-		arg4  atc.Params
-		arg5  db.ContainerOwner
-		arg6  string
-		arg7  db.UsedResourceCache
-		arg8  resource.Resource
-		arg9  atc.VersionedResourceTypes
-		arg10 worker.ContainerSpec
-		arg11 runtime.ProcessSpec
-		arg12 db.ContainerMetadata
-		arg13 worker.ImageFetchingDelegate
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13})
-	fake.recordInvocation("NewFetchSource", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13})
+		arg3  db.ContainerOwner
+		arg4  string
+		arg5  db.UsedResourceCache
+		arg6  resource.Resource
+		arg7  atc.VersionedResourceTypes
+		arg8  worker.ContainerSpec
+		arg9  runtime.ProcessSpec
+		arg10 db.ContainerMetadata
+		arg11 worker.ImageFetchingDelegate
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11})
+	fake.recordInvocation("NewFetchSource", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11})
 	fake.newFetchSourceMutex.Unlock()
 	if fake.NewFetchSourceStub != nil {
-		return fake.NewFetchSourceStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13)
+		return fake.NewFetchSourceStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)
 	}
 	if specificReturn {
 		return ret.result1
@@ -76,17 +72,17 @@ func (fake *FakeFetchSourceFactory) NewFetchSourceCallCount() int {
 	return len(fake.newFetchSourceArgsForCall)
 }
 
-func (fake *FakeFetchSourceFactory) NewFetchSourceCalls(stub func(lager.Logger, worker.Worker, atc.Source, atc.Params, db.ContainerOwner, string, db.UsedResourceCache, resource.Resource, atc.VersionedResourceTypes, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata, worker.ImageFetchingDelegate) worker.FetchSource) {
+func (fake *FakeFetchSourceFactory) NewFetchSourceCalls(stub func(lager.Logger, worker.Worker, db.ContainerOwner, string, db.UsedResourceCache, resource.Resource, atc.VersionedResourceTypes, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata, worker.ImageFetchingDelegate) worker.FetchSource) {
 	fake.newFetchSourceMutex.Lock()
 	defer fake.newFetchSourceMutex.Unlock()
 	fake.NewFetchSourceStub = stub
 }
 
-func (fake *FakeFetchSourceFactory) NewFetchSourceArgsForCall(i int) (lager.Logger, worker.Worker, atc.Source, atc.Params, db.ContainerOwner, string, db.UsedResourceCache, resource.Resource, atc.VersionedResourceTypes, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata, worker.ImageFetchingDelegate) {
+func (fake *FakeFetchSourceFactory) NewFetchSourceArgsForCall(i int) (lager.Logger, worker.Worker, db.ContainerOwner, string, db.UsedResourceCache, resource.Resource, atc.VersionedResourceTypes, worker.ContainerSpec, runtime.ProcessSpec, db.ContainerMetadata, worker.ImageFetchingDelegate) {
 	fake.newFetchSourceMutex.RLock()
 	defer fake.newFetchSourceMutex.RUnlock()
 	argsForCall := fake.newFetchSourceArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8, argsForCall.arg9, argsForCall.arg10, argsForCall.arg11, argsForCall.arg12, argsForCall.arg13
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8, argsForCall.arg9, argsForCall.arg10, argsForCall.arg11
 }
 
 func (fake *FakeFetchSourceFactory) NewFetchSourceReturns(result1 worker.FetchSource) {

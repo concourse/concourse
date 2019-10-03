@@ -77,8 +77,7 @@ type ImageSpec struct {
 	ResourceType  string
 	ImageURL      string
 	ImageResource *ImageResource
-	// populate ImageArtifactSource if ImageArtifact is specified
-	ImageArtifactSource ArtifactSource
+	ImageArtifactSource StreamableArtifactSource
 	ImageArtifact       runtime.Artifact
 	Privileged          bool
 }

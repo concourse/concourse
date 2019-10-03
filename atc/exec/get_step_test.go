@@ -275,7 +275,7 @@ var _ = Describe("GetStep", func() {
 			})
 
 			Describe("the source registered with the repository", func() {
-				var artifactSource worker.ArtifactSource
+				var artifactSource worker.StreamableArtifactSource
 
 				JustBeforeEach(func() {
 					var found bool

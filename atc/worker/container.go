@@ -20,7 +20,7 @@ var ErrMissingVolume = errors.New("volume mounted to container is missing")
 
 type Container interface {
 	gclient.Container
-	runtime.Runnable
+	runtime.Runner
 
 	Destroy() error
 

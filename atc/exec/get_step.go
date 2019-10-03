@@ -90,7 +90,7 @@ func NewGetStep(
 	}
 }
 
-// Run ultimately registers the configured resource version's ArtifactSource
+// Run ultimately registers the configured resource version's StreamableArtifactSource
 // under the configured SourceName. How it actually does this is determined by
 // a few factors.
 //
@@ -109,9 +109,9 @@ func NewGetStep(
 // the fetch script works, Run will return nil regardless of its exit status.
 //
 // If the worker has a VolumeManager but did not have the cache initially, the
-// fetched ArtifactSource is initialized, thus warming the worker's cache.
+// fetched StreamableArtifactSource is initialized, thus warming the worker's cache.
 //
-// At the end, the resulting ArtifactSource (either from using the cache or
+// At the end, the resulting StreamableArtifactSource (either from using the cache or
 // fetching the resource) is registered under the step's SourceName.
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)

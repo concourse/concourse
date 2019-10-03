@@ -9,7 +9,7 @@ import (
 func (resource *resource) Get(
 	ctx context.Context,
 	spec runtime.ProcessSpec,
-	runnable runtime.Runnable,
+	runnable runtime.Runner,
 ) (runtime.VersionResult, error) {
 	var vr runtime.VersionResult
 

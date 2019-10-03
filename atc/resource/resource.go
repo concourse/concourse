@@ -13,9 +13,9 @@ import (
 //go:generate counterfeiter . Resource
 
 type Resource interface {
-	Get(context.Context, runtime.ProcessSpec, runtime.Runnable) (runtime.VersionResult, error)
-	Put(context.Context, runtime.ProcessSpec, runtime.Runnable) (runtime.VersionResult, error)
-	Check(context.Context, runtime.ProcessSpec, runtime.Runnable) ([]atc.Version, error)
+	Get(context.Context, runtime.ProcessSpec, runtime.Runner) (runtime.VersionResult, error)
+	Put(context.Context, runtime.ProcessSpec, runtime.Runner) (runtime.VersionResult, error)
+	Check(context.Context, runtime.ProcessSpec, runtime.Runner) ([]atc.Version, error)
 	Signature() ([]byte, error)
 }
 

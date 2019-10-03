@@ -82,5 +82,5 @@ func (s putFooBarInput) DestinationPath() string {
 }
 
 //func (source PutResourceSource) StreamTo(ctx context.Context, logger lager.Logger, dest worker.ArtifactDestination) error {
-//	return source.ArtifactSource.StreamTo(ctx, logger, dest)
+//	return source.StreamableArtifactSource.StreamTo(ctx, logger, dest)
 //}

@@ -824,9 +824,9 @@ var _ = Describe("TaskStep", func() {
 
 				Describe("the registered sources", func() {
 					var (
-						artifactSource1 worker.ArtifactSource
-						artifactSource2 worker.ArtifactSource
-						artifactSource3 worker.ArtifactSource
+						artifactSource1 worker.StreamableArtifactSource
+						artifactSource2 worker.StreamableArtifactSource
+						artifactSource3 worker.StreamableArtifactSource
 
 						fakeMountPath1 string = "some-artifact-root/some-output-configured-path/"
 						fakeMountPath2 string = "some-artifact-root/some-other-output/"

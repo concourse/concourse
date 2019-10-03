@@ -57,7 +57,7 @@ type FileConfigSource struct {
 // TaskConfig contained therein (expecting it to be YAML format).
 //
 // The path must be in the format SOURCE_NAME/FILE/PATH.yml. The SOURCE_NAME
-// will be used to determine the ArtifactSource in the artifact.Repository to
+// will be used to determine the StreamableArtifactSource in the artifact.Repository to
 // stream the file out of.
 //
 // If the source name is missing (i.e. if the path is just "foo.yml"),

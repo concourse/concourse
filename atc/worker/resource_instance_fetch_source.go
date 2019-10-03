@@ -221,19 +221,18 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Vo
 		return result, nil, err
 	}
 
-	// TODO this should happen get_step exec rather than here
-	// seems like core logic
-	//err = volume.InitializeResourceCache(s.resourceInstance.ResourceCache())
-	//if err != nil {
-	//	sLog.Error("failed-to-initialize-cache", err)
-	//	return nil, err
-	//}
-	//
-	//err = s.dbResourceCacheFactory.UpdateResourceCacheMetadata(s.resourceInstance.ResourceCache(), versionedSource.Metadata())
-	//if err != nil {
-	//	s.logger.Error("failed-to-update-resource-cache-metadata", err, lager.Data{"resource-cache": s.resourceInstance.ResourceCache()})
-	//	return nil, err
-	//}
+	// this initializes the worker resource cache, not the actual core resource cache
+	err = volume.InitializeResourceCache(s.cache)
+	if err != nil {
+		sLog.Error("failed-to-initialize-cache", err)
+		return result, nil, err
+	}
+
+	err = s.dbResourceCacheFactory.UpdateResourceCacheMetadata(s.cache, vr.Metadata)
+	if err != nil {
+		s.logger.Error("failed-to-update-resource-cache-metadata", err, lager.Data{"resource-cache": s.cache})
+		return result, nil, err
+	}
 
 	return GetResult{
 		VersionResult: vr,

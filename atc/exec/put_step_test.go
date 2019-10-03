@@ -198,7 +198,7 @@ var _ = Describe("PutStep", func() {
 			}))
 			Expect(strategy).To(Equal(fakeStrategy))
 
-			Expect([]worker.ArtifactSource{
+			Expect([]worker.StreamableArtifactSource{
 				actualContainerSpec.Inputs[0].Source(),
 				actualContainerSpec.Inputs[1].Source(),
 				actualContainerSpec.Inputs[2].Source(),
@@ -253,7 +253,7 @@ var _ = Describe("PutStep", func() {
 				It("calls RunPutStep with specified inputs", func() {
 					_, _, _, containerSpec, _, _, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 					Expect(containerSpec.Inputs).To(HaveLen(2))
-					Expect([]worker.ArtifactSource{
+					Expect([]worker.StreamableArtifactSource{
 						containerSpec.Inputs[0].Source(),
 						containerSpec.Inputs[1].Source(),
 					}).To(ConsistOf(
