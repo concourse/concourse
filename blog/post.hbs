@@ -13,6 +13,11 @@
   </section>
 
   <section class="post-comments">
+    <h2>Comments</h2>
+
+{{#is "preview"}}
+    (previewing post; comments are disabled)
+{{else}}
     <div id='discourse-comments'></div>
 
     <script type="text/javascript">
@@ -25,6 +30,7 @@
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(d);
       })();
     </script>
+{{/is}}
   </section>
 </article>
 
