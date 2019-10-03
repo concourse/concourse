@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/tedsuo/ifrit"
 )
@@ -24,6 +25,7 @@ func NewRunner(
 	task Task,
 	taskName string,
 	lockFactory lock.LockFactory,
+	componentFactory db.ComponentFactory,
 	clock clock.Clock,
 	interval time.Duration,
 ) ifrit.Runner {
@@ -37,6 +39,22 @@ func NewRunner(
 			select {
 			case <-ticker.C():
 				lockLogger := logger.Session("tick")
+
+				component, _, err := componentFactory.Find(taskName)
+				if err != nil {
+					lockLogger.Error("failed-to-find-component", err)
+					break
+				}
+
+				if component.Paused() {
+					lockLogger.Debug("component-is-paused", lager.Data{"name": taskName})
+					break
+				}
+
+				if !component.IntervalElapsed() {
+					lockLogger.Debug("component-interval-not-reached", lager.Data{"name": taskName, "last-ran": component.LastRan()})
+					break
+				}
 
 				lock, acquired, err := lockFactory.Acquire(lockLogger, lock.NewTaskLockID(taskName))
 				if err != nil {
@@ -53,6 +71,10 @@ func NewRunner(
 				err = task.Run(ctx)
 				if err != nil {
 					lockLogger.Error("failed-to-run-task", err, lager.Data{"task-name": taskName})
+				}
+
+				if err = component.UpdateLastRan(); err != nil {
+					lockLogger.Error("failed-to-update-last-ran", err)
 				}
 
 				err = lock.Release()

@@ -793,6 +793,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+	componentFactory := db.NewComponentFactory(dbConn)
 
 	bus := dbConn.Bus()
 
@@ -801,6 +802,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			Syncer: cmd.constructPipelineSyncer(
 				logger.Session("pipelines"),
 				dbPipelineFactory,
+				componentFactory,
 				radarSchedulerFactory,
 				secretManager,
 				bus,
@@ -808,19 +810,20 @@ func (cmd *RunCommand) constructBackendMembers(
 			Interval: 10 * time.Second,
 			Clock:    clock.NewClock(),
 		}},
-		{Name: "builds", Runner: builds.TrackerRunner{
+		{Name: atc.ComponentBuildTracker, Runner: builds.TrackerRunner{
 			Tracker: builds.NewTracker(
-				logger.Session("build-tracker"),
+				logger.Session(atc.ComponentBuildTracker),
 				dbBuildFactory,
 				engine,
 			),
-			Notifications: bus,
-			Interval:      cmd.BuildTrackerInterval,
-			Clock:         clock.NewClock(),
-			Logger:        logger.Session("tracker-runner"),
+			Notifications:    bus,
+			Interval:         cmd.BuildTrackerInterval,
+			Clock:            clock.NewClock(),
+			Logger:           logger.Session("tracker-runner"),
+			ComponentFactory: componentFactory,
 		}},
-		{Name: "collector", Runner: lockrunner.NewRunner(
-			logger.Session("collector"),
+		{Name: atc.ComponentCollector, Runner: lockrunner.NewRunner(
+			logger.Session(atc.ComponentCollector),
 			gc.NewCollector(
 				gc.NewBuildCollector(dbBuildFactory),
 				gc.NewWorkerCollector(dbWorkerLifecycle),
@@ -849,14 +852,15 @@ func (cmd *RunCommand) constructBackendMembers(
 					resourceConfigCheckSessionLifecycle,
 				),
 			),
-			"collector",
+			atc.ComponentCollector,
 			lockFactory,
+			componentFactory,
 			clock.NewClock(),
 			cmd.GC.Interval,
 		)},
 		// run separately so as to not preempt critical GC
-		{Name: "build-log-collector", Runner: lockrunner.NewRunner(
-			logger.Session("build-log-collector"),
+		{Name: atc.ComponentBuildReaper, Runner: lockrunner.NewRunner(
+			logger.Session(atc.ComponentBuildReaper),
 			gc.NewBuildLogCollector(
 				dbPipelineFactory,
 				500,
@@ -868,8 +872,9 @@ func (cmd *RunCommand) constructBackendMembers(
 				),
 				syslogDrainConfigured,
 			),
-			"build-reaper",
+			atc.ComponentBuildReaper,
 			lockFactory,
+			componentFactory,
 			clock.NewClock(),
 			30*time.Second,
 		)},
@@ -882,7 +887,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			logger.Session("lidar"),
 			clock.NewClock(),
 			lidar.NewScanner(
-				logger.Session("lidar-scanner"),
+				logger.Session(atc.ComponentLidarScanner),
 				dbCheckFactory,
 				secretManager,
 				cmd.GlobalResourceCheckTimeout,
@@ -890,24 +895,26 @@ func (cmd *RunCommand) constructBackendMembers(
 			),
 			cmd.LidarScannerInterval,
 			lidar.NewChecker(
-				logger.Session("lidar-checker"),
+				logger.Session(atc.ComponentLidarChecker),
 				dbCheckFactory,
 				engine,
 			),
 			cmd.LidarCheckerInterval,
 			bus,
+			componentFactory,
 		)
 	} else {
 		lidarRunner = lidar.NewCheckerRunner(
 			logger.Session("lidar"),
 			clock.NewClock(),
 			lidar.NewChecker(
-				logger.Session("lidar-checker"),
+				logger.Session(atc.ComponentLidarChecker),
 				dbCheckFactory,
 				engine,
 			),
 			cmd.LidarCheckerInterval,
 			bus,
+			componentFactory,
 		)
 	}
 
@@ -917,9 +924,8 @@ func (cmd *RunCommand) constructBackendMembers(
 
 	if syslogDrainConfigured {
 		members = append(members, grouper.Member{
-			Name: "syslog", Runner: lockrunner.NewRunner(
-				logger.Session("syslog"),
-
+			Name: atc.ComponentSyslogDrainer, Runner: lockrunner.NewRunner(
+				logger.Session(atc.ComponentSyslogDrainer),
 				syslog.NewDrainer(
 					cmd.Syslog.Transport,
 					cmd.Syslog.Address,
@@ -927,8 +933,9 @@ func (cmd *RunCommand) constructBackendMembers(
 					cmd.Syslog.CACerts,
 					dbBuildFactory,
 				),
-				"syslog-drainer",
+				atc.ComponentSyslogDrainer,
 				lockFactory,
+				componentFactory,
 				clock.NewClock(),
 				cmd.Syslog.DrainInterval,
 			)},
@@ -1470,6 +1477,7 @@ func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (cmd *RunCommand) constructPipelineSyncer(
 	logger lager.Logger,
 	pipelineFactory db.PipelineFactory,
+	componentFactory db.ComponentFactory,
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	secretManager creds.Secrets,
 	bus db.NotificationsBus,
@@ -1477,6 +1485,7 @@ func (cmd *RunCommand) constructPipelineSyncer(
 	return pipelines.NewSyncer(
 		logger,
 		pipelineFactory,
+		componentFactory,
 		func(pipeline db.Pipeline) ifrit.Runner {
 			variables := creds.NewVariables(secretManager, pipeline.TeamName(), pipeline.Name())
 			return grouper.NewParallel(os.Interrupt, grouper.Members{

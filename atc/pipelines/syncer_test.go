@@ -20,6 +20,7 @@ var _ = Describe("Pipelines Syncer", func() {
 		pipeline2             *dbfakes.FakePipeline
 		pipeline3             *dbfakes.FakePipeline
 		pipelineFactory       *dbfakes.FakePipelineFactory
+		componentFactory      *dbfakes.FakeComponentFactory
 		pipelineRunnerFactory PipelineRunnerFactory
 
 		fakeRunner         *fake_runner.FakeRunner
@@ -31,6 +32,7 @@ var _ = Describe("Pipelines Syncer", func() {
 
 	BeforeEach(func() {
 		pipelineFactory = new(dbfakes.FakePipelineFactory)
+		componentFactory = new(dbfakes.FakeComponentFactory)
 		pipeline1 = new(dbfakes.FakePipeline)
 		pipeline2 = new(dbfakes.FakePipeline)
 		pipeline3 = new(dbfakes.FakePipeline)
@@ -70,6 +72,7 @@ var _ = Describe("Pipelines Syncer", func() {
 		syncer = NewSyncer(
 			lagertest.NewTestLogger("test"),
 			pipelineFactory,
+			componentFactory,
 			pipelineRunnerFactory,
 		)
 	})
