@@ -12,7 +12,6 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 )
@@ -33,10 +32,8 @@ type Fetcher interface {
 		containerSpec ContainerSpec,
 		processSpec runtime.ProcessSpec,
 		resource resource.Resource,
-		resourceTypes atc.VersionedResourceTypes,
 		owner db.ContainerOwner,
-		resourceDir string,
-		imageFetchingDelegate ImageFetchingDelegate,
+		imageFetcherSpec ImageFetcherSpec,
 		cache db.UsedResourceCache,
 		lockName string,
 	) (GetResult, Volume, error)
@@ -68,27 +65,25 @@ func (f *fetcher) Fetch(
 	containerSpec ContainerSpec,
 	processSpec runtime.ProcessSpec,
 	resource resource.Resource,
-	resourceTypes atc.VersionedResourceTypes,
 	owner db.ContainerOwner,
-	resourceDir string,
-	imageFetchingDelegate ImageFetchingDelegate,
+	imageFetcherSpec ImageFetcherSpec,
 	cache db.UsedResourceCache,
 	lockName string,
 ) (GetResult, Volume, error) {
 	result := GetResult{}
 	var volume Volume
 	containerSpec.Outputs = map[string]string{
-		"resource": resourceDir,
+		"resource": processSpec.Dir,
 	}
 
 	fetchSource := f.fetchSourceFactory.NewFetchSource(logger, gardenWorker, owner,
-		resourceDir, cache, resource, resourceTypes, containerSpec, processSpec,
-		containerMetadata, imageFetchingDelegate)
+		cache, resource, imageFetcherSpec.ResourceTypes, containerSpec, processSpec,
+		containerMetadata, imageFetcherSpec.Delegate)
 
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
 
-	result, volume, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
+	result, volume, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetcherSpec.Delegate.Stdout(), cache, lockName)
 	if err == nil || err != ErrFailedToGetLock {
 		return result, volume, err
 	}
@@ -97,7 +92,7 @@ func (f *fetcher) Fetch(
 		select {
 		case <-ticker.C():
 			//TODO this is called redundantly?
-			result, volume, err = f.fetchWithLock(ctx, logger, fetchSource, imageFetchingDelegate.Stdout(), cache, lockName)
+			result, volume, err = f.fetchWithLock(ctx, logger, fetchSource, imageFetcherSpec.Delegate.Stdout(), cache, lockName)
 			if err != nil {
 				if err == ErrFailedToGetLock {
 					break

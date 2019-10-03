@@ -201,28 +201,14 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		ResourceTypes: resourceTypes,
 		Delegate:      step.delegate,
 	}
+
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	events := make(chan runtime.Event, 1)
-	go func(logger lager.Logger, config atc.TaskConfig, events chan runtime.Event, delegate TaskDelegate) {
-		for ev := range events {
-			switch ev.EventType {
-			case runtime.InitializingEvent:
-				step.delegate.Initializing(logger, config)
-
-			case runtime.StartingEvent:
-				step.delegate.Starting(logger, config)
-
-			case runtime.FinishedEvent:
-				step.delegate.Finished(logger, ExitStatus(ev.ExitStatus))
-			}
-		}
-	}(logger, config, events, step.delegate)
+	step.delegate.Starting(logger, config)
 
 	result := step.workerClient.RunTaskStep(
 		ctx,
 		logger,
-		step.lockFactory,
 		owner,
 		containerSpec,
 		workerSpec,
@@ -230,10 +216,8 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		imageSpec,
 		processSpec,
-		events,
+		step.lockFactory,
 	)
-
-	close(events)
 
 	err = result.Err
 	if err != nil {

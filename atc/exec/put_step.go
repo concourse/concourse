@@ -85,7 +85,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	//step.delegate.Initializing(logger)
+	step.delegate.Initializing(logger)
 
 	variables := step.delegate.Variables()
 
@@ -154,68 +154,36 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		Delegate:      step.delegate,
 	}
 
-	events := make(chan runtime.Event, 1)
-	go func(logger lager.Logger, events chan runtime.Event, delegate PutDelegate) {
-		for {
-			ev := <-events
-			switch {
-			case ev.EventType == runtime.InitializingEvent:
-				step.delegate.Initializing(logger)
-
-			case ev.EventType == runtime.StartingEvent:
-				step.delegate.Starting(logger)
-
-			default:
-				return
-			}
-		}
-	}(logger, events, step.delegate)
-
-	// TODO: this might be duplicate. check if client ever calls Initializing?
-	step.delegate.Initializing(logger)
-
 	resourceDir := resource.ResourcesDir("put")
 
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/out",
 		Args:         []string{resourceDir},
+		Dir:          resourceDir,
 		StdoutWriter: step.delegate.Stdout(),
 		StderrWriter: step.delegate.Stderr(),
 	}
 
 	res := resource.NewResource(source, params, nil)
+
+	step.delegate.Starting(logger)
+
 	result := step.workerClient.RunPutStep(
 		ctx,
 		logger,
 		owner,
 		containerSpec,
 		workerSpec,
-		source,
-		params,
-		res,
 		step.strategy,
 		step.containerMetadata,
 		imageSpec,
-		resourceDir,
 		processSpec,
-		events,
+		res,
 	)
 
 	versionResult := result.VersionResult
 	err = result.Err
 
-	//	TODO: Add in code to actually use the resource interface. Example here:
-	//putResource := step.resourceFactory.NewResourceForContainer(container)
-	//versionResult, err := putResource.Put(
-	//	ctx,
-	//	resource.IOConfig{
-	//		Stdout: step.delegate.Stdout(),
-	//		Stderr: step.delegate.Stderr(),
-	//	},
-	//	source,
-	//	params,
-	//)
-	//
 	if err != nil {
 		logger.Error("failed-to-put-resource", err)
 
@@ -235,7 +203,6 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 
 	step.succeeded = true
 
-	// TODO This should happen in client.RuntGetStep itself similar to TaskStep
 	step.delegate.Finished(logger, 0, versionResult)
 
 	return nil

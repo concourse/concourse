@@ -30,7 +30,6 @@ type FetchSourceFactory interface {
 		logger lager.Logger,
 		worker Worker,
 		owner db.ContainerOwner,
-		resourceDir string,
 		cache db.UsedResourceCache,
 		resource resource.Resource,
 		resourceTypes atc.VersionedResourceTypes,
@@ -57,7 +56,6 @@ func (r *fetchSourceFactory) NewFetchSource(
 	logger lager.Logger,
 	worker Worker,
 	owner db.ContainerOwner,
-	resourceDir string,
 	cache db.UsedResourceCache,
 	resource resource.Resource,
 	resourceTypes atc.VersionedResourceTypes,
@@ -70,7 +68,6 @@ func (r *fetchSourceFactory) NewFetchSource(
 		logger:                 logger,
 		worker:                 worker,
 		owner:                  owner,
-		resourceDir:            resourceDir,
 		cache:                  cache,
 		resource:               resource,
 		resourceTypes:          resourceTypes,
@@ -86,7 +83,6 @@ type resourceInstanceFetchSource struct {
 	logger                 lager.Logger
 	worker                 Worker
 	owner                  db.ContainerOwner
-	resourceDir            string
 	cache                  db.UsedResourceCache
 	resource               resource.Resource
 	resourceTypes          atc.VersionedResourceTypes
@@ -189,7 +185,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Vo
 		return result, volume, err
 	}
 
-	mountPath := s.resourceDir
+	mountPath := s.processSpec.Dir
 	for _, mount := range container.VolumeMounts() {
 		if mount.MountPath == mountPath {
 			volume = mount.Volume

@@ -16,12 +16,6 @@ const (
 	ResourceProcessID          = "resource"
 )
 
-type Event struct {
-	EventType     string
-	ExitStatus    int
-	VersionResult VersionResult
-}
-
 type VersionResult struct {
 	Version  atc.Version         `json:"version"`
 	Metadata []atc.MetadataField `json:"metadata,omitempty"`

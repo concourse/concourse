@@ -90,29 +90,6 @@ func NewGetStep(
 	}
 }
 
-// Run ultimately registers the configured resource version's StreamableArtifactSource
-// under the configured SourceName. How it actually does this is determined by
-// a few factors.
-//
-// First, a worker that supports the given resource type is chosen, and a
-// container is created on the worker.
-//
-// If the worker has a VolumeManager, and its cache is already warmed, the
-// cache will be mounted into the container, and no fetching will be performed.
-// The container will be used to stream the contents of the cache to later
-// steps that require the artifact but are running on a worker that does not
-// have the cache.
-//
-// If the worker does not have a VolumeManager, or if the worker does have a
-// VolumeManager but a cache for the version of the resource is not present,
-// the specified version of the resource will be fetched. As long as running
-// the fetch script works, Run will return nil regardless of its exit status.
-//
-// If the worker has a VolumeManager but did not have the cache initially, the
-// fetched StreamableArtifactSource is initialized, thus warming the worker's cache.
-//
-// At the end, the resulting StreamableArtifactSource (either from using the cache or
-// fetching the resource) is registered under the step's SourceName.
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("get-step", lager.Data{
@@ -159,6 +136,11 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		ResourceTypes: resourceTypes,
 	}
 
+	imageSpec := worker.ImageFetcherSpec{
+		ResourceTypes: resourceTypes,
+		Delegate:      step.delegate,
+	}
+
 	resourceCache, err := step.resourceCacheFactory.FindOrCreateResourceCache(
 		db.ForBuild(step.metadata.BuildID),
 		step.plan.Type,
@@ -172,33 +154,11 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	// TODO containerOwner accepts workerName and this should be extracted out
-	// Stuff above is all part of Concourse CORE
-
-	events := make(chan runtime.Event, 1)
-	go func(logger lager.Logger, events chan runtime.Event, delegate GetDelegate) {
-		for {
-			ev := <-events
-			switch {
-			case ev.EventType == runtime.InitializingEvent:
-				step.delegate.Initializing(logger)
-
-			case ev.EventType == runtime.StartingEvent:
-				step.delegate.Starting(logger)
-
-			case ev.EventType == runtime.FinishedEvent:
-				step.delegate.Finished(logger, ExitStatus(ev.ExitStatus), ev.VersionResult)
-
-			default:
-				return
-			}
-		}
-	}(logger, events, step.delegate)
-
 	resourceDir := resource.ResourcesDir("get")
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/in",
 		Args:         []string{resourceDir},
+		Dir:          resourceDir,
 		StdoutWriter: step.delegate.Stdout(),
 		StderrWriter: step.delegate.Stderr(),
 	}
@@ -209,7 +169,8 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		version,
 	)
 
-	// start of workerClient.RunGetStep?
+	step.delegate.Starting(logger)
+
 	getResult, err := step.workerClient.RunGetStep(
 		ctx,
 		logger,
@@ -218,15 +179,10 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		workerSpec,
 		step.strategy,
 		step.containerMetadata,
-		resourceTypes,
-		//source,
-		//params,
-		res,
-		resourceDir,
-		step.delegate,
-		resourceCache,
+		imageSpec,
 		processSpec,
-		events,
+		resourceCache,
+		res,
 	)
 
 	if err != nil {
@@ -234,19 +190,6 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	if getResult.Status == 0 {
-		// TODO move all the state changing logic from resourceInstnanceFetchSource.Create to here
-		//err = volume.InitializeResourceCache(s.resourceInstance.ResourceCache())
-		//if err != nil {
-		//	sLog.Error("failed-to-initialize-cache", err)
-		//	return nil, err
-		//}
-		//
-		//err = s.dbResourceCacheFactory.UpdateResourceCacheMetadata(s.resourceInstance.ResourceCache(), versionedSource.Metadata())
-		//if err != nil {
-		//	s.logger.Error("failed-to-update-resource-cache-metadata", err, lager.Data{"resource-cache": s.resourceInstance.ResourceCache()})
-		//	return nil, err
-		//}
-
 		state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.Name), getResult.GetArtifact)
 
 		if step.plan.Resource != "" {

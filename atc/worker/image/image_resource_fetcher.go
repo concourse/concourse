@@ -3,6 +3,7 @@ package image
 import (
 	"archive/tar"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -165,6 +166,17 @@ func (i *imageResourceFetcher) Fetch(
 		version,
 	)
 
+	sign, err := res.Signature()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	lockName := lockName(sign, i.worker.Name())
+	imageFetcherSpec := worker.ImageFetcherSpec{
+		ResourceTypes: i.customTypes,
+		Delegate:      i.imageFetchingDelegate,
+	}
+
 	_, volume, err := i.resourceFetcher.Fetch(
 		ctx,
 		logger.Session("init-image"),
@@ -173,13 +185,10 @@ func (i *imageResourceFetcher) Fetch(
 		containerSpec,
 		processSpec,
 		res,
-		i.customTypes,
 		db.NewImageGetContainerOwner(container, i.teamID),
-		resource.ResourcesDir("get"),
-		i.imageFetchingDelegate,
+		imageFetcherSpec,
 		resourceCache,
-		// TODO: whats the lock name here???
-		"TODO",
+		lockName,
 	)
 
 	if err != nil {
@@ -345,4 +354,9 @@ func (frc fileReadMultiCloser) Close() error {
 	}
 
 	return closeErrors
+}
+
+func lockName(resourceJson []byte, workerName string) string {
+	jsonRes := append(resourceJson, []byte(workerName)...)
+	return fmt.Sprintf("%x", sha256.Sum256(jsonRes))
 }

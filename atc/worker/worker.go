@@ -58,19 +58,17 @@ type Worker interface {
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
 	Fetch(
-		ctx context.Context,
-		logger lager.Logger,
-		containerMetadata db.ContainerMetadata,
-		gardenWorker Worker,
-		containerSpec ContainerSpec,
-		processSpec runtime.ProcessSpec,
-		resource resource.Resource,
-		resourceTypes atc.VersionedResourceTypes,
-		owner db.ContainerOwner,
-		resourceDir string,
-		imageFetchingDelegate ImageFetchingDelegate,
-		cache db.UsedResourceCache,
-		lockName string,
+		context.Context,
+		lager.Logger,
+		db.ContainerMetadata,
+		Worker,
+		ContainerSpec,
+		runtime.ProcessSpec,
+		resource.Resource,
+		db.ContainerOwner,
+		ImageFetcherSpec,
+		db.UsedResourceCache,
+		string,
 	) (GetResult, Volume, error)
 
 	CertsVolume(lager.Logger) (volume Volume, found bool, err error)
@@ -202,11 +200,9 @@ func (worker *gardenWorker) Fetch(
 	containerSpec ContainerSpec,
 	processSpec runtime.ProcessSpec,
 	resource resource.Resource,
-	resourceTypes atc.VersionedResourceTypes,
 	owner db.ContainerOwner,
-	resourceDir string,
-	imageFetchingDelegate ImageFetchingDelegate,
-	cache db.UsedResourceCache,
+	imageFetcherSpec ImageFetcherSpec,
+	resourceCache db.UsedResourceCache,
 	lockName string,
 ) (GetResult, Volume, error) {
 	return worker.fetcher.Fetch(
@@ -217,11 +213,9 @@ func (worker *gardenWorker) Fetch(
 		containerSpec,
 		processSpec,
 		resource,
-		resourceTypes,
 		owner,
-		resourceDir,
-		imageFetchingDelegate,
-		cache,
+		imageFetcherSpec,
+		resourceCache,
 		lockName,
 	)
 }

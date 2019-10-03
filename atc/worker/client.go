@@ -30,10 +30,11 @@ type Client interface {
 	FindContainer(logger lager.Logger, teamID int, handle string) (Container, bool, error)
 	FindVolume(logger lager.Logger, teamID int, handle string) (Volume, bool, error)
 	CreateVolume(logger lager.Logger, vSpec VolumeSpec, wSpec WorkerSpec, volumeType db.VolumeType) (Volume, error)
+	StreamFileFromArtifact(ctx context.Context, logger lager.Logger, artifact runtime.Artifact, filePath string) (io.ReadCloser, error)
+
 	RunTaskStep(
 		context.Context,
 		lager.Logger,
-		lock.LockFactory,
 		db.ContainerOwner,
 		ContainerSpec,
 		WorkerSpec,
@@ -41,7 +42,7 @@ type Client interface {
 		db.ContainerMetadata,
 		ImageFetcherSpec,
 		runtime.ProcessSpec,
-		chan runtime.Event,
+		lock.LockFactory,
 	) TaskResult
 	RunPutStep(
 		context.Context,
@@ -49,16 +50,13 @@ type Client interface {
 		db.ContainerOwner,
 		ContainerSpec,
 		WorkerSpec,
-		atc.Source,
-		atc.Params,
-		resource.Resource,
 		ContainerPlacementStrategy,
 		db.ContainerMetadata,
 		ImageFetcherSpec,
-		string,
 		runtime.ProcessSpec,
-		chan runtime.Event,
+		resource.Resource,
 	) PutResult
+
 	RunGetStep(
 		context.Context,
 		lager.Logger,
@@ -67,17 +65,11 @@ type Client interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 		db.ContainerMetadata,
-		atc.VersionedResourceTypes,
-		//atc.Source,
-		//atc.Params,
-		resource.Resource,
-		string,
-		ImageFetchingDelegate,
-		db.UsedResourceCache,
+		ImageFetcherSpec,
 		runtime.ProcessSpec,
-		chan runtime.Event,
+		db.UsedResourceCache,
+		resource.Resource,
 	) (GetResult, error)
-	StreamFileFromArtifact(ctx context.Context, logger lager.Logger, artifact runtime.Artifact, filePath string) (io.ReadCloser, error)
 }
 
 func NewClient(pool Pool, provider WorkerProvider) *client {
@@ -162,7 +154,6 @@ func (client *client) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, w
 func (client *client) RunTaskStep(
 	ctx context.Context,
 	logger lager.Logger,
-	lockFactory lock.LockFactory,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
@@ -170,18 +161,18 @@ func (client *client) RunTaskStep(
 	metadata db.ContainerMetadata,
 	imageFetcherSpec ImageFetcherSpec,
 	processSpec runtime.ProcessSpec,
-	events chan runtime.Event,
+	lockFactory lock.LockFactory,
 ) TaskResult {
 	var err error
 	err = client.wireInputsAndCaches(logger, &containerSpec)
 	if err != nil {
-		return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
+		return TaskResult{Err: err}
 	}
 
 	if containerSpec.ImageSpec.ImageArtifact != nil {
 		err = client.wireImageVolume(logger, &containerSpec.ImageSpec)
 		if err != nil {
-			return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
+			return TaskResult{Err: err}
 		}
 	}
 	chosenWorker, err := client.chooseTaskWorker(
@@ -195,7 +186,7 @@ func (client *client) RunTaskStep(
 		processSpec.StdoutWriter,
 	)
 	if err != nil {
-		return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
+		return TaskResult{Err: err}
 	}
 
 	if strategy.ModifiesActiveTasks() {
@@ -213,7 +204,7 @@ func (client *client) RunTaskStep(
 	)
 
 	if err != nil {
-		return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
+		return TaskResult{Err: err}
 	}
 
 	// container already exited
@@ -224,11 +215,14 @@ func (client *client) RunTaskStep(
 
 		status, err := strconv.Atoi(code)
 		if err != nil {
-			return TaskResult{-1, []VolumeMount{}, err}
+			return TaskResult{Err: err}
 		}
 
-		return TaskResult{Status: status, VolumeMounts: container.VolumeMounts(), Err: nil}
-
+		return TaskResult{
+			Status:       status,
+			VolumeMounts: container.VolumeMounts(),
+			Err:          nil,
+		}
 	}
 
 	processIO := garden.ProcessIO{
@@ -241,10 +235,6 @@ func (client *client) RunTaskStep(
 		logger.Info("already-running")
 	} else {
 		logger.Info("spawning")
-
-		events <- runtime.Event{
-			EventType: runtime.StartingEvent,
-		}
 
 		process, err = container.Run(
 			context.Background(),
@@ -266,7 +256,7 @@ func (client *client) RunTaskStep(
 		)
 
 		if err != nil {
-			return TaskResult{Status: -1, VolumeMounts: []VolumeMount{}, Err: err}
+			return TaskResult{Err: err}
 		}
 	}
 
@@ -288,11 +278,19 @@ func (client *client) RunTaskStep(
 		}
 
 		status := <-exitStatusChan
-		return TaskResult{Status: status.processStatus, VolumeMounts: container.VolumeMounts(), Err: ctx.Err()}
+		return TaskResult{
+			Status:       status.processStatus,
+			VolumeMounts: container.VolumeMounts(),
+			Err:          ctx.Err(),
+		}
 
 	case status := <-exitStatusChan:
 		if status.processErr != nil {
-			return TaskResult{Status: status.processStatus, VolumeMounts: []VolumeMount{}, Err: status.processErr}
+			return TaskResult{
+				Status:       status.processStatus,
+				VolumeMounts: []VolumeMount{},
+				Err:          status.processErr,
+			}
 		}
 
 		err = container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", status.processStatus))
@@ -311,16 +309,11 @@ func (client *client) RunGetStep(
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 	containerMetadata db.ContainerMetadata,
-	resourceTypes atc.VersionedResourceTypes,
-	resource resource.Resource,
-	resourceDir string,
-	delegate ImageFetchingDelegate,
-	cache db.UsedResourceCache,
+	imageFetcherSpec ImageFetcherSpec,
 	processSpec runtime.ProcessSpec,
-	events chan runtime.Event,
+	resourceCache db.UsedResourceCache,
+	resource resource.Resource,
 ) (GetResult, error) {
-	// TODO where should we publish the InitializeEvent ??
-	vr := runtime.VersionResult{}
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
 		logger,
@@ -336,10 +329,6 @@ func (client *client) RunGetStep(
 	sign, err := resource.Signature()
 	lockName := lockName(sign, chosenWorker.Name())
 
-	//events <- runtime.Event{
-	//	EventType: runtime.StartingEvent,
-	//}
-
 	getResult, _, err := chosenWorker.Fetch(
 		ctx,
 		logger,
@@ -348,30 +337,16 @@ func (client *client) RunGetStep(
 		containerSpec,
 		processSpec,
 		resource,
-		resourceTypes,
 		owner,
-		resourceDir,
-		delegate,
-		cache,
+		imageFetcherSpec,
+		resourceCache,
 		lockName,
 	)
 	if err != nil {
 		logger.Error("failed-to-fetch-resource", err)
-
-		// TODO Define an error on Event for Concourse system errors or define an Concourse system error Exit Status
-		events <- runtime.Event{
-			EventType:     runtime.FinishedEvent,
-			ExitStatus:    500,
-			VersionResult: vr,
-		}
 		return GetResult{}, err
 	}
 
-	events <- runtime.Event{
-		EventType:     runtime.FinishedEvent,
-		ExitStatus:    getResult.Status,
-		VersionResult: getResult.VersionResult,
-	}
 	return getResult, nil
 }
 
@@ -504,15 +479,11 @@ func (client *client) RunPutStep(
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
-	source atc.Source,
-	params atc.Params,
-	resource resource.Resource,
 	strategy ContainerPlacementStrategy,
 	metadata db.ContainerMetadata,
 	imageFetcherSpec ImageFetcherSpec,
-	resourceDir string,
 	spec runtime.ProcessSpec,
-	events chan runtime.Event,
+	resource resource.Resource,
 ) PutResult {
 
 	vr := runtime.VersionResult{}
@@ -554,22 +525,7 @@ func (client *client) RunPutStep(
 	}
 
 	var result PutResult
-	// TODO: pass in events to resource.Put?
 	vr, err = resource.Put(ctx, spec, container)
-	//err = RunScript(
-	//	ctx,
-	//	container,
-	//	spec.Path,
-	//	spec.Args,
-	//	runtime.PutRequest{
-	//		ConfigParams: params,
-	//		Source: source,
-	//	},
-	//	&vr,
-	//	spec.StderrWriter,
-	//	true,
-	//	events,
-	//)
 
 	if err != nil {
 		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
