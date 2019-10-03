@@ -26,7 +26,6 @@ import (
 	"github.com/concourse/concourse/atc/api/containerserver"
 	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/builds"
-	"github.com/concourse/concourse/atc/courier"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/noop"
 	"github.com/concourse/concourse/atc/db"
@@ -522,19 +521,7 @@ func (cmd *RunCommand) constructMembers(
 		return nil, err
 	}
 
-	// This is the number of builds that are migrated at once into the new successful build outputs table
-	migrationBatchSize := 250000
-
-	courier := courier.NewDataCourier(
-		logger.Session("data-courier"),
-		grouper.NewParallel(os.Interrupt, append(backendMembers, gcMembers...)),
-		db.NewSuccessfulBuildOutputsMigrator(backendConn, lockFactory, migrationBatchSize),
-	)
-
-	return append(apiMembers, grouper.Member{
-		Name:   "courier",
-		Runner: courier,
-	}), nil
+	return append(append(apiMembers, backendMembers...), gcMembers...), nil
 }
 
 func (cmd *RunCommand) constructAPIMembers(
