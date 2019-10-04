@@ -706,7 +706,7 @@ viewMetadata : List MetadataField -> Html Message
 viewMetadata =
     List.map
         (\{ name, value } ->
-            ( name
+            ( Html.text name
             , Html.pre []
                 [ case fromString value of
                     Just _ ->
@@ -722,8 +722,14 @@ viewMetadata =
                 ]
             )
         )
-        >> Dict.fromList
-        >> DictView.view []
+        >> List.map
+            (\( key, value ) ->
+                Html.tr []
+                    [ Html.td (Styles.metadataCell Styles.Key) [ key ]
+                    , Html.td (Styles.metadataCell Styles.Value) [ value ]
+                    ]
+            )
+        >> Html.table Styles.metadataTable
 
 
 viewStepState : StepState -> StepID -> List (Html Message) -> Html Message

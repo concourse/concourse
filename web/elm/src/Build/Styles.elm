@@ -1,5 +1,6 @@
 module Build.Styles exposing
-    ( abortButton
+    ( MetadataCellType(..)
+    , abortButton
     , body
     , durationTooltip
     , durationTooltipArrow
@@ -8,6 +9,8 @@ module Build.Styles exposing
     , firstOccurrenceTooltipArrow
     , header
     , historyItem
+    , metadataCell
+    , metadataTable
     , retryTab
     , retryTabList
     , stepHeader
@@ -303,3 +306,35 @@ retryTab { isHovered, isCurrent, isStarted } =
         else
             "0.5"
     ]
+
+
+type MetadataCellType
+    = Key
+    | Value
+
+
+metadataTable : List (Html.Attribute msg)
+metadataTable =
+    [ style "border-collapse" "collapse"
+    , style "margin-bottom" "5px"
+    ]
+
+
+metadataCell : MetadataCellType -> List (Html.Attribute msg)
+metadataCell cell =
+    case cell of
+        Key ->
+            [ style "text-align" "left"
+            , style "vertical-align" "top"
+            , style "background-color" "rgb(45,45,45)"
+            , style "border-bottom" "5px solid rgb(45,45,45)"
+            , style "padding" "5px"
+            ]
+
+        Value ->
+            [ style "text-align" "left"
+            , style "vertical-align" "top"
+            , style "background-color" "rgb(30,30,30)"
+            , style "border-bottom" "5px solid rgb(45,45,45)"
+            , style "padding" "5px"
+            ]
