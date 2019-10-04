@@ -7,7 +7,7 @@
 
 #### <sub><sup><a name="v561-note-4518" href="#v561-note-4518">:link:</a></sup></sub> fix
 
-* @evanchaoli added a feature to stop ATC from attempting to renew Vault leases that are not renewable.
+* @evanchaoli added a feature to stop ATC from attempting to renew Vault leases that are not renewable #4518.
 
 #### <sub><sup><a name="v561-note-4516" href="#v561-note-4516">:link:</a></sup></sub> fix
 
