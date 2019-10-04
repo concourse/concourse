@@ -16,6 +16,9 @@ var _ = Describe("Component", func() {
 	)
 
 	BeforeEach(func() {
+		_, err = dbConn.Exec("INSERT INTO components (name, interval) VALUES ('scheduler', '100ms') ON CONFLICT (name) DO UPDATE SET interval = EXCLUDED.interval")
+		Expect(err).NotTo(HaveOccurred())
+
 		component, found, err = componentFactory.Find("scheduler")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
@@ -50,8 +53,7 @@ var _ = Describe("Component", func() {
 				err = component.UpdateLastRan()
 				Expect(err).NotTo(HaveOccurred())
 
-				// TODO maybe a fake clock so no need to sleep here?
-				time.Sleep(11 * time.Second)
+				time.Sleep(1 * time.Second)
 			})
 
 			It("returns true", func() {

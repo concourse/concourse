@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -10,6 +11,7 @@ import (
 
 type ComponentFactory interface {
 	Find(string) (Component, bool, error)
+	UpdateIntervals(map[string]time.Duration) error
 }
 
 type componentFactory struct {
@@ -41,4 +43,46 @@ func (f *componentFactory) Find(componentName string) (Component, bool, error) {
 	}
 
 	return component, true, nil
+}
+
+func (f *componentFactory) UpdateIntervals(components map[string]time.Duration) error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	for name, interval := range components {
+		err := f.updateInterval(tx, name, interval)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (f *componentFactory) updateInterval(tx Tx, componentName string, interval time.Duration) error {
+	result, err := psql.Update("components").
+		Set("interval", interval.String()).
+		Where(sq.Eq{
+			"name": componentName,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected != 1 {
+		return nonOneRowAffectedError{rowsAffected}
+	}
+
+	return nil
 }

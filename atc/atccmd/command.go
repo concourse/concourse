@@ -76,6 +76,9 @@ import (
 var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
 
+var buildReaperInterval = 30 * time.Second
+var pipelineSyncerInterval = 10 * time.Second
+
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
 	Migration  Migration  `command:"migrate"`
@@ -795,6 +798,11 @@ func (cmd *RunCommand) constructBackendMembers(
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	componentFactory := db.NewComponentFactory(dbConn)
 
+	err = cmd.configureComponentInterval(componentFactory)
+	if err != nil {
+		return nil, err
+	}
+
 	bus := dbConn.Bus()
 
 	members := []grouper.Member{
@@ -807,7 +815,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				secretManager,
 				bus,
 			),
-			Interval: 10 * time.Second,
+			Interval: pipelineSyncerInterval,
 			Clock:    clock.NewClock(),
 		}},
 		{Name: atc.ComponentBuildTracker, Runner: builds.TrackerRunner{
@@ -876,7 +884,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			lockFactory,
 			componentFactory,
 			clock.NewClock(),
-			30*time.Second,
+			buildReaperInterval,
 		)},
 	}
 
@@ -1297,6 +1305,19 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 	}
 
 	return nil
+}
+
+func (cmd *RunCommand) configureComponentInterval(componentFactory db.ComponentFactory) error {
+	return componentFactory.UpdateIntervals(
+		map[string]time.Duration{
+			atc.ComponentBuildReaper:   buildReaperInterval,
+			atc.ComponentBuildTracker:  cmd.BuildTrackerInterval,
+			atc.ComponentCollector:     cmd.GC.Interval,
+			atc.ComponentLidarScanner:  cmd.LidarScannerInterval,
+			atc.ComponentLidarChecker:  cmd.LidarCheckerInterval,
+			atc.ComponentScheduler:     pipelineSyncerInterval,
+			atc.ComponentSyslogDrainer: cmd.Syslog.DrainInterval,
+		})
 }
 
 func (cmd *RunCommand) constructEngine(

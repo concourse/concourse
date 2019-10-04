@@ -3,6 +3,7 @@ package dbfakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/concourse/atc/db"
 )
@@ -22,6 +23,17 @@ type FakeComponentFactory struct {
 		result1 db.Component
 		result2 bool
 		result3 error
+	}
+	UpdateIntervalsStub        func(map[string]time.Duration) error
+	updateIntervalsMutex       sync.RWMutex
+	updateIntervalsArgsForCall []struct {
+		arg1 map[string]time.Duration
+	}
+	updateIntervalsReturns struct {
+		result1 error
+	}
+	updateIntervalsReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -93,11 +105,73 @@ func (fake *FakeComponentFactory) FindReturnsOnCall(i int, result1 db.Component,
 	}{result1, result2, result3}
 }
 
+func (fake *FakeComponentFactory) UpdateIntervals(arg1 map[string]time.Duration) error {
+	fake.updateIntervalsMutex.Lock()
+	ret, specificReturn := fake.updateIntervalsReturnsOnCall[len(fake.updateIntervalsArgsForCall)]
+	fake.updateIntervalsArgsForCall = append(fake.updateIntervalsArgsForCall, struct {
+		arg1 map[string]time.Duration
+	}{arg1})
+	fake.recordInvocation("UpdateIntervals", []interface{}{arg1})
+	fake.updateIntervalsMutex.Unlock()
+	if fake.UpdateIntervalsStub != nil {
+		return fake.UpdateIntervalsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.updateIntervalsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeComponentFactory) UpdateIntervalsCallCount() int {
+	fake.updateIntervalsMutex.RLock()
+	defer fake.updateIntervalsMutex.RUnlock()
+	return len(fake.updateIntervalsArgsForCall)
+}
+
+func (fake *FakeComponentFactory) UpdateIntervalsCalls(stub func(map[string]time.Duration) error) {
+	fake.updateIntervalsMutex.Lock()
+	defer fake.updateIntervalsMutex.Unlock()
+	fake.UpdateIntervalsStub = stub
+}
+
+func (fake *FakeComponentFactory) UpdateIntervalsArgsForCall(i int) map[string]time.Duration {
+	fake.updateIntervalsMutex.RLock()
+	defer fake.updateIntervalsMutex.RUnlock()
+	argsForCall := fake.updateIntervalsArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeComponentFactory) UpdateIntervalsReturns(result1 error) {
+	fake.updateIntervalsMutex.Lock()
+	defer fake.updateIntervalsMutex.Unlock()
+	fake.UpdateIntervalsStub = nil
+	fake.updateIntervalsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeComponentFactory) UpdateIntervalsReturnsOnCall(i int, result1 error) {
+	fake.updateIntervalsMutex.Lock()
+	defer fake.updateIntervalsMutex.Unlock()
+	fake.UpdateIntervalsStub = nil
+	if fake.updateIntervalsReturnsOnCall == nil {
+		fake.updateIntervalsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateIntervalsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeComponentFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
+	fake.updateIntervalsMutex.RLock()
+	defer fake.updateIntervalsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
