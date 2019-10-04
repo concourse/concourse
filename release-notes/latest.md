@@ -5,7 +5,7 @@
 
   ![badge](https://ci.concourse-ci.org/api/v1/teams/main/pipelines/concourse/badge?title=check%20it%20out)
 
-#### <sub><sup><a name="v561-note-4518" href="#v561-note-4518">:link:</a></sup></sub> fix
+#### <sub><sup><a name="v561-note-4518" href="#v561-note-4518">:link:</a></sup></sub> feature
 
 * @evanchaoli added a feature to stop ATC from attempting to renew Vault leases that are not renewable #4518.
 
