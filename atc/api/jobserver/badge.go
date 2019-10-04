@@ -4,31 +4,33 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"net/url"
 	"text/template"
 
 	"github.com/concourse/concourse/atc/db"
 )
 
 var (
-	badgePassing = Badge{width: 88, fillColor: `#44cc11`, status: `passing`}
-	badgeFailing = Badge{width: 80, fillColor: `#e05d44`, status: `failing`}
-	badgeUnknown = Badge{width: 98, fillColor: `#9f9f9f`, status: `unknown`}
-	badgeAborted = Badge{width: 90, fillColor: `#8f4b2d`, status: `aborted`}
-	badgeErrored = Badge{width: 88, fillColor: `#fe7d37`, status: `errored`}
+	badgePassing = Badge{Width: 88, FillColor: `#44cc11`, Status: `passing`, Title: `build`}
+	badgeFailing = Badge{Width: 80, FillColor: `#e05d44`, Status: `failing`, Title: `build`}
+	badgeUnknown = Badge{Width: 98, FillColor: `#9f9f9f`, Status: `unknown`, Title: `build`}
+	badgeAborted = Badge{Width: 90, FillColor: `#8f4b2d`, Status: `aborted`, Title: `build`}
+	badgeErrored = Badge{Width: 88, FillColor: `#fe7d37`, Status: `errored`, Title: `build`}
 )
 
 type Badge struct {
-	width     int
-	fillColor string
-	status    string
+	Width     int
+	FillColor string
+	Status    string
+	Title     string
 }
 
-func (b *Badge) statusWidth() int {
-	return b.width - 37
+func (b *Badge) StatusWidth() int {
+	return b.Width - 37
 }
 
-func (b *Badge) statusTextWidth() string {
-	return fmt.Sprintf("%.1f", float64(b.width)/2+17.5)
+func (b *Badge) StatusTextWidth() string {
+	return fmt.Sprintf("%.1f", float64(b.Width)/2+17.5)
 }
 
 func (b *Badge) String() string {
@@ -39,31 +41,31 @@ func (b *Badge) String() string {
 
 	buffer := &bytes.Buffer{}
 
-	_ = tmpl.Execute(buffer, badgeTemplateConfig{
-		Width:           b.width,
-		FillColor:       b.fillColor,
-		Status:          b.status,
-		StatusWidth:     b.statusWidth(),
-		StatusTextWidth: b.statusTextWidth(),
-	})
+	_ = tmpl.Execute(buffer, &b)
 
 	return buffer.String()
 }
 
-func BadgeForBuild(build db.Build) *Badge {
+func (b *Badge) EnrichFromQuery(params url.Values) {
+	if title := params.Get("title"); title != "" {
+		b.Title = title
+	}
+}
+
+func BadgeForBuild(build db.Build) Badge {
 	switch {
 	case build == nil:
-		return &badgeUnknown
+		return badgeUnknown
 	case build.Status() == db.BuildStatusSucceeded:
-		return &badgePassing
+		return badgePassing
 	case build.Status() == db.BuildStatusFailed:
-		return &badgeFailing
+		return badgeFailing
 	case build.Status() == db.BuildStatusAborted:
-		return &badgeAborted
+		return badgeAborted
 	case build.Status() == db.BuildStatusErrored:
-		return &badgeErrored
+		return badgeErrored
 	default:
-		return &badgeUnknown
+		return badgeUnknown
 	}
 }
 
@@ -82,20 +84,12 @@ const badgeTemplate = `<?xml version="1.0" encoding="UTF-8"?>
       <path fill="url(#b)" d="M0 0h{{ .Width }}v20H0z" />
    </g>
    <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
-      <text x="18.5" y="14">build</text>
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">{{ .Title }}</text>
+      <text x="18.5" y="14">{{ .Title }}</text>
       <text x="{{ .StatusTextWidth }}" y="15" fill="#010101" fill-opacity=".3">{{ .Status }}</text>
       <text x="{{ .StatusTextWidth }}" y="14">{{ .Status }}</text>
    </g>
 </svg>`
-
-type badgeTemplateConfig struct {
-	Width           int
-	StatusWidth     int
-	StatusTextWidth string
-	Status          string
-	FillColor       string
-}
 
 func (s *Server) JobBadge(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("job-badge")
@@ -128,6 +122,8 @@ func (s *Server) JobBadge(pipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		fmt.Fprint(w, BadgeForBuild(build))
+		badge := BadgeForBuild(build)
+		badge.EnrichFromQuery(r.URL.Query())
+		fmt.Fprint(w, &badge)
 	})
 }

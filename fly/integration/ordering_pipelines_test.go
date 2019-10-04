@@ -74,6 +74,46 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
+			Context("when the alphabetical option is passed", func() {
+				BeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+								{Name: "beautiful-pipeline", Paused: false, Public: false},
+								{Name: "awesome-pipeline", Paused: true, Public: false},
+								{Name: "delightful-pipeline", Paused: false, Public: true},
+								{Name: "charming-pipeline", Paused: false, Public: true},
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("PUT", path),
+							ghttp.RespondWith(http.StatusOK, nil),
+						),
+					)
+				})
+
+				It("orders all the pipelines in alphabetical order", func() {
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "order-pipelines", "--alphabetical")
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
+						Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
+						Eventually(sess).Should(gbytes.Say(`  - beautiful-pipeline`))
+						Eventually(sess).Should(gbytes.Say(`  - charming-pipeline`))
+						Eventually(sess).Should(gbytes.Say(`  - delightful-pipeline`))
+
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(3))
+				})
+			})
+
 			Context("when the pipeline doesn't exist", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
@@ -112,7 +152,7 @@ var _ = Describe("Fly CLI", func() {
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(sess.Err).Should(gbytes.Say("error: the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
+					Expect(sess.Err).Should(gbytes.Say("error: either --pipeline or --alphabetical are required"))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(0))

@@ -1,12 +1,10 @@
 package buildserver
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
@@ -18,8 +16,6 @@ const CurrentProtocolVersion = "2.0"
 
 func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clientNotifier := w.(http.CloseNotifier)
-
 		var eventID uint = 0
 		if r.Header.Get("Last-Event-ID") != "" {
 			startString := r.Header.Get("Last-Event-ID")
@@ -40,19 +36,7 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 
 		writer := eventWriter{
 			responseWriter:  w,
-			writeFlusher:    nil,
 			responseFlusher: w.(http.Flusher),
-		}
-
-		w.Header().Add("Vary", "Accept-Encoding")
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			w.Header().Set("Content-Encoding", "gzip")
-
-			gz := gzip.NewWriter(w)
-			defer db.Close(gz)
-
-			writer.responseWriter = gz
-			writer.writeFlusher = gz
 		}
 
 		events, err := build.Events(eventID)
@@ -76,7 +60,7 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 						return
 					}
 
-					<-clientNotifier.CloseNotify()
+					<-r.Context().Done()
 				} else {
 					logger.Error("failed-to-get-next-build-event", err)
 					return
@@ -96,13 +80,8 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 	})
 }
 
-type flusher interface {
-	Flush() error
-}
-
 type eventWriter struct {
 	responseWriter  io.Writer
-	writeFlusher    flusher
 	responseFlusher http.Flusher
 }
 
@@ -121,24 +100,18 @@ func (writer eventWriter) WriteEvent(id uint, envelope interface{}) error {
 		return err
 	}
 
-	return writer.flush()
+	writer.responseFlusher.Flush()
+
+	return nil
 }
 
 func (writer eventWriter) WriteEnd(id uint) error {
-	err := sse.Event{ID: fmt.Sprintf("%d", id), Name: "end"}.Write(writer.responseWriter)
+	err := sse.Event{
+		ID:   fmt.Sprintf("%d", id),
+		Name: "end",
+	}.Write(writer.responseWriter)
 	if err != nil {
 		return err
-	}
-
-	return writer.flush()
-}
-
-func (writer eventWriter) flush() error {
-	if writer.writeFlusher != nil {
-		err := writer.writeFlusher.Flush()
-		if err != nil {
-			return err
-		}
 	}
 
 	writer.responseFlusher.Flush()
