@@ -87,6 +87,7 @@ type RunCommand struct {
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
 
+	TLSOnly     bool      `long:"tls-only" description:"Configure concourse to only accept HTTPS requests"`
 	TLSBindPort uint16    `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
 	TLSCert     flag.File `long:"tls-cert"      description:"File containing an SSL certificate."`
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
@@ -687,6 +688,16 @@ func (cmd *RunCommand) constructAPIMembers(
 			httpsHandler,
 			tlsConfig,
 		)})
+
+		if cmd.TLSOnly {
+			tmp := members[:0]
+			for _, apiMember := range members {
+				if apiMember.Name != "web" {
+					tmp = append(tmp, apiMember)
+				}
+			}
+			members = tmp
+		}
 	}
 
 	return members, nil
