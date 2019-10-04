@@ -15,4 +15,4 @@
 
 #### <sub><sup><a name="v561-note-4334" href="#v561-note-4334">:link:</a></sup></sub> fix
 
-* @aledeganopix4d added a feature sort pipelines alphabetically.
+* @aledeganopix4d added a feature sort pipelines alphabetically #4334.
