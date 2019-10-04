@@ -725,28 +725,11 @@ viewMetadata =
         >> List.map
             (\( key, value ) ->
                 Html.tr []
-                    [ Html.td
-                        [ style "text-align" "left"
-                        , style "vertical-align" "top"
-                        , style "background-color" "rgb(45,45,45)"
-                        , style "border-bottom" "5px solid rgb(45,45,45)"
-                        , style "padding" "5px"
-                        ]
-                        [ key ]
-                    , Html.td
-                        [ style "text-align" "left"
-                        , style "vertical-align" "top"
-                        , style "background-color" "rgb(35,35,35)"
-                        , style "border-bottom" "5px solid rgb(45,45,45)"
-                        , style "padding" "5px"
-                        ]
-                        [ value ]
+                    [ Html.td (Styles.metadataCell Styles.Key) [ key ]
+                    , Html.td (Styles.metadataCell Styles.Value) [ value ]
                     ]
             )
-        >> Html.table
-            [ style "border-collapse" "collapse"
-            , style "margin-bottom" "5px"
-            ]
+        >> Html.table Styles.metadataTable
 
 
 viewStepState : StepState -> StepID -> List (Html Message) -> Html Message

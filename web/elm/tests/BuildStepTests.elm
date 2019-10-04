@@ -49,7 +49,7 @@ all =
                     >> when iAmLookingAtTheGetStepInTheBuildOutput
                     >> when iAmLookingAtTheMetadataTableCells
                     >> then_ iSeeTheyHavePaddingAllAround
-            , test "has a table that has a bottom margin to let content underneath breathe" <|
+            , test "has a table that has a bottom margin to let content (logs) underneath breathe" <|
                 given iVisitABuildWithAGetStep
                     >> given theGetStepIsExpanded
                     >> when iAmLookingAtTheGetStepInTheBuildOutput
@@ -352,7 +352,7 @@ iSeeLightGrayCellBackground =
 
 
 iSeeDarkGrayCellBackground =
-    Query.has [ style "background-color" "rgb(35,35,35)" ]
+    Query.has [ style "background-color" "rgb(30,30,30)" ]
 
 
 iSeeATableWithBorderCollapse =
