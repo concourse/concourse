@@ -4,3 +4,6 @@
   badge endpoints! Now you can make it say something other than "build". #4480
 
   ![badge](https://ci.concourse-ci.org/api/v1/teams/main/pipelines/concourse/badge?title=check%20it%20out)
+
+
+* @ctorboh15 added support for a CONCOURSE_TLS_ONLY configuration that will remove all non TLS api members at startup
