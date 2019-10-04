@@ -177,7 +177,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		savedWorker.Name(),
 		savedWorker.GardenAddr(),
 		provider.retryBackOffFactory,
-		5*time.Minute,
+		30*time.Minute,
 	)
 
 	gClient := gcf.NewClient()
