@@ -13,6 +13,6 @@
 
 * Add 5 minute timeout for baggageclaim destroy calls #4516.
 
-#### <sub><sup><a name="v561-note-4334" href="#v561-note-4334">:link:</a></sup></sub> fix
+#### <sub><sup><a name="v561-note-4334" href="#v561-note-4334">:link:</a></sup></sub> feature
 
 * @aledeganopix4d added a feature sort pipelines alphabetically #4334.
