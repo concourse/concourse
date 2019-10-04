@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
@@ -12,7 +13,8 @@ import (
 var ErrMissingPipelineName = errors.New("Need to specify atleast one pipeline name")
 
 type OrderPipelinesCommand struct {
-	Pipelines []flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Name of pipeline to order"`
+	Alphabetical bool                       `short:"a"  long:"alphabetical" description:"Order all pipelines alphabetically"`
+	Pipelines    []flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of pipeline to order"`
 }
 
 func (command *OrderPipelinesCommand) Validate() ([]string, error) {
@@ -30,6 +32,12 @@ func (command *OrderPipelinesCommand) Validate() ([]string, error) {
 }
 
 func (command *OrderPipelinesCommand) Execute(args []string) error {
+	var pipelines []string
+
+	if !command.Alphabetical && command.Pipelines == nil {
+		displayhelpers.Failf("error: either --pipeline or --alphabetical are required")
+	}
+
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -40,9 +48,21 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 		return err
 	}
 
-	pipelines, err := command.Validate()
-	if err != nil {
-		return err
+	if command.Alphabetical {
+		ps, err := target.Team().ListPipelines()
+		if err != nil {
+			return err
+		}
+
+		for _, p := range ps {
+			pipelines = append(pipelines, p.Name)
+		}
+		sort.Strings(pipelines)
+	} else {
+		pipelines, err = command.Validate()
+		if err != nil {
+			return err
+		}
 	}
 
 	err = target.Team().OrderingPipelines(pipelines)
@@ -51,7 +71,7 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 	}
 
 	fmt.Printf("ordered pipelines \n")
-	for _, p := range command.Pipelines {
+	for _, p := range pipelines {
 		fmt.Printf("  - %s \n", p)
 	}
 
