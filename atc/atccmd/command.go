@@ -690,13 +690,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		)})
 
 		if cmd.TLSOnly {
-			tmp := members[:0]
-			for _, apiMember := range members {
-				if apiMember.Name != "web" {
-					tmp = append(tmp, apiMember)
-				}
-			}
-			members = tmp
+			members = cmd.filterMembersForTLSOnly(members, "web")
 		}
 	}
 
@@ -1551,4 +1545,14 @@ func (cmd *RunCommand) appendStaticWorker(
 
 func (cmd *RunCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
+}
+
+func (cmd *RunCommand) filterMembersForTLSOnly(apiMembersArray []grouper.Member, memberNameToFilter string) []grouper.Member {
+	tmp := apiMembersArray[:0]
+	for _, apiMember := range apiMembersArray {
+		if apiMember.Name != memberNameToFilter {
+			tmp = append(tmp, apiMember)
+		}
+	}
+	return tmp
 }
