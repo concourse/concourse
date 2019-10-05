@@ -28,6 +28,7 @@ type ResourcePinState version id comment
 type VersionPinState
     = Enabled
     | PinnedDynamically
+    | NotThePinnedVersion
     | PinnedStatically Bool
     | Disabled
     | InTransition
@@ -128,7 +129,7 @@ pinState version id resourcePinState =
                 PinnedDynamically
 
             else
-                Disabled
+                NotThePinnedVersion
 
         UnpinningFrom _ v ->
             if v == version then

@@ -1,5 +1,6 @@
 module Common exposing
-    ( contains
+    ( and
+    , contains
     , defineHoverBehaviour
     , given
     , iOpenTheBuildPage
@@ -111,6 +112,10 @@ init path =
 
 
 given =
+    identity
+
+
+and =
     identity
 
 

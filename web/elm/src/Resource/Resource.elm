@@ -572,12 +572,23 @@ update msg ( model, effects ) =
                         |> List.Extra.find (\v -> v.id == versionID)
             in
             case model.pinnedVersion of
-                PinnedDynamicallyTo _ _ ->
+                PinnedDynamicallyTo _ v ->
                     ( { model
                         | pinnedVersion =
                             Pinned.startUnpinning model.pinnedVersion
                       }
-                    , effects ++ [ DoUnpinVersion model.resourceIdentifier ]
+                    , effects
+                        ++ (case version of
+                                Just vn ->
+                                    if vn.version == v then
+                                        [ DoUnpinVersion model.resourceIdentifier ]
+
+                                    else
+                                        [ DoPinVersion vn.id ]
+
+                                Nothing ->
+                                    []
+                           )
                     )
 
                 NotPinned ->
@@ -1309,6 +1320,9 @@ viewVersionedResource { version, pinnedVersion, hovered } =
             ( Disabled, _ ) ->
                 [ style "opacity" "0.5" ]
 
+            ( NotThePinnedVersion, _ ) ->
+                [ style "opacity" "0.5" ]
+
             ( _, Models.Disabled ) ->
                 [ style "opacity" "0.5" ]
 
@@ -1433,6 +1447,9 @@ viewPinButton { versionID, pinState, hovered } =
                     [ onClick <| Click <| PinButton versionID ]
 
                 PinnedDynamically ->
+                    [ onClick <| Click <| PinButton versionID ]
+
+                NotThePinnedVersion ->
                     [ onClick <| Click <| PinButton versionID ]
 
                 PinnedStatically _ ->

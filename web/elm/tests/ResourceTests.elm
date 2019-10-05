@@ -1201,7 +1201,7 @@ all =
                         |> Query.find (versionSelector version)
                         |> Query.find pinButtonSelector
                         |> Query.has pointerCursor
-            , test "pin button on an unpinned version has a default cursor" <|
+            , test "pin button on an unpinned version has a pointer cursor" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
@@ -1209,7 +1209,7 @@ all =
                         |> queryView
                         |> Query.find (versionSelector otherVersion)
                         |> Query.find pinButtonSelector
-                        |> Query.has defaultCursor
+                        |> Query.has pointerCursor
             , test "pin button on pinned version has click handler" <|
                 \_ ->
                     init
