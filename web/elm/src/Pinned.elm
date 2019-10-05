@@ -39,12 +39,7 @@ startPinningTo :
     -> ResourcePinState version id CommentState
     -> ResourcePinState version id CommentState
 startPinningTo destination resourcePinState =
-    case resourcePinState of
-        NotPinned ->
-            PinningTo destination
-
-        x ->
-            x
+    PinningTo destination
 
 
 finishPinning :
