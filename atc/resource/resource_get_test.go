@@ -395,6 +395,20 @@ var _ = Describe("Resource Get", func() {
 				})
 			})
 
+			Context("when the output of /opt/resource/in is malformed", func() {
+				BeforeEach(func() {
+					inScriptStdout = "ß"
+				})
+
+				It("returns an error", func() {
+					Expect(getErr).To(HaveOccurred())
+				})
+
+				It("returns original payload in error", func() {
+					Expect(getErr.Error()).Should(ContainSubstring(inScriptStdout))
+				})
+			})
+
 			itCanStreamOut()
 		})
 	})

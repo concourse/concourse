@@ -129,5 +129,9 @@ var _ = Describe("Resource Check", func() {
 		It("returns an error", func() {
 			Expect(checkErr).To(HaveOccurred())
 		})
+
+		It("returns original payload in error", func() {
+			Expect(checkErr.Error()).Should(ContainSubstring(checkScriptStdout))
+		})
 	})
 })
