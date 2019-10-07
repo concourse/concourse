@@ -1003,4 +1003,77 @@ var _ = Describe("ContainerRepository", func() {
 			})
 		})
 	})
+
+	Describe("DestroyUnknownContainers", func() {
+		var (
+			err                   error
+			workerReportedHandles []string
+			num                   int
+		)
+
+		BeforeEach(func() {
+			result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+				"state":        atc.ContainerStateDestroying,
+				"handle":       "some-handle1",
+				"worker_name":  defaultWorker.Name(),
+				"hijacked":     false,
+				"discontinued": false,
+			}).RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+			result, err = psql.Insert("containers").SetMap(map[string]interface{}{
+				"state":        atc.ContainerStateCreated,
+				"handle":       "some-handle2",
+				"worker_name":  defaultWorker.Name(),
+				"hijacked":     false,
+				"discontinued": false,
+			}).RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+		})
+
+		JustBeforeEach(func() {
+			num, err = containerRepository.DestroyUnknownContainers(defaultWorker.Name(), workerReportedHandles)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when there are containers on the worker that are not in the db", func() {
+			var destroyingContainerHandles []string
+			BeforeEach(func() {
+				workerReportedHandles = []string{"some-handle3", "some-handle4"}
+				destroyingContainerHandles = append(workerReportedHandles, "some-handle1")
+			})
+
+			It("adds new destroying containers to the database", func() {
+				result, err := psql.Select("handle").
+					From("containers").
+					Where(sq.Eq{"state": atc.ContainerStateDestroying}).
+					RunWith(dbConn).Query()
+
+				Expect(err).ToNot(HaveOccurred())
+
+				var handle string
+				for result.Next() {
+					err = result.Scan(&handle)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(handle).Should(BeElementOf(destroyingContainerHandles))
+				}
+				Expect(num).To(Equal(2))
+			})
+
+			It("does not affect containers in any other state", func() {
+				result, err := psql.Select("*").
+					From("containers").
+					Where(sq.Eq{"state": atc.ContainerStateCreated}).
+					RunWith(dbConn).Exec()
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+				Expect(num).To(Equal(2))
+			})
+		})
+	})
 })
