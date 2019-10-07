@@ -42,6 +42,8 @@ type VolumeRepository interface {
 
 	UpdateVolumesMissingSince(workerName string, handles []string) error
 	RemoveMissingVolumes(gracePeriod time.Duration) (removed int, err error)
+
+	DestroyUnknownVolumes(workerName string, handles []string) (int, error)
 }
 
 const noTeam = 0
@@ -538,6 +540,49 @@ func (repository *volumeRepository) GetDestroyingVolumes(workerName string) ([]s
 			"worker_name": workerName,
 		},
 	)
+}
+
+func (repository *volumeRepository) DestroyUnknownVolumes(workerName string, reportedHandles []string) (int, error) {
+	dbHandles, err := repository.queryVolumeHandles(sq.Eq{
+		"worker_name": workerName,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	unknownHandles := diff(reportedHandles, dbHandles)
+
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer Rollback(tx)
+
+	for _, unknownHandle := range unknownHandles {
+		_, err = psql.Insert("volumes").
+			Columns(
+				"handle",
+				"worker_name",
+				"state",
+			).
+			Values(
+				unknownHandle,
+				workerName,
+				VolumeStateDestroying,
+			).
+			RunWith(tx).Exec()
+
+		if err != nil {
+			return 0, err
+		}
+	}
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	return len(unknownHandles), nil
 }
 
 // 1. open tx

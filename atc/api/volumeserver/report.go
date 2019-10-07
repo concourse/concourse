@@ -42,6 +42,13 @@ func (s *Server) ReportWorkerVolumes(w http.ResponseWriter, r *http.Request) {
 		"handles-count": len(handles),
 	})
 
+	_, err = s.repository.DestroyUnknownVolumes(workerName, handles)
+	if err != nil {
+		logger.Error("failed-to-destroy-unknown-volumes", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	err = s.repository.UpdateVolumesMissingSince(workerName, handles)
 	if err != nil {
 		logger.Error("failed-to-update-volumes-missing-since", err)
