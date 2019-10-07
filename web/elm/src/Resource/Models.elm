@@ -22,7 +22,8 @@ type PageError
 
 type CheckStatus
     = CheckingSuccessfully
-    | CurrentlyChecking
+    | CheckPending
+    | CurrentlyChecking Int
     | FailingToCheck
 
 

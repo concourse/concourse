@@ -416,28 +416,35 @@ handleCallback callback session ( model, effects ) =
             , effects
             )
 
-        Checked (Ok ()) ->
-            ( { model | checkStatus = Models.CheckingSuccessfully }
-            , effects
-                ++ [ FetchResource model.resourceIdentifier
-                   , FetchVersionedResources
-                        model.resourceIdentifier
-                        model.currentPage
-                   ]
-            )
+        Checked (Ok { status, id }) ->
+            case status of
+                Concourse.Succeeded ->
+                    ( { model | checkStatus = Models.CheckingSuccessfully }
+                    , effects
+                        ++ [ FetchResource model.resourceIdentifier
+                           , FetchVersionedResources
+                                model.resourceIdentifier
+                                model.currentPage
+                           ]
+                    )
 
-        Checked (Err err) ->
-            ( { model | checkStatus = Models.FailingToCheck }
-            , case err of
-                Http.BadStatus { status } ->
-                    if status.code == 401 then
-                        effects ++ [ RedirectToLogin ]
+                Concourse.Started ->
+                    ( { model | checkStatus = Models.CurrentlyChecking id }
+                    , effects
+                    )
 
-                    else
-                        effects ++ [ FetchResource model.resourceIdentifier ]
+                Concourse.Errored ->
+                    ( { model | checkStatus = Models.FailingToCheck }
+                    , effects ++ [ FetchResource model.resourceIdentifier ]
+                    )
 
-                _ ->
-                    effects
+        Checked (Err (Http.BadStatus { status })) ->
+            ( model
+            , if status.code == 401 then
+                effects ++ [ RedirectToLogin ]
+
+              else
+                effects
             )
 
         CommentSet result ->
@@ -484,7 +491,14 @@ handleDelivery delivery ( model, effects ) =
                 ( model, effects )
 
         ClockTicked OneSecond time ->
-            ( { model | now = Just time }, effects )
+            ( { model | now = Just time }
+            , case model.checkStatus of
+                Models.CurrentlyChecking id ->
+                    effects ++ [ FetchCheck id ]
+
+                _ ->
+                    effects
+            )
 
         ClockTicked FiveSeconds _ ->
             ( model
@@ -627,7 +641,7 @@ update msg ( model, effects ) =
 
         Click (CheckButton isAuthorized) ->
             if isAuthorized then
-                ( { model | checkStatus = Models.CurrentlyChecking }
+                ( { model | checkStatus = Models.CheckPending }
                 , effects ++ [ DoCheck model.resourceIdentifier ]
                 )
 
@@ -946,8 +960,11 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
                 Models.FailingToCheck ->
                     "checking failed"
 
-                Models.CurrentlyChecking ->
-                    "currently checking"
+                Models.CheckPending ->
+                    "check pending"
+
+                Models.CurrentlyChecking _ ->
+                    "check in progress"
 
                 Models.CheckingSuccessfully ->
                     "checking successfully"
@@ -971,7 +988,13 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
 
         statusIcon =
             case checkStatus of
-                Models.CurrentlyChecking ->
+                Models.CurrentlyChecking _ ->
+                    Spinner.spinner
+                        { sizePx = 14
+                        , margin = "7px"
+                        }
+
+                Models.CheckPending ->
                     Spinner.spinner
                         { sizePx = 14
                         , margin = "7px"
@@ -1023,7 +1046,15 @@ checkButton ({ hovered, userState, checkStatus } as params) =
             HoverState.isHovered (CheckButton isMember) hovered
 
         isCurrentlyChecking =
-            checkStatus == Models.CurrentlyChecking
+            case checkStatus of
+                Models.CurrentlyChecking _ ->
+                    True
+
+                Models.CheckPending ->
+                    True
+
+                _ ->
+                    False
 
         isAnonymous =
             UserState.isAnonymous userState

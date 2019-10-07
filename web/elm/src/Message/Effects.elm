@@ -112,6 +112,7 @@ type Effect
     | FetchJobs Concourse.PipelineIdentifier
     | FetchJobBuilds Concourse.JobIdentifier (Maybe Page)
     | FetchResource Concourse.ResourceIdentifier
+    | FetchCheck Int
     | FetchVersionedResources Concourse.ResourceIdentifier (Maybe Page)
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
@@ -202,6 +203,10 @@ runEffect effect key csrfToken =
         FetchResource id ->
             Network.Resource.fetchResource id
                 |> Task.attempt ResourceFetched
+
+        FetchCheck id ->
+            Network.Resource.fetchCheck id
+                |> Task.attempt Checked
 
         FetchVersionedResources id paging ->
             Network.Resource.fetchVersionedResources id paging

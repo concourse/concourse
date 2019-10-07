@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/metric/metricfakes"
 
@@ -26,8 +25,6 @@ func noopHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-var dummyLogger = lager.NewLogger("dont care")
-
 var _ = Describe("MetricsHandler", func() {
 	var (
 		ts      *httptest.Server
@@ -42,15 +39,15 @@ var _ = Describe("MetricsHandler", func() {
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
 
-		metric.Initialize(dummyLogger, "test", map[string]string{}, 1000)
+		metric.Initialize(testLogger, "test", map[string]string{}, 1000)
 
 		ts = httptest.NewServer(
-			WrapHandler(dummyLogger, "ApiEndpoint", http.HandlerFunc(noopHandler)))
+			WrapHandler(testLogger, "ApiEndpoint", http.HandlerFunc(noopHandler)))
 	})
 
 	AfterEach(func() {
 		ts.Close()
-		metric.Deinitialize(dummyLogger)
+		metric.Deinitialize(testLogger)
 	})
 
 	Context("when serving requests", func() {

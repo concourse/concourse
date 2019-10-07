@@ -2,6 +2,7 @@ package lidar
 
 import (
 	"context"
+	"sync"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
@@ -17,6 +18,7 @@ func NewChecker(
 		logger:       logger,
 		checkFactory: checkFactory,
 		engine:       engine,
+		running:      &sync.Map{},
 	}
 }
 
@@ -25,6 +27,8 @@ type checker struct {
 
 	checkFactory db.CheckFactory
 	engine       engine.Engine
+
+	running *sync.Map
 }
 
 func (c *checker) Run(ctx context.Context) error {
@@ -37,13 +41,17 @@ func (c *checker) Run(ctx context.Context) error {
 		return err
 	}
 
-	for _, check := range checks {
-		btLog := c.logger.WithData(lager.Data{
-			"check": check.ID(),
-		})
+	for _, ck := range checks {
+		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
+			go func(check db.Check) {
+				defer c.running.Delete(check.ID())
 
-		engineCheck := c.engine.NewCheck(check)
-		go engineCheck.Run(btLog)
+				engineCheck := c.engine.NewCheck(check)
+				engineCheck.Run(c.logger.WithData(lager.Data{
+					"check": check.ID(),
+				}))
+			}(ck)
+		}
 	}
 
 	return nil

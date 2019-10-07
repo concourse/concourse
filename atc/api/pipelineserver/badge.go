@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func badgeForPipeline(pipeline db.Pipeline, logger lager.Logger) (*jobserver.Badge, error) {
+func badgeForPipeline(pipeline db.Pipeline, logger lager.Logger) (jobserver.Badge, error) {
 	var build db.Build
 
 	jobStatusPrecedence := map[db.BuildStatus]int{
@@ -23,14 +23,14 @@ func badgeForPipeline(pipeline db.Pipeline, logger lager.Logger) (*jobserver.Bad
 	jobs, err := pipeline.Jobs()
 	if err != nil {
 		logger.Error("could-not-get-jobs", err)
-		return nil, err
+		return jobserver.Badge{}, err
 	}
 
 	for _, job := range jobs {
 		b, _, err := job.FinishedAndNextBuild()
 		if err != nil {
 			logger.Error("could-not-get-finished-and-next-build", err)
-			return nil, err
+			return jobserver.Badge{}, err
 		}
 
 		if b == nil {
@@ -56,11 +56,12 @@ func (s *Server) PipelineBadge(pipeline db.Pipeline) http.Handler {
 		w.WriteHeader(http.StatusOK)
 
 		badge, err := badgeForPipeline(pipeline, logger)
+		badge.EnrichFromQuery(r.URL.Query())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		fmt.Fprint(w, badge)
+		fmt.Fprint(w, &badge)
 	})
 }

@@ -15,6 +15,9 @@ module Concourse exposing
     , BuildStep(..)
     , CSRFToken
     , Cause
+    , Check
+    , CheckIdentifier
+    , CheckStatus(..)
     , ClusterInfo
     , HookedPlan
     , Job
@@ -45,6 +48,7 @@ module Concourse exposing
     , decodeBuildPrep
     , decodeBuildResources
     , decodeCause
+    , decodeCheck
     , decodeInfo
     , decodeJob
     , decodeMetadata
@@ -671,6 +675,14 @@ type alias ResourceIdentifier =
     }
 
 
+type alias CheckIdentifier =
+    { teamName : String
+    , pipelineName : String
+    , resourceName : String
+    , checkID : Int
+    }
+
+
 type alias VersionedResource =
     { id : Int
     , version : Version
@@ -685,6 +697,22 @@ type alias VersionedResourceIdentifier =
     , resourceName : String
     , versionID : Int
     }
+
+
+type alias Check =
+    { id : Int
+    , status : CheckStatus
+    , createTime : Maybe Time.Posix
+    , startTime : Maybe Time.Posix
+    , endTime : Maybe Time.Posix
+    , checkError : Maybe String
+    }
+
+
+type CheckStatus
+    = Started
+    | Succeeded
+    | Errored
 
 
 decodeResource : Json.Decode.Decoder Resource
@@ -710,6 +738,37 @@ decodeVersionedResource =
         |> andMap (Json.Decode.field "version" decodeVersion)
         |> andMap (defaultTo [] (Json.Decode.field "metadata" decodeMetadata))
         |> andMap (Json.Decode.field "enabled" Json.Decode.bool)
+
+
+decodeCheck : Json.Decode.Decoder Check
+decodeCheck =
+    Json.Decode.succeed Check
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
+        |> andMap (Json.Decode.field "status" decodeCheckStatus)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "create_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "start_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "end_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "check_error" Json.Decode.string))
+
+
+decodeCheckStatus : Json.Decode.Decoder CheckStatus
+decodeCheckStatus =
+    Json.Decode.string
+        |> Json.Decode.andThen
+            (\status ->
+                case status of
+                    "started" ->
+                        Json.Decode.succeed Started
+
+                    "succeeded" ->
+                        Json.Decode.succeed Succeeded
+
+                    "errored" ->
+                        Json.Decode.succeed Errored
+
+                    unknown ->
+                        Json.Decode.fail <| "unknown check status: " ++ unknown
+            )
 
 
 

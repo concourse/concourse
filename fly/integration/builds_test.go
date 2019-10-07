@@ -29,6 +29,8 @@ var _ = Describe("Fly CLI", func() {
 		erroredBuildEndTime     time.Time
 		succeededBuildStartTime time.Time
 		succeededBuildEndTime   time.Time
+		zeroTime                time.Time
+		abortedBuildEndTime     time.Time
 	)
 
 	BeforeEach(func() {
@@ -39,6 +41,8 @@ var _ = Describe("Fly CLI", func() {
 		erroredBuildEndTime = time.Date(2015, time.July, 4, 14, 45, 15, 0, time.UTC)
 		succeededBuildStartTime = time.Date(2015, time.December, 1, 1, 20, 15, 0, time.UTC)
 		succeededBuildEndTime = time.Date(2015, time.December, 1, 2, 35, 15, 0, time.UTC)
+		zeroTime = time.Unix(0, 0)
+		abortedBuildEndTime = time.Date(2015, time.July, 4, 14, 45, 15, 0, time.UTC)
 	})
 
 	Describe("builds", func() {
@@ -119,6 +123,16 @@ var _ = Describe("Fly CLI", func() {
 						TeamName:     "team1",
 					},
 					{
+						ID:           1002,
+						PipelineName: "",
+						JobName:      "",
+						Name:         "",
+						Status:       "aborted",
+						StartTime:    zeroTime.Unix(),
+						EndTime:      abortedBuildEndTime.Unix(),
+						TeamName:     "team1",
+					},
+					{
 						ID:           39,
 						PipelineName: "",
 						JobName:      "",
@@ -167,6 +181,14 @@ var _ = Describe("Fly CLI", func() {
                 "status": "errored",
                 "api_url": "",
                 "start_time": 1436011215,
+                "end_time": 1436021115
+              },
+              {
+                "id": 1002,
+                "team_name": "team1",
+                "name": "",
+                "status": "aborted",
+                "api_url": "",
                 "end_time": 1436021115
               },
               {
@@ -220,6 +242,16 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: erroredBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: erroredBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "2h45m0s"},
+							{Contents: "team1"},
+						},
+						{
+							{Contents: "1002"},
+							{Contents: "one-off"},
+							{Contents: "n/a"},
+							{Contents: "aborted"},
+							{Contents: "n/a"},
+							{Contents: abortedBuildEndTime.Local().Format(timeDateLayout)},
+							{Contents: "n/a"},
 							{Contents: "team1"},
 						},
 						{

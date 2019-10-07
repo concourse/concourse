@@ -1407,6 +1407,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		),
 		wrappa.NewConcourseVersionWrappa(concourse.Version),
 		wrappa.NewAccessorWrappa(accessFactory, aud),
+		wrappa.NewCompressionWrappa(logger),
 	}
 
 	return api.NewHandler(
