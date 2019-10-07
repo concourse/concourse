@@ -31,6 +31,33 @@ all =
                         |> .leftWidgets
                         |> Common.contains (Views.Title "0" Nothing)
             ]
+        , test "pending build has no duration" <|
+            \_ ->
+                Header.header session
+                    { model
+                        | duration =
+                            { startedAt = Nothing
+                            , finishedAt = Nothing
+                            }
+                    }
+                    |> .leftWidgets
+                    |> Common.contains
+                        (Views.Duration <| Views.Pending)
+        , test "running build has running time" <|
+            \_ ->
+                Header.header session
+                    { model
+                        | duration =
+                            { startedAt = Just <| Time.millisToPosix 0
+                            , finishedAt = Nothing
+                            }
+                    }
+                    |> .leftWidgets
+                    |> Common.contains
+                        (Views.Duration <|
+                            Views.Running <|
+                                Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
+                        )
         , test "cancelled build has cancelled duration" <|
             \_ ->
                 Header.header session

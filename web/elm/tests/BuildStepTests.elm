@@ -15,6 +15,7 @@ import Common
         )
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Dict
 import Expect
 import Message.Callback as Callback
 import Message.Message as Message exposing (DomID(..))
