@@ -41,6 +41,13 @@ func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) 
 		"num-handles": len(handles),
 	})
 
+	_, err = s.containerRepository.DestroyUnknownContainers(workerName, handles)
+	if err != nil {
+		logger.Error("failed-to-destroy-unknown-containers", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	err = s.containerRepository.UpdateContainersMissingSince(workerName, handles)
 	if err != nil {
 		logger.Error("failed-to-update-containers-missing-since", err)

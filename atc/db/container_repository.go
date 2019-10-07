@@ -17,6 +17,7 @@ type ContainerRepository interface {
 	RemoveDestroyingContainers(workerName string, currentHandles []string) (int, error)
 	UpdateContainersMissingSince(workerName string, handles []string) error
 	RemoveMissingContainers(time.Duration) (int, error)
+	DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error)
 }
 
 type containerRepository struct {
@@ -361,4 +362,48 @@ func (repository *containerRepository) DestroyFailedContainers() (int, error) {
 	}
 
 	return int(failedContainersLen), nil
+}
+
+func (repository *containerRepository) DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error) {
+
+	dbHandles, err := repository.queryContainerHandles(sq.Eq{
+		"worker_name": workerName,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	unknownHandles := diff(reportedHandles, dbHandles)
+
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer Rollback(tx)
+
+	for _, unknownHandle := range unknownHandles {
+		_, err = psql.Insert("containers").
+			Columns(
+				"handle",
+				"worker_name",
+				"state",
+			).
+			Values(
+				unknownHandle,
+				workerName,
+				atc.ContainerStateDestroying,
+			).
+			RunWith(tx).Exec()
+
+		if err != nil {
+			return 0, err
+		}
+	}
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	return len(unknownHandles), nil
 }
