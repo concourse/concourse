@@ -204,13 +204,13 @@ viewTimespan timespan =
             String.fromInt s ++ "s"
 
         MinutesAndSeconds m s ->
-            String.fromInt m ++ "m" ++ String.fromInt s ++ "s"
+            String.fromInt m ++ "m " ++ String.fromInt s ++ "s"
 
         HoursAndMinutes h m ->
-            String.fromInt h ++ "h" ++ String.fromInt m ++ "m"
+            String.fromInt h ++ "h " ++ String.fromInt m ++ "m"
 
         DaysAndHours d h ->
-            String.fromInt d ++ "d" ++ String.fromInt h ++ "h"
+            String.fromInt d ++ "d " ++ String.fromInt h ++ "h"
 
 
 lazyViewHistory : List BuildTab -> Html Message
