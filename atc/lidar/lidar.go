@@ -16,9 +16,8 @@ func NewRunner(
 	logger lager.Logger,
 	clock clock.Clock,
 	scanRunner Runner,
-	scanInterval time.Duration,
 	checkRunner Runner,
-	checkInterval time.Duration,
+	runnerInterval time.Duration,
 	notifications Notifications,
 	componentFactory db.ComponentFactory,
 ) ifrit.Runner {
@@ -27,11 +26,11 @@ func NewRunner(
 		[]grouper.Member{
 			{
 				Name:   atc.ComponentLidarScanner,
-				Runner: NewIntervalRunner(logger, clock, scanRunner, scanInterval, notifications, atc.ComponentLidarScanner, componentFactory),
+				Runner: NewIntervalRunner(logger, clock, scanRunner, runnerInterval, notifications, atc.ComponentLidarScanner, componentFactory),
 			},
 			{
 				Name:   atc.ComponentLidarChecker,
-				Runner: NewIntervalRunner(logger, clock, checkRunner, checkInterval, notifications, atc.ComponentLidarChecker, componentFactory),
+				Runner: NewIntervalRunner(logger, clock, checkRunner, runnerInterval, notifications, atc.ComponentLidarChecker, componentFactory),
 			},
 		},
 	)
@@ -41,7 +40,7 @@ func NewCheckerRunner(
 	logger lager.Logger,
 	clock clock.Clock,
 	checkRunner Runner,
-	checkInterval time.Duration,
+	runnerInterval time.Duration,
 	notifications Notifications,
 	componentFactory db.ComponentFactory,
 ) ifrit.Runner {
@@ -50,7 +49,7 @@ func NewCheckerRunner(
 		[]grouper.Member{
 			{
 				Name:   atc.ComponentLidarChecker,
-				Runner: NewIntervalRunner(logger, clock, checkRunner, checkInterval, notifications, atc.ComponentLidarChecker, componentFactory),
+				Runner: NewIntervalRunner(logger, clock, checkRunner, runnerInterval, notifications, atc.ComponentLidarChecker, componentFactory),
 			},
 		},
 	)

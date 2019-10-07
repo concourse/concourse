@@ -76,8 +76,7 @@ import (
 var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
 
-var buildReaperInterval = 30 * time.Second
-var pipelineSyncerInterval = 10 * time.Second
+var runnerInterval = 10 * time.Second
 
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
@@ -815,7 +814,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				secretManager,
 				bus,
 			),
-			Interval: pipelineSyncerInterval,
+			Interval: runnerInterval,
 			Clock:    clock.NewClock(),
 		}},
 		{Name: atc.ComponentBuildTracker, Runner: builds.TrackerRunner{
@@ -825,7 +824,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				engine,
 			),
 			Notifications:    bus,
-			Interval:         cmd.BuildTrackerInterval,
+			Interval:         runnerInterval,
 			Clock:            clock.NewClock(),
 			Logger:           logger.Session("tracker-runner"),
 			ComponentFactory: componentFactory,
@@ -864,7 +863,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			lockFactory,
 			componentFactory,
 			clock.NewClock(),
-			cmd.GC.Interval,
+			runnerInterval,
 		)},
 		// run separately so as to not preempt critical GC
 		{Name: atc.ComponentBuildReaper, Runner: lockrunner.NewRunner(
@@ -884,7 +883,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			lockFactory,
 			componentFactory,
 			clock.NewClock(),
-			buildReaperInterval,
+			runnerInterval,
 		)},
 	}
 
@@ -901,13 +900,12 @@ func (cmd *RunCommand) constructBackendMembers(
 				cmd.GlobalResourceCheckTimeout,
 				cmd.ResourceCheckingInterval,
 			),
-			cmd.LidarScannerInterval,
 			lidar.NewChecker(
 				logger.Session(atc.ComponentLidarChecker),
 				dbCheckFactory,
 				engine,
 			),
-			cmd.LidarCheckerInterval,
+			runnerInterval,
 			bus,
 			componentFactory,
 		)
@@ -920,7 +918,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbCheckFactory,
 				engine,
 			),
-			cmd.LidarCheckerInterval,
+			runnerInterval,
 			bus,
 			componentFactory,
 		)
@@ -945,7 +943,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				lockFactory,
 				componentFactory,
 				clock.NewClock(),
-				cmd.Syslog.DrainInterval,
+				runnerInterval,
 			)},
 		)
 	}
@@ -1310,12 +1308,12 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 func (cmd *RunCommand) configureComponentInterval(componentFactory db.ComponentFactory) error {
 	return componentFactory.UpdateIntervals(
 		map[string]time.Duration{
-			atc.ComponentBuildReaper:   buildReaperInterval,
+			atc.ComponentBuildReaper:   30 * time.Second,
 			atc.ComponentBuildTracker:  cmd.BuildTrackerInterval,
 			atc.ComponentCollector:     cmd.GC.Interval,
 			atc.ComponentLidarScanner:  cmd.LidarScannerInterval,
 			atc.ComponentLidarChecker:  cmd.LidarCheckerInterval,
-			atc.ComponentScheduler:     pipelineSyncerInterval,
+			atc.ComponentScheduler:     10 * time.Second,
 			atc.ComponentSyslogDrainer: cmd.Syslog.DrainInterval,
 		})
 }
