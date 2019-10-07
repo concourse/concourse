@@ -908,4 +908,73 @@ var _ = Describe("VolumeFactory", func() {
 			})
 		})
 	})
+
+	Describe("DestroyUnknownVolumes", func() {
+		var (
+			err                   error
+			workerReportedHandles []string
+			num                   int
+		)
+
+		BeforeEach(func() {
+			result, err := psql.Insert("volumes").SetMap(map[string]interface{}{
+				"state":       db.VolumeStateDestroying,
+				"handle":      "some-handle1",
+				"worker_name": defaultWorker.Name(),
+			}).RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+			result, err = psql.Insert("volumes").SetMap(map[string]interface{}{
+				"state":       db.VolumeStateCreated,
+				"handle":      "some-handle2",
+				"worker_name": defaultWorker.Name(),
+			}).RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+		})
+
+		JustBeforeEach(func() {
+			num, err = volumeRepository.DestroyUnknownVolumes(defaultWorker.Name(), workerReportedHandles)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when there are volumes on the worker that are not in the db", func() {
+			var destroyingVolumeHandles []string
+			BeforeEach(func() {
+				workerReportedHandles = []string{"some-handle3", "some-handle4"}
+				destroyingVolumeHandles = append(workerReportedHandles, "some-handle1")
+			})
+
+			It("adds new destroying volumes to the database", func() {
+				result, err := psql.Select("handle").
+					From("volumes").
+					Where(sq.Eq{"state": db.VolumeStateDestroying}).
+					RunWith(dbConn).Query()
+
+				Expect(err).ToNot(HaveOccurred())
+
+				var handle string
+				for result.Next() {
+					err = result.Scan(&handle)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(handle).Should(BeElementOf(destroyingVolumeHandles))
+				}
+				Expect(num).To(Equal(2))
+			})
+
+			It("does not affect volumes in any other state", func() {
+				result, err := psql.Select("*").
+					From("volumes").
+					Where(sq.Eq{"state": db.VolumeStateCreated}).
+					RunWith(dbConn).Exec()
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+				Expect(num).To(Equal(2))
+			})
+		})
+	})
 })

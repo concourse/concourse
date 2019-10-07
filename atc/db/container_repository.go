@@ -365,7 +365,6 @@ func (repository *containerRepository) DestroyFailedContainers() (int, error) {
 }
 
 func (repository *containerRepository) DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error) {
-
 	dbHandles, err := repository.queryContainerHandles(sq.Eq{
 		"worker_name": workerName,
 	})
