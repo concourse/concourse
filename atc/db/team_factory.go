@@ -19,6 +19,7 @@ type TeamFactory interface {
 	GetTeams() ([]Team, error)
 	GetByID(teamID int) Team
 	CreateDefaultTeamIfNotExists() (Team, error)
+	NotifyResourceScanner() error
 }
 
 type teamFactory struct {
@@ -163,6 +164,10 @@ func (factory *teamFactory) CreateDefaultTeamIfNotExists() (Team, error) {
 	},
 		true,
 	)
+}
+
+func (factory *teamFactory) NotifyResourceScanner() error {
+	return factory.conn.Bus().Notify("scanner")
 }
 
 func (factory *teamFactory) scanTeam(t *team, rows scannable) error {
