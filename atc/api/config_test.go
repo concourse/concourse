@@ -419,6 +419,10 @@ var _ = Describe("Config API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
+						It("notifies the scanner to run", func() {
+							Expect(dbTeamFactory.NotifyResourceScannerCallCount()).To(Equal(1))
+						})
+
 						It("returns Content-Type 'application/json'", func() {
 							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 						})
@@ -455,6 +459,10 @@ var _ = Describe("Config API", func() {
 
 							It("returns 201", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							})
+
+							It("does not notify the scanner to run", func() {
+								Expect(dbTeamFactory.NotifyResourceScannerCallCount()).To(Equal(0))
 							})
 						})
 
@@ -501,6 +509,10 @@ var _ = Describe("Config API", func() {
 
 						It("returns 200", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("notifies the scanner to run", func() {
+							Expect(dbTeamFactory.NotifyResourceScannerCallCount()).To(Equal(1))
 						})
 
 						It("returns Content-Type 'application/json'", func() {
@@ -877,6 +889,10 @@ jobs:
 
 							It("returns 201", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							})
+
+							It("does not notify the scanner to run", func() {
+								Expect(dbTeamFactory.NotifyResourceScannerCallCount()).To(Equal(0))
 							})
 						})
 

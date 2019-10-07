@@ -16,6 +16,11 @@ func (s *Server) UnpausePipeline(pipelineDB db.Pipeline) http.Handler {
 			return
 		}
 
+		err = s.teamFactory.NotifyResourceScanner()
+		if err != nil {
+			logger.Error("failed-to-notify-resource-scanner", err)
+		}
+
 		w.WriteHeader(http.StatusOK)
 	})
 }
