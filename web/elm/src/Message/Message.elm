@@ -73,7 +73,7 @@ type DomID
     | PaginationButton Page
     | VersionHeader VersionId
     | VersionToggle VersionId
-    | BuildTab Concourse.Build
+    | BuildTab Int String
     | JobPreview Concourse.JobIdentifier
     | HamburgerMenu
     | SideBarTeam String

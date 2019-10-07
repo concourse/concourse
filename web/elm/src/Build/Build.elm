@@ -14,22 +14,16 @@ module Build.Build exposing
     )
 
 import Application.Models exposing (Session)
-import Build.Models
-    exposing
-        ( BuildPageType(..)
-        , CurrentBuild
-        , CurrentOutput(..)
-        , Model
-        , toMaybe
-        )
+import Build.Header.Header as Header
+import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
+import Build.Models exposing (Model, toMaybe)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
 import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
 import Concourse
-import Concourse.BuildStatus
-import Concourse.Pagination exposing (Paginated)
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import DateFormat
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
@@ -46,7 +40,6 @@ import Html.Attributes
         , tabindex
         , title
         )
-import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
 import Http
 import Keyboard
@@ -61,11 +54,10 @@ import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData
 import Routes
 import SideBar.SideBar as SideBar
-import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
+import StrictEvents exposing (onScroll)
 import String
 import Time
 import UpdateMsg exposing (UpdateMsg)
-import Views.BuildDuration as BuildDuration
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
 import Views.NotAuthorized as NotAuthorized
@@ -77,11 +69,6 @@ import Views.TopBar as TopBar
 bodyId : String
 bodyId =
     "build-body"
-
-
-historyId : String
-historyId =
-    "builds"
 
 
 type alias Flags =
@@ -101,11 +88,24 @@ init flags =
     changeToBuild
         flags
         ( { page = flags.pageType
+          , id = 0
+          , name =
+                case flags.pageType of
+                    OneOffBuildPage id ->
+                        String.fromInt id
+
+                    JobBuildPage { buildName } ->
+                        buildName
           , now = Nothing
+          , job = Nothing
           , disableManualTrigger = False
           , history = []
           , nextPage = Nothing
-          , currentBuild = RemoteData.NotAsked
+          , prep = Nothing
+          , build = RemoteData.NotAsked
+          , duration = { startedAt = Nothing, finishedAt = Nothing }
+          , status = BuildStatusPending
+          , output = Empty
           , browsingIndex = 0
           , autoScroll = True
           , previousKeyPress = Nothing
@@ -127,9 +127,8 @@ subscriptions : Model -> List Subscription
 subscriptions model =
     let
         buildEventsUrl =
-            model.currentBuild
-                |> RemoteData.toMaybe
-                |> Maybe.andThen (.output >> toMaybe)
+            model.output
+                |> toMaybe
                 |> Maybe.andThen .eventStreamUrlPath
     in
     [ OnClockTick OneSecond
@@ -156,15 +155,11 @@ changeToBuild { highlight, pageType } ( model, effects ) =
         let
             newIndex =
                 model.browsingIndex + 1
-
-            newBuild =
-                RemoteData.map
-                    (\cb -> { cb | prep = Nothing, output = Empty })
-                    model.currentBuild
         in
         ( { model
             | browsingIndex = newIndex
-            , currentBuild = newBuild
+            , prep = Nothing
+            , output = Empty
             , autoScroll = True
             , page = pageType
             , highlight = highlight
@@ -186,9 +181,9 @@ changeToBuild { highlight, pageType } ( model, effects ) =
 
 extractTitle : Model -> String
 extractTitle model =
-    case ( model.currentBuild |> RemoteData.toMaybe, currentJob model, model.page ) of
-        ( Just build, Just { jobName }, _ ) ->
-            jobName ++ " #" ++ build.build.name
+    case ( model.build, currentJob model, model.page ) of
+        ( RemoteData.Success build, Just { jobName }, _ ) ->
+            jobName ++ " #" ++ build.name
 
         ( _, _, JobBuildPage { jobName, buildName } ) ->
             jobName ++ " #" ++ buildName
@@ -199,15 +194,14 @@ extractTitle model =
 
 currentJob : Model -> Maybe Concourse.JobIdentifier
 currentJob =
-    .currentBuild
+    .build
         >> RemoteData.toMaybe
-        >> Maybe.map .build
         >> Maybe.andThen .job
 
 
 getUpdateMessage : Model -> UpdateMsg
 getUpdateMessage model =
-    case model.currentBuild of
+    case model.build of
         RemoteData.Failure _ ->
             UpdateMsg.NotFound
 
@@ -217,13 +211,7 @@ getUpdateMessage model =
 
 handleCallback : Callback -> ET Model
 handleCallback action ( model, effects ) =
-    case action of
-        BuildTriggered (Ok build) ->
-            ( { model | history = build :: model.history }
-            , effects
-                ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
-            )
-
+    (case action of
         BuildFetched (Ok ( browsingIndex, build )) ->
             handleBuildFetched browsingIndex build ( model, effects )
 
@@ -234,7 +222,10 @@ handleCallback action ( model, effects ) =
                         ( model, effects ++ [ RedirectToLogin ] )
 
                     else if status.code == 404 then
-                        ( { model | currentBuild = RemoteData.Failure err }
+                        ( { model
+                            | prep = Nothing
+                            , build = RemoteData.Failure err
+                          }
                         , effects
                         )
 
@@ -285,21 +276,13 @@ handleCallback action ( model, effects ) =
                 Http.BadStatus { status } ->
                     let
                         isAborted =
-                            model.currentBuild
+                            model.build
                                 |> RemoteData.map
-                                    (.build
-                                        >> .status
-                                        >> (==) Concourse.BuildStatusAborted
-                                    )
+                                    (.status >> (==) BuildStatusAborted)
                                 |> RemoteData.withDefault False
                     in
                     if status.code == 404 && isAborted then
-                        ( { model
-                            | currentBuild =
-                                RemoteData.map
-                                    (\cb -> { cb | output = Cancelled })
-                                    model.currentBuild
-                          }
+                        ( { model | output = Cancelled }
                         , effects
                         )
 
@@ -312,13 +295,6 @@ handleCallback action ( model, effects ) =
                 _ ->
                     ( model, effects )
 
-        BuildHistoryFetched (Ok history) ->
-            handleHistoryFetched history ( model, effects )
-
-        BuildHistoryFetched (Err _) ->
-            -- https://github.com/concourse/concourse/issues/3201
-            ( { model | fetchingHistory = False }, effects )
-
         BuildJobDetailsFetched (Ok job) ->
             ( { model | disableManualTrigger = job.disableManualTrigger }
             , effects
@@ -330,21 +306,15 @@ handleCallback action ( model, effects ) =
 
         _ ->
             ( model, effects )
+    )
+        |> Header.handleCallback action
 
 
 handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
 handleDelivery session delivery ( model, effects ) =
-    case delivery of
+    (case delivery of
         KeyDown keyEvent ->
             handleKeyPressed keyEvent ( model, effects )
-
-        KeyUp keyEvent ->
-            case keyEvent.code of
-                Keyboard.T ->
-                    ( { model | previousTriggerBuildByKey = False }, effects )
-
-                _ ->
-                    ( model, effects )
 
         ClockTicked OneSecond time ->
             let
@@ -363,26 +333,31 @@ handleDelivery session delivery ( model, effects ) =
         ClockTicked FiveSeconds _ ->
             ( model, effects ++ [ Effects.FetchPipelines ] )
 
-        EventsReceived result ->
+        EventsReceived (Ok envelopes) ->
             let
                 eventSourceClosed =
-                    model.currentBuild
-                        |> RemoteData.toMaybe
-                        |> Maybe.andThen (.output >> toMaybe)
+                    model.output
+                        |> toMaybe
                         |> Maybe.map (.eventSourceOpened >> not)
                         |> Maybe.withDefault False
 
-                batchContainsNetworkError =
-                    result
-                        |> Result.map (List.map .data)
-                        |> Result.map (List.member STModels.NetworkError)
-                        |> Result.withDefault False
-            in
-            case result of
-                Ok envelopes ->
+                buildStatus =
+                    envelopes
+                        |> List.filterMap
+                            (\{ data } ->
+                                case data of
+                                    STModels.BuildStatus status date ->
+                                        Just ( status, date )
+
+                                    _ ->
+                                        Nothing
+                            )
+                        |> List.Extra.last
+
+                ( newModel, newEffects ) =
                     updateOutput
                         (Build.Output.Output.handleEnvelopes envelopes)
-                        ( if eventSourceClosed && batchContainsNetworkError then
+                        ( if eventSourceClosed && (envelopes |> List.map .data |> List.member STModels.NetworkError) then
                             { model | authorized = False }
 
                           else
@@ -405,72 +380,40 @@ handleDelivery session delivery ( model, effects ) =
                             NoScroll ->
                                 effects
                         )
+            in
+            case ( newModel.build, buildStatus ) of
+                ( RemoteData.Success build, Just ( status, date ) ) ->
+                    ( { newModel
+                        | build =
+                            RemoteData.Success <|
+                                Concourse.receiveStatus status date build
+                      }
+                    , if Concourse.BuildStatus.isRunning build.status then
+                        newEffects ++ [ SetFavIcon (Just status) ]
+
+                      else
+                        newEffects
+                    )
 
                 _ ->
-                    ( model, effects )
-
-        ElementVisible ( id, True ) ->
-            let
-                lastBuildVisible =
-                    model.history
-                        |> List.Extra.last
-                        |> Maybe.map .id
-                        |> Maybe.map String.fromInt
-                        |> Maybe.map ((==) id)
-                        |> Maybe.withDefault False
-
-                hasNextPage =
-                    model.nextPage /= Nothing
-
-                needsToFetchMorePages =
-                    not model.fetchingHistory && lastBuildVisible && hasNextPage
-            in
-            case currentJob model of
-                Just job ->
-                    if needsToFetchMorePages then
-                        ( { model | fetchingHistory = True }
-                        , effects ++ [ FetchBuildHistory job model.nextPage ]
-                        )
-
-                    else
-                        ( model, effects )
-
-                Nothing ->
-                    ( model, effects )
-
-        ElementVisible ( id, False ) ->
-            let
-                currentBuildInvisible =
-                    model.currentBuild
-                        |> RemoteData.toMaybe
-                        |> Maybe.map (.build >> .id >> String.fromInt)
-                        |> Maybe.map ((==) id)
-                        |> Maybe.withDefault False
-
-                shouldScroll =
-                    currentBuildInvisible && not model.scrolledToCurrentBuild
-            in
-            ( { model | scrolledToCurrentBuild = True }
-            , effects
-                ++ (if shouldScroll then
-                        [ Scroll (ToId id) historyId ]
-
-                    else
-                        []
-                   )
-            )
+                    ( newModel, newEffects )
 
         _ ->
             ( model, effects )
+    )
+        |> Header.handleDelivery delivery
 
 
 update : { a | hovered : HoverState.HoverState } -> Message -> ET Model
 update session msg ( model, effects ) =
-    case msg of
-        Click (BuildTab build) ->
+    (case msg of
+        Click (BuildTab id name) ->
             ( model
             , effects
-                ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
+                ++ [ NavigateTo <|
+                        Routes.toString <|
+                            Routes.buildRoute id name model.job
+                   ]
             )
 
         Hover _ ->
@@ -490,10 +433,10 @@ update session msg ( model, effects ) =
                 ( model, effects )
 
         Click AbortBuildButton ->
-            (model.currentBuild
+            (model.build
                 |> RemoteData.toMaybe
                 |> Maybe.map
-                    (.build >> .id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
+                    (.id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
                 |> Maybe.withDefault identity
             )
                 ( model, effects )
@@ -518,25 +461,6 @@ update session msg ( model, effects ) =
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.extendHighlight id line)
                 ( model, effects )
 
-        ScrollBuilds event ->
-            let
-                scroll =
-                    if event.deltaX == 0 then
-                        [ Scroll (Sideways event.deltaY) historyId ]
-
-                    else
-                        [ Scroll (Sideways -event.deltaX) historyId ]
-
-                checkVisibility =
-                    case model.history |> List.Extra.last of
-                        Just build ->
-                            [ Effects.CheckIsVisible <| String.fromInt build.id ]
-
-                        Nothing ->
-                            []
-            in
-            ( model, effects ++ scroll ++ checkVisibility )
-
         GoToRoute route ->
             ( model, effects ++ [ NavigateTo <| Routes.toString <| route ] )
 
@@ -547,6 +471,8 @@ update session msg ( model, effects ) =
 
         _ ->
             ( model, effects )
+    )
+        |> Header.update msg
 
 
 getScrollBehavior : Model -> ScrollBehavior
@@ -564,57 +490,49 @@ getScrollBehavior model =
 
         Routes.HighlightNothing ->
             if model.autoScroll then
-                case model.currentBuild |> RemoteData.toMaybe of
-                    Nothing ->
-                        NoScroll
-
-                    Just cb ->
-                        case cb.build.status of
-                            Concourse.BuildStatusSucceeded ->
+                case model.build of
+                    RemoteData.Success build ->
+                        case build.status of
+                            BuildStatusSucceeded ->
                                 NoScroll
 
-                            Concourse.BuildStatusPending ->
+                            BuildStatusPending ->
                                 NoScroll
 
                             _ ->
                                 ScrollWindow
+
+                    _ ->
+                        NoScroll
 
             else
                 NoScroll
 
 
 updateOutput :
-    (OutputModel -> ( OutputModel, List Effect, Build.Output.Output.OutMsg ))
+    (OutputModel -> ( OutputModel, List Effect ))
     -> ET Model
 updateOutput updater ( model, effects ) =
-    let
-        currentBuild =
-            model.currentBuild |> RemoteData.toMaybe
-    in
-    case ( currentBuild, currentBuild |> Maybe.andThen (.output >> toMaybe) ) of
-        ( Just cb, Just output ) ->
+    case model.output of
+        Output output ->
             let
-                ( newOutput, outputEffects, outMsg ) =
+                ( newOutput, outputEffects ) =
                     updater output
-            in
-            handleOutMsg outMsg
-                ( { model
-                    | currentBuild =
-                        RemoteData.Success
-                            { cb
-                                | output =
-                                    -- cb.output must be equal-by-reference
-                                    -- to its previous value when passed
-                                    -- into `Html.Lazy.lazy3` below.
-                                    if newOutput /= output then
-                                        Output newOutput
 
-                                    else
-                                        cb.output
-                            }
-                  }
-                , effects ++ outputEffects
-                )
+                newModel =
+                    { model
+                        | output =
+                            -- model.output must be equal-by-reference
+                            -- to its previous value when passed
+                            -- into `Html.Lazy.lazy3` below.
+                            if newOutput /= output then
+                                Output newOutput
+
+                            else
+                                model.output
+                    }
+            in
+            ( newModel, effects ++ outputEffects )
 
         _ ->
             ( model, effects )
@@ -623,9 +541,6 @@ updateOutput updater ( model, effects ) =
 handleKeyPressed : Keyboard.KeyEvent -> ET Model
 handleKeyPressed keyEvent ( model, effects ) =
     let
-        currentBuild =
-            model.currentBuild |> RemoteData.toMaybe |> Maybe.map .build
-
         newModel =
             case ( model.previousKeyPress, keyEvent.shiftKey, keyEvent.code ) of
                 ( Nothing, False, Keyboard.G ) ->
@@ -635,68 +550,15 @@ handleKeyPressed keyEvent ( model, effects ) =
                     { model | previousKeyPress = Nothing }
     in
     if Keyboard.hasControlModifier keyEvent then
-        ( newModel, [] )
+        ( newModel, effects )
 
     else
         case ( keyEvent.code, keyEvent.shiftKey ) of
-            ( Keyboard.H, False ) ->
-                case Maybe.andThen (nextBuild newModel.history) currentBuild of
-                    Just build ->
-                        ( newModel
-                        , effects
-                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
-                        )
-
-                    Nothing ->
-                        ( newModel, [] )
-
-            ( Keyboard.L, False ) ->
-                case
-                    Maybe.andThen (prevBuild newModel.history) currentBuild
-                of
-                    Just build ->
-                        ( newModel
-                        , effects
-                            ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute build ]
-                        )
-
-                    Nothing ->
-                        ( newModel, [] )
-
             ( Keyboard.J, False ) ->
                 ( newModel, [ Scroll Down bodyId ] )
 
             ( Keyboard.K, False ) ->
                 ( newModel, [ Scroll Up bodyId ] )
-
-            ( Keyboard.T, True ) ->
-                if not newModel.previousTriggerBuildByKey then
-                    (currentJob model
-                        |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
-                        |> Maybe.withDefault identity
-                    )
-                        ( { newModel | previousTriggerBuildByKey = True }, effects )
-
-                else
-                    ( newModel, [] )
-
-            ( Keyboard.A, True ) ->
-                if currentBuild == List.head newModel.history then
-                    case currentBuild of
-                        Just _ ->
-                            (model.currentBuild
-                                |> RemoteData.toMaybe
-                                |> Maybe.map
-                                    (.build >> .id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
-                                |> Maybe.withDefault identity
-                            )
-                                ( newModel, effects )
-
-                        Nothing ->
-                            ( newModel, [] )
-
-                else
-                    ( newModel, [] )
 
             ( Keyboard.G, True ) ->
                 ( { newModel | autoScroll = True }, [ Scroll ToBottom bodyId ] )
@@ -709,62 +571,33 @@ handleKeyPressed keyEvent ( model, effects ) =
                     ( { newModel | autoScroll = False }, [ Scroll ToTop bodyId ] )
 
                 else
-                    ( newModel, [] )
+                    ( newModel, effects )
 
             ( Keyboard.Slash, True ) ->
-                ( { newModel | showHelp = not newModel.showHelp }, [] )
+                ( { newModel | showHelp = not newModel.showHelp }, effects )
 
             _ ->
-                ( newModel, [] )
-
-
-nextBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build
-nextBuild builds build =
-    case builds of
-        first :: second :: rest ->
-            if second == build then
-                Just first
-
-            else
-                nextBuild (second :: rest) build
-
-        _ ->
-            Nothing
-
-
-prevBuild : List Concourse.Build -> Concourse.Build -> Maybe Concourse.Build
-prevBuild builds build =
-    case builds of
-        first :: second :: rest ->
-            if first == build then
-                Just second
-
-            else
-                prevBuild (second :: rest) build
-
-        _ ->
-            Nothing
+                ( newModel, effects )
 
 
 handleBuildFetched : Int -> Concourse.Build -> ET Model
 handleBuildFetched browsingIndex build ( model, effects ) =
     if browsingIndex == model.browsingIndex then
         let
-            currentBuild =
-                case model.currentBuild |> RemoteData.toMaybe of
-                    Nothing ->
-                        { build = build
-                        , prep = Nothing
-                        , output = Empty
-                        }
+            output =
+                case model.build of
+                    RemoteData.Success _ ->
+                        model.output
 
-                    Just cb ->
-                        { cb | build = build }
+                    _ ->
+                        Empty
 
             withBuild =
                 { model
-                    | currentBuild = RemoteData.Success currentBuild
-                    , history = updateHistory build model.history
+                    | build = RemoteData.Success build
+                    , duration = build.duration
+                    , status = build.status
+                    , output = output
                 }
 
             fetchJobAndHistory =
@@ -778,15 +611,11 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                         []
 
             ( newModel, cmd ) =
-                if build.status == Concourse.BuildStatusPending then
+                if build.status == BuildStatusPending then
                     ( withBuild, effects ++ pollUntilStarted browsingIndex build.id )
 
                 else if build.reapTime == Nothing then
-                    case
-                        model.currentBuild
-                            |> RemoteData.toMaybe
-                            |> Maybe.andThen .prep
-                    of
+                    case model.prep of
                         Nothing ->
                             initBuildOutput build ( withBuild, effects )
 
@@ -807,7 +636,7 @@ handleBuildFetched browsingIndex build ( model, effects ) =
                 else
                     ( withBuild, effects )
         in
-        ( { newModel | fetchingHistory = True }
+        ( newModel
         , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status), Focus bodyId ]
         )
 
@@ -828,50 +657,15 @@ initBuildOutput build ( model, effects ) =
         ( output, outputCmd ) =
             Build.Output.Output.init model.highlight build
     in
-    ( { model
-        | currentBuild =
-            RemoteData.map
-                (\info -> { info | output = Output output })
-                model.currentBuild
-      }
+    ( { model | output = Output output }
     , effects ++ outputCmd
     )
-
-
-handleHistoryFetched : Paginated Concourse.Build -> ET Model
-handleHistoryFetched history ( model, effects ) =
-    let
-        currentBuild =
-            model.currentBuild |> RemoteData.map .build
-
-        newModel =
-            { model
-                | history = List.append model.history history.content
-                , nextPage = history.pagination.nextPage
-                , fetchingHistory = False
-            }
-    in
-    case ( currentBuild, currentJob model ) of
-        ( RemoteData.Success build, Just job ) ->
-            if List.member build newModel.history then
-                ( newModel, effects ++ [ CheckIsVisible <| String.fromInt build.id ] )
-
-            else
-                ( { newModel | fetchingHistory = True }, effects ++ [ FetchBuildHistory job history.pagination.nextPage ] )
-
-        _ ->
-            ( newModel, effects )
 
 
 handleBuildPrepFetched : Int -> Concourse.BuildPrep -> ET Model
 handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
     if browsingIndex == model.browsingIndex then
-        ( { model
-            | currentBuild =
-                RemoteData.map
-                    (\info -> { info | prep = Just buildPrep })
-                    model.currentBuild
-          }
+        ( { model | prep = Just buildPrep }
         , effects
         )
 
@@ -955,20 +749,22 @@ breadcrumbs model =
 
 viewBuildPage : Session -> Model -> Html Message
 viewBuildPage session model =
-    case model.currentBuild |> RemoteData.toMaybe of
-        Just currentBuild ->
+    case model.build of
+        RemoteData.Success build ->
             Html.div
                 [ class "with-fixed-header"
-                , attribute "data-build-name" currentBuild.build.name
+                , attribute "data-build-name" build.name
                 , style "flex-grow" "1"
                 , style "display" "flex"
                 , style "flex-direction" "column"
                 , style "overflow" "hidden"
                 ]
-                [ viewBuildHeader session model currentBuild.build
+                [ Header.view session model
                 , body
                     session
-                    { currentBuild = currentBuild
+                    { prep = model.prep
+                    , build = build
+                    , output = model.output
                     , authorized = model.authorized
                     , showHelp = model.showHelp
                     }
@@ -981,12 +777,14 @@ viewBuildPage session model =
 body :
     Session
     ->
-        { currentBuild : CurrentBuild
+        { prep : Maybe Concourse.BuildPrep
+        , build : Concourse.Build
+        , output : CurrentOutput
         , authorized : Bool
         , showHelp : Bool
         }
     -> Html Message
-body session { currentBuild, authorized, showHelp } =
+body session { prep, build, output, authorized, showHelp } =
     Html.div
         ([ class "scrollable-body build-body"
          , id bodyId
@@ -997,15 +795,15 @@ body session { currentBuild, authorized, showHelp } =
         )
     <|
         if authorized then
-            [ viewBuildPrep currentBuild.prep
+            [ viewBuildPrep prep
             , Html.Lazy.lazy3
                 viewBuildOutput
                 session.timeZone
                 (projectOntoBuildPage session.hovered)
-                currentBuild.output
+                output
             , keyboardHelp showHelp
             ]
-                ++ tombstone session.timeZone currentBuild
+                ++ tombstone session.timeZone build
 
         else
             [ NotAuthorized.view ]
@@ -1112,12 +910,9 @@ keyboardHelp showHelp =
         ]
 
 
-tombstone : Time.Zone -> CurrentBuild -> List (Html Message)
-tombstone timeZone currentBuild =
+tombstone : Time.Zone -> Concourse.Build -> List (Html Message)
+tombstone timeZone build =
     let
-        build =
-            currentBuild.build
-
         maybeBirthDate =
             Maybe.Extra.or build.duration.startedAt build.duration.finishedAt
     in
@@ -1157,16 +952,16 @@ tombstone timeZone currentBuild =
                     [ class "epitaph" ]
                     [ Html.text <|
                         case build.status of
-                            Concourse.BuildStatusSucceeded ->
+                            BuildStatusSucceeded ->
                                 "It passed, and now it has passed on."
 
-                            Concourse.BuildStatusFailed ->
+                            BuildStatusFailed ->
                                 "It failed, and now has been forgotten."
 
-                            Concourse.BuildStatusErrored ->
+                            BuildStatusErrored ->
                                 "It errored, but has found forgiveness."
 
-                            Concourse.BuildStatusAborted ->
+                            BuildStatusAborted ->
                                 "It was never given a chance."
 
                             _ ->
@@ -1325,217 +1120,3 @@ viewBuildPrepStatus status =
                 , style "background-size" "contain"
                 , title "not blocking"
                 ]
-
-
-viewBuildHeader :
-    Session
-    -> Model
-    -> Concourse.Build
-    -> Html Message
-viewBuildHeader session model build =
-    let
-        triggerButton =
-            case currentJob model of
-                Just _ ->
-                    let
-                        buttonDisabled =
-                            model.disableManualTrigger
-
-                        buttonHovered =
-                            HoverState.isHovered
-                                TriggerBuildButton
-                                session.hovered
-                    in
-                    Html.button
-                        ([ attribute "role" "button"
-                         , attribute "tabindex" "0"
-                         , attribute "aria-label" "Trigger Build"
-                         , attribute "title" "Trigger Build"
-                         , onLeftClick <| Click TriggerBuildButton
-                         , onMouseEnter <| Hover <| Just TriggerBuildButton
-                         , onFocus <| Hover <| Just TriggerBuildButton
-                         , onMouseLeave <| Hover Nothing
-                         , onBlur <| Hover Nothing
-                         ]
-                            ++ Styles.triggerButton
-                                buttonDisabled
-                                buttonHovered
-                                build.status
-                        )
-                    <|
-                        [ Icon.icon
-                            { sizePx = 40
-                            , image = "ic-add-circle-outline-white.svg"
-                            }
-                            []
-                        ]
-                            ++ (if buttonDisabled && buttonHovered then
-                                    [ Html.div
-                                        Styles.triggerTooltip
-                                        [ Html.text <|
-                                            "manual triggering disabled "
-                                                ++ "in job config"
-                                        ]
-                                    ]
-
-                                else
-                                    []
-                               )
-
-                Nothing ->
-                    Html.text ""
-
-        abortHovered =
-            HoverState.isHovered AbortBuildButton session.hovered
-
-        abortButton =
-            if Concourse.BuildStatus.isRunning build.status then
-                Html.button
-                    ([ onLeftClick (Click <| AbortBuildButton)
-                     , attribute "role" "button"
-                     , attribute "tabindex" "0"
-                     , attribute "aria-label" "Abort Build"
-                     , attribute "title" "Abort Build"
-                     , onMouseEnter <| Hover <| Just AbortBuildButton
-                     , onFocus <| Hover <| Just AbortBuildButton
-                     , onMouseLeave <| Hover Nothing
-                     , onBlur <| Hover Nothing
-                     ]
-                        ++ Styles.abortButton abortHovered
-                    )
-                    [ Icon.icon
-                        { sizePx = 40
-                        , image = "ic-abort-circle-outline-white.svg"
-                        }
-                        []
-                    ]
-
-            else
-                Html.text ""
-
-        buildTitle =
-            case build.job of
-                Just jobId ->
-                    let
-                        jobRoute =
-                            Routes.Job { id = jobId, page = Nothing }
-                    in
-                    Html.a
-                        [ href <| Routes.toString jobRoute ]
-                        [ Html.span [ class "build-name" ] [ Html.text jobId.jobName ]
-                        , Html.text (" #" ++ build.name)
-                        ]
-
-                _ ->
-                    Html.text ("build #" ++ String.fromInt build.id)
-    in
-    Html.div [ class "fixed-header" ]
-        [ Html.div
-            ([ id "build-header"
-             , class "build-header"
-             ]
-                ++ Styles.header build.status
-            )
-            [ Html.div []
-                [ Html.h1 [] [ buildTitle ]
-                , case model.now of
-                    Just n ->
-                        BuildDuration.view session.timeZone build.duration n
-
-                    Nothing ->
-                        Html.text ""
-                ]
-            , Html.div
-                [ style "display" "flex" ]
-                [ abortButton, triggerButton ]
-            ]
-        , Html.div
-            [ onMouseWheel ScrollBuilds ]
-            [ lazyViewHistory build model.history ]
-        ]
-
-
-lazyViewHistory : Concourse.Build -> List Concourse.Build -> Html Message
-lazyViewHistory currentBuild builds =
-    Html.Lazy.lazy2 viewHistory currentBuild builds
-
-
-viewHistory : Concourse.Build -> List Concourse.Build -> Html Message
-viewHistory currentBuild builds =
-    Html.ul [ id historyId ]
-        (List.map (viewHistoryItem currentBuild) builds)
-
-
-viewHistoryItem : Concourse.Build -> Concourse.Build -> Html Message
-viewHistoryItem currentBuild build =
-    Html.li
-        ([ classList [ ( "current", build.id == currentBuild.id ) ]
-         , id <| String.fromInt build.id
-         ]
-            ++ Styles.historyItem build.status
-        )
-        [ Html.a
-            [ onLeftClick <| Click <| BuildTab build
-            , href <| Routes.toString <| Routes.buildRoute build
-            ]
-            [ Html.text build.name ]
-        ]
-
-
-handleOutMsg : Build.Output.Output.OutMsg -> ET Model
-handleOutMsg outMsg ( model, effects ) =
-    case outMsg of
-        Build.Output.Output.OutNoop ->
-            ( model, effects )
-
-        Build.Output.Output.OutBuildStatus status date ->
-            case model.currentBuild |> RemoteData.toMaybe of
-                Nothing ->
-                    ( model, effects )
-
-                Just currentBuild ->
-                    let
-                        build =
-                            currentBuild.build
-
-                        duration =
-                            build.duration
-
-                        newDuration =
-                            if Concourse.BuildStatus.isRunning status then
-                                duration
-
-                            else
-                                { duration | finishedAt = Just date }
-
-                        newStatus =
-                            if Concourse.BuildStatus.isRunning build.status then
-                                status
-
-                            else
-                                build.status
-
-                        newBuild =
-                            { build | status = newStatus, duration = newDuration }
-                    in
-                    ( { model
-                        | history = updateHistory newBuild model.history
-                        , currentBuild = RemoteData.Success { currentBuild | build = newBuild }
-                      }
-                    , if Concourse.BuildStatus.isRunning build.status then
-                        effects ++ [ SetFavIcon (Just status) ]
-
-                      else
-                        effects
-                    )
-
-
-updateHistory : Concourse.Build -> List Concourse.Build -> List Concourse.Build
-updateHistory newBuild =
-    List.map <|
-        \build ->
-            if build.id == newBuild.id then
-                newBuild
-
-            else
-                build

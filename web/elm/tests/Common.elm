@@ -15,6 +15,7 @@ module Common exposing
 
 import Application.Application as Application
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Expect exposing (Expectation)
 import Html
 import Message.Callback as Callback
@@ -153,7 +154,7 @@ myBrowserFetchedTheBuild =
                                 , pipelineName = "yet-another-pipeline"
                                 , jobName = "job"
                                 }
-                      , status = Concourse.BuildStatusStarted
+                      , status = BuildStatusStarted
                       , duration =
                             { startedAt = Nothing
                             , finishedAt = Nothing

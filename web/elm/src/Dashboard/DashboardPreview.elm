@@ -66,7 +66,7 @@ viewJob hovered job =
                     Routes.jobRoute job
 
                 Just build ->
-                    Routes.buildRoute build
+                    Routes.buildRoute build.id build.name build.job
 
         jobId =
             { jobName = job.name

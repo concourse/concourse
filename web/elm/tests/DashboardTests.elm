@@ -18,6 +18,7 @@ import Common
         , pipelineRunningKeyframes
         )
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli as Cli
 import Dashboard.Dashboard as Dashboard
 import Dict
@@ -1021,7 +1022,7 @@ all =
                     Query.find [ class "card-body" ]
 
                 pipelineWithStatus :
-                    Concourse.BuildStatus
+                    BuildStatus
                     -> Bool
                     -> Application.Model
                     -> Query.Single ApplicationMsgs.TopLevelMessage
@@ -1255,7 +1256,7 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusSucceeded
+                                    BuildStatusSucceeded
                                     False
                                 |> findBanner
                                 |> isSolid green
@@ -1263,7 +1264,7 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusSucceeded
+                                    BuildStatusSucceeded
                                     True
                                 |> findBanner
                                 |> isColorWithStripes { thin = green, thick = darkGrey }
@@ -1280,7 +1281,7 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusStarted
+                                    BuildStatusStarted
                                     True
                                 |> findBanner
                                 |> isColorWithStripes { thin = lightGrey, thick = darkGrey }
@@ -1288,7 +1289,7 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusFailed
+                                    BuildStatusFailed
                                     False
                                 |> findBanner
                                 |> isSolid red
@@ -1296,7 +1297,7 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusFailed
+                                    BuildStatusFailed
                                     True
                                 |> findBanner
                                 |> isColorWithStripes { thin = red, thick = darkGrey }
@@ -1304,7 +1305,7 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusErrored
+                                    BuildStatusErrored
                                     False
                                 |> findBanner
                                 |> isSolid amber
@@ -1312,7 +1313,7 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusErrored
+                                    BuildStatusErrored
                                     True
                                 |> findBanner
                                 |> isColorWithStripes { thin = amber, thick = darkGrey }
@@ -1320,7 +1321,7 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusAborted
+                                    BuildStatusAborted
                                     False
                                 |> findBanner
                                 |> isSolid brown
@@ -1328,15 +1329,15 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusAborted
+                                    BuildStatusAborted
                                     True
                                 |> findBanner
                                 |> isColorWithStripes { thin = brown, thick = darkGrey }
                     , describe "status priorities" <|
                         let
                             givenTwoJobs :
-                                Concourse.BuildStatus
-                                -> Concourse.BuildStatus
+                                BuildStatus
+                                -> BuildStatus
                                 -> Query.Single ApplicationMsgs.TopLevelMessage
                             givenTwoJobs firstStatus secondStatus =
                                 whenOnDashboard { highDensity = False }
@@ -1361,29 +1362,29 @@ all =
                         [ test "failed is more important than errored" <|
                             \_ ->
                                 givenTwoJobs
-                                    Concourse.BuildStatusFailed
-                                    Concourse.BuildStatusErrored
+                                    BuildStatusFailed
+                                    BuildStatusErrored
                                     |> findBanner
                                     |> isSolid red
                         , test "errored is more important than aborted" <|
                             \_ ->
                                 givenTwoJobs
-                                    Concourse.BuildStatusErrored
-                                    Concourse.BuildStatusAborted
+                                    BuildStatusErrored
+                                    BuildStatusAborted
                                     |> findBanner
                                     |> isSolid amber
                         , test "aborted is more important than succeeding" <|
                             \_ ->
                                 givenTwoJobs
-                                    Concourse.BuildStatusAborted
-                                    Concourse.BuildStatusSucceeded
+                                    BuildStatusAborted
+                                    BuildStatusSucceeded
                                     |> findBanner
                                     |> isSolid brown
                         , test "succeeding is more important than pending" <|
                             \_ ->
                                 givenTwoJobs
-                                    Concourse.BuildStatusSucceeded
-                                    Concourse.BuildStatusPending
+                                    BuildStatusSucceeded
+                                    BuildStatusPending
                                     |> findBanner
                                     |> isSolid green
                         ]
@@ -1437,7 +1438,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusSucceeded
+                                        BuildStatusSucceeded
                                         False
                                     |> findBanner
                                     |> isSolid green
@@ -1445,7 +1446,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusSucceeded
+                                        BuildStatusSucceeded
                                         True
                                     |> findBanner
                                     |> isColorWithStripes { thin = green, thick = darkGrey }
@@ -1462,7 +1463,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusStarted
+                                        BuildStatusStarted
                                         True
                                     |> findBanner
                                     |> isColorWithStripes { thin = lightGrey, thick = darkGrey }
@@ -1470,7 +1471,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusFailed
+                                        BuildStatusFailed
                                         False
                                     |> findBanner
                                     |> isSolid red
@@ -1478,7 +1479,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusFailed
+                                        BuildStatusFailed
                                         True
                                     |> findBanner
                                     |> isColorWithStripes { thin = red, thick = darkGrey }
@@ -1486,7 +1487,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusErrored
+                                        BuildStatusErrored
                                         False
                                     |> findBanner
                                     |> isSolid amber
@@ -1494,7 +1495,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusErrored
+                                        BuildStatusErrored
                                         True
                                     |> findBanner
                                     |> isColorWithStripes { thin = amber, thick = darkGrey }
@@ -1502,7 +1503,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusAborted
+                                        BuildStatusAborted
                                         False
                                     |> findBanner
                                     |> isSolid brown
@@ -1510,15 +1511,15 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusAborted
+                                        BuildStatusAborted
                                         True
                                     |> findBanner
                                     |> isColorWithStripes { thin = brown, thick = darkGrey }
                         , describe "status priorities" <|
                             let
                                 givenTwoJobs :
-                                    Concourse.BuildStatus
-                                    -> Concourse.BuildStatus
+                                    BuildStatus
+                                    -> BuildStatus
                                     -> Query.Single ApplicationMsgs.TopLevelMessage
                                 givenTwoJobs firstStatus secondStatus =
                                     whenOnDashboard { highDensity = False }
@@ -1543,29 +1544,29 @@ all =
                             [ test "failed is more important than errored" <|
                                 \_ ->
                                     givenTwoJobs
-                                        Concourse.BuildStatusFailed
-                                        Concourse.BuildStatusErrored
+                                        BuildStatusFailed
+                                        BuildStatusErrored
                                         |> findBanner
                                         |> isSolid red
                             , test "errored is more important than aborted" <|
                                 \_ ->
                                     givenTwoJobs
-                                        Concourse.BuildStatusErrored
-                                        Concourse.BuildStatusAborted
+                                        BuildStatusErrored
+                                        BuildStatusAborted
                                         |> findBanner
                                         |> isSolid amber
                             , test "aborted is more important than succeeding" <|
                                 \_ ->
                                     givenTwoJobs
-                                        Concourse.BuildStatusAborted
-                                        Concourse.BuildStatusSucceeded
+                                        BuildStatusAborted
+                                        BuildStatusSucceeded
                                         |> findBanner
                                         |> isSolid brown
                             , test "succeeding is more important than pending" <|
                                 \_ ->
                                     givenTwoJobs
-                                        Concourse.BuildStatusSucceeded
-                                        Concourse.BuildStatusPending
+                                        BuildStatusSucceeded
+                                        BuildStatusPending
                                         |> findBanner
                                         |> isSolid green
                             ]
@@ -1781,7 +1782,7 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = True }
                             |> pipelineWithStatus
-                                Concourse.BuildStatusSucceeded
+                                BuildStatusSucceeded
                                 False
                             |> card
                             |> Query.has [ style "background-color" fadedGreen ]
@@ -1789,7 +1790,7 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = True }
                             |> pipelineWithStatus
-                                Concourse.BuildStatusFailed
+                                BuildStatusFailed
                                 False
                             |> card
                             |> Query.has [ style "background-color" red ]
@@ -1797,7 +1798,7 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = True }
                             |> pipelineWithStatus
-                                Concourse.BuildStatusErrored
+                                BuildStatusErrored
                                 False
                             |> card
                             |> Query.has [ style "background-color" amber ]
@@ -1954,7 +1955,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusPending
+                                        BuildStatusPending
                                         False
                                     |> findStatusIcon
                                     |> Query.has
@@ -1968,7 +1969,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusPending
+                                        BuildStatusPending
                                         False
                                     |> findStatusText
                                     |> Query.has [ style "color" lightGrey ]
@@ -1976,7 +1977,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusPending
+                                        BuildStatusPending
                                         False
                                     |> findStatusText
                                     |> Query.has
@@ -1985,7 +1986,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusPending
+                                        BuildStatusPending
                                         True
                                     |> findStatusText
                                     |> Query.has
@@ -1996,7 +1997,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusSucceeded
+                                        BuildStatusSucceeded
                                         False
                                     |> findStatusIcon
                                     |> Query.has
@@ -2010,7 +2011,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusSucceeded
+                                        BuildStatusSucceeded
                                         False
                                     |> findStatusText
                                     |> Query.has [ style "color" green ]
@@ -2018,7 +2019,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusSucceeded
+                                        BuildStatusSucceeded
                                         True
                                     |> findStatusText
                                     |> Query.has
@@ -2036,7 +2037,7 @@ all =
                                                 [ jobWithNameTransitionedAt
                                                     "job"
                                                     (Just <| Time.millisToPosix 0)
-                                                    Concourse.BuildStatusSucceeded
+                                                    BuildStatusSucceeded
                                                 ]
                                             , resources = []
                                             , version = ""
@@ -2054,7 +2055,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusFailed
+                                        BuildStatusFailed
                                         False
                                     |> findStatusIcon
                                     |> Query.has
@@ -2068,7 +2069,7 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> pipelineWithStatus
-                                        Concourse.BuildStatusFailed
+                                        BuildStatusFailed
                                         False
                                     |> findStatusText
                                     |> Query.has [ style "color" red ]
@@ -2077,7 +2078,7 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusAborted
+                                    BuildStatusAborted
                                     False
                                 |> findStatusIcon
                                 |> Query.has
@@ -2091,7 +2092,7 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus
-                                    Concourse.BuildStatusErrored
+                                    BuildStatusErrored
                                     False
                                 |> findStatusIcon
                                 |> Query.has
@@ -3615,7 +3616,7 @@ givenPipelineWithJob user =
                     { id = 0
                     , name = "1"
                     , job = Just { teamName = "team", pipelineName = "pipeline", jobName = "job" }
-                    , status = Concourse.BuildStatusSucceeded
+                    , status = BuildStatusSucceeded
                     , duration = { startedAt = Nothing, finishedAt = Nothing }
                     , reapTime = Nothing
                     }
@@ -3737,7 +3738,7 @@ running j =
                         , pipelineName = "pipeline"
                         , jobName = "job"
                         }
-                , status = Concourse.BuildStatusStarted
+                , status = BuildStatusStarted
                 , duration =
                     { startedAt = Nothing
                     , finishedAt = Nothing
@@ -3747,17 +3748,17 @@ running j =
     }
 
 
-otherJob : Concourse.BuildStatus -> Concourse.Job
+otherJob : BuildStatus -> Concourse.Job
 otherJob =
     jobWithNameTransitionedAt "other-job" <| Just <| Time.millisToPosix 0
 
 
-job : Concourse.BuildStatus -> Concourse.Job
+job : BuildStatus -> Concourse.Job
 job =
     jobWithNameTransitionedAt "job" <| Just <| Time.millisToPosix 0
 
 
-jobWithNameTransitionedAt : String -> Maybe Time.Posix -> Concourse.BuildStatus -> Concourse.Job
+jobWithNameTransitionedAt : String -> Maybe Time.Posix -> BuildStatus -> Concourse.Job
 jobWithNameTransitionedAt jobName transitionedAt status =
     { pipeline =
         { teamName = "team"
@@ -3832,7 +3833,7 @@ circularJobs =
                         , pipelineName = "pipeline"
                         , jobName = "jobA"
                         }
-                , status = Concourse.BuildStatusSucceeded
+                , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
                     , finishedAt = Nothing
@@ -3849,7 +3850,7 @@ circularJobs =
                         , pipelineName = "pipeline"
                         , jobName = "jobA"
                         }
-                , status = Concourse.BuildStatusSucceeded
+                , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
                     , finishedAt = Just <| Time.millisToPosix 0
@@ -3886,7 +3887,7 @@ circularJobs =
                         , pipelineName = "pipeline"
                         , jobName = "jobB"
                         }
-                , status = Concourse.BuildStatusSucceeded
+                , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
                     , finishedAt = Nothing
@@ -3903,7 +3904,7 @@ circularJobs =
                         , pipelineName = "pipeline"
                         , jobName = "jobB"
                         }
-                , status = Concourse.BuildStatusSucceeded
+                , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
                     , finishedAt = Just <| Time.millisToPosix 0

@@ -51,6 +51,7 @@ module Dashboard.Styles exposing
 import Application.Styles
 import Colors
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Html
@@ -722,7 +723,7 @@ jobPreview job isHovered =
                     finishedBuildStatus =
                         job.finishedBuild
                             |> Maybe.map .status
-                            |> Maybe.withDefault Concourse.BuildStatusPending
+                            |> Maybe.withDefault BuildStatusPending
 
                     isRunning =
                         job.nextBuild /= Nothing

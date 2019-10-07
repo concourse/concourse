@@ -24,35 +24,35 @@ import Application.Styles
 import Build.Models exposing (StepHeaderType(..))
 import Build.StepTree.Models exposing (StepState(..))
 import Colors
-import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.Styles exposing (striped)
 import Html
 import Html.Attributes exposing (style)
 
 
-header : Concourse.BuildStatus -> List (Html.Attribute msg)
+header : BuildStatus -> List (Html.Attribute msg)
 header status =
     [ style "display" "flex"
     , style "justify-content" "space-between"
     , style "height" "60px"
     , style "background" <|
         case status of
-            Concourse.BuildStatusStarted ->
+            BuildStatusStarted ->
                 Colors.startedFaded
 
-            Concourse.BuildStatusPending ->
+            BuildStatusPending ->
                 Colors.pending
 
-            Concourse.BuildStatusSucceeded ->
+            BuildStatusSucceeded ->
                 Colors.success
 
-            Concourse.BuildStatusFailed ->
+            BuildStatusFailed ->
                 Colors.failure
 
-            Concourse.BuildStatusErrored ->
+            BuildStatusErrored ->
                 Colors.error
 
-            Concourse.BuildStatusAborted ->
+            BuildStatusAborted ->
                 Colors.aborted
     ]
 
@@ -65,33 +65,33 @@ body =
     ]
 
 
-historyItem : Concourse.BuildStatus -> List (Html.Attribute msg)
+historyItem : BuildStatus -> List (Html.Attribute msg)
 historyItem status =
     case status of
-        Concourse.BuildStatusStarted ->
+        BuildStatusStarted ->
             striped
                 { pipelineRunningKeyframes = "pipeline-running"
                 , thickColor = Colors.startedFaded
                 , thinColor = Colors.started
                 }
 
-        Concourse.BuildStatusPending ->
+        BuildStatusPending ->
             [ style "background" Colors.pending ]
 
-        Concourse.BuildStatusSucceeded ->
+        BuildStatusSucceeded ->
             [ style "background" Colors.success ]
 
-        Concourse.BuildStatusFailed ->
+        BuildStatusFailed ->
             [ style "background" Colors.failure ]
 
-        Concourse.BuildStatusErrored ->
+        BuildStatusErrored ->
             [ style "background" Colors.error ]
 
-        Concourse.BuildStatusAborted ->
+        BuildStatusAborted ->
             [ style "background" Colors.aborted ]
 
 
-triggerButton : Bool -> Bool -> Concourse.BuildStatus -> List (Html.Attribute msg)
+triggerButton : Bool -> Bool -> BuildStatus -> List (Html.Attribute msg)
 triggerButton buttonDisabled hovered status =
     [ style "cursor" <|
         if buttonDisabled then

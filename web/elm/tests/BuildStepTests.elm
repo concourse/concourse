@@ -14,6 +14,7 @@ import Common
         , when
         )
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dict
 import Expect
 import Message.Callback as Callback
@@ -469,7 +470,7 @@ theBuildFinished =
                 Ok
                     [ { data =
                             BuildStatus
-                                Concourse.BuildStatusAborted
+                                BuildStatusAborted
                                 (Time.millisToPosix 0)
                       , url = "http://localhost:8080/api/v1/builds/1/events"
                       }
