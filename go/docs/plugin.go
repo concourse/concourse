@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -78,17 +79,18 @@ func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
 }
 
 func (p *Plugin) DownloadLinks() (booklit.Content, error) {
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		return booklit.Empty, nil
-	}
-
 	ctx := context.Background()
 
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
-	)
+	var tc *http.Client
+	var githubToken = os.Getenv("GITHUB_TOKEN")
 
-	tc := oauth2.NewClient(ctx, ts)
+	if githubToken != "" {
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: githubToken},
+		)
+
+		tc = oauth2.NewClient(ctx, ts)
+	}
 
 	client := github.NewClient(tc)
 
@@ -103,7 +105,7 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 	}
 	for _, release := range releases {
 		if release.TagName == nil {
-			return nil, fmt.Errorf("no tag name for release %V", release)
+			return nil, fmt.Errorf("no tag name for release %v", release)
 		}
 		version, err := semver.ParseTolerant(*release.TagName)
 		if err != nil {
