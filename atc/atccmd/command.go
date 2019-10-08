@@ -87,6 +87,7 @@ type RunCommand struct {
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
 
+	TLSOnly     bool      `long:"tls-only" 			description:"Configure concourse to only accept HTTPS requests"`
 	TLSBindPort uint16    `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
 	TLSCert     flag.File `long:"tls-cert"      description:"File containing an SSL certificate."`
 	TLSKey      flag.File `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
@@ -671,10 +672,13 @@ func (cmd *RunCommand) constructAPIMembers(
 			cmd.debugBindAddr(),
 			http.DefaultServeMux,
 		)},
-		{Name: "web", Runner: http_server.New(
+	}
+
+	if !cmd.TLSOnly {
+		members = append(members, grouper.Member{Name: "web", Runner: http_server.New(
 			cmd.nonTLSBindAddr(),
 			httpHandler,
-		)},
+		)})
 	}
 
 	if httpsHandler != nil {
@@ -1169,6 +1173,13 @@ func (cmd *RunCommand) validate() error {
 			errs = multierror.Append(
 				errs,
 				errors.New("must specify HTTPS external-url to use TLS"),
+			)
+		}
+	case cmd.TLSOnly:
+		if !cmd.isTLSEnabled() || !cmd.LetsEncrypt.Enable {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify a --tls-bind-port, or --enable-lets-encrypt to use TLS "),
 			)
 		}
 	default:
