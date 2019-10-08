@@ -202,7 +202,7 @@ all =
                                     Routes.Normal Nothing
                         ]
             ]
-        , test "has title with resouce name" <|
+        , test "has title with resource name" <|
             \_ ->
                 init
                     |> Application.view

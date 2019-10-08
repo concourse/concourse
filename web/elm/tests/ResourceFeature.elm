@@ -30,6 +30,11 @@ all =
                 >> and theResourceIsAlreadyPinned
                 >> when iClickTheVersionThatIsNotPinned
                 >> then_ myBrowserSendsAPinResourceRequest
+        , test "clicking pinned version sends UnpinResource request" <|
+            given iAmOnTheResourcePage
+                >> and theResourceIsAlreadyPinned
+                >> when iClickTheVersionThatIsPinned
+                >> then_ myBrowserSendsAnUnpinResourceRequest
         ]
 
 
@@ -93,15 +98,27 @@ iSeeItIsClickable =
     Expect.all
         [ Query.has [ style "cursor" "pointer" ]
         , Event.simulate Event.click
-            >> Event.expect (Update <| Message.Click <| PinButton versionID)
+            >> Event.expect (Update <| Message.Click <| PinButton unpinnedVersionID)
         ]
 
 
 iClickTheVersionThatIsNotPinned =
-    Application.update (Update <| (Message.Click <| PinButton versionID))
+    Application.update (Update <| (Message.Click <| PinButton unpinnedVersionID))
 
 
-versionID =
+iClickTheVersionThatIsPinned =
+    Application.update (Update <| (Message.Click <| PinButton pinnedVersionID))
+
+
+pinnedVersionID =
+    { teamName = Data.teamName
+    , pipelineName = Data.pipelineName
+    , resourceName = Data.resourceName
+    , versionID = 0
+    }
+
+
+unpinnedVersionID =
     { teamName = Data.teamName
     , pipelineName = Data.pipelineName
     , resourceName = Data.resourceName
@@ -109,5 +126,16 @@ versionID =
     }
 
 
+resourceID =
+    { teamName = Data.teamName
+    , pipelineName = Data.pipelineName
+    , resourceName = Data.resourceName
+    }
+
+
 myBrowserSendsAPinResourceRequest =
-    Tuple.second >> Common.contains (Effects.DoPinVersion versionID)
+    Tuple.second >> Common.contains (Effects.DoPinVersion unpinnedVersionID)
+
+
+myBrowserSendsAnUnpinResourceRequest =
+    Tuple.second >> Common.contains (Effects.DoUnpinVersion resourceID)
