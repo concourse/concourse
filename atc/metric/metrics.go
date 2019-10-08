@@ -137,6 +137,24 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 	)
 }
 
+type WorkerUnknownContainers struct {
+	WorkerName string
+	Containers int
+}
+
+func (event WorkerUnknownContainers) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("worker-unknown-containers"),
+		Event{
+			Name:  "worker unknown containers",
+			Value: event.Containers,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"worker":    event.WorkerName,
+			},
+		},
+	)
+}
 type WorkerVolumes struct {
 	WorkerName string
 	Platform   string
@@ -157,6 +175,25 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 				"platform":  event.Platform,
 				"team_name": event.TeamName,
 				"tags":      strings.Join(event.Tags[:], "/"),
+			},
+		},
+	)
+}
+
+type WorkerUnknownVolumes struct {
+	WorkerName string
+	Volumes    int
+}
+
+func (event WorkerUnknownVolumes) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("worker-unknown-volumes"),
+		Event{
+			Name:  "worker unknown volumes",
+			Value: event.Volumes,
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"worker":    event.WorkerName,
 			},
 		},
 	)

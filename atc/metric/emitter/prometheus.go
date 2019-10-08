@@ -43,10 +43,12 @@ type PrometheusEmitter struct {
 	schedulingFullDuration    *prometheus.CounterVec
 	schedulingLoadingDuration *prometheus.CounterVec
 
-	workerContainers  *prometheus.GaugeVec
-	workerVolumes     *prometheus.GaugeVec
-	workerTasks       *prometheus.GaugeVec
-	workersRegistered *prometheus.GaugeVec
+	workerContainers       *prometheus.GaugeVec
+	workerUnknownContainers *prometheus.GaugeVec
+	workerVolumes          *prometheus.GaugeVec
+	workerUnknownVolumes   *prometheus.GaugeVec
+	workerTasks            *prometheus.GaugeVec
+	workersRegistered      *prometheus.GaugeVec
 
 	workerContainersLabels map[string]map[string]prometheus.Labels
 	workerVolumesLabels    map[string]map[string]prometheus.Labels
@@ -196,6 +198,17 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(workerContainers)
 
+	workerUnknownContainers := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "workers",
+			Name:      "unknown_containers",
+			Help:      "Number of unknown containers found on worker",
+		},
+		[]string{"worker"},
+	)
+	prometheus.MustRegister(workerUnknownContainers)
+
 	workerVolumes := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "concourse",
@@ -206,6 +219,17 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		[]string{"worker", "platform", "team", "tags"},
 	)
 	prometheus.MustRegister(workerVolumes)
+
+	workerUnknownVolumes:= prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "workers",
+			Name:      "unknown_volumes",
+			Help:      "Number of unknown volumes found on worker",
+		},
+		[]string{"worker"},
+	)
+	prometheus.MustRegister(workerUnknownVolumes)
 
 	workerTasks := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -338,14 +362,16 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		schedulingFullDuration:    schedulingFullDuration,
 		schedulingLoadingDuration: schedulingLoadingDuration,
 
-		workerContainers:       workerContainers,
-		workersRegistered:      workersRegistered,
-		workerContainersLabels: map[string]map[string]prometheus.Labels{},
-		workerVolumesLabels:    map[string]map[string]prometheus.Labels{},
-		workerTasksLabels:      map[string]map[string]prometheus.Labels{},
-		workerLastSeen:         map[string]time.Time{},
-		workerVolumes:          workerVolumes,
-		workerTasks:            workerTasks,
+		workerContainers:        workerContainers,
+		workersRegistered:       workersRegistered,
+		workerContainersLabels:  map[string]map[string]prometheus.Labels{},
+		workerVolumesLabels:     map[string]map[string]prometheus.Labels{},
+		workerTasksLabels:       map[string]map[string]prometheus.Labels{},
+		workerLastSeen:          map[string]time.Time{},
+		workerVolumes:           workerVolumes,
+		workerTasks:             workerTasks,
+		workerUnknownContainers: workerUnknownContainers,
+		workerUnknownVolumes:    workerUnknownVolumes,
 	}
 	go emitter.periodicMetricGC()
 
@@ -374,6 +400,10 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.workerContainersMetric(logger, event)
 	case "worker volumes":
 		emitter.workerVolumesMetric(logger, event)
+	case "worker unknown containers": ////
+		emitter.workerUnknownContainersMetric(logger, event)
+	case "worker unknown volumes":
+		emitter.workerUnknownVolumesMetric(logger, event)
 	case "worker tasks":
 		emitter.workerTasksMetric(logger, event)
 	case "worker state":
@@ -533,6 +563,31 @@ func (emitter *PrometheusEmitter) workersRegisteredMetric(logger lager.Logger, e
 	emitter.workersRegistered.WithLabelValues(state).Set(float64(count))
 }
 
+func (emitter *PrometheusEmitter) workerUnknownContainersMetric(logger lager.Logger, event metric.Event) {
+	worker, exists := event.Attributes["worker"]
+	if !exists {
+		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+		return
+	}
+
+	labels := prometheus.Labels{
+		"worker":   worker,
+	}
+
+	containers, ok := event.Value.(int)
+	if !ok {
+		logger.Error("worker-unknown-containers-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
+		return
+	}
+
+	key := serializeLabels(&labels)
+	if emitter.workerVolumesLabels[worker] == nil {
+		emitter.workerVolumesLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.workerVolumesLabels[worker][key] = labels
+	emitter.workerVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(float64(containers))
+}
+
 func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event metric.Event) {
 	worker, exists := event.Attributes["worker"]
 	if !exists {
@@ -563,6 +618,31 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		"team":     team,
 		"tags":     tags,
 	}
+	key := serializeLabels(&labels)
+	if emitter.workerVolumesLabels[worker] == nil {
+		emitter.workerVolumesLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.workerVolumesLabels[worker][key] = labels
+	emitter.workerVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(float64(volumes))
+}
+
+func (emitter *PrometheusEmitter) workerUnknownVolumesMetric(logger lager.Logger, event metric.Event) {
+	worker, exists := event.Attributes["worker"]
+	if !exists {
+		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+		return
+	}
+
+	labels := prometheus.Labels{
+		"worker":   worker,
+	}
+
+	volumes, ok := event.Value.(int)
+	if !ok {
+		logger.Error("worker-unknown-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
+		return
+	}
+
 	key := serializeLabels(&labels)
 	if emitter.workerVolumesLabels[worker] == nil {
 		emitter.workerVolumesLabels[worker] = make(map[string]prometheus.Labels)
