@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -14,9 +13,8 @@ import (
 var _ = Describe("Worker lifecycle", func() {
 
 	var (
-		proxySession *gexec.Session
-		atcEndpoint  string
-		gracePeriod  string
+		atcEndpoint string
+		gracePeriod string
 	)
 
 	JustBeforeEach(func() {
@@ -31,9 +29,7 @@ var _ = Describe("Worker lifecycle", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(
-			namespace, "service/"+releaseName+"-web", "8080",
-		)
+		atcEndpoint = getExternalUrl(namespace, releaseName+"-web")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
@@ -72,7 +68,7 @@ var _ = Describe("Worker lifecycle", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName, namespace, nil)
 	})
 
 	Context("terminating the worker", func() {

@@ -3,15 +3,12 @@ package k8s_test
 import (
 	"path"
 
-	"github.com/onsi/gomega/gexec"
-
 	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("External PostgreSQL", func() {
 	var (
 		pgReleaseName string
-		proxySession  *gexec.Session
 		atcEndpoint   string
 	)
 
@@ -44,18 +41,15 @@ var _ = Describe("External PostgreSQL", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(
-			namespace, "service/"+releaseName+"-web", "8080")
+		atcEndpoint = getExternalUrl(namespace, releaseName+"-web")
 	})
 
 	AfterEach(func() {
 		helmDestroy(pgReleaseName)
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName, namespace, nil)
 	})
 
 	It("can have pipelines set", func() {
-		defer proxySession.Interrupt()
-
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
 

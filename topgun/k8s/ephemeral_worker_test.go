@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/gomega/gexec"
-
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,8 +11,7 @@ import (
 
 var _ = Describe("Ephemeral workers", func() {
 	var (
-		proxySession *gexec.Session
-		atcEndpoint  string
+		atcEndpoint string
 	)
 
 	BeforeEach(func() {
@@ -30,7 +27,7 @@ var _ = Describe("Ephemeral workers", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
+		atcEndpoint = getExternalUrl(namespace, releaseName+"-web")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
@@ -43,7 +40,7 @@ var _ = Describe("Ephemeral workers", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName, namespace, nil)
 	})
 
 	It("Gets properly cleaned when getting removed and then put back on", func() {

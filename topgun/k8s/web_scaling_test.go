@@ -35,8 +35,7 @@ func successfullyDeploysConcourse(webReplicas, workerReplicas int) {
 	waitAllPodsInNamespaceToBeReady(namespace)
 
 	By("Creating the web proxy")
-	proxySession, atcEndpoint := startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
-	defer proxySession.Interrupt()
+	atcEndpoint := getExternalUrl(namespace, releaseName+"-web")
 
 	By("Logging in")
 	fly.Login("test", "test", atcEndpoint)

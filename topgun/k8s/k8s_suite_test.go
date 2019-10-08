@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -143,6 +144,7 @@ func helmInstallArgs(args ...string) []string {
 		"--set=web.livenessProbe.initialDelaySeconds=3",
 		"--set=web.livenessProbe.periodSeconds=3",
 		"--set=web.livenessProbe.timeoutSeconds=3",
+		"--set=web.service.type=LoadBalancer",
 		"--set=concourse.web.kubernetes.keepNamespaces=false",
 		"--set=postgresql.persistence.enabled=false",
 		"--set=image=" + Environment.ConcourseImageName}
@@ -249,6 +251,29 @@ func deletePods(namespace string, flags ...string) []string {
 	}
 
 	return podNames
+}
+
+func getExternalUrl(namespace, resource string) string {
+	protocol := "http"
+	var url string
+	for {
+		session := Start(nil, "kubectl", "get", "svc", "--namespace="+namespace, resource, "-o", "jsonpath='{.status.loadBalancer.ingress[0].ip}'")
+		<-session.Exited
+		s := string(session.Out.Contents())
+		if s != "" {
+			url = protocol + "://" + s[1:len(s)-1] + ":8080"
+			break
+		}
+	}
+	for {
+		resp, err := http.Get(url + "/api/v1/info")
+		if err == nil {
+			resp.Body.Close()
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return url
 }
 
 func startPortForwardingWithProtocol(namespace, resource, port, protocol string) (*gexec.Session, string) {

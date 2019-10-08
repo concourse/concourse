@@ -3,8 +3,6 @@ package k8s_test
 import (
 	"time"
 
-	"github.com/onsi/gomega/gexec"
-
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -14,8 +12,7 @@ import (
 var _ = Describe("DNS Resolution", func() {
 
 	var (
-		atcEndpoint  string
-		proxySession *gexec.Session
+		atcEndpoint string
 	)
 
 	BeforeEach(func() {
@@ -36,7 +33,7 @@ var _ = Describe("DNS Resolution", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
+		atcEndpoint = getExternalUrl(namespace, releaseName+"-web")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
@@ -57,7 +54,7 @@ var _ = Describe("DNS Resolution", func() {
 	}
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName, namespace, nil)
 	})
 
 	type Case struct {

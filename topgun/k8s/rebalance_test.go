@@ -4,8 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/gomega/gexec"
-
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,8 +11,7 @@ import (
 
 var _ = Describe("Worker Rebalancing", func() {
 	var (
-		proxySession *gexec.Session
-		atcEndpoint  string
+		atcEndpoint string
 	)
 
 	BeforeEach(func() {
@@ -30,7 +27,7 @@ var _ = Describe("Worker Rebalancing", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
+		atcEndpoint = getExternalUrl(namespace, releaseName+"-web")
 
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
@@ -43,7 +40,7 @@ var _ = Describe("Worker Rebalancing", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName, namespace, nil)
 	})
 
 	It("eventually has worker connecting to each web nodes over a period of time", func() {

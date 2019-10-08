@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/onsi/gomega/gexec"
-
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,10 +11,9 @@ import (
 
 var _ = Describe("Kubernetes credential management", func() {
 	var (
-		proxySession *gexec.Session
-		atcEndpoint  string
-		username     = "test"
-		password     = "test"
+		atcEndpoint string
+		username    = "test"
+		password    = "test"
 	)
 
 	BeforeEach(func() {
@@ -27,7 +24,7 @@ var _ = Describe("Kubernetes credential management", func() {
 		waitAllPodsInNamespaceToBeReady(namespace)
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
+		atcEndpoint = getExternalUrl(namespace, releaseName+"-web")
 
 		By("Logging in")
 		fly.Login(username, password, atcEndpoint)
@@ -183,7 +180,7 @@ var _ = Describe("Kubernetes credential management", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName, namespace, nil)
 	})
 
 })

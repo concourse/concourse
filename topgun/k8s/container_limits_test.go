@@ -41,7 +41,7 @@ func waitAndLogin() {
 	waitAllPodsInNamespaceToBeReady(namespace)
 
 	By("Creating the web proxy")
-	_, atcEndpoint := startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
+	atcEndpoint := getExternalUrl(namespace, releaseName+"-web")
 
 	By("Logging in")
 	fly.Login("test", "test", atcEndpoint)

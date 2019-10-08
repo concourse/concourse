@@ -1,8 +1,6 @@
 package k8s_test
 
 import (
-	"github.com/onsi/gomega/gexec"
-
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,7 +8,6 @@ import (
 
 var _ = Describe("Main team role config", func() {
 	var (
-		proxySession        *gexec.Session
 		atcEndpoint         string
 		helmDeployTestFlags []string
 		username            = "test-viewer"
@@ -31,7 +28,7 @@ var _ = Describe("Main team role config", func() {
 		Expect(pods).To(HaveLen(1))
 
 		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
+		atcEndpoint = getExternalUrl(namespace, releaseName+"-web")
 
 		By("Logging in")
 		fly.Login(username, password, atcEndpoint)
@@ -39,7 +36,7 @@ var _ = Describe("Main team role config", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName, namespace, nil)
 	})
 
 	Context("Adding team role config yaml to web", func() {
