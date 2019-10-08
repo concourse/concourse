@@ -672,10 +672,13 @@ func (cmd *RunCommand) constructAPIMembers(
 			cmd.debugBindAddr(),
 			http.DefaultServeMux,
 		)},
-		{Name: "web", Runner: http_server.New(
+	}
+
+	if !cmd.TLSOnly {
+		members = append(members, grouper.Member{Name: "web", Runner: http_server.New(
 			cmd.nonTLSBindAddr(),
 			httpHandler,
-		)},
+		)})
 	}
 
 	if httpsHandler != nil {
@@ -688,10 +691,6 @@ func (cmd *RunCommand) constructAPIMembers(
 			httpsHandler,
 			tlsConfig,
 		)})
-
-		if cmd.TLSOnly {
-			members = cmd.filterMembersForTLSOnly(members, "web")
-		}
 	}
 
 	return members, nil
@@ -1176,6 +1175,13 @@ func (cmd *RunCommand) validate() error {
 				errors.New("must specify HTTPS external-url to use TLS"),
 			)
 		}
+	case cmd.TLSOnly:
+		if !cmd.isTLSEnabled() || !cmd.LetsEncrypt.Enable {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify a --tls-bind-port, or --enable-lets-encrypt to use TLS "),
+			)
+		}
 	default:
 		errs = multierror.Append(
 			errs,
@@ -1546,14 +1552,4 @@ func (cmd *RunCommand) appendStaticWorker(
 
 func (cmd *RunCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
-}
-
-func (cmd *RunCommand) filterMembersForTLSOnly(apiMembersArray []grouper.Member, memberNameToFilter string) []grouper.Member {
-	tmp := apiMembersArray[:0]
-	for _, apiMember := range apiMembersArray {
-		if apiMember.Name != memberNameToFilter {
-			tmp = append(tmp, apiMember)
-		}
-	}
-	return tmp
 }
