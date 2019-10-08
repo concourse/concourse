@@ -381,24 +381,23 @@ func (repository *containerRepository) DestroyUnknownContainers(workerName strin
 
 	defer Rollback(tx)
 
+	insertBuilder := psql.Insert("containers").Columns(
+		"handle",
+		"worker_name",
+		"state",
+	)
 	for _, unknownHandle := range unknownHandles {
-		_, err = psql.Insert("containers").
-			Columns(
-				"handle",
-				"worker_name",
-				"state",
-			).
-			Values(
-				unknownHandle,
-				workerName,
-				atc.ContainerStateDestroying,
-			).
-			RunWith(tx).Exec()
-
-		if err != nil {
-			return 0, err
-		}
+		insertBuilder = insertBuilder.Values(
+			unknownHandle,
+			workerName,
+			atc.ContainerStateDestroying,
+		)
 	}
+	_, err = insertBuilder.RunWith(tx).Exec()
+	if err != nil {
+		return 0, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return 0, err

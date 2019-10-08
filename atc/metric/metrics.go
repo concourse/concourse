@@ -150,11 +150,12 @@ func (event WorkerUnknownContainers) Emit(logger lager.Logger) {
 			Value: event.Containers,
 			State: EventStateOK,
 			Attributes: map[string]string{
-				"worker":    event.WorkerName,
+				"worker": event.WorkerName,
 			},
 		},
 	)
 }
+
 type WorkerVolumes struct {
 	WorkerName string
 	Platform   string
@@ -193,7 +194,7 @@ func (event WorkerUnknownVolumes) Emit(logger lager.Logger) {
 			Value: event.Volumes,
 			State: EventStateOK,
 			Attributes: map[string]string{
-				"worker":    event.WorkerName,
+				"worker": event.WorkerName,
 			},
 		},
 	)

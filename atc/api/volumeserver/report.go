@@ -5,8 +5,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
+
+	"code.cloudfoundry.org/lager"
 )
 
 // ReportWorkerVolumes provides an API endpoint for workers to report their current volumes
@@ -54,11 +55,12 @@ func (s *Server) ReportWorkerVolumes(w http.ResponseWriter, r *http.Request) {
 			"worker-name":   workerName,
 			"handles-count": numUnknownVolumes,
 		})
-		metric.WorkerUnknownVolumes{
-			WorkerName: workerName,
-			Volumes:    numUnknownVolumes,
-		}.Emit(logger)
 	}
+
+	metric.WorkerUnknownVolumes{
+		WorkerName: workerName,
+		Volumes:    numUnknownVolumes,
+	}.Emit(logger)
 
 	err = s.repository.UpdateVolumesMissingSince(workerName, handles)
 	if err != nil {

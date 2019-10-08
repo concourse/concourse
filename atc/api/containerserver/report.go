@@ -5,8 +5,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
+
+	"code.cloudfoundry.org/lager"
 )
 
 func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) {
@@ -53,12 +54,12 @@ func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) 
 			"worker-name":   workerName,
 			"handles-count": numUnknownContainers,
 		})
-
-		metric.WorkerUnknownContainers{
-			WorkerName: workerName,
-			Containers: numUnknownContainers,
-		}.Emit(logger)
 	}
+
+	metric.WorkerUnknownContainers{
+		WorkerName: workerName,
+		Containers: numUnknownContainers,
+	}.Emit(logger)
 
 	err = s.containerRepository.UpdateContainersMissingSince(workerName, handles)
 	if err != nil {

@@ -43,12 +43,12 @@ type PrometheusEmitter struct {
 	schedulingFullDuration    *prometheus.CounterVec
 	schedulingLoadingDuration *prometheus.CounterVec
 
-	workerContainers       *prometheus.GaugeVec
+	workerContainers        *prometheus.GaugeVec
 	workerUnknownContainers *prometheus.GaugeVec
-	workerVolumes          *prometheus.GaugeVec
-	workerUnknownVolumes   *prometheus.GaugeVec
-	workerTasks            *prometheus.GaugeVec
-	workersRegistered      *prometheus.GaugeVec
+	workerVolumes           *prometheus.GaugeVec
+	workerUnknownVolumes    *prometheus.GaugeVec
+	workerTasks             *prometheus.GaugeVec
+	workersRegistered       *prometheus.GaugeVec
 
 	workerContainersLabels map[string]map[string]prometheus.Labels
 	workerVolumesLabels    map[string]map[string]prometheus.Labels
@@ -220,7 +220,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(workerVolumes)
 
-	workerUnknownVolumes:= prometheus.NewGaugeVec(
+	workerUnknownVolumes := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "concourse",
 			Subsystem: "workers",
@@ -400,7 +400,7 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.workerContainersMetric(logger, event)
 	case "worker volumes":
 		emitter.workerVolumesMetric(logger, event)
-	case "worker unknown containers": ////
+	case "worker unknown containers":
 		emitter.workerUnknownContainersMetric(logger, event)
 	case "worker unknown volumes":
 		emitter.workerUnknownVolumesMetric(logger, event)
@@ -571,7 +571,7 @@ func (emitter *PrometheusEmitter) workerUnknownContainersMetric(logger lager.Log
 	}
 
 	labels := prometheus.Labels{
-		"worker":   worker,
+		"worker": worker,
 	}
 
 	containers, ok := event.Value.(int)
@@ -634,7 +634,7 @@ func (emitter *PrometheusEmitter) workerUnknownVolumesMetric(logger lager.Logger
 	}
 
 	labels := prometheus.Labels{
-		"worker":   worker,
+		"worker": worker,
 	}
 
 	volumes, ok := event.Value.(int)
