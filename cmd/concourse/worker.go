@@ -7,12 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse"
+	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
@@ -105,12 +104,10 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.baggageclaimAddr(),
 	)
 
-	gardenClient := gclient.New(
-		gconn.NewWithLogger(
-			"tcp",
-			cmd.gardenAddr(),
-			logger.Session("garden-connection"),
-		),
+	gardenClient := gclient.BasicGardenClientWithRequestTimeout(
+		logger.Session("garden-connection"),
+		5*time.Minute,
+		cmd.gardenAddr(),
 	)
 
 	baggageclaimClient := bclient.NewWithHTTPClient(
@@ -126,6 +123,10 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 				// sweeping too much
 				ResponseHeaderTimeout: 1 * time.Minute,
 			},
+			// we've seen destroy calls to baggageclaim hang and lock gc
+			// gc is periodic so we don't need to retry here, we can rely
+			// on the next sweeper tick.
+			Timeout: 5 * time.Minute,
 		},
 	)
 
