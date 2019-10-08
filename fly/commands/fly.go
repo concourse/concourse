@@ -79,6 +79,8 @@ type FlyCommand struct {
 	Curl CurlCommand `command:"curl" alias:"c" description:"curl the api"`
 
 	Completion CompletionCommand `command:"completion" description:"generate shell completion code"`
+
+	ClearResourceCache ClearResourceCacheCommand `command:"clear-resource-cache" description:"TODO description"`
 }
 
 var Fly FlyCommand
