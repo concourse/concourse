@@ -72,7 +72,13 @@ func baggageclaimFails(driver string, selectorFlags ...string) {
 	Context(driver, func() {
 		It("fails", func() {
 			setReleaseNameAndNamespace("bd-" + driver)
-			deployWithDriverAndSelectors(driver, selectorFlags...)
+			helmDeployTestFlags := []string{
+				"--set=concourse.web.kubernetes.enabled=false",
+				"--set=concourse.worker.baggageclaim.driver=" + driver,
+				"--set=worker.replicas=1",
+			}
+
+			deployFailingConcourseChart(releaseName, "", append(helmDeployTestFlags, selectorFlags...)...)
 
 			Eventually(func() []byte {
 				workerLogsSession := Start(nil, "kubectl", "logs",
