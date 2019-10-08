@@ -70,7 +70,7 @@ var _ = Describe("Component", func() {
 
 		It("updates component last ran time", func() {
 			lastRan := component.LastRan()
-			Expect(lastRan).To(BeTemporally("~", time.Now()))
+			Expect(lastRan).To(BeTemporally("~", time.Now(), time.Second))
 		})
 	})
 })

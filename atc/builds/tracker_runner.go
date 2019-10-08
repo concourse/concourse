@@ -35,6 +35,7 @@ type TrackerRunner struct {
 }
 
 func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	close(ready)
 
 	shutdownNotifier, err := runner.Notifications.Listen("atc_shutdown")
 	if err != nil {
@@ -52,20 +53,8 @@ func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{})
 
 	ticker := runner.Clock.NewTicker(runner.Interval)
 
-	close(ready)
-
-	runner.Tracker.Track()
-
 	for {
 		select {
-		case <-shutdownNotifier:
-			runner.Logger.Info("received-atc-shutdown-message")
-			runner.Tracker.Track()
-
-		case <-buildNotifier:
-			runner.Logger.Info("received-build-started-message")
-			runner.Tracker.Track()
-
 		case <-ticker.C():
 			component, _, err := runner.ComponentFactory.Find(atc.ComponentBuildTracker)
 			if err != nil {
@@ -88,6 +77,45 @@ func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{})
 			if err = component.UpdateLastRan(); err != nil {
 				runner.Logger.Error("failed-to-update-last-ran", err)
 			}
+
+		case <-shutdownNotifier:
+			runner.Logger.Info("received-atc-shutdown-message")
+			component, _, err := runner.ComponentFactory.Find(atc.ComponentBuildTracker)
+			if err != nil {
+				runner.Logger.Error("failed-to-find-component", err)
+				break
+			}
+
+			if component.Paused() {
+				runner.Logger.Debug("component-is-paused", lager.Data{"name": atc.ComponentBuildTracker})
+				break
+			}
+
+			runner.Tracker.Track()
+
+			if err = component.UpdateLastRan(); err != nil {
+				runner.Logger.Error("failed-to-update-last-ran", err)
+			}
+
+		case <-buildNotifier:
+			runner.Logger.Info("received-build-started-message")
+			component, _, err := runner.ComponentFactory.Find(atc.ComponentBuildTracker)
+			if err != nil {
+				runner.Logger.Error("failed-to-find-component", err)
+				break
+			}
+
+			if component.Paused() {
+				runner.Logger.Debug("component-is-paused", lager.Data{"name": atc.ComponentBuildTracker})
+				break
+			}
+
+			runner.Tracker.Track()
+
+			if err = component.UpdateLastRan(); err != nil {
+				runner.Logger.Error("failed-to-update-last-ran", err)
+			}
+
 		case <-signals:
 			runner.Logger.Info("releasing-tracker")
 			runner.Tracker.Release()

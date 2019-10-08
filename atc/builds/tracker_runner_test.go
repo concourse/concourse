@@ -12,47 +12,55 @@ import (
 
 	. "github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/builds/buildsfakes"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("TrackerRunner", func() {
-	var fakeTracker *buildsfakes.FakeBuildTracker
-	var fakeNotifications *buildsfakes.FakeNotifications
-	var fakeClock *fakeclock.FakeClock
-	var tracked <-chan struct{}
-	var shutdownNotify chan bool
-	var buildStartedNotify chan bool
-	var trackerRunner TrackerRunner
-	var process ifrit.Process
-	var interval = 10 * time.Second
+	var (
+		trackerRunner TrackerRunner
+		process       ifrit.Process
 
-	var logger *lagertest.TestLogger
+		logger               *lagertest.TestLogger
+		fakeTracker          *buildsfakes.FakeBuildTracker
+		fakeComponent        *dbfakes.FakeComponent
+		fakeComponentFactory *dbfakes.FakeComponentFactory
+		fakeNotifications    *buildsfakes.FakeNotifications
+		fakeClock            *fakeclock.FakeClock
+
+		shutdownNotify     chan bool
+		buildStartedNotify chan bool
+		trackTimes         chan time.Time
+		interval           = time.Minute
+	)
 
 	BeforeEach(func() {
-		fakeTracker = new(buildsfakes.FakeBuildTracker)
-		fakeNotifications = new(buildsfakes.FakeNotifications)
-
-		t := make(chan struct{})
-		tracked = t
-		fakeTracker.TrackStub = func() {
-			t <- struct{}{}
-		}
-
 		logger = lagertest.NewTestLogger("test")
 
-		shutdownNotify = make(chan bool)
-		buildStartedNotify = make(chan bool)
+		fakeTracker = new(buildsfakes.FakeBuildTracker)
+		fakeNotifications = new(buildsfakes.FakeNotifications)
+		fakeComponent = new(dbfakes.FakeComponent)
+		fakeComponentFactory = new(dbfakes.FakeComponentFactory)
+		fakeComponentFactory.FindReturns(fakeComponent, true, nil)
+		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
+
+		trackTimes = make(chan time.Time, 1)
+		fakeTracker.TrackStub = func() {
+			trackTimes <- fakeClock.Now()
+		}
+
+		shutdownNotify = make(chan bool, 1)
+		buildStartedNotify = make(chan bool, 1)
 
 		fakeNotifications.ListenReturnsOnCall(0, shutdownNotify, nil)
 		fakeNotifications.ListenReturnsOnCall(1, buildStartedNotify, nil)
 
-		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
-
 		trackerRunner = TrackerRunner{
-			Tracker:       fakeTracker,
-			Notifications: fakeNotifications,
-			Interval:      interval,
-			Clock:         fakeClock,
-			Logger:        logger,
+			Tracker:          fakeTracker,
+			Notifications:    fakeNotifications,
+			Interval:         interval,
+			Clock:            fakeClock,
+			Logger:           logger,
+			ComponentFactory: fakeComponentFactory,
 		}
 	})
 
@@ -62,85 +70,121 @@ var _ = Describe("TrackerRunner", func() {
 
 	AfterEach(func() {
 		process.Signal(os.Interrupt)
-		<-process.Wait()
+		Eventually(process.Wait()).Should(Receive())
 	})
 
-	It("tracks immediately", func() {
-		<-tracked
+	Context("when the interval elapses", func() {
+
+		JustBeforeEach(func() {
+			fakeClock.WaitForWatcherAndIncrement(interval)
+		})
+
+		Context("when the component is paused", func() {
+			BeforeEach(func() {
+				fakeComponent.PausedReturns(true)
+			})
+
+			It("does not run", func() {
+				Consistently(fakeTracker.TrackCallCount).Should(Equal(0))
+			})
+		})
+
+		Context("when the component is unpaused", func() {
+			BeforeEach(func() {
+				fakeComponent.PausedReturns(false)
+			})
+
+			Context("when the interval has not elapsed", func() {
+				BeforeEach(func() {
+					fakeComponent.IntervalElapsedReturns(false)
+				})
+
+				It("does not run", func() {
+					Consistently(fakeTracker.TrackCallCount).Should(Equal(0))
+				})
+			})
+
+			Context("when the interval has elapsed", func() {
+				BeforeEach(func() {
+					fakeComponent.IntervalElapsedReturns(true)
+				})
+
+				It("tracks", func() {
+					Eventually(fakeTracker.TrackCallCount).Should(Equal(1))
+				})
+
+				It("updates last ran", func() {
+					Eventually(fakeComponent.UpdateLastRanCallCount).Should(Equal(1))
+				})
+			})
+		})
 	})
 
 	Context("when it receives an ATC shutdown notice", func() {
-		JustBeforeEach(func() {
-			<-tracked
-			go func() {
-				shutdownNotify <- true
-			}()
+		BeforeEach(func() {
+			shutdownNotify <- true
 		})
 
-		It("tracks", func() {
-			By("waiting for it to track again")
-			<-tracked
-			By("consistently not tracking again")
-			Consistently(tracked).ShouldNot(Receive())
+		Context("when the component is paused", func() {
+			BeforeEach(func() {
+				fakeComponent.PausedReturns(true)
+			})
+
+			It("does not run", func() {
+				Consistently(fakeTracker.TrackCallCount).Should(Equal(0))
+			})
+		})
+
+		Context("when the component is unpaused", func() {
+			BeforeEach(func() {
+				fakeComponent.PausedReturns(false)
+			})
+
+			It("tracks", func() {
+				Eventually(fakeTracker.TrackCallCount).Should(Equal(1))
+			})
 		})
 	})
 
 	Context("when it receives a build started notice", func() {
-		JustBeforeEach(func() {
-			<-tracked
-			go func() {
-				buildStartedNotify <- true
-			}()
+		BeforeEach(func() {
+			buildStartedNotify <- true
 		})
 
-		It("tracks", func() {
-			By("waiting for it to track again")
-			<-tracked
-			By("consistently not tracking again")
-			Consistently(tracked).ShouldNot(Receive())
+		Context("when the component is paused", func() {
+			BeforeEach(func() {
+				fakeComponent.PausedReturns(true)
+			})
+
+			It("does not run", func() {
+				Consistently(fakeTracker.TrackCallCount).Should(Equal(0))
+			})
+		})
+
+		Context("when the component is unpaused", func() {
+			BeforeEach(func() {
+				fakeComponent.PausedReturns(false)
+			})
+
+			It("tracks", func() {
+				Eventually(fakeTracker.TrackCallCount).Should(Equal(1))
+			})
 		})
 	})
 
 	Context("when it receives shutdown signal", func() {
 		JustBeforeEach(func() {
-			<-tracked
 			go func() {
 				process.Signal(os.Interrupt)
 			}()
 		})
 
 		It("releases tracker", func() {
-			<-process.Wait()
-			Expect(fakeTracker.ReleaseCallCount()).To(Equal(1))
+			Eventually(fakeTracker.ReleaseCallCount).Should(Equal(1))
 		})
 
 		It("notifies other atc it is shutting down", func() {
-			<-process.Wait()
-			Expect(fakeNotifications.NotifyCallCount()).To(Equal(1))
-		})
-	})
-
-	Context("when the interval elapses", func() {
-		JustBeforeEach(func() {
-			<-tracked
-			fakeClock.Increment(interval)
-		})
-
-		It("tracks", func() {
-			<-tracked
-			Consistently(tracked).ShouldNot(Receive())
-		})
-
-		Context("when the interval elapses", func() {
-			JustBeforeEach(func() {
-				<-tracked
-				fakeClock.Increment(interval)
-			})
-
-			It("tracks again", func() {
-				<-tracked
-				Consistently(tracked).ShouldNot(Receive())
-			})
+			Eventually(fakeNotifications.NotifyCallCount).Should(Equal(1))
 		})
 	})
 })

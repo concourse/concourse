@@ -70,10 +70,6 @@ func (r *intervalRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	ticker := r.clock.NewTicker(r.interval)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	if err := r.runner.Run(ctx); err != nil {
-		r.logger.Error("failed-to-run", err)
-	}
-
 	for {
 		select {
 		case <-ticker.C():
@@ -104,6 +100,11 @@ func (r *intervalRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 			component, _, err := r.componentFactory.Find(r.componentName)
 			if err != nil {
 				r.logger.Error("failed-to-find-component", err)
+				break
+			}
+
+			if component.Paused() {
+				r.logger.Debug("component-is-paused", lager.Data{"name": r.componentName})
 				break
 			}
 

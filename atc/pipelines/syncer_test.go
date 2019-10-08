@@ -26,6 +26,7 @@ var _ = Describe("Pipelines Syncer", func() {
 		fakeRunner         *fake_runner.FakeRunner
 		fakeRunnerExitChan chan error
 		otherFakeRunner    *fake_runner.FakeRunner
+		fakeComponent      *dbfakes.FakeComponent
 
 		syncer *Syncer
 	)
@@ -43,6 +44,9 @@ var _ = Describe("Pipelines Syncer", func() {
 
 		fakeRunner = new(fake_runner.FakeRunner)
 		otherFakeRunner = new(fake_runner.FakeRunner)
+		fakeComponent = new(dbfakes.FakeComponent)
+
+		componentFactory.FindReturns(fakeComponent, true, nil)
 
 		pipelineRunnerFactory = func(pipelineArg db.Pipeline) ifrit.Runner {
 			switch pipelineArg {
@@ -81,106 +85,122 @@ var _ = Describe("Pipelines Syncer", func() {
 		syncer.Sync()
 	})
 
-	It("spawns a new process for each pipeline", func() {
-		Eventually(fakeRunner.RunCallCount).Should(Equal(1))
-		Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
-	})
+	Context("when syncer is paused", func() {
+		BeforeEach(func() {
+			fakeComponent.PausedReturns(true)
+		})
 
-	Context("when we sync again", func() {
-		It("does not spawn any processes again", func() {
-			syncer.Sync()
-			Consistently(fakeRunner.RunCallCount).Should(Equal(1))
+		It("does not schedule pipelines", func() {
+			Expect(pipelineFactory.AllPipelinesCallCount()).To(Equal(0))
 		})
 	})
 
-	Context("when a pipeline is deleted", func() {
-		It("stops the process", func() {
+	Context("when syncer is unpaused", func() {
+		BeforeEach(func() {
+			fakeComponent.PausedReturns(false)
+		})
+
+		It("spawns a new process for each pipeline", func() {
 			Eventually(fakeRunner.RunCallCount).Should(Equal(1))
 			Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
-
-			pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline2}, nil)
-
-			syncer.Sync()
-
-			signals, _ := fakeRunner.RunArgsForCall(0)
-			Eventually(signals).Should(Receive(Equal(os.Interrupt)))
 		})
 
-		Context("when another is configured with the same name", func() {
+		Context("when we sync again", func() {
+			It("does not spawn any processes again", func() {
+				syncer.Sync()
+				Consistently(fakeRunner.RunCallCount).Should(Equal(1))
+			})
+		})
+
+		Context("when a pipeline is deleted", func() {
 			It("stops the process", func() {
 				Eventually(fakeRunner.RunCallCount).Should(Equal(1))
 				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
-				pipeline3.IDReturns(3)
-				pipeline3.NameReturns("pipeline")
-
-				pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline2, pipeline3}, nil)
+				pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline2}, nil)
 
 				syncer.Sync()
-
-				Eventually(fakeRunner.RunCallCount).Should(Equal(2))
 
 				signals, _ := fakeRunner.RunArgsForCall(0)
 				Eventually(signals).Should(Receive(Equal(os.Interrupt)))
 			})
+
+			Context("when another is configured with the same name", func() {
+				It("stops the process", func() {
+					Eventually(fakeRunner.RunCallCount).Should(Equal(1))
+					Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
+
+					pipeline3.IDReturns(3)
+					pipeline3.NameReturns("pipeline")
+
+					pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline2, pipeline3}, nil)
+
+					syncer.Sync()
+
+					Eventually(fakeRunner.RunCallCount).Should(Equal(2))
+
+					signals, _ := fakeRunner.RunArgsForCall(0)
+					Eventually(signals).Should(Receive(Equal(os.Interrupt)))
+				})
+			})
+
+			Context("when pipeline name was changed", func() {
+				It("recreates syncer with new name", func() {
+					Eventually(fakeRunner.RunCallCount).Should(Equal(1))
+					Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
+
+					pipeline1.NameReturns("renamed-pipeline")
+
+					pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline1, pipeline2}, nil)
+
+					syncer.Sync()
+
+					Eventually(fakeRunner.RunCallCount).Should(Equal(2))
+
+					signals, _ := fakeRunner.RunArgsForCall(0)
+					Eventually(signals).Should(Receive(Equal(os.Interrupt)))
+				})
+			})
 		})
 
-		Context("when pipeline name was changed", func() {
-			It("recreates syncer with new name", func() {
+		Context("when a pipeline is paused", func() {
+			JustBeforeEach(func() {
 				Eventually(fakeRunner.RunCallCount).Should(Equal(1))
 				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
-				pipeline1.NameReturns("renamed-pipeline")
-
+				pipeline1.PausedReturns(true)
 				pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline1, pipeline2}, nil)
 
 				syncer.Sync()
+			})
 
-				Eventually(fakeRunner.RunCallCount).Should(Equal(2))
-
+			It("stops the process", func() {
 				signals, _ := fakeRunner.RunArgsForCall(0)
 				Eventually(signals).Should(Receive(Equal(os.Interrupt)))
 			})
 		})
-	})
 
-	Context("when a pipeline is paused", func() {
-		JustBeforeEach(func() {
-			Eventually(fakeRunner.RunCallCount).Should(Equal(1))
-			Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
+		Context("when the pipeline's process exits", func() {
+			BeforeEach(func() {
+				fakeRunnerExitChan <- nil
+			})
 
-			pipeline1.PausedReturns(true)
-			pipelineFactory.AllPipelinesReturns([]db.Pipeline{pipeline1, pipeline2}, nil)
+			Context("when we sync again", func() {
+				It("spawns the process again", func() {
+					Eventually(fakeRunner.RunCallCount).Should(Equal(1))
+					Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
 
-			syncer.Sync()
-		})
+					fakeRunnerExitChan <- errors.New("disaster")
+					syncer.Sync()
 
-		It("stops the process", func() {
-			signals, _ := fakeRunner.RunArgsForCall(0)
-			Eventually(signals).Should(Receive(Equal(os.Interrupt)))
-		})
-	})
-
-	Context("when the pipeline's process exits", func() {
-		BeforeEach(func() {
-			fakeRunnerExitChan <- nil
-		})
-
-		Context("when we sync again", func() {
-			It("spawns the process again", func() {
-				Eventually(fakeRunner.RunCallCount).Should(Equal(1))
-				Eventually(otherFakeRunner.RunCallCount).Should(Equal(1))
-
-				fakeRunnerExitChan <- errors.New("disaster")
-				syncer.Sync()
-
-				Eventually(fakeRunner.RunCallCount).Should(Equal(2))
+					Eventually(fakeRunner.RunCallCount).Should(Equal(2))
+				})
 			})
 		})
-	})
 
-	Context("when the call to lookup pipelines errors", func() {
-		It("does not spawn any processes", func() {
+		Context("when the call to lookup pipelines errors", func() {
+			It("does not spawn any processes", func() {
+			})
 		})
 	})
 })

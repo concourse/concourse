@@ -31,6 +31,7 @@ func (bt *Tracker) Track() {
 
 	tLog.Debug("start")
 	defer tLog.Debug("done")
+
 	builds, err := bt.buildFactory.GetAllStartedBuilds()
 	if err != nil {
 		tLog.Error("failed-to-lookup-started-builds", err)
