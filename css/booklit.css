@@ -927,12 +927,15 @@ a.github-user:hover {
   background-color: #f5a623;
   text-decoration: none;
   height: 80px;
+  position: relative;
+  top: -5px;
+  left: -5px;
   background-repeat: no-repeat;
   background-size: 32px 32px;
   background-position: 24px center;
   background-image: url("../images/icons/tag.svg");
   font-size: 32px;
-  padding-left: 72px;
+  text-indent: 72px;
   line-height: 80px;
   font-family: 'Roboto Slab', serif;
 }
@@ -942,8 +945,53 @@ a.github-user:hover {
   color: white;
 }
 .hero-pill:hover {
-  background-color: #ec9910;
   text-decoration: none;
+}
+.hero-pill:before {
+  content: " ";
+  position: absolute;
+  right: -5px;
+  top: 0;
+  bottom: -5px;
+  border-top: 5px solid transparent;
+  border-left: 5px solid #ec9910;
+}
+.hero-pill:after {
+  content: " ";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: -5px;
+  border-top: 5px solid #ec9910;
+  border-left: 5px solid transparent;
+}
+.hero-pill:hover {
+  top: -7px;
+  left: -7px;
+}
+.hero-pill:hover:before,
+.hero-pill:hover:after {
+  border-top-width: 7px;
+  border-left-width: 7px;
+}
+.hero-pill:hover:before {
+  bottom: -7px;
+  right: -7px;
+}
+.hero-pill:hover:after {
+  bottom: -7px;
+  right: -7px;
+}
+.hero-pill:active {
+  top: 0;
+  left: 0;
+  background-color: #ec9910;
+}
+.hero-pill:active:before,
+.hero-pill:active:after {
+  border-width: 0;
+  bottom: 0;
+  right: 0;
 }
 .hero-pill .small {
   font-size: 20px;

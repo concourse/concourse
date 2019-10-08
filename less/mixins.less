@@ -1,0 +1,64 @@
+@import "colors.less";
+
+@3d-width: 5px;
+@3d-hover-width: 7px;
+
+.3d-block(@color) {
+  position: relative;
+  top: -@3d-width;
+  left: -@3d-width;
+
+
+  &:before {
+    content: " ";
+    position: absolute;
+    right: -@3d-width;
+    top: 0;
+    bottom: -@3d-width;
+    border-top: @3d-width solid transparent;
+    border-left: @3d-width solid @color;
+  }
+
+  &:after {
+    content: " ";
+    position: absolute;
+    bottom: -@3d-width;
+    left: 0;
+    right: -@3d-width;
+    border-top: @3d-width solid @color;
+    border-left: @3d-width solid transparent;
+  }
+
+  &:hover {
+    top: -@3d-hover-width;
+    left: -@3d-hover-width;
+
+    &:before, &:after {
+      border-top-width: @3d-hover-width;
+      border-left-width: @3d-hover-width;
+    }
+
+    &:before {
+      bottom: -@3d-hover-width;
+      right: -@3d-hover-width;
+    }
+
+    &:after {
+      bottom: -@3d-hover-width;
+      right: -@3d-hover-width;
+    }
+  }
+
+  &:active {
+    top: 0;
+    left: 0;
+
+    background-color: @color;
+
+    &:before, &:after {
+      border-width: 0;
+      bottom: 0;
+      right: 0;
+    }
+  }
+}

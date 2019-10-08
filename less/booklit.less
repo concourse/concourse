@@ -760,9 +760,10 @@ a.github-user {
   }
 
   &:hover {
-    background-color: @amber-secondary;
     text-decoration: none;
   }
+
+  .3d-block(@amber-secondary);
 
   background-repeat: no-repeat;
   background-size: @download-icon-size @download-icon-size;
@@ -770,7 +771,7 @@ a.github-user {
   background-image: url("../images/icons/tag.svg");
 
   font-size: @download-font-size;
-  padding-left: (@download-size / 2) + (@download-icon-size / 2) + 16px;
+  text-indent: (@download-size / 2) + (@download-icon-size / 2) + 16px;
   line-height: @download-size;
   font-family: 'Roboto Slab', serif;
 
