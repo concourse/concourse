@@ -28,4 +28,4 @@
 * @iamjarvo fixed a [bug](444://github.com/concourse/concourse/issues/4472) where `fly builds` would show the wrong duration for cancelled builds #4507.
 
 #### <sub><sup><a name="2958" href="#2958">:link:</a></sup></sub> feature
-* @ctorboh15 added support for a CONCOURSE_TLS_ONLY configuration that will disable the non-TLS API listener.
+* @ctorboh15 added support for a CONCOURSE_TLS_ONLY configuration that will remove all non TLS api members at startup
