@@ -58,7 +58,11 @@ func (c *component) Reload() (bool, error) {
 }
 
 func (c *component) IntervalElapsed() bool {
-	inveral, _ := time.ParseDuration(c.interval)
+	inveral, err := time.ParseDuration(c.interval)
+
+	if err != nil {
+		panic(err)
+	}
 
 	return time.Now().After(c.lastRan.Add(inveral))
 }

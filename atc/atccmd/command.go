@@ -76,7 +76,7 @@ import (
 var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
 
-var runnerInterval = 10 * time.Second
+const runnerInterval = 10 * time.Second
 
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
