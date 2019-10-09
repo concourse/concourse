@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -13,8 +15,9 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 )
 
 const taskProcessID = "task"
@@ -41,16 +44,18 @@ type Client interface {
 	) TaskResult
 }
 
-func NewClient(pool Pool, provider WorkerProvider) *client {
+func NewClient(pool Pool, provider WorkerProvider, taskQueue db.TaskQueue) *client {
 	return &client{
-		pool:     pool,
-		provider: provider,
+		pool:      pool,
+		provider:  provider,
+		taskQueue: taskQueue,
 	}
 }
 
 type client struct {
-	pool     Pool
-	provider WorkerProvider
+	pool      Pool
+	provider  WorkerProvider
+	taskQueue db.TaskQueue
 }
 
 type TaskResult struct {
@@ -136,6 +141,7 @@ func (client *client) RunTaskStep(
 		lockFactory,
 		owner,
 		containerSpec,
+		metadata,
 		workerSpec,
 		processSpec.StdoutWriter,
 	)
@@ -254,6 +260,7 @@ func (client *client) chooseTaskWorker(
 	lockFactory lock.LockFactory,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
+	metadata db.ContainerMetadata,
 	workerSpec WorkerSpec,
 	outputWriter io.Writer,
 ) (Worker, error) {
@@ -263,7 +270,20 @@ func (client *client) chooseTaskWorker(
 		elapsed           time.Duration
 		err               error
 		existingContainer bool
+		waitTimer         time.Duration
+		dedicatedWorker   bool
+		teamId            int
+		alreadyQueued     bool
 	)
+
+	if strategy.ModifiesActiveTasks() {
+		alreadyQueued = false
+		waitTimer = time.Duration(5 * time.Second) // Workers polling frequency
+		dedicatedWorker, err = client.pool.TeamDedicatedWorkers(logger, workerSpec)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	for {
 		if strategy.ModifiesActiveTasks() {
@@ -272,11 +292,24 @@ func (client *client) chooseTaskWorker(
 			if err != nil {
 				return nil, err
 			}
-
 			if !acquired {
 				time.Sleep(time.Second)
 				continue
 			}
+
+			// Check if the job has been aborted, return early in that case
+			select {
+			case <-ctx.Done():
+				logger.Info("aborted-waiting-worker")
+				err = activeTasksLock.Release()
+				if err != nil {
+					return nil, err
+				}
+				return nil, ctx.Err()
+			default:
+			}
+
+			// Check if the container is already on the worker, in which case skip the queue
 			existingContainer, err = client.pool.ContainerInWorker(logger, owner, containerSpec, workerSpec)
 			if err != nil {
 				release_err := activeTasksLock.Release()
@@ -284,6 +317,55 @@ func (client *client) chooseTaskWorker(
 					err = multierror.Append(err, release_err)
 				}
 				return nil, err
+			}
+
+			if !existingContainer {
+				// Enter the queue and get the position, or just get the position if already in queue
+				taskId := fmt.Sprintf("%d_%d_%d", metadata.PipelineID, metadata.JobID, metadata.BuildID)
+				if dedicatedWorker {
+					teamId = workerSpec.TeamID
+				} else {
+					teamId = 0
+				}
+				tags := containerSpec.Tags
+				sort.Strings(tags)
+				workerTags := strings.Join(tags, "_")
+				queue_position, qlen, err := client.taskQueue.FindOrAppend(taskId, workerSpec.Platform, teamId, workerTags, logger)
+				if !alreadyQueued {
+					defer client.taskQueue.Dequeue(taskId, logger)
+					alreadyQueued = true
+				}
+				if err != nil {
+					err = activeTasksLock.Release()
+					if err != nil {
+						logger.Error("failed-to-release-lock", err)
+						return nil, err
+					}
+					logger.Error("failed-to-enqueue-task", err)
+					return nil, err
+				}
+				metric.TaskQueue{
+					Length:     qlen,
+					Platform:   workerSpec.Platform,
+					Team:       teamId,
+					WorkerTags: workerTags,
+				}.Emit(logger)
+
+				if queue_position > 1 {
+					if elapsed%time.Duration(time.Minute) == 0 { // Every minute report that it is still waiting
+						_, err := outputWriter.Write([]byte(fmt.Sprintf("The task is in queue: %d/%d.\n", queue_position, qlen)))
+						if err != nil {
+							logger.Error("failed-to-report-status", err)
+						}
+					}
+					release_err := activeTasksLock.Release()
+					if release_err != nil {
+						return nil, err
+					}
+					elapsed += waitTimer
+					time.Sleep(waitTimer)
+					continue
+				}
 			}
 		}
 
@@ -300,19 +382,6 @@ func (client *client) chooseTaskWorker(
 		}
 
 		if strategy.ModifiesActiveTasks() {
-			waitWorker := time.Duration(5 * time.Second) // Workers polling frequency
-
-			select {
-			case <-ctx.Done():
-				logger.Info("aborted-waiting-worker")
-				err = activeTasksLock.Release()
-				if err != nil {
-					return nil, err
-				}
-				return nil, ctx.Err()
-			default:
-			}
-
 			if chosenWorker == nil {
 				err = activeTasksLock.Release()
 				if err != nil {
@@ -320,14 +389,14 @@ func (client *client) chooseTaskWorker(
 				}
 
 				if elapsed%time.Duration(time.Minute) == 0 { // Every minute report that it is still waiting
-					_, err := outputWriter.Write([]byte("All workers are busy at the moment, please stand-by.\n"))
+					_, err := outputWriter.Write([]byte("The task is at the front of the queue, please stand-by.\n"))
 					if err != nil {
 						logger.Error("failed-to-report-status", err)
 					}
 				}
 
-				elapsed += waitWorker
-				time.Sleep(waitWorker)
+				elapsed += waitTimer
+				time.Sleep(waitTimer)
 				continue
 			}
 

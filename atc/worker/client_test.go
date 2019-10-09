@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/runtime"
@@ -32,14 +33,16 @@ var _ = Describe("Client", func() {
 		client          worker.Client
 		fakeLock        *lockfakes.FakeLock
 		fakeLockFactory *lockfakes.FakeLockFactory
+		fakeTaskQueue   *dbfakes.FakeTaskQueue
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakePool = new(workerfakes.FakePool)
 		fakeProvider = new(workerfakes.FakeWorkerProvider)
+		fakeTaskQueue = new(dbfakes.FakeTaskQueue)
 
-		client = worker.NewClient(fakePool, fakeProvider)
+		client = worker.NewClient(fakePool, fakeProvider, fakeTaskQueue)
 	})
 
 	Describe("FindContainer", func() {
@@ -345,6 +348,11 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					fakeStrategy.ModifiesActiveTasksReturns(true)
 				})
+				It("joins and leaves the tasks queue", func() {
+					Expect(fakeTaskQueue.FindOrAppendCallCount()).To(Equal(1))
+					Expect(fakeTaskQueue.DequeueCallCount()).To(Equal(1))
+				})
+
 				Context("when a worker is found", func() {
 					BeforeEach(func() {
 						fakeWorker.NameReturns("some-worker")

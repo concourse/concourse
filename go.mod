@@ -9,13 +9,13 @@ require (
 	code.cloudfoundry.org/localip v0.0.0-20170223024724-b88ad0dea95c
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	contrib.go.opencensus.io/exporter/ocagent v0.5.1 // indirect
-	github.com/Azure/azure-sdk-for-go v24.0.0+incompatible // indirect
+	github.com/Azure/azure-sdk-for-go v24.0.0+incompatible
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest v11.2.8+incompatible // indirect
 	github.com/DataDog/datadog-go v0.0.0-20180702141236-ef3a9daf849d
 	github.com/DataDog/zstd v1.4.0
 	github.com/Jeffail/gabs v1.1.0 // indirect
-	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
+	github.com/Masterminds/squirrel v1.1.1-0.20191003161918-b924fed91bf3
 	github.com/Microsoft/go-winio v0.4.11 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect

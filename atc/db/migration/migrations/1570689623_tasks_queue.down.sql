@@ -1,0 +1,3 @@
+BEGIN;
+  DROP TABLE IF EXISTS tasks_queue;
+COMMIT;

@@ -36,6 +36,7 @@ type Worker interface {
 	Tags() atc.Tags
 	Uptime() time.Duration
 	IsOwnedByTeam() bool
+	OwnedByTeam() int
 	Ephemeral() bool
 	IsVersionCompatible(lager.Logger, version.Version) bool
 	Satisfies(lager.Logger, WorkerSpec) bool
@@ -719,6 +720,10 @@ func (worker *gardenWorker) Description() string {
 
 func (worker *gardenWorker) IsOwnedByTeam() bool {
 	return worker.dbWorker.TeamID() != 0
+}
+
+func (worker *gardenWorker) OwnedByTeam() int {
+	return worker.dbWorker.TeamID()
 }
 
 func (worker *gardenWorker) Uptime() time.Duration {

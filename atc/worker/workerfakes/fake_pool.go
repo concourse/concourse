@@ -59,6 +59,20 @@ type FakePool struct {
 		result1 worker.Worker
 		result2 error
 	}
+	TeamDedicatedWorkersStub        func(lager.Logger, worker.WorkerSpec) (bool, error)
+	teamDedicatedWorkersMutex       sync.RWMutex
+	teamDedicatedWorkersArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 worker.WorkerSpec
+	}
+	teamDedicatedWorkersReturns struct {
+		result1 bool
+		result2 error
+	}
+	teamDedicatedWorkersReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -261,6 +275,70 @@ func (fake *FakePool) FindOrChooseWorkerForContainerReturnsOnCall(i int, result1
 	}{result1, result2}
 }
 
+func (fake *FakePool) TeamDedicatedWorkers(arg1 lager.Logger, arg2 worker.WorkerSpec) (bool, error) {
+	fake.teamDedicatedWorkersMutex.Lock()
+	ret, specificReturn := fake.teamDedicatedWorkersReturnsOnCall[len(fake.teamDedicatedWorkersArgsForCall)]
+	fake.teamDedicatedWorkersArgsForCall = append(fake.teamDedicatedWorkersArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 worker.WorkerSpec
+	}{arg1, arg2})
+	fake.recordInvocation("TeamDedicatedWorkers", []interface{}{arg1, arg2})
+	fake.teamDedicatedWorkersMutex.Unlock()
+	if fake.TeamDedicatedWorkersStub != nil {
+		return fake.TeamDedicatedWorkersStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.teamDedicatedWorkersReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakePool) TeamDedicatedWorkersCallCount() int {
+	fake.teamDedicatedWorkersMutex.RLock()
+	defer fake.teamDedicatedWorkersMutex.RUnlock()
+	return len(fake.teamDedicatedWorkersArgsForCall)
+}
+
+func (fake *FakePool) TeamDedicatedWorkersCalls(stub func(lager.Logger, worker.WorkerSpec) (bool, error)) {
+	fake.teamDedicatedWorkersMutex.Lock()
+	defer fake.teamDedicatedWorkersMutex.Unlock()
+	fake.TeamDedicatedWorkersStub = stub
+}
+
+func (fake *FakePool) TeamDedicatedWorkersArgsForCall(i int) (lager.Logger, worker.WorkerSpec) {
+	fake.teamDedicatedWorkersMutex.RLock()
+	defer fake.teamDedicatedWorkersMutex.RUnlock()
+	argsForCall := fake.teamDedicatedWorkersArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakePool) TeamDedicatedWorkersReturns(result1 bool, result2 error) {
+	fake.teamDedicatedWorkersMutex.Lock()
+	defer fake.teamDedicatedWorkersMutex.Unlock()
+	fake.TeamDedicatedWorkersStub = nil
+	fake.teamDedicatedWorkersReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePool) TeamDedicatedWorkersReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.teamDedicatedWorkersMutex.Lock()
+	defer fake.teamDedicatedWorkersMutex.Unlock()
+	fake.TeamDedicatedWorkersStub = nil
+	if fake.teamDedicatedWorkersReturnsOnCall == nil {
+		fake.teamDedicatedWorkersReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.teamDedicatedWorkersReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -270,6 +348,8 @@ func (fake *FakePool) Invocations() map[string][][]interface{} {
 	defer fake.findOrChooseWorkerMutex.RUnlock()
 	fake.findOrChooseWorkerForContainerMutex.RLock()
 	defer fake.findOrChooseWorkerForContainerMutex.RUnlock()
+	fake.teamDedicatedWorkersMutex.RLock()
+	defer fake.teamDedicatedWorkersMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

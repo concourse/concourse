@@ -79,6 +79,11 @@ type Pool interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 	) (Worker, error)
+
+	TeamDedicatedWorkers(
+		lager.Logger,
+		WorkerSpec,
+	) (bool, error)
 }
 
 type pool struct {
@@ -208,4 +213,22 @@ func (pool *pool) FindOrChooseWorker(
 	}
 
 	return workers[rand.Intn(len(workers))], nil
+}
+
+func (pool *pool) TeamDedicatedWorkers(logger lager.Logger, workerSpec WorkerSpec) (bool, error) {
+	workers, err := pool.provider.RunningWorkers(logger)
+	if err != nil {
+		return false, err
+	}
+
+	if len(workers) == 0 {
+		return false, ErrNoWorkers
+	}
+
+	for _, worker := range workers {
+		if worker.OwnedByTeam() == workerSpec.TeamID {
+			return true, nil
+		}
+	}
+	return false, nil
 }

@@ -237,6 +237,16 @@ type FakeWorker struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	OwnedByTeamStub        func() int
+	ownedByTeamMutex       sync.RWMutex
+	ownedByTeamArgsForCall []struct {
+	}
+	ownedByTeamReturns struct {
+		result1 int
+	}
+	ownedByTeamReturnsOnCall map[int]struct {
+		result1 int
+	}
 	ResourceTypesStub        func() []atc.WorkerResourceType
 	resourceTypesMutex       sync.RWMutex
 	resourceTypesArgsForCall []struct {
@@ -1288,6 +1298,58 @@ func (fake *FakeWorker) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeWorker) OwnedByTeam() int {
+	fake.ownedByTeamMutex.Lock()
+	ret, specificReturn := fake.ownedByTeamReturnsOnCall[len(fake.ownedByTeamArgsForCall)]
+	fake.ownedByTeamArgsForCall = append(fake.ownedByTeamArgsForCall, struct {
+	}{})
+	fake.recordInvocation("OwnedByTeam", []interface{}{})
+	fake.ownedByTeamMutex.Unlock()
+	if fake.OwnedByTeamStub != nil {
+		return fake.OwnedByTeamStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.ownedByTeamReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) OwnedByTeamCallCount() int {
+	fake.ownedByTeamMutex.RLock()
+	defer fake.ownedByTeamMutex.RUnlock()
+	return len(fake.ownedByTeamArgsForCall)
+}
+
+func (fake *FakeWorker) OwnedByTeamCalls(stub func() int) {
+	fake.ownedByTeamMutex.Lock()
+	defer fake.ownedByTeamMutex.Unlock()
+	fake.OwnedByTeamStub = stub
+}
+
+func (fake *FakeWorker) OwnedByTeamReturns(result1 int) {
+	fake.ownedByTeamMutex.Lock()
+	defer fake.ownedByTeamMutex.Unlock()
+	fake.OwnedByTeamStub = nil
+	fake.ownedByTeamReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeWorker) OwnedByTeamReturnsOnCall(i int, result1 int) {
+	fake.ownedByTeamMutex.Lock()
+	defer fake.ownedByTeamMutex.Unlock()
+	fake.OwnedByTeamStub = nil
+	if fake.ownedByTeamReturnsOnCall == nil {
+		fake.ownedByTeamReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.ownedByTeamReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *FakeWorker) ResourceTypes() []atc.WorkerResourceType {
 	fake.resourceTypesMutex.Lock()
 	ret, specificReturn := fake.resourceTypesReturnsOnCall[len(fake.resourceTypesArgsForCall)]
@@ -1542,6 +1604,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.lookupVolumeMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
+	fake.ownedByTeamMutex.RLock()
+	defer fake.ownedByTeamMutex.RUnlock()
 	fake.resourceTypesMutex.RLock()
 	defer fake.resourceTypesMutex.RUnlock()
 	fake.satisfiesMutex.RLock()
