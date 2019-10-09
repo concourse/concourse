@@ -2,7 +2,6 @@ package templatehelpers
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
@@ -30,11 +29,10 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 	allowEmpty bool,
 	strict bool,
 ) ([]byte, error) {
-	config, err := ioutil.ReadFile(string(yamlTemplate.filePath))
+	config, err := yamlTemplate.filePath.ReadContent()
 	if err != nil {
-		return nil, fmt.Errorf("could not read file: %s", err.Error())
+		return nil, fmt.Errorf("could not read pipeline file (%s): %s", string(yamlTemplate.filePath), err.Error())
 	}
-
 	if strict {
 		// We use a generic map here, since templates are not evaluated yet.
 		// (else a template string may cause an error when a struct is expected)
@@ -63,7 +61,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 	// same values in the files specified earlier on command line
 	for i := len(yamlTemplate.templateVariablesFiles) - 1; i >= 0; i-- {
 		path := yamlTemplate.templateVariablesFiles[i]
-		templateVars, err := ioutil.ReadFile(string(path))
+		templateVars, err := path.ReadContent()
 		if err != nil {
 			return nil, fmt.Errorf("could not read template variables file (%s): %s", string(path), err.Error())
 		}

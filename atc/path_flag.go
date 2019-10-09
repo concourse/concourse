@@ -2,6 +2,8 @@ package atc
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"path/filepath"
 	"strings"
 
@@ -12,6 +14,11 @@ type PathFlag string
 
 func (path *PathFlag) UnmarshalFlag(value string) error {
 	if value == "" {
+		return nil
+	}
+
+	if isURL(value) {
+		*path = PathFlag(value)
 		return nil
 	}
 
@@ -33,7 +40,12 @@ func (path *PathFlag) UnmarshalFlag(value string) error {
 }
 
 func (path *PathFlag) Complete(match string) []flags.Completion {
-	matches, _ := filepath.Glob(match + "*")
+	var matches []string
+	if isURL(match) {
+		matches = []string{}
+	} else {
+		matches, _ = filepath.Glob(match + "*")
+	}
 	comps := make([]flags.Completion, len(matches))
 
 	for i, v := range matches {
@@ -41,4 +53,40 @@ func (path *PathFlag) Complete(match string) []flags.Completion {
 	}
 
 	return comps
+}
+
+func (path *PathFlag) ReadContent() ([]byte, error) {
+	var (
+		content []byte
+		err     error
+	)
+	if path.IsURL() {
+		res, err := http.Get(string(*path))
+		if err != nil {
+			return nil, err
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("%d: %s", res.StatusCode, http.StatusText(res.StatusCode))
+		}
+		content, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		content, err = ioutil.ReadFile(string(*path))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return content, nil
+}
+
+func (path *PathFlag) IsURL() bool {
+	return isURL(string(*path))
+}
+
+func isURL(value string) bool {
+	value = strings.TrimSpace(value)
+	return strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://")
 }
