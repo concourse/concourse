@@ -552,6 +552,10 @@ func (repository *volumeRepository) DestroyUnknownVolumes(workerName string, rep
 
 	unknownHandles := diff(reportedHandles, dbHandles)
 
+	if len(unknownHandles) == 0 {
+		return 0, nil
+	}
+
 	tx, err := repository.conn.Begin()
 	if err != nil {
 		return 0, err

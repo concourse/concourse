@@ -1075,5 +1075,22 @@ var _ = Describe("ContainerRepository", func() {
 				Expect(num).To(Equal(2))
 			})
 		})
+
+		Context("when there are no unknown containers on the worker", func() {
+			BeforeEach(func() {
+				workerReportedHandles = []string{"some-handle1", "some-handle2"}
+			})
+
+			It("should not try to destroy anything", func() {
+				Expect(num).To(Equal(0))
+				result, err := psql.Select("handle, state").
+					From("containers").
+					Where(sq.Eq{"state": atc.ContainerStateDestroying}).
+					RunWith(dbConn).Exec()
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+			})
+		})
 	})
 })

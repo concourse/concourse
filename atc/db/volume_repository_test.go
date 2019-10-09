@@ -976,5 +976,22 @@ var _ = Describe("VolumeFactory", func() {
 				Expect(num).To(Equal(2))
 			})
 		})
+
+		Context("when there are no unknown volumes on the worker", func() {
+			BeforeEach(func() {
+				workerReportedHandles = []string{"some-handle1", "some-handle2"}
+			})
+
+			It("should not try to destroy anything", func() {
+				Expect(num).To(Equal(0))
+				result, err := psql.Select("handle, state").
+					From("volumes").
+					Where(sq.Eq{"state": db.VolumeStateDestroying}).
+					RunWith(dbConn).Exec()
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+			})
+		})
 	})
 })
