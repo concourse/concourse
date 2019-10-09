@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 //go:generate counterfeiter . BuildTracker
@@ -31,6 +33,7 @@ type TrackerRunner struct {
 	Interval         time.Duration
 	Clock            clock.Clock
 	Logger           lager.Logger
+	LockFactory      lock.LockFactory
 	ComponentFactory db.ComponentFactory
 }
 
@@ -72,12 +75,27 @@ func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{})
 				break
 			}
 
+			lock, acquired, err := runner.LockFactory.Acquire(runner.Logger, lock.NewTaskLockID(atc.ComponentBuildTracker))
+			if err != nil {
+				break
+			}
+
+			if !acquired {
+				runner.Logger.Debug(fmt.Sprintln("failed-to-acquire-a-lock-for-", component.Name()))
+				break
+			}
+
 			runner.Tracker.Track()
 
 			if err = component.UpdateLastRan(); err != nil {
 				runner.Logger.Error("failed-to-update-last-ran", err)
 			}
 
+			err = lock.Release()
+			if err != nil {
+				runner.Logger.Error("failed-to-release", err)
+				break
+			}
 		case <-shutdownNotifier:
 			runner.Logger.Info("received-atc-shutdown-message")
 			component, _, err := runner.ComponentFactory.Find(atc.ComponentBuildTracker)

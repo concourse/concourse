@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )
@@ -19,6 +20,7 @@ func NewRunner(
 	checkRunner Runner,
 	runnerInterval time.Duration,
 	notifications Notifications,
+	lockFactory lock.LockFactory,
 	componentFactory db.ComponentFactory,
 ) ifrit.Runner {
 	return grouper.NewParallel(
@@ -26,11 +28,11 @@ func NewRunner(
 		[]grouper.Member{
 			{
 				Name:   atc.ComponentLidarScanner,
-				Runner: NewIntervalRunner(logger, clock, scanRunner, runnerInterval, notifications, atc.ComponentLidarScanner, componentFactory),
+				Runner: NewIntervalRunner(logger, clock, scanRunner, runnerInterval, notifications, atc.ComponentLidarScanner, lockFactory, componentFactory),
 			},
 			{
 				Name:   atc.ComponentLidarChecker,
-				Runner: NewIntervalRunner(logger, clock, checkRunner, runnerInterval, notifications, atc.ComponentLidarChecker, componentFactory),
+				Runner: NewIntervalRunner(logger, clock, checkRunner, runnerInterval, notifications, atc.ComponentLidarChecker, lockFactory, componentFactory),
 			},
 		},
 	)
@@ -42,6 +44,7 @@ func NewCheckerRunner(
 	checkRunner Runner,
 	runnerInterval time.Duration,
 	notifications Notifications,
+	lockFactory lock.LockFactory,
 	componentFactory db.ComponentFactory,
 ) ifrit.Runner {
 	return grouper.NewParallel(
@@ -49,7 +52,7 @@ func NewCheckerRunner(
 		[]grouper.Member{
 			{
 				Name:   atc.ComponentLidarChecker,
-				Runner: NewIntervalRunner(logger, clock, checkRunner, runnerInterval, notifications, atc.ComponentLidarChecker, componentFactory),
+				Runner: NewIntervalRunner(logger, clock, checkRunner, runnerInterval, notifications, atc.ComponentLidarChecker, lockFactory, componentFactory),
 			},
 		},
 	)

@@ -827,6 +827,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			Interval:         runnerInterval,
 			Clock:            clock.NewClock(),
 			Logger:           logger.Session("tracker-runner"),
+			LockFactory:      lockFactory,
 			ComponentFactory: componentFactory,
 		}},
 		{Name: atc.ComponentCollector, Runner: lockrunner.NewRunner(
@@ -907,6 +908,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			),
 			runnerInterval,
 			bus,
+			lockFactory,
 			componentFactory,
 		)
 	} else {
@@ -920,6 +922,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			),
 			runnerInterval,
 			bus,
+			lockFactory,
 			componentFactory,
 		)
 	}
