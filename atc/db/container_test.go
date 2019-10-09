@@ -251,8 +251,11 @@ var _ = Describe("Container", func() {
 				})
 				Context("when the container dissapears from the db", func() {
 					BeforeEach(func() {
-						_, err := destroyingContainer.Destroy()
-						Expect(err).ToNot(HaveOccurred())
+						_, err := psql.Delete("containers").
+							Where(sq.Eq{"handle": destroyingContainer.Handle()}).
+							RunWith(dbConn).
+							Exec()
+						Expect(err).NotTo(HaveOccurred())
 					})
 
 					It("returns an error", func() {
@@ -263,7 +266,10 @@ var _ = Describe("Container", func() {
 		})
 
 		Context("called on a failed container", func() {
-			var failedContainer db.FailedContainer
+			var (
+				failedContainer     db.FailedContainer
+				destroyingContainer db.DestroyingContainer
+			)
 
 			BeforeEach(func() {
 				var err error
@@ -272,11 +278,11 @@ var _ = Describe("Container", func() {
 			})
 
 			JustBeforeEach(func() {
-				destroyed, destroyErr = failedContainer.Destroy()
+				destroyingContainer, destroyErr = failedContainer.Destroy()
 			})
 
 			It("successfully removes the row from the db", func() {
-				Expect(destroyed).To(BeTrue())
+				Expect(destroyingContainer).ToNot(BeNil())
 				Expect(destroyErr).ToNot(HaveOccurred())
 			})
 
@@ -290,7 +296,10 @@ var _ = Describe("Container", func() {
 
 				Context("when the container dissapears from the db", func() {
 					BeforeEach(func() {
-						_, err := failedContainer.Destroy()
+						_, err := psql.Delete("containers").
+							Where(sq.Eq{"handle": failedContainer.Handle()}).
+							RunWith(dbConn).
+							Exec()
 						Expect(err).ToNot(HaveOccurred())
 					})
 

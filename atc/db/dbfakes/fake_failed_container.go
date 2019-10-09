@@ -8,16 +8,16 @@ import (
 )
 
 type FakeFailedContainer struct {
-	DestroyStub        func() (bool, error)
+	DestroyStub        func() (db.DestroyingContainer, error)
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct {
 	}
 	destroyReturns struct {
-		result1 bool
+		result1 db.DestroyingContainer
 		result2 error
 	}
 	destroyReturnsOnCall map[int]struct {
-		result1 bool
+		result1 db.DestroyingContainer
 		result2 error
 	}
 	HandleStub        func() string
@@ -74,7 +74,7 @@ type FakeFailedContainer struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFailedContainer) Destroy() (bool, error) {
+func (fake *FakeFailedContainer) Destroy() (db.DestroyingContainer, error) {
 	fake.destroyMutex.Lock()
 	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
@@ -97,34 +97,34 @@ func (fake *FakeFailedContainer) DestroyCallCount() int {
 	return len(fake.destroyArgsForCall)
 }
 
-func (fake *FakeFailedContainer) DestroyCalls(stub func() (bool, error)) {
+func (fake *FakeFailedContainer) DestroyCalls(stub func() (db.DestroyingContainer, error)) {
 	fake.destroyMutex.Lock()
 	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = stub
 }
 
-func (fake *FakeFailedContainer) DestroyReturns(result1 bool, result2 error) {
+func (fake *FakeFailedContainer) DestroyReturns(result1 db.DestroyingContainer, result2 error) {
 	fake.destroyMutex.Lock()
 	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = nil
 	fake.destroyReturns = struct {
-		result1 bool
+		result1 db.DestroyingContainer
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeFailedContainer) DestroyReturnsOnCall(i int, result1 bool, result2 error) {
+func (fake *FakeFailedContainer) DestroyReturnsOnCall(i int, result1 db.DestroyingContainer, result2 error) {
 	fake.destroyMutex.Lock()
 	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = nil
 	if fake.destroyReturnsOnCall == nil {
 		fake.destroyReturnsOnCall = make(map[int]struct {
-			result1 bool
+			result1 db.DestroyingContainer
 			result2 error
 		})
 	}
 	fake.destroyReturnsOnCall[i] = struct {
-		result1 bool
+		result1 db.DestroyingContainer
 		result2 error
 	}{result1, result2}
 }

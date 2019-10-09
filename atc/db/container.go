@@ -352,7 +352,7 @@ func (container *destroyingContainer) Destroy() (bool, error) {
 type FailedContainer interface {
 	Container
 
-	Destroy() (bool, error)
+	Destroy() (DestroyingContainer, error)
 }
 
 type failedContainer struct {
@@ -385,26 +385,44 @@ func (container *failedContainer) Handle() string              { return containe
 func (container *failedContainer) WorkerName() string          { return container.workerName }
 func (container *failedContainer) Metadata() ContainerMetadata { return container.metadata }
 
-func (container *failedContainer) Destroy() (bool, error) {
-	rows, err := psql.Delete("containers").
-		Where(sq.Eq{
-			"id":    container.id,
-			"state": atc.ContainerStateFailed,
+func (container *failedContainer) Destroy() (DestroyingContainer, error) {
+	result, err := psql.Update("containers").
+		Set("state", atc.ContainerStateDestroying).
+		Where(sq.And{
+			sq.Eq{"id": container.id},
+			sq.Or{
+				sq.Eq{"state": string(atc.ContainerStateDestroying)},
+				sq.Eq{"state": string(atc.ContainerStateFailed)},
+				sq.Eq{"state": string(atc.ContainerStateCreated)},
+			},
 		}).
+		PlaceholderFormat(sq.Dollar).
 		RunWith(container.conn).
 		Exec()
 	if err != nil {
-		return false, err
+		if err == sql.ErrNoRows {
+			return nil, ErrContainerDisappeared
+		}
+
+		return nil, err
 	}
 
-	affected, err := rows.RowsAffected()
+	affected, err := result.RowsAffected()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	if affected == 0 {
-		return false, ErrContainerDisappeared
+		return nil, ErrContainerDisappeared
 	}
 
-	return true, nil
+	return newDestroyingContainer(
+		container.id,
+		container.handle,
+		container.workerName,
+		container.metadata,
+		false,
+		container.conn,
+	), nil
+
 }

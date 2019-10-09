@@ -347,21 +347,34 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 }
 
 func (repository *containerRepository) DestroyFailedContainers() (int, error) {
-	result, err := sq.Delete("containers").
+	rows, err := selectContainers().
 		Where(sq.Eq{"containers.state": atc.ContainerStateFailed}).
-		PlaceholderFormat(sq.Dollar).
-		RunWith(repository.conn).
-		Exec()
+		RunWith(repository.conn).Query()
+
 	if err != nil {
 		return 0, err
 	}
 
-	failedContainersLen, err := result.RowsAffected()
-	if err != nil {
-		return 0, err
+	numFailedContainers := 0
+
+	var failedContainers []FailedContainer
+	for rows.Next() {
+		_, _, _, failedContainer, err := scanContainer(rows, repository.conn)
+		if err != nil {
+			return 0, err
+		}
+
+		failedContainers = append(failedContainers, failedContainer)
+		numFailedContainers++
 	}
 
-	return int(failedContainersLen), nil
+	for _, failedContainer := range failedContainers {
+		_, err = failedContainer.Destroy()
+		if err != nil {
+			return 0, err
+		}
+	}
+	return numFailedContainers, nil
 }
 
 func (repository *containerRepository) DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error) {

@@ -99,8 +99,7 @@ var _ = Describe("ContainerCollector", func() {
 				Context("when destroying failed containers fails", func() {
 					BeforeEach(func() {
 						fakeContainerRepository.DestroyFailedContainersReturns(
-							0,
-							errors.New("You have to be able to accept failure to get better"),
+							0, errors.New("You have to be able to accept failure to get better"),
 						)
 					})
 
