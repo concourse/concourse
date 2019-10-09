@@ -46,11 +46,12 @@ type Message
 type DomID
     = ToggleJobButton
     | TriggerBuildButton
+    | AbortBuildButton
+    | RerunBuildButton
     | PreviousPageButton
     | NextPageButton
     | CheckButton Bool
     | SaveCommentButton
-    | AbortBuildButton
     | FirstOccurrenceIcon StepID
     | StepState StepID
     | PinIcon

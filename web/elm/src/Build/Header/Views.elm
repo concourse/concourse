@@ -101,6 +101,7 @@ type BackgroundShade
 type ButtonType
     = Abort
     | Trigger
+    | Rerun
 
 
 viewHeader : Header -> Html Message
@@ -250,6 +251,9 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
                 Trigger ->
                     "ic-add-circle-outline-white.svg"
 
+                Rerun ->
+                    "ic-rerun.svg"
+
         accessibilityLabel =
             case type_ of
                 Abort ->
@@ -258,6 +262,9 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
                 Trigger ->
                     "Trigger Build"
 
+                Rerun ->
+                    "Rerun Build"
+
         domID =
             case type_ of
                 Abort ->
@@ -265,6 +272,9 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
 
                 Trigger ->
                     Message.TriggerBuildButton
+
+                Rerun ->
+                    Message.RerunBuildButton
 
         styles =
             [ style "padding" "10px"

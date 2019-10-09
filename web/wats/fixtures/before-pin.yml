@@ -6,5 +6,6 @@ resources:
     force_version: version
 jobs:
 - name: job
+  disable_manual_trigger: true
   plan:
   - get: resource

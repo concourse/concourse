@@ -5,6 +5,7 @@ module Network.Job exposing
     , fetchJobsRaw
     , pause
     , pauseUnpause
+    , rerunJobBuild
     , triggerBuild
     , unpause
     )
@@ -43,6 +44,26 @@ fetchJobsRaw pi =
 triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error Concourse.Build
 triggerBuild job csrfToken =
     HttpBuilder.post ("/api/v1/teams/" ++ job.teamName ++ "/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.jobName ++ "/builds")
+        |> HttpBuilder.withHeader Concourse.csrfTokenHeaderName csrfToken
+        |> HttpBuilder.withExpect (Http.expectJson Concourse.decodeBuild)
+        |> HttpBuilder.toTask
+
+
+rerunJobBuild :
+    Concourse.JobBuildIdentifier
+    -> Concourse.CSRFToken
+    -> Task Http.Error Concourse.Build
+rerunJobBuild jbi csrfToken =
+    HttpBuilder.post
+        ("/api/v1/teams/"
+            ++ jbi.teamName
+            ++ "/pipelines/"
+            ++ jbi.pipelineName
+            ++ "/jobs/"
+            ++ jbi.jobName
+            ++ "/builds/"
+            ++ jbi.buildName
+        )
         |> HttpBuilder.withHeader Concourse.csrfTokenHeaderName csrfToken
         |> HttpBuilder.withExpect (Http.expectJson Concourse.decodeBuild)
         |> HttpBuilder.toTask

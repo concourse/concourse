@@ -20,6 +20,7 @@ import HoverState
 import Html exposing (Html)
 import Keyboard
 import List.Extra
+import Maybe.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (DomID(..), Message(..))
@@ -61,6 +62,24 @@ header session model =
                         else
                             Views.Light
                     , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
+                    , tooltip = False
+                    }
+
+             else if model.job /= Nothing then
+                Just
+                    { type_ = Views.Rerun
+                    , isClickable = True
+                    , backgroundShade =
+                        if
+                            HoverState.isHovered
+                                RerunBuildButton
+                                session.hovered
+                        then
+                            Views.Dark
+
+                        else
+                            Views.Light
+                    , backgroundColor = model.status
                     , tooltip = False
                     }
 
@@ -458,6 +477,23 @@ update msg ( model, effects ) =
                             []
             in
             ( model, effects ++ scroll ++ checkVisibility )
+
+        Click RerunBuildButton ->
+            ( model
+            , effects
+                ++ (model.job
+                        |> Maybe.map
+                            (\j ->
+                                RerunJobBuild
+                                    { teamName = j.teamName
+                                    , pipelineName = j.pipelineName
+                                    , jobName = j.jobName
+                                    , buildName = model.name
+                                    }
+                            )
+                        |> Maybe.Extra.toList
+                   )
+            )
 
         _ ->
             ( model, effects )

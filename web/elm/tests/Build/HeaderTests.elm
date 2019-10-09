@@ -12,6 +12,7 @@ import Expect
 import HoverState
 import Message.Callback as Callback
 import Message.Effects as Effects
+import Message.Message as Message
 import Message.Subscription as Subscription
 import RemoteData
 import ScreenSize
@@ -31,86 +32,142 @@ all =
                         |> .leftWidgets
                         |> Common.contains (Views.Title "0" Nothing)
             ]
-        , test "pending build has no duration" <|
-            \_ ->
-                Header.header session
-                    { model
-                        | duration =
-                            { startedAt = Nothing
-                            , finishedAt = Nothing
-                            }
-                    }
-                    |> .leftWidgets
-                    |> Common.contains
-                        (Views.Duration <| Views.Pending)
-        , test "running build has running time" <|
-            \_ ->
-                Header.header session
-                    { model
-                        | duration =
-                            { startedAt = Just <| Time.millisToPosix 0
-                            , finishedAt = Nothing
-                            }
-                    }
-                    |> .leftWidgets
-                    |> Common.contains
-                        (Views.Duration <|
-                            Views.Running <|
-                                Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
-                        )
-        , test "cancelled build has cancelled duration" <|
-            \_ ->
-                Header.header session
-                    { model
-                        | duration =
-                            { startedAt = Nothing
-                            , finishedAt = Just <| Time.millisToPosix 0
-                            }
-                    }
-                    |> .leftWidgets
-                    |> Common.contains
-                        (Views.Duration <|
-                            Views.Cancelled <|
-                                Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
-                        )
-        , test "finished build has duration" <|
-            \_ ->
-                Header.header session
-                    { model
-                        | duration =
-                            { startedAt = Just <| Time.millisToPosix 0
-                            , finishedAt = Just <| Time.millisToPosix 1000
-                            }
-                    }
-                    |> .leftWidgets
-                    |> Common.contains
-                        (Views.Duration <|
-                            Views.Finished
-                                { started =
-                                    Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
-                                , finished =
-                                    Views.Absolute "Jan 1 1970 12:00:01 AM" Nothing
-                                , duration = Views.JustSeconds 1
+        , describe "duration"
+            [ test "pending build has no duration" <|
+                \_ ->
+                    Header.header session
+                        { model
+                            | duration =
+                                { startedAt = Nothing
+                                , finishedAt = Nothing
                                 }
-                        )
+                        }
+                        |> .leftWidgets
+                        |> Common.contains
+                            (Views.Duration <| Views.Pending)
+            , test "running build has running time" <|
+                \_ ->
+                    Header.header session
+                        { model
+                            | duration =
+                                { startedAt = Just <| Time.millisToPosix 0
+                                , finishedAt = Nothing
+                                }
+                        }
+                        |> .leftWidgets
+                        |> Common.contains
+                            (Views.Duration <|
+                                Views.Running <|
+                                    Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
+                            )
+            , test "cancelled build has cancelled duration" <|
+                \_ ->
+                    Header.header session
+                        { model
+                            | duration =
+                                { startedAt = Nothing
+                                , finishedAt = Just <| Time.millisToPosix 0
+                                }
+                        }
+                        |> .leftWidgets
+                        |> Common.contains
+                            (Views.Duration <|
+                                Views.Cancelled <|
+                                    Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
+                            )
+            , test "finished build has duration" <|
+                \_ ->
+                    Header.header session
+                        { model
+                            | duration =
+                                { startedAt = Just <| Time.millisToPosix 0
+                                , finishedAt = Just <| Time.millisToPosix 1000
+                                }
+                        }
+                        |> .leftWidgets
+                        |> Common.contains
+                            (Views.Duration <|
+                                Views.Finished
+                                    { started =
+                                        Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
+                                    , finished =
+                                        Views.Absolute "Jan 1 1970 12:00:01 AM" Nothing
+                                    , duration = Views.JustSeconds 1
+                                    }
+                            )
+            ]
+        , describe "buttons"
+            [ test "re-run button does not appear on non-running one-off build" <|
+                \_ ->
+                    Header.header session
+                        { model | status = BuildStatusSucceeded }
+                        |> .rightWidgets
+                        |> Common.notContains
+                            (Views.Button <|
+                                Just
+                                    { type_ = Views.Rerun
+                                    , isClickable = True
+                                    , backgroundShade = Views.Light
+                                    , backgroundColor = BuildStatusSucceeded
+                                    , tooltip = False
+                                    }
+                            )
+            , test "re-run button appears on non-running job build" <|
+                \_ ->
+                    Header.header session
+                        { model | status = BuildStatusSucceeded, job = Just jobId }
+                        |> .rightWidgets
+                        |> Common.contains
+                            (Views.Button <|
+                                Just
+                                    { type_ = Views.Rerun
+                                    , isClickable = True
+                                    , backgroundShade = Views.Light
+                                    , backgroundColor = BuildStatusSucceeded
+                                    , tooltip = False
+                                    }
+                            )
+            -- TODO write this test at an appropriate level of integration
+            -- , test "re-run button is hoverable" <|
+            --     \_ ->
+            --         ( { model | status = BuildStatusSucceeded, job = Just jobId }
+            --         , []
+            --         )
+            --             |> Header.update
+            --                 (Message.Hover <|
+            --                     Just Message.RerunBuildButton
+            --                 )
+            --             |> Tuple.first
+            --             |> Header.header session
+            --             |> .rightWidgets
+            --             |> Common.contains
+            --                 (Views.Button <|
+            --                     Just
+            --                         { type_ = Views.Rerun
+            --                         , isClickable = True
+            --                         , backgroundShade = Views.Dark
+            --                         , backgroundColor = BuildStatusSucceeded
+            --                         , tooltip = False
+            --                         }
+            --                 )
+            , test "clicking re-run button sends RerunJobBuild API call" <|
+                \_ ->
+                    ( { model | status = BuildStatusSucceeded, job = Just jobId }
+                    , []
+                    )
+                        |> Header.update (Message.Click Message.RerunBuildButton)
+                        |> Tuple.second
+                        |> Common.contains
+                            (Effects.RerunJobBuild <|
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , jobName = "job"
+                                , buildName = model.name
+                                }
+                            )
+            ]
         , test "stops fetching history once current build appears" <|
             \_ ->
-                let
-                    jobId =
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "job"
-                        }
-
-                    build =
-                        { id = 0
-                        , name = "4"
-                        , job = Just jobId
-                        , status = model.status
-                        , duration = model.duration
-                        , reapTime = Nothing
-                        }
-                in
                 ( model, [] )
                     |> Header.handleCallback
                         (Callback.BuildFetched <| Ok build)
@@ -128,22 +185,6 @@ all =
                     |> Common.notContains (Effects.FetchBuildHistory jobId Nothing)
         , test "status event from wrong build is discarded" <|
             \_ ->
-                let
-                    jobId =
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "job"
-                        }
-
-                    build =
-                        { id = 0
-                        , name = "4"
-                        , job = Just jobId
-                        , status = model.status
-                        , duration = model.duration
-                        , reapTime = Nothing
-                        }
-                in
                 ( model, [] )
                     |> Header.handleCallback
                         (Callback.BuildFetched <| Ok build)
@@ -194,4 +235,23 @@ model =
     , fetchingHistory = False
     , nextPage = Nothing
     , previousTriggerBuildByKey = False -- TODO WTF variable name
+    }
+
+
+build : Concourse.Build
+build =
+    { id = 0
+    , name = "4"
+    , job = Just jobId
+    , status = model.status
+    , duration = model.duration
+    , reapTime = Nothing
+    }
+
+
+jobId : Concourse.JobIdentifier
+jobId =
+    { teamName = "team"
+    , pipelineName = "pipeline"
+    , jobName = "job"
     }
