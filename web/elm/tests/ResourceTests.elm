@@ -1,6 +1,7 @@
 module ResourceTests exposing (all)
 
 import Application.Application as Application
+import Application.Models exposing (Session)
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.Pagination exposing (Direction(..))
@@ -14,6 +15,7 @@ import DashboardTests
 import Data
 import Dict
 import Expect exposing (..)
+import HoverState
 import Html.Attributes as Attr
 import Http
 import Keyboard
@@ -26,8 +28,13 @@ import Message.Subscription as Subscription
         , Interval(..)
         )
 import Message.TopLevelMessage as Msgs
+import Pinned exposing (VersionPinState(..))
+import RemoteData
 import Resource.Models as Models
+import Resource.Resource as Resource
 import Routes
+import ScreenSize
+import Set
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -1095,166 +1102,289 @@ all =
                 ]
             ]
         , describe "given resource is pinned dynamically"
-            [ test "when mousing over pin bar, tooltip does not appear" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Event.simulate Event.mouseEnter
-                        |> Event.toResult
-                        |> Expect.err
-            , test "pin icon on pin bar has pointer cursor" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Query.has pointerCursor
-            , test "clicking pin icon on bar triggers UnpinVersion msg" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Event.simulate Event.click
-                        |> Event.expect
-                            (Msgs.Update <|
-                                Message.Message.Click Message.Message.PinIcon
-                            )
-            , test "mousing over pin icon triggers PinIconHover msg" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Event.simulate Event.mouseEnter
-                        |> Event.expect
-                            (Msgs.Update <|
-                                Message.Message.Hover <|
+            [ describe "pin bar"
+                [ test "when mousing over pin bar, tooltip does not appear" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-bar" ]
+                            |> Event.simulate Event.mouseEnter
+                            |> Event.toResult
+                            |> Expect.err
+                , test "pin icon on pin bar has pointer cursor" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.has pointerCursor
+                , test "clicking pin icon on bar triggers UnpinVersion msg" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Event.simulate Event.click
+                            |> Event.expect
+                                (Msgs.Update <|
+                                    Message.Message.Click Message.Message.PinIcon
+                                )
+                , test "mousing over pin icon triggers PinIconHover msg" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Event.simulate Event.mouseEnter
+                            |> Event.expect
+                                (Msgs.Update <|
+                                    Message.Message.Hover <|
+                                        Just Message.Message.PinIcon
+                                )
+                , test "TogglePinIconHover msg causes pin icon to have dark background" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> update
+                                (Message.Message.Hover <|
                                     Just Message.Message.PinIcon
-                            )
-            , test "TogglePinIconHover msg causes pin icon to have dark background" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> update
-                            (Message.Message.Hover <|
-                                Just Message.Message.PinIcon
-                            )
-                        |> Tuple.first
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Query.has [ style "background-color" darkGreyHex ]
-            , test "mousing off pin icon triggers Hover Nothing msg" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> update
-                            (Message.Message.Hover <|
-                                Just Message.Message.PinIcon
-                            )
-                        |> Tuple.first
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Event.simulate Event.mouseLeave
-                        |> Event.expect
-                            (Msgs.Update <| Message.Message.Hover <| Nothing)
-            , test "second TogglePinIconHover msg causes pin icon to have transparent background color" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> update
-                            (Message.Message.Hover <|
-                                Just Message.Message.PinIcon
-                            )
-                        |> Tuple.first
-                        |> update (Message.Message.Hover Nothing)
-                        |> Tuple.first
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Query.has [ style "background-color" "transparent" ]
-            , test "pin button on pinned version has a purple outline" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find pinButtonSelector
-                        |> Query.has purpleOutlineSelector
-            , test "checkbox on pinned version has a purple outline" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find checkboxSelector
-                        |> Query.has purpleOutlineSelector
-            , test "pin button on pinned version has a pointer cursor" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find pinButtonSelector
-                        |> Query.has pointerCursor
-            , test "pin button on an unpinned version has a pointer cursor" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find (versionSelector otherVersion)
-                        |> Query.find pinButtonSelector
-                        |> Query.has pointerCursor
-            , test "pin button on pinned version has click handler" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find pinButtonSelector
-                        |> Event.simulate Event.click
-                        |> Event.expect
-                            (Msgs.Update <|
-                                Message.Message.Click <|
-                                    Message.Message.PinButton versionID
-                            )
-            , test "pin button on pinned version shows transition state when (UnpinVersion) is received" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> clickToUnpin
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find pinButtonSelector
-                        |> pinButtonHasTransitionState
-            , test "pin button on 'v1' still shows transition state on autorefresh before VersionUnpinned is recieved" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> clickToUnpin
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find pinButtonSelector
-                        |> pinButtonHasTransitionState
-            , test "pin bar shows unpinned state when upon successful VersionUnpinned msg" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> clickToUnpin
-                        |> Application.handleCallback (Callback.VersionUnpinned (Ok ()))
-                        |> Tuple.first
-                        |> queryView
-                        |> pinBarHasUnpinnedState
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.has [ style "background-color" darkGreyHex ]
+                , test "mousing off pin icon triggers Hover Nothing msg" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> update
+                                (Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Event.simulate Event.mouseLeave
+                            |> Event.expect
+                                (Msgs.Update <| Message.Message.Hover <| Nothing)
+                , test "second TogglePinIconHover msg causes pin icon to have transparent background color" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> update
+                                (Message.Message.Hover <|
+                                    Just Message.Message.PinIcon
+                                )
+                            |> Tuple.first
+                            |> update (Message.Message.Hover Nothing)
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.has [ style "background-color" "transparent" ]
+                , test "pin bar shows unpinned state when upon successful VersionUnpinned msg" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> clickToUnpin
+                            |> Application.handleCallback (Callback.VersionUnpinned (Ok ()))
+                            |> Tuple.first
+                            |> queryView
+                            |> pinBarHasUnpinnedState
+                , test "pin bar shows unpinned state upon receiving failing (VersionUnpinned) msg" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> clickToUnpin
+                            |> Application.handleCallback (Callback.VersionUnpinned badResponse)
+                            |> Tuple.first
+                            |> queryView
+                            |> pinBarHasPinnedState version
+                , test "pin icon on pin bar is white" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+                ]
+            , describe "versions list"
+                [ test "pin button on pinned version has a purple outline" <|
+                    \_ ->
+                        Resource.init
+                            { resourceId =
+                                { teamName = teamName
+                                , pipelineName = pipelineName
+                                , resourceName = resourceName
+                                }
+                            , paging = Nothing
+                            }
+                            |> Resource.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , name = resourceName
+                                        , failingToCheck = False
+                                        , checkError = ""
+                                        , checkSetupError = ""
+                                        , lastChecked = Nothing
+                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
+                                        , pinnedInConfig = False
+                                        , pinComment = Nothing
+                                        , icon = Nothing
+                                        }
+                                )
+                                session
+                            |> Resource.handleCallback
+                                (Callback.VersionedResourcesFetched <|
+                                    Ok
+                                        ( Nothing
+                                        , { content =
+                                                [ { id = versionID.versionID
+                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , metadata = []
+                                                  , enabled = True
+                                                  }
+                                                , { id = otherVersionID.versionID
+                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , metadata = []
+                                                  , enabled = True
+                                                  }
+                                                , { id = disabledVersionID.versionID
+                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , metadata = []
+                                                  , enabled = False
+                                                  }
+                                                ]
+                                          , pagination =
+                                                { previousPage = Nothing
+                                                , nextPage = Nothing
+                                                }
+                                          }
+                                        )
+                                )
+                                session
+                            |> Tuple.first
+                            |> Resource.versions
+                            |> List.map .pinState
+                            |> Expect.equal
+                                [ PinnedDynamically
+                                , NotThePinnedVersion
+                                , NotThePinnedVersion
+                                ]
+                , test "checkbox on pinned version has a purple outline" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.find checkboxSelector
+                            |> Query.has purpleOutlineSelector
+                , test "pin button on pinned version has a pointer cursor" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.find pinButtonSelector
+                            |> Query.has pointerCursor
+                , test "pin button on an unpinned version has a pointer cursor" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> queryView
+                            |> Query.find (versionSelector otherVersion)
+                            |> Query.find pinButtonSelector
+                            |> Query.has pointerCursor
+                , test "pin button on pinned version has click handler" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.find pinButtonSelector
+                            |> Event.simulate Event.click
+                            |> Event.expect
+                                (Msgs.Update <|
+                                    Message.Message.Click <|
+                                        Message.Message.PinButton versionID
+                                )
+                , test "pin button on pinned version shows transition state when (UnpinVersion) is received" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> clickToUnpin
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.find pinButtonSelector
+                            |> pinButtonHasTransitionState
+                , test "pin button on 'v1' still shows transition state on autorefresh before VersionUnpinned is recieved" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> clickToUnpin
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.find pinButtonSelector
+                            |> pinButtonHasTransitionState
+                , test "version header on pinned version has a purple outline" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> findLast [ tag "div", containing [ text version ] ]
+                            |> Query.has purpleOutlineSelector
+                , test "pin button on pinned version has a white icon" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.find pinButtonSelector
+                            |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+                , test "does not show tooltip on the pin button on ToggleVersionTooltip" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> hoverOverPinButton
+                            |> queryView
+                            |> Query.find (versionSelector version)
+                            |> Query.hasNot versionTooltipSelector
+                , test "unpinned versions are lower opacity" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> queryView
+                            |> Query.find (versionSelector otherVersion)
+                            |> Query.has [ style "opacity" "0.5" ]
+                , test "all pin buttons have dark background" <|
+                    \_ ->
+                        init
+                            |> givenResourceIsNotPinned
+                            |> givenVersionsWithoutPagination
+                            |> queryView
+                            |> Query.find [ class "resource-versions" ]
+                            |> Query.findAll anyVersionSelector
+                            |> Query.each
+                                (Query.find pinButtonSelector
+                                    >> Query.has [ style "background-color" "#1e1d1d" ]
+                                )
+                ]
             , test "resource refreshes on successful VersionUnpinned msg" <|
                 \_ ->
                     init
@@ -1270,78 +1400,14 @@ all =
                                 , teamName = teamName
                                 }
                             ]
-            , test "pin bar shows unpinned state upon receiving failing (VersionUnpinned) msg" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> clickToUnpin
-                        |> Application.handleCallback (Callback.VersionUnpinned badResponse)
-                        |> Tuple.first
-                        |> queryView
-                        |> pinBarHasPinnedState version
-            , test "version header on pinned version has a purple outline" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> findLast [ tag "div", containing [ text version ] ]
-                        |> Query.has purpleOutlineSelector
-            , test "pin button on pinned version has a white icon" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.find pinButtonSelector
-                        |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
-            , test "does not show tooltip on the pin button on ToggleVersionTooltip" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> hoverOverPinButton
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.hasNot versionTooltipSelector
-            , test "unpinned versions are lower opacity" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find (versionSelector otherVersion)
-                        |> Query.has [ style "opacity" "0.5" ]
-            , test "pin icon on pin bar is white" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
-            , test "all pin buttons have dark background" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find [ class "resource-versions" ]
-                        |> Query.findAll anyVersionSelector
-                        |> Query.each
-                            (Query.find pinButtonSelector
-                                >> Query.has [ style "background-color" "#1e1d1d" ]
-                            )
-            , test "pin comment bar is visible" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedWithComment
-                        |> queryView
-                        |> Query.has [ id "comment-bar" ]
             , describe "pin comment bar" <|
-                [ test "pin comment bar has dark background" <|
+                [ test "pin comment bar is visible" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedWithComment
+                            |> queryView
+                            |> Query.has [ id "comment-bar" ]
+                , test "pin comment bar has dark background" <|
                     \_ ->
                         init
                             |> givenResourcePinnedWithComment
@@ -3609,3 +3675,21 @@ versionHasDisabledState =
         , Query.find checkboxSelector
             >> checkboxHasDisabledState
         ]
+
+
+session : Session
+session =
+    { userState = UserStateUnknown
+    , hovered = HoverState.NoHover
+    , clusterName = ""
+    , turbulenceImgSrc = flags.turbulenceImgSrc
+    , notFoundImgSrc = flags.notFoundImgSrc
+    , csrfToken = flags.csrfToken
+    , authToken = flags.authToken
+    , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+    , expandedTeams = Set.empty
+    , pipelines = RemoteData.NotAsked
+    , isSideBarOpen = False
+    , screenSize = ScreenSize.Desktop
+    , timeZone = Time.utc
+    }
