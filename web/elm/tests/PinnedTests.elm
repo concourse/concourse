@@ -31,5 +31,5 @@ all =
                     }
                     0
                     |> Pinned.startPinningTo 1
-                    |> Expect.equal (PinningTo 1)
+                    |> Expect.equal (Switching { comment = "", pristineComment = "" } 0 1)
         ]

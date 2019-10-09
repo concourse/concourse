@@ -175,6 +175,20 @@ updatePinnedVersion resource model =
                                 newVersion
                     }
 
+                Switching c v id ->
+                    if v == newVersion then
+                        model
+
+                    else
+                        { model
+                            | pinnedVersion =
+                                PinnedDynamicallyTo
+                                    { comment = pristineComment
+                                    , pristineComment = pristineComment
+                                    }
+                                    newVersion
+                        }
+
                 _ ->
                     { model
                         | pinnedVersion =
@@ -349,9 +363,20 @@ handleCallback callback session ( model, effects ) =
             )
 
         VersionPinned (Ok ()) ->
-            case ( session.userState, model.now, model.pinnedVersion ) of
-                ( UserStateLoggedIn user, Just time, PinningTo pinningTo ) ->
+            case ( session.userState, model.now ) of
+                ( UserStateLoggedIn user, Just time ) ->
                     let
+                        pinningTo =
+                            case model.pinnedVersion of
+                                PinningTo pt ->
+                                    Just pt
+
+                                Switching _ _ pt ->
+                                    Just pt
+
+                                _ ->
+                                    Nothing
+
                         commentText =
                             "pinned by "
                                 ++ Login.userDisplayName user
@@ -361,7 +386,7 @@ handleCallback callback session ( model, effects ) =
                     ( { model
                         | pinnedVersion =
                             model.versions.content
-                                |> List.Extra.find (\v -> v.id == pinningTo)
+                                |> List.Extra.find (\v -> Just v.id == pinningTo)
                                 |> Maybe.map .version
                                 |> Maybe.map
                                     (PinnedDynamicallyTo
@@ -574,23 +599,28 @@ update msg ( model, effects ) =
             in
             case model.pinnedVersion of
                 PinnedDynamicallyTo _ v ->
-                    ( { model
-                        | pinnedVersion =
-                            Pinned.startUnpinning model.pinnedVersion
-                      }
-                    , effects
-                        ++ (case version of
-                                Just vn ->
-                                    if vn.version == v then
-                                        [ DoUnpinVersion model.resourceIdentifier ]
+                    version
+                        |> Maybe.map
+                            (\vn ->
+                                if vn.version == v then
+                                    ( { model
+                                        | pinnedVersion =
+                                            Pinned.startUnpinning model.pinnedVersion
+                                      }
+                                    , effects
+                                        ++ [ DoUnpinVersion model.resourceIdentifier ]
+                                    )
 
-                                    else
-                                        [ DoPinVersion vn.id ]
-
-                                Nothing ->
-                                    []
-                           )
-                    )
+                                else
+                                    ( { model
+                                        | pinnedVersion =
+                                            Pinned.startPinningTo versionID model.pinnedVersion
+                                      }
+                                    , effects
+                                        ++ [ DoPinVersion vn.id ]
+                                    )
+                            )
+                        |> Maybe.withDefault ( model, effects )
 
                 NotPinned ->
                     ( { model

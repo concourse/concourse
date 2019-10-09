@@ -21,7 +21,7 @@ import Http
 import Keyboard
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription
     exposing
         ( Delivery(..)
@@ -1211,7 +1211,7 @@ all =
                             |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
                 ]
             , describe "versions list"
-                [ test "pin button on pinned version has a purple outline" <|
+                [ test "version pin states reflect resource pin state" <|
                     \_ ->
                         Resource.init
                             { resourceId =
@@ -1274,6 +1274,223 @@ all =
                                 [ PinnedDynamically
                                 , NotThePinnedVersion
                                 , NotThePinnedVersion
+                                ]
+                , test "switching pins puts both versions in transition states" <|
+                    \_ ->
+                        Resource.init
+                            { resourceId =
+                                { teamName = teamName
+                                , pipelineName = pipelineName
+                                , resourceName = resourceName
+                                }
+                            , paging = Nothing
+                            }
+                            |> Resource.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , name = resourceName
+                                        , failingToCheck = False
+                                        , checkError = ""
+                                        , checkSetupError = ""
+                                        , lastChecked = Nothing
+                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
+                                        , pinnedInConfig = False
+                                        , pinComment = Nothing
+                                        , icon = Nothing
+                                        }
+                                )
+                                session
+                            |> Resource.handleCallback
+                                (Callback.VersionedResourcesFetched <|
+                                    Ok
+                                        ( Nothing
+                                        , { content =
+                                                [ { id = versionID.versionID
+                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , metadata = []
+                                                  , enabled = True
+                                                  }
+                                                , { id = otherVersionID.versionID
+                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , metadata = []
+                                                  , enabled = True
+                                                  }
+                                                , { id = disabledVersionID.versionID
+                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , metadata = []
+                                                  , enabled = False
+                                                  }
+                                                ]
+                                          , pagination =
+                                                { previousPage = Nothing
+                                                , nextPage = Nothing
+                                                }
+                                          }
+                                        )
+                                )
+                                session
+                            |> Resource.update (Click <| PinButton otherVersionID)
+                            |> Tuple.first
+                            |> Resource.versions
+                            |> List.map .pinState
+                            |> Expect.equal
+                                [ InTransition
+                                , InTransition
+                                , Disabled
+                                ]
+                , test "successful PinResource call when switching shows new version pinned" <|
+                    \_ ->
+                        Resource.init
+                            { resourceId =
+                                { teamName = teamName
+                                , pipelineName = pipelineName
+                                , resourceName = resourceName
+                                }
+                            , paging = Nothing
+                            }
+                            |> Resource.handleDelivery (ClockTicked OneSecond (Time.millisToPosix 1000))
+                            |> Resource.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , name = resourceName
+                                        , failingToCheck = False
+                                        , checkError = ""
+                                        , checkSetupError = ""
+                                        , lastChecked = Nothing
+                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
+                                        , pinnedInConfig = False
+                                        , pinComment = Nothing
+                                        , icon = Nothing
+                                        }
+                                )
+                                session
+                            |> Resource.handleCallback
+                                (Callback.VersionedResourcesFetched <|
+                                    Ok
+                                        ( Nothing
+                                        , { content =
+                                                [ { id = versionID.versionID
+                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , metadata = []
+                                                  , enabled = True
+                                                  }
+                                                , { id = otherVersionID.versionID
+                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , metadata = []
+                                                  , enabled = True
+                                                  }
+                                                , { id = disabledVersionID.versionID
+                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , metadata = []
+                                                  , enabled = False
+                                                  }
+                                                ]
+                                          , pagination =
+                                                { previousPage = Nothing
+                                                , nextPage = Nothing
+                                                }
+                                          }
+                                        )
+                                )
+                                session
+                            |> Resource.update (Click <| PinButton otherVersionID)
+                            |> Resource.handleCallback
+                                (Callback.VersionPinned <| Ok ())
+                                session
+                            |> Tuple.first
+                            |> Resource.versions
+                            |> List.map .pinState
+                            |> Expect.equal
+                                [ NotThePinnedVersion
+                                , PinnedDynamically
+                                , NotThePinnedVersion
+                                ]
+                , test "auto-refresh respects pin switching" <|
+                    \_ ->
+                        Resource.init
+                            { resourceId =
+                                { teamName = teamName
+                                , pipelineName = pipelineName
+                                , resourceName = resourceName
+                                }
+                            , paging = Nothing
+                            }
+                            |> Resource.handleDelivery (ClockTicked OneSecond (Time.millisToPosix 1000))
+                            |> Resource.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , name = resourceName
+                                        , failingToCheck = False
+                                        , checkError = ""
+                                        , checkSetupError = ""
+                                        , lastChecked = Nothing
+                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
+                                        , pinnedInConfig = False
+                                        , pinComment = Nothing
+                                        , icon = Nothing
+                                        }
+                                )
+                                session
+                            |> Resource.handleCallback
+                                (Callback.VersionedResourcesFetched <|
+                                    Ok
+                                        ( Nothing
+                                        , { content =
+                                                [ { id = versionID.versionID
+                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , metadata = []
+                                                  , enabled = True
+                                                  }
+                                                , { id = otherVersionID.versionID
+                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , metadata = []
+                                                  , enabled = True
+                                                  }
+                                                , { id = disabledVersionID.versionID
+                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , metadata = []
+                                                  , enabled = False
+                                                  }
+                                                ]
+                                          , pagination =
+                                                { previousPage = Nothing
+                                                , nextPage = Nothing
+                                                }
+                                          }
+                                        )
+                                )
+                                session
+                            |> Resource.update (Click <| PinButton otherVersionID)
+                            |> Resource.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , name = resourceName
+                                        , failingToCheck = False
+                                        , checkError = ""
+                                        , checkSetupError = ""
+                                        , lastChecked = Nothing
+                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
+                                        , pinnedInConfig = False
+                                        , pinComment = Nothing
+                                        , icon = Nothing
+                                        }
+                                )
+                                session
+                            |> Tuple.first
+                            |> Resource.versions
+                            |> List.map .pinState
+                            |> Expect.equal
+                                [ InTransition
+                                , InTransition
+                                , Disabled
                                 ]
                 , test "checkbox on pinned version has a purple outline" <|
                     \_ ->
@@ -3679,7 +3896,15 @@ versionHasDisabledState =
 
 session : Session
 session =
-    { userState = UserStateUnknown
+    { userState =
+        UserStateLoggedIn
+            { id = "test"
+            , userName = "test"
+            , name = "test"
+            , email = "test"
+            , isAdmin = False
+            , teams = Dict.fromList [ ( teamName, [ "member" ] ) ]
+            }
     , hovered = HoverState.NoHover
     , clusterName = ""
     , turbulenceImgSrc = flags.turbulenceImgSrc
