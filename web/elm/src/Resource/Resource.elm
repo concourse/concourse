@@ -175,7 +175,7 @@ updatePinnedVersion resource model =
                                 newVersion
                     }
 
-                Switching c v id ->
+                Switching _ v _ ->
                     if v == newVersion then
                         model
 
@@ -1383,7 +1383,7 @@ viewVersionedResource :
     , hovered : HoverState.HoverState
     }
     -> Html Message
-viewVersionedResource { version, pinnedVersion, hovered } =
+viewVersionedResource { version, hovered } =
     Html.li
         (case ( version.pinState, version.enabled ) of
             ( Disabled, _ ) ->
