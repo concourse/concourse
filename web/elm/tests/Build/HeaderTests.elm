@@ -127,29 +127,26 @@ all =
                                     , tooltip = False
                                     }
                             )
-            -- TODO write this test at an appropriate level of integration
-            -- , test "re-run button is hoverable" <|
-            --     \_ ->
-            --         ( { model | status = BuildStatusSucceeded, job = Just jobId }
-            --         , []
-            --         )
-            --             |> Header.update
-            --                 (Message.Hover <|
-            --                     Just Message.RerunBuildButton
-            --                 )
-            --             |> Tuple.first
-            --             |> Header.header session
-            --             |> .rightWidgets
-            --             |> Common.contains
-            --                 (Views.Button <|
-            --                     Just
-            --                         { type_ = Views.Rerun
-            --                         , isClickable = True
-            --                         , backgroundShade = Views.Dark
-            --                         , backgroundColor = BuildStatusSucceeded
-            --                         , tooltip = False
-            --                         }
-            --                 )
+            , test "re-run button is hoverable" <|
+                \_ ->
+                    { model | status = BuildStatusSucceeded, job = Just jobId }
+                        |> Header.header
+                            { session
+                                | hovered =
+                                    HoverState.Hovered
+                                        Message.RerunBuildButton
+                            }
+                        |> .rightWidgets
+                        |> Common.contains
+                            (Views.Button <|
+                                Just
+                                    { type_ = Views.Rerun
+                                    , isClickable = True
+                                    , backgroundShade = Views.Dark
+                                    , backgroundColor = BuildStatusSucceeded
+                                    , tooltip = False
+                                    }
+                            )
             , test "clicking re-run button sends RerunJobBuild API call" <|
                 \_ ->
                     ( { model | status = BuildStatusSucceeded, job = Just jobId }
@@ -183,6 +180,29 @@ all =
                         )
                     |> Tuple.second
                     |> Common.notContains (Effects.FetchBuildHistory jobId Nothing)
+        , test "re-run build appears in the correct spot" <|
+            \_ ->
+                ( model, [] )
+                    |> Header.handleCallback
+                        (Callback.BuildHistoryFetched <|
+                            Ok
+                                { content =
+                                    [ build
+                                    , { build | id = 1, name = "0" }
+                                    ]
+                                , pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                }
+                        )
+                    |> Header.handleCallback
+                        (Callback.BuildTriggered <| Ok { build | id = 2, name = "0.1" })
+                    |> Tuple.first
+                    |> Header.header session
+                    |> .tabs
+                    |> List.map .name
+                    |> Expect.equal [ "4", "0.1", "0" ]
         , test "status event from wrong build is discarded" <|
             \_ ->
                 ( model, [] )

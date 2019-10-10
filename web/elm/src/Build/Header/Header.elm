@@ -508,11 +508,28 @@ handleCallback callback ( model, effects ) =
         BuildTriggered (Ok b) ->
             ( { model
                 | history =
-                    { id = b.id
-                    , name = b.name
-                    , status = b.status
-                    }
+                    ({ id = b.id
+                     , name = b.name
+                     , status = b.status
+                     }
                         :: model.history
+                    )
+                        |> List.sortWith
+                            (\n m ->
+                                Maybe.map2
+                                    (\( i, j ) ( k, l ) ->
+                                        case compare i k of
+                                            EQ ->
+                                                compare j l
+
+                                            x ->
+                                                x
+                                    )
+                                    (buildName n.name)
+                                    (buildName m.name)
+                                    |> Maybe.withDefault EQ
+                            )
+                        |> List.reverse
               }
             , effects
                 ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute b.id b.name model.job ]
@@ -546,6 +563,19 @@ handleBuildFetched b ( model, effects ) =
       }
     , effects
     )
+
+
+buildName : String -> Maybe ( Int, Int )
+buildName s =
+    case String.split "." s |> List.map String.toInt of
+        [ Just n ] ->
+            Just ( n, 0 )
+
+        [ Just n, Just m ] ->
+            Just ( n, m )
+
+        _ ->
+            Nothing
 
 
 handleHistoryFetched : Paginated Concourse.Build -> ET (Model r)
