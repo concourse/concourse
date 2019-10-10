@@ -531,7 +531,6 @@ var _ = Describe("Image", func() {
 					})
 
 					It("does not construct a new resource for checking", func() {
-						Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(BeZero())
 						Expect(fakeWorker.FindOrCreateContainerCallCount()).To(BeZero())
 						Expect(fakeResourceFactory.NewResourceForContainerCallCount()).To(BeZero())
 					})
