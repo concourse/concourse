@@ -23,11 +23,13 @@ type ResourcePinState version id comment
     | PinnedDynamicallyTo comment version
     | UnpinningFrom comment version
     | PinnedStaticallyTo version
+    | Switching comment version id
 
 
 type VersionPinState
     = Enabled
     | PinnedDynamically
+    | NotThePinnedVersion
     | PinnedStatically Bool
     | Disabled
     | InTransition
@@ -41,6 +43,9 @@ startPinningTo destination resourcePinState =
     case resourcePinState of
         NotPinned ->
             PinningTo destination
+
+        PinnedDynamicallyTo comment version ->
+            Switching comment version destination
 
         x ->
             x
@@ -128,10 +133,17 @@ pinState version id resourcePinState =
                 PinnedDynamically
 
             else
-                Disabled
+                NotThePinnedVersion
 
         UnpinningFrom _ v ->
             if v == version then
+                InTransition
+
+            else
+                Disabled
+
+        Switching _ v destination ->
+            if destination == id || v == version then
                 InTransition
 
             else
