@@ -107,7 +107,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	gardenClient := gclient.BasicGardenClientWithRequestTimeout(
 		logger.Session("garden-connection"),
 		5*time.Minute,
-		cmd.gardenAddr(),
+		cmd.gardenURL(),
 	)
 
 	baggageclaimClient := bclient.NewWithHTTPClient(
