@@ -64,13 +64,13 @@ params p =
                     Url.Builder.int "since" since
 
                 Until until ->
-                    Url.Builder.int "limit" until
+                    Url.Builder.int "until" until
 
                 From from ->
-                    Url.Builder.int "limit" from
+                    Url.Builder.int "from" from
 
                 To to ->
-                    Url.Builder.int "limit" to
+                    Url.Builder.int "to" to
             ]
 
         Nothing ->
