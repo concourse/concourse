@@ -233,20 +233,14 @@ check rid csrfToken =
 
 
 fetchCheck :
-    Concourse.CheckIdentifier
+    Int
     -> Task Http.Error Concourse.Check
 fetchCheck cid =
     Http.toTask
         << (\a -> Http.get a Concourse.decodeCheck)
     <|
-        "/api/v1/teams/"
-            ++ cid.teamName
-            ++ "/pipelines/"
-            ++ cid.pipelineName
-            ++ "/resources/"
-            ++ cid.resourceName
-            ++ "/check/"
-            ++ String.fromInt cid.checkID
+        "/api/v1/checks/"
+            ++ String.fromInt cid
 
 
 setPinComment :

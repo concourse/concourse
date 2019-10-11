@@ -6,13 +6,15 @@ import Array
 import Benchmark
 import Benchmark.Runner exposing (BenchmarkProgram, program)
 import Build.Build as Build
-import Build.Models exposing (CurrentOutput(..))
+import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
+import Build.Models
 import Build.Output.Models
 import Build.Output.Output
 import Build.StepTree.Models as STModels
 import Build.Styles
 import Concourse
 import Concourse.BuildStatus
+import Concourse.Pagination exposing (Page)
 import Dashboard.DashboardPreview as DP
 import DateFormat
 import Dict exposing (Dict)
@@ -31,11 +33,12 @@ import Html.Attributes
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
+import Keyboard
 import Login.Login as Login
 import Maybe.Extra
 import Message.Message exposing (DomID(..), Message(..))
-import RemoteData
-import Routes
+import RemoteData exposing (WebData)
+import Routes exposing (Highlight)
 import ScreenSize
 import Set
 import SideBar.SideBar as SideBar
@@ -51,6 +54,35 @@ import Views.Styles
 import Views.TopBar as TopBar
 
 
+type alias Model =
+    Login.Model
+        { page : BuildPageType
+        , now : Maybe Time.Posix
+        , disableManualTrigger : Bool
+        , history : List Concourse.Build
+        , nextPage : Maybe Page
+        , currentBuild : WebData CurrentBuild
+        , browsingIndex : Int
+        , autoScroll : Bool
+        , previousKeyPress : Maybe Keyboard.KeyEvent
+        , shiftDown : Bool
+        , previousTriggerBuildByKey : Bool
+        , showHelp : Bool
+        , highlight : Highlight
+        , hoveredCounter : Int
+        , fetchingHistory : Bool
+        , scrolledToCurrentBuild : Bool
+        , authorized : Bool
+        }
+
+
+type alias CurrentBuild =
+    { build : Concourse.Build
+    , prep : Maybe Concourse.BuildPrep
+    , output : CurrentOutput
+    }
+
+
 main : BenchmarkProgram
 main =
     program <|
@@ -64,7 +96,7 @@ main =
                 "current"
                 (\_ -> Build.view sampleSession sampleModel)
                 "old"
-                (\_ -> buildView sampleSession sampleModel)
+                (\_ -> buildView sampleSession sampleOldModel)
             ]
 
 
@@ -78,18 +110,18 @@ historyId =
     "builds"
 
 
-buildView : Session -> Build.Models.Model -> Html Message
+buildView : Session -> Model -> Html Message
 buildView session model =
     let
         route =
             case model.page of
-                Build.Models.OneOffBuildPage buildId ->
+                OneOffBuildPage buildId ->
                     Routes.OneOffBuild
                         { id = buildId
                         , highlight = model.highlight
                         }
 
-                Build.Models.JobBuildPage buildId ->
+                JobBuildPage buildId ->
                     Routes.Build
                         { id = buildId
                         , highlight = model.highlight
@@ -126,7 +158,7 @@ buildView session model =
         ]
 
 
-viewBuildPage : Session -> Build.Models.Model -> Html Message
+viewBuildPage : Session -> Model -> Html Message
 viewBuildPage session model =
     case model.currentBuild |> RemoteData.toMaybe of
         Just currentBuild ->
@@ -151,7 +183,7 @@ viewBuildPage session model =
             LoadingIndicator.view
 
 
-currentJob : Build.Models.Model -> Maybe Concourse.JobIdentifier
+currentJob : Model -> Maybe Concourse.JobIdentifier
 currentJob =
     .currentBuild
         >> RemoteData.toMaybe
@@ -159,7 +191,7 @@ currentJob =
         >> Maybe.andThen .job
 
 
-breadcrumbs : Build.Models.Model -> Html Message
+breadcrumbs : Model -> Html Message
 breadcrumbs model =
     case ( currentJob model, model.page ) of
         ( Just jobId, _ ) ->
@@ -169,7 +201,7 @@ breadcrumbs model =
                     , page = Nothing
                     }
 
-        ( _, Build.Models.JobBuildPage buildId ) ->
+        ( _, JobBuildPage buildId ) ->
             TopBar.breadcrumbs <|
                 Routes.Build
                     { id = buildId
@@ -183,7 +215,7 @@ breadcrumbs model =
 body :
     Session
     ->
-        { currentBuild : Build.Models.CurrentBuild
+        { currentBuild : CurrentBuild
         , authorized : Bool
         , showHelp : Bool
         }
@@ -211,7 +243,7 @@ body session { currentBuild, authorized, showHelp } =
 
 viewBuildHeader :
     Session
-    -> Build.Models.Model
+    -> Model
     -> Concourse.Build
     -> Html Message
 viewBuildHeader session model build =
@@ -337,7 +369,7 @@ viewBuildHeader session model build =
         ]
 
 
-tombstone : Time.Zone -> Build.Models.CurrentBuild -> List (Html Message)
+tombstone : Time.Zone -> CurrentBuild -> List (Html Message)
 tombstone timeZone currentBuild =
     let
         build =
@@ -382,16 +414,16 @@ tombstone timeZone currentBuild =
                     [ class "epitaph" ]
                     [ Html.text <|
                         case build.status of
-                            Concourse.BuildStatusSucceeded ->
+                            Concourse.BuildStatus.BuildStatusSucceeded ->
                                 "It passed, and now it has passed on."
 
-                            Concourse.BuildStatusFailed ->
+                            Concourse.BuildStatus.BuildStatusFailed ->
                                 "It failed, and now has been forgotten."
 
-                            Concourse.BuildStatusErrored ->
+                            Concourse.BuildStatus.BuildStatusErrored ->
                                 "It errored, but has found forgiveness."
 
-                            Concourse.BuildStatusAborted ->
+                            Concourse.BuildStatus.BuildStatusAborted ->
                                 "It was never given a chance."
 
                             _ ->
@@ -478,7 +510,7 @@ keyboardHelp showHelp =
         ]
 
 
-viewBuildOutput : Session -> Build.Models.CurrentOutput -> Html Message
+viewBuildOutput : Session -> CurrentOutput -> Html Message
 viewBuildOutput session output =
     case output of
         Output o ->
@@ -550,8 +582,8 @@ viewHistoryItem currentBuild build =
             ++ Build.Styles.historyItem build.status
         )
         [ Html.a
-            [ onLeftClick <| Click <| BuildTab build
-            , href <| Routes.toString <| Routes.buildRoute build
+            [ onLeftClick <| Click <| BuildTab build.id build.name
+            , href <| Routes.toString <| Routes.buildRoute build.id build.name build.job
             ]
             [ Html.text build.name ]
         ]
@@ -664,9 +696,9 @@ sampleSession =
     }
 
 
-sampleModel : Build.Models.Model
-sampleModel =
-    { page = Build.Models.OneOffBuildPage 0
+sampleOldModel : Model
+sampleOldModel =
+    { page = OneOffBuildPage 0
     , now = Nothing
     , disableManualTrigger = False
     , history = []
@@ -677,7 +709,7 @@ sampleModel =
                 { id = 0
                 , name = "0"
                 , job = Nothing
-                , status = Concourse.BuildStatusStarted
+                , status = Concourse.BuildStatus.BuildStatusStarted
                 , duration =
                     { startedAt = Nothing
                     , finishedAt = Nothing
@@ -686,7 +718,7 @@ sampleModel =
                 }
             , prep = Nothing
             , output =
-                Build.Models.Output
+                Output
                     { steps = steps
                     , state = Build.Output.Models.StepsLiveUpdating
                     , eventSourceOpened = True
@@ -705,6 +737,54 @@ sampleModel =
     , fetchingHistory = False
     , scrolledToCurrentBuild = True
     , authorized = True
+    , isUserMenuExpanded = False
+    }
+
+
+sampleModel : Build.Models.Model
+sampleModel =
+    { page = OneOffBuildPage 0
+    , id = 0
+    , name = "0"
+    , now = Nothing
+    , job = Nothing
+    , disableManualTrigger = False
+    , history = []
+    , nextPage = Nothing
+    , prep = Nothing
+    , build =
+        RemoteData.Success
+            { id = 0
+            , name = "0"
+            , job = Nothing
+            , status = Concourse.BuildStatus.BuildStatusStarted
+            , duration =
+                { startedAt = Nothing
+                , finishedAt = Nothing
+                }
+            , reapTime = Nothing
+            }
+    , duration = { startedAt = Nothing, finishedAt = Nothing }
+    , status = Concourse.BuildStatus.BuildStatusStarted
+    , output =
+        Output
+            { steps = steps
+            , state = Build.Output.Models.StepsLiveUpdating
+            , eventSourceOpened = True
+            , eventStreamUrlPath = Nothing
+            , highlight = Routes.HighlightNothing
+            }
+    , browsingIndex = 0
+    , autoScroll = True
+    , previousKeyPress = Nothing
+    , previousTriggerBuildByKey = False
+    , showHelp = False
+    , highlight = Routes.HighlightNothing
+    , hoveredCounter = 0
+    , authorized = True
+    , fetchingHistory = False
+    , scrolledToCurrentBuild = False
+    , shiftDown = False
     , isUserMenuExpanded = False
     }
 
@@ -874,7 +954,7 @@ viewJob job =
                 [ Html.a [ href <| Routes.toString <| Routes.jobRoute job ] [ Html.text "" ] ]
 
             Just build ->
-                [ Html.a [ href <| Routes.toString <| Routes.buildRoute build ] [ Html.text "" ] ]
+                [ Html.a [ href <| Routes.toString <| Routes.buildRoute build.id build.name build.job ] [ Html.text "" ] ]
 
 
 jobGroups : List Concourse.Job -> Dict Int (List Concourse.Job)

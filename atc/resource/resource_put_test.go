@@ -231,6 +231,20 @@ var _ = Describe("Resource Put", func() {
 					Expect(putErr.Error()).To(ContainSubstring("exit status 9"))
 				})
 			})
+
+			Context("when the output of /opt/resource/out is malformed", func() {
+				BeforeEach(func() {
+					outScriptStdout = "ß"
+				})
+
+				It("returns an error", func() {
+					Expect(putErr).To(HaveOccurred())
+				})
+
+				It("returns original payload in error", func() {
+					Expect(putErr.Error()).Should(ContainSubstring(outScriptStdout))
+				})
+			})
 		})
 
 		Context("when /out has not yet been spawned", func() {

@@ -259,6 +259,18 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 					identifier+fmt.Sprintf(" has negative build_log_retention.days: %d", job.BuildLogRetention.Days),
 				)
 			}
+			if job.BuildLogRetention.MinimumSucceededBuilds < 0 {
+				errorMessages = append(
+					errorMessages,
+					identifier+fmt.Sprintf(" has negative build_log_retention.min_success_builds: %d", job.BuildLogRetention.MinimumSucceededBuilds),
+				)
+			}
+			if job.BuildLogRetention.Builds > 0 && job.BuildLogRetention.MinimumSucceededBuilds > job.BuildLogRetention.Builds {
+				errorMessages = append(
+					errorMessages,
+					identifier+fmt.Sprintf(" has build_log_retention.min_success_builds: %d greater than build_log_retention.min_success_builds: %d", job.BuildLogRetention.MinimumSucceededBuilds, job.BuildLogRetention.Builds),
+				)
+			}
 		}
 
 		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", PlanConfig{Do: &job.Plan})

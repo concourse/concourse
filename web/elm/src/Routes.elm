@@ -212,22 +212,22 @@ flySuccess =
 -- route utils
 
 
-buildRoute : Concourse.Build -> Route
-buildRoute b =
-    case b.job of
+buildRoute : Int -> String -> Maybe Concourse.JobIdentifier -> Route
+buildRoute id name jobId =
+    case jobId of
         Just j ->
             Build
                 { id =
                     { teamName = j.teamName
                     , pipelineName = j.pipelineName
                     , jobName = j.jobName
-                    , buildName = b.name
+                    , buildName = name
                     }
                 , highlight = HighlightNothing
                 }
 
         Nothing ->
-            OneOffBuild { id = b.id, highlight = HighlightNothing }
+            OneOffBuild { id = id, highlight = HighlightNothing }
 
 
 jobRoute : Concourse.Job -> Route

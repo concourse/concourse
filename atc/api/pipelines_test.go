@@ -988,6 +988,10 @@ var _ = Describe("Pipelines API", func() {
 					It("returns 200", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
+
+					It("notifies the resource scanner", func() {
+						Expect(dbTeamFactory.NotifyResourceScannerCallCount()).To(Equal(1))
+					})
 				})
 
 				Context("when unpausing the pipeline fails", func() {

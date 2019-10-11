@@ -6,11 +6,6 @@ import Test exposing (Test, describe, test)
 import UserState exposing (UserState(..), isAnonymous, isMember)
 
 
-
--- This helper function takes input parameters:
--- teamName rolesOnTeam isAdmin
-
-
 isMemberHelper : String -> Dict String (List String) -> Bool -> Bool
 isMemberHelper teamName roles isAdmin =
     isMember

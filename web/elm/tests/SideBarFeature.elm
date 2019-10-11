@@ -13,6 +13,7 @@ import Common
         , when
         )
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import DashboardTests
 import Dict
 import Expect
@@ -1642,7 +1643,7 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
                     , { id = 1
                       , name = "1"
                       , job = Nothing
-                      , status = Concourse.BuildStatusStarted
+                      , status = BuildStatusStarted
                       , duration = { startedAt = Nothing, finishedAt = Nothing }
                       , reapTime = Nothing
                       }

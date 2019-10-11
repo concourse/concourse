@@ -4,6 +4,7 @@ import Application.Application as Application
 import Colors
 import Common exposing (defineHoverBehaviour, isColorWithStripes, queryView)
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.DashboardPreview as DP
 import Expect
 import Message.Callback as Callback
@@ -73,20 +74,20 @@ all =
         , test "succeeding job has green background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusSucceeded
+                    |> withStatus BuildStatusSucceeded
                     |> viewJob
                     |> Query.has [ style "background-color" Colors.success ]
         , test "succeeding paused job has blue background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusSucceeded
+                    |> withStatus BuildStatusSucceeded
                     |> isPaused
                     |> viewJob
                     |> Query.has [ style "background-color" Colors.paused ]
         , test "succeeding running job has striped green background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusSucceeded
+                    |> withStatus BuildStatusSucceeded
                     |> withNextBuild
                     |> viewJob
                     |> isColorWithStripes
@@ -96,20 +97,20 @@ all =
         , test "failing job has red background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusFailed
+                    |> withStatus BuildStatusFailed
                     |> viewJob
                     |> Query.has [ style "background-color" Colors.failure ]
         , test "failing paused job has blue background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusFailed
+                    |> withStatus BuildStatusFailed
                     |> isPaused
                     |> viewJob
                     |> Query.has [ style "background-color" Colors.paused ]
         , test "failing running job has striped red background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusFailed
+                    |> withStatus BuildStatusFailed
                     |> withNextBuild
                     |> viewJob
                     |> isColorWithStripes
@@ -119,20 +120,20 @@ all =
         , test "erroring job has amber background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusErrored
+                    |> withStatus BuildStatusErrored
                     |> viewJob
                     |> Query.has [ style "background-color" Colors.error ]
         , test "erroring paused job has blue background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusErrored
+                    |> withStatus BuildStatusErrored
                     |> isPaused
                     |> viewJob
                     |> Query.has [ style "background-color" Colors.paused ]
         , test "erroring running job has striped amber background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusErrored
+                    |> withStatus BuildStatusErrored
                     |> withNextBuild
                     |> viewJob
                     |> isColorWithStripes
@@ -142,20 +143,20 @@ all =
         , test "aborted job has amber background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusAborted
+                    |> withStatus BuildStatusAborted
                     |> viewJob
                     |> Query.has [ style "background-color" Colors.aborted ]
         , test "aborted paused job has blue background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusAborted
+                    |> withStatus BuildStatusAborted
                     |> isPaused
                     |> viewJob
                     |> Query.has [ style "background-color" Colors.paused ]
         , test "aborted running job has striped amber background" <|
             \_ ->
                 job
-                    |> withStatus Concourse.BuildStatusAborted
+                    |> withStatus BuildStatusAborted
                     |> withNextBuild
                     |> viewJob
                     |> isColorWithStripes
@@ -233,14 +234,14 @@ withNextBuild j =
                 { id = 2
                 , name = "2"
                 , job = Just jobId
-                , status = Concourse.BuildStatusStarted
+                , status = BuildStatusStarted
                 , duration = { startedAt = Nothing, finishedAt = Nothing }
                 , reapTime = Nothing
                 }
     }
 
 
-withStatus : Concourse.BuildStatus -> Concourse.Job -> Concourse.Job
+withStatus : BuildStatus -> Concourse.Job -> Concourse.Job
 withStatus status j =
     { j
         | finishedBuild =

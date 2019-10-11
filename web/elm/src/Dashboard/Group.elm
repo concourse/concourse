@@ -27,7 +27,7 @@ module Dashboard.Group exposing
     )
 
 import Concourse
-import Concourse.BuildStatus
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Group.Tag as Tag
@@ -201,7 +201,7 @@ pipelineStatus pipeline jobs =
 
             firstNonSuccess =
                 jobs
-                    |> List.filter (jobStatus >> (/=) Concourse.BuildStatusSucceeded)
+                    |> List.filter (jobStatus >> (/=) BuildStatusSucceeded)
                     |> List.filterMap transition
                     |> List.sortBy Time.posixToMillis
                     |> List.head
@@ -228,34 +228,34 @@ pipelineStatus pipeline jobs =
             ( Nothing, _ ) ->
                 PipelineStatus.PipelineStatusPending isRunning
 
-            ( Just Concourse.BuildStatusPending, _ ) ->
+            ( Just BuildStatusPending, _ ) ->
                 PipelineStatus.PipelineStatusPending isRunning
 
-            ( Just Concourse.BuildStatusStarted, _ ) ->
+            ( Just BuildStatusStarted, _ ) ->
                 PipelineStatus.PipelineStatusPending isRunning
 
-            ( Just Concourse.BuildStatusSucceeded, Just since ) ->
+            ( Just BuildStatusSucceeded, Just since ) ->
                 if isRunning then
                     PipelineStatus.PipelineStatusSucceeded PipelineStatus.Running
 
                 else
                     PipelineStatus.PipelineStatusSucceeded (PipelineStatus.Since since)
 
-            ( Just Concourse.BuildStatusFailed, Just since ) ->
+            ( Just BuildStatusFailed, Just since ) ->
                 if isRunning then
                     PipelineStatus.PipelineStatusFailed PipelineStatus.Running
 
                 else
                     PipelineStatus.PipelineStatusFailed (PipelineStatus.Since since)
 
-            ( Just Concourse.BuildStatusErrored, Just since ) ->
+            ( Just BuildStatusErrored, Just since ) ->
                 if isRunning then
                     PipelineStatus.PipelineStatusErrored PipelineStatus.Running
 
                 else
                     PipelineStatus.PipelineStatusErrored (PipelineStatus.Since since)
 
-            ( Just Concourse.BuildStatusAborted, Just since ) ->
+            ( Just BuildStatusAborted, Just since ) ->
                 if isRunning then
                     PipelineStatus.PipelineStatusAborted PipelineStatus.Running
 
@@ -263,14 +263,14 @@ pipelineStatus pipeline jobs =
                     PipelineStatus.PipelineStatusAborted (PipelineStatus.Since since)
 
 
-jobStatus : Concourse.Job -> Concourse.BuildStatus
+jobStatus : Concourse.Job -> BuildStatus
 jobStatus job =
     case job.finishedBuild of
         Just build ->
             build.status
 
         Nothing ->
-            Concourse.BuildStatusPending
+            BuildStatusPending
 
 
 transition : Concourse.Job -> Maybe Time.Posix

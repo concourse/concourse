@@ -34,9 +34,11 @@ func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) atc.Build
 	// What does the job want?
 	var daysToRetainBuildLogs = 0
 	var buildLogsToRetain = 0
+	var minSuccessBuildLogsToRetain = 0
 	if job.Config().BuildLogRetention != nil {
 		daysToRetainBuildLogs = job.Config().BuildLogRetention.Days
 		buildLogsToRetain = job.Config().BuildLogRetention.Builds
+		minSuccessBuildLogsToRetain = job.Config().BuildLogRetention.MinimumSucceededBuilds
 	} else {
 		buildLogsToRetain = job.Config().BuildLogsToRetain
 	}
@@ -51,7 +53,7 @@ func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) atc.Build
 
 	// If we don't have a max set, then we're done
 	if blrc.maxBuildLogsToRetain == 0 && blrc.maxDaysToRetainBuildLogs == 0 {
-		return atc.BuildLogRetention{buildLogsToRetain, daysToRetainBuildLogs}
+		return atc.BuildLogRetention{buildLogsToRetain, minSuccessBuildLogsToRetain, daysToRetainBuildLogs}
 	}
 
 	var logRetention atc.BuildLogRetention
@@ -66,6 +68,13 @@ func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) atc.Build
 		logRetention.Days = daysToRetainBuildLogs
 	} else {
 		logRetention.Days = int(blrc.maxDaysToRetainBuildLogs)
+	}
+
+	// successBuildLogsToRetain defaults to 0, and up to buildLogsToRetain.
+	if minSuccessBuildLogsToRetain >= 0 && minSuccessBuildLogsToRetain <= logRetention.Builds {
+		logRetention.MinimumSucceededBuilds = minSuccessBuildLogsToRetain
+	} else {
+		logRetention.MinimumSucceededBuilds = 0
 	}
 
 	return logRetention

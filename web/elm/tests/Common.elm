@@ -1,5 +1,6 @@
 module Common exposing
-    ( contains
+    ( and
+    , contains
     , defineHoverBehaviour
     , given
     , iOpenTheBuildPage
@@ -15,6 +16,7 @@ module Common exposing
 
 import Application.Application as Application
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Expect exposing (Expectation)
 import Html
 import Message.Callback as Callback
@@ -114,6 +116,10 @@ given =
     identity
 
 
+and =
+    identity
+
+
 when =
     identity
 
@@ -153,7 +159,7 @@ myBrowserFetchedTheBuild =
                                 , pipelineName = "yet-another-pipeline"
                                 , jobName = "job"
                                 }
-                      , status = Concourse.BuildStatusStarted
+                      , status = BuildStatusStarted
                       , duration =
                             { startedAt = Nothing
                             , finishedAt = Nothing

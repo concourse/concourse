@@ -619,6 +619,8 @@ var lockTypeNames = map[int]string{
 	lock.LockTypeVolumeCreating:         "VolumeCreating",
 	lock.LockTypeContainerCreating:      "ContainerCreating",
 	lock.LockTypeDatabaseMigration:      "DatabaseMigration",
+	lock.LockTypeActiveTasks:            "ActiveTasks",
+	lock.LockTypeResourceScanning:       "ResourceScanning",
 }
 
 type LockAcquired struct {

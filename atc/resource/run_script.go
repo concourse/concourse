@@ -131,8 +131,11 @@ func (resource *resource) runScript(
 				return err
 			}
 		}
-
-		return json.Unmarshal(stdout.Bytes(), output)
+		err := json.Unmarshal(stdout.Bytes(), output)
+		if err != nil {
+			return fmt.Errorf("%s\n\nwhen parsing resource response:\n\n%s", err, stdout.String())
+		}
+		return err
 
 	case <-ctx.Done():
 		resource.container.Stop(false)

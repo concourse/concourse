@@ -8,6 +8,7 @@ module Resource.Resource exposing
     , init
     , subscriptions
     , update
+    , versions
     , view
     , viewPinButton
     , viewVersionBody
@@ -174,6 +175,20 @@ updatePinnedVersion resource model =
                                 newVersion
                     }
 
+                Switching _ v _ ->
+                    if v == newVersion then
+                        model
+
+                    else
+                        { model
+                            | pinnedVersion =
+                                PinnedDynamicallyTo
+                                    { comment = pristineComment
+                                    , pristineComment = pristineComment
+                                    }
+                                    newVersion
+                        }
+
                 _ ->
                     { model
                         | pinnedVersion =
@@ -256,7 +271,7 @@ handleCallback callback session ( model, effects ) =
                 fetchedPage =
                     permalink paginated.content
 
-                versions =
+                resourceVersions =
                     { pagination = paginated.pagination
                     , content =
                         paginated.content
@@ -311,7 +326,7 @@ handleCallback callback session ( model, effects ) =
                 newModel =
                     \newPage ->
                         { model
-                            | versions = versions
+                            | versions = resourceVersions
                             , currentPage = newPage
                         }
 
@@ -348,9 +363,20 @@ handleCallback callback session ( model, effects ) =
             )
 
         VersionPinned (Ok ()) ->
-            case ( session.userState, model.now, model.pinnedVersion ) of
-                ( UserStateLoggedIn user, Just time, PinningTo pinningTo ) ->
+            case ( session.userState, model.now ) of
+                ( UserStateLoggedIn user, Just time ) ->
                     let
+                        pinningTo =
+                            case model.pinnedVersion of
+                                PinningTo pt ->
+                                    Just pt
+
+                                Switching _ _ pt ->
+                                    Just pt
+
+                                _ ->
+                                    Nothing
+
                         commentText =
                             "pinned by "
                                 ++ Login.userDisplayName user
@@ -360,7 +386,7 @@ handleCallback callback session ( model, effects ) =
                     ( { model
                         | pinnedVersion =
                             model.versions.content
-                                |> List.Extra.find (\v -> v.id == pinningTo)
+                                |> List.Extra.find (\v -> Just v.id == pinningTo)
                                 |> Maybe.map .version
                                 |> Maybe.map
                                     (PinnedDynamicallyTo
@@ -494,14 +520,7 @@ handleDelivery delivery ( model, effects ) =
             ( { model | now = Just time }
             , case model.checkStatus of
                 Models.CurrentlyChecking id ->
-                    effects
-                        ++ [ FetchCheck
-                                { teamName = model.resourceIdentifier.teamName
-                                , pipelineName = model.resourceIdentifier.pipelineName
-                                , resourceName = model.resourceIdentifier.resourceName
-                                , checkID = id
-                                }
-                           ]
+                    effects ++ [ FetchCheck id ]
 
                 _ ->
                     effects
@@ -579,13 +598,29 @@ update msg ( model, effects ) =
                         |> List.Extra.find (\v -> v.id == versionID)
             in
             case model.pinnedVersion of
-                PinnedDynamicallyTo _ _ ->
-                    ( { model
-                        | pinnedVersion =
-                            Pinned.startUnpinning model.pinnedVersion
-                      }
-                    , effects ++ [ DoUnpinVersion model.resourceIdentifier ]
-                    )
+                PinnedDynamicallyTo _ v ->
+                    version
+                        |> Maybe.map
+                            (\vn ->
+                                if vn.version == v then
+                                    ( { model
+                                        | pinnedVersion =
+                                            Pinned.startUnpinning model.pinnedVersion
+                                      }
+                                    , effects
+                                        ++ [ DoUnpinVersion model.resourceIdentifier ]
+                                    )
+
+                                else
+                                    ( { model
+                                        | pinnedVersion =
+                                            Pinned.startPinningTo versionID model.pinnedVersion
+                                      }
+                                    , effects
+                                        ++ [ DoPinVersion vn.id ]
+                                    )
+                            )
+                        |> Maybe.withDefault ( model, effects )
 
                 NotPinned ->
                     ( { model
@@ -707,11 +742,11 @@ updateVersion versionID updateFunc model =
             model.versions.content
                 |> List.Extra.updateIf (.id >> (==) versionID) updateFunc
 
-        versions : Paginated Models.Version
-        versions =
+        resourceVersions : Paginated Models.Version
+        resourceVersions =
             model.versions
     in
-    { model | versions = { versions | content = newVersionsContent } }
+    { model | versions = { resourceVersions | content = newVersionsContent } }
 
 
 permalink : List Concourse.VersionedResource -> Page
@@ -731,6 +766,46 @@ permalink versionedResources =
 documentTitle : Model -> String
 documentTitle model =
     model.resourceIdentifier.resourceName
+
+
+type alias VersionPresenter =
+    { id : Models.VersionId
+    , version : Concourse.Version
+    , metadata : Concourse.Metadata
+    , enabled : Models.VersionEnabledState
+    , expanded : Bool
+    , inputTo : List Concourse.Build
+    , outputOf : List Concourse.Build
+    , pinState : VersionPinState
+    }
+
+
+versions :
+    { a
+        | versions : Paginated Models.Version
+        , pinnedVersion : Models.PinnedVersion
+    }
+    -> List VersionPresenter
+versions model =
+    model.versions.content
+        |> List.map
+            (\v ->
+                { id = v.id
+                , version = v.version
+                , metadata = v.metadata
+                , enabled = v.enabled
+                , expanded = v.expanded
+                , inputTo = v.inputTo
+                , outputOf = v.outputOf
+                , pinState =
+                    case Pinned.pinState v.version v.id model.pinnedVersion of
+                        PinnedStatically _ ->
+                            PinnedStatically v.showTooltip
+
+                        x ->
+                            x
+                }
+            )
 
 
 view : Session -> Model -> Html Message
@@ -848,10 +923,10 @@ paginationMenu :
             , resourceIdentifier : Concourse.ResourceIdentifier
         }
     -> Html Message
-paginationMenu { hovered } { versions, resourceIdentifier } =
+paginationMenu { hovered } model =
     let
         previousButtonEventHandler =
-            case versions.pagination.previousPage of
+            case model.versions.pagination.previousPage of
                 Nothing ->
                     []
 
@@ -859,7 +934,7 @@ paginationMenu { hovered } { versions, resourceIdentifier } =
                     [ onClick <| Click <| PaginationButton pp ]
 
         nextButtonEventHandler =
-            case versions.pagination.nextPage of
+            case model.versions.pagination.nextPage of
                 Nothing ->
                     []
 
@@ -872,7 +947,7 @@ paginationMenu { hovered } { versions, resourceIdentifier } =
     in
     Html.div
         (id "pagination" :: Resource.Styles.pagination)
-        [ case versions.pagination.previousPage of
+        [ case model.versions.pagination.previousPage of
             Nothing ->
                 Html.div
                     chevronContainer
@@ -897,7 +972,10 @@ paginationMenu { hovered } { versions, resourceIdentifier } =
                     [ Html.a
                         ([ href <|
                             Routes.toString <|
-                                Routes.Resource { id = resourceIdentifier, page = Just page }
+                                Routes.Resource
+                                    { id = model.resourceIdentifier
+                                    , page = Just page
+                                    }
                          , attribute "aria-label" "Previous Page"
                          ]
                             ++ chevron
@@ -908,7 +986,7 @@ paginationMenu { hovered } { versions, resourceIdentifier } =
                         )
                         []
                     ]
-        , case versions.pagination.nextPage of
+        , case model.versions.pagination.nextPage of
             Nothing ->
                 Html.div
                     chevronContainer
@@ -933,7 +1011,10 @@ paginationMenu { hovered } { versions, resourceIdentifier } =
                     [ Html.a
                         ([ href <|
                             Routes.toString <|
-                                Routes.Resource { id = resourceIdentifier, page = Just page }
+                                Routes.Resource
+                                    { id = model.resourceIdentifier
+                                    , page = Just page
+                                    }
                          , attribute "aria-label" "Next Page"
                          ]
                             ++ chevron
@@ -1282,13 +1363,14 @@ viewVersionedResources :
             , pinnedVersion : Models.PinnedVersion
         }
     -> Html Message
-viewVersionedResources { hovered } { versions, pinnedVersion } =
-    versions.content
+viewVersionedResources { hovered } model =
+    model
+        |> versions
         |> List.map
             (\v ->
                 viewVersionedResource
                     { version = v
-                    , pinnedVersion = pinnedVersion
+                    , pinnedVersion = model.pinnedVersion
                     , hovered = hovered
                     }
             )
@@ -1296,24 +1378,18 @@ viewVersionedResources { hovered } { versions, pinnedVersion } =
 
 
 viewVersionedResource :
-    { version : Models.Version
+    { version : VersionPresenter
     , pinnedVersion : Models.PinnedVersion
     , hovered : HoverState.HoverState
     }
     -> Html Message
-viewVersionedResource { version, pinnedVersion, hovered } =
-    let
-        pinState =
-            case Pinned.pinState version.version version.id pinnedVersion of
-                PinnedStatically _ ->
-                    PinnedStatically version.showTooltip
-
-                x ->
-                    x
-    in
+viewVersionedResource { version, hovered } =
     Html.li
-        (case ( pinState, version.enabled ) of
+        (case ( version.pinState, version.enabled ) of
             ( Disabled, _ ) ->
+                [ style "opacity" "0.5" ]
+
+            ( NotThePinnedVersion, _ ) ->
                 [ style "opacity" "0.5" ]
 
             ( _, Models.Disabled ) ->
@@ -1329,17 +1405,17 @@ viewVersionedResource { version, pinnedVersion, hovered } =
             [ viewEnabledCheckbox
                 { enabled = version.enabled
                 , id = version.id
-                , pinState = pinState
+                , pinState = version.pinState
                 }
             , viewPinButton
                 { versionID = version.id
-                , pinState = pinState
+                , pinState = version.pinState
                 , hovered = hovered
                 }
             , viewVersionHeader
                 { id = version.id
                 , version = version.version
-                , pinnedState = pinState
+                , pinnedState = version.pinState
                 }
             ]
             :: (if version.expanded then
@@ -1440,6 +1516,9 @@ viewPinButton { versionID, pinState, hovered } =
                     [ onClick <| Click <| PinButton versionID ]
 
                 PinnedDynamically ->
+                    [ onClick <| Click <| PinButton versionID ]
+
+                NotThePinnedVersion ->
                     [ onClick <| Click <| PinButton versionID ]
 
                 PinnedStatically _ ->

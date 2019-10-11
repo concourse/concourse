@@ -127,6 +127,12 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !created {
+		if err = s.teamFactory.NotifyResourceScanner(); err != nil {
+			session.Error("failed-to-notify-resource-scanner", err)
+		}
+	}
+
 	session.Info("saved")
 
 	w.Header().Set("Content-Type", "application/json")

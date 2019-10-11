@@ -15,7 +15,7 @@ module Job.Job exposing
 import Application.Models exposing (Session)
 import Colors
 import Concourse
-import Concourse.BuildStatus
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination
     exposing
         ( Page
@@ -554,11 +554,11 @@ viewMainJobsSection session model =
         ]
 
 
-headerBuildStatus : Maybe Concourse.Build -> Concourse.BuildStatus
+headerBuildStatus : Maybe Concourse.Build -> BuildStatus
 headerBuildStatus finishedBuild =
     case finishedBuild of
         Nothing ->
-            Concourse.BuildStatusPending
+            BuildStatusPending
 
         Just build ->
             build.status
@@ -678,8 +678,12 @@ viewBuildHeader : Concourse.Build -> Html Message
 viewBuildHeader b =
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
-        , StrictEvents.onLeftClick <| GoToRoute <| Routes.buildRoute b
-        , href <| Routes.toString <| Routes.buildRoute b
+        , StrictEvents.onLeftClick <|
+            GoToRoute <|
+                Routes.buildRoute b.id b.name b.job
+        , href <|
+            Routes.toString <|
+                Routes.buildRoute b.id b.name b.job
         ]
         [ Html.text ("#" ++ b.name)
         ]

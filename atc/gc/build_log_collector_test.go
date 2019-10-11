@@ -69,9 +69,9 @@ var _ = Describe("BuildLogCollector", func() {
 			BeforeEach(func() {
 				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("job-1")
-				fakeJob.FirstLoggedBuildIDReturns(6)
+				fakeJob.FirstLoggedBuildIDReturns(5)
 				fakeJob.ConfigReturns(atc.JobConfig{
-					BuildLogsToRetain: 10,
+					BuildLogsToRetain: 2,
 				})
 
 				fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
@@ -88,11 +88,12 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Until: 5, Limit: 5}) {
-							return []db.Build{sbDrained(1, true), sbDrained(2, false), sbDrained(3, false), sbDrained(4, true), sbDrained(5, false)}, db.Pagination{}, nil
-						} else if page == (db.Page{Limit: 10}) {
-							return []db.Build{sbDrained(6, true)}, db.Pagination{}, nil
+						if page == (db.Page{Until: 4, Limit: 5}) {
+							return []db.Build{sbDrained(10, true), sbDrained(9, false), sbDrained(8, false), sbDrained(7, true), sbDrained(6, false)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 10, Limit: 5}) {
+							return []db.Build{sbDrained(11, true)}, db.Pagination{}, nil
 						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						return []db.Build{}, db.Pagination{}, nil
 					}
 
@@ -100,35 +101,49 @@ var _ = Describe("BuildLogCollector", func() {
 					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
 				})
 
-				It("should not reap builds which have not been drained", func() {
+				JustBeforeEach(func() {
 					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
+				})
 
+				It("should not reap builds which have not been drained", func() {
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
 
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(2)))
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(3)))
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(5)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(6)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(8)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(9)))
 				})
 
 				It("should reap builds which have been drained", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
 
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(1, 4))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(7))
 				})
 
+				It("should update first logged build id to the earliest non-drained build", func() {
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+
+					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
+					actualNewFirstLoggedBuildID := fakeJob.UpdateFirstLoggedBuildIDArgsForCall(0)
+					Expect(actualNewFirstLoggedBuildID).To(Equal(6))
+				})
 			})
 
 			Context("when drain has not been configured", func() {
 				BeforeEach(func() {
+					buildLogCollector = NewBuildLogCollector(
+						fakePipelineFactory,
+						batchSize,
+						buildLogRetainCalc,
+						false,
+					)
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Until: 5, Limit: 5}) {
-							return []db.Build{sbDrained(1, true), sbDrained(2, false), sbDrained(3, false), sbDrained(4, true), sbDrained(5, false)}, db.Pagination{}, nil
-						} else if page == (db.Page{Limit: 10}) {
-							return []db.Build{sbDrained(6, true)}, db.Pagination{}, nil
+						if page == (db.Page{Until: 4, Limit: 5}) {
+							return []db.Build{sbDrained(9, true), sbDrained(8, false), sbDrained(7, false), sbDrained(6, true), sbDrained(5, false)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 9, Limit: 5}) {
+							return []db.Build{sbDrained(10, true)}, db.Pagination{}, nil
 						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						return []db.Build{}, db.Pagination{}, nil
 					}
 
@@ -140,115 +155,7 @@ var _ = Describe("BuildLogCollector", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
 
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(1, 2, 3, 4, 5))
-				})
-			})
-			Context("when there are more build logs than we can reap in this run", func() {
-				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Limit: 10}) {
-							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
-						} else if page == (db.Page{Until: 5, Limit: 5}) {
-							return []db.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
-						} else {
-							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
-						}
-						return nil, db.Pagination{}, nil
-					}
-				})
-
-				Context("when deleting build events and updating first logged build id succeed", func() {
-					BeforeEach(func() {
-						fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
-						fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
-					})
-
-					It("reaps n builds starting with FirstLoggedBuildID, n = batchSize", func() {
-						err := buildLogCollector.Run(context.TODO())
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
-						actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
-						Expect(actualBuildIDs).To(ConsistOf(6, 7, 8, 9, 10))
-					})
-
-					It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-						err := buildLogCollector.Run(context.TODO())
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
-						actualNewFirstLoggedBuildID := fakeJob.UpdateFirstLoggedBuildIDArgsForCall(0)
-						Expect(actualNewFirstLoggedBuildID).To(Equal(11))
-					})
-				})
-
-				Context("when deleting build events fails", func() {
-					var disaster error
-
-					BeforeEach(func() {
-						disaster = errors.New("major malfunction")
-
-						fakePipeline.DeleteBuildEventsByBuildIDsReturns(disaster)
-					})
-
-					It("returns the error", func() {
-						err := buildLogCollector.Run(context.TODO())
-						Expect(err).To(Equal(disaster))
-					})
-
-					It("does not update first logged build id", func() {
-						buildLogCollector.Run(context.TODO())
-
-						Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(BeZero())
-					})
-				})
-
-				Context("when updating first logged build id fails", func() {
-					var disaster error
-
-					BeforeEach(func() {
-						disaster = errors.New("major malfunction")
-
-						fakeJob.UpdateFirstLoggedBuildIDReturns(disaster)
-					})
-
-					It("returns the error", func() {
-						err := buildLogCollector.Run(context.TODO())
-						Expect(err).To(Equal(disaster))
-					})
-				})
-			})
-
-			Context("when there are fewer build logs than we can reap in this run", func() {
-				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Limit: 10}) {
-							return []db.Build{sb(18), sb(17), sb(16), sb(15), sb(14), sb(13), sb(12), sb(11), sb(10), sb(9)}, db.Pagination{}, nil
-						} else if page == (db.Page{Until: 5, Limit: 5}) {
-							return []db.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
-						} else {
-							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
-						}
-						return nil, db.Pagination{}, nil
-					}
-
-					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
-
-					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
-				})
-
-				It("reaps n builds starting with FirstLoggedBuildID, n = batchSize", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
-					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
-					Expect(actualBuildIDs).To(ConsistOf(6, 7, 8))
-				})
-
-				It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(5, 6, 7, 8))
 
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
 					actualNewFirstLoggedBuildID := fakeJob.UpdateFirstLoggedBuildIDArgsForCall(0)
@@ -256,12 +163,65 @@ var _ = Describe("BuildLogCollector", func() {
 				})
 			})
 
-			Context("when the builds we want to reap are still running", func() {
+			Context("when deleting build events fails", func() {
+				var disaster error
+
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Limit: 10}) {
-							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
-						} else if page == (db.Page{Until: 5, Limit: 5}) {
+						if page == (db.Page{Until: 4, Limit: 5}) {
+							return []db.Build{sbDrained(8, false), sbDrained(7, true), sbDrained(6, false)}, db.Pagination{}, nil
+						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						return []db.Build{}, db.Pagination{}, nil
+					}
+
+					disaster = errors.New("major malfunction")
+
+					fakePipeline.DeleteBuildEventsByBuildIDsReturns(disaster)
+				})
+
+				It("returns the error", func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).To(Equal(disaster))
+				})
+
+				It("does not update first logged build id", func() {
+					buildLogCollector.Run(context.TODO())
+
+					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(BeZero())
+				})
+			})
+
+			Context("when updating first logged build id fails", func() {
+				var disaster error
+
+				BeforeEach(func() {
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Until: 4, Limit: 5}) {
+							return []db.Build{sbDrained(8, false), sbDrained(7, true), sbDrained(6, false)}, db.Pagination{}, nil
+						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						return []db.Build{}, db.Pagination{}, nil
+					}
+
+					disaster = errors.New("major malfunction")
+
+					fakeJob.UpdateFirstLoggedBuildIDReturns(disaster)
+				})
+
+				It("returns the error", func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).To(Equal(disaster))
+				})
+			})
+
+			Context("when the builds we want to reap are still running", func() {
+				BeforeEach(func() {
+					fakeJob.ConfigReturns(atc.JobConfig{
+						BuildLogsToRetain: 3,
+					})
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Until: 4, Limit: 5}) {
 							return []db.Build{
 								sb(10),
 								runningBuild(9),
@@ -269,6 +229,8 @@ var _ = Describe("BuildLogCollector", func() {
 								sb(7),
 								sb(6),
 							}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 10, Limit: 5}) {
+							return []db.Build{sb(11)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
@@ -280,32 +242,29 @@ var _ = Describe("BuildLogCollector", func() {
 					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
 				})
 
-				It("reaps all builds before the first running build", func() {
+				JustBeforeEach(func() {
 					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
-					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
-					Expect(actualBuildIDs).To(ConsistOf(6, 7))
 				})
 
-				It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
+				It("reaps only not-running builds", func() {
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
+					Expect(actualBuildIDs).To(ConsistOf(6))
+				})
 
+				It("updates FirstLoggedBuildID to earliest non-reaped build", func() {
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
 					actualNewFirstLoggedBuildID := fakeJob.UpdateFirstLoggedBuildIDArgsForCall(0)
-					Expect(actualNewFirstLoggedBuildID).To(Equal(8))
+					Expect(actualNewFirstLoggedBuildID).To(Equal(7))
 				})
 			})
 
 			Context("when no builds need to be reaped", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Limit: 10}) {
-							return []db.Build{sb(12), sb(11), sb(10), sb(9), sb(8), sb(7), sb(6), sb(5), sb(4), sb(3)}, db.Pagination{}, nil
-						} else if page == (db.Page{Until: 5, Limit: 5}) {
-							return []db.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
+						if page == (db.Page{Until: 4, Limit: 5}) {
+							return []db.Build{runningBuild(5)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						}
@@ -317,17 +276,16 @@ var _ = Describe("BuildLogCollector", func() {
 					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
 				})
 
-				It("doesn't reap any builds", func() {
+				JustBeforeEach(func() {
 					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
+				})
 
+				It("doesn't reap any builds", func() {
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(BeZero())
 				})
 
 				It("doesn't update FirstLoggedBuildID", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
-
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(BeZero())
 				})
 			})
@@ -368,10 +326,8 @@ var _ = Describe("BuildLogCollector", func() {
 			Context("when only count is set", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Until: 5, Limit: 5}) {
+						if page == (db.Page{Until: 4, Limit: 5}) {
 							return []db.Build{sbTime(7, time.Now().Add(-23*time.Hour)), sbTime(6, time.Now().Add(-49*time.Hour))}, db.Pagination{}, nil
-						} else if page == (db.Page{Limit: 1}) {
-							return []db.Build{sbTime(7, time.Now().Add(-23*time.Hour))}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						return nil, db.Pagination{}, nil
@@ -401,7 +357,7 @@ var _ = Describe("BuildLogCollector", func() {
 			Context("when only date is set", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Until: 5, Limit: 5}) {
+						if page == (db.Page{Until: 4, Limit: 5}) {
 							return []db.Build{sbTime(7, time.Now().Add(-23*time.Hour)), sbTime(6, time.Now().Add(-49*time.Hour))}, db.Pagination{}, nil
 						} else if page == (db.Page{Limit: 1}) {
 							return []db.Build{sbTime(7, time.Now().Add(-23*time.Hour))}, db.Pagination{}, nil
@@ -432,10 +388,8 @@ var _ = Describe("BuildLogCollector", func() {
 			Context("when count and date are set > 0", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Until: 5, Limit: 5}) {
+						if page == (db.Page{Until: 4, Limit: 5}) {
 							return []db.Build{sbTime(7, time.Now().Add(-23*time.Hour)), sbTime(6, time.Now().Add(-49*time.Hour))}, db.Pagination{}, nil
-						} else if page == (db.Page{Limit: 1}) {
-							return []db.Build{sbTime(7, time.Now().Add(-23*time.Hour))}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						return nil, db.Pagination{}, nil
@@ -452,21 +406,21 @@ var _ = Describe("BuildLogCollector", func() {
 					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
 				})
 
-				It("should delete nothing, because of the date retention", func() {
+				It("should delete 1 build, because of the builds retention", func() {
 					err := buildLogCollector.Run(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(0))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
+					Expect(actualBuildIDs).To(ConsistOf(6))
 				})
 			})
 
 			Context("when only date is set", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Until: 5, Limit: 5}) {
+						if page == (db.Page{Until: 4, Limit: 5}) {
 							return []db.Build{sbTime(7, time.Now().Add(-23*time.Hour)), sbTime(6, time.Now().Add(-49*time.Hour))}, db.Pagination{}, nil
-						} else if page == (db.Page{Limit: 1}) {
-							return []db.Build{sbTime(7, time.Now().Add(-23*time.Hour))}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
 						return nil, db.Pagination{}, nil
@@ -492,6 +446,107 @@ var _ = Describe("BuildLogCollector", func() {
 					Expect(actualBuildIDs).To(ConsistOf(6))
 				})
 			})
+
+			Context("when min_success_build is set", func() {
+				BeforeEach(func() {
+					fakeJob.ConfigReturns(atc.JobConfig{
+						BuildLogRetention: &atc.BuildLogRetention{
+							Builds:                 5,
+							Days:                   0,
+							MinimumSucceededBuilds: 2,
+						},
+					})
+
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Until: 4, Limit: 5}) {
+							return []db.Build{sb(9), successBuild(8), sb(7), reapedBuild(6), reapedBuild(5)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 9, Limit: 5}) {
+							return []db.Build{sb(14), successBuild(13), sb(12), sb(11), sb(10)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 14, Limit: 5}) {
+							return []db.Build{sb(18), sb(17), sb(16), sb(15)}, db.Pagination{}, nil
+						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						return nil, db.Pagination{}, nil
+					}
+				})
+
+				JustBeforeEach(func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("should reap non success builds", func() {
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
+					Expect(actualBuildIDs).To(ConsistOf(7, 9, 10, 11, 12, 14, 15))
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(5)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(6)))
+				})
+
+				It("should keep at least n success builds, n=MinSuccessBuilds, n=2 ", func() {
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(8)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(13)))
+				})
+
+				It("should update first logged build id to the earliest success build", func() {
+					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
+					actualNewFirstLoggedBuildID := fakeJob.UpdateFirstLoggedBuildIDArgsForCall(0)
+					Expect(actualNewFirstLoggedBuildID).To(Equal(8))
+				})
+			})
+
+			Context("when min_success_build equals builds", func() {
+				BeforeEach(func() {
+					fakeJob.ConfigReturns(atc.JobConfig{
+						BuildLogRetention: &atc.BuildLogRetention{
+							Builds:                 5,
+							Days:                   0,
+							MinimumSucceededBuilds: 5,
+						},
+					})
+
+					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
+						if page == (db.Page{Until: 4, Limit: 5}) {
+							return []db.Build{sb(9), successBuild(8), sb(7), reapedBuild(6), reapedBuild(5)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 9, Limit: 5}) {
+							return []db.Build{sb(14), successBuild(13), successBuild(12), sb(11), successBuild(10)}, db.Pagination{}, nil
+						} else if page == (db.Page{Until: 14, Limit: 5}) {
+							return []db.Build{successBuild(18), sb(17), sb(16), successBuild(15)}, db.Pagination{}, nil
+						}
+						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
+						return nil, db.Pagination{}, nil
+					}
+				})
+
+				JustBeforeEach(func() {
+					err := buildLogCollector.Run(context.TODO())
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("should reap non success builds and success builds that exceeds min success build retained number", func() {
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
+					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
+					Expect(actualBuildIDs).To(ConsistOf(7, 8, 9, 11, 14, 16, 17))
+
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(5)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(6)))
+				})
+
+				It("should keep at least n success builds, n=MinSuccessBuilds, n=5", func() {
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(10)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(12)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(13)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(15)))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).Should(Not(ContainElement(18)))
+				})
+
+				It("should update first logged build id to the earliest success build", func() {
+					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
+					actualNewFirstLoggedBuildID := fakeJob.UpdateFirstLoggedBuildIDArgsForCall(0)
+					Expect(actualNewFirstLoggedBuildID).To(Equal(10))
+				})
+			})
 		})
 
 		Context("when FirstLoggedBuildID == 1", func() {
@@ -513,12 +568,8 @@ var _ = Describe("BuildLogCollector", func() {
 					buildLogRetainCalc = NewBuildLogRetentionCalculator(3, 3, 0, 0)
 
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Since: 2, Limit: 1}) {
-							return []db.Build{sb(1)}, db.Pagination{}, nil
-						} else if page == (db.Page{Until: 1, Limit: 4}) {
-							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
-						} else if page == (db.Page{Limit: 3}) {
-							return []db.Build{sb(5), sb(4), sb(3)}, db.Pagination{}, nil
+						if page == (db.Page{Until: 0, Limit: 5}) {
+							return []db.Build{sb(4), sb(3), sb(2), sb(1)}, db.Pagination{}, nil
 						}
 
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -532,97 +583,7 @@ var _ = Describe("BuildLogCollector", func() {
 				It("uses build log calculator", func() {
 					Expect(buildLogCollector.Run(context.TODO())).NotTo(HaveOccurred())
 					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(1, 2))
-				})
-			})
-
-			Context("when a build of this job has build id 1", func() {
-				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Limit: 10}) {
-							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
-						} else if page == (db.Page{Until: 1, Limit: 4}) {
-							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
-						} else if page == (db.Page{Since: 2, Limit: 1}) {
-							return []db.Build{sb(1)}, db.Pagination{}, nil
-						}
-						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
-
-						return nil, db.Pagination{}, nil
-					}
-
-					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
-					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
-				})
-
-				It("reaps n builds starting with build 1, n = batchSize", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
-					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
-					Expect(actualBuildIDs).To(ConsistOf(1, 2, 3, 4, 5))
-				})
-
-				It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
-					actualNewFirstLoggedBuildID := fakeJob.UpdateFirstLoggedBuildIDArgsForCall(0)
-					Expect(actualNewFirstLoggedBuildID).To(Equal(6))
-				})
-
-				Context("when batchSize == 1", func() {
-					BeforeEach(func() {
-						batchSize = 1
-					})
-
-					It("reaps n builds starting with build 1, n = batchSize", func() {
-						err := buildLogCollector.Run(context.TODO())
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
-						actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
-						Expect(actualBuildIDs).To(ConsistOf(1))
-					})
-
-					It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-						err := buildLogCollector.Run(context.TODO())
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
-						actualNewFirstLoggedBuildID := fakeJob.UpdateFirstLoggedBuildIDArgsForCall(0)
-						Expect(actualNewFirstLoggedBuildID).To(Equal(2))
-					})
-				})
-			})
-
-			Context("when no build of this job has build id 1", func() {
-				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Limit: 10}) {
-							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
-						} else if page == (db.Page{Until: 1, Limit: 5}) {
-							return []db.Build{sb(6), sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
-						} else if page == (db.Page{Since: 2, Limit: 1}) {
-							return []db.Build{}, db.Pagination{}, nil
-						}
-						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
-						return nil, db.Pagination{}, nil
-					}
-
-					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
-					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
-				})
-
-				It("reaps n builds starting with FirstLoggedBuildID, n = batchSize", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
-					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
-					Expect(actualBuildIDs).To(ConsistOf(2, 3, 4, 5, 6))
+					Expect(fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)).To(ConsistOf(1))
 				})
 			})
 
@@ -638,59 +599,6 @@ var _ = Describe("BuildLogCollector", func() {
 				It("returns the error", func() {
 					err := buildLogCollector.Run(context.TODO())
 					Expect(err).To(Equal(disaster))
-				})
-			})
-		})
-
-		Context("when FirstLoggedBuildID == 0", func() {
-			var fakeJob *dbfakes.FakeJob
-
-			BeforeEach(func() {
-				fakeJob = new(dbfakes.FakeJob)
-				fakeJob.NameReturns("job-1")
-				fakeJob.FirstLoggedBuildIDReturns(0)
-				fakeJob.ConfigReturns(atc.JobConfig{
-					BuildLogsToRetain: 10,
-				})
-
-				fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
-			})
-
-			Context("when a build of this job has build id 1", func() {
-				BeforeEach(func() {
-					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{Limit: 10}) {
-							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
-						} else if page == (db.Page{Until: 1, Limit: 4}) {
-							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
-						} else if page == (db.Page{Since: 2, Limit: 1}) {
-							return []db.Build{sb(1)}, db.Pagination{}, nil
-						}
-						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
-
-						return nil, db.Pagination{}, nil
-					}
-
-					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
-					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
-				})
-
-				It("reaps n builds starting with build 1, n = batchSize", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakePipeline.DeleteBuildEventsByBuildIDsCallCount()).To(Equal(1))
-					actualBuildIDs := fakePipeline.DeleteBuildEventsByBuildIDsArgsForCall(0)
-					Expect(actualBuildIDs).To(ConsistOf(1, 2, 3, 4, 5))
-				})
-
-				It("updates FirstLoggedBuildID to n+1, n = latest reaped build ID", func() {
-					err := buildLogCollector.Run(context.TODO())
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
-					actualNewFirstLoggedBuildID := fakeJob.UpdateFirstLoggedBuildIDArgsForCall(0)
-					Expect(actualNewFirstLoggedBuildID).To(Equal(6))
 				})
 			})
 		})
@@ -787,5 +695,19 @@ func runningBuild(id int) db.Build {
 	build := new(dbfakes.FakeBuild)
 	build.IDReturns(id)
 	build.IsRunningReturns(true)
+	return build
+}
+
+func reapedBuild(id int) db.Build {
+	build := new(dbfakes.FakeBuild)
+	build.IDReturns(id)
+	build.ReapTimeReturns(time.Now())
+	return build
+}
+
+func successBuild(id int) db.Build {
+	build := new(dbfakes.FakeBuild)
+	build.IDReturns(id)
+	build.StatusReturns(db.BuildStatusSucceeded)
 	return build
 }

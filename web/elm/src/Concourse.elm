@@ -12,7 +12,6 @@ module Concourse exposing
     , BuildResources
     , BuildResourcesInput
     , BuildResourcesOutput
-    , BuildStatus(..)
     , BuildStep(..)
     , CSRFToken
     , Cause
@@ -48,7 +47,6 @@ module Concourse exposing
     , decodeBuildPlan
     , decodeBuildPrep
     , decodeBuildResources
-    , decodeBuildStatus
     , decodeCause
     , decodeCheck
     , decodeInfo
@@ -60,10 +58,12 @@ module Concourse exposing
     , decodeUser
     , decodeVersion
     , decodeVersionedResource
+    , receiveStatus
     , retrieveCSRFToken
     )
 
 import Array exposing (Array)
+import Concourse.BuildStatus exposing (BuildStatus)
 import Dict exposing (Dict)
 import Json.Decode
 import Json.Decode.Extra exposing (andMap)
@@ -163,13 +163,22 @@ type alias Build =
     }
 
 
-type BuildStatus
-    = BuildStatusPending
-    | BuildStatusStarted
-    | BuildStatusSucceeded
-    | BuildStatusFailed
-    | BuildStatusErrored
-    | BuildStatusAborted
+receiveStatus : BuildStatus -> Time.Posix -> Build -> Build
+receiveStatus newStatus date ({ duration, status } as build) =
+    { build
+        | status =
+            if Concourse.BuildStatus.isRunning status then
+                newStatus
+
+            else
+                status
+        , duration =
+            if Concourse.BuildStatus.isRunning newStatus then
+                duration
+
+            else
+                { duration | finishedAt = Just date }
+    }
 
 
 type alias BuildDuration =
@@ -191,40 +200,13 @@ decodeBuild =
                     |> andMap (Json.Decode.field "job_name" Json.Decode.string)
                 )
             )
-        |> andMap (Json.Decode.field "status" decodeBuildStatus)
+        |> andMap (Json.Decode.field "status" Concourse.BuildStatus.decodeBuildStatus)
         |> andMap
             (Json.Decode.succeed BuildDuration
                 |> andMap (Json.Decode.maybe (Json.Decode.field "start_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
                 |> andMap (Json.Decode.maybe (Json.Decode.field "end_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
             )
         |> andMap (Json.Decode.maybe (Json.Decode.field "reap_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
-
-
-decodeBuildStatus : Json.Decode.Decoder BuildStatus
-decodeBuildStatus =
-    customDecoder Json.Decode.string <|
-        \status ->
-            case status of
-                "pending" ->
-                    Ok BuildStatusPending
-
-                "started" ->
-                    Ok BuildStatusStarted
-
-                "succeeded" ->
-                    Ok BuildStatusSucceeded
-
-                "failed" ->
-                    Ok BuildStatusFailed
-
-                "errored" ->
-                    Ok BuildStatusErrored
-
-                "aborted" ->
-                    Ok BuildStatusAborted
-
-                unknown ->
-                    Err <| Json.Decode.Failure "unknown build status" <| Json.Encode.string unknown
 
 
 

@@ -1243,8 +1243,11 @@ var _ = Describe("Resource", func() {
 	})
 
 	Describe("PinVersion/UnpinVersion", func() {
-		var resource db.Resource
-		var resID int
+		var (
+			resource      db.Resource
+			resourceScope db.ResourceConfigScope
+			resID         int
+		)
 
 		BeforeEach(func() {
 			var found bool
@@ -1264,7 +1267,7 @@ var _ = Describe("Resource", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(setupTx.Commit()).To(Succeed())
 
-			resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
+			resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceScope.SaveVersions([]atc.Version{
@@ -1317,9 +1320,33 @@ var _ = Describe("Resource", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("sets the api pinned version", func() {
-				Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
-				Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
+			Context("when the resource is not pinned", func() {
+				It("sets the api pinned version", func() {
+					Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
+					Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
+				})
+			})
+
+			Context("when the resource is pinned by another version already", func() {
+				BeforeEach(func() {
+					resConf, found, err := resourceScope.FindVersion(atc.Version{"version": "v3"})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					resID = resConf.ID()
+
+					found, err = resource.PinVersion(resID)
+					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+
+					found, err = resource.Reload()
+					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("switch the pin to given version", func() {
+					Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v3"}))
+					Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
+				})
 			})
 
 			Context("when we set the pin comment on a resource", func() {

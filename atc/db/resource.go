@@ -562,7 +562,8 @@ func (r *resource) PinVersion(rcvID int) (bool, error) {
 				( SELECT rcv.version
 				FROM resource_config_versions rcv
 				WHERE rcv.id = $2 ),
-				'')`, r.id, rcvID)
+				'')
+			ON CONFLICT (resource_id) DO UPDATE SET version=EXCLUDED.version`, r.id, rcvID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
