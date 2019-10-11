@@ -2,7 +2,6 @@ package lidar
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"time"
 
@@ -73,72 +72,64 @@ func (r *intervalRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	defer r.notifications.Unlisten(r.componentName, notifier)
 
 	ticker := r.clock.NewTicker(r.interval)
-	ctx, cancel := context.WithCancel(context.Background())
+	defer ticker.Stop()
 
 	for {
+		ctx, cancel := context.WithCancel(context.Background())
+
 		select {
 		case <-ticker.C():
-			component, _, err := r.componentFactory.Find(r.componentName)
-			if err != nil {
-				r.logger.Error("failed-to-find-component", err)
-				break
-			}
+			r.run(ctx, false)
 
-			if component.Paused() {
-				r.logger.Debug("component-is-paused", lager.Data{"name": r.componentName})
-				break
-			}
-
-			if !component.IntervalElapsed() {
-				r.logger.Debug("component-interval-not-reached", lager.Data{"name": r.componentName, "last-ran": component.LastRan()})
-				break
-			}
-
-			lock, acquired, err := r.lockFactory.Acquire(r.logger, lock.NewTaskLockID(r.componentName))
-			if err != nil {
-				break
-			}
-
-			if !acquired {
-				r.logger.Debug(fmt.Sprintln("failed-to-acquire-a-lock-for-", r.componentName))
-				break
-			}
-
-			if err := r.runner.Run(ctx); err != nil {
-				r.logger.Error("failed-to-run", err)
-			}
-
-			if err = component.UpdateLastRan(); err != nil {
-				r.logger.Error("failed-to-update-last-ran", err)
-			}
-
-			err = lock.Release()
-			if err != nil {
-				r.logger.Error("failed-to-release", err)
-				break
-			}
 		case <-notifier:
-			component, _, err := r.componentFactory.Find(r.componentName)
-			if err != nil {
-				r.logger.Error("failed-to-find-component", err)
-				break
-			}
+			r.run(ctx, true)
 
-			if component.Paused() {
-				r.logger.Debug("component-is-paused", lager.Data{"name": r.componentName})
-				break
-			}
-
-			if err := r.runner.Run(ctx); err != nil {
-				r.logger.Error("failed-to-run", err)
-			}
-
-			if err = component.UpdateLastRan(); err != nil {
-				r.logger.Error("failed-to-update-last-ran", err)
-			}
 		case <-signals:
 			cancel()
 			return nil
 		}
 	}
+}
+
+func (r *intervalRunner) run(ctx context.Context, force bool) error {
+
+	lock, acquired, err := r.lockFactory.Acquire(r.logger, lock.NewTaskLockID(r.componentName))
+	if err != nil {
+		return err
+	}
+
+	if !acquired {
+		r.logger.Debug("failed-to-acquire-lock", lager.Data{"name": r.componentName})
+		return nil
+	}
+
+	defer lock.Release()
+
+	component, _, err := r.componentFactory.Find(r.componentName)
+	if err != nil {
+		r.logger.Error("failed-to-find-component", err)
+		return err
+	}
+
+	if component.Paused() {
+		r.logger.Debug("component-is-paused", lager.Data{"name": r.componentName})
+		return nil
+	}
+
+	if !force && !component.IntervalElapsed() {
+		r.logger.Debug("component-interval-not-reached", lager.Data{"name": r.componentName, "last-ran": component.LastRan()})
+		return nil
+	}
+
+	if err = r.runner.Run(ctx); err != nil {
+		r.logger.Error("failed-to-run-task", err, lager.Data{"task-name": r.componentName})
+		return err
+	}
+
+	if err = component.UpdateLastRan(); err != nil {
+		r.logger.Error("failed-to-update-last-ran", err)
+		return err
+	}
+
+	return nil
 }

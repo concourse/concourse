@@ -1,7 +1,7 @@
 package builds
 
 import (
-	"fmt"
+	"context"
 	"os"
 	"time"
 
@@ -10,12 +10,13 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/tedsuo/ifrit"
 )
 
 //go:generate counterfeiter . BuildTracker
 
 type BuildTracker interface {
-	Track()
+	Track() error
 	Release()
 }
 
@@ -27,119 +28,110 @@ type Notifications interface {
 	Notify(channel string) error
 }
 
-type TrackerRunner struct {
-	Tracker          BuildTracker
-	Notifications    Notifications
-	Interval         time.Duration
-	Clock            clock.Clock
-	Logger           lager.Logger
-	LockFactory      lock.LockFactory
-	ComponentFactory db.ComponentFactory
+func NewRunner(
+	logger lager.Logger,
+	clock clock.Clock,
+	tracker BuildTracker,
+	interval time.Duration,
+	notifications Notifications,
+	lockFactory lock.LockFactory,
+	componentFactory db.ComponentFactory,
+) ifrit.Runner {
+	return &runner{
+		logger:           logger,
+		clock:            clock,
+		tracker:          tracker,
+		interval:         interval,
+		notifications:    notifications,
+		componentName:    atc.ComponentBuildTracker,
+		lockFactory:      lockFactory,
+		componentFactory: componentFactory,
+	}
 }
 
-func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+type runner struct {
+	logger           lager.Logger
+	clock            clock.Clock
+	tracker          BuildTracker
+	interval         time.Duration
+	notifications    Notifications
+	componentName    string
+	lockFactory      lock.LockFactory
+	componentFactory db.ComponentFactory
+}
+
+func (r *runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	close(ready)
 
-	shutdownNotifier, err := runner.Notifications.Listen("atc_shutdown")
+	notifier, err := r.notifications.Listen(r.componentName)
 	if err != nil {
 		return err
 	}
 
-	defer runner.Notifications.Unlisten("atc_shutdown", shutdownNotifier)
+	defer r.notifications.Unlisten(r.componentName, notifier)
 
-	buildNotifier, err := runner.Notifications.Listen("build_started")
-	if err != nil {
-		return err
-	}
-
-	defer runner.Notifications.Unlisten("build_started", buildNotifier)
-
-	ticker := runner.Clock.NewTicker(runner.Interval)
+	ticker := r.clock.NewTicker(r.interval)
+	defer ticker.Stop()
 
 	for {
+		ctx, cancel := context.WithCancel(context.Background())
+
 		select {
 		case <-ticker.C():
-			component, _, err := runner.ComponentFactory.Find(atc.ComponentBuildTracker)
-			if err != nil {
-				runner.Logger.Error("failed-to-find-component", err)
-				break
-			}
+			r.run(ctx, false)
 
-			if component.Paused() {
-				runner.Logger.Debug("component-is-paused", lager.Data{"name": atc.ComponentBuildTracker})
-				break
-			}
-
-			if !component.IntervalElapsed() {
-				runner.Logger.Debug("component-interval-not-reached", lager.Data{"name": atc.ComponentBuildTracker, "last-ran": component.LastRan()})
-				break
-			}
-
-			lock, acquired, err := runner.LockFactory.Acquire(runner.Logger, lock.NewTaskLockID(atc.ComponentBuildTracker))
-			if err != nil {
-				break
-			}
-
-			if !acquired {
-				runner.Logger.Debug(fmt.Sprintln("failed-to-acquire-a-lock-for-", component.Name()))
-				break
-			}
-
-			runner.Tracker.Track()
-
-			if err = component.UpdateLastRan(); err != nil {
-				runner.Logger.Error("failed-to-update-last-ran", err)
-			}
-
-			err = lock.Release()
-			if err != nil {
-				runner.Logger.Error("failed-to-release", err)
-				break
-			}
-		case <-shutdownNotifier:
-			runner.Logger.Info("received-atc-shutdown-message")
-			component, _, err := runner.ComponentFactory.Find(atc.ComponentBuildTracker)
-			if err != nil {
-				runner.Logger.Error("failed-to-find-component", err)
-				break
-			}
-
-			if component.Paused() {
-				runner.Logger.Debug("component-is-paused", lager.Data{"name": atc.ComponentBuildTracker})
-				break
-			}
-
-			runner.Tracker.Track()
-
-			if err = component.UpdateLastRan(); err != nil {
-				runner.Logger.Error("failed-to-update-last-ran", err)
-			}
-
-		case <-buildNotifier:
-			runner.Logger.Info("received-build-started-message")
-			component, _, err := runner.ComponentFactory.Find(atc.ComponentBuildTracker)
-			if err != nil {
-				runner.Logger.Error("failed-to-find-component", err)
-				break
-			}
-
-			if component.Paused() {
-				runner.Logger.Debug("component-is-paused", lager.Data{"name": atc.ComponentBuildTracker})
-				break
-			}
-
-			runner.Tracker.Track()
-
-			if err = component.UpdateLastRan(); err != nil {
-				runner.Logger.Error("failed-to-update-last-ran", err)
-			}
+		case <-notifier:
+			r.run(ctx, true)
 
 		case <-signals:
-			runner.Logger.Info("releasing-tracker")
-			runner.Tracker.Release()
-			runner.Logger.Info("released-tracker")
-			runner.Logger.Info("sending-atc-shutdown-message")
-			return runner.Notifications.Notify("atc_shutdown")
+			cancel()
+			r.logger.Info("releasing-tracker")
+			r.tracker.Release()
+			r.logger.Info("released-tracker")
+			return r.notifications.Notify(r.componentName)
 		}
 	}
+}
+
+func (r *runner) run(ctx context.Context, force bool) error {
+
+	lock, acquired, err := r.lockFactory.Acquire(r.logger, lock.NewTaskLockID(r.componentName))
+	if err != nil {
+		return err
+	}
+
+	if !acquired {
+		r.logger.Debug("failed-to-acquire-lock", lager.Data{"name": r.componentName})
+		return nil
+	}
+
+	defer lock.Release()
+
+	component, _, err := r.componentFactory.Find(r.componentName)
+	if err != nil {
+		r.logger.Error("failed-to-find-component", err)
+		return err
+	}
+
+	if component.Paused() {
+		r.logger.Debug("component-is-paused", lager.Data{"name": r.componentName})
+		return nil
+	}
+
+	if !force && !component.IntervalElapsed() {
+		r.logger.Debug("component-interval-not-reached", lager.Data{"name": r.componentName, "last-ran": component.LastRan()})
+		return nil
+	}
+
+	if err = r.tracker.Track(); err != nil {
+		r.logger.Error("failed-to-run-task", err, lager.Data{"task-name": r.componentName})
+		return err
+	}
+
+	if err = component.UpdateLastRan(); err != nil {
+		r.logger.Error("failed-to-update-last-ran", err)
+		return err
+	}
+
+	return nil
 }
