@@ -148,6 +148,9 @@ pinButton pinState =
             Pinned.PinnedDynamically ->
                 "pointer"
 
+            Pinned.NotThePinnedVersion ->
+                "pointer"
+
             Pinned.PinnedStatically _ ->
                 "default"
 

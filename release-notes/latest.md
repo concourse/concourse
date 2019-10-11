@@ -19,9 +19,9 @@
 
 * All API payloads are now gzipped. This should help save bandwidth and make the web UI load faster. #4470
 
-#### <sub><sup><a name="4448" href="#4448">:link:</a></sup></sub> feature
+#### <sub><sup><a name="4448-4588" href="#4448-4588">:link:</a></sup></sub> feature
 
-* You can now use fly to pin a resource without unpinning it first. #4448
+* You can now pin a resource to different version without unpinning it first #4448, #4588.
 
 #### <sub><sup><a name="4507" href="#4507">:link:</a></sup></sub> fix
 
@@ -29,4 +29,8 @@
 
 #### <sub><sup><a name="4590" href="#4590">:link:</a></sup></sub> feature
 
-* @pnsantos updated the mdi icon library so now the `concourse-ci` icon is available for resources :tada:
+* @pnsantos updated the Material Design icon library so now the `concourse-ci` icon is available for resources :tada: #4590
+
+#### <sub><sup><a name="4492" href="#4492">:link:</a></sup></sub> fix
+
+* The `fly format-pipeline` now always produces a formatted pipeline, instead of declining to do so when it was already in the expected format. #4492
