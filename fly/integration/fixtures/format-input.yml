@@ -1,0 +1,52 @@
+groups:
+  - jobs:
+    - job-1
+    - job-2
+    name: some-group
+    resources:
+    - resource-1
+    - resource-2
+  - jobs: [job-3, job-4]
+    name: some-other-group
+    resources:
+    - resource-6
+    - resource-4
+
+jobs:
+  - name: some-job
+    public: yes
+    serial:       true
+
+  - name: some-unchanged-job
+  - name: some-other-job
+    plan: null
+  - name: pinned-resource-job
+    plan:
+    - get: some-resource
+      version:
+        ref: some-ref
+
+resource_types:
+        - {"name": "some-resource-type",
+           "source": {"source-config": "some-value"},
+           "type": "some-type"}
+        - name: some-other-resource-type
+          source: {source-config: some-value}
+          type: some-other-type
+
+# comment on its own line
+
+resources:
+  - name: some-resource
+    source:
+      source-config: some-value
+      parameterized: ((fill-me-in))
+    type: some-type # comment at the end of a line
+  - name: some-other-resource
+    type: some-other-type
+    source:
+      source-config: some-value
+  - name: some-resource-with-int-field
+    source:
+      source-config: 5
+    type: some-type
