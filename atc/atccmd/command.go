@@ -54,6 +54,7 @@ import (
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
 	"github.com/hashicorp/go-multierror"
+	"github.com/honeycombio/libhoney-go"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -200,6 +201,9 @@ type RunCommand struct {
 	} `group:"Authentication"`
 
 	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
+
+	HoneycombAPIKey  string `long:"honeycomb-api-key" description:"Provide Honeycomb API Key to enable emitting events to Honeycomb"`
+	HoneycombDataset string `long:"honeycomb-dataset" description:"Honeycomb dataset name, defaults to 'concourse' if no value provided"`
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -438,7 +442,22 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, secretManager)
+	if cmd.HoneycombDataset == "" {
+		cmd.HoneycombDataset = "concourse"
+	}
+
+	var honeycombClient *libhoney.Client
+	if cmd.HoneycombAPIKey != "" {
+		honeycombClient, err = libhoney.NewClient(libhoney.ClientConfig{
+			APIKey:  cmd.HoneycombAPIKey,
+			Dataset: cmd.HoneycombDataset,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, secretManager, honeycombClient)
 	if err != nil {
 		return nil, err
 	}
@@ -481,6 +500,7 @@ func (cmd *RunCommand) constructMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
+	honeycombClient *libhoney.Client,
 ) ([]grouper.Member, error) {
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
@@ -492,7 +512,7 @@ func (cmd *RunCommand) constructMembers(
 		}()
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager, honeycombClient)
 	if err != nil {
 		return nil, err
 	}
@@ -512,6 +532,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
+	honeycombClient *libhoney.Client,
 ) ([]grouper.Member, error) {
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
 	userFactory := db.NewUserFactory(dbConn)
@@ -613,6 +634,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		secretManager,
 		credsManagers,
 		accessFactory,
+		honeycombClient,
 	)
 
 	if err != nil {
@@ -1378,6 +1400,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
+	honeycombClient *libhoney.Client,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -1408,6 +1431,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		wrappa.NewConcourseVersionWrappa(concourse.Version),
 		wrappa.NewAccessorWrappa(accessFactory, aud),
 		wrappa.NewCompressionWrappa(logger),
+		wrappa.NewHoneycombWrappa(honeycombClient),
 	}
 
 	return api.NewHandler(
