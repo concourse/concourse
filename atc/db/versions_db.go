@@ -74,6 +74,7 @@ func (versions VersionsDB) SuccessfulBuilds(jobID int) PaginatedBuilds {
 	return PaginatedBuilds{
 		builder: builder,
 		column:  "id",
+		jobID:   jobID,
 
 		limitRows: versions.LimitRows,
 		conn:      versions.Conn,
@@ -97,6 +98,7 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, constra
 	return PaginatedBuilds{
 		builder: builder,
 		column:  "build_id",
+		jobID:   jobID,
 
 		limitRows: versions.LimitRows,
 		conn:      versions.Conn,
@@ -171,7 +173,14 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersi
 		QueryRow().
 		Scan(&outputsJSON)
 	if err != nil {
-		return nil, err
+		if err == sql.ErrNoRows {
+			outputsJSON, err = versions.migrateSingle(buildID)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	outputs := map[string][]string{}
@@ -436,6 +445,7 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 		builder:  builder,
 		buildIDs: buildIDs,
 		column:   "id",
+		jobID:    jobID,
 
 		limitRows: versions.LimitRows,
 		conn:      versions.Conn,
@@ -449,46 +459,61 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		return PaginatedBuilds{}, err
 	}
 
-	rows, err := psql.Select("build_id").
-		From("successful_build_outputs").
-		Where(sq.Expr("outputs @> ?::jsonb", versionsJSON)).
-		Where(sq.Eq{
-			"job_id": jobID,
-		}).
-		Where(sq.Or{
-			sq.And{
-				sq.Gt{
-					"rerun_of": buildID,
+	for {
+		rows, err := psql.Select("build_id").
+			From("successful_build_outputs").
+			Where(sq.Expr("outputs @> ?::jsonb", versionsJSON)).
+			Where(sq.Eq{
+				"job_id": jobID,
+			}).
+			Where(sq.Or{
+				sq.And{
+					sq.Gt{
+						"rerun_of": buildID,
+					},
+					sq.NotEq{
+						"rerun_of": nil,
+					},
 				},
-				sq.NotEq{
-					"rerun_of": nil,
+				sq.And{
+					sq.Gt{
+						"build_id": buildID,
+					},
+					sq.Eq{
+						"rerun_of": nil,
+					},
 				},
-			},
-			sq.And{
-				sq.Gt{
-					"build_id": buildID,
-				},
-				sq.Eq{
-					"rerun_of": nil,
-				},
-			},
-		}).
-		OrderBy("COALESCE(rerun_of, build_id) ASC, build_id ASC").
-		RunWith(versions.Conn).
-		Query()
-	if err != nil {
-		return PaginatedBuilds{}, err
-	}
-
-	for rows.Next() {
-		var buildID int
-
-		err = rows.Scan(&buildID)
+			}).
+			OrderBy("COALESCE(rerun_of, build_id) ASC, build_id ASC").
+			RunWith(versions.Conn).
+			Query()
 		if err != nil {
 			return PaginatedBuilds{}, err
 		}
 
-		buildIDs = append(buildIDs, buildID)
+		for rows.Next() {
+			var buildID int
+
+			err = rows.Scan(&buildID)
+			if err != nil {
+				return PaginatedBuilds{}, err
+			}
+
+			buildIDs = append(buildIDs, buildID)
+		}
+
+		if len(buildIDs) == 0 {
+			migrated, err := versions.migrateUpper(jobID, buildID)
+			if err != nil {
+				return PaginatedBuilds{}, err
+			}
+
+			if !migrated {
+				break
+			}
+		} else {
+			break
+		}
 	}
 
 	builder := psql.Select("build_id").
@@ -506,6 +531,7 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		builder:  builder,
 		buildIDs: buildIDs,
 		column:   "build_id",
+		jobID:    jobID,
 
 		limitRows: versions.LimitRows,
 		conn:      versions.Conn,
@@ -548,6 +574,75 @@ func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (Resou
 	return version, true, nil
 }
 
+// Migrates all the builds created later than the build cursor for
+// the same job. It is used for the UnusedBuildsVersionConstrained methods to
+// migrate all the builds created after the cursor.
+func (versions VersionsDB) migrateUpper(jobID int, buildIDCursor int) (bool, error) {
+	buildsToMigrateQueryBuilder := psql.Select("id", "job_id", "rerun_of").
+		From("builds").
+		Where(sq.Eq{
+			"job_id":             jobID,
+			"needs_v6_migration": true,
+			"status":             "succeeded",
+		}).
+		Where(sq.Or{
+			sq.And{
+				sq.Gt{
+					"rerun_of": buildIDCursor,
+				},
+				sq.NotEq{
+					"rerun_of": nil,
+				},
+			},
+			sq.And{
+				sq.Gt{
+					"id": buildIDCursor,
+				},
+				sq.Eq{
+					"rerun_of": nil,
+				},
+			},
+		}).
+		OrderBy("COALESCE(rerun_of, id) DESC, id DESC").
+		Limit(uint64(versions.LimitRows))
+
+	return migrate(versions.Conn, buildsToMigrateQueryBuilder)
+}
+
+// Migrates a single build into the successful build outputs table.
+func (versions VersionsDB) migrateSingle(buildID int) (string, error) {
+	var outputs string
+	err := versions.Conn.QueryRow(`
+		WITH builds_to_migrate AS (
+			UPDATE builds
+			SET needs_v6_migration = false
+			WHERE id = $1
+		)
+			INSERT INTO successful_build_outputs (
+				SELECT b.id, b.job_id, json_object_agg(sp.resource_id, sp.v), b.rerun_of
+				FROM builds b
+				JOIN (
+					SELECT build_id, resource_id, json_agg(version_md5) AS v
+					FROM (
+						(
+							SELECT build_id, resource_id, version_md5 FROM build_resource_config_version_outputs o WHERE o.build_id = $1
+						)
+						UNION ALL
+						(
+							SELECT build_id, resource_id, version_md5 FROM build_resource_config_version_inputs i WHERE i.build_id = $1
+						)
+				) AS agg GROUP BY build_id, resource_id) sp ON sp.build_id = b.id
+				WHERE b.id = $1
+				GROUP BY b.id, b.job_id, b.rerun_of
+			) ON CONFLICT (build_id) DO UPDATE SET outputs = EXCLUDED.outputs RETURNING outputs`, buildID).
+		Scan(&outputs)
+	if err != nil {
+		return "", err
+	}
+
+	return outputs, nil
+}
+
 type PaginatedBuilds struct {
 	builder sq.SelectBuilder
 	column  string
@@ -555,59 +650,73 @@ type PaginatedBuilds struct {
 	buildIDs []int
 	offset   int
 
+	jobID int
+
 	limitRows int
 	conn      Conn
 }
 
 func (bs *PaginatedBuilds) Next() (int, bool, error) {
 	if bs.offset+1 > len(bs.buildIDs) {
-		builder := bs.builder
+		for {
+			builder := bs.builder
 
-		if len(bs.buildIDs) > 0 {
-			builder = bs.builder.Where(sq.Or{
-				sq.And{
-					sq.Lt{
-						"rerun_of": bs.buildIDs[len(bs.buildIDs)-1],
+			if len(bs.buildIDs) > 0 {
+				builder = bs.builder.Where(sq.Or{
+					sq.And{
+						sq.Lt{
+							"rerun_of": bs.buildIDs[len(bs.buildIDs)-1],
+						},
+						sq.NotEq{
+							"rerun_of": nil,
+						},
 					},
-					sq.NotEq{
-						"rerun_of": nil,
+					sq.And{
+						sq.Lt{
+							bs.column: bs.buildIDs[len(bs.buildIDs)-1],
+						},
+						sq.Eq{
+							"rerun_of": nil,
+						},
 					},
-				},
-				sq.And{
-					sq.Lt{
-						bs.column: bs.buildIDs[len(bs.buildIDs)-1],
-					},
-					sq.Eq{
-						"rerun_of": nil,
-					},
-				},
-			})
-		}
+				})
+			}
 
-		bs.buildIDs = []int{}
-		bs.offset = 0
-
-		rows, err := builder.
-			Limit(uint64(bs.limitRows)).
-			RunWith(bs.conn).
-			Query()
-		if err != nil {
-			return 0, false, err
-		}
-
-		for rows.Next() {
-			var buildID int
-
-			err = rows.Scan(&buildID)
+			rows, err := builder.
+				Limit(uint64(bs.limitRows)).
+				RunWith(bs.conn).
+				Query()
 			if err != nil {
 				return 0, false, err
 			}
 
-			bs.buildIDs = append(bs.buildIDs, buildID)
-		}
+			buildIDs := []int{}
+			for rows.Next() {
+				var buildID int
 
-		if len(bs.buildIDs) == 0 {
-			return 0, false, nil
+				err = rows.Scan(&buildID)
+				if err != nil {
+					return 0, false, err
+				}
+
+				buildIDs = append(buildIDs, buildID)
+			}
+
+			if len(buildIDs) == 0 {
+				migrated, err := bs.migrateLimit()
+				if err != nil {
+					return 0, false, err
+				}
+
+				if !migrated {
+					return 0, false, nil
+				}
+			} else {
+				bs.buildIDs = buildIDs
+				bs.offset = 0
+
+				break
+			}
 		}
 	}
 
@@ -615,4 +724,63 @@ func (bs *PaginatedBuilds) Next() (int, bool, error) {
 	bs.offset++
 
 	return id, true, nil
+}
+
+// Migrates a fixed limit of builds for a job
+func (bs *PaginatedBuilds) migrateLimit() (bool, error) {
+	buildsToMigrateQueryBuilder := psql.Select("id", "job_id", "rerun_of").
+		From("builds").
+		Where(sq.Eq{
+			"job_id":             bs.jobID,
+			"needs_v6_migration": true,
+			"status":             "succeeded",
+		}).
+		OrderBy("COALESCE(rerun_of, id) DESC, id DESC").
+		Limit(uint64(bs.limitRows))
+
+	return migrate(bs.conn, buildsToMigrateQueryBuilder)
+}
+
+func migrate(conn Conn, buildsToMigrateQueryBuilder sq.SelectBuilder) (bool, error) {
+	buildsToMigrateQuery, params, err := buildsToMigrateQueryBuilder.ToSql()
+	if err != nil {
+		return false, err
+	}
+
+	results, err := conn.Exec(`
+		WITH builds_to_migrate AS (`+buildsToMigrateQuery+`), migrated_outputs AS (
+			INSERT INTO successful_build_outputs (
+				SELECT bm.id, bm.job_id, json_object_agg(sp.resource_id, sp.v), bm.rerun_of
+				FROM builds_to_migrate bm
+				JOIN (
+					SELECT build_id, resource_id, json_agg(version_md5) AS v
+					FROM (
+						(
+							SELECT build_id, resource_id, version_md5 FROM build_resource_config_version_outputs o JOIN builds_to_migrate bm ON bm.id = o.build_id
+						)
+						UNION ALL
+						(
+							SELECT build_id, resource_id, version_md5 FROM build_resource_config_version_inputs i JOIN builds_to_migrate bm ON bm.id = i.build_id
+						)
+				) AS agg GROUP BY build_id, resource_id) sp ON sp.build_id = bm.id
+				GROUP BY bm.id, bm.job_id, bm.rerun_of
+			) ON CONFLICT (build_id) DO NOTHING
+		)
+		UPDATE builds
+		SET needs_v6_migration = false
+		WHERE id IN (SELECT id FROM builds_to_migrate)`, params...)
+	if err != nil {
+		return false, err
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if rowsAffected == 0 {
+		return false, nil
+	}
+
+	return true, nil
 }

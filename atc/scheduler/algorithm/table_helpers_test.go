@@ -21,10 +21,11 @@ import (
 )
 
 type DB struct {
-	BuildInputs  []DBRow
-	BuildOutputs []DBRow
-	BuildPipes   []DBRow
-	Resources    []DBRow
+	BuildInputs      []DBRow
+	BuildOutputs     []DBRow
+	BuildPipes       []DBRow
+	Resources        []DBRow
+	NeedsV6Migration bool
 }
 
 type DBRow struct {
@@ -39,6 +40,7 @@ type DBRow struct {
 	ToBuildID      int
 	Pinned         bool
 	RerunOfBuildID int
+	BuildStatus    string
 }
 
 type Example struct {
@@ -65,10 +67,11 @@ type Version struct {
 }
 
 type Result struct {
-	OK             bool
-	Values         map[string]string
-	PassedBuildIDs map[string][]int
-	Errors         map[string]string
+	OK               bool
+	Values           map[string]string
+	PassedBuildIDs   map[string][]int
+	Errors           map[string]string
+	ExpectedMigrated map[int]map[int][]string
 }
 
 type StringMapping map[string]int
@@ -278,59 +281,6 @@ func (example Example) Run() {
 		err = tx.Commit()
 		Expect(err).ToNot(HaveOccurred())
 
-		log.Println("IMPORTING INPUTS AND OUTPUTS TO SUCCESSFUL BUILD VERSIONS")
-
-		buildOutputs := map[int]map[string][]string{}
-		buildToJobID := map[int]int{}
-		for _, row := range legacyDB.BuildOutputs {
-			outputs, ok := buildOutputs[row.BuildID]
-			if !ok {
-				outputs = map[string][]string{}
-				buildOutputs[row.BuildID] = outputs
-			}
-
-			key := strconv.Itoa(row.ResourceID)
-
-			outputs[key] = append(outputs[key], strconv.Itoa(row.VersionID))
-			buildToJobID[row.BuildID] = row.JobID
-		}
-
-		for _, row := range legacyDB.BuildInputs {
-			outputs, ok := buildOutputs[row.BuildID]
-			if !ok {
-				outputs = map[string][]string{}
-				buildOutputs[row.BuildID] = outputs
-			}
-
-			key := strconv.Itoa(row.ResourceID)
-
-			outputs[key] = append(outputs[key], strconv.Itoa(row.VersionID))
-			buildToJobID[row.BuildID] = row.JobID
-		}
-
-		tx, err = dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-
-		stmt, err = tx.Prepare(pq.CopyIn("successful_build_outputs", "build_id", "job_id", "outputs"))
-		Expect(err).ToNot(HaveOccurred())
-
-		for buildID, outputs := range buildOutputs {
-			outputsJSON, err := json.Marshal(outputs)
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = stmt.Exec(buildID, buildToJobID[buildID], outputsJSON)
-			Expect(err).ToNot(HaveOccurred())
-		}
-
-		_, err = stmt.Exec()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = stmt.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = tx.Commit()
-		Expect(err).ToNot(HaveOccurred())
-
 		log.Println("DONE IMPORTING")
 	} else {
 		versionsDB.LimitRows = 2
@@ -344,7 +294,7 @@ func (example Example) Run() {
 		buildToRerunOf := map[int]int{}
 		for _, row := range example.DB.BuildOutputs {
 			setup.insertRowVersion(resources, row)
-			setup.insertRowBuild(row)
+			setup.insertRowBuild(row, example.DB.NeedsV6Migration)
 
 			resourceID := setup.resourceIDs.ID(row.Resource)
 
@@ -357,25 +307,27 @@ func (example Example) Run() {
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 
-			outputs, ok := buildOutputs[row.BuildID]
-			if !ok {
-				outputs = map[string][]string{}
-				buildOutputs[row.BuildID] = outputs
-			}
+			if !example.DB.NeedsV6Migration {
+				outputs, ok := buildOutputs[row.BuildID]
+				if !ok {
+					outputs = map[string][]string{}
+					buildOutputs[row.BuildID] = outputs
+				}
 
-			key := strconv.Itoa(resourceID)
+				key := strconv.Itoa(resourceID)
 
-			outputs[key] = append(outputs[key], convertToMD5(row.Version))
-			buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
+				outputs[key] = append(outputs[key], convertToMD5(row.Version))
+				buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
 
-			if row.RerunOfBuildID != 0 {
-				buildToRerunOf[row.BuildID] = row.RerunOfBuildID
+				if row.RerunOfBuildID != 0 {
+					buildToRerunOf[row.BuildID] = row.RerunOfBuildID
+				}
 			}
 		}
 
 		for _, row := range example.DB.BuildInputs {
 			setup.insertRowVersion(resources, row)
-			setup.insertRowBuild(row)
+			setup.insertRowBuild(row, example.DB.NeedsV6Migration)
 
 			resourceID := setup.resourceIDs.ID(row.Resource)
 
@@ -388,19 +340,21 @@ func (example Example) Run() {
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 
-			outputs, ok := buildOutputs[row.BuildID]
-			if !ok {
-				outputs = map[string][]string{}
-				buildOutputs[row.BuildID] = outputs
-			}
+			if !example.DB.NeedsV6Migration {
+				outputs, ok := buildOutputs[row.BuildID]
+				if !ok {
+					outputs = map[string][]string{}
+					buildOutputs[row.BuildID] = outputs
+				}
 
-			key := strconv.Itoa(resourceID)
+				key := strconv.Itoa(resourceID)
 
-			outputs[key] = append(outputs[key], convertToMD5(row.Version))
-			buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
+				outputs[key] = append(outputs[key], convertToMD5(row.Version))
+				buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
 
-			if row.RerunOfBuildID != 0 {
-				buildToRerunOf[row.BuildID] = row.RerunOfBuildID
+				if row.RerunOfBuildID != 0 {
+					buildToRerunOf[row.BuildID] = row.RerunOfBuildID
+				}
 			}
 		}
 
@@ -546,11 +500,11 @@ func (example Example) Run() {
 	versionsDB.ResourceIDs = setup.resourceIDs
 
 	algorithm := algorithm.New()
-	resolved, ok, err := algorithm.Compute(versionsDB, job, dbResources)
+	resolved, ok, resolvedErr := algorithm.Compute(versionsDB, job, dbResources)
 	if example.Error != nil {
-		Expect(err).To(Equal(example.Error))
+		Expect(resolvedErr).To(Equal(example.Error))
 	} else {
-		Expect(err).ToNot(HaveOccurred())
+		Expect(resolvedErr).ToNot(HaveOccurred())
 
 		prettyValues := map[string]string{}
 		erroredValues := map[string]string{}
@@ -592,16 +546,74 @@ func (example Example) Run() {
 			actualResult.Values = prettyValues
 		}
 
-		if len(example.Result.PassedBuildIDs) > 0 {
-			Expect(actualResult.OK).To(Equal(example.Result.OK))
-			Expect(actualResult.Errors).To(Equal(example.Result.Errors))
-			Expect(actualResult.Values).To(Equal(example.Result.Values))
+		Expect(actualResult.OK).To(Equal(example.Result.OK))
+		Expect(actualResult.Errors).To(Equal(example.Result.Errors))
+		Expect(actualResult.Values).To(Equal(example.Result.Values))
 
-			for input, buildIDs := range example.Result.PassedBuildIDs {
-				Expect(actualResult.PassedBuildIDs[input]).To(ConsistOf(buildIDs))
+		for input, buildIDs := range example.Result.PassedBuildIDs {
+			Expect(actualResult.PassedBuildIDs[input]).To(ConsistOf(buildIDs))
+		}
+
+		if example.Result.ExpectedMigrated != nil {
+			rows, err := setup.psql.Select("build_id", "job_id", "outputs", "rerun_of").
+				From("successful_build_outputs").
+				Query()
+			Expect(err).ToNot(HaveOccurred())
+
+			actualMigrated := map[int]map[int][]string{}
+			jobToBuilds := map[int]int{}
+			rerunOfBuilds := map[int]int{}
+			for rows.Next() {
+				var buildID, jobID int
+				var rerunOf sql.NullInt64
+				var outputs string
+
+				err = rows.Scan(&buildID, &jobID, &outputs, &rerunOf)
+				Expect(err).ToNot(HaveOccurred())
+
+				_, exists := actualMigrated[buildID]
+				Expect(exists).To(BeFalse())
+
+				buildOutputs := map[int][]string{}
+				err = json.Unmarshal([]byte(outputs), &buildOutputs)
+				actualMigrated[buildID] = buildOutputs
+
+				jobToBuilds[buildID] = jobID
+
+				if rerunOf.Valid {
+					rerunOfBuilds[buildID] = int(rerunOf.Int64)
+				}
 			}
-		} else {
-			Expect(actualResult).To(Equal(example.Result))
+
+			Expect(actualMigrated).To(Equal(example.Result.ExpectedMigrated))
+
+			for buildID, jobID := range jobToBuilds {
+				var actualJobID int
+
+				err = setup.psql.Select("job_id").
+					From("builds").
+					Where(sq.Eq{
+						"id": buildID,
+					}).
+					QueryRow().
+					Scan(&actualJobID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(jobID).To(Equal(actualJobID))
+			}
+
+			for buildID, rerunBuildID := range rerunOfBuilds {
+				var actualRerunOfBuildID int
+
+				err = setup.psql.Select("rerun_of").
+					From("builds").
+					Where(sq.Eq{
+						"id": buildID,
+					}).
+					QueryRow().
+					Scan(&actualRerunOfBuildID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(rerunBuildID).To(Equal(actualRerunOfBuildID))
+			}
 		}
 	}
 }
@@ -716,7 +728,7 @@ func (s setupDB) insertRowVersion(resources map[string]atc.ResourceConfig, row D
 	}
 }
 
-func (s setupDB) insertRowBuild(row DBRow) {
+func (s setupDB) insertRowBuild(row DBRow, needsV6Migration bool) {
 	jobID := s.insertJob(row.Job)
 
 	var rerunOf sql.NullInt64
@@ -724,10 +736,15 @@ func (s setupDB) insertRowBuild(row DBRow) {
 		rerunOf = sql.NullInt64{Int64: int64(row.RerunOfBuildID), Valid: true}
 	}
 
+	buildStatus := "succeeded"
+	if len(row.BuildStatus) != 0 {
+		buildStatus = row.BuildStatus
+	}
+
 	var existingJobID int
 	err := s.psql.Insert("builds").
-		Columns("team_id", "id", "job_id", "name", "status", "scheduled", "inputs_ready", "rerun_of").
-		Values(s.teamID, row.BuildID, jobID, "some-name", "succeeded", true, true, rerunOf).
+		Columns("team_id", "id", "job_id", "name", "status", "scheduled", "inputs_ready", "rerun_of", "needs_v6_migration").
+		Values(s.teamID, row.BuildID, jobID, "some-name", buildStatus, true, true, rerunOf, needsV6Migration).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = excluded.name").
 		Suffix("RETURNING job_id").
 		QueryRow().

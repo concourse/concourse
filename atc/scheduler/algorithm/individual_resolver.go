@@ -91,11 +91,11 @@ func (d *debugger) reset(depth int, inputName string) {
 
 func (d *debugger) log(messages ...interface{}) {
 	// log.Println(
-	// 	append(
-	// 		[]interface{}{
-	// 			strings.Repeat("-", d.depth) + fmt.Sprintf("[%s]", d.inputName),
-	// 		},
-	// 		messages...,
-	// 	)...,
+	// append(
+	// 	[]interface{}{
+	// 		strings.Repeat("-", d.depth) + fmt.Sprintf("[%s]", d.inputName),
+	// 	},
+	// 	messages...,
+	// )...,
 	// )
 }

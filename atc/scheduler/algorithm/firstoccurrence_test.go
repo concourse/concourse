@@ -115,7 +115,7 @@ var _ = Describe("Resolve", func() {
 			setup.insertRowBuild(DBRow{
 				Job:     buildOutput.JobName,
 				BuildID: buildOutput.BuildID,
-			})
+			}, false)
 
 			setup.insertRowVersion(resources, DBRow{
 				Resource:   buildOutput.ResourceName,
@@ -152,7 +152,7 @@ var _ = Describe("Resolve", func() {
 				Job:            buildInput.JobName,
 				BuildID:        buildInput.BuildID,
 				RerunOfBuildID: buildInput.RerunBuildID,
-			})
+			}, false)
 
 			setup.insertRowVersion(resources, DBRow{
 				Resource:   buildInput.ResourceName,

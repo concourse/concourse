@@ -55,7 +55,6 @@ type Pipeline interface {
 	CreateOneOffBuild() (Build, error)
 	CreateStartedBuild(plan atc.Plan) (Build, error)
 
-	GetAllPendingBuilds() (map[string][]Build, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
