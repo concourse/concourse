@@ -161,7 +161,7 @@ func (j *jobFactory) getBuildsFrom(tx Tx, col string, jobIDs []int) (map[int]Bui
 	builds := make(map[int]Build)
 
 	for rows.Next() {
-		build := &build{conn: j.conn, lockFactory: j.lockFactory}
+		build := newEmptyBuild(j.conn, j.lockFactory)
 		err := scanBuild(build, rows, j.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err

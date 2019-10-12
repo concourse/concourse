@@ -45,7 +45,7 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		check, created, err := s.checkFactory.TryCreateCheck(dbResource, dbResourceTypes, reqBody.From, true)
+		check, created, err := s.checkFactory.TryCreateCheck(logger, dbResource, dbResourceTypes, reqBody.From, true)
 		if err != nil {
 			s.logger.Error("failed-to-create-check", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -102,7 +102,7 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 
 	version := checkable.CurrentPinnedVersion()
 
-	_, created, err := s.checkFactory.TryCreateCheck(checkable, resourceTypes, version, false)
+	_, created, err := s.checkFactory.TryCreateCheck(s.logger, checkable, resourceTypes, version, false)
 	if err != nil {
 		s.logger.Error("failed-to-create-check", err)
 		return err

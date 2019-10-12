@@ -8,14 +8,16 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/hashicorp/go-multierror"
+	"github.com/tedsuo/rata"
+	"sigs.k8s.io/yaml"
+
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/vars"
-	"github.com/hashicorp/go-multierror"
-	"github.com/tedsuo/rata"
-	"sigs.k8s.io/yaml"
 )
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
@@ -47,30 +49,35 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ignoredUnknownToplevels := map[string]interface{}{}
+		ignoredUnknownTopLevels := map[string]interface{}{}
 
 		// do a naive unmarshal first so we can ignore unknown top-level keys
-		err = yaml.UnmarshalStrict(body, &ignoredUnknownToplevels)
+		err = yaml.UnmarshalStrict(body, &ignoredUnknownTopLevels)
 		if err != nil {
 			s.handleBadRequest(w, "malformed config")
 			return
 		}
 
-		for k := range ignoredUnknownToplevels {
-			switch k {
-			case "groups", "jobs", "resources", "resource_types":
-			default:
-				delete(ignoredUnknownToplevels, k)
+		for k := range ignoredUnknownTopLevels {
+			unknown := true
+			for _, topLevelKey := range atc.TopLevelConfigKeys {
+				if topLevelKey == k {
+					unknown = false
+					break
+				}
+			}
+			if unknown {
+				delete(ignoredUnknownTopLevels, k)
 			}
 		}
 
-		configWithoutUnknownToplevels, err := yaml.Marshal(ignoredUnknownToplevels)
+		configWithoutUnknownTopLevels, err := yaml.Marshal(ignoredUnknownTopLevels)
 		if err != nil {
 			s.handleBadRequest(w, fmt.Sprintf("yaml re-marshal failed: %s", err))
 			return
 		}
 
-		err = yaml.UnmarshalStrict(configWithoutUnknownToplevels, &config, yaml.DisallowUnknownFields)
+		err = yaml.UnmarshalStrict(configWithoutUnknownTopLevels, &config, yaml.DisallowUnknownFields)
 		if err != nil {
 			session.Error("malformed-request-payload", err, lager.Data{
 				"content-type": r.Header.Get("Content-Type"),
@@ -84,7 +91,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	warnings, errorMessages := config.Validate()
+	warnings, errorMessages := configvalidate.Validate(config)
 	if len(errorMessages) > 0 {
 		session.Info("ignoring-invalid-config")
 		s.handleBadRequest(w, errorMessages...)
@@ -95,7 +102,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	teamName := rata.Param(r, "team_name")
 
 	if checkCredentials {
-		variables := creds.NewVariables(s.secretManager, teamName, pipelineName)
+		variables := creds.NewVariables(s.secretManager, teamName, pipelineName, false)
 
 		errs := validateCredParams(variables, config, session)
 		if errs != nil {

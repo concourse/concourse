@@ -1,4 +1,4 @@
-package atc_test
+package configvalidate_test
 
 import (
 	"strings"

@@ -6,11 +6,14 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/metric"
 )
@@ -32,8 +35,8 @@ type Runnable interface {
 //go:generate counterfeiter . StepBuilder
 
 type StepBuilder interface {
-	BuildStep(db.Build) (exec.Step, error)
-	CheckStep(db.Check) (exec.Step, error)
+	BuildStep(lager.Logger, db.Build) (exec.Step, error)
+	CheckStep(lager.Logger, db.Check) (exec.Step, error)
 }
 
 func NewEngine(builder StepBuilder) Engine {
@@ -126,6 +129,8 @@ type engineBuild struct {
 	release       chan bool
 	trackedStates *sync.Map
 	waitGroup     *sync.WaitGroup
+
+	pipelineCredMgrs []creds.Manager
 }
 
 func (b *engineBuild) Run(logger lager.Logger) {
@@ -175,12 +180,20 @@ func (b *engineBuild) Run(logger lager.Logger) {
 
 	defer notifier.Close()
 
-	step, err := b.builder.BuildStep(b.build)
+	step, err := b.builder.BuildStep(logger, b.build)
 	if err != nil {
 		logger.Error("failed-to-build-step", err)
+
+		// Fails the build if BuildStep returned error. Because some unrecoverable error,
+		// like pipeline credential manager is wrong, will cause a build to never start
+		// to run.
+		builder.NewBuildStepDelegate(
+			b.build, b.build.PrivatePlan().ID, nil, clock.NewClock(),
+		).Errored(logger, err.Error())
+		b.finish(logger.Session("finish"), err, false)
+
 		return
 	}
-
 	b.trackStarted(logger)
 	defer b.trackFinished(logger)
 
@@ -212,6 +225,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 		logger.Info("releasing")
 
 	case err = <-done:
+		logger.Debug("engine-build-done")
 		b.finish(logger.Session("finish"), err, step.Succeeded())
 	}
 }
@@ -348,7 +362,7 @@ func (c *engineCheck) Run(logger lager.Logger) {
 		return
 	}
 
-	step, err := c.builder.CheckStep(c.check)
+	step, err := c.builder.CheckStep(logger, c.check)
 	if err != nil {
 		logger.Error("failed-to-create-check-step", err)
 		return

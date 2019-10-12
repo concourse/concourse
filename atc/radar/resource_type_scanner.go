@@ -2,6 +2,7 @@ package radar
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -86,6 +87,14 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		return 0, err
 	}
 
+	found, err = scanner.dbPipeline.Reload()
+	if !found {
+		return 0, fmt.Errorf("pipeline %s(%d) not found", scanner.dbPipeline.Name(), scanner.dbPipeline.ID())
+	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to reload pipeline %s(%d)", scanner.dbPipeline.Name(), scanner.dbPipeline.ID())
+	}
+
 	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
 	if err != nil {
 		logger.Error("failed-to-get-resource-types", err)
@@ -116,8 +125,13 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		return 0, err
 	}
 
+	varss, err := scanner.dbPipeline.Variables(logger, scanner.variables)
+	if err != nil {
+		return 0, err
+	}
+
 	versionedResourceTypes, err := creds.NewVersionedResourceTypes(
-		scanner.variables,
+		varss,
 		resourceTypes.Deserialize(),
 	).Evaluate()
 	if err != nil {

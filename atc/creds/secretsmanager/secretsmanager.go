@@ -30,7 +30,7 @@ func NewSecretsManager(log lager.Logger, api secretsmanageriface.SecretsManagerA
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (s *SecretsManager) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+func (s *SecretsManager) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range s.secretTemplates {
 		lPath := NewSecretLookupPathAws(tmpl, teamName, pipelineName)

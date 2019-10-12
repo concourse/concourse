@@ -9,19 +9,20 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . Resource
 
 type Resource interface {
+	PipelineRef
+
 	ID() int
 	Name() string
 	Public() bool
-	PipelineID() int
-	PipelineName() string
 	TeamID() int
 	TeamName() string
 	Type() string
@@ -89,11 +90,11 @@ var resourcesQuery = psql.Select(
 	Where(sq.Eq{"r.active": true})
 
 type resource struct {
+	pipelineRef
+
 	id                    int
 	name                  string
 	public                bool
-	pipelineID            int
-	pipelineName          string
 	teamID                int
 	teamName              string
 	type_                 string
@@ -112,9 +113,10 @@ type resource struct {
 	resourceConfigID      int
 	resourceConfigScopeID int
 	icon                  string
+}
 
-	conn        Conn
-	lockFactory lock.LockFactory
+func newEmptyResource(conn Conn, lockFactory lock.LockFactory) *resource {
+	return &resource{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
 type ResourceNotFoundError struct {
@@ -160,8 +162,6 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 func (r *resource) ID() int                          { return r.id }
 func (r *resource) Name() string                     { return r.name }
 func (r *resource) Public() bool                     { return r.public }
-func (r *resource) PipelineID() int                  { return r.pipelineID }
-func (r *resource) PipelineName() string             { return r.pipelineName }
 func (r *resource) TeamID() int                      { return r.teamID }
 func (r *resource) TeamName() string                 { return r.teamName }
 func (r *resource) Type() string                     { return r.type_ }

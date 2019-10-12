@@ -8,7 +8,7 @@ import (
 
 type Noop struct{}
 
-func (n Noop) NewSecretLookupPaths(string, string) []creds.SecretLookupPath {
+func (n Noop) NewSecretLookupPaths(string, string, bool) []creds.SecretLookupPath {
 	return []creds.SecretLookupPath{}
 }
 

@@ -1,6 +1,7 @@
 package dummy
 
 import (
+	"fmt"
 	"github.com/concourse/concourse/atc/creds"
 	flags "github.com/jessevdk/go-flags"
 )
@@ -26,4 +27,13 @@ func (factory *managerFactory) AddConfig(group *flags.Group) creds.Manager {
 	subGroup.Namespace = "dummy-creds"
 
 	return manager
+}
+
+func (factory *managerFactory) NewInstance(config interface{}) (creds.Manager, error) {
+	if _, ok := config.(map[string]interface{}); !ok {
+		return nil, fmt.Errorf("invalid dummy config format")
+	} else {
+		manager := &Manager{}
+		return manager, nil
+	}
 }

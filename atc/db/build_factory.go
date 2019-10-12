@@ -38,11 +38,7 @@ func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, oneOffGracePeriod 
 }
 
 func (f *buildFactory) Build(buildID int) (Build, bool, error) {
-	build := &build{
-		conn:        f.conn,
-		lockFactory: f.lockFactory,
-	}
-
+	build := newEmptyBuild(f.conn, f.lockFactory)
 	row := buildsQuery.
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(f.conn).
@@ -137,7 +133,7 @@ func getBuilds(buildsQuery sq.SelectBuilder, conn Conn, lockFactory lock.LockFac
 	bs := []Build{}
 
 	for rows.Next() {
-		b := &build{conn: conn, lockFactory: lockFactory}
+		b := newEmptyBuild(conn, lockFactory)
 		err := scanBuild(b, rows, conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -181,7 +177,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 		found := false
 		for sinceRow.Next() {
 			found = true
-			build := &build{conn: conn, lockFactory: lockFactory}
+			build := newEmptyBuild(conn, lockFactory)
 			err = scanBuild(build, sinceRow, conn.EncryptionStrategy())
 			if err != nil {
 				return nil, Pagination{}, err
@@ -219,7 +215,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 		found := false
 		for untilRow.Next() {
 			found = true
-			build := &build{conn: conn, lockFactory: lockFactory}
+			build := newEmptyBuild(conn, lockFactory)
 			err = scanBuild(build, untilRow, conn.EncryptionStrategy())
 			if err != nil {
 				return nil, Pagination{}, err
@@ -296,7 +292,7 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 
 	builds := make([]Build, 0)
 	for rows.Next() {
-		build := &build{conn: conn, lockFactory: lockFactory}
+		build := newEmptyBuild(conn, lockFactory)
 		err = scanBuild(build, rows, conn.EncryptionStrategy())
 		if err != nil {
 			return nil, Pagination{}, err

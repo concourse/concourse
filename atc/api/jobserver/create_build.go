@@ -57,7 +57,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			resource, found := resources.Lookup(input.Resource)
 			if found {
 				version := resource.CurrentPinnedVersion()
-				_, _, err := s.checkFactory.TryCreateCheck(resource, resourceTypes, version, true)
+				_, _, err := s.checkFactory.TryCreateCheck(logger, resource, resourceTypes, version, true)
 				if err != nil {
 					logger.Error("failed-to-create-check", err)
 				}

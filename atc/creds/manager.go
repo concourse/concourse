@@ -10,12 +10,14 @@ type Manager interface {
 	Validate() error
 	Health() (*HealthResponse, error)
 	Init(lager.Logger) error
+	Close(logger lager.Logger)
 
 	NewSecretsFactory(lager.Logger) (SecretsFactory, error)
 }
 
 type ManagerFactory interface {
 	AddConfig(*flags.Group) Manager
+	NewInstance(interface{}) (Manager, error)
 }
 
 type Managers map[string]Manager

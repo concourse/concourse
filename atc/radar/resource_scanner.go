@@ -111,6 +111,14 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 		return 0, err
 	}
 
+	found, err = scanner.dbPipeline.Reload()
+	if !found {
+		return 0, fmt.Errorf("pipeline %s(%d) not found", scanner.dbPipeline.Name(), scanner.dbPipeline.ID())
+	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to reload pipeline %s(%d)", scanner.dbPipeline.Name(), scanner.dbPipeline.ID())
+	}
+
 	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
 	if err != nil {
 		logger.Error("failed-to-get-resource-types", err)
@@ -155,8 +163,14 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 		return 0, err
 	}
 
+	// Combine pipeline specific var_sources with the global credential manager.
+	varss, err := scanner.dbPipeline.Variables(logger, scanner.variables)
+	if err != nil {
+		return 0, err
+	}
+
 	versionedResourceTypes, err := creds.NewVersionedResourceTypes(
-		scanner.variables,
+		varss,
 		resourceTypes.Deserialize(),
 	).Evaluate()
 	if err != nil {
@@ -165,7 +179,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 		return 0, err
 	}
 
-	source, err := creds.NewSource(scanner.variables, savedResource.Source()).Evaluate()
+	source, err := creds.NewSource(varss, savedResource.Source()).Evaluate()
 	if err != nil {
 		logger.Error("failed-to-evaluate-resource-source", err)
 		scanner.setResourceCheckError(logger, savedResource, err)

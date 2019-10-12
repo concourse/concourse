@@ -18,5 +18,5 @@ type Secrets interface {
 	Get(string) (interface{}, *time.Time, bool, error)
 
 	// NewSecretLookupPaths returns an instance of lookup policy, which can transform pipeline ((var)) into one or more secret paths, based on team name and pipeline name
-	NewSecretLookupPaths(string, string) []SecretLookupPath
+	NewSecretLookupPaths(string, string, bool) []SecretLookupPath
 }

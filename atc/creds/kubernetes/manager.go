@@ -71,3 +71,7 @@ func (manager KubernetesManager) NewSecretsFactory(logger lager.Logger) (creds.S
 
 	return NewKubernetesFactory(logger, clientset, manager.NamespacePrefix), nil
 }
+
+func (manager KubernetesManager) Close(logger lager.Logger) {
+	// TODO - to implement
+}

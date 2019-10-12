@@ -39,7 +39,13 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		variables := creds.NewVariables(s.secretManager, dbPipeline.TeamName(), dbPipeline.Name())
+		globalVariables := creds.NewVariables(s.secretManager, dbPipeline.TeamName(), dbPipeline.Name(), false)
+		variables, err := dbPipeline.Variables(logger, globalVariables)
+		if err != nil {
+			logger.Error("failed-to-create-var-sources", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		token, err := creds.NewString(variables, dbResource.WebhookToken()).Evaluate()
 		if token != webhookToken {
 			logger.Info("invalid-token", lager.Data{"error": fmt.Sprintf("invalid token for webhook %s", webhookToken)})
@@ -54,7 +60,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		check, created, err := s.checkFactory.TryCreateCheck(dbResource, dbResourceTypes, nil, true)
+		check, created, err := s.checkFactory.TryCreateCheck(logger, dbResource, dbResourceTypes, nil, true)
 		if err != nil {
 			s.logger.Error("failed-to-create-check", err)
 			w.WriteHeader(http.StatusInternalServerError)

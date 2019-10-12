@@ -182,3 +182,7 @@ func (lc *LazyCredhub) CredHub() (*credhub.CredHub, error) {
 
 	return lc.credhub, nil
 }
+
+func (manager CredHubManager) Close(logger lager.Logger) {
+	// TODO - to implement
+}

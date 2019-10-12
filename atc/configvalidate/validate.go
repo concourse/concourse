@@ -1,4 +1,4 @@
-package atc
+package configvalidate
 
 import (
 	"errors"
@@ -6,6 +6,9 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	. "github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 )
 
 func formatErr(groupName string, err error) string {
@@ -19,14 +22,9 @@ func formatErr(groupName string, err error) string {
 	return fmt.Sprintf("invalid %s:\n%s\n", groupName, strings.Join(indented, "\n"))
 }
 
-type ConfigWarning struct {
-	Type    string `json:"type"`
-	Message string `json:"message"`
-}
-
-func (c Config) Validate() ([]ConfigWarning, []string) {
-	var warnings []ConfigWarning
-	var errorMessages []string
+func Validate(c Config) ([]ConfigWarning, []string) {
+	warnings := []ConfigWarning{}
+	errorMessages := []string{}
 
 	groupsErr := validateGroups(c)
 	if groupsErr != nil {
@@ -41,6 +39,11 @@ func (c Config) Validate() ([]ConfigWarning, []string) {
 	resourceTypesErr := validateResourceTypes(c)
 	if resourceTypesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
+	}
+
+	credentialManagersErr := validateVarSources(c)
+	if credentialManagersErr != nil {
+		errorMessages = append(errorMessages, formatErr("variable sources", credentialManagersErr))
 	}
 
 	jobWarnings, jobsErr := validateJobs(c)
@@ -678,4 +681,31 @@ func compositeErr(errorMessages []string) error {
 	}
 
 	return errors.New(strings.Join(errorMessages, "\n"))
+}
+
+func validateVarSources(c Config) error {
+	for _, cm := range c.VarSources {
+		factory := creds.ManagerFactories()[cm.Type]
+		if factory == nil {
+			return fmt.Errorf("unknown credential manager type: %s", cm.Type)
+		}
+
+		// TODO: this check should eventually be removed once all credential managers
+		// are supported in pipeline. - @evanchaoli
+		switch cm.Type {
+		case "vault":
+		default:
+			return fmt.Errorf("credential manager type %s is not supported in pipeline yet", cm.Type)
+		}
+
+		manager, err := factory.NewInstance(cm.Config)
+		if err != nil {
+			return fmt.Errorf("failed to create credential manager %s: %s", cm.Name, err.Error())
+		}
+		err = manager.Validate()
+		if err != nil {
+			return fmt.Errorf("credential manager %s is invalid: %s", cm.Name, err.Error())
+		}
+	}
+	return nil
 }

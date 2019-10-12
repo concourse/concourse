@@ -1,6 +1,7 @@
 package radar
 
 import (
+	"code.cloudfoundry.org/lager"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -15,8 +16,8 @@ import (
 
 // go:generate counterfeiter . ScannerFactory
 type ScannerFactory interface {
-	NewResourceScanner(dbPipeline db.Pipeline) Scanner
-	NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner
+	NewResourceScanner(lager.Logger, db.Pipeline) Scanner
+	NewResourceTypeScanner(lager.Logger, db.Pipeline) Scanner
 }
 
 type scannerFactory struct {
@@ -57,8 +58,12 @@ func NewScannerFactory(
 	}
 }
 
-func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
-	variables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name())
+func (f *scannerFactory) NewResourceScanner(logger lager.Logger, dbPipeline db.Pipeline) Scanner {
+	globalVariables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name(), false)
+	variables, err := dbPipeline.Variables(logger, globalVariables)
+	if err != nil {
+		return nil
+	}
 
 	return NewResourceScanner(
 		clock.NewClock(),
@@ -73,8 +78,12 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 	)
 }
 
-func (f *scannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner {
-	variables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name())
+func (f *scannerFactory) NewResourceTypeScanner(logger lager.Logger, dbPipeline db.Pipeline) Scanner {
+	globalVariables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name(), false)
+	variables, err := dbPipeline.Variables(logger, globalVariables)
+	if err != nil {
+		return nil
+	}
 
 	return NewResourceTypeScanner(
 		clock.NewClock(),
