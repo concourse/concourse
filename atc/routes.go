@@ -30,8 +30,9 @@ const (
 	JobBadge       = "JobBadge"
 	MainJobBadge   = "MainJobBadge"
 
-	ClearTaskCache     = "ClearTaskCache"
-	ClearResourceCache = "ClearResourceCache"
+	ClearTaskCache      = "ClearTaskCache"
+	ClearResourceCache  = "ClearResourceCache"
+	ClearResourceCaches = "ClearResourceCaches"
 
 	ListAllResources     = "ListAllResources"
 	ListResources        = "ListResources"
@@ -162,7 +163,8 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources", Method: "GET", Name: ListResources},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types", Method: "GET", Name: ListResourceTypes},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name", Method: "GET", Name: GetResource},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/cache", Method: "DELETE", Name: ClearResourceCache},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/cache", Method: "DELETE", Name: ClearResourceCaches},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/cache/:resource_config_version_id", Method: "DELETE", Name: ClearResourceCache},
 
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check", Method: "POST", Name: CheckResource},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check/webhook", Method: "POST", Name: CheckResourceWebHook},

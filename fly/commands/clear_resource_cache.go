@@ -26,7 +26,14 @@ func (command *ClearResourceCacheCommand) Execute([]string) error {
 		return err
 	}
 
-	result, err := target.Team().ClearResourceCache(command.Resource.PipelineName, command.Resource.ResourceName, "")
+	var version atc.Version
+	if command.Version != nil {
+		version = *command.Version
+	}
+
+	result, err := target.Team().ClearResourceCache(
+		command.Resource.PipelineName, command.Resource.ResourceName, version,
+	)
 
 	if err != nil {
 		return err

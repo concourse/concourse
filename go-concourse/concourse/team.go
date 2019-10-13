@@ -52,7 +52,7 @@ type Team interface {
 	CheckResourceType(pipelineName string, resourceTypeName string, version atc.Version) (atc.Check, bool, error)
 	DisableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
 	EnableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
-	ClearResourceCache(pipelineName string, resourceName string, resourceVersion string) ([]string, error)
+	ClearResourceCache(pipelineName string, resourceName string, version atc.Version) ([]string, error)
 
 	PinResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error)
 	UnpinResource(pipelineName string, resourceName string) (bool, error)

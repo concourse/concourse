@@ -47,16 +47,24 @@ func (team *team) ListResources(pipelineName string) ([]atc.Resource, error) {
 	return resources, err
 }
 
-func (team *team) ClearResourceCache(pipelineName string, resourceName string, version string) ([]string, error) {
+func (team *team) ClearResourceCache(pipelineName string, resourceName string, version atc.Version) ([]string, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
 		"team_name":     team.name,
 	}
 
+	requestName := atc.ClearResourceCaches
+
+	if version != nil {
+		selectedVersion, _ := version["ref"]
+		params["resource_config_version_id"] = selectedVersion
+		requestName = atc.ClearResourceCache
+	}
+
 	response := make([]string, 0)
 	err := team.connection.Send(internal.Request{
-		RequestName: atc.ClearResourceCache,
+		RequestName: requestName,
 		Params:      params,
 	}, &internal.Response{
 		Result: &response,
