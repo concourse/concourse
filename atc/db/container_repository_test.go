@@ -613,29 +613,39 @@ var _ = Describe("ContainerRepository", func() {
 		BeforeEach(func() {
 			today = time.Now()
 
-			_, err = psql.Insert("containers").SetMap(map[string]interface{}{
-				"handle": "some-handle-1",
-				"state":  atc.ContainerStateCreated,
+			_, err = psql.Insert("workers").SetMap(map[string]interface{}{
+				"name":  "running-worker",
+				"state": "running",
 			}).RunWith(dbConn).Exec()
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = psql.Insert("containers").SetMap(map[string]interface{}{
-				"handle":        "some-handle-2",
+				"handle":      "created-handle-1",
+				"state":       atc.ContainerStateCreated,
+				"worker_name": "running-worker",
+			}).RunWith(dbConn).Exec()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = psql.Insert("containers").SetMap(map[string]interface{}{
+				"handle":        "created-handle-2",
 				"state":         atc.ContainerStateCreated,
-				"missing_since": today,
-			}).RunWith(dbConn).Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = psql.Insert("containers").SetMap(map[string]interface{}{
-				"handle":        "some-handle-3",
-				"state":         atc.ContainerStateFailed,
+				"worker_name":   "running-worker",
 				"missing_since": today.Add(-5 * time.Minute),
 			}).RunWith(dbConn).Exec()
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = psql.Insert("containers").SetMap(map[string]interface{}{
-				"handle":        "some-handle-4",
+				"handle":        "failed-handle-3",
+				"state":         atc.ContainerStateFailed,
+				"worker_name":   "running-worker",
+				"missing_since": today.Add(-5 * time.Minute),
+			}).RunWith(dbConn).Exec()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = psql.Insert("containers").SetMap(map[string]interface{}{
+				"handle":        "destroying-handle-4",
 				"state":         atc.ContainerStateDestroying,
+				"worker_name":   "running-worker",
 				"missing_since": today.Add(-10 * time.Minute),
 			}).RunWith(dbConn).Exec()
 			Expect(err).NotTo(HaveOccurred())
@@ -656,34 +666,34 @@ var _ = Describe("ContainerRepository", func() {
 			})
 		})
 
-		Context("when some created/failed containers have expired", func() {
+		Context("when some created containers have expired", func() {
 			BeforeEach(func() {
 				gracePeriod = 3 * time.Minute
 			})
 
-			It("affects some containers", func() {
-				Expect(err).ToNot(HaveOccurred())
-				Expect(rowsAffected).To(Equal(1))
-			})
-
-			It("affects the right containers", func() {
+			It("affects the right containers and deletes created-handle-2", func() {
 				result, err := psql.Select("*").From("containers").
 					RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.RowsAffected()).To(Equal(int64(3)))
 
 				result, err = psql.Select("*").From("containers").
-					Where(sq.Eq{"handle": "some-handle-1"}).RunWith(dbConn).Exec()
+					Where(sq.Eq{"handle": "created-handle-1"}).RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.RowsAffected()).To(Equal(int64(1)))
 
 				result, err = psql.Select("*").From("containers").
-					Where(sq.Eq{"handle": "some-handle-2"}).RunWith(dbConn).Exec()
+					Where(sq.Eq{"handle": "created-handle-2"}).RunWith(dbConn).Exec()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(0)))
+
+				result, err = psql.Select("*").From("containers").
+					Where(sq.Eq{"handle": "failed-handle-3"}).RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.RowsAffected()).To(Equal(int64(1)))
 
 				result, err = psql.Select("*").From("containers").
-					Where(sq.Eq{"handle": "some-handle-4"}).RunWith(dbConn).Exec()
+					Where(sq.Eq{"handle": "destroying-handle-4"}).RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.RowsAffected()).To(Equal(int64(1)))
 			})
@@ -694,33 +704,33 @@ var _ = Describe("ContainerRepository", func() {
 				gracePeriod = 3 * time.Minute
 
 				_, err = psql.Insert("workers").SetMap(map[string]interface{}{
-					"name": "stalled-worker",
+					"name":  "stalled-worker",
 					"state": "stalled",
 				}).RunWith(dbConn).Exec()
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = psql.Insert("workers").SetMap(map[string]interface{}{
-					"name": "not-stalled-worker",
-					"state": "running",
+				_, err = psql.Insert("containers").SetMap(map[string]interface{}{
+					"handle":        "stalled-handle-5",
+					"state":         atc.ContainerStateCreated,
+					"worker_name":   "stalled-worker",
+					"missing_since": today.Add(-10 * time.Minute),
 				}).RunWith(dbConn).Exec()
-				Expect(err).NotTo(HaveOccurred())
-
-				// containers 2 & 3 are now eligible for deletion, but 3 is on a stalled worker
-				_, err = psql.Update("containers").
-					Set("missing_since", today.Add(-5 * time.Minute)).
-					Set("worker_name", "not-stalled-worker").
-					Where(sq.Eq{"handle": "some-handle-2"}).
-					RunWith(dbConn).Exec()
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = psql.Update("containers").
 					Set("worker_name", "stalled-worker").
-					Where(sq.Eq{"handle": "some-handle-3"}).
+					Where(sq.Eq{"handle": "failed-handle-3"}).
+					RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = psql.Update("containers").
+					Set("missing_since", today.Add(-5*time.Minute)).
+					Where(sq.Eq{"handle": "destroying-handle-4"}).
 					RunWith(dbConn).Exec()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("deletes containers missing for more than grace period, on unstalled workers", func() {
+			It("deletes containers missing for more than grace period, on running (unstalled) workers", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(rowsAffected).To(Equal(1))
 			})
@@ -729,25 +739,30 @@ var _ = Describe("ContainerRepository", func() {
 				result, err := psql.Select("*").From("containers").
 					RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(3)))
+				Expect(result.RowsAffected()).To(Equal(int64(4)))
 
 				result, err = psql.Select("*").From("containers").
-					Where(sq.Eq{"handle": "some-handle-1"}).RunWith(dbConn).Exec()
+					Where(sq.Eq{"handle": "created-handle-1"}).RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.RowsAffected()).To(Equal(int64(1)))
 
 				result, err = psql.Select("*").From("containers").
-					Where(sq.Eq{"handle": "some-handle-2"}).RunWith(dbConn).Exec()
+					Where(sq.Eq{"handle": "created-handle-2"}).RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.RowsAffected()).To(Equal(int64(0)))
 
 				result, err = psql.Select("*").From("containers").
-					Where(sq.Eq{"handle": "some-handle-3"}).RunWith(dbConn).Exec()
+					Where(sq.Eq{"handle": "failed-handle-3"}).RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.RowsAffected()).To(Equal(int64(1)))
 
 				result, err = psql.Select("*").From("containers").
-					Where(sq.Eq{"handle": "some-handle-4"}).RunWith(dbConn).Exec()
+					Where(sq.Eq{"handle": "destroying-handle-4"}).RunWith(dbConn).Exec()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+				result, err = psql.Select("*").From("containers").
+					Where(sq.Eq{"handle": "stalled-handle-5"}).RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.RowsAffected()).To(Equal(int64(1)))
 			})
