@@ -303,8 +303,8 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
          , attribute "title" accessibilityLabel
          , onLeftClick <| Click domID
          , onMouseEnter <| Hover <| Just domID
-         , onFocus <| Hover <| Just domID
          , onMouseLeave <| Hover Nothing
+         , onFocus <| Hover <| Just domID
          , onBlur <| Hover Nothing
          ]
             ++ styles
@@ -314,8 +314,21 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
             , image = image
             }
             []
+        , tooltipArrow tooltip type_
         , viewTooltip tooltip type_
         ]
+
+
+tooltipArrow : Bool -> ButtonType -> Html Message
+tooltipArrow tooltip type_ =
+    case ( tooltip, type_ ) of
+        ( True, Trigger ) ->
+            Html.div
+                Styles.triggerTooltipArrow
+                []
+
+        _ ->
+            Html.text ""
 
 
 viewTooltip : Bool -> ButtonType -> Html Message

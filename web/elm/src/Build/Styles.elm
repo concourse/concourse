@@ -18,6 +18,7 @@ module Build.Styles exposing
     , stepStatusIcon
     , triggerButton
     , triggerTooltip
+    , triggerTooltipArrow
     )
 
 import Application.Styles
@@ -130,18 +131,37 @@ button =
     ]
 
 
+triggerTooltipArrow : List (Html.Attribute msg)
+triggerTooltipArrow =
+    [ style "width" "0"
+    , style "height" "0"
+    , style "left" "50%"
+    , style "bottom" "0"
+    , style "margin-left" "-5px"
+    , style "border-bottom" <| "5px solid " ++ Colors.tooltipBackground
+    , style "border-left" "5px solid transparent"
+    , style "border-right" "5px solid transparent"
+    , style "position" "absolute"
+    ]
+
+
 triggerTooltip : List (Html.Attribute msg)
 triggerTooltip =
     [ style "position" "absolute"
-    , style "right" "100%"
-    , style "top" "15px"
-    , style "width" "300px"
-    , style "color" Colors.buildTooltipBackground
+    , style "right" "0"
+    , style "top" "100%"
+    , style "width" "240px"
+    , style "color" Colors.buildTooltipText
+    , style "background-color" Colors.tooltipBackground
     , style "font-size" "12px"
     , style "font-family" "Inconsolata,monospace"
     , style "padding" "10px"
     , style "text-align" "right"
     , style "pointer-events" "none"
+    , style "z-index" "1"
+
+    -- ^ need a value greater than 0 (inherited from .fixed-header) since this
+    -- element is earlier in the document than the build tabs
     ]
 
 

@@ -2016,15 +2016,6 @@ all =
                             , containing
                                 [ containing
                                     [ text "manual triggering disabled in job config" ]
-                                , style "position" "absolute"
-                                , style "right" "100%"
-                                , style "top" "15px"
-                                , style "width" "300px"
-                                , style "color" "#ecf0f1"
-                                , style "font-size" "12px"
-                                , style "font-family" "Inconsolata,monospace"
-                                , style "padding" "10px"
-                                , style "text-align" "right"
                                 ]
                             , containing <|
                                 iconSelector

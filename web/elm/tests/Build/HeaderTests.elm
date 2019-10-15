@@ -97,71 +97,95 @@ all =
                             )
             ]
         , describe "buttons"
-            [ test "re-run button does not appear on non-running one-off build" <|
-                \_ ->
-                    Header.header session
-                        { model | status = BuildStatusSucceeded }
-                        |> .rightWidgets
-                        |> Common.notContains
-                            (Views.Button <|
-                                Just
-                                    { type_ = Views.Rerun
-                                    , isClickable = True
-                                    , backgroundShade = Views.Light
-                                    , backgroundColor = BuildStatusSucceeded
-                                    , tooltip = False
-                                    }
-                            )
-            , test "re-run button appears on non-running job build" <|
-                \_ ->
-                    Header.header session
-                        { model | status = BuildStatusSucceeded, job = Just jobId }
-                        |> .rightWidgets
-                        |> Common.contains
-                            (Views.Button <|
-                                Just
-                                    { type_ = Views.Rerun
-                                    , isClickable = True
-                                    , backgroundShade = Views.Light
-                                    , backgroundColor = BuildStatusSucceeded
-                                    , tooltip = False
-                                    }
-                            )
-            , test "re-run button is hoverable" <|
-                \_ ->
-                    { model | status = BuildStatusSucceeded, job = Just jobId }
-                        |> Header.header
+            [ describe "trigger"
+                [ test "has tooltip on hover when manual triggering is disabled" <|
+                    \_ ->
+                        Header.header
                             { session
                                 | hovered =
                                     HoverState.Hovered
-                                        Message.RerunBuildButton
+                                        Message.TriggerBuildButton
                             }
-                        |> .rightWidgets
-                        |> Common.contains
-                            (Views.Button <|
-                                Just
-                                    { type_ = Views.Rerun
-                                    , isClickable = True
-                                    , backgroundShade = Views.Dark
-                                    , backgroundColor = BuildStatusSucceeded
-                                    , tooltip = False
-                                    }
-                            )
-            , test "clicking re-run button sends RerunJobBuild API call" <|
-                \_ ->
-                    ( { model | status = BuildStatusSucceeded, job = Just jobId }
-                    , []
-                    )
-                        |> Header.update (Message.Click Message.RerunBuildButton)
-                        |> Tuple.second
-                        |> Common.contains
-                            (Effects.RerunJobBuild <|
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                , jobName = "job"
-                                , buildName = model.name
+                            { model | disableManualTrigger = False }
+                            |> .rightWidgets
+                            |> Common.notContains
+                                (Views.Button <|
+                                    Just
+                                        { type_ = Views.Trigger
+                                        , isClickable = False
+                                        , backgroundShade = Views.Dark
+                                        , backgroundColor = model.status
+                                        , tooltip = True
+                                        }
+                                )
+                ]
+            , describe "re-run"
+                [ test "does not appear on non-running one-off build" <|
+                    \_ ->
+                        Header.header session
+                            { model | status = BuildStatusSucceeded }
+                            |> .rightWidgets
+                            |> Common.notContains
+                                (Views.Button <|
+                                    Just
+                                        { type_ = Views.Rerun
+                                        , isClickable = True
+                                        , backgroundShade = Views.Light
+                                        , backgroundColor = BuildStatusSucceeded
+                                        , tooltip = False
+                                        }
+                                )
+                , test "appears on non-running job build" <|
+                    \_ ->
+                        Header.header session
+                            { model | status = BuildStatusSucceeded, job = Just jobId }
+                            |> .rightWidgets
+                            |> Common.contains
+                                (Views.Button <|
+                                    Just
+                                        { type_ = Views.Rerun
+                                        , isClickable = True
+                                        , backgroundShade = Views.Light
+                                        , backgroundColor = BuildStatusSucceeded
+                                        , tooltip = False
+                                        }
+                                )
+                , test "is hoverable" <|
+                    \_ ->
+                        { model | status = BuildStatusSucceeded, job = Just jobId }
+                            |> Header.header
+                                { session
+                                    | hovered =
+                                        HoverState.Hovered
+                                            Message.RerunBuildButton
                                 }
-                            )
+                            |> .rightWidgets
+                            |> Common.contains
+                                (Views.Button <|
+                                    Just
+                                        { type_ = Views.Rerun
+                                        , isClickable = True
+                                        , backgroundShade = Views.Dark
+                                        , backgroundColor = BuildStatusSucceeded
+                                        , tooltip = False
+                                        }
+                                )
+                , test "clicking sends RerunJobBuild API call" <|
+                    \_ ->
+                        ( { model | status = BuildStatusSucceeded, job = Just jobId }
+                        , []
+                        )
+                            |> Header.update (Message.Click Message.RerunBuildButton)
+                            |> Tuple.second
+                            |> Common.contains
+                                (Effects.RerunJobBuild <|
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    , jobName = "job"
+                                    , buildName = model.name
+                                    }
+                                )
+                ]
             ]
         , test "stops fetching history once current build appears" <|
             \_ ->
