@@ -73,16 +73,18 @@ var _ = Describe("DNS Resolution", func() {
 	DescribeTable("different proxy settings",
 		func(c Case) {
 			setupDeployment(c.enableDnsProxy, c.dnsServer)
-
-			sess := fly.Start("execute", "-c", "tasks/dns-proxy-task.yml", "-v", "url="+c.addressFunction())
-			<-sess.Exited
+			var statusCode int
 
 			if !c.shouldWork {
-				Expect(sess.ExitCode()).ToNot(BeZero())
-				return
+				statusCode = 1
 			}
 
-			Expect(sess.ExitCode()).To(BeZero())
+			Eventually(func() int {
+				sess := fly.Start("execute", "-c", "tasks/dns-proxy-task.yml", "-v", "url="+c.addressFunction())
+				<-sess.Exited
+				return sess.ExitCode()
+			}, 5*time.Minute, 1*time.Second).Should(Equal(statusCode))
+
 		},
 		Entry("Proxy Enabled, with full service name", Case{
 			enableDnsProxy:  "true",

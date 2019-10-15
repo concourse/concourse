@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/square/certstrap/pkix"
 
@@ -82,17 +81,14 @@ var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 
 			It("fly login succeeds when using the correct CA and host", func() {
 				By("Logging in")
-				sess := fly.Start("login", "-u", "test", "-p", "test", "--ca-cert", caCertFile.Name(), "-c", atcEndpoint)
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				fly.RunWithRetry("login", "-u", "test", "-p", "test", "--ca-cert", caCertFile.Name(), "-c", atcEndpoint)
 			})
 
 			It("fly login fails when NOT using the correct CA", func() {
 				By("Logging in")
-				sess := fly.Start("login", "-u", "test", "-p", "test", "--ca-cert", "k8s/certs/wrong-ca.crt", "-c", atcEndpoint)
-				<-sess.Exited
-				Expect(sess.ExitCode()).ToNot(Equal(0))
-				Expect(sess.Err).To(gbytes.Say(`x509: certificate signed by unknown authority`))
+				fly.RunWithRetryAndReturns(1,
+					"x509: certificate signed by unknown authority",
+					"login", "-u", "test", "-p", "test", "--ca-cert", "k8s/certs/wrong-ca.crt", "-c", atcEndpoint)
 			})
 		})
 

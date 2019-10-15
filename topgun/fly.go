@@ -3,6 +3,7 @@ package topgun
 import (
 	"context"
 	"encoding/json"
+	"github.com/onsi/gomega/gbytes"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -49,18 +50,12 @@ type Version struct {
 }
 
 func (f *FlyCli) Login(user, password, endpoint string) {
-	Eventually(func() *gexec.Session {
-		sess := f.Start(
+		f.RunWithRetry(
 			"login",
 			"-c", endpoint,
 			"-u", user,
 			"-p", password,
 		)
-
-		<-sess.Exited
-		return sess
-	}, 2*time.Minute, 10*time.Second).
-		Should(gexec.Exit(0), "Fly should have been able to log in")
 }
 
 func (f *FlyCli) Run(argv ...string) {
@@ -69,6 +64,25 @@ func (f *FlyCli) Run(argv ...string) {
 
 func (f *FlyCli) Start(argv ...string) *gexec.Session {
 	return Start([]string{"HOME=" + f.Home}, f.Bin, append([]string{"-t", f.Target}, argv...)...)
+}
+
+func (f *FlyCli) RunWithRetry(argv ...string) {
+	Eventually(func() int {
+		sess := f.Start(argv...)
+		<-sess.Exited
+		return sess.ExitCode()
+	}, 5*time.Minute).Should(BeZero())
+}
+
+func (f *FlyCli) RunWithRetryAndReturns(exitCode int, expectedErr string, argv ...string) {
+	runFunc := func() int {
+		sess := f.Start(argv...)
+		<-sess.Exited
+		Expect(sess.ExitCode()).Should(Equal(exitCode))
+		Expect(sess.Err).Should(gbytes.Say(expectedErr))
+		return sess.ExitCode()
+	}
+	Eventually(runFunc).Should(Equal(exitCode))
 }
 
 func (f *FlyCli) StartWithEnv(env []string, argv ...string) *gexec.Session {
@@ -80,11 +94,16 @@ func (f *FlyCli) SpawnInteractive(stdin io.Reader, argv ...string) *gexec.Sessio
 }
 
 func (f *FlyCli) GetContainers() []Container {
-	var containers = []Container{}
+	var (
+		containers = []Container{}
+		sess *gexec.Session
+	)
 
-	sess := f.Start("containers", "--json")
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(BeZero())
+	Eventually(func() int {
+		sess = f.Start("containers", "--json")
+		<-sess.Exited
+		return sess.ExitCode()
+	}, 1*time.Minute).Should(BeZero())
 
 	err := json.Unmarshal(sess.Out.Contents(), &containers)
 	Expect(err).ToNot(HaveOccurred())
@@ -93,11 +112,16 @@ func (f *FlyCli) GetContainers() []Container {
 }
 
 func (f *FlyCli) GetWorkers() []Worker {
-	var workers = []Worker{}
+	var (
+		workers = []Worker{}
+		sess *gexec.Session
+	)
 
-	sess := f.Start("workers", "--json")
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(BeZero())
+	Eventually(func() int {
+		sess = f.Start("workers", "--json")
+		<-sess.Exited
+		return sess.ExitCode()
+	}, 1*time.Minute).Should(BeZero())
 
 	err := json.Unmarshal(sess.Out.Contents(), &workers)
 	Expect(err).ToNot(HaveOccurred())
@@ -136,10 +160,16 @@ func (f *FlyCli) GetUserRole(teamName string) []string {
 	type RoleInfo struct {
 		Teams map[string][]string `json:"teams"`
 	}
-	var teamsInfo RoleInfo = RoleInfo{}
+	var (
+		teamsInfo RoleInfo = RoleInfo{}
+		sess *gexec.Session
+	)
 
-	sess := f.Start("userinfo", "--json")
-	<-sess.Exited
+	Eventually(func() int {
+		sess = f.Start("userinfo", "--json")
+		<-sess.Exited
+		return sess.ExitCode()
+	}, 1*time.Minute).Should(BeZero())
 	Expect(sess.ExitCode()).To(BeZero())
 
 	err := json.Unmarshal(sess.Out.Contents(), &teamsInfo)

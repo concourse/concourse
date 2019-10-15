@@ -59,7 +59,7 @@ var _ = Describe("External PostgreSQL", func() {
 		By("Logging in")
 		fly.Login("test", "test", atcEndpoint)
 
-		By("Setting and triggering a dumb pipeline")
-		fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "pipeline")
+		By("Setting a dumb pipeline")
+		fly.RunWithRetry("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "pipeline")
 	})
 })

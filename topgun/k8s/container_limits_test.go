@@ -1,6 +1,7 @@
 package k8s_test
 
 import (
+	"github.com/onsi/gomega/gexec"
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
@@ -67,20 +68,20 @@ func containerLimitsWork(selectorFlags ...string) {
 		It("returns the configure default container limit", func() {
 			deployWithSelectors(selectorFlags...)
 			waitAndLogin()
-			buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
-			<-buildSession.Exited
-			Expect(buildSession.ExitCode()).To(Equal(0))
 
-			hijackSession := fly.Start(
-				"hijack",
-				"-b", "1",
-				"--", "sh", "-c",
-				"cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; cat /sys/fs/cgroup/cpu/cpu.shares",
-			)
-			<-hijackSession.Exited
+			fly.RunWithRetry("execute", "-c", "tasks/tiny.yml")
 
-			Expect(hijackSession.ExitCode()).To(Equal(0))
-			Expect(hijackSession).To(gbytes.Say("1073741824\n512"))
+			Eventually(func() (*gexec.Session, int) {
+				hijackSession := fly.Start(
+					"hijack",
+					"-b", "1",
+					"--", "sh", "-c",
+					"cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; cat /sys/fs/cgroup/cpu/cpu.shares",
+				)
+				<-hijackSession.Exited
+				return hijackSession, hijackSession.ExitCode()
+			}, 1*time.Minute).Should(gbytes.Say("1073741824\n512"))
+			// exitCode is implicitly asserted to be zero value by Gomega
 		})
 	})
 }
@@ -90,12 +91,11 @@ func containerLimitsFail(selectorFlags ...string) {
 		It("fails to set the memory limit", func() {
 			deployWithSelectors(selectorFlags...)
 			waitAndLogin()
-			buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
-			<-buildSession.Exited
-			Expect(buildSession.ExitCode()).To(Equal(2))
-
-			Expect(buildSession).To(gbytes.Say("failed to write 1073741824 to memory.memsw.limit_in_bytes"))
-			Expect(buildSession).To(gbytes.Say("permission denied"))
+			Eventually(func() *gexec.Session {
+				buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
+				<-buildSession.Exited
+				return buildSession
+			}, 1*time.Minute).Should(gbytes.Say(`(failed to write 1073741824 to memory\.memsw\.limit_in_bytes.*permission denied)`)) // regex checks for inclusion of two strings, which were separately checked in previous test
 		})
 	})
 }

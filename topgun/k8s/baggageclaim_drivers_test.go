@@ -61,9 +61,9 @@ func baggageclaimWorks(driver string, selectorFlags ...string) {
 				ShouldNot(HaveLen(0))
 
 			By("Setting and triggering a dumb pipeline")
-			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "some-pipeline")
-			fly.Run("unpause-pipeline", "-p", "some-pipeline")
-			fly.Run("trigger-job", "-w", "-j", "some-pipeline/simple-job")
+			fly.RunWithRetry("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "some-pipeline")
+			fly.RunWithRetry("unpause-pipeline", "-p", "some-pipeline")
+			fly.RunWithRetry("trigger-job", "-w", "-j", "some-pipeline/simple-job")
 		})
 	})
 }
@@ -81,7 +81,7 @@ func baggageclaimFails(driver string, selectorFlags ...string) {
 
 				return workerLogsSession.Out.Contents()
 
-			}).Should(ContainSubstring("failed-to-set-up-driver"))
+			}, 5*time.Minute, 60*time.Second).Should(ContainSubstring("failed-to-set-up-driver"))
 
 		})
 	})

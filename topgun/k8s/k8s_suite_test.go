@@ -167,8 +167,10 @@ func deployFailingConcourseChart(releaseName string, expectedErr string, args ..
 
 func deployConcourseChart(releaseName string, args ...string) {
 	helmArgs := helmInstallArgs(args...)
-	sess := helmDeploy(releaseName, releaseName, Environment.ConcourseChartDir, helmArgs...)
-	Expect(sess.ExitCode()).To(Equal(0))
+	Eventually(func() int {
+		sess := helmDeploy(releaseName, releaseName, Environment.ConcourseChartDir, helmArgs...)
+		return sess.ExitCode()
+	}).Should(BeZero())
 }
 
 func helmDestroy(releaseName string) {

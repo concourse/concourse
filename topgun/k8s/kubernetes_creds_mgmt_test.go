@@ -169,16 +169,18 @@ var _ = Describe("Kubernetes credential management", func() {
 			createCredentialSecret(releaseName, "some-secret", "main", map[string]string{"value": "mysecret"})
 
 			By("successfully running the one-off build")
-			fly.Run("execute",
+			fly.RunWithRetry("execute",
 				"-c", "tasks/simple-secret.yml")
 		})
 
 		It("one-off build fails", func() {
+			Eventually(func() int {
+				sess := fly.Start("execute",
+					"-c", "tasks/simple-secret.yml")
+				<-sess.Exited
+				return sess.ExitCode()
+			}, 1*time.Minute).ShouldNot(BeZero())
 			By("not creating the secret")
-			sess := fly.Start("execute",
-				"-c", "tasks/simple-secret.yml")
-			<-sess.Exited
-			Expect(sess.ExitCode()).NotTo(Equal(0))
 		})
 	})
 
@@ -213,19 +215,23 @@ func runsBuildWithCredentialsResolved(normalSecret string, specialKeySecret stri
 	createCredentialSecret(releaseName, normalSecret, "main", map[string]string{"value": "bar"})
 	createCredentialSecret(releaseName, specialKeySecret, "main", map[string]string{"baz": "zaz"})
 
-	fly.Run("set-pipeline", "-n",
+	fly.RunWithRetry("set-pipeline", "-n",
 		"-c", "pipelines/minimal-credential-management.yml",
 		"-p", "pipeline",
 	)
 
-	fly.Run("unpause-pipeline", "-p", "pipeline")
+	fly.RunWithRetry("unpause-pipeline", "-p", "pipeline")
 
-	session := fly.Start("trigger-job", "-j", "pipeline/unit", "-w")
-	Wait(session)
+	var session *gexec.Session
+	Eventually(func() int {
+		session = fly.Start("trigger-job", "-j", "pipeline/unit", "-w")
+		<-session.Exited
+		return session.ExitCode()
+	}, 1*time.Minute).Should(BeZero())
 
 	By("seeing the credentials were resolved by concourse")
-	Expect(string(session.Out.Contents())).To(ContainSubstring("bar"))
-	Expect(string(session.Out.Contents())).To(ContainSubstring("zaz"))
+	Eventually(string(session.Out.Contents())).Should(ContainSubstring("bar"))
+	Eventually(string(session.Out.Contents())).Should(ContainSubstring("zaz"))
 }
 
 func runGetsCachedCredentials(secretNameFoo string, secretNameCaz string) {

@@ -58,6 +58,6 @@ var _ = Describe("Ephemeral workers", func() {
 				}
 			}
 			return
-		}, 1*time.Minute, 1*time.Second).Should(HaveLen(0), "the running worker should go away")
+		}, 1*time.Minute).Should(HaveLen(0), "the running worker should go away")
 	})
 })

@@ -44,13 +44,13 @@ var _ = Describe("Worker lifecycle", func() {
 		}, 2*time.Minute, 10*time.Second).
 			ShouldNot(HaveLen(0))
 
-		fly.Run("set-pipeline", "-n",
+		fly.RunWithRetry("set-pipeline", "-n",
 			"-c", "pipelines/task-waiting.yml",
 			"-p", "some-pipeline",
 		)
 
-		fly.Run("unpause-pipeline", "-p", "some-pipeline")
-		fly.Run("trigger-job", "-j", "some-pipeline/simple-job")
+		fly.RunWithRetry("unpause-pipeline", "-p", "some-pipeline")
+		fly.RunWithRetry("trigger-job", "-j", "some-pipeline/simple-job")
 
 		By("waiting container to be created")
 		Eventually(func() bool {
@@ -92,7 +92,7 @@ var _ = Describe("Worker lifecycle", func() {
 					Should(Equal("retiring"))
 
 				By("letting the task finish")
-				fly.Run("hijack", "--verbose", "-j", "some-pipeline/simple-job",
+				fly.RunWithRetry("hijack", "--verbose", "-j", "some-pipeline/simple-job",
 					"--", "/bin/sh", "-ce",
 					`touch /tmp/stop-waiting`,
 				)
@@ -104,7 +104,7 @@ var _ = Describe("Worker lifecycle", func() {
 					Should(HaveLen(0))
 
 				By("seeing that the build succeeded")
-				fly.Run("watch", "-j", "some-pipeline/simple-job")
+				fly.RunWithRetry("watch", "-j", "some-pipeline/simple-job")
 			})
 		})
 
@@ -122,9 +122,11 @@ var _ = Describe("Worker lifecycle", func() {
 					Should(HaveLen(0))
 
 				By("seeing that the worker disappeared")
-				startSession := fly.Start("watch", "-j", "some-pipeline/simple-job")
-				<-startSession.Exited
-				Expect(startSession.Out).To(gbytes.Say("errored"))
+				Eventually(func() *gbytes.Buffer {
+					startSession := fly.Start("watch", "-j", "some-pipeline/simple-job")
+					<-startSession.Exited
+					return startSession.Out
+				}, 5 * time.Minute, 30 * time.Second).Should(gbytes.Say("errored"))
 			})
 		})
 	})
