@@ -81,6 +81,7 @@ Concourse comes with five roles: Concourse Admin, Team Owner, Team Member, Pipel
     \table-row{\reference{fly-targets}          }{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{\reference{fly-teams}            }{✘   }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{\reference{fly-trigger-job}      }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{\reference{fly-rerun-build}      }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
     \table-row{\reference{fly-unpause-job}      }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
     \table-row{\reference{fly-unpause-pipeline} }{✘   }{✓    }{✓           }{✓            }{✓                       }{✘            }
     \table-row{\reference{fly-validate-pipeline}}{✓   }{✓    }{✓           }{✓            }{✓                       }{✓            }
@@ -107,6 +108,7 @@ Concourse comes with five roles: Concourse Admin, Team Owner, Team Member, Pipel
     \table-row{                   }{Pin Version             }{✓    }{✓           }{✓            }{✓                       }{✘            }
     \table-row{                   }{Paginate (<- ->)        }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{Build Page         }{Trigger new Build       }{✓    }{✓           }{✓            }{✓                       }{✘            }
+    \table-row{                   }{Rerun Build             }{✓    }{✓           }{✓            }{✓                       }{✘            }
     \table-row{                   }{View Build              }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{                   }{Build Details           }{✓    }{✓           }{✓            }{✓                       }{✓            }
     \table-row{                   }{Abort Build             }{✓    }{✓           }{✓            }{✓                       }{✘            }
