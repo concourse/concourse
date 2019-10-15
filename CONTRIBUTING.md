@@ -190,6 +190,25 @@ To trace a running worker instance:
 $ ./hack/trace worker
 ```
 
+To attach IDE debugger to a running instance, you can use the `--listen` flag followed by a port and the dlv will be started in headless mode listening on the specified port.   
+
+To debug a running web instance:
+
+```sh
+$ ./hack/trace web --listen 2345
+```
+
+To debug a running worker instance:
+
+```sh
+$ ./hack/trace worker --listen 2345
+```
+
+After this is done, the final step is to connect your IDE to the debugger, which is listening on localhost:port. 
+
+For Go Land you can do so by going to Run | Edit Configurations… | + | Go Remote and configuring the host(127.0.0.1) and port your  debugger is listening on.
+
+
 ### Connecting to Postgres
 
 If you want to poke around the database, you can connect to the `db` node using
