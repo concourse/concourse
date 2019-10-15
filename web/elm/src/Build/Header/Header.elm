@@ -66,21 +66,23 @@ header session model =
                     }
 
              else if model.job /= Nothing then
+                let
+                    isHovered =
+                        HoverState.isHovered
+                            RerunBuildButton
+                            session.hovered
+                in
                 Just
                     { type_ = Views.Rerun
                     , isClickable = True
                     , backgroundShade =
-                        if
-                            HoverState.isHovered
-                                RerunBuildButton
-                                session.hovered
-                        then
+                        if isHovered then
                             Views.Dark
 
                         else
                             Views.Light
                     , backgroundColor = model.status
-                    , tooltip = False
+                    , tooltip = isHovered
                     }
 
              else

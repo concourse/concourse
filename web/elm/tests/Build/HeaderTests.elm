@@ -150,7 +150,7 @@ all =
                                         , tooltip = False
                                         }
                                 )
-                , test "is hoverable" <|
+                , test "is hoverable with tooltip" <|
                     \_ ->
                         { model | status = BuildStatusSucceeded, job = Just jobId }
                             |> Header.header
@@ -167,7 +167,7 @@ all =
                                         , isClickable = True
                                         , backgroundShade = Views.Dark
                                         , backgroundColor = BuildStatusSucceeded
-                                        , tooltip = False
+                                        , tooltip = True
                                         }
                                 )
                 , test "clicking sends RerunJobBuild API call" <|

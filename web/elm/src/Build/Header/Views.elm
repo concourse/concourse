@@ -324,7 +324,12 @@ tooltipArrow tooltip type_ =
     case ( tooltip, type_ ) of
         ( True, Trigger ) ->
             Html.div
-                Styles.triggerTooltipArrow
+                Styles.buttonTooltipArrow
+                []
+
+        ( True, Rerun ) ->
+            Html.div
+                Styles.buttonTooltipArrow
                 []
 
         _ ->
@@ -336,9 +341,16 @@ viewTooltip tooltip type_ =
     case ( tooltip, type_ ) of
         ( True, Trigger ) ->
             Html.div
-                Styles.triggerTooltip
+                (Styles.buttonTooltip 240)
                 [ Html.text <|
                     "manual triggering disabled in job config"
+                ]
+
+        ( True, Rerun ) ->
+            Html.div
+                (Styles.buttonTooltip 165)
+                [ Html.text <|
+                    "re-run with the same inputs"
                 ]
 
         _ ->

@@ -17,8 +17,8 @@ module Build.Styles exposing
     , stepHeaderIcon
     , stepStatusIcon
     , triggerButton
-    , triggerTooltip
-    , triggerTooltipArrow
+    , buttonTooltip
+    , buttonTooltipArrow
     )
 
 import Application.Styles
@@ -131,8 +131,8 @@ button =
     ]
 
 
-triggerTooltipArrow : List (Html.Attribute msg)
-triggerTooltipArrow =
+buttonTooltipArrow : List (Html.Attribute msg)
+buttonTooltipArrow =
     [ style "width" "0"
     , style "height" "0"
     , style "left" "50%"
@@ -145,12 +145,12 @@ triggerTooltipArrow =
     ]
 
 
-triggerTooltip : List (Html.Attribute msg)
-triggerTooltip =
+buttonTooltip : Int -> List (Html.Attribute msg)
+buttonTooltip width =
     [ style "position" "absolute"
     , style "right" "0"
     , style "top" "100%"
-    , style "width" "240px"
+    , style "width" <| String.fromInt width ++ "px"
     , style "color" Colors.buildTooltipText
     , style "background-color" Colors.tooltipBackground
     , style "font-size" "12px"
