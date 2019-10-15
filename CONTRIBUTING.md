@@ -208,7 +208,7 @@ After this is done, the final step is to connect your IDE to the debugger with t
 * host: `localhost`
 * port: `2345` 
 
-For Go Land you can do so by going to Run | Edit Configurations… | + | Go Remote and fill in the parameters.
+For GoLand you can do so by going to Run | Edit Configurations… | + | Go Remote and fill in the parameters.
 
 
 ### Connecting to Postgres
