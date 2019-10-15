@@ -27,7 +27,10 @@
 
 * @iamjarvo fixed a [bug](444://github.com/concourse/concourse/issues/4472) where `fly builds` would show the wrong duration for cancelled builds #4507.
 
+#### <sub><sup><a name="4590" href="#4590">:link:</a></sup></sub> feature
+
+* @pnsantos updated the Material Design icon library so now the `concourse-ci` icon is available for resources :tada: #4590
+
 #### <sub><sup><a name="4492" href="#4492">:link:</a></sup></sub> fix
 
 * The `fly format-pipeline` now always produces a formatted pipeline, instead of declining to do so when it was already in the expected format. #4492
-  
