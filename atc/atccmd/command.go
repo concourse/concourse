@@ -43,6 +43,7 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/syslog"
+	"github.com/concourse/concourse/atc/tracing"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/wrappa"
@@ -149,6 +150,11 @@ type RunCommand struct {
 		BufferSize          uint32            `long:"metrics-buffer-size" default:"1000" description:"The size of the buffer used in emitting event metrics."`
 		CaptureErrorMetrics bool              `long:"capture-error-metrics" description:"Enable capturing of error log metrics"`
 	} `group:"Metrics & Diagnostics"`
+
+	Tracing struct {
+		Jaeger tracing.Jaeger
+		Stdout tracing.Stdout
+	} `group:"Tracing"`
 
 	Server struct {
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
@@ -406,6 +412,17 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	if cmd.Metrics.CaptureErrorMetrics {
 		errorSinkCollector := metric.NewErrorSinkCollector(logger)
 		logger.RegisterSink(&errorSinkCollector)
+	}
+
+	if cmd.Tracing.Jaeger.IsConfigured() {
+		exp, err := cmd.Tracing.Jaeger.Exporter()
+		if err != nil {
+			return nil, err
+		}
+
+		tracing.ConfigureTracer(exp)
+	} else if cmd.Tracing.Stdout.IsConfigured() {
+		tracing.ConfigureTracer(cmd.Tracing.Stdout.Exporter())
 	}
 
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
