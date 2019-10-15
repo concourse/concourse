@@ -563,24 +563,25 @@ func (repository *volumeRepository) DestroyUnknownVolumes(workerName string, rep
 
 	defer Rollback(tx)
 
-	for _, unknownHandle := range unknownHandles {
-		_, err = psql.Insert("volumes").
-			Columns(
-				"handle",
-				"worker_name",
-				"state",
-			).
-			Values(
-				unknownHandle,
-				workerName,
-				VolumeStateDestroying,
-			).
-			RunWith(tx).Exec()
+	insertBuilder := psql.Insert("volumes").Columns(
+		"handle",
+		"worker_name",
+		"state",
+	)
 
-		if err != nil {
-			return 0, err
-		}
+	for _, unknownHandle := range unknownHandles {
+		insertBuilder = insertBuilder.Values(
+			unknownHandle,
+			workerName,
+			VolumeStateDestroying,
+		)
 	}
+
+	_, err = insertBuilder.RunWith(tx).Exec()
+	if err != nil {
+		return 0, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return 0, err
