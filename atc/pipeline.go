@@ -12,3 +12,7 @@ type Pipeline struct {
 type RenameRequest struct {
 	NewName string `json:"name"`
 }
+
+type MoveRequest struct {
+	DestinationTeamName string `json:"name"`
+}

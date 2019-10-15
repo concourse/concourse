@@ -83,6 +83,7 @@ type Pipeline interface {
 
 	Destroy() error
 	Rename(string) error
+	Move(string) error
 }
 
 type pipeline struct {
@@ -653,7 +654,7 @@ func (p *pipeline) Rename(name string) error {
 	return err
 }
 
-func (p *pipeline) Move(sourceTeamName, destinationTeamName string) error {
+func (p *pipeline) Move(destinationTeamName string) error {
 	destinationTeamID, err := psql.Select("id").
 		From("teams").
 		Where(sq.Eq{

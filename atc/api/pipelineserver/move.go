@@ -6,9 +6,11 @@ import (
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 )
 
+// MovePipeline allows authorized user to move pipeline from one team to another
 func (s *Server) MovePipeline(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("move-pipeline")
@@ -20,17 +22,24 @@ func (s *Server) MovePipeline(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		var rename atc.MoveRequest
+		var move atc.MoveRequest
 		err = json.Unmarshal(data, &move)
 		if err != nil {
 			logger.Error("failed-to-unmarshal-body", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		acc := accessor.GetAccessor(r)
+		if acc.IsAuthorized(move.DestinationTeamName) {
+			err = pipeline.Move(move.DestinationTeamName)
 
-		err = pipeline.Rename(move.newTeamName)
-		if err != nil {
-			logger.Error("failed-to-move-pipeline", err)
+			if err != nil {
+				logger.Error("failed-to-move-pipeline", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else {
+			logger.Error("user-not-authorized-to-move-pipeline", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
