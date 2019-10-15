@@ -10,7 +10,6 @@ import UserState exposing (UserState)
 type alias Session =
     SideBar.Model
         { userState : UserState
-        , hovered : HoverState.HoverState
         , clusterName : String
         , turbulenceImgSrc : String
         , notFoundImgSrc : String

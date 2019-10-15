@@ -24,17 +24,18 @@ import Set exposing (Set)
 import SideBar.Styles as Styles
 import SideBar.Team as Team
 import SideBar.Views as Views
+import Tooltip
 import Views.Icon as Icon
 
 
 type alias Model m =
-    { m
-        | expandedTeams : Set String
-        , pipelines : WebData (List Concourse.Pipeline)
-        , hovered : HoverState.HoverState
-        , isSideBarOpen : Bool
-        , screenSize : ScreenSize.ScreenSize
-    }
+    Tooltip.Model
+        { m
+            | expandedTeams : Set String
+            , pipelines : WebData (List Concourse.Pipeline)
+            , isSideBarOpen : Bool
+            , screenSize : ScreenSize.ScreenSize
+        }
 
 
 type alias PipelineScoped a =
@@ -76,7 +77,7 @@ update message model =
 
 handleCallback : Callback -> WebData (PipelineScoped a) -> ET (Model m)
 handleCallback callback currentPipeline ( model, effects ) =
-    case callback of
+    (case callback of
         PipelinesFetched (Ok pipelines) ->
             ( { model
                 | pipelines = Success pipelines
@@ -104,39 +105,10 @@ handleCallback callback currentPipeline ( model, effects ) =
             , effects
             )
 
-        GotViewport (Ok { scene, viewport }) ->
-            case ( model.hovered, scene.width > viewport.width ) of
-                ( HoverState.Hovered domID, True ) ->
-                    ( { model
-                        | hovered =
-                            HoverState.TooltipPending domID
-                      }
-                    , effects ++ [ Effects.GetElement domID ]
-                    )
-
-                _ ->
-                    ( model, effects )
-
-        GotElement (Ok { element }) ->
-            case model.hovered of
-                HoverState.TooltipPending domID ->
-                    ( { model
-                        | hovered =
-                            HoverState.Tooltip domID
-                                { top = element.y + (element.height / 2)
-                                , left = element.x + element.width
-                                , arrowSize = 15
-                                , marginTop = -15
-                                }
-                      }
-                    , effects
-                    )
-
-                _ ->
-                    ( model, effects )
-
         _ ->
             ( model, effects )
+    )
+        |> Tooltip.handleCallback callback
 
 
 handleDelivery : Delivery -> ET (Model m)
