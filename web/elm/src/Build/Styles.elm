@@ -20,6 +20,7 @@ module Build.Styles exposing
     , triggerTooltip
     )
 
+import HoverState exposing (TooltipPosition)
 import Application.Styles
 import Build.Models exposing (StepHeaderType(..))
 import Build.StepTree.Models exposing (StepState(..))
@@ -213,11 +214,11 @@ stepStatusIcon =
     ]
 
 
-firstOccurrenceTooltip : List (Html.Attribute msg)
-firstOccurrenceTooltip =
-    [ style "position" "absolute"
-    , style "left" "0"
-    , style "bottom" "100%"
+firstOccurrenceTooltip : TooltipPosition -> List (Html.Attribute msg)
+firstOccurrenceTooltip { top, left } =
+    [ style "position" "fixed"
+    , style "left" <| String.fromFloat left ++ "px"
+    , style "bottom" <| String.fromFloat top ++ "px"
     , style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"

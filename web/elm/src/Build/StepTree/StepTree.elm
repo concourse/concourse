@@ -515,7 +515,7 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
                 [ style "display" "flex" ]
                 [ viewStepHeaderIcon
                     headerType
-                    (showTooltip session <| FirstOccurrenceIcon id)
+                    session.hovered
                     id
                 , Html.h3 [] [ Html.text name ]
                 ]
@@ -792,8 +792,8 @@ viewStepState state stepID tooltip =
                 tooltip
 
 
-viewStepHeaderIcon : StepHeaderType -> Bool -> StepID -> Html Message
-viewStepHeaderIcon headerType tooltip stepID =
+viewStepHeaderIcon : StepHeaderType -> HoverState.HoverState -> StepID -> Html Message
+viewStepHeaderIcon headerType hovered stepID =
     let
         eventHandlers =
             if headerType == StepHeaderGet True then
@@ -809,17 +809,22 @@ viewStepHeaderIcon headerType tooltip stepID =
             :: Styles.stepHeaderIcon headerType
             ++ eventHandlers
         )
-        (if tooltip then
-            [ Html.div
-                Styles.firstOccurrenceTooltip
-                [ Html.text "new version" ]
-            , Html.div
-                Styles.firstOccurrenceTooltipArrow
-                []
-            ]
+        (case hovered of
+            HoverState.Tooltip (FirstOccurrenceIcon x) pos ->
+                if x == stepID then
+                    [ Html.div
+                        (Styles.firstOccurrenceTooltip pos)
+                        [ Html.text "new version" ]
+                    , Html.div
+                        Styles.firstOccurrenceTooltipArrow
+                        []
+                    ]
 
-         else
-            []
+                else
+                    []
+
+            _ ->
+                []
         )
 
 
