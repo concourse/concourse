@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("ContainerRepository", func() {
+var _ = FDescribe("ContainerRepository", func() {
 	Describe("FindOrphanedContainers", func() {
 		Describe("check containers", func() {
 			var (
@@ -1006,9 +1006,9 @@ var _ = Describe("ContainerRepository", func() {
 
 	Describe("DestroyUnknownContainers", func() {
 		var (
-			err                   error
-			workerReportedHandles []string
-			num                   int
+			err                     error
+			workerReportedHandles   []string
+			numberUnknownContainers int
 		)
 
 		BeforeEach(func() {
@@ -1036,7 +1036,7 @@ var _ = Describe("ContainerRepository", func() {
 		})
 
 		JustBeforeEach(func() {
-			num, err = containerRepository.DestroyUnknownContainers(defaultWorker.Name(), workerReportedHandles)
+			numberUnknownContainers, err = containerRepository.DestroyUnknownContainers(defaultWorker.Name(), workerReportedHandles)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -1061,18 +1061,27 @@ var _ = Describe("ContainerRepository", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(handle).Should(BeElementOf(destroyingContainerHandles))
 				}
-				Expect(num).To(Equal(2))
+				Expect(numberUnknownContainers).To(Equal(2))
 			})
 
 			It("does not affect containers in any other state", func() {
-				result, err := psql.Select("*").
+				rows, err := psql.Select("handle").
 					From("containers").
 					Where(sq.Eq{"state": atc.ContainerStateCreated}).
-					RunWith(dbConn).Exec()
+					RunWith(dbConn).Query()
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(1)))
-				Expect(num).To(Equal(2))
+
+				var handle string
+				var rowsAffected int
+				for rows.Next() {
+					err = rows.Scan(&handle)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(handle).To(Equal("some-handle2"))
+					rowsAffected++
+				}
+
+				Expect(rowsAffected).To(Equal(1))
 			})
 		})
 
@@ -1082,14 +1091,25 @@ var _ = Describe("ContainerRepository", func() {
 			})
 
 			It("should not try to destroy anything", func() {
-				Expect(num).To(Equal(0))
-				result, err := psql.Select("handle, state").
+				Expect(numberUnknownContainers).To(Equal(0))
+
+				rows, err := psql.Select("handle").
 					From("containers").
 					Where(sq.Eq{"state": atc.ContainerStateDestroying}).
-					RunWith(dbConn).Exec()
+					RunWith(dbConn).Query()
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+				var handle string
+				var rowsAffected int
+				for rows.Next() {
+					err = rows.Scan(&handle)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(handle).To(Equal("some-handle1"))
+					rowsAffected++
+				}
+
+				Expect(rowsAffected).To(Equal(1))
 			})
 		})
 	})
