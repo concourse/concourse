@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/worker/gclient"
-	"golang.org/x/sync/errgroup"
-
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/tracing"
+	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/cppforlife/go-semi-semantic/version"
+	"golang.org/x/sync/errgroup"
 )
 
 const userPropertyName = "user"
@@ -190,6 +190,9 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		err               error
 	)
 
+	ctx, span := tracing.StartSpan(ctx, "find-or-create-container", nil)
+	defer span.End()
+
 	// ensure either creatingContainer or createdContainer exists
 	creatingContainer, createdContainer, err = worker.dbWorker.FindContainer(owner)
 	if err != nil {
@@ -343,6 +346,11 @@ func (worker *gardenWorker) fetchImageForContainer(
 	resourceTypes atc.VersionedResourceTypes,
 	creatingContainer db.CreatingContainer,
 ) (FetchedImage, error) {
+	ctx, span := tracing.StartSpan(ctx, "fetch-image-for-container", tracing.Attrs{
+		"resource-type": spec.ResourceType,
+	})
+	defer span.End()
+
 	image, err := worker.imageFactory.GetImage(
 		logger,
 		worker,
@@ -384,6 +392,9 @@ func (worker *gardenWorker) createVolumes(
 ) ([]VolumeMount, error) {
 	var volumeMounts []VolumeMount
 	var ioVolumeMounts []VolumeMount
+
+	ctx, span := tracing.StartSpan(ctx, "create-volumes", nil)
+	defer span.End()
 
 	scratchVolume, err := worker.volumeClient.FindOrCreateVolumeForContainer(
 		logger,
@@ -583,6 +594,12 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 		}
 
 		g.Go(func() error {
+			_, span := tracing.StartSpan(ctx, "stream-to", tracing.Attrs{
+				"dest-volume": inputVolume.Handle(),
+				"dest-worker": inputVolume.WorkerName(),
+			})
+			defer span.End()
+
 			err = nonLocalInput.desiredArtifact.StreamTo(groupCtx, logger.Session("stream-to", destData), inputVolume)
 			if err != nil {
 				return err
