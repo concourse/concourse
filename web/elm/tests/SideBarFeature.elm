@@ -429,11 +429,6 @@ hasSideBar iAmLookingAtThePage =
                 >> given iHoveredThePipelineLink
                 >> when iAmLookingAtTheFirstPipelineIcon
                 >> then_ iSeeItIsBright
-        , test "hovering the pipelink link checks its viewport" <|
-            given iHaveAnOpenSideBar_
-                >> given iClickedThePipelineGroup
-                >> when iHoveredTheFirstPipelineLink
-                >> then_ myBrowserChecksAViewport
         , defineHoverBehaviour
             { name = "pipeline link"
             , setup =
@@ -1069,7 +1064,7 @@ iHoveredTheFirstPipelineLink =
 theFirstPipelineLinkWasOverflowing =
     Tuple.first
         >> Application.handleCallback
-            (Callback.GotViewport <|
+            (Callback.GotViewport Callback.OnlyShowWhenOverflowing <|
                 Ok
                     { scene = { width = 1, height = 0 }
                     , viewport = { width = 0, height = 0, x = 0, y = 0 }
@@ -1776,17 +1771,3 @@ myBrowserFetchesSideBarState =
 myBrowserSavesSideBarState isOpen =
     Tuple.second
         >> Common.contains (Effects.SaveSideBarState isOpen)
-
-
-myBrowserChecksAViewport =
-    Tuple.second
-        >> List.any
-            (\e ->
-                case e of
-                    Effects.GetViewportOf _ ->
-                        True
-
-                    _ ->
-                        False
-            )
-        >> Expect.true "should get viewport"

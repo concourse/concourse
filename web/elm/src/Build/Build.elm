@@ -46,7 +46,7 @@ import Keyboard
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra
-import Message.Callback exposing (Callback(..))
+import Message.Callback exposing (Callback(..), TooltipPolicy(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
@@ -316,17 +316,22 @@ handleDelivery session delivery ( model, effects ) =
             handleKeyPressed keyEvent ( model, effects )
 
         ClockTicked OneSecond time ->
-            let
-                newModel =
-                    { model
-                        | now = Just time
-                    }
-            in
-            updateOutput
-                (Build.Output.Output.handleStepTreeMsg <|
-                    \sm -> ( { sm | hoveredCounter = sm.hoveredCounter + 1 }, [] )
-                )
-                ( newModel, effects )
+            ( { model | now = Just time }
+            , effects
+                ++ (case session.hovered of
+                        HoverState.Hovered (FirstOccurrenceIcon stepID) ->
+                            [ GetViewportOf
+                                (FirstOccurrenceIcon stepID)
+                                AlwaysShow
+                            ]
+
+                        HoverState.Hovered (StepState stepID) ->
+                            [ GetViewportOf (StepState stepID) AlwaysShow ]
+
+                        _ ->
+                            []
+                   )
+            )
 
         ClockTicked FiveSeconds _ ->
             ( model, effects ++ [ Effects.FetchPipelines ] )
@@ -413,13 +418,6 @@ update msg ( model, effects ) =
                             Routes.buildRoute id name model.job
                    ]
             )
-
-        Hover _ ->
-            updateOutput
-                (Build.Output.Output.handleStepTreeMsg <|
-                    \sm -> ( { sm | hoveredCounter = 0 }, [] )
-                )
-                ( model, effects )
 
         Click TriggerBuildButton ->
             (currentJob model

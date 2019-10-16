@@ -14,7 +14,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
-import Message.Callback exposing (Callback(..))
+import Message.Callback exposing (Callback(..), TooltipPolicy(..))
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
@@ -66,10 +66,20 @@ update message model =
             )
 
         Hover (Just (SideBarPipeline pipelineID)) ->
-            ( model, [ Effects.GetViewportOf <| SideBarPipeline pipelineID ] )
+            ( model
+            , [ Effects.GetViewportOf
+                    (SideBarPipeline pipelineID)
+                    OnlyShowWhenOverflowing
+              ]
+            )
 
         Hover (Just (SideBarTeam teamName)) ->
-            ( model, [ Effects.GetViewportOf <| SideBarTeam teamName ] )
+            ( model
+            , [ Effects.GetViewportOf
+                    (SideBarTeam teamName)
+                    OnlyShowWhenOverflowing
+              ]
+            )
 
         _ ->
             ( model, [] )

@@ -37,9 +37,9 @@ import Dict exposing (Dict)
 import Duration
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, href, style, target)
+import Html.Attributes exposing (attribute, class, classList, href, id, style, target)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Message.Effects exposing (Effect(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import StrictEvents
@@ -140,7 +140,6 @@ initMultiStep hl resources planId constructor plans =
             |> Array.indexedMap wrapMultiStep
             |> Array.foldr Dict.union selfFoci
     , highlight = hl
-    , hoveredCounter = 0
     }
 
 
@@ -188,7 +187,6 @@ initBottom hl create id name =
     { tree = create step
     , foci = Dict.singleton id identity
     , highlight = hl
-    , hoveredCounter = 0
     }
 
 
@@ -206,7 +204,6 @@ initWrappedStep hl resources create plan =
     { tree = create tree
     , foci = Dict.map (always wrapStep) foci
     , highlight = hl
-    , hoveredCounter = 0
     }
 
 
@@ -230,7 +227,6 @@ initHookedStep hl resources create hookedPlan =
             (Dict.map (always wrapStep) stepModel.foci)
             (Dict.map (always wrapHook) hookModel.foci)
     , highlight = hl
-    , hoveredCounter = 0
     }
 
 
@@ -519,7 +515,7 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
                 [ style "display" "flex" ]
                 [ viewStepHeaderIcon
                     headerType
-                    (showTooltip model session <| FirstOccurrenceIcon id)
+                    (showTooltip session <| FirstOccurrenceIcon id)
                     id
                 , Html.h3 [] [ Html.text name ]
                 ]
@@ -533,7 +529,7 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
                         initialize
                         start
                         finish
-                        (showTooltip model session <| StepState id)
+                        (showTooltip session <| StepState id)
                     )
                 ]
             ]
@@ -558,16 +554,14 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
         ]
 
 
-showTooltip : { a | hoveredCounter : Int } -> Tooltip.Model b -> DomID -> Bool
-showTooltip model session domID =
-    (model.hoveredCounter > 0)
-        && (case session.hovered of
-                HoverState.Hovered x ->
-                    x == domID
+showTooltip : Tooltip.Model b -> DomID -> Bool
+showTooltip session domID =
+    case session.hovered of
+        HoverState.Tooltip x _ ->
+            x == domID
 
-                _ ->
-                    False
-           )
+        _ ->
+            False
 
 
 viewLogs :
@@ -715,11 +709,12 @@ viewMetadata =
 
 
 viewStepState : StepState -> StepID -> List (Html Message) -> Html Message
-viewStepState state id tooltip =
+viewStepState state stepID tooltip =
     let
-        eventHandlers =
+        attributes =
             [ onMouseLeave <| Hover Nothing
-            , onMouseEnter <| Hover (Just (StepState id))
+            , onMouseEnter <| Hover (Just (StepState stepID))
+            , id <| toHtmlID <| StepState stepID
             , style "position" "relative"
             ]
     in
@@ -737,7 +732,7 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "pending"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
@@ -748,7 +743,7 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "interrupted"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
@@ -759,7 +754,7 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "cancelled"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
@@ -770,7 +765,7 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "succeeded"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
@@ -781,7 +776,7 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "failed"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
@@ -792,25 +787,28 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "errored"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
 
 viewStepHeaderIcon : StepHeaderType -> Bool -> StepID -> Html Message
-viewStepHeaderIcon headerType tooltip id =
+viewStepHeaderIcon headerType tooltip stepID =
     let
         eventHandlers =
             if headerType == StepHeaderGet True then
                 [ onMouseLeave <| Hover Nothing
-                , onMouseEnter <| Hover <| Just <| FirstOccurrenceIcon id
+                , onMouseEnter <| Hover <| Just <| FirstOccurrenceIcon stepID
                 ]
 
             else
                 []
     in
     Html.div
-        (Styles.stepHeaderIcon headerType ++ eventHandlers)
+        (id (toHtmlID <| FirstOccurrenceIcon stepID)
+            :: Styles.stepHeaderIcon headerType
+            ++ eventHandlers
+        )
         (if tooltip then
             [ Html.div
                 Styles.firstOccurrenceTooltip

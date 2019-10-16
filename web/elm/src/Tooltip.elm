@@ -2,7 +2,7 @@ module Tooltip exposing (Model, handleCallback)
 
 import EffectTransformer exposing (ET)
 import HoverState
-import Message.Callback exposing (Callback(..))
+import Message.Callback exposing (Callback(..), TooltipPolicy(..))
 import Message.Effects as Effects
 
 
@@ -13,15 +13,16 @@ type alias Model m =
 handleCallback : Callback -> ET (Model m)
 handleCallback callback ( model, effects ) =
     case callback of
-        GotViewport (Ok { scene, viewport }) ->
-            case ( model.hovered, scene.width > viewport.width ) of
-                ( HoverState.Hovered domID, True ) ->
-                    ( { model
-                        | hovered =
-                            HoverState.TooltipPending domID
-                      }
-                    , effects ++ [ Effects.GetElement domID ]
-                    )
+        GotViewport policy (Ok { scene, viewport }) ->
+            case model.hovered of
+                HoverState.Hovered domID ->
+                    if policy == OnlyShowWhenOverflowing && viewport.width >= scene.width then
+                        ( model, effects )
+
+                    else
+                        ( { model | hovered = HoverState.TooltipPending domID }
+                        , effects ++ [ Effects.GetElement domID ]
+                        )
 
                 _ ->
                     ( model, effects )

@@ -34,7 +34,6 @@ type alias StepTreeModel =
     { tree : StepTree
     , foci : Dict StepID StepFocus
     , highlight : Highlight
-    , hoveredCounter : Int
     }
 
 
