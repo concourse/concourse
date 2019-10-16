@@ -201,7 +201,7 @@ func (beacon *Beacon) registerWorker(
 			},
 
 			HeartbeatedFunc: func() {
-				logger.Info("heartbeated")
+				logger.Debug("heartbeated")
 			},
 		})
 
