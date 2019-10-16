@@ -16,7 +16,6 @@ var _ = Describe("Pipeline", func() {
 		pipeline       db.Pipeline
 		team           db.Team
 		pipelineConfig atc.Config
-		job            db.Job
 	)
 
 	BeforeEach(func() {
@@ -120,8 +119,7 @@ var _ = Describe("Pipeline", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(created).To(BeTrue())
 
-		var found bool
-		job, found, err = pipeline.Job("job-name")
+		_, found, err := pipeline.Job("job-name")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
 
