@@ -37,4 +37,4 @@
 
 #### <sub><sup><a name="3600" href="#3600">:link:</a></sup></sub> feature
 
-* Concourse now garbage-collects worker containers and volumes that are not tracked in the database. In some niche cases, it is possible for containers and/or volumes to be created on the worker, but the database assumes their creation had failed. If this occurs, these untracked containers can pile up on the worker and use resources. #3600 ensures that they get cleaned appropriately.
+* Concourse now garbage-collects worker containers and volumes that are not tracked in the database. In some niche cases, it is possible for containers and/or volumes to be created on the worker, but the database (via the web) assumes their creation had failed. If this occurs, these untracked containers can pile up on the worker and use resources. #3600 ensures that they get cleaned appropriately.
