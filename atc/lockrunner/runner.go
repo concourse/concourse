@@ -81,10 +81,15 @@ func (r *runner) run(ctx context.Context, force bool) error {
 
 	defer lock.Release()
 
-	component, _, err := r.componentFactory.Find(r.componentName)
+	component, found, err := r.componentFactory.Find(r.componentName)
 	if err != nil {
 		r.logger.Error("failed-to-find-component", err)
 		return err
+	}
+
+	if !found {
+		r.logger.Info("component-not-found", lager.Data{"name": r.componentName})
+		return nil
 	}
 
 	if component.Paused() {
