@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("ContainerRepository", func() {
+var _ = Describe("ContainerRepository", func() {
 	Describe("FindOrphanedContainers", func() {
 		Describe("check containers", func() {
 			var (
