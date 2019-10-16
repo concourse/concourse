@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/tracing"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
@@ -129,6 +130,7 @@ func (client *client) RunTaskStep(
 	processSpec TaskProcessSpec,
 	events chan runtime.Event,
 ) TaskResult {
+
 	chosenWorker, err := client.chooseTaskWorker(
 		ctx,
 		logger,
@@ -181,7 +183,12 @@ func (client *client) RunTaskStep(
 		Stderr: processSpec.StderrWriter,
 	}
 
-	process, err := container.Attach(context.Background(), taskProcessID, processIO)
+	ctx, span := tracing.StartSpan(ctx, "run-task-executable", tracing.Attrs{
+		"path": processSpec.Path,
+	})
+	defer span.End()
+
+	process, err := container.Attach(ctx, taskProcessID, processIO)
 	if err == nil {
 		logger.Info("already-running")
 	} else {
@@ -192,7 +199,7 @@ func (client *client) RunTaskStep(
 		}
 
 		process, err = container.Run(
-			context.Background(),
+			ctx,
 			garden.ProcessSpec{
 				ID: taskProcessID,
 
