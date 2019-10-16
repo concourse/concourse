@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/tracing"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -38,6 +39,11 @@ func NewArtifactInputStep(plan atc.Plan, build db.Build, workerClient worker.Cli
 }
 
 func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "artifact-input", tracing.Attrs{
+		"plan-id": string(step.plan.ID),
+	})
+	defer span.End()
+
 	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
 		"plan-id": step.plan.ID,
 	})

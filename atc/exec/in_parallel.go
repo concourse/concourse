@@ -3,7 +3,10 @@ package exec
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
+
+	"github.com/concourse/concourse/atc/tracing"
 )
 
 // InParallelStep is a step of steps to run in parallel.
@@ -41,6 +44,11 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 		sem           = make(chan bool, step.limit)
 		executedSteps int
 	)
+
+	ctx, span := tracing.StartSpan(ctx, "in-parallel", tracing.Attrs{
+		"steps": strconv.Itoa(len(step.steps)),
+	})
+	defer span.End()
 
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()

@@ -3,6 +3,8 @@ package exec
 import (
 	"context"
 	"time"
+
+	"github.com/concourse/concourse/atc/tracing"
 )
 
 // TimeoutStep applies a fixed timeout to a step's Run.
@@ -29,6 +31,11 @@ func Timeout(step Step, duration string) *TimeoutStep {
 //
 // The result of the nested step's Run is returned.
 func (ts *TimeoutStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "timeout", tracing.Attrs{
+		"duration": ts.duration,
+	})
+	defer span.End()
+
 	parsedDuration, err := time.ParseDuration(ts.duration)
 	if err != nil {
 		return err

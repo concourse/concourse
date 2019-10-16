@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/fetcher"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/tracing"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -110,6 +111,13 @@ func NewGetStep(
 // At the end, the resulting ArtifactSource (either from using the cache or
 // fetching the resource) is registered under the step's SourceName.
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "get", tracing.Attrs{
+		"name":          step.plan.Name,
+		"resource-type": step.plan.Type,
+		"resource":      step.plan.Resource,
+	})
+	defer span.End()
+
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("get-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -268,8 +276,8 @@ func streamToHelper(
 	logger lager.Logger,
 	destination worker.ArtifactDestination,
 ) error {
-	logger.Debug("start")
 
+	logger.Debug("start")
 	defer logger.Debug("end")
 
 	out, err := s.StreamOut(ctx, ".")

@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 
+	"github.com/concourse/concourse/atc/tracing"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -28,6 +29,9 @@ func OnError(step Step, hook Step) OnErrorStep {
 // If the first step errors, the second
 // step is executed. If the second step errors, nothing is returned.
 func (o OnErrorStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "on-error", nil)
+	defer span.End()
+
 	var errs error
 	stepRunErr := o.step.Run(ctx, state)
 	// with no error, we just want to return right away

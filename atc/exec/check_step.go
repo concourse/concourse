@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/tracing"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -59,6 +60,12 @@ func NewCheckStep(
 }
 
 func (step *CheckStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "check", tracing.Attrs{
+		"name": step.plan.Name,
+		"type": step.plan.Type,
+	})
+	defer span.End()
+
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("check-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -139,15 +146,15 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	deadline, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	checkable := step.resourceFactory.NewResourceForContainer(container)
 
-	versions, err := checkable.Check(deadline, source, step.plan.FromVersion)
+	versions, err := checkable.Check(ctx, source, step.plan.FromVersion)
 	if err != nil {
 		if err == context.DeadlineExceeded {
-			return fmt.Errorf("Timed out after %v while checking for new versions", timeout)
+			return fmt.Errorf("timed out after %v while checking for new versions", timeout)
 		}
 		return err
 	}

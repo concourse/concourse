@@ -2,6 +2,8 @@ package exec
 
 import (
 	"context"
+
+	"github.com/concourse/concourse/atc/tracing"
 )
 
 // OnAbortStep will run one step, and then a second step if the first step
@@ -26,6 +28,9 @@ func OnAbort(step Step, hook Step) OnAbortStep {
 // If the first step aborts (that is, it gets interrupted), the second
 // step is executed. If the second step errors, its error is returned.
 func (o OnAbortStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "on-abort", nil)
+	defer span.End()
+
 	stepRunErr := o.step.Run(ctx, state)
 	if stepRunErr == nil {
 		return nil

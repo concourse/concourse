@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
@@ -17,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/tracing"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 )
@@ -115,6 +117,12 @@ func NewTaskStep(
 // task's entire working directory is registered as an ArtifactSource under the
 // name of the task.
 func (step *TaskStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "task", tracing.Attrs{
+		"name":       step.plan.Name,
+		"privileged": strconv.FormatBool(step.plan.Privileged),
+	})
+	defer span.End()
+
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("task-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -157,7 +165,6 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	repository := state.Artifacts()
 
 	config, err := taskConfigSource.FetchConfig(ctx, logger, repository)
-
 	for _, warning := range taskConfigSource.Warnings() {
 		fmt.Fprintln(step.delegate.Stderr(), "[WARNING]", warning)
 	}
@@ -253,7 +260,6 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	return nil
-
 }
 
 func (step *TaskStep) Succeeded() bool {

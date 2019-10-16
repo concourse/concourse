@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 
+	"github.com/concourse/concourse/atc/tracing"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -29,6 +30,9 @@ func Ensure(step Step, hook Step) EnsureStep {
 // returned.
 func (o EnsureStep) Run(ctx context.Context, state RunState) error {
 	var errors error
+
+	ctx, span := tracing.StartSpan(ctx, "ensure", nil)
+	defer span.End()
 
 	originalErr := o.step.Run(ctx, state)
 	if originalErr != nil {

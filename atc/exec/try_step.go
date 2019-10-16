@@ -2,6 +2,8 @@ package exec
 
 import (
 	"context"
+
+	"github.com/concourse/concourse/atc/tracing"
 )
 
 // TryStep wraps another step, ignores its errors, and always succeeds.
@@ -21,6 +23,9 @@ func Try(step Step) Step {
 // Run runs the nested step, and always returns nil, ignoring the nested step's
 // error.
 func (ts *TryStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "try", nil)
+	defer span.End()
+
 	err := ts.step.Run(ctx, state)
 	if err == context.Canceled {
 		ts.aborted = true

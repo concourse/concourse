@@ -2,6 +2,9 @@ package exec
 
 import (
 	"context"
+	"strconv"
+
+	"github.com/concourse/concourse/atc/tracing"
 )
 
 // RetryStep is a step that will run the steps in order until one of them
@@ -21,6 +24,11 @@ func Retry(attempts ...Step) Step {
 // fail, the RetryStep will fail.
 func (step *RetryStep) Run(ctx context.Context, state RunState) error {
 	var attemptErr error
+
+	ctx, span := tracing.StartSpan(ctx, "retry", tracing.Attrs{
+		"attempts": strconv.Itoa(len(step.Attempts)),
+	})
+	defer span.End()
 
 	for _, attempt := range step.Attempts {
 		step.LastAttempt = attempt

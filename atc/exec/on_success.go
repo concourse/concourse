@@ -2,6 +2,8 @@ package exec
 
 import (
 	"context"
+
+	"github.com/concourse/concourse/atc/tracing"
 )
 
 // OnSuccessStep will run one step, and then a second step if the first step
@@ -26,6 +28,9 @@ func OnSuccess(firstStep Step, secondStep Step) Step {
 // If the first step succeeds (that is, its Success result is true), the second
 // step is executed. If the second step errors, its error is returned.
 func (o OnSuccessStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "on-success", nil)
+	defer span.End()
+
 	stepRunErr := o.step.Run(ctx, state)
 	if stepRunErr != nil {
 		return stepRunErr
