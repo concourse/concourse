@@ -26,7 +26,6 @@ import Array exposing (Array)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Dict exposing (Dict)
-import Message.Message exposing (DomID)
 import Routes exposing (Highlight, StepID)
 import Time
 
@@ -35,7 +34,7 @@ type alias StepTreeModel =
     { tree : StepTree
     , foci : Dict StepID StepFocus
     , highlight : Highlight
-    , tooltip : Maybe DomID
+    , hoveredCounter : Int
     }
 
 

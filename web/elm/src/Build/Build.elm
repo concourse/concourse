@@ -112,7 +112,6 @@ init flags =
           , previousTriggerBuildByKey = False
           , showHelp = False
           , highlight = flags.highlight
-          , hoveredCounter = 0
           , authorized = True
           , fetchingHistory = False
           , scrolledToCurrentBuild = False
@@ -321,12 +320,11 @@ handleDelivery session delivery ( model, effects ) =
                 newModel =
                     { model
                         | now = Just time
-                        , hoveredCounter = model.hoveredCounter + 1
                     }
             in
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <|
-                    StepTree.updateTooltip session newModel
+                    \sm -> ( { sm | hoveredCounter = sm.hoveredCounter + 1 }, [] )
                 )
                 ( newModel, effects )
 
@@ -417,13 +415,11 @@ update session msg ( model, effects ) =
             )
 
         Hover _ ->
-            let
-                newModel =
-                    { model | hoveredCounter = 0 }
-            in
             updateOutput
-                (Build.Output.Output.handleStepTreeMsg <| StepTree.updateTooltip session newModel)
-                ( newModel, effects )
+                (Build.Output.Output.handleStepTreeMsg <|
+                    \sm -> ( { sm | hoveredCounter = 0 }, [] )
+                )
+                ( model, effects )
 
         Click TriggerBuildButton ->
             (currentJob model

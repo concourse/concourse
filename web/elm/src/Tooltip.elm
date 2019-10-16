@@ -1,8 +1,8 @@
-module Tooltip exposing (handleCallback, Model)
+module Tooltip exposing (Model, handleCallback)
 
 import EffectTransformer exposing (ET)
 import HoverState
-import Message.Callback as Callback exposing (Callback(..))
+import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
 
 

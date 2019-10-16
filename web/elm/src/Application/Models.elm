@@ -1,7 +1,6 @@
 module Application.Models exposing (Session)
 
 import Concourse
-import HoverState
 import SideBar.SideBar as SideBar
 import Time
 import UserState exposing (UserState)
