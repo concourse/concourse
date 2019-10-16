@@ -77,7 +77,7 @@ update message model =
 
 handleCallback : Callback -> WebData (PipelineScoped a) -> ET (Model m)
 handleCallback callback currentPipeline ( model, effects ) =
-    (case callback of
+    case callback of
         PipelinesFetched (Ok pipelines) ->
             ( { model
                 | pipelines = Success pipelines
@@ -107,8 +107,6 @@ handleCallback callback currentPipeline ( model, effects ) =
 
         _ ->
             ( model, effects )
-    )
-        |> Tooltip.handleCallback callback
 
 
 handleDelivery : Delivery -> ET (Model m)

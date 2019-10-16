@@ -780,7 +780,6 @@ sampleModel =
     , previousTriggerBuildByKey = False
     , showHelp = False
     , highlight = Routes.HighlightNothing
-    , hoveredCounter = 0
     , authorized = True
     , fetchingHistory = False
     , scrolledToCurrentBuild = False
@@ -847,7 +846,7 @@ steps =
         { tree = tree
         , foci = Dict.empty
         , highlight = Routes.HighlightNothing
-        , tooltip = Nothing
+        , hoveredCounter = 0
         }
 
 

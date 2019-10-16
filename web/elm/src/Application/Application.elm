@@ -33,6 +33,7 @@ import Set
 import SideBar.SideBar as SideBar
 import SubPage.SubPage as SubPage
 import Time
+import Tooltip
 import Url
 import UserState exposing (UserState(..))
 
@@ -275,6 +276,7 @@ sideBarHandleCallback callback ( model, effects ) =
                             SideBar.handleCallback callback <|
                                 RemoteData.NotAsked
                    )
+                |> Tooltip.handleCallback callback
     in
     ( { model | session = session }, newEffects )
 

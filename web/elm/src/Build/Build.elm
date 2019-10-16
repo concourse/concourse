@@ -402,8 +402,8 @@ handleDelivery session delivery ( model, effects ) =
         |> Header.handleDelivery delivery
 
 
-update : { a | hovered : HoverState.HoverState } -> Message -> ET Model
-update session msg ( model, effects ) =
+update : Message -> ET Model
+update msg ( model, effects ) =
     (case msg of
         Click (BuildTab id name) ->
             ( model

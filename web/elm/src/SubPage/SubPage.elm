@@ -225,7 +225,7 @@ handleDelivery session delivery =
 update : Session -> Message -> ET Model
 update session msg =
     genericUpdate
-        (Login.update msg >> Build.update session msg)
+        (Login.update msg >> Build.update msg)
         (Login.update msg >> Job.update msg)
         (Login.update msg >> Resource.update msg)
         (Login.update msg >> Pipeline.update msg)
