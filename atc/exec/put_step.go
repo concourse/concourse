@@ -154,12 +154,9 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		Delegate:      step.delegate,
 	}
 
-	resourceDir := resource.ResourcesDir("put")
-
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/out",
-		Args:         []string{resourceDir},
-		Dir:          resourceDir,
+		Args:         []string{resource.ResourcesDir("put")},
 		StdoutWriter: step.delegate.Stdout(),
 		StderrWriter: step.delegate.Stderr(),
 	}

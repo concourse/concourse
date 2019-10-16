@@ -72,8 +72,9 @@ func (f *fetcher) Fetch(
 ) (GetResult, Volume, error) {
 	result := GetResult{}
 	var volume Volume
+	// TODO resource_instance_fetch_source.go already knows which volume to use for the resource output, can this be consolidated
 	containerSpec.Outputs = map[string]string{
-		"resource": processSpec.Dir,
+		"resource": processSpec.Args[0],
 	}
 
 	fetchSource := f.fetchSourceFactory.NewFetchSource(logger, gardenWorker, owner,
@@ -91,7 +92,6 @@ func (f *fetcher) Fetch(
 	for {
 		select {
 		case <-ticker.C():
-			//TODO this is called redundantly?
 			result, volume, err = f.fetchWithLock(ctx, logger, fetchSource, imageFetcherSpec.Delegate.Stdout(), cache, lockName)
 			if err != nil {
 				if err == ErrFailedToGetLock {

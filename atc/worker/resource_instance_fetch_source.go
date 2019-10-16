@@ -185,13 +185,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Vo
 		return result, volume, err
 	}
 
-	mountPath := s.processSpec.Dir
-	for _, mount := range container.VolumeMounts() {
-		if mount.MountPath == mountPath {
-			volume = mount.Volume
-			break
-		}
-	}
+	volume = getResourceVolume(s.processSpec, container)
 
 	vr := runtime.VersionResult{}
 	// TODO This is pure EVIL
@@ -205,7 +199,12 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Vo
 
 		// if error returned from running the actual script
 		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
-			result = GetResult{failErr.ExitStatus, runtime.VersionResult{}, runtime.GetArtifact{}, failErr}
+			result = GetResult{
+				failErr.ExitStatus,
+				runtime.VersionResult{},
+				runtime.GetArtifact{},
+				failErr,
+			}
 			return result, volume, nil
 		}
 		return result, volume, err
@@ -236,4 +235,14 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Vo
 			VolumeHandle: volume.Handle(),
 		},
 	}, volume, nil
+}
+
+func getResourceVolume(processSpec runtime.ProcessSpec, container Container) Volume {
+	resourcePath := processSpec.Args[0]
+	for _, mount := range container.VolumeMounts() {
+		if mount.MountPath == resourcePath {
+			return mount.Volume
+		}
+	}
+	return nil
 }
