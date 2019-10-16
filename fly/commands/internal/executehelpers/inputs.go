@@ -250,8 +250,8 @@ func FetchImageResourceFromJobInputs(inputs []atc.BuildInput, imageName string) 
 			imageResource := atc.ImageResource{
 				Type:    input.Type,
 				Source:  input.Source,
-				Version: &version,
-				Params:  &input.Params,
+				Version: version,
+				Params:  input.Params,
 			}
 			return &imageResource, true, nil
 		}
