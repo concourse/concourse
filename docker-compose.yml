@@ -16,6 +16,7 @@ services:
     volumes:
     - .:/src
     command: web
+    # command: web --conjur-appliance-url=http://localhost:3000 --conjur-account=cucumber --conjur-authn-login=admin --conjur-authn-api-key=1pg6xqd26rwwv939h7vhr2a7f5z028zpmac1k6hb5226gkgq835yz9s7 conjur-team-secret-template=/concourse/{{Team}}/{{Secret}}
     depends_on: [db]
     ports:
     - 8080:8080
@@ -29,6 +30,13 @@ services:
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
+
+      CONCOURSE_CONJUR_APPLIANCE_URL: http://192.168.86.198:3000
+      CONCOURSE_CONJUR_ACCOUNT: cucumber
+      CONCOURSE_CONJUR_AUTHN_LOGIN: admin
+      CONCOURSE_CONJUR_AUTHN_API_KEY: 1pg6xqd26rwwv939h7vhr2a7f5z028zpmac1k6hb5226gkgq835yz9s7
+      CONCOURSE_CONJUR_PIPELINE_SECRET_TEMPLATE: myapp/github/myProject/{{.Secret}}
+      CONCOURSE_CONJUR_TEAM_SECRET_TEMPLATE: myapp/github/myProject/{{.Secret}}
 
   worker:
     build: .

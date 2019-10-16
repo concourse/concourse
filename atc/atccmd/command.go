@@ -66,6 +66,7 @@ import (
 	_ "github.com/concourse/concourse/atc/metric/emitter"
 
 	// dynamically registered credential managers
+	_ "github.com/concourse/concourse/atc/creds/conjur"
 	_ "github.com/concourse/concourse/atc/creds/credhub"
 	_ "github.com/concourse/concourse/atc/creds/dummy"
 	_ "github.com/concourse/concourse/atc/creds/kubernetes"
