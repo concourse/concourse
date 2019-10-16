@@ -260,7 +260,7 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
-	checkResourceType := resource.NewResource(resourceType.Source, resourceType.Params, resourceType.Version)
+	checkResourceType := resource.NewResource(resourceType.Source, nil, resourceType.Version)
 	versions, err := checkResourceType.Check(context.TODO(), processSpec, resourceTypeContainer)
 	if err != nil {
 		return err
@@ -321,7 +321,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
-	checkingResource := resource.NewResource(i.imageResource.Source, i.imageResource.Params, i.imageResource.Version)
+	checkingResource := resource.NewResource(i.imageResource.Source, nil, i.imageResource.Version)
 	versions, err := checkingResource.Check(context.TODO(), processSpec, imageContainer)
 	if err != nil {
 		return nil, err
