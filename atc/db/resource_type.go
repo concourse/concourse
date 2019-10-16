@@ -57,7 +57,7 @@ type ResourceTypes []ResourceType
 func (resourceTypes ResourceTypes) Parent(checkable Checkable) (ResourceType, bool) {
 	for _, t := range resourceTypes {
 		if t.PipelineID() == checkable.PipelineID() {
-			if t.Name() != checkable.Name() && t.Name() == checkable.Type() {
+			if t != checkable && t.Name() == checkable.Type() {
 				return t, true
 			}
 		}
