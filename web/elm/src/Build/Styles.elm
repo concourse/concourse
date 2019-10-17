@@ -2,6 +2,8 @@ module Build.Styles exposing
     ( MetadataCellType(..)
     , abortButton
     , body
+    , buttonTooltip
+    , buttonTooltipArrow
     , durationTooltip
     , durationTooltipArrow
     , errorLog
@@ -17,8 +19,6 @@ module Build.Styles exposing
     , stepHeaderIcon
     , stepStatusIcon
     , triggerButton
-    , buttonTooltip
-    , buttonTooltipArrow
     )
 
 import Application.Styles
@@ -66,30 +66,42 @@ body =
     ]
 
 
-historyItem : BuildStatus -> List (Html.Attribute msg)
-historyItem status =
-    case status of
-        BuildStatusStarted ->
-            striped
-                { pipelineRunningKeyframes = "pipeline-running"
-                , thickColor = Colors.startedFaded
-                , thinColor = Colors.started
-                }
+historyItem : BuildStatus -> Bool -> BuildStatus -> List (Html.Attribute msg)
+historyItem currentBuildStatus isCurrent status =
+    [ style "letter-spacing" "-1px"
+    , style "padding" "0 2px 0 2px"
+    , style "border-top" <| "1px solid " ++ Colors.buildStatusColor isCurrent currentBuildStatus
+    , style "border-right" <| "1px solid " ++ Colors.buildStatusColor False status
+    , style "opacity" <|
+        if isCurrent then
+            "1"
 
-        BuildStatusPending ->
-            [ style "background" Colors.pending ]
+        else
+            "0.8"
+    ]
+        ++ (case status of
+                BuildStatusStarted ->
+                    striped
+                        { pipelineRunningKeyframes = "pipeline-running"
+                        , thickColor = Colors.startedFaded
+                        , thinColor = Colors.started
+                        }
 
-        BuildStatusSucceeded ->
-            [ style "background" Colors.success ]
+                BuildStatusPending ->
+                    [ style "background" Colors.pending ]
 
-        BuildStatusFailed ->
-            [ style "background" Colors.failure ]
+                BuildStatusSucceeded ->
+                    [ style "background" Colors.success ]
 
-        BuildStatusErrored ->
-            [ style "background" Colors.error ]
+                BuildStatusFailed ->
+                    [ style "background" Colors.failure ]
 
-        BuildStatusAborted ->
-            [ style "background" Colors.aborted ]
+                BuildStatusErrored ->
+                    [ style "background" Colors.error ]
+
+                BuildStatusAborted ->
+                    [ style "background" Colors.aborted ]
+           )
 
 
 triggerButton : Bool -> Bool -> BuildStatus -> List (Html.Attribute msg)
@@ -138,7 +150,7 @@ buttonTooltipArrow =
     , style "left" "50%"
     , style "bottom" "0"
     , style "margin-left" "-5px"
-    , style "border-bottom" <| "5px solid " ++ Colors.tooltipBackground
+    , style "border-bottom" <| "5px solid " ++ Colors.frame
     , style "border-left" "5px solid transparent"
     , style "border-right" "5px solid transparent"
     , style "position" "absolute"
@@ -151,10 +163,11 @@ buttonTooltip width =
     , style "right" "0"
     , style "top" "100%"
     , style "width" <| String.fromInt width ++ "px"
-    , style "color" Colors.buildTooltipText
-    , style "background-color" Colors.tooltipBackground
+    , style "color" Colors.text
+    , style "background-color" Colors.frame
     , style "font-size" "12px"
     , style "font-family" "Inconsolata,monospace"
+    , style "font-weight" "700"
     , style "padding" "10px"
     , style "text-align" "right"
     , style "pointer-events" "none"
