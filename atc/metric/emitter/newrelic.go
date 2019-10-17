@@ -136,8 +136,6 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 		emitter.containers.deleted = event.Value
 	case "containers created":
 		emitter.containers.created = event.Value
-	case "unknown containers":
-		emitter.containers.unknown = event.Value
 	case "failed containers":
 		newPayload := emitter.simplePayload(logger, event, "containers")
 		newPayload["failed"] = newPayload["value"]
@@ -150,8 +148,6 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 		emitter.volumes.deleted = event.Value
 	case "volumes created":
 		emitter.volumes.created = event.Value
-	case "unknown volumes":
-		emitter.volumes.unknown = event.Value
 	case "failed volumes":
 		newPayload := emitter.simplePayload(logger, event, "volumes")
 		newPayload["failed"] = newPayload["value"]
@@ -159,6 +155,11 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 		newPayload["deleted"] = emitter.volumes.deleted
 		delete(newPayload, "value")
 		payload = append(payload, newPayload)
+
+	case "worker unknown containers":
+		emitter.containers.unknown = event.Value
+	case "worker unknown volumes":
+		emitter.volumes.unknown = event.Value
 
 	// And a couple that need a small rename (new relic doesn't like some chars)
 	case "scheduling: full duration (ms)":
