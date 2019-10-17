@@ -13,7 +13,7 @@ type workerCollector struct {
 	workerLifecycle db.WorkerLifecycle
 }
 
-func NewWorkerCollector(workerLifecycle db.WorkerLifecycle) Collector {
+func NewWorkerCollector(workerLifecycle db.WorkerLifecycle) *workerCollector {
 	return &workerCollector{
 		workerLifecycle: workerLifecycle,
 	}

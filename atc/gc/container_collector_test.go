@@ -31,9 +31,9 @@ var _ = Describe("ContainerCollector", func() {
 
 		creatingContainer *dbfakes.FakeCreatingContainer
 
-		collector                   gc.Collector
-		realCollector               gc.Collector
-		fakeCollector               gc.Collector
+		collector                   Collector
+		realCollector               Collector
+		fakeCollector               Collector
 		missingContainerGracePeriod time.Duration
 	)
 

@@ -430,6 +430,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 5, "gc", lockFactory)
+	if err != nil {
+		return nil, err
+	}
+
 	storage, err := storage.NewPostgresStorage(logger, cmd.Postgres)
 	if err != nil {
 		return nil, err
@@ -440,7 +445,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, storage, lockFactory, secretManager)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -467,7 +472,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	onExit := func() {
-		for _, closer := range []Closer{lockConn, apiConn, backendConn, storage} {
+		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage} {
 			closer.Close()
 		}
 	}
@@ -480,6 +485,7 @@ func (cmd *RunCommand) constructMembers(
 	reconfigurableSink *lager.ReconfigurableSink,
 	apiConn db.Conn,
 	backendConn db.Conn,
+	gcConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
@@ -504,7 +510,12 @@ func (cmd *RunCommand) constructMembers(
 		return nil, err
 	}
 
-	return append(apiMembers, backendMembers...), nil
+	gcMembers, err := cmd.constructGCMember(logger, gcConn, lockFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(apiMembers, append(backendMembers, gcMembers...)...), nil
 }
 
 func (cmd *RunCommand) constructAPIMembers(
@@ -786,12 +797,6 @@ func (cmd *RunCommand) constructBackendMembers(
 		checkContainerStrategy,
 	)
 
-	dbWorkerLifecycle := db.NewWorkerLifecycle(dbConn)
-	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(dbConn)
-	dbContainerRepository := db.NewContainerRepository(dbConn)
-	dbArtifactLifecycle := db.NewArtifactLifecycle(dbConn)
-	dbCheckLifecycle := db.NewCheckLifecycle(dbConn)
-	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -829,42 +834,6 @@ func (cmd *RunCommand) constructBackendMembers(
 			bus,
 			lockFactory,
 			componentFactory,
-		)},
-		{Name: atc.ComponentCollector, Runner: lockrunner.NewRunner(
-			logger.Session(atc.ComponentCollector),
-			gc.NewCollector(
-				gc.NewBuildCollector(dbBuildFactory),
-				gc.NewWorkerCollector(dbWorkerLifecycle),
-				gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
-				gc.NewResourceConfigCollector(dbResourceConfigFactory),
-				gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
-				gc.NewArtifactCollector(dbArtifactLifecycle),
-				gc.NewCheckCollector(
-					dbCheckLifecycle,
-					cmd.GC.CheckRecyclePeriod,
-				),
-				gc.NewVolumeCollector(
-					dbVolumeRepository,
-					cmd.GC.MissingGracePeriod,
-				),
-				gc.NewContainerCollector(
-					dbContainerRepository,
-					gc.NewWorkerJobRunner(
-						logger.Session("container-collector-worker-job-runner"),
-						workerProvider,
-						time.Minute,
-					),
-					cmd.GC.MissingGracePeriod,
-				),
-				gc.NewResourceConfigCheckSessionCollector(
-					resourceConfigCheckSessionLifecycle,
-				),
-			),
-			atc.ComponentCollector,
-			lockFactory,
-			componentFactory,
-			clock.NewClock(),
-			runnerInterval,
 		)},
 		// run separately so as to not preempt critical GC
 		{Name: atc.ComponentBuildReaper, Runner: lockrunner.NewRunner(
@@ -953,6 +922,97 @@ func (cmd *RunCommand) constructBackendMembers(
 	if cmd.Worker.GardenURL.URL != nil {
 		members = cmd.appendStaticWorker(logger, dbWorkerFactory, members)
 	}
+	return members, nil
+}
+
+func (cmd *RunCommand) constructGCMember(
+	logger lager.Logger,
+	gcConn db.Conn,
+	lockFactory lock.LockFactory,
+) ([]grouper.Member, error) {
+
+	var members []grouper.Member
+
+	componentFactory := db.NewComponentFactory(gcConn)
+	dbWorkerLifecycle := db.NewWorkerLifecycle(gcConn)
+	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
+	dbContainerRepository := db.NewContainerRepository(gcConn)
+	dbArtifactLifecycle := db.NewArtifactLifecycle(gcConn)
+	dbCheckLifecycle := db.NewCheckLifecycle(gcConn)
+	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
+	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	resourceFactory := resource.NewResourceFactory()
+	dbResourceCacheFactory := db.NewResourceCacheFactory(gcConn, lockFactory)
+	fetchSourceFactory := fetcher.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
+	resourceFetcher := fetcher.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
+	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
+	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		resourceFetcher,
+		resourceFactory,
+	)
+
+	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(gcConn)
+	dbTaskCacheFactory := db.NewTaskCacheFactory(gcConn)
+	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(gcConn)
+	dbVolumeRepository := db.NewVolumeRepository(gcConn)
+	dbWorkerFactory := db.NewWorkerFactory(gcConn)
+	workerVersion, err := workerVersion()
+	if err != nil {
+		return members, err
+	}
+
+	teamFactory := db.NewTeamFactory(gcConn, lockFactory)
+	workerProvider := worker.NewDBWorkerProvider(
+		lockFactory,
+		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+		image.NewImageFactory(imageResourceFetcherFactory),
+		dbResourceCacheFactory,
+		dbResourceConfigFactory,
+		dbWorkerBaseResourceTypeFactory,
+		dbTaskCacheFactory,
+		dbWorkerTaskCacheFactory,
+		dbVolumeRepository,
+		teamFactory,
+		dbWorkerFactory,
+		workerVersion,
+		cmd.BaggageclaimResponseHeaderTimeout,
+	)
+
+	jobRunner := gc.NewWorkerJobRunner(
+		logger.Session("container-collector-worker-job-runner"),
+		workerProvider,
+		time.Minute,
+	)
+
+	collectors := map[string]lockrunner.Task{
+		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
+		atc.ComponentCollectorWorkers:           gc.NewWorkerCollector(dbWorkerLifecycle),
+		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory),
+		atc.ComponentCollectorResourceCaches:    gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
+		atc.ComponentCollectorResourceCacheUses: gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
+		atc.ComponentCollectorArtifacts:         gc.NewArtifactCollector(dbArtifactLifecycle),
+		atc.ComponentCollectorChecks:            gc.NewCheckCollector(dbCheckLifecycle, cmd.GC.CheckRecyclePeriod),
+		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
+		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, jobRunner, cmd.GC.MissingGracePeriod),
+		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
+	}
+
+	for collectorName, collector := range collectors {
+		members = append(members, grouper.Member{
+			Name: collectorName, Runner: lockrunner.NewRunner(
+				logger.Session(collectorName),
+				collector,
+				collectorName,
+				lockFactory,
+				componentFactory,
+				clock.NewClock(),
+				runnerInterval,
+			)},
+		)
+	}
+
 	return members, nil
 }
 
@@ -1311,13 +1371,22 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 func (cmd *RunCommand) configureComponentInterval(componentFactory db.ComponentFactory) error {
 	return componentFactory.UpdateIntervals(
 		map[string]time.Duration{
-			atc.ComponentBuildReaper:   30 * time.Second,
-			atc.ComponentBuildTracker:  cmd.BuildTrackerInterval,
-			atc.ComponentCollector:     cmd.GC.Interval,
-			atc.ComponentLidarScanner:  cmd.LidarScannerInterval,
-			atc.ComponentLidarChecker:  cmd.LidarCheckerInterval,
-			atc.ComponentScheduler:     10 * time.Second,
-			atc.ComponentSyslogDrainer: cmd.Syslog.DrainInterval,
+			atc.ComponentBuildReaper:                30 * time.Second,
+			atc.ComponentBuildTracker:               cmd.BuildTrackerInterval,
+			atc.ComponentLidarScanner:               cmd.LidarScannerInterval,
+			atc.ComponentLidarChecker:               cmd.LidarCheckerInterval,
+			atc.ComponentScheduler:                  10 * time.Second,
+			atc.ComponentSyslogDrainer:              cmd.Syslog.DrainInterval,
+			atc.ComponentCollectorArtifacts:         cmd.GC.Interval,
+			atc.ComponentCollectorBuilds:            cmd.GC.Interval,
+			atc.ComponentCollectorCheckSessions:     cmd.GC.Interval,
+			atc.ComponentCollectorChecks:            cmd.GC.Interval,
+			atc.ComponentCollectorContainers:        cmd.GC.Interval,
+			atc.ComponentCollectorResourceCacheUses: cmd.GC.Interval,
+			atc.ComponentCollectorResourceCaches:    cmd.GC.Interval,
+			atc.ComponentCollectorResourceConfigs:   cmd.GC.Interval,
+			atc.ComponentCollectorVolumes:           cmd.GC.Interval,
+			atc.ComponentCollectorWorkers:           cmd.GC.Interval,
 		})
 }
 
