@@ -15,6 +15,7 @@ import Browser
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
+import Html
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
@@ -441,7 +442,16 @@ urlUpdate route model =
 
 view : Model -> Browser.Document TopLevelMessage
 view model =
-    SubPage.view model.session model.subModel
+    let
+        ( title, body ) =
+            SubPage.view model.session model.subModel
+    in
+    { title = title ++ " - Concourse"
+    , body =
+        [ Tooltip.view model.session
+        , Html.map Update body
+        ]
+    }
 
 
 subscriptions : Model -> List Subscription

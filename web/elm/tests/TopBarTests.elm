@@ -136,17 +136,15 @@ all =
             [ context "when login state unknown"
                 queryView
                 [ it "shows concourse logo" <|
-                    Query.children []
-                        >> Query.index 0
-                        >> Query.has
-                            [ style "background-image"
-                                "url(/public/images/concourse-logo-white.svg)"
-                            , style "background-position" "50% 50%"
-                            , style "background-repeat" "no-repeat"
-                            , style "background-size" "42px 42px"
-                            , style "width" topBarHeight
-                            , style "height" topBarHeight
-                            ]
+                    Query.has
+                        [ style "background-image"
+                            "url(/public/images/concourse-logo-white.svg)"
+                        , style "background-position" "50% 50%"
+                        , style "background-repeat" "no-repeat"
+                        , style "background-size" "42px 42px"
+                        , style "width" topBarHeight
+                        , style "height" topBarHeight
+                        ]
                 , it "shows pipeline breadcrumb" <|
                     Query.has [ id "breadcrumb-pipeline" ]
                 , context "pipeline breadcrumb"

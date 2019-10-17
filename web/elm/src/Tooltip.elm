@@ -1,9 +1,12 @@
-module Tooltip exposing (Model, handleCallback)
+module Tooltip exposing (Model, handleCallback, view)
 
+import Build.Styles
 import EffectTransformer exposing (ET)
 import HoverState
+import Html exposing (Html)
 import Message.Callback exposing (Callback(..), TooltipPolicy(..))
 import Message.Effects as Effects
+import Message.Message as Message
 
 
 type alias Model m =
@@ -47,3 +50,20 @@ handleCallback callback ( model, effects ) =
 
         _ ->
             ( model, effects )
+
+
+view : Model m -> Html msg
+view { hovered } =
+    case hovered of
+        HoverState.Tooltip (Message.FirstOccurrenceIcon _) pos ->
+            Html.div []
+                [ Html.div
+                    (Build.Styles.firstOccurrenceTooltip pos)
+                    [ Html.text "new version" ]
+                , Html.div
+                    Build.Styles.firstOccurrenceTooltipArrow
+                    []
+                ]
+
+        _ ->
+            Html.text ""

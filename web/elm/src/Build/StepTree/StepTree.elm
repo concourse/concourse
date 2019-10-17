@@ -809,23 +809,7 @@ viewStepHeaderIcon headerType hovered stepID =
             :: Styles.stepHeaderIcon headerType
             ++ eventHandlers
         )
-        (case hovered of
-            HoverState.Tooltip (FirstOccurrenceIcon x) pos ->
-                if x == stepID then
-                    [ Html.div
-                        (Styles.firstOccurrenceTooltip pos)
-                        [ Html.text "new version" ]
-                    , Html.div
-                        Styles.firstOccurrenceTooltipArrow
-                        []
-                    ]
-
-                else
-                    []
-
-            _ ->
-                []
-        )
+        []
 
 
 viewDurationTooltip : Maybe Time.Posix -> Maybe Time.Posix -> Maybe Time.Posix -> Bool -> List (Html Message)
