@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/exec/artifact"
@@ -65,6 +66,45 @@ func (i specificInputs) FindAll(artifacts *artifact.Repository) ([]worker.InputS
 			name:   artifact.Name(i),
 			source: PutResourceSource{artifactSource},
 		})
+	}
+
+	return inputs, nil
+}
+
+type detectInputs struct {
+	inputs []string
+}
+
+func NewDetectInputs(params map[string]interface{}) PutInputs {
+	var inputs []string
+	for _, value := range params {
+		switch actual := value.(type) {
+		case string:
+			input := actual
+			if idx := strings.IndexByte(actual, '/'); idx >= 0 {
+				input = actual[:idx]
+			}
+			inputs = append(inputs, input)
+		default:
+		}
+	}
+	return &detectInputs{
+		inputs: inputs,
+	}
+}
+
+func (i detectInputs) FindAll(artifacts *artifact.Repository) ([]worker.InputSource, error) {
+	artifactsMap := artifacts.AsMap()
+
+	inputs := []worker.InputSource{}
+	for _, i := range i.inputs {
+		artifactSource, found := artifactsMap[artifact.Name(i)]
+		if found {
+			inputs = append(inputs, &putInputSource{
+				name:   artifact.Name(i),
+				source: PutResourceSource{artifactSource},
+			})
+		}
 	}
 
 	return inputs, nil

@@ -165,6 +165,7 @@ func (c *VersionConfig) MarshalJSON() ([]byte, error) {
 // job as an input to the put step or specific ones.
 type InputsConfig struct {
 	All       bool
+	Detect    bool
 	Specified []string
 }
 
@@ -179,6 +180,7 @@ func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 	switch actual := data.(type) {
 	case string:
 		c.All = actual == "all"
+		c.Detect = actual == "detect"
 	case []interface{}:
 		inputs := []string{}
 

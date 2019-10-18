@@ -263,6 +263,25 @@ var _ = Describe("PutStep", func() {
 				})
 			})
 
+			Context("when the inputs are detected", func() {
+				BeforeEach(func() {
+					putPlan.Inputs = &atc.InputsConfig{
+						Detect: true,
+					}
+					putPlan.Params = atc.Params{"some-param": "some-source/source", "another-param": "does-not-exist", "number-param": 123}
+				})
+
+				It("initializes the container with detected inputs", func() {
+					_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+					Expect(containerSpec.Inputs).To(HaveLen(1))
+					Expect([]worker.ArtifactSource{
+						containerSpec.Inputs[0].Source(),
+					}).To(ConsistOf(
+						exec.PutResourceSource{fakeSource},
+					))
+				})
+			})
+
 			It("puts the resource with the given context", func() {
 				Expect(fakeResource.PutCallCount()).To(Equal(1))
 				putCtx, _, _, _ := fakeResource.PutArgsForCall(0)
