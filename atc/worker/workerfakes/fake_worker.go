@@ -88,20 +88,6 @@ type FakeWorker struct {
 	descriptionReturnsOnCall map[int]struct {
 		result1 string
 	}
-	EnsureDBContainerExistsStub        func(context.Context, lager.Logger, db.ContainerOwner, db.ContainerMetadata) error
-	ensureDBContainerExistsMutex       sync.RWMutex
-	ensureDBContainerExistsArgsForCall []struct {
-		arg1 context.Context
-		arg2 lager.Logger
-		arg3 db.ContainerOwner
-		arg4 db.ContainerMetadata
-	}
-	ensureDBContainerExistsReturns struct {
-		result1 error
-	}
-	ensureDBContainerExistsReturnsOnCall map[int]struct {
-		result1 error
-	}
 	EphemeralStub        func() bool
 	ephemeralMutex       sync.RWMutex
 	ephemeralArgsForCall []struct {
@@ -637,69 +623,6 @@ func (fake *FakeWorker) DescriptionReturnsOnCall(i int, result1 string) {
 	}
 	fake.descriptionReturnsOnCall[i] = struct {
 		result1 string
-	}{result1}
-}
-
-func (fake *FakeWorker) EnsureDBContainerExists(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 db.ContainerMetadata) error {
-	fake.ensureDBContainerExistsMutex.Lock()
-	ret, specificReturn := fake.ensureDBContainerExistsReturnsOnCall[len(fake.ensureDBContainerExistsArgsForCall)]
-	fake.ensureDBContainerExistsArgsForCall = append(fake.ensureDBContainerExistsArgsForCall, struct {
-		arg1 context.Context
-		arg2 lager.Logger
-		arg3 db.ContainerOwner
-		arg4 db.ContainerMetadata
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("EnsureDBContainerExists", []interface{}{arg1, arg2, arg3, arg4})
-	fake.ensureDBContainerExistsMutex.Unlock()
-	if fake.EnsureDBContainerExistsStub != nil {
-		return fake.EnsureDBContainerExistsStub(arg1, arg2, arg3, arg4)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.ensureDBContainerExistsReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeWorker) EnsureDBContainerExistsCallCount() int {
-	fake.ensureDBContainerExistsMutex.RLock()
-	defer fake.ensureDBContainerExistsMutex.RUnlock()
-	return len(fake.ensureDBContainerExistsArgsForCall)
-}
-
-func (fake *FakeWorker) EnsureDBContainerExistsCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, db.ContainerMetadata) error) {
-	fake.ensureDBContainerExistsMutex.Lock()
-	defer fake.ensureDBContainerExistsMutex.Unlock()
-	fake.EnsureDBContainerExistsStub = stub
-}
-
-func (fake *FakeWorker) EnsureDBContainerExistsArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, db.ContainerMetadata) {
-	fake.ensureDBContainerExistsMutex.RLock()
-	defer fake.ensureDBContainerExistsMutex.RUnlock()
-	argsForCall := fake.ensureDBContainerExistsArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
-}
-
-func (fake *FakeWorker) EnsureDBContainerExistsReturns(result1 error) {
-	fake.ensureDBContainerExistsMutex.Lock()
-	defer fake.ensureDBContainerExistsMutex.Unlock()
-	fake.EnsureDBContainerExistsStub = nil
-	fake.ensureDBContainerExistsReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeWorker) EnsureDBContainerExistsReturnsOnCall(i int, result1 error) {
-	fake.ensureDBContainerExistsMutex.Lock()
-	defer fake.ensureDBContainerExistsMutex.Unlock()
-	fake.EnsureDBContainerExistsStub = nil
-	if fake.ensureDBContainerExistsReturnsOnCall == nil {
-		fake.ensureDBContainerExistsReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.ensureDBContainerExistsReturnsOnCall[i] = struct {
-		result1 error
 	}{result1}
 }
 
@@ -1597,8 +1520,6 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.decreaseActiveTasksMutex.RUnlock()
 	fake.descriptionMutex.RLock()
 	defer fake.descriptionMutex.RUnlock()
-	fake.ensureDBContainerExistsMutex.RLock()
-	defer fake.ensureDBContainerExistsMutex.RUnlock()
 	fake.ephemeralMutex.RLock()
 	defer fake.ephemeralMutex.RUnlock()
 	fake.findContainerByHandleMutex.RLock()
