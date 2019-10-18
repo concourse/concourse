@@ -6,16 +6,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
-	gocache "github.com/patrickmn/go-cache"
 )
-
-const algorithmLimitRows = 100
 
 type ErrResourceNotFound struct {
 	Name string
@@ -59,7 +55,6 @@ type Pipeline interface {
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
-	LoadVersionsDB() (*VersionsDB, error)
 	LoadDebugVersionsDB() (*atc.DebugVersionsDB, error)
 
 	Resource(name string) (Resource, bool, error)
@@ -629,97 +624,6 @@ func (p *pipeline) Destroy() error {
 	return err
 }
 
-var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
-
-func (p *pipeline) LoadVersionsDB() (*VersionsDB, error) {
-	db := &VersionsDB{
-		Conn:      p.conn,
-		LimitRows: algorithmLimitRows,
-
-		Cache: schedulerCache,
-
-		JobIDs:           map[string]int{},
-		ResourceIDs:      map[string]int{},
-		DisabledVersions: map[int]map[string]bool{},
-	}
-
-	rows, err := psql.Select("j.name, j.id").
-		From("jobs j").
-		Where(sq.Eq{"j.pipeline_id": p.id}).
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		var name string
-		var id int
-		err = rows.Scan(&name, &id)
-		if err != nil {
-			return nil, err
-		}
-
-		db.JobIDs[name] = id
-	}
-
-	rows, err = psql.Select("r.name, r.id").
-		From("resources r").
-		Where(sq.Eq{"r.pipeline_id": p.id}).
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		var name string
-		var id int
-		err = rows.Scan(&name, &id)
-		if err != nil {
-			return nil, err
-		}
-
-		db.ResourceIDs[name] = id
-	}
-
-	rows, err = psql.Select("rdv.resource_id", "rdv.version_md5").
-		From("resource_disabled_versions rdv").
-		Join("resources r ON r.id = rdv.resource_id").
-		Where(sq.Eq{
-			"r.pipeline_id": p.id,
-		}).
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		var resourceID int
-		var versionMD5 string
-
-		err = rows.Scan(&resourceID, &versionMD5)
-		if err != nil {
-			return nil, err
-		}
-
-		md5s, found := db.DisabledVersions[resourceID]
-		if !found {
-			md5s = map[string]bool{}
-			db.DisabledVersions[resourceID] = md5s
-		}
-
-		md5s[versionMD5] = true
-	}
-
-	return db, nil
-}
-
 func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 	db := &atc.DebugVersionsDB{
 		BuildOutputs:     []atc.DebugBuildOutput{},
@@ -1094,4 +998,27 @@ func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resourc
 	}
 
 	return resources, nil
+}
+
+func requestSchedule(tx Tx, pipelineID int) error {
+	result, err := psql.Update("pipelines").
+		Set("schedule_requested", sq.Expr("now()")).
+		Where(sq.Eq{
+			"id": pipelineID,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows != 1 {
+		return nonOneRowAffectedError{rows}
+	}
+	return err
 }

@@ -1,15 +1,21 @@
 package db
 
 import (
+	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/db/lock"
 )
+
+type PipelineJobs map[int]Jobs
 
 //go:generate counterfeiter . JobFactory
 
 type JobFactory interface {
 	VisibleJobs([]string) (Dashboard, error)
-	AllActiveJobs() (Dashboard, error)
+	AllActiveJobsForDashboard() (Dashboard, error)
+	JobsForPipelines() (PipelineJobs, error)
+
+	AcquireSchedulingLock(lager.Logger) (lock.Lock, bool, error)
 }
 
 type jobFactory struct {
@@ -24,6 +30,15 @@ func NewJobFactory(conn Conn, lockFactory lock.LockFactory) JobFactory {
 	}
 }
 
+func (j *jobFactory) AcquireSchedulingLock(
+	logger lager.Logger,
+) (lock.Lock, bool, error) {
+	return j.lockFactory.Acquire(
+		logger,
+		lock.NewSchedulerLockID(),
+	)
+}
+
 func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
 	currentTeamJobs, err := j.teamJobs(teamNames)
 	if err != nil {
@@ -36,6 +51,43 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
 	}
 
 	jobs := append(currentTeamJobs, otherTeamPublicJobs...)
+
+	return j.buildDashboard(jobs)
+}
+
+// XXX Should we add it not returning paused jobs
+func (j *jobFactory) JobsForPipelines() (PipelineJobs, error) {
+	rows, err := jobsQuery.
+		Where(sq.Eq{
+			"j.active": true,
+			"p.paused": false,
+		}).
+		OrderBy("j.id ASC").
+		RunWith(j.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	return scanPipelineJobs(j.conn, j.lockFactory, rows)
+}
+
+func (j *jobFactory) AllActiveJobsForDashboard() (Dashboard, error) {
+	rows, err := jobsQuery.
+		Where(sq.Eq{
+			"j.active": true,
+		}).
+		OrderBy("j.id ASC").
+		RunWith(j.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	jobs, err := scanJobs(j.conn, j.lockFactory, rows)
+	if err != nil {
+		return nil, err
+	}
 
 	return j.buildDashboard(jobs)
 }
@@ -73,26 +125,6 @@ func (j *jobFactory) otherTeamPublicJobs(teamNames []string) (Jobs, error) {
 	}
 
 	return scanJobs(j.conn, j.lockFactory, rows)
-}
-
-func (j *jobFactory) AllActiveJobs() (Dashboard, error) {
-	rows, err := jobsQuery.
-		Where(sq.Eq{
-			"j.active": true,
-		}).
-		OrderBy("j.id ASC").
-		RunWith(j.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	jobs, err := scanJobs(j.conn, j.lockFactory, rows)
-	if err != nil {
-		return nil, err
-	}
-
-	return j.buildDashboard(jobs)
 }
 
 func (j *jobFactory) buildDashboard(jobs Jobs) (Dashboard, error) {

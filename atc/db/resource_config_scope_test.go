@@ -89,6 +89,20 @@ var _ = Describe("Resource Config Scope", func() {
 			Expect(latestVR.CheckOrder()).To(Equal(4))
 		})
 
+		It("requests schedule on the pipeline", func() {
+			var requestedSchedule time.Time
+			err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = resourceScope.SaveVersions(originalVersionSlice)
+			Expect(err).ToNot(HaveOccurred())
+
+			var newRequestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+		})
+
 		Context("when the versions already exists", func() {
 			var newVersionSlice []atc.Version
 

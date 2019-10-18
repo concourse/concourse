@@ -272,7 +272,12 @@ func (r *groupResolver) outputSatisfyCandidateConstraints(output db.AlgorithmVer
 		return false, false, "", nil
 	}
 
-	if r.vdb.VersionIsDisabled(output.ResourceID, output.Version) {
+	disabled, err := r.vdb.VersionIsDisabled(output.ResourceID, output.Version)
+	if err != nil {
+		return false, false, "", err
+	}
+
+	if !disabled {
 		// this version is disabled so it cannot be used
 		r.debug.log("disabled", output.Version, passedJobID)
 		return false, true, "", nil

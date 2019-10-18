@@ -514,6 +514,11 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
+	err = requestSchedule(tx, pipeline.id)
+	if err != nil {
+		return nil, false, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, false, err

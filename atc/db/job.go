@@ -524,6 +524,11 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
+	err = requestSchedule(tx, j.pipelineID)
+	if err != nil {
+		return nil, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
@@ -564,6 +569,11 @@ func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 	}
 
 	err = updateNextBuildForJob(tx, j.id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = requestSchedule(tx, j.pipelineID)
 	if err != nil {
 		return nil, err
 	}
@@ -612,53 +622,13 @@ func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
 }
 
 func (j *job) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
-	lock, acquired, err := j.lockFactory.Acquire(
+	return j.lockFactory.Acquire(
 		logger.Session("lock", lager.Data{
 			"job":      j.name,
 			"pipeline": j.pipelineName,
 		}),
-		lock.NewJobSchedulingLockLockID(j.id),
+		lock.NewJobSchedulingLockID(j.id),
 	)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired {
-		return nil, false, nil
-	}
-
-	var keepLock bool
-	defer func() {
-		if !keepLock {
-			err = lock.Release()
-			if err != nil {
-				logger.Error("failed-to-release-lock", err)
-			}
-		}
-	}()
-
-	result, err := j.conn.Exec(`
-		UPDATE jobs
-		SET last_scheduled = now()
-		WHERE id = $1
-			AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
-	`, j.id, interval.Seconds())
-	if err != nil {
-		return nil, false, err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return nil, false, err
-	}
-
-	if rows == 0 {
-		return nil, false, nil
-	}
-
-	keepLock = true
-
-	return lock, true, nil
 }
 
 func (j *job) isMaxInFlightReached(tx Tx, buildID int) (bool, error) {
@@ -1074,6 +1044,24 @@ func scanJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) (Jobs, er
 		}
 
 		jobs = append(jobs, job)
+	}
+
+	return jobs, nil
+}
+
+func scanPipelineJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) (PipelineJobs, error) {
+	defer Close(rows)
+
+	jobs := PipelineJobs{}
+	for rows.Next() {
+		job := &job{conn: conn, lockFactory: lockFactory}
+
+		err := scanJob(job, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		jobs[job.pipelineID] = append(jobs[job.pipelineID], job)
 	}
 
 	return jobs, nil

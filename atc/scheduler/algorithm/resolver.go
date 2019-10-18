@@ -38,7 +38,7 @@ func constructResolvers(
 
 		inputConfig := InputConfig{
 			Name:       input.Name,
-			ResourceID: versions.ResourceIDs[input.Resource],
+			ResourceID: resource.ID(),
 			JobID:      job.ID(),
 		}
 

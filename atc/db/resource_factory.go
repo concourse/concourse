@@ -7,12 +7,15 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
+type PipelineResources map[int][]Resource
+
 //go:generate counterfeiter . ResourceFactory
 
 type ResourceFactory interface {
 	Resource(int) (Resource, bool, error)
 	VisibleResources([]string) ([]Resource, error)
 	AllResources() ([]Resource, error)
+	ResourcesForPipelines() (PipelineResources, error)
 }
 
 type resourceFactory struct {
@@ -80,6 +83,21 @@ func (r *resourceFactory) AllResources() ([]Resource, error) {
 	return scanResources(rows, r.conn, r.lockFactory)
 }
 
+func (r *resourceFactory) ResourcesForPipelines() (PipelineResources, error) {
+	rows, err := resourcesQuery.
+		Where(sq.Eq{
+			"p.paused": false,
+		}).
+		OrderBy("r.id ASC").
+		RunWith(r.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	return scanPipelineResources(rows, r.conn, r.lockFactory)
+}
+
 func scanResources(resourceRows *sql.Rows, conn Conn, lockFactory lock.LockFactory) ([]Resource, error) {
 	var resources []Resource
 
@@ -92,6 +110,22 @@ func scanResources(resourceRows *sql.Rows, conn Conn, lockFactory lock.LockFacto
 		}
 
 		resources = append(resources, resource)
+	}
+
+	return resources, nil
+}
+
+func scanPipelineResources(rows *sql.Rows, conn Conn, lockFactory lock.LockFactory) (PipelineResources, error) {
+	resources := PipelineResources{}
+	for rows.Next() {
+		resource := &resource{conn: conn, lockFactory: lockFactory}
+
+		err := scanResource(resource, rows)
+		if err != nil {
+			return nil, err
+		}
+
+		resources[resource.pipelineID] = append(resources[resource.pipelineID], resource)
 	}
 
 	return resources, nil

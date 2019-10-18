@@ -507,6 +507,22 @@ var _ = Describe("Job", func() {
 				Expect(build).To(BeNil())
 			})
 		})
+
+		Context("creating a build", func() {
+			It("requests schedule on the pipeline", func() {
+				var requestedSchedule time.Time
+				err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				var newRequestedSchedule time.Time
+				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+			})
+		})
 	})
 
 	Describe("RerunBuild", func() {

@@ -35,6 +35,18 @@ type FakeResourceFactory struct {
 		result2 bool
 		result3 error
 	}
+	ResourcesForPipelinesStub        func() (db.PipelineResources, error)
+	resourcesForPipelinesMutex       sync.RWMutex
+	resourcesForPipelinesArgsForCall []struct {
+	}
+	resourcesForPipelinesReturns struct {
+		result1 db.PipelineResources
+		result2 error
+	}
+	resourcesForPipelinesReturnsOnCall map[int]struct {
+		result1 db.PipelineResources
+		result2 error
+	}
 	VisibleResourcesStub        func([]string) ([]db.Resource, error)
 	visibleResourcesMutex       sync.RWMutex
 	visibleResourcesArgsForCall []struct {
@@ -173,6 +185,61 @@ func (fake *FakeResourceFactory) ResourceReturnsOnCall(i int, result1 db.Resourc
 	}{result1, result2, result3}
 }
 
+func (fake *FakeResourceFactory) ResourcesForPipelines() (db.PipelineResources, error) {
+	fake.resourcesForPipelinesMutex.Lock()
+	ret, specificReturn := fake.resourcesForPipelinesReturnsOnCall[len(fake.resourcesForPipelinesArgsForCall)]
+	fake.resourcesForPipelinesArgsForCall = append(fake.resourcesForPipelinesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourcesForPipelines", []interface{}{})
+	fake.resourcesForPipelinesMutex.Unlock()
+	if fake.ResourcesForPipelinesStub != nil {
+		return fake.ResourcesForPipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.resourcesForPipelinesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeResourceFactory) ResourcesForPipelinesCallCount() int {
+	fake.resourcesForPipelinesMutex.RLock()
+	defer fake.resourcesForPipelinesMutex.RUnlock()
+	return len(fake.resourcesForPipelinesArgsForCall)
+}
+
+func (fake *FakeResourceFactory) ResourcesForPipelinesCalls(stub func() (db.PipelineResources, error)) {
+	fake.resourcesForPipelinesMutex.Lock()
+	defer fake.resourcesForPipelinesMutex.Unlock()
+	fake.ResourcesForPipelinesStub = stub
+}
+
+func (fake *FakeResourceFactory) ResourcesForPipelinesReturns(result1 db.PipelineResources, result2 error) {
+	fake.resourcesForPipelinesMutex.Lock()
+	defer fake.resourcesForPipelinesMutex.Unlock()
+	fake.ResourcesForPipelinesStub = nil
+	fake.resourcesForPipelinesReturns = struct {
+		result1 db.PipelineResources
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeResourceFactory) ResourcesForPipelinesReturnsOnCall(i int, result1 db.PipelineResources, result2 error) {
+	fake.resourcesForPipelinesMutex.Lock()
+	defer fake.resourcesForPipelinesMutex.Unlock()
+	fake.ResourcesForPipelinesStub = nil
+	if fake.resourcesForPipelinesReturnsOnCall == nil {
+		fake.resourcesForPipelinesReturnsOnCall = make(map[int]struct {
+			result1 db.PipelineResources
+			result2 error
+		})
+	}
+	fake.resourcesForPipelinesReturnsOnCall[i] = struct {
+		result1 db.PipelineResources
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeResourceFactory) VisibleResources(arg1 []string) ([]db.Resource, error) {
 	var arg1Copy []string
 	if arg1 != nil {
@@ -248,6 +315,8 @@ func (fake *FakeResourceFactory) Invocations() map[string][][]interface{} {
 	defer fake.allResourcesMutex.RUnlock()
 	fake.resourceMutex.RLock()
 	defer fake.resourceMutex.RUnlock()
+	fake.resourcesForPipelinesMutex.RLock()
+	defer fake.resourcesForPipelinesMutex.RUnlock()
 	fake.visibleResourcesMutex.RLock()
 	defer fake.visibleResourcesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

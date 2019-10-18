@@ -4,20 +4,49 @@ package dbfakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeJobFactory struct {
-	AllActiveJobsStub        func() (db.Dashboard, error)
-	allActiveJobsMutex       sync.RWMutex
-	allActiveJobsArgsForCall []struct {
+	AcquireSchedulingLockStub        func(lager.Logger) (lock.Lock, bool, error)
+	acquireSchedulingLockMutex       sync.RWMutex
+	acquireSchedulingLockArgsForCall []struct {
+		arg1 lager.Logger
 	}
-	allActiveJobsReturns struct {
+	acquireSchedulingLockReturns struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
+	acquireSchedulingLockReturnsOnCall map[int]struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}
+	AllActiveJobsForDashboardStub        func() (db.Dashboard, error)
+	allActiveJobsForDashboardMutex       sync.RWMutex
+	allActiveJobsForDashboardArgsForCall []struct {
+	}
+	allActiveJobsForDashboardReturns struct {
 		result1 db.Dashboard
 		result2 error
 	}
-	allActiveJobsReturnsOnCall map[int]struct {
+	allActiveJobsForDashboardReturnsOnCall map[int]struct {
 		result1 db.Dashboard
+		result2 error
+	}
+	JobsForPipelinesStub        func() (db.PipelineJobs, error)
+	jobsForPipelinesMutex       sync.RWMutex
+	jobsForPipelinesArgsForCall []struct {
+	}
+	jobsForPipelinesReturns struct {
+		result1 db.PipelineJobs
+		result2 error
+	}
+	jobsForPipelinesReturnsOnCall map[int]struct {
+		result1 db.PipelineJobs
 		result2 error
 	}
 	VisibleJobsStub        func([]string) (db.Dashboard, error)
@@ -37,57 +66,178 @@ type FakeJobFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeJobFactory) AllActiveJobs() (db.Dashboard, error) {
-	fake.allActiveJobsMutex.Lock()
-	ret, specificReturn := fake.allActiveJobsReturnsOnCall[len(fake.allActiveJobsArgsForCall)]
-	fake.allActiveJobsArgsForCall = append(fake.allActiveJobsArgsForCall, struct {
+func (fake *FakeJobFactory) AcquireSchedulingLock(arg1 lager.Logger) (lock.Lock, bool, error) {
+	fake.acquireSchedulingLockMutex.Lock()
+	ret, specificReturn := fake.acquireSchedulingLockReturnsOnCall[len(fake.acquireSchedulingLockArgsForCall)]
+	fake.acquireSchedulingLockArgsForCall = append(fake.acquireSchedulingLockArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("AcquireSchedulingLock", []interface{}{arg1})
+	fake.acquireSchedulingLockMutex.Unlock()
+	if fake.AcquireSchedulingLockStub != nil {
+		return fake.AcquireSchedulingLockStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.acquireSchedulingLockReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeJobFactory) AcquireSchedulingLockCallCount() int {
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
+	return len(fake.acquireSchedulingLockArgsForCall)
+}
+
+func (fake *FakeJobFactory) AcquireSchedulingLockCalls(stub func(lager.Logger) (lock.Lock, bool, error)) {
+	fake.acquireSchedulingLockMutex.Lock()
+	defer fake.acquireSchedulingLockMutex.Unlock()
+	fake.AcquireSchedulingLockStub = stub
+}
+
+func (fake *FakeJobFactory) AcquireSchedulingLockArgsForCall(i int) lager.Logger {
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
+	argsForCall := fake.acquireSchedulingLockArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeJobFactory) AcquireSchedulingLockReturns(result1 lock.Lock, result2 bool, result3 error) {
+	fake.acquireSchedulingLockMutex.Lock()
+	defer fake.acquireSchedulingLockMutex.Unlock()
+	fake.AcquireSchedulingLockStub = nil
+	fake.acquireSchedulingLockReturns = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJobFactory) AcquireSchedulingLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
+	fake.acquireSchedulingLockMutex.Lock()
+	defer fake.acquireSchedulingLockMutex.Unlock()
+	fake.AcquireSchedulingLockStub = nil
+	if fake.acquireSchedulingLockReturnsOnCall == nil {
+		fake.acquireSchedulingLockReturnsOnCall = make(map[int]struct {
+			result1 lock.Lock
+			result2 bool
+			result3 error
+		})
+	}
+	fake.acquireSchedulingLockReturnsOnCall[i] = struct {
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJobFactory) AllActiveJobsForDashboard() (db.Dashboard, error) {
+	fake.allActiveJobsForDashboardMutex.Lock()
+	ret, specificReturn := fake.allActiveJobsForDashboardReturnsOnCall[len(fake.allActiveJobsForDashboardArgsForCall)]
+	fake.allActiveJobsForDashboardArgsForCall = append(fake.allActiveJobsForDashboardArgsForCall, struct {
 	}{})
-	fake.recordInvocation("AllActiveJobs", []interface{}{})
-	fake.allActiveJobsMutex.Unlock()
-	if fake.AllActiveJobsStub != nil {
-		return fake.AllActiveJobsStub()
+	fake.recordInvocation("AllActiveJobsForDashboard", []interface{}{})
+	fake.allActiveJobsForDashboardMutex.Unlock()
+	if fake.AllActiveJobsForDashboardStub != nil {
+		return fake.AllActiveJobsForDashboardStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.allActiveJobsReturns
+	fakeReturns := fake.allActiveJobsForDashboardReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeJobFactory) AllActiveJobsCallCount() int {
-	fake.allActiveJobsMutex.RLock()
-	defer fake.allActiveJobsMutex.RUnlock()
-	return len(fake.allActiveJobsArgsForCall)
+func (fake *FakeJobFactory) AllActiveJobsForDashboardCallCount() int {
+	fake.allActiveJobsForDashboardMutex.RLock()
+	defer fake.allActiveJobsForDashboardMutex.RUnlock()
+	return len(fake.allActiveJobsForDashboardArgsForCall)
 }
 
-func (fake *FakeJobFactory) AllActiveJobsCalls(stub func() (db.Dashboard, error)) {
-	fake.allActiveJobsMutex.Lock()
-	defer fake.allActiveJobsMutex.Unlock()
-	fake.AllActiveJobsStub = stub
+func (fake *FakeJobFactory) AllActiveJobsForDashboardCalls(stub func() (db.Dashboard, error)) {
+	fake.allActiveJobsForDashboardMutex.Lock()
+	defer fake.allActiveJobsForDashboardMutex.Unlock()
+	fake.AllActiveJobsForDashboardStub = stub
 }
 
-func (fake *FakeJobFactory) AllActiveJobsReturns(result1 db.Dashboard, result2 error) {
-	fake.allActiveJobsMutex.Lock()
-	defer fake.allActiveJobsMutex.Unlock()
-	fake.AllActiveJobsStub = nil
-	fake.allActiveJobsReturns = struct {
+func (fake *FakeJobFactory) AllActiveJobsForDashboardReturns(result1 db.Dashboard, result2 error) {
+	fake.allActiveJobsForDashboardMutex.Lock()
+	defer fake.allActiveJobsForDashboardMutex.Unlock()
+	fake.AllActiveJobsForDashboardStub = nil
+	fake.allActiveJobsForDashboardReturns = struct {
 		result1 db.Dashboard
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeJobFactory) AllActiveJobsReturnsOnCall(i int, result1 db.Dashboard, result2 error) {
-	fake.allActiveJobsMutex.Lock()
-	defer fake.allActiveJobsMutex.Unlock()
-	fake.AllActiveJobsStub = nil
-	if fake.allActiveJobsReturnsOnCall == nil {
-		fake.allActiveJobsReturnsOnCall = make(map[int]struct {
+func (fake *FakeJobFactory) AllActiveJobsForDashboardReturnsOnCall(i int, result1 db.Dashboard, result2 error) {
+	fake.allActiveJobsForDashboardMutex.Lock()
+	defer fake.allActiveJobsForDashboardMutex.Unlock()
+	fake.AllActiveJobsForDashboardStub = nil
+	if fake.allActiveJobsForDashboardReturnsOnCall == nil {
+		fake.allActiveJobsForDashboardReturnsOnCall = make(map[int]struct {
 			result1 db.Dashboard
 			result2 error
 		})
 	}
-	fake.allActiveJobsReturnsOnCall[i] = struct {
+	fake.allActiveJobsForDashboardReturnsOnCall[i] = struct {
 		result1 db.Dashboard
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeJobFactory) JobsForPipelines() (db.PipelineJobs, error) {
+	fake.jobsForPipelinesMutex.Lock()
+	ret, specificReturn := fake.jobsForPipelinesReturnsOnCall[len(fake.jobsForPipelinesArgsForCall)]
+	fake.jobsForPipelinesArgsForCall = append(fake.jobsForPipelinesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("JobsForPipelines", []interface{}{})
+	fake.jobsForPipelinesMutex.Unlock()
+	if fake.JobsForPipelinesStub != nil {
+		return fake.JobsForPipelinesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.jobsForPipelinesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeJobFactory) JobsForPipelinesCallCount() int {
+	fake.jobsForPipelinesMutex.RLock()
+	defer fake.jobsForPipelinesMutex.RUnlock()
+	return len(fake.jobsForPipelinesArgsForCall)
+}
+
+func (fake *FakeJobFactory) JobsForPipelinesCalls(stub func() (db.PipelineJobs, error)) {
+	fake.jobsForPipelinesMutex.Lock()
+	defer fake.jobsForPipelinesMutex.Unlock()
+	fake.JobsForPipelinesStub = stub
+}
+
+func (fake *FakeJobFactory) JobsForPipelinesReturns(result1 db.PipelineJobs, result2 error) {
+	fake.jobsForPipelinesMutex.Lock()
+	defer fake.jobsForPipelinesMutex.Unlock()
+	fake.JobsForPipelinesStub = nil
+	fake.jobsForPipelinesReturns = struct {
+		result1 db.PipelineJobs
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeJobFactory) JobsForPipelinesReturnsOnCall(i int, result1 db.PipelineJobs, result2 error) {
+	fake.jobsForPipelinesMutex.Lock()
+	defer fake.jobsForPipelinesMutex.Unlock()
+	fake.JobsForPipelinesStub = nil
+	if fake.jobsForPipelinesReturnsOnCall == nil {
+		fake.jobsForPipelinesReturnsOnCall = make(map[int]struct {
+			result1 db.PipelineJobs
+			result2 error
+		})
+	}
+	fake.jobsForPipelinesReturnsOnCall[i] = struct {
+		result1 db.PipelineJobs
 		result2 error
 	}{result1, result2}
 }
@@ -163,8 +313,12 @@ func (fake *FakeJobFactory) VisibleJobsReturnsOnCall(i int, result1 db.Dashboard
 func (fake *FakeJobFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.allActiveJobsMutex.RLock()
-	defer fake.allActiveJobsMutex.RUnlock()
+	fake.acquireSchedulingLockMutex.RLock()
+	defer fake.acquireSchedulingLockMutex.RUnlock()
+	fake.allActiveJobsForDashboardMutex.RLock()
+	defer fake.allActiveJobsForDashboardMutex.RUnlock()
+	fake.jobsForPipelinesMutex.RLock()
+	defer fake.jobsForPipelinesMutex.RUnlock()
 	fake.visibleJobsMutex.RLock()
 	defer fake.visibleJobsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
