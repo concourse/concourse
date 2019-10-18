@@ -581,11 +581,11 @@ func (emitter *PrometheusEmitter) workerUnknownContainersMetric(logger lager.Log
 	}
 
 	key := serializeLabels(&labels)
-	if emitter.workerVolumesLabels[worker] == nil {
-		emitter.workerVolumesLabels[worker] = make(map[string]prometheus.Labels)
+	if emitter.workerContainersLabels[worker] == nil {
+		emitter.workerContainersLabels[worker] = make(map[string]prometheus.Labels)
 	}
-	emitter.workerVolumesLabels[worker][key] = labels
-	emitter.workerVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(float64(containers))
+	emitter.workerContainersLabels[worker][key] = labels
+	emitter.workerContainers.With(emitter.workerContainersLabels[worker][key]).Set(float64(containers))
 }
 
 func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event metric.Event) {
