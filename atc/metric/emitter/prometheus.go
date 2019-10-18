@@ -648,7 +648,7 @@ func (emitter *PrometheusEmitter) workerUnknownVolumesMetric(logger lager.Logger
 		emitter.workerVolumesLabels[worker] = make(map[string]prometheus.Labels)
 	}
 	emitter.workerVolumesLabels[worker][key] = labels
-	emitter.workerVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(float64(volumes))
+	emitter.workerUnknownVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(float64(volumes))
 }
 
 func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event metric.Event) {
