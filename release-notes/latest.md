@@ -34,3 +34,7 @@
 #### <sub><sup><a name="4492" href="#4492">:link:</a></sup></sub> fix
 
 * The `fly format-pipeline` now always produces a formatted pipeline, instead of declining to do so when it was already in the expected format. #4492
+
+#### <sub><sup><a name="4617" href="#4617">:link:</a></sup></sub> feature
+
+* New Relic emitter logs info message when API call to New Relic responds with a non 2xx status code.  #4617
