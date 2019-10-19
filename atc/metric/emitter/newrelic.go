@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -103,8 +104,19 @@ func (emitter *NewRelicEmitter) emitPayload(logger lager.Logger, payload fullPay
 	resp, err := emitter.client.Do(req)
 
 	if err != nil {
-		logger.Error("failed-to-send-request",
+		logger.Error("new-relic-failed-to-send-request",
 			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
+		return
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			logger.Info("new-relic-failed-to-send-request",
+				lager.Data{"error": "Failed to read response body", "status-code": resp.StatusCode})
+			return
+		}
+		logger.Info("new-relic-failed-to-send-request",
+			lager.Data{"response-body": string(bodyBytes), "status-code": resp.StatusCode })
 		return
 	}
 
