@@ -52,13 +52,16 @@ func (self *migrations) Up_1561558376() error {
 			return err
 		}
 
-		var payload map[string]interface{}
+		var payload struct {
+			Type string `json:"type"`
+		}
+
 		err = json.Unmarshal(decrypted, &payload)
 		if err != nil {
 			return err
 		}
 
-		_, err = tx.Exec("UPDATE resources SET type = $1 WHERE id = $2", payload["type"], resource.id)
+		_, err = tx.Exec("UPDATE resources SET type = $1 WHERE id = $2", payload.Type, resource.id)
 		if err != nil {
 			return err
 		}
