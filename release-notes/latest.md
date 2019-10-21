@@ -34,3 +34,9 @@
 #### <sub><sup><a name="4492" href="#4492">:link:</a></sup></sub> fix
 
 * The `fly format-pipeline` now always produces a formatted pipeline, instead of declining to do so when it was already in the expected format. #4492
+
+#### <sub><sup><a name="4606" href="#4606">:link:</a></sup></sub> feature
+
+* @wagdav updated worker heartbeat log level from `debug` to `info` to reduce extraneous log output for operators #4606
+
+
