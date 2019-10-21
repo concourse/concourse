@@ -1031,6 +1031,89 @@ all =
                             , jobName = "job"
                             }
                         ]
+        , test "pressing 'R' reruns build" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildJobDetailsFetched <|
+                            Ok
+                                { pipeline =
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                                , name = ""
+                                , pipelineName = "pipeline"
+                                , teamName = "team"
+                                , nextBuild = Nothing
+                                , finishedBuild = Nothing
+                                , transitionBuild = Nothing
+                                , paused = False
+                                , disableManualTrigger = False
+                                , inputs = []
+                                , outputs = []
+                                , groups = []
+                                }
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = True
+                                , metaKey = False
+                                , code = Keyboard.R
+                                }
+                        )
+                    |> Tuple.second
+                    |> Expect.equal
+                        [ Effects.RerunJobBuild
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , jobName = "job"
+                            , buildName = "1"
+                            }
+                        ]
+        , test "pressing 'R' does nothing if there is a running build" <|
+            \_ ->
+                initFromApplication
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildJobDetailsFetched <|
+                            Ok
+                                { pipeline =
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    }
+                                , name = ""
+                                , pipelineName = "pipeline"
+                                , teamName = "team"
+                                , nextBuild = Nothing
+                                , finishedBuild = Nothing
+                                , transitionBuild = Nothing
+                                , paused = False
+                                , disableManualTrigger = False
+                                , inputs = []
+                                , outputs = []
+                                , groups = []
+                                }
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown <|
+                                { ctrlKey = False
+                                , shiftKey = True
+                                , metaKey = False
+                                , code = Keyboard.R
+                                }
+                        )
+                    |> Tuple.second
+                    |> Expect.equal []
         , test "pressing 'gg' scrolls to the top" <|
             \_ ->
                 initFromApplication
