@@ -108,7 +108,7 @@ decide much on its own.
     various connections from the \reference{web-node} on port \code{7777}
     (Garden), \code{7788} (BaggageClaim), and \code{7799} (garbage collection)
   }{
-    repeated connections to \code{7788} and \code{7788} from the
+    repeated connections to \code{7777} and \code{7788} from the
     \reference{web-node}'s TSA component as it heartbeats to ensure the worker
     is healthy
   }
