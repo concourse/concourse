@@ -74,9 +74,9 @@ type BindMountSource interface {
 type OutputPaths map[string]string
 
 type ImageSpec struct {
-	ResourceType  string
-	ImageURL      string
-	ImageResource *ImageResource
+	ResourceType        string
+	ImageURL            string
+	ImageResource       *ImageResource
 	ImageArtifactSource StreamableArtifactSource
 	ImageArtifact       runtime.Artifact
 	Privileged          bool

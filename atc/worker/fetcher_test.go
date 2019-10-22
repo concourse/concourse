@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Fetcher", func() {
+var _ = FDescribe("Fetcher", func() {
 	var (
 		fakeClock             *fakeclock.FakeClock
 		fakeLockFactory       *lockfakes.FakeLockFactory

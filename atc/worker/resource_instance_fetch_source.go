@@ -93,18 +93,12 @@ type resourceInstanceFetchSource struct {
 	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
-func findOn(logger lager.Logger, w Worker, cache db.UsedResourceCache) (volume Volume, found bool, err error) {
-	return w.FindVolumeForResourceCache(
-		logger,
-		cache,
-	)
-}
 
 func (s *resourceInstanceFetchSource) Find() (GetResult, Volume, bool, error) {
 	sLog := s.logger.Session("find")
 	result := GetResult{}
 
-	volume, found, err := findOn(s.logger, s.worker, s.cache)
+	volume, found, err := s.worker.FindVolumeForResourceCache(s.logger, s.cache)
 	if err != nil {
 		sLog.Error("failed-to-find-initialized-on", err)
 		return result, nil, false, err

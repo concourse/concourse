@@ -12,26 +12,29 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("ResourceInstanceFetchSource", func() {
+var _ = FDescribe("ResourceInstanceFetchSource", func() {
 	var (
-		fetchSourceFactory FetchSourceFactory
-		fetchSource        FetchSource
+		fetchSourceFactory worker.FetchSourceFactory
+		fetchSource        worker.FetchSource
 
 		fakeContainer            *workerfakes.FakeContainer
 		fakeVolume               *workerfakes.FakeVolume
-		fakeResourceInstance     *resourcefakes.FakeResourceInstance
 		fakeWorker               *workerfakes.FakeWorker
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeUsedResourceCache    *dbfakes.FakeUsedResourceCache
+		fakeResource             *resourcefakes.FakeResource
 		fakeDelegate             *workerfakes.FakeImageFetchingDelegate
 		resourceTypes            atc.VersionedResourceTypes
 		metadata                 db.ContainerMetadata
+		owner                    db.ContainerOwner
 
 		ctx    context.Context
 		cancel func()
@@ -60,7 +63,8 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		}
 
 		fakeVolume = new(workerfakes.FakeVolume)
-		fakeContainer.VolumeMountsReturns([]VolumeMount{
+		fakeVolume.HandleReturns("some-handle")
+		fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
 			{
 				Volume:    fakeVolume,
 				MountPath: resource.ResourcesDir("get"),
@@ -75,9 +79,10 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 		fakeUsedResourceCache.IDReturns(42)
 		fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
 
-		fakeResourceInstance = new(resourcefakes.FakeResourceInstance)
-		fakeResourceInstance.ResourceCacheReturns(fakeUsedResourceCache)
-		fakeResourceInstance.ContainerOwnerReturns(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42))
+		owner = db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)
+		metadata = db.ContainerMetadata{Type: db.ContainerTypeGet}
+
+		fakeResource = new(resourcefakes.FakeResource)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCacheFactory.UpdateResourceCacheMetadataReturns(nil)
 		fakeResourceCacheFactory.ResourceCacheMetadataReturns([]db.ResourceConfigMetadataField{
@@ -97,24 +102,26 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 			},
 		}
 
-		resourceFactory := resource.NewResourceFactory()
-		fetchSourceFactory = NewFetchSourceFactory(fakeResourceCacheFactory, resourceFactory)
-		metadata = db.ContainerMetadata{Type: db.ContainerTypeGet}
+		// resourceFactory := resource.NewResourceFactory()
+		fetchSourceFactory = worker.NewFetchSourceFactory(fakeResourceCacheFactory)
 		fetchSource = fetchSourceFactory.NewFetchSource(
 			logger,
 			fakeWorker,
-			fakeResourceInstance,
+			owner,
+			fakeUsedResourceCache,
+			fakeResource,
 			resourceTypes,
-			ContainerSpec{
+			worker.ContainerSpec{
 				TeamID: 42,
 				Tags:   []string{},
-				ImageSpec: ImageSpec{
+				ImageSpec: worker.ImageSpec{
 					ResourceType: "fake-resource-type",
 				},
 				Outputs: map[string]string{
 					"resource": resource.ResourcesDir("get"),
 				},
 			},
+			runtime.ProcessSpec{},
 			metadata,
 			fakeDelegate,
 		)
@@ -125,60 +132,71 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 	})
 
 	Describe("Find", func() {
+		var expectedGetResult worker.GetResult
+
 		Context("when there is volume", func() {
-			var expectedInitializedVersionedSource resource.VersionedSource
 			BeforeEach(func() {
+				fakeWorker.FindVolumeForResourceCacheReturns(fakeVolume, true, nil)
+
 				expectedMetadata := []atc.MetadataField{
 					{Name: "some", Value: "metadata"},
 				}
-				expectedInitializedVersionedSource = resource.NewGetVersionedSource(fakeVolume, fakeResourceInstance.Version(), expectedMetadata)
-				fakeResourceInstance.FindOnReturns(fakeVolume, true, nil)
+				expectedGetResult = worker.GetResult{
+					Status: 0,
+					VersionResult: runtime.VersionResult{Metadata: expectedMetadata},
+					GetArtifact: runtime.GetArtifact{fakeVolume.Handle()},
+				}
 			})
 
-			It("finds initialized volume and sets versioned source", func() {
-				versionedSource, found, err := fetchSource.Find()
+			It("finds the resource cache volume and returns the correct result", func() {
+				getResult, volume, found, err := fetchSource.Find()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(versionedSource).To(Equal(expectedInitializedVersionedSource))
+				Expect(volume).To(Equal(fakeVolume))
+				Expect(getResult).To(Equal(expectedGetResult))
 			})
 		})
 
 		Context("when there is no volume", func() {
 			BeforeEach(func() {
-				fakeResourceInstance.FindOnReturns(nil, false, nil)
+				fakeWorker.FindVolumeForResourceCacheReturns(nil, false, nil)
+				expectedGetResult = worker.GetResult{}
 			})
 
 			It("does not find volume", func() {
-				versionedSource, found, err := fetchSource.Find()
+				getResult, volume, found, err := fetchSource.Find()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
-				Expect(versionedSource).To(BeNil())
+				Expect(volume).To(BeNil())
+				Expect(getResult).To(Equal(expectedGetResult))
 			})
 		})
 	})
 
 	Describe("Create", func() {
 		var (
-			initErr                 error
-			versionedSource         resource.VersionedSource
-			expectedVersionedSource resource.VersionedSource
+			initErr           error
+			getResult         worker.GetResult
+			expectedGetResult worker.GetResult
+			volume            worker.Volume
 		)
 
-		BeforeEach(func() {
-			fakeResourceInstance.ResourceTypeReturns(resource.ResourceType("fake-resource-type"))
-		})
-
 		JustBeforeEach(func() {
-			versionedSource, initErr = fetchSource.Create(ctx)
+			getResult, volume, initErr = fetchSource.Create(ctx)
 		})
 
 		Context("when there is initialized volume", func() {
 			BeforeEach(func() {
-				fakeResourceInstance.FindOnReturns(fakeVolume, true, nil)
+				fakeWorker.FindVolumeForResourceCacheReturns(fakeVolume, true, nil)
+
 				expectedMetadata := []atc.MetadataField{
 					{Name: "some", Value: "metadata"},
 				}
-				expectedVersionedSource = resource.NewGetVersionedSource(fakeVolume, fakeResourceInstance.Version(), expectedMetadata)
+				expectedGetResult = worker.GetResult{
+					Status: 0,
+					VersionResult: runtime.VersionResult{Metadata: expectedMetadata},
+					GetArtifact: runtime.GetArtifact{fakeVolume.Handle()},
+				}
 			})
 
 			It("does not fetch resource", func() {
@@ -188,13 +206,13 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 
 			It("finds initialized volume and sets versioned source", func() {
 				Expect(initErr).NotTo(HaveOccurred())
-				Expect(versionedSource).To(Equal(expectedVersionedSource))
+				Expect(getResult).To(Equal(expectedGetResult))
 			})
 		})
 
 		Context("when there is no initialized volume", func() {
 			BeforeEach(func() {
-				fakeResourceInstance.FindOnReturns(nil, false, nil)
+				fakeWorker.FindVolumeForResourceCacheReturns(nil, false, nil)
 			})
 
 			It("creates container with volume and worker", func() {
@@ -205,17 +223,18 @@ var _ = Describe("ResourceInstanceFetchSource", func() {
 				Expect(delegate).To(Equal(fakeDelegate))
 				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(43, atc.PlanID("some-plan-id"), 42)))
 				Expect(actualMetadata).To(Equal(metadata))
-				Expect(containerSpec).To(Equal(ContainerSpec{
-					TeamID: 42,
-					Tags:   []string{},
-					ImageSpec: ImageSpec{
-						ResourceType: "fake-resource-type",
-					},
-					BindMounts: []BindMountSource{&CertsVolumeMount{Logger: logger}},
-					Outputs: map[string]string{
-						"resource": resource.ResourcesDir("get"),
-					},
-				}))
+				Expect(containerSpec).To(Equal(
+					worker.ContainerSpec{
+						TeamID: 42,
+						Tags:   []string{},
+						ImageSpec: worker.ImageSpec{
+							ResourceType: "fake-resource-type",
+						},
+						BindMounts: []worker.BindMountSource{&worker.CertsVolumeMount{Logger: logger}},
+						Outputs: map[string]string{
+							"resource": resource.ResourcesDir("get"),
+						},
+					}))
 				Expect(types).To(Equal(resourceTypes))
 			})
 
