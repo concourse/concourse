@@ -1231,7 +1231,7 @@ all =
                                             Tuple.second
                                                 >> Expect.equal
                                                     [ Effects.ModifyUrl
-                                                        "/?search=status: "
+                                                        "/?search=status%3A%20"
                                                     ]
                                         ]
                                    ]

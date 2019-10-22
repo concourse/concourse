@@ -46,3 +46,7 @@
 #### <sub><sup><a name="4606" href="#4606">:link:</a></sup></sub> feature
 
 * @wagdav updated worker heartbeat log level from `debug` to `info` to reduce extraneous log output for operators #4606
+
+#### <sub><sup><a name="4625" href="#4625">:link:</a></sup></sub> fix
+
+* Fixed a [bug](https://github.com/concourse/concourse/issues/4313) where your dashboard search string would end up with `+`s instead of spaces when logging in. #4265
