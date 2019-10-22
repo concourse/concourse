@@ -347,34 +347,22 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 }
 
 func (repository *containerRepository) DestroyFailedContainers() (int, error) {
-	rows, err := selectContainers().
-		Where(sq.Eq{"containers.state": atc.ContainerStateFailed}).
-		RunWith(repository.conn).Query()
+	result, err := psql.Update("containers").
+		Set("state", atc.ContainerStateDestroying).
+		Where( sq.Eq{"state": string(atc.ContainerStateFailed)}).
+		RunWith(repository.conn).
+		Exec()
 
 	if err != nil {
 		return 0, err
 	}
 
-	numFailedContainers := 0
-
-	var failedContainers []FailedContainer
-	for rows.Next() {
-		_, _, _, failedContainer, err := scanContainer(rows, repository.conn)
-		if err != nil {
-			return 0, err
-		}
-
-		failedContainers = append(failedContainers, failedContainer)
-		numFailedContainers++
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
 	}
 
-	for _, failedContainer := range failedContainers {
-		_, err = failedContainer.Destroy()
-		if err != nil {
-			return 0, err
-		}
-	}
-	return numFailedContainers, nil
+	return int(affected), nil
 }
 
 func (repository *containerRepository) DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error) {
