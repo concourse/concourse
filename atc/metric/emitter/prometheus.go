@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -41,18 +43,42 @@ type PrometheusEmitter struct {
 	schedulingFullDuration    *prometheus.CounterVec
 	schedulingLoadingDuration *prometheus.CounterVec
 
-	workerContainers  *prometheus.GaugeVec
-	workerVolumes     *prometheus.GaugeVec
-	workerTasks       *prometheus.GaugeVec
-	workersRegistered *prometheus.GaugeVec
+	workerContainers        *prometheus.GaugeVec
+	workerUnknownContainers *prometheus.GaugeVec
+	workerVolumes           *prometheus.GaugeVec
+	workerUnknownVolumes    *prometheus.GaugeVec
+	workerTasks             *prometheus.GaugeVec
+	workersRegistered       *prometheus.GaugeVec
 
-	workerLastSeen map[string]time.Time
-	mu             sync.Mutex
+	workerContainersLabels map[string]map[string]prometheus.Labels
+	workerVolumesLabels    map[string]map[string]prometheus.Labels
+	workerTasksLabels      map[string]map[string]prometheus.Labels
+	workerLastSeen         map[string]time.Time
+	mu                     sync.Mutex
 }
 
 type PrometheusConfig struct {
 	BindIP   string `long:"prometheus-bind-ip" description:"IP to listen on to expose Prometheus metrics."`
 	BindPort string `long:"prometheus-bind-port" description:"Port to listen on to expose Prometheus metrics."`
+}
+
+// The most natural data type to hold the labels is a set because each worker can have multiple but
+// unique sets of labels. A set in Go is represented by a map[T]struct{}. Unfortunately, we cannot
+// put prometheus.Labels inside a map[prometheus.Labels]struct{} because prometheus.Labels are not
+// hashable. To work around this, we compute a string from the labels and use this as the keys of
+// the map.
+func serializeLabels(labels *prometheus.Labels) string {
+	var (
+		key   string
+		names []string
+	)
+	for _, v := range *labels {
+		names = append(names, v)
+	}
+	sort.Strings(names)
+	key = strings.Join(names, "_")
+
+	return key
 }
 
 func init() {
@@ -172,6 +198,17 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(workerContainers)
 
+	workerUnknownContainers := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "workers",
+			Name:      "unknown_containers",
+			Help:      "Number of unknown containers found on worker",
+		},
+		[]string{"worker"},
+	)
+	prometheus.MustRegister(workerUnknownContainers)
+
 	workerVolumes := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "concourse",
@@ -182,6 +219,17 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		[]string{"worker", "platform", "team", "tags"},
 	)
 	prometheus.MustRegister(workerVolumes)
+
+	workerUnknownVolumes := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "workers",
+			Name:      "unknown_volumes",
+			Help:      "Number of unknown volumes found on worker",
+		},
+		[]string{"worker"},
+	)
+	prometheus.MustRegister(workerUnknownVolumes)
 
 	workerTasks := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -314,11 +362,16 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		schedulingFullDuration:    schedulingFullDuration,
 		schedulingLoadingDuration: schedulingLoadingDuration,
 
-		workerContainers:  workerContainers,
-		workersRegistered: workersRegistered,
-		workerLastSeen:    map[string]time.Time{},
-		workerVolumes:     workerVolumes,
-		workerTasks:       workerTasks,
+		workerContainers:        workerContainers,
+		workersRegistered:       workersRegistered,
+		workerContainersLabels:  map[string]map[string]prometheus.Labels{},
+		workerVolumesLabels:     map[string]map[string]prometheus.Labels{},
+		workerTasksLabels:       map[string]map[string]prometheus.Labels{},
+		workerLastSeen:          map[string]time.Time{},
+		workerVolumes:           workerVolumes,
+		workerTasks:             workerTasks,
+		workerUnknownContainers: workerUnknownContainers,
+		workerUnknownVolumes:    workerUnknownVolumes,
 	}
 	go emitter.periodicMetricGC()
 
@@ -347,6 +400,10 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.workerContainersMetric(logger, event)
 	case "worker volumes":
 		emitter.workerVolumesMetric(logger, event)
+	case "worker unknown containers":
+		emitter.workerUnknownContainersMetric(logger, event)
+	case "worker unknown volumes":
+		emitter.workerUnknownVolumesMetric(logger, event)
 	case "worker tasks":
 		emitter.workerTasksMetric(logger, event)
 	case "worker state":
@@ -476,7 +533,18 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 		return
 	}
 
-	emitter.workerContainers.WithLabelValues(worker, platform, team, tags).Set(float64(containers))
+	labels := prometheus.Labels{
+		"worker":   worker,
+		"platform": platform,
+		"team":     team,
+		"tags":     tags,
+	}
+	key := serializeLabels(&labels)
+	if emitter.workerContainersLabels[worker] == nil {
+		emitter.workerContainersLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.workerContainersLabels[worker][key] = labels
+	emitter.workerContainers.With(emitter.workerContainersLabels[worker][key]).Set(float64(containers))
 }
 
 func (emitter *PrometheusEmitter) workersRegisteredMetric(logger lager.Logger, event metric.Event) {
@@ -493,6 +561,31 @@ func (emitter *PrometheusEmitter) workersRegisteredMetric(logger lager.Logger, e
 	}
 
 	emitter.workersRegistered.WithLabelValues(state).Set(float64(count))
+}
+
+func (emitter *PrometheusEmitter) workerUnknownContainersMetric(logger lager.Logger, event metric.Event) {
+	worker, exists := event.Attributes["worker"]
+	if !exists {
+		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+		return
+	}
+
+	labels := prometheus.Labels{
+		"worker": worker,
+	}
+
+	containers, ok := event.Value.(int)
+	if !ok {
+		logger.Error("worker-unknown-containers-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
+		return
+	}
+
+	key := serializeLabels(&labels)
+	if emitter.workerContainersLabels[worker] == nil {
+		emitter.workerContainersLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.workerContainersLabels[worker][key] = labels
+	emitter.workerUnknownContainers.With(emitter.workerContainersLabels[worker][key]).Set(float64(containers))
 }
 
 func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event metric.Event) {
@@ -519,7 +612,43 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		return
 	}
 
-	emitter.workerVolumes.WithLabelValues(worker, platform, team, tags).Set(float64(volumes))
+	labels := prometheus.Labels{
+		"worker":   worker,
+		"platform": platform,
+		"team":     team,
+		"tags":     tags,
+	}
+	key := serializeLabels(&labels)
+	if emitter.workerVolumesLabels[worker] == nil {
+		emitter.workerVolumesLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.workerVolumesLabels[worker][key] = labels
+	emitter.workerVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(float64(volumes))
+}
+
+func (emitter *PrometheusEmitter) workerUnknownVolumesMetric(logger lager.Logger, event metric.Event) {
+	worker, exists := event.Attributes["worker"]
+	if !exists {
+		logger.Error("failed-to-find-worker-in-event", fmt.Errorf("expected worker to exist in event.Attributes"))
+		return
+	}
+
+	labels := prometheus.Labels{
+		"worker": worker,
+	}
+
+	volumes, ok := event.Value.(int)
+	if !ok {
+		logger.Error("worker-unknown-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
+		return
+	}
+
+	key := serializeLabels(&labels)
+	if emitter.workerVolumesLabels[worker] == nil {
+		emitter.workerVolumesLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.workerVolumesLabels[worker][key] = labels
+	emitter.workerUnknownVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(float64(volumes))
 }
 
 func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event metric.Event) {
@@ -540,7 +669,16 @@ func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event m
 		return
 	}
 
-	emitter.workerTasks.WithLabelValues(worker, platform).Set(float64(tasks))
+	labels := prometheus.Labels{
+		"worker":   worker,
+		"platform": platform,
+	}
+	key := serializeLabels(&labels)
+	if emitter.workerTasksLabels[worker] == nil {
+		emitter.workerTasksLabels[worker] = make(map[string]prometheus.Labels)
+	}
+	emitter.workerTasksLabels[worker][key] = labels
+	emitter.workerTasks.With(emitter.workerTasksLabels[worker][key]).Set(float64(tasks))
 }
 
 func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, event metric.Event) {
@@ -649,18 +787,65 @@ func (emitter *PrometheusEmitter) periodicMetricGC() {
 		now := time.Now()
 		for worker, lastSeen := range emitter.workerLastSeen {
 			if now.Sub(lastSeen) > 5*time.Minute {
-				// This is a little stupid but we don't know the platform here,
-				// but DeleteLabelValues requires an exact match on the label set.
-				// As a workaround we try all known values for  the "platform" label
-				for _, platform := range []string{"linux", "windows", "darwin"} {
-					emitter.workerContainers.DeleteLabelValues(worker, platform)
-					emitter.workerVolumes.DeleteLabelValues(worker, platform)
-					emitter.workerTasks.DeleteLabelValues(worker, platform)
-				}
+				DoGarbageCollection(emitter, worker)
 				delete(emitter.workerLastSeen, worker)
 			}
 		}
 		emitter.mu.Unlock()
 		time.Sleep(60 * time.Second)
 	}
+}
+
+// DoGarbageCollection retrieves and deletes stale metrics by their labels.
+func DoGarbageCollection(emitter PrometheusGarbageCollectable, worker string) {
+	for _, labels := range emitter.WorkerContainersLabels()[worker] {
+		emitter.WorkerContainers().Delete(labels)
+	}
+
+	for _, labels := range emitter.WorkerVolumesLabels()[worker] {
+		emitter.WorkerVolumes().Delete(labels)
+	}
+
+	for _, labels := range emitter.WorkerTasksLabels()[worker] {
+		emitter.WorkerTasks().Delete(labels)
+	}
+
+	delete(emitter.WorkerContainersLabels(), worker)
+	delete(emitter.WorkerVolumesLabels(), worker)
+	delete(emitter.WorkerTasksLabels(), worker)
+}
+
+//go:generate counterfeiter . PrometheusGarbageCollectable
+type PrometheusGarbageCollectable interface {
+	WorkerContainers() *prometheus.GaugeVec
+	WorkerVolumes() *prometheus.GaugeVec
+	WorkerTasks() *prometheus.GaugeVec
+
+	WorkerContainersLabels() map[string]map[string]prometheus.Labels
+	WorkerVolumesLabels() map[string]map[string]prometheus.Labels
+	WorkerTasksLabels() map[string]map[string]prometheus.Labels
+}
+
+func (emitter *PrometheusEmitter) WorkerContainers() *prometheus.GaugeVec {
+	return emitter.workerContainers
+}
+
+func (emitter *PrometheusEmitter) WorkerVolumes() *prometheus.GaugeVec {
+	return emitter.workerVolumes
+}
+
+func (emitter *PrometheusEmitter) WorkerTasks() *prometheus.GaugeVec {
+	return emitter.workerTasks
+}
+
+func (emitter *PrometheusEmitter) WorkerContainersLabels() map[string]map[string]prometheus.Labels {
+	return emitter.workerContainersLabels
+}
+
+func (emitter *PrometheusEmitter) WorkerVolumesLabels() map[string]map[string]prometheus.Labels {
+	return emitter.workerVolumesLabels
+}
+
+func (emitter *PrometheusEmitter) WorkerTasksLabels() map[string]map[string]prometheus.Labels {
+	return emitter.workerTasksLabels
 }
