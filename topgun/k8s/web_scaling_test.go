@@ -2,11 +2,8 @@ package k8s_test
 
 import (
 	"strconv"
-	"time"
 
-	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Scaling web instances", func() {
@@ -16,34 +13,21 @@ var _ = Describe("Scaling web instances", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, nil)
+		cleanup(releaseName, namespace)
 	})
 
 	It("succeeds", func() {
-		successfullyDeploysConcourse(1, 1)
-		successfullyDeploysConcourse(0, 1)
-		successfullyDeploysConcourse(2, 1)
+		successfullyDeploysConcourse(1)
+		successfullyDeploysConcourse(0)
+		successfullyDeploysConcourse(2)
 	})
 })
 
-func successfullyDeploysConcourse(webReplicas, workerReplicas int) {
+func successfullyDeploysConcourse(webReplicas int) {
 	deployConcourseChart(releaseName,
 		"--set=web.replicas="+strconv.Itoa(webReplicas),
-		"--set=worker.replicas="+strconv.Itoa(workerReplicas),
+		"--set=worker.replicas=1",
 	)
 
-	waitAllPodsInNamespaceToBeReady(namespace)
-
-	By("Creating the web proxy")
-	proxySession, atcEndpoint := startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
-	defer proxySession.Interrupt()
-
-	By("Logging in")
-	fly.Login("test", "test", atcEndpoint)
-
-	By("waiting for a running worker")
-	Eventually(func() []Worker {
-		return getRunningWorkers(fly.GetWorkers())
-	}, 2*time.Minute, 10*time.Second).
-		Should(HaveLen(workerReplicas))
+	waitAndLogin(namespace, releaseName+"-web").Close()
 }
