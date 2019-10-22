@@ -188,8 +188,6 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Vo
 	volume = getResourceVolume(s.processSpec, container)
 
 	vr := runtime.VersionResult{}
-	// TODO This is pure EVIL
-	//events := make(chan runtime.Event, 100)
 
 	vr, err = s.resource.Get(ctx, s.processSpec, container)
 
