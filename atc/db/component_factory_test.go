@@ -3,6 +3,7 @@ package db_test
 import (
 	"time"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -41,8 +42,11 @@ var _ = Describe("ComponentFactory", func() {
 
 		BeforeEach(func() {
 			err = componentFactory.UpdateIntervals(
-				map[string]time.Duration{
-					expectedName: expectedInterval,
+				[]atc.Component{
+					{
+						Name:     expectedName,
+						Interval: expectedInterval,
+					},
 				})
 			Expect(err).NotTo(HaveOccurred())
 

@@ -802,7 +802,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	componentFactory := db.NewComponentFactory(dbConn)
 
-	err = cmd.configureComponentInterval(componentFactory)
+	err = cmd.configureComponentIntervals(componentFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -1368,25 +1368,58 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 	return nil
 }
 
-func (cmd *RunCommand) configureComponentInterval(componentFactory db.ComponentFactory) error {
+func (cmd *RunCommand) configureComponentIntervals(componentFactory db.ComponentFactory) error {
 	return componentFactory.UpdateIntervals(
-		map[string]time.Duration{
-			atc.ComponentBuildReaper:                30 * time.Second,
-			atc.ComponentBuildTracker:               cmd.BuildTrackerInterval,
-			atc.ComponentLidarScanner:               cmd.LidarScannerInterval,
-			atc.ComponentLidarChecker:               cmd.LidarCheckerInterval,
-			atc.ComponentScheduler:                  10 * time.Second,
-			atc.ComponentSyslogDrainer:              cmd.Syslog.DrainInterval,
-			atc.ComponentCollectorArtifacts:         cmd.GC.Interval,
-			atc.ComponentCollectorBuilds:            cmd.GC.Interval,
-			atc.ComponentCollectorCheckSessions:     cmd.GC.Interval,
-			atc.ComponentCollectorChecks:            cmd.GC.Interval,
-			atc.ComponentCollectorContainers:        cmd.GC.Interval,
-			atc.ComponentCollectorResourceCacheUses: cmd.GC.Interval,
-			atc.ComponentCollectorResourceCaches:    cmd.GC.Interval,
-			atc.ComponentCollectorResourceConfigs:   cmd.GC.Interval,
-			atc.ComponentCollectorVolumes:           cmd.GC.Interval,
-			atc.ComponentCollectorWorkers:           cmd.GC.Interval,
+		[]atc.Component{
+			{
+				Name:     atc.ComponentBuildTracker,
+				Interval: cmd.BuildTrackerInterval,
+			}, {
+				Name:     atc.ComponentScheduler,
+				Interval: 10 * time.Second,
+			}, {
+				Name:     atc.ComponentLidarChecker,
+				Interval: cmd.LidarCheckerInterval,
+			}, {
+				Name:     atc.ComponentLidarScanner,
+				Interval: cmd.LidarScannerInterval,
+			}, {
+				Name:     atc.ComponentBuildReaper,
+				Interval: 30 * time.Second,
+			}, {
+				Name:     atc.ComponentSyslogDrainer,
+				Interval: cmd.Syslog.DrainInterval,
+			}, {
+				Name:     atc.ComponentCollectorArtifacts,
+				Interval: cmd.GC.Interval,
+			}, {
+				Name:     atc.ComponentCollectorBuilds,
+				Interval: cmd.GC.Interval,
+			}, {
+				Name:     atc.ComponentCollectorChecks,
+				Interval: cmd.GC.Interval,
+			}, {
+				Name:     atc.ComponentCollectorCheckSessions,
+				Interval: cmd.GC.Interval,
+			}, {
+				Name:     atc.ComponentCollectorContainers,
+				Interval: cmd.GC.Interval,
+			}, {
+				Name:     atc.ComponentCollectorResourceCaches,
+				Interval: cmd.GC.Interval,
+			}, {
+				Name:     atc.ComponentCollectorResourceCacheUses,
+				Interval: cmd.GC.Interval,
+			}, {
+				Name:     atc.ComponentCollectorResourceConfigs,
+				Interval: cmd.GC.Interval,
+			}, {
+				Name:     atc.ComponentCollectorVolumes,
+				Interval: cmd.GC.Interval,
+			}, {
+				Name:     atc.ComponentCollectorWorkers,
+				Interval: cmd.GC.Interval,
+			},
 		})
 }
 

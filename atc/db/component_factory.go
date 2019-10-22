@@ -2,16 +2,16 @@ package db
 
 import (
 	"database/sql"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc"
 )
 
 //go:generate counterfeiter . ComponentFactory
 
 type ComponentFactory interface {
 	Find(string) (Component, bool, error)
-	UpdateIntervals(map[string]time.Duration) error
+	UpdateIntervals([]atc.Component) error
 }
 
 type componentFactory struct {
@@ -45,7 +45,7 @@ func (f *componentFactory) Find(componentName string) (Component, bool, error) {
 	return component, true, nil
 }
 
-func (f *componentFactory) UpdateIntervals(components map[string]time.Duration) error {
+func (f *componentFactory) UpdateIntervals(components []atc.Component) error {
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return err
@@ -53,8 +53,8 @@ func (f *componentFactory) UpdateIntervals(components map[string]time.Duration) 
 
 	defer Rollback(tx)
 
-	for name, interval := range components {
-		err := f.updateInterval(tx, name, interval)
+	for _, component := range components {
+		err := f.updateInterval(tx, component)
 		if err != nil {
 			return err
 		}
@@ -63,12 +63,11 @@ func (f *componentFactory) UpdateIntervals(components map[string]time.Duration) 
 	return tx.Commit()
 }
 
-func (f *componentFactory) updateInterval(tx Tx, componentName string, interval time.Duration) error {
-	result, err := psql.Update("components").
-		Set("interval", interval.String()).
-		Where(sq.Eq{
-			"name": componentName,
-		}).
+func (f *componentFactory) updateInterval(tx Tx, component atc.Component) error {
+	result, err := psql.Insert("components").
+		Columns("name", "interval").
+		Values(component.Name, component.Interval.String()).
+		Suffix("ON CONFLICT (name) DO UPDATE SET interval=EXCLUDED.interval").
 		RunWith(tx).
 		Exec()
 	if err != nil {

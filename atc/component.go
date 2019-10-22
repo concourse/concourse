@@ -1,5 +1,7 @@
 package atc
 
+import "time"
+
 const (
 	ComponentScheduler                  = "scheduler"
 	ComponentBuildTracker               = "tracker"
@@ -18,3 +20,8 @@ const (
 	ComponentCollectorVolumes           = "collector_volumes"
 	ComponentCollectorWorkers           = "collector_workers"
 )
+
+type Component struct {
+	Name     string
+	Interval time.Duration
+}
