@@ -78,20 +78,20 @@ func (c *containerCollector) Run(ctx context.Context) error {
 }
 
 func (c *containerCollector) markFailedContainersAsDestroying(logger lager.Logger) error {
-	failedContainersLen, err := c.containerRepository.DestroyFailedContainers()
+	numFailedContainers, err := c.containerRepository.DestroyFailedContainers()
 	if err != nil {
 		logger.Error("failed-to-find-failed-containers-for-deletion", err)
 		return err
 	}
 
-	if failedContainersLen > 0 {
+	if numFailedContainers > 0 {
 		logger.Debug("found-failed-containers-for-deletion", lager.Data{
-			"number": failedContainersLen,
+			"number": numFailedContainers,
 		})
 	}
 
 	metric.FailedContainersToBeGarbageCollected{
-		Containers: failedContainersLen,
+		Containers: numFailedContainers,
 	}.Emit(logger)
 
 	return nil
