@@ -27,7 +27,7 @@ func NewContainerCollector(
 	containerRepository db.ContainerRepository,
 	jobRunner WorkerJobRunner,
 	missingContainerGracePeriod time.Duration,
-) Collector {
+) *containerCollector {
 	return &containerCollector{
 		containerRepository:         containerRepository,
 		jobRunner:                   jobRunner,

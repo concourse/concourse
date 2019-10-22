@@ -12,6 +12,7 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/lockrunner"
@@ -20,10 +21,11 @@ import (
 
 var _ = Describe("Runner", func() {
 	var (
-		fakeLockFactory *lockfakes.FakeLockFactory
-		fakeTask        *lockrunnerfakes.FakeTask
-		fakeClock       *fakeclock.FakeClock
-		fakeLock        *lockfakes.FakeLock
+		fakeLockFactory      *lockfakes.FakeLockFactory
+		fakeComponentFactory *dbfakes.FakeComponentFactory
+		fakeTask             *lockrunnerfakes.FakeTask
+		fakeClock            *fakeclock.FakeClock
+		fakeLock             *lockfakes.FakeLock
 
 		interval time.Duration
 
@@ -32,6 +34,7 @@ var _ = Describe("Runner", func() {
 
 	BeforeEach(func() {
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
+		fakeComponentFactory = new(dbfakes.FakeComponentFactory)
 		fakeTask = new(lockrunnerfakes.FakeTask)
 		fakeLock = new(lockfakes.FakeLock)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -45,6 +48,7 @@ var _ = Describe("Runner", func() {
 			fakeTask,
 			"some-task-name",
 			fakeLockFactory,
+			fakeComponentFactory,
 			fakeClock,
 			interval,
 		))
@@ -56,8 +60,15 @@ var _ = Describe("Runner", func() {
 	})
 
 	Context("when the interval elapses", func() {
+		var fakeComponent *dbfakes.FakeComponent
+
 		JustBeforeEach(func() {
 			fakeClock.WaitForWatcherAndIncrement(interval)
+		})
+
+		BeforeEach(func() {
+			fakeComponent = new(dbfakes.FakeComponent)
+			fakeComponentFactory.FindReturns(fakeComponent, true, nil)
 		})
 
 		It("calls to get a lock for cache invalidation", func() {
@@ -71,25 +82,106 @@ var _ = Describe("Runner", func() {
 				fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 			})
 
-			It("it collects lost baggage", func() {
-				Eventually(fakeTask.RunCallCount).Should(Equal(1))
-			})
-
-			It("releases the lock", func() {
-				Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
-			})
-
-			Context("when collecting fails", func() {
+			Context("when the component is paused", func() {
 				BeforeEach(func() {
-					fakeTask.RunReturns(errors.New("disaster"))
+					fakeComponent.PausedReturns(true)
 				})
 
-				It("does not exit the process", func() {
+				It("does not exit and does not run the task", func() {
+					Consistently(fakeTask.RunCallCount).Should(Equal(0))
 					Consistently(process.Wait()).ShouldNot(Receive())
 				})
+			})
 
-				It("releases the lock", func() {
-					Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
+			Context("when getting the component fails", func() {
+				BeforeEach(func() {
+					fakeComponentFactory.FindReturns(nil, false, errors.New("nope"))
+				})
+
+				It("does not exit and does not run the task", func() {
+					Consistently(fakeTask.RunCallCount).Should(Equal(0))
+					Consistently(process.Wait()).ShouldNot(Receive())
+				})
+			})
+
+			Context("when the component is not found", func() {
+				BeforeEach(func() {
+					fakeComponentFactory.FindReturns(nil, false, nil)
+				})
+
+				It("does not exit and does not run the task", func() {
+					Consistently(fakeTask.RunCallCount).Should(Equal(0))
+					Consistently(process.Wait()).ShouldNot(Receive())
+				})
+			})
+
+			Context("when getting the component succeeds", func() {
+				BeforeEach(func() {
+					fakeComponentFactory.FindReturns(fakeComponent, true, nil)
+				})
+
+				Context("when the component is paused", func() {
+					BeforeEach(func() {
+						fakeComponent.PausedReturns(true)
+					})
+
+					It("does not exit and does not run the task", func() {
+						Consistently(fakeTask.RunCallCount).Should(Equal(0))
+						Consistently(process.Wait()).ShouldNot(Receive())
+					})
+				})
+
+				Context("when the component is unpaused", func() {
+					BeforeEach(func() {
+						fakeComponent.PausedReturns(false)
+					})
+
+					Context("when the interval has not elapsed", func() {
+						BeforeEach(func() {
+							fakeComponent.IntervalElapsedReturns(false)
+						})
+
+						It("does not exit and does not run the task", func() {
+							Consistently(fakeTask.RunCallCount).Should(Equal(0))
+							Consistently(process.Wait()).ShouldNot(Receive())
+						})
+					})
+
+					Context("when the interval has elapsed", func() {
+						BeforeEach(func() {
+							fakeComponent.IntervalElapsedReturns(true)
+						})
+
+						It("it runs the task", func() {
+							Eventually(fakeTask.RunCallCount).Should(Equal(1))
+						})
+
+						It("updates last ran", func() {
+							Eventually(fakeComponent.UpdateLastRanCallCount).Should(Equal(1))
+						})
+
+						It("releases the lock", func() {
+							Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
+						})
+
+						Context("when running the task fails", func() {
+							BeforeEach(func() {
+								fakeTask.RunReturns(errors.New("disaster"))
+							})
+
+							It("does not exit the process", func() {
+								Consistently(process.Wait()).ShouldNot(Receive())
+							})
+
+							It("does not update last ran", func() {
+								Consistently(fakeComponent.UpdateLastRanCallCount).Should(Equal(0))
+							})
+
+							It("releases the lock", func() {
+								Eventually(fakeLock.ReleaseCallCount).Should(Equal(1))
+							})
+						})
+					})
 				})
 			})
 		})
@@ -100,9 +192,13 @@ var _ = Describe("Runner", func() {
 					fakeLockFactory.AcquireReturns(nil, true, errors.New("disaster"))
 				})
 
-				It("does not exit and does not collect baggage", func() {
+				It("does not exit and does not run the task", func() {
 					Consistently(fakeTask.RunCallCount).Should(Equal(0))
 					Consistently(process.Wait()).ShouldNot(Receive())
+				})
+
+				It("does not update last ran", func() {
+					Consistently(fakeComponent.UpdateLastRanCallCount).Should(Equal(0))
 				})
 			})
 
@@ -111,9 +207,13 @@ var _ = Describe("Runner", func() {
 					fakeLockFactory.AcquireReturns(nil, false, nil)
 				})
 
-				It("does not exit and does not collect baggage", func() {
+				It("does not exit and does not run the task", func() {
 					Consistently(fakeTask.RunCallCount).Should(Equal(0))
 					Consistently(process.Wait()).ShouldNot(Receive())
+				})
+
+				It("does not update last ran", func() {
+					Consistently(fakeComponent.UpdateLastRanCallCount).Should(Equal(0))
 				})
 			})
 		})

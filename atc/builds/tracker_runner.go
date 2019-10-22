@@ -1,17 +1,22 @@
 package builds
 
 import (
+	"context"
 	"os"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/tedsuo/ifrit"
 )
 
 //go:generate counterfeiter . BuildTracker
 
 type BuildTracker interface {
-	Track()
+	Track() error
 	Release()
 }
 
@@ -23,55 +28,115 @@ type Notifications interface {
 	Notify(channel string) error
 }
 
-type TrackerRunner struct {
-	Tracker       BuildTracker
-	Notifications Notifications
-	Interval      time.Duration
-	Clock         clock.Clock
-	Logger        lager.Logger
+func NewRunner(
+	logger lager.Logger,
+	clock clock.Clock,
+	tracker BuildTracker,
+	interval time.Duration,
+	notifications Notifications,
+	lockFactory lock.LockFactory,
+	componentFactory db.ComponentFactory,
+) ifrit.Runner {
+	return &runner{
+		logger:           logger,
+		clock:            clock,
+		tracker:          tracker,
+		interval:         interval,
+		notifications:    notifications,
+		componentName:    atc.ComponentBuildTracker,
+		lockFactory:      lockFactory,
+		componentFactory: componentFactory,
+	}
 }
 
-func (runner TrackerRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+type runner struct {
+	logger           lager.Logger
+	clock            clock.Clock
+	tracker          BuildTracker
+	interval         time.Duration
+	notifications    Notifications
+	componentName    string
+	lockFactory      lock.LockFactory
+	componentFactory db.ComponentFactory
+}
 
-	shutdownNotifier, err := runner.Notifications.Listen("atc_shutdown")
-	if err != nil {
-		return err
-	}
-
-	defer runner.Notifications.Unlisten("atc_shutdown", shutdownNotifier)
-
-	buildNotifier, err := runner.Notifications.Listen("build_started")
-	if err != nil {
-		return err
-	}
-
-	defer runner.Notifications.Unlisten("build_started", buildNotifier)
-
-	ticker := runner.Clock.NewTicker(runner.Interval)
-
+func (r *runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	close(ready)
 
-	runner.Tracker.Track()
+	notifier, err := r.notifications.Listen(r.componentName)
+	if err != nil {
+		return err
+	}
+
+	defer r.notifications.Unlisten(r.componentName, notifier)
+
+	ticker := r.clock.NewTicker(r.interval)
+	defer ticker.Stop()
 
 	for {
+		ctx, cancel := context.WithCancel(context.Background())
+
 		select {
-		case <-shutdownNotifier:
-			runner.Logger.Info("received-atc-shutdown-message")
-			runner.Tracker.Track()
-
-		case <-buildNotifier:
-			runner.Logger.Info("received-build-started-message")
-			runner.Tracker.Track()
-
 		case <-ticker.C():
-			runner.Tracker.Track()
+			r.run(ctx, false)
+
+		case <-notifier:
+			r.run(ctx, true)
 
 		case <-signals:
-			runner.Logger.Info("releasing-tracker")
-			runner.Tracker.Release()
-			runner.Logger.Info("released-tracker")
-			runner.Logger.Info("sending-atc-shutdown-message")
-			return runner.Notifications.Notify("atc_shutdown")
+			cancel()
+			r.logger.Info("releasing-tracker")
+			r.tracker.Release()
+			r.logger.Info("released-tracker")
+			return r.notifications.Notify(r.componentName)
 		}
 	}
+}
+
+func (r *runner) run(ctx context.Context, force bool) error {
+
+	lock, acquired, err := r.lockFactory.Acquire(r.logger, lock.NewTaskLockID(r.componentName))
+	if err != nil {
+		return err
+	}
+
+	if !acquired {
+		r.logger.Debug("failed-to-acquire-lock", lager.Data{"name": r.componentName})
+		return nil
+	}
+
+	defer lock.Release()
+
+	component, found, err := r.componentFactory.Find(r.componentName)
+	if err != nil {
+		r.logger.Error("failed-to-find-component", err)
+		return err
+	}
+
+	if !found {
+		r.logger.Info("component-not-found", lager.Data{"name": r.componentName})
+		return nil
+	}
+
+	if component.Paused() {
+		r.logger.Debug("component-is-paused", lager.Data{"name": r.componentName})
+		return nil
+	}
+
+	if !force && !component.IntervalElapsed() {
+		r.logger.Debug("component-interval-not-reached", lager.Data{"name": r.componentName, "last-ran": component.LastRan()})
+		return nil
+	}
+
+	if err = r.tracker.Track(); err != nil {
+		r.logger.Error("failed-to-run-task", err, lager.Data{"task-name": r.componentName})
+		return err
+	}
+
+	if err = component.UpdateLastRan(); err != nil {
+		r.logger.Error("failed-to-update-last-ran", err)
+		return err
+	}
+
+	return nil
 }

@@ -19,7 +19,7 @@ type volumeCollector struct {
 func NewVolumeCollector(
 	volumeRepository db.VolumeRepository,
 	missingVolumeGracePeriod time.Duration,
-) Collector {
+) *volumeCollector {
 	return &volumeCollector{
 		volumeRepository:         volumeRepository,
 		missingVolumeGracePeriod: missingVolumeGracePeriod,

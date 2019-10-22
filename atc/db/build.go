@@ -1221,7 +1221,7 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 }
 
 func buildStartedChannel() string {
-	return fmt.Sprintf("build_started")
+	return atc.ComponentBuildTracker
 }
 
 func buildEventsChannel(buildID int) string {

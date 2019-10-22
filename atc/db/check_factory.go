@@ -74,7 +74,7 @@ func NewCheckFactory(
 }
 
 func (c *checkFactory) NotifyChecker() error {
-	return c.conn.Bus().Notify("checker")
+	return c.conn.Bus().Notify(atc.ComponentLidarChecker)
 }
 
 func (c *checkFactory) AcquireScanningLock(
