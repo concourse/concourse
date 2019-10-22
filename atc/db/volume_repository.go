@@ -561,7 +561,13 @@ func (repository *volumeRepository) GetDestroyingVolumes(workerName string) ([]s
 }
 
 func (repository *volumeRepository) DestroyUnknownVolumes(workerName string, reportedHandles []string) (int, error) {
-	dbHandles, err := repository.queryVolumeHandles(sq.Eq{
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer Rollback(tx)
+	dbHandles, err := repository.queryVolumeHandles(tx, sq.Eq{
 		"worker_name": workerName,
 	})
 	if err != nil {
@@ -573,13 +579,6 @@ func (repository *volumeRepository) DestroyUnknownVolumes(workerName string, rep
 	if len(unknownHandles) == 0 {
 		return 0, nil
 	}
-
-	tx, err := repository.conn.Begin()
-	if err != nil {
-		return 0, err
-	}
-
-	defer Rollback(tx)
 
 	insertBuilder := psql.Insert("volumes").Columns(
 		"handle",

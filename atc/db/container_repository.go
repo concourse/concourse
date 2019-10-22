@@ -391,7 +391,14 @@ func (repository *containerRepository) DestroyFailedContainers() (int, error) {
 }
 
 func (repository *containerRepository) DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error) {
-	dbHandles, err := repository.queryContainerHandles(sq.Eq{
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer Rollback(tx)
+
+	dbHandles, err := repository.queryContainerHandles(tx, sq.Eq{
 		"worker_name": workerName,
 	})
 	if err != nil {
@@ -403,13 +410,6 @@ func (repository *containerRepository) DestroyUnknownContainers(workerName strin
 	if len(unknownHandles) == 0 {
 		return 0, nil
 	}
-
-	tx, err := repository.conn.Begin()
-	if err != nil {
-		return 0, err
-	}
-
-	defer Rollback(tx)
 
 	insertBuilder := psql.Insert("containers").Columns(
 		"handle",
