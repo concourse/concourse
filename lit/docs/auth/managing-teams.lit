@@ -27,7 +27,7 @@
   Once the team has been created, you can use \reference{fly-login} to log in:
 
   \codeblock{bash}{{
-  $ fly login -n my-team
+  $ fly -t example login -n my-team
   }}
 
   Any newly configured pipelines (via \reference{fly-set-pipeline}) and one-off
