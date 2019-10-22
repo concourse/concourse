@@ -19,6 +19,10 @@
 
 * All API payloads are now gzipped. This should help save bandwidth and make the web UI load faster. #4470
 
+#### <sub><sup><a name="4494" href="#4494">:link:</a></sup></sub> feature
+
+* API endpoints have been changed to use a single transaction per request, so that they become "all or nothing" instead of holding data in memory while waiting for another connection from the pool. This could lead to snowballing and increased memory usage as requests from the web UI (polling every 5 seconds) piled up. #4494
+
 #### <sub><sup><a name="4448-4588" href="#4448-4588">:link:</a></sup></sub> feature
 
 * You can now pin a resource to different version without unpinning it first #4448, #4588.
