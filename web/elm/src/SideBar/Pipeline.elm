@@ -65,9 +65,5 @@ pipeline session p =
                 Routes.Pipeline { id = pipelineId, groups = [] }
         , text = p.name
         , domID = SideBarPipeline pipelineId
-        , tooltip =
-            HoverState.tooltip
-                (SideBarPipeline pipelineId)
-                session.hovered
         }
     }

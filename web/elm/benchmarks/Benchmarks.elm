@@ -846,7 +846,6 @@ steps =
         { tree = tree
         , foci = Dict.empty
         , highlight = Routes.HighlightNothing
-        , hoveredCounter = 0
         }
 
 

@@ -3,7 +3,7 @@ module TooltipTests exposing (all)
 import Browser.Dom
 import Common
 import Expect
-import HoverState
+import HoverState exposing (TooltipPosition(..))
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
@@ -122,11 +122,7 @@ all =
                                 , pipelineName = "pipeline"
                                 }
                             )
-                            { left = 1
-                            , top = 0.5
-                            , arrowSize = 15
-                            , marginTop = -15
-                            }
+                            (Top 0.5 1)
                         )
         ]
 

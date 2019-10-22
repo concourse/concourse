@@ -513,10 +513,7 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
             )
             [ Html.div
                 [ style "display" "flex" ]
-                [ viewStepHeaderIcon
-                    headerType
-                    session.hovered
-                    id
+                [ viewStepHeaderIcon headerType id
                 , Html.h3 [] [ Html.text name ]
                 ]
             , Html.div
@@ -792,8 +789,8 @@ viewStepState state stepID tooltip =
                 tooltip
 
 
-viewStepHeaderIcon : StepHeaderType -> HoverState.HoverState -> StepID -> Html Message
-viewStepHeaderIcon headerType hovered stepID =
+viewStepHeaderIcon : StepHeaderType -> StepID -> Html Message
+viewStepHeaderIcon headerType stepID =
     let
         eventHandlers =
             if headerType == StepHeaderGet True then

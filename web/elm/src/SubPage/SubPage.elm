@@ -11,7 +11,6 @@ module SubPage.SubPage exposing
     )
 
 import Application.Models exposing (Session)
-import Browser
 import Build.Build as Build
 import Build.Header.Models
 import Build.Models

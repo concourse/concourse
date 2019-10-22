@@ -2,11 +2,12 @@ module Tooltip exposing (Model, handleCallback, view)
 
 import Build.Styles
 import EffectTransformer exposing (ET)
-import HoverState
+import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Message.Callback exposing (Callback(..), TooltipPolicy(..))
 import Message.Effects as Effects
 import Message.Message as Message
+import SideBar.Styles
 
 
 type alias Model m =
@@ -30,17 +31,26 @@ handleCallback callback ( model, effects ) =
                 _ ->
                     ( model, effects )
 
-        GotElement (Ok { element }) ->
+        GotElement (Ok { element, viewport }) ->
             case model.hovered of
+                HoverState.TooltipPending (Message.FirstOccurrenceIcon stepID) ->
+                    ( { model
+                        | hovered =
+                            HoverState.Tooltip (Message.FirstOccurrenceIcon stepID) <|
+                                Bottom
+                                    (viewport.height - element.y)
+                                    element.x
+                                    element.width
+                      }
+                    , effects
+                    )
+
                 HoverState.TooltipPending domID ->
                     ( { model
                         | hovered =
-                            HoverState.Tooltip domID
-                                { top = element.y + (element.height / 2)
-                                , left = element.x + element.width
-                                , arrowSize = 15
-                                , marginTop = -15
-                                }
+                            HoverState.Tooltip domID <|
+                                Top (element.y + (element.height / 2))
+                                    (element.x + element.width)
                       }
                     , effects
                     )
@@ -55,14 +65,28 @@ handleCallback callback ( model, effects ) =
 view : Model m -> Html msg
 view { hovered } =
     case hovered of
-        HoverState.Tooltip (Message.FirstOccurrenceIcon _) pos ->
+        HoverState.Tooltip (Message.FirstOccurrenceIcon _) (Bottom b l w) ->
             Html.div []
                 [ Html.div
-                    (Build.Styles.firstOccurrenceTooltip pos)
+                    (Build.Styles.firstOccurrenceTooltip b l)
                     [ Html.text "new version" ]
                 , Html.div
-                    Build.Styles.firstOccurrenceTooltipArrow
+                    (Build.Styles.firstOccurrenceTooltipArrow b l w)
                     []
+                ]
+
+        HoverState.Tooltip (Message.SideBarTeam teamName) (Top t l) ->
+            Html.div
+                (SideBar.Styles.tooltip t l)
+                [ Html.div SideBar.Styles.tooltipArrow []
+                , Html.div SideBar.Styles.tooltipBody [ Html.text teamName ]
+                ]
+
+        HoverState.Tooltip (Message.SideBarPipeline { pipelineName }) (Top t l) ->
+            Html.div
+                (SideBar.Styles.tooltip t l)
+                [ Html.div SideBar.Styles.tooltipArrow []
+                , Html.div SideBar.Styles.tooltipBody [ Html.text pipelineName ]
                 ]
 
         _ ->
