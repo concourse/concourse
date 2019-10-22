@@ -1,8 +1,6 @@
 package k8s_test
 
 import (
-	"time"
-
 	"github.com/onsi/gomega/gbytes"
 
 	. "github.com/concourse/concourse/topgun"
@@ -32,26 +30,10 @@ var _ = Describe("Container Limits", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, nil)
+		cleanup(releaseName, namespace)
 	})
 
 })
-
-func waitAndLogin() {
-	waitAllPodsInNamespaceToBeReady(namespace)
-
-	By("Creating the web proxy")
-	_, atcEndpoint := startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
-
-	By("Logging in")
-	fly.Login("test", "test", atcEndpoint)
-
-	Eventually(func() []Worker {
-		return getRunningWorkers(fly.GetWorkers())
-	}, 2*time.Minute, 10*time.Second).
-		ShouldNot(HaveLen(0))
-
-}
 
 func deployWithSelectors(selectorFlags ...string) {
 	helmDeployTestFlags := []string{
@@ -66,9 +48,13 @@ func containerLimitsWork(selectorFlags ...string) {
 	Context("container limits work", func() {
 		It("returns the configure default container limit", func() {
 			deployWithSelectors(selectorFlags...)
-			waitAndLogin()
-			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
+
+			atc := waitAndLogin(namespace, releaseName+"-web")
+			defer atc.Close()
+
+			buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
 			<-buildSession.Exited
+
 			Expect(buildSession.ExitCode()).To(Equal(0))
 
 			hijackSession := fly.Start(
@@ -89,12 +75,16 @@ func containerLimitsFail(selectorFlags ...string) {
 	Context("container limits fail", func() {
 		It("fails to set the memory limit", func() {
 			deployWithSelectors(selectorFlags...)
-			waitAndLogin()
-			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
+
+			atc := waitAndLogin(namespace, releaseName+"-web")
+			defer atc.Close()
+
+			buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(2))
-
-			Expect(buildSession).To(gbytes.Say("failed to write 1073741824 to memory.memsw.limit_in_bytes"))
+			Expect(buildSession).To(gbytes.Say(
+				"failed to write 1073741824 to memory.memsw.limit_in_bytes",
+			))
 			Expect(buildSession).To(gbytes.Say("permission denied"))
 		})
 	})
