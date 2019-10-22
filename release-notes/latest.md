@@ -21,7 +21,7 @@
 
 #### <sub><sup><a name="4494" href="#4494">:link:</a></sup></sub> feature
 
-* Optimize certain API requests to use single transaction of DB, instead of making DB connection for each sub-query. #4494
+* API endpoints have been changed to use a single transaction per request, so that they become "all or nothing" instead of holding data in memory while waiting for another connection from the pool. This could lead to snowballing and increased memory usage as requests from the web UI (polling every 5 seconds) piled up. #4494
 
 #### <sub><sup><a name="4448-4588" href="#4448-4588">:link:</a></sup></sub> feature
 
