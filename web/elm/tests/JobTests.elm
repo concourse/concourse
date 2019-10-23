@@ -835,6 +835,24 @@ all =
                     }
                 , hoverable = Message.Message.PreviousPageButton
                 }
+            , describe "When fetching builds"
+                [ test "says no builds" <|
+                    \_ ->
+                        init { disabled = False, paused = False } ()
+                            |> Application.handleCallback
+                                (JobBuildsFetched <|
+                                    Ok
+                                        { pagination =
+                                            { previousPage = Nothing
+                                            , nextPage = Nothing
+                                            }
+                                        , content = []
+                                        }
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.has [ text "no builds for job “job”" ]
+                ]
             , test "JobBuildsFetched" <|
                 \_ ->
                     let
