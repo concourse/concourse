@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/concourse/concourse/atc"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	bclient "github.com/concourse/baggageclaim/client"
@@ -106,7 +108,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	gardenClient := gclient.BasicGardenClientWithRequestTimeout(
 		logger.Session("garden-connection"),
-		5*time.Minute,
+		atc.GARDEN_CLIENT_HTTP_TIMEOUT,
 		cmd.gardenURL(),
 	)
 
