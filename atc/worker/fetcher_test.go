@@ -22,14 +22,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("Fetcher", func() {
+var _ = Describe("Fetcher", func() {
 	var (
 		fakeClock             *fakeclock.FakeClock
 		fakeLockFactory       *lockfakes.FakeLockFactory
 		fetcher               worker.Fetcher
 		ctx                   context.Context
 		cancel                func()
-		// fakeVersionedSource   *resourcefakes.FakeVersionedSource
 		fakeBuildStepDelegate *workerfakes.FakeImageFetchingDelegate
 
 		fakeWorker             *workerfakes.FakeWorker
@@ -63,7 +62,6 @@ var _ = FDescribe("Fetcher", func() {
 		)
 
 		ctx, cancel = context.WithCancel(context.Background())
-		// fakeVersionedSource = new(workerfakes.FakeVersionedSource)
 
 		fakeBuildStepDelegate = new(workerfakes.FakeImageFetchingDelegate)
 	})
@@ -171,8 +169,9 @@ var _ = FDescribe("Fetcher", func() {
 				Expect(fakeFetchSource.CreateCallCount()).To(Equal(1))
 			})
 
-			It("returns the source", func() {
+			It("returns the result and volume", func() {
 				Expect(getResult).To(Equal(worker.GetResult{}))
+				Expect(volume).ToNot(BeNil())
 			})
 		})
 

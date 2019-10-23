@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("ResourceInstanceFetchSource", func() {
+var _ = Describe("FetchSource", func() {
 	var (
 		fetchSourceFactory worker.FetchSourceFactory
 		fetchSource        worker.FetchSource
@@ -102,7 +102,11 @@ var _ = FDescribe("ResourceInstanceFetchSource", func() {
 			},
 		}
 
-		// resourceFactory := resource.NewResourceFactory()
+		getProcessSpec := runtime.ProcessSpec{
+			Path: "/opt/resource/in",
+			Args: []string{resource.ResourcesDir("get")},
+		}
+
 		fetchSourceFactory = worker.NewFetchSourceFactory(fakeResourceCacheFactory)
 		fetchSource = fetchSourceFactory.NewFetchSource(
 			logger,
@@ -121,7 +125,7 @@ var _ = FDescribe("ResourceInstanceFetchSource", func() {
 					"resource": resource.ResourcesDir("get"),
 				},
 			},
-			runtime.ProcessSpec{},
+			getProcessSpec,
 			metadata,
 			fakeDelegate,
 		)
@@ -175,14 +179,14 @@ var _ = FDescribe("ResourceInstanceFetchSource", func() {
 
 	Describe("Create", func() {
 		var (
-			initErr           error
+			err               error
 			getResult         worker.GetResult
 			expectedGetResult worker.GetResult
 			volume            worker.Volume
 		)
 
 		JustBeforeEach(func() {
-			getResult, volume, initErr = fetchSource.Create(ctx)
+			getResult, volume, err = fetchSource.Create(ctx)
 		})
 
 		Context("when there is initialized volume", func() {
@@ -200,13 +204,15 @@ var _ = FDescribe("ResourceInstanceFetchSource", func() {
 			})
 
 			It("does not fetch resource", func() {
-				Expect(initErr).NotTo(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(0))
+				Expect(fakeResource.GetCallCount()).To(Equal(0))
 			})
 
-			It("finds initialized volume and sets versioned source", func() {
-				Expect(initErr).NotTo(HaveOccurred())
+			It("finds initialized volume and returns a successful GetResult", func() {
+				Expect(err).NotTo(HaveOccurred())
 				Expect(getResult).To(Equal(expectedGetResult))
+				Expect(volume).ToNot(BeNil())
 			})
 		})
 
@@ -216,7 +222,7 @@ var _ = FDescribe("ResourceInstanceFetchSource", func() {
 			})
 
 			It("creates container with volume and worker", func() {
-				Expect(initErr).NotTo(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 				_, logger, delegate, owner, actualMetadata, containerSpec, types := fakeWorker.FindOrCreateContainerArgsForCall(0)
@@ -238,13 +244,13 @@ var _ = FDescribe("ResourceInstanceFetchSource", func() {
 				Expect(types).To(Equal(resourceTypes))
 			})
 
-			It("fetches versioned source", func() {
-				Expect(initErr).NotTo(HaveOccurred())
-				Expect(fakeContainer.RunCallCount()).To(Equal(1))
+			It("executes the get script", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(fakeResource.GetCallCount()).To(Equal(1))
 			})
 
 			It("initializes cache", func() {
-				Expect(initErr).NotTo(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeVolume.InitializeResourceCacheCallCount()).To(Equal(1))
 				rc := fakeVolume.InitializeResourceCacheArgsForCall(0)
 				Expect(rc).To(Equal(fakeUsedResourceCache))
@@ -261,13 +267,19 @@ var _ = FDescribe("ResourceInstanceFetchSource", func() {
 
 				BeforeEach(func() {
 					disaster = errors.New("failed")
-					fakeContainer.RunReturns(nil, disaster)
+					fakeResource.GetReturns(runtime.VersionResult{}, disaster)
 				})
 
 				It("returns the error", func() {
-					Expect(initErr).To(HaveOccurred())
-					Expect(initErr).To(Equal(disaster))
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(Equal(disaster))
 				})
+			})
+
+			It("returns a successful GetResult and volume with fetched bits", func(){
+				Expect(getResult.Status).To(BeZero())
+				Expect(getResult.GetArtifact.VolumeHandle).To(Equal(fakeVolume.Handle()))
+				Expect(volume).ToNot(BeNil())
 			})
 		})
 	})

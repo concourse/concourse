@@ -28,7 +28,7 @@ func (resource *resource) Get(
 		true,
 	)
 	if err != nil {
-		return runtime.VersionResult{}, err
+		return vr, err
 	}
 
 	return vr, nil

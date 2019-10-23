@@ -64,7 +64,7 @@ func (r *fetchSourceFactory) NewFetchSource(
 	containerMetadata db.ContainerMetadata,
 	imageFetchingDelegate ImageFetchingDelegate,
 ) FetchSource {
-	return &resourceInstanceFetchSource{
+	return &fetchSource{
 		logger:                 logger,
 		worker:                 worker,
 		owner:                  owner,
@@ -79,7 +79,7 @@ func (r *fetchSourceFactory) NewFetchSource(
 	}
 }
 
-type resourceInstanceFetchSource struct {
+type fetchSource struct {
 	logger                 lager.Logger
 	worker                 Worker
 	owner                  db.ContainerOwner
@@ -94,7 +94,7 @@ type resourceInstanceFetchSource struct {
 }
 
 
-func (s *resourceInstanceFetchSource) Find() (GetResult, Volume, bool, error) {
+func (s *fetchSource) Find() (GetResult, Volume, bool, error) {
 	sLog := s.logger.Session("find")
 	result := GetResult{}
 
@@ -139,7 +139,7 @@ func (s *resourceInstanceFetchSource) Find() (GetResult, Volume, bool, error) {
 
 // Create runs under the lock but we need to make sure volume does not exist
 // yet before creating it under the lock
-func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
+func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 	sLog := s.logger.Session("create")
 	result := GetResult{}
 	var volume Volume
@@ -150,7 +150,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Vo
 	}
 
 	if found {
-		return findResult, nil, nil
+		return findResult, volume, nil
 	}
 
 	s.containerSpec.BindMounts = []BindMountSource{
@@ -181,9 +181,7 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Vo
 
 	volume = getResourceVolume(s.processSpec, container)
 
-	vr := runtime.VersionResult{}
-
-	vr, err = s.resource.Get(ctx, s.processSpec, container)
+	vr, err := s.resource.Get(ctx, s.processSpec, container)
 
 	if err != nil {
 		sLog.Error("failed-to-fetch-resource", err)
@@ -197,9 +195,12 @@ func (s *resourceInstanceFetchSource) Create(ctx context.Context) (GetResult, Vo
 				runtime.GetArtifact{},
 				failErr,
 			}
-			return result, volume, nil
+			// todo: check these return values
+			// 		 feels hidden to return 'volume'
+			return result, nil, nil
 		}
-		return result, volume, err
+		// todo: same
+		return result, nil, err
 	}
 
 	err = volume.SetPrivileged(false)
