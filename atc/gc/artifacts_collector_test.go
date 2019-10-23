@@ -10,7 +10,7 @@ import (
 )
 
 var _ = Describe("ArtifactCollector", func() {
-	var collector gc.Collector
+	var collector Collector
 	var fakeArtifactLifecycle *dbfakes.FakeWorkerArtifactLifecycle
 
 	BeforeEach(func() {

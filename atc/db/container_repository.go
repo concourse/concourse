@@ -372,25 +372,33 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 }
 
 func (repository *containerRepository) DestroyFailedContainers() (int, error) {
-	result, err := sq.Delete("containers").
-		Where(sq.Eq{"containers.state": atc.ContainerStateFailed}).
-		PlaceholderFormat(sq.Dollar).
+	result, err := psql.Update("containers").
+		Set("state", atc.ContainerStateDestroying).
+		Where( sq.Eq{"state": string(atc.ContainerStateFailed)}).
 		RunWith(repository.conn).
 		Exec()
+
 	if err != nil {
 		return 0, err
 	}
 
-	failedContainersLen, err := result.RowsAffected()
+	affected, err := result.RowsAffected()
 	if err != nil {
 		return 0, err
 	}
 
-	return int(failedContainersLen), nil
+	return int(affected), nil
 }
 
 func (repository *containerRepository) DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error) {
-	dbHandles, err := repository.queryContainerHandles(sq.Eq{
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer Rollback(tx)
+
+	dbHandles, err := repository.queryContainerHandles(tx, sq.Eq{
 		"worker_name": workerName,
 	})
 	if err != nil {
@@ -402,13 +410,6 @@ func (repository *containerRepository) DestroyUnknownContainers(workerName strin
 	if len(unknownHandles) == 0 {
 		return 0, nil
 	}
-
-	tx, err := repository.conn.Begin()
-	if err != nil {
-		return 0, err
-	}
-
-	defer Rollback(tx)
 
 	insertBuilder := psql.Insert("containers").Columns(
 		"handle",

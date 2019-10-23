@@ -51,6 +51,10 @@
 
 * Fixed a [bug](https://github.com/concourse/concourse/issues/4313) where your dashboard search string would end up with `+`s instead of spaces when logging in. #4265
 
+#### <sub><sup><a name="4636" href="#4636">:link:</a></sup></sub> fix
+
+* Fixed a [bug](https://github.com/concourse/concourse/issues/4493) where the job page would show a loading spinner forever when there were no builds (like before the job had ever been run) #4636.
+
 #### <sub><sup><a name="4630" href="#4630">:link:</a></sup></sub> fix
 
 * Fixed a [bug](https://github.com/concourse/concourse/issues/3921) where the tooltip that says 'new version' on a get step on the build page could be hidden underneath the build header #4630.

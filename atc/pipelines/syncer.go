@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/ifrit"
 )
@@ -14,6 +15,7 @@ type Syncer struct {
 	logger lager.Logger
 
 	pipelineFactory       db.PipelineFactory
+	componentFactory      db.ComponentFactory
 	pipelineRunnerFactory PipelineRunnerFactory
 
 	runningPipelines map[int]runningPipeline
@@ -30,11 +32,13 @@ type runningPipeline struct {
 func NewSyncer(
 	logger lager.Logger,
 	pipelineFactory db.PipelineFactory,
+	componentFactory db.ComponentFactory,
 	pipelineRunnerFactory PipelineRunnerFactory,
 ) *Syncer {
 	return &Syncer{
 		logger:                logger,
 		pipelineFactory:       pipelineFactory,
+		componentFactory:      componentFactory,
 		pipelineRunnerFactory: pipelineRunnerFactory,
 
 		runningPipelines: map[int]runningPipeline{},
@@ -42,6 +46,22 @@ func NewSyncer(
 }
 
 func (syncer *Syncer) Sync() {
+
+	component, _, err := syncer.componentFactory.Find(atc.ComponentScheduler)
+	if err != nil {
+		syncer.logger.Error("failed-to-get-component", err)
+		return
+	}
+
+	if component.Paused() {
+		for id, runningPipeline := range syncer.runningPipelines {
+			syncer.logger.Debug("stopping-pipeline", lager.Data{"pipeline-id": id})
+			runningPipeline.Process.Signal(os.Interrupt)
+			syncer.removePipeline(id)
+		}
+		return
+	}
+
 	pipelines, err := syncer.pipelineFactory.AllPipelines()
 	if err != nil {
 		syncer.logger.Error("failed-to-get-pipelines", err)
@@ -90,6 +110,11 @@ func (syncer *Syncer) Sync() {
 			Process: process,
 			Exited:  process.Wait(),
 		}
+	}
+
+	if err = component.UpdateLastRan(); err != nil {
+		syncer.logger.Error("failed-to-update-component-last-ran", err)
+		return
 	}
 }
 

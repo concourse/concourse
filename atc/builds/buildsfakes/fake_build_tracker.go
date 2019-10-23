@@ -12,9 +12,15 @@ type FakeBuildTracker struct {
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct {
 	}
-	TrackStub        func()
+	TrackStub        func() error
 	trackMutex       sync.RWMutex
 	trackArgsForCall []struct {
+	}
+	trackReturns struct {
+		result1 error
+	}
+	trackReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -43,15 +49,21 @@ func (fake *FakeBuildTracker) ReleaseCalls(stub func()) {
 	fake.ReleaseStub = stub
 }
 
-func (fake *FakeBuildTracker) Track() {
+func (fake *FakeBuildTracker) Track() error {
 	fake.trackMutex.Lock()
+	ret, specificReturn := fake.trackReturnsOnCall[len(fake.trackArgsForCall)]
 	fake.trackArgsForCall = append(fake.trackArgsForCall, struct {
 	}{})
 	fake.recordInvocation("Track", []interface{}{})
 	fake.trackMutex.Unlock()
 	if fake.TrackStub != nil {
-		fake.TrackStub()
+		return fake.TrackStub()
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.trackReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeBuildTracker) TrackCallCount() int {
@@ -60,10 +72,33 @@ func (fake *FakeBuildTracker) TrackCallCount() int {
 	return len(fake.trackArgsForCall)
 }
 
-func (fake *FakeBuildTracker) TrackCalls(stub func()) {
+func (fake *FakeBuildTracker) TrackCalls(stub func() error) {
 	fake.trackMutex.Lock()
 	defer fake.trackMutex.Unlock()
 	fake.TrackStub = stub
+}
+
+func (fake *FakeBuildTracker) TrackReturns(result1 error) {
+	fake.trackMutex.Lock()
+	defer fake.trackMutex.Unlock()
+	fake.TrackStub = nil
+	fake.trackReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildTracker) TrackReturnsOnCall(i int, result1 error) {
+	fake.trackMutex.Lock()
+	defer fake.trackMutex.Unlock()
+	fake.TrackStub = nil
+	if fake.trackReturnsOnCall == nil {
+		fake.trackReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.trackReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeBuildTracker) Invocations() map[string][][]interface{} {

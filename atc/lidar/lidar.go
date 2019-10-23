@@ -6,6 +6,9 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )
@@ -14,21 +17,22 @@ func NewRunner(
 	logger lager.Logger,
 	clock clock.Clock,
 	scanRunner Runner,
-	scanInterval time.Duration,
 	checkRunner Runner,
-	checkInterval time.Duration,
+	runnerInterval time.Duration,
 	notifications Notifications,
+	lockFactory lock.LockFactory,
+	componentFactory db.ComponentFactory,
 ) ifrit.Runner {
 	return grouper.NewParallel(
 		os.Interrupt,
 		[]grouper.Member{
 			{
-				Name:   "scanner",
-				Runner: NewIntervalRunner(logger, clock, scanRunner, scanInterval, notifications, "scanner"),
+				Name:   atc.ComponentLidarScanner,
+				Runner: NewIntervalRunner(logger, clock, scanRunner, runnerInterval, notifications, atc.ComponentLidarScanner, lockFactory, componentFactory),
 			},
 			{
-				Name:   "checker",
-				Runner: NewIntervalRunner(logger, clock, checkRunner, checkInterval, notifications, "checker"),
+				Name:   atc.ComponentLidarChecker,
+				Runner: NewIntervalRunner(logger, clock, checkRunner, runnerInterval, notifications, atc.ComponentLidarChecker, lockFactory, componentFactory),
 			},
 		},
 	)
@@ -38,15 +42,17 @@ func NewCheckerRunner(
 	logger lager.Logger,
 	clock clock.Clock,
 	checkRunner Runner,
-	checkInterval time.Duration,
+	runnerInterval time.Duration,
 	notifications Notifications,
+	lockFactory lock.LockFactory,
+	componentFactory db.ComponentFactory,
 ) ifrit.Runner {
 	return grouper.NewParallel(
 		os.Interrupt,
 		[]grouper.Member{
 			{
-				Name:   "checker",
-				Runner: NewIntervalRunner(logger, clock, checkRunner, checkInterval, notifications, "checker"),
+				Name:   atc.ComponentLidarChecker,
+				Runner: NewIntervalRunner(logger, clock, checkRunner, runnerInterval, notifications, atc.ComponentLidarChecker, lockFactory, componentFactory),
 			},
 		},
 	)

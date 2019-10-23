@@ -7,6 +7,8 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -29,25 +31,31 @@ func NewIntervalRunner(
 	runner Runner,
 	interval time.Duration,
 	notifications Notifications,
-	channel string,
+	componentName string,
+	lockFactory lock.LockFactory,
+	componentFactory db.ComponentFactory,
 ) ifrit.Runner {
 	return &intervalRunner{
-		logger:        logger,
-		clock:         clock,
-		runner:        runner,
-		interval:      interval,
-		notifications: notifications,
-		channel:       channel,
+		logger:           logger,
+		clock:            clock,
+		runner:           runner,
+		interval:         interval,
+		notifications:    notifications,
+		componentName:    componentName,
+		lockFactory:      lockFactory,
+		componentFactory: componentFactory,
 	}
 }
 
 type intervalRunner struct {
-	logger        lager.Logger
-	clock         clock.Clock
-	runner        Runner
-	interval      time.Duration
-	notifications Notifications
-	channel       string
+	logger           lager.Logger
+	clock            clock.Clock
+	runner           Runner
+	interval         time.Duration
+	notifications    Notifications
+	componentName    string
+	lockFactory      lock.LockFactory
+	componentFactory db.ComponentFactory
 }
 
 func (r *intervalRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -56,33 +64,77 @@ func (r *intervalRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 
 	close(ready)
 
-	notifier, err := r.notifications.Listen(r.channel)
+	notifier, err := r.notifications.Listen(r.componentName)
 	if err != nil {
 		return err
 	}
 
-	defer r.notifications.Unlisten(r.channel, notifier)
+	defer r.notifications.Unlisten(r.componentName, notifier)
 
 	ticker := r.clock.NewTicker(r.interval)
-	ctx, cancel := context.WithCancel(context.Background())
-
-	if err := r.runner.Run(ctx); err != nil {
-		r.logger.Error("failed-to-run", err)
-	}
+	defer ticker.Stop()
 
 	for {
+		ctx, cancel := context.WithCancel(context.Background())
+
 		select {
 		case <-ticker.C():
-			if err := r.runner.Run(ctx); err != nil {
-				r.logger.Error("failed-to-run", err)
-			}
+			r.run(ctx, false)
+
 		case <-notifier:
-			if err := r.runner.Run(ctx); err != nil {
-				r.logger.Error("failed-to-run", err)
-			}
+			r.run(ctx, true)
+
 		case <-signals:
 			cancel()
 			return nil
 		}
 	}
+}
+
+func (r *intervalRunner) run(ctx context.Context, force bool) error {
+
+	lock, acquired, err := r.lockFactory.Acquire(r.logger, lock.NewTaskLockID(r.componentName))
+	if err != nil {
+		return err
+	}
+
+	if !acquired {
+		r.logger.Debug("failed-to-acquire-lock", lager.Data{"name": r.componentName})
+		return nil
+	}
+
+	defer lock.Release()
+
+	component, found, err := r.componentFactory.Find(r.componentName)
+	if err != nil {
+		r.logger.Error("failed-to-find-component", err)
+		return err
+	}
+
+	if !found {
+		r.logger.Info("component-not-found", lager.Data{"name": r.componentName})
+		return nil
+	}
+
+	if component.Paused() {
+		r.logger.Debug("component-is-paused", lager.Data{"name": r.componentName})
+		return nil
+	}
+
+	if !force && !component.IntervalElapsed() {
+		r.logger.Debug("component-interval-not-reached", lager.Data{"name": r.componentName, "last-ran": component.LastRan()})
+		return nil
+	}
+
+	if err = r.runner.Run(ctx); err != nil {
+		r.logger.Error("failed-to-run-task", err, lager.Data{"task-name": r.componentName})
+		return err
+	}
+
+	if err = component.UpdateLastRan(); err != nil {
+		r.logger.Error("failed-to-update-last-ran", err)
+		return err
+	}
+
+	return nil
 }
