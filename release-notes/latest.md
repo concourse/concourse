@@ -50,3 +50,8 @@
 #### <sub><sup><a name="4625" href="#4625">:link:</a></sup></sub> fix
 
 * Fixed a [bug](https://github.com/concourse/concourse/issues/4313) where your dashboard search string would end up with `+`s instead of spaces when logging in. #4265
+
+#### <sub><sup><a name="4637" href="#4637">:link:</a></sup></sub> fix
+
+* Fixed a [bug](https://github.com/concourse/concourse/issues/3942) where log lines on the build page would have all their timestamps off by one. #4637
+
