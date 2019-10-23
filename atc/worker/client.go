@@ -539,6 +539,7 @@ func (client *client) RunPutStep(
 	return result
 }
 
+// todo: don't modify spec inside here, do it in the caller. Specs don't change after you write them
 func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSpec) error {
 	var inputs []InputSource
 

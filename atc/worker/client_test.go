@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/onsi/gomega/gbytes"
 
@@ -25,7 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Client", func() {
+var _ = FDescribe("Client", func() {
 	var (
 		logger          *lagertest.TestLogger
 		fakePool        *workerfakes.FakePool
@@ -230,28 +231,9 @@ var _ = Describe("Client", func() {
 			fakeImageFetcherSpec worker.ImageFetcherSpec
 			fakeTaskProcessSpec  runtime.ProcessSpec
 			fakeContainer        *workerfakes.FakeContainer
-			eventChan            chan runtime.Event
 			ctx                  context.Context
 			cancel               func()
 		)
-		JustBeforeEach(func() {
-			taskResult := client.RunTaskStep(
-				ctx,
-				logger,
-				fakeLockFactory,
-				fakeContainerOwner,
-				fakeContainerSpec,
-				fakeWorkerSpec,
-				fakeStrategy,
-				fakeMetadata,
-				fakeImageFetcherSpec,
-				fakeTaskProcessSpec,
-				eventChan,
-			)
-			status = taskResult.Status
-			volumeMounts = taskResult.VolumeMounts
-			err = taskResult.Err
-		})
 
 		BeforeEach(func() {
 			cpu := uint64(1024)
@@ -275,8 +257,8 @@ var _ = Describe("Client", func() {
 					ImageResource: &worker.ImageResource{
 						Type:    "docker",
 						Source:  atc.Source{"some": "secret-source-param"},
-						Params:  &atc.Params{"some": "params"},
-						Version: &atc.Version{"some": "version"},
+						Params:  atc.Params{"some": "params"},
+						Version: atc.Version{"some": "version"},
 					},
 					Privileged: false,
 				},
@@ -327,8 +309,25 @@ var _ = Describe("Client", func() {
 			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 
 			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
-			eventChan = make(chan runtime.Event, 1)
 			ctx, cancel = context.WithCancel(context.Background())
+		})
+
+		JustBeforeEach(func() {
+			taskResult := client.RunTaskStep(
+				ctx,
+				logger,
+				fakeContainerOwner,
+				fakeContainerSpec,
+				fakeWorkerSpec,
+				fakeStrategy,
+				fakeMetadata,
+				fakeImageFetcherSpec,
+				fakeTaskProcessSpec,
+				fakeLockFactory,
+			)
+			status = taskResult.Status
+			volumeMounts = taskResult.VolumeMounts
+			err = taskResult.Err
 		})
 
 		Context("choosing a worker", func() {
@@ -404,7 +403,7 @@ var _ = Describe("Client", func() {
 
 		})
 
-		It("finds or creates a container", func() {
+		FIt("finds or creates a container", func() {
 			Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 			_, cancel, delegate, owner, createdMetadata, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 			Expect(cancel).ToNot(BeNil())
@@ -553,10 +552,6 @@ var _ = Describe("Client", func() {
 					}
 				})
 
-				It("does not send a Starting event", func() {
-					Expect(eventChan).ToNot(Receive(Equal(runtime.Event{EventType: runtime.StartingEvent, ExitStatus: 0})))
-				})
-
 				It("does not create a new container", func() {
 					Expect(fakeContainer.RunCallCount()).To(BeZero())
 				})
@@ -701,10 +696,6 @@ var _ = Describe("Client", func() {
 						StdoutWriter: stdoutBuf,
 						StderrWriter: stderrBuf,
 					}
-				})
-
-				It("sends a Starting event", func() {
-					Expect(eventChan).To(Receive(Equal(runtime.Event{EventType: "Starting", ExitStatus: 0})))
 				})
 
 				It("runs a new process in the container", func() {
@@ -982,17 +973,17 @@ var _ = Describe("Client", func() {
 			owner             db.ContainerOwner
 			containerSpec     worker.ContainerSpec
 			workerSpec        worker.WorkerSpec
-			source            atc.Source
-			params            atc.Params
+			// source            atc.Source
+			// params            atc.Params
 			metadata          db.ContainerMetadata
 			imageSpec         worker.ImageFetcherSpec
-			events            chan runtime.Event
 			fakeChosenWorker  *workerfakes.FakeWorker
 			fakeStrategy      *workerfakes.FakeContainerPlacementStrategy
 			fakeDelegate      *workerfakes.FakeImageFetchingDelegate
 			fakeResourceTypes atc.VersionedResourceTypes
 			fakeContainer     *workerfakes.FakeContainer
 			fakeProcessSpec   runtime.ProcessSpec
+			fakeResource *resourcefakes.FakeResource
 
 			versionResult runtime.VersionResult
 			status        int
@@ -1024,10 +1015,10 @@ var _ = Describe("Client", func() {
 				StdoutWriter: stdout,
 				StderrWriter: stderr,
 			}
-			events = make(chan runtime.Event, 1)
+			fakeResource = new(resourcefakes.FakeResource)
 
-			source = atc.Source{"some": "super-secret-source"}
-			params = atc.Params{"some-param": "some-value"}
+			// source = atc.Source{"some": "super-secret-source"}
+			// params = atc.Params{"some-param": "some-value"}
 			fakeChosenWorker = new(workerfakes.FakeWorker)
 			fakeChosenWorker.NameReturns("some-worker")
 			fakeChosenWorker.SatisfiesReturns(true)
@@ -1043,14 +1034,11 @@ var _ = Describe("Client", func() {
 				owner,
 				containerSpec,
 				workerSpec,
-				source,
-				params,
 				fakeStrategy,
 				metadata,
 				imageSpec,
-				"/tmp/build/put",
 				fakeProcessSpec,
-				events,
+				fakeResource,
 			)
 			versionResult = result.VersionResult
 			err = result.Err
@@ -1145,10 +1133,6 @@ var _ = Describe("Client", func() {
 						Version:  atc.Version(map[string]string{"foo": "bar"}),
 						Metadata: nil,
 					}
-				})
-
-				It("does not send a Starting event", func() {
-					Expect(events).ToNot(Receive(Equal(runtime.Event{EventType: runtime.StartingEvent, ExitStatus: 0})))
 				})
 
 				It("does not create a new container", func() {
@@ -1246,7 +1230,7 @@ var _ = Describe("Client", func() {
 					It("returns an unsuccessful result", func() {
 						Expect(status).To(Equal(fakeProcessExitCode))
 						Expect(err).To(HaveOccurred())
-						Expect(err).To(BeAssignableToTypeOf(worker.ErrResourceScriptFailed{}))
+						Expect(err).To(BeAssignableToTypeOf(runtime.ErrResourceScriptFailed{}))
 						Expect(versionResult).To(Equal(runtime.VersionResult{}))
 					})
 
@@ -1273,10 +1257,6 @@ var _ = Describe("Client", func() {
 						_, _ = arg3.Stdout.Write([]byte(`{"version": { "foo": "bar" }}`))
 						return fakeProcess, nil
 					}
-				})
-
-				It("sends a Starting event", func() {
-					Expect(events).To(Receive(Equal(runtime.Event{EventType: "Starting", ExitStatus: 0})))
 				})
 
 				It("runs a new process in the container", func() {
@@ -1413,7 +1393,7 @@ var _ = Describe("Client", func() {
 					It("returns an unsuccessful result", func() {
 						Expect(status).To(Equal(fakeProcessExitCode))
 						Expect(err).To(HaveOccurred())
-						Expect(err).To(BeAssignableToTypeOf(worker.ErrResourceScriptFailed{}))
+						Expect(err).To(BeAssignableToTypeOf(runtime.ErrResourceScriptFailed{}))
 					})
 				})
 
