@@ -43,6 +43,7 @@ var _ = Describe("DBProvider", func() {
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
 
+		fakeFetcher *workerfakes.FakeFetcher
 		fakeImageFactory                    *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
 		fakeDBVolumeRepository              *dbfakes.FakeVolumeRepository
@@ -136,6 +137,7 @@ var _ = Describe("DBProvider", func() {
 
 		fakeWorker2.VersionReturns(&worker2Version)
 
+		fakeFetcher = new(workerfakes.FakeFetcher)
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImage := new(workerfakes.FakeImage)
 		fakeImage.FetchForContainerReturns(FetchedImage{}, nil)
@@ -168,6 +170,7 @@ var _ = Describe("DBProvider", func() {
 		provider = NewDBWorkerProvider(
 			fakeLockFactory,
 			fakeBackOffFactory,
+			fakeFetcher,
 			fakeImageFactory,
 			fakeDBResourceCacheFactory,
 			fakeDBResourceConfigFactory,
