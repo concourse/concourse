@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 
-	//"code.cloudfoundry.org/garden/gardenfakes"
 	"context"
 	"errors"
 
@@ -52,7 +51,7 @@ var _ = Describe("Pool", func() {
 
 			fakeInput1 := new(workerfakes.FakeInputSource)
 			fakeInput1AS := new(workerfakes.FakeArtifactSource)
-			fakeInput1AS.VolumeOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
+			fakeInput1AS.ExistsOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
 				switch worker {
 				case compatibleWorkerOneCache1, compatibleWorkerOneCache2, compatibleWorkerTwoCaches:
 					return new(workerfakes.FakeVolume), true, nil
@@ -64,7 +63,7 @@ var _ = Describe("Pool", func() {
 
 			fakeInput2 := new(workerfakes.FakeInputSource)
 			fakeInput2AS := new(workerfakes.FakeArtifactSource)
-			fakeInput2AS.VolumeOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
+			fakeInput2AS.ExistsOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
 				switch worker {
 				case compatibleWorkerTwoCaches:
 					return new(workerfakes.FakeVolume), true, nil
