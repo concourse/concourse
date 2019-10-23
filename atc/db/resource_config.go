@@ -22,6 +22,7 @@ func (e BaseResourceTypeNotFoundError) Error() string {
 var ErrResourceConfigAlreadyExists = errors.New("resource config already exists")
 var ErrResourceConfigDisappeared = errors.New("resource config disappeared")
 var ErrResourceConfigParentDisappeared = errors.New("resource config parent disappeared")
+var ErrResourceConfigHasNoType = errors.New("resource config has no type")
 
 // ResourceConfig represents a resource type and config source.
 //
@@ -304,9 +305,10 @@ func findOrCreateResourceConfigScope(
 				unique = customType.UniqueVersionHistory
 			} else {
 				baseType := resourceConfig.CreatedByBaseResourceType()
-				if baseType != nil {
-					unique = baseType.UniqueVersionHistory
+				if baseType == nil {
+					return nil, ErrResourceConfigHasNoType
 				}
+				unique = baseType.UniqueVersionHistory
 			}
 		}
 
