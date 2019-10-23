@@ -49,10 +49,11 @@ var _ = Describe("Worker", func() {
 		fakeGardenContainer       *gclientfakes.FakeContainer
 		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 		fakeBaggageclaimClient    *baggageclaimfakes.FakeClient
+		fakeFetcher               *workerfakes.FakeFetcher
 
 		fakeLocalInput    *workerfakes.FakeInputSource
 		fakeRemoteInput   *workerfakes.FakeInputSource
-		fakeRemoteInputAS *workerfakes.FakeArtifactSource
+		fakeRemoteInputAS *workerfakes.FakeStreamableArtifactSource
 
 		fakeBindMount *workerfakes.FakeBindMountSource
 
@@ -97,6 +98,7 @@ var _ = Describe("Worker", func() {
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImage = new(workerfakes.FakeImage)
 		fakeImageFactory.GetImageReturns(fakeImage, nil)
+		fakeFetcher = new(workerfakes.FakeFetcher)
 
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		fakeCreatingContainer.HandleReturns("some-handle")
@@ -121,7 +123,7 @@ var _ = Describe("Worker", func() {
 		fakeLocalVolume.COWStrategyReturns(baggageclaim.COWStrategy{
 			Parent: new(baggageclaimfakes.FakeVolume),
 		})
-		fakeLocalInputAS.VolumeOnReturns(fakeLocalVolume, true, nil)
+		fakeLocalInputAS.ExistsOnReturns(fakeLocalVolume, true, nil)
 		fakeLocalInput.SourceReturns(fakeLocalInputAS)
 
 		fakeBindMount = new(workerfakes.FakeBindMountSource)
@@ -133,8 +135,8 @@ var _ = Describe("Worker", func() {
 
 		fakeRemoteInput = new(workerfakes.FakeInputSource)
 		fakeRemoteInput.DestinationPathReturns("/some/work-dir/remote-input")
-		fakeRemoteInputAS = new(workerfakes.FakeArtifactSource)
-		fakeRemoteInputAS.VolumeOnReturns(nil, false, nil)
+		fakeRemoteInputAS = new(workerfakes.FakeStreamableArtifactSource)
+		fakeRemoteInputAS.ExistsOnReturns(nil, false, nil)
 		fakeRemoteInput.SourceReturns(fakeRemoteInputAS)
 
 		fakeScratchVolume := new(workerfakes.FakeVolume)
@@ -265,6 +267,7 @@ var _ = Describe("Worker", func() {
 			fakeDBVolumeRepository,
 			fakeVolumeClient,
 			fakeImageFactory,
+			fakeFetcher,
 			fakeDBTeamFactory,
 			fakeDBWorker,
 			0,
@@ -1012,13 +1015,13 @@ var _ = Describe("Worker", func() {
 						fakeRemoteInputUnderInput = new(workerfakes.FakeInputSource)
 						fakeRemoteInputUnderInput.DestinationPathReturns("/some/work-dir/remote-input/other-input")
 						fakeRemoteInputUnderInputAS = new(workerfakes.FakeArtifactSource)
-						fakeRemoteInputUnderInputAS.VolumeOnReturns(nil, false, nil)
+						fakeRemoteInputUnderInputAS.ExistsOnReturns(nil, false, nil)
 						fakeRemoteInputUnderInput.SourceReturns(fakeRemoteInputUnderInputAS)
 
 						fakeRemoteInputUnderOutput = new(workerfakes.FakeInputSource)
 						fakeRemoteInputUnderOutput.DestinationPathReturns("/some/work-dir/output/input")
 						fakeRemoteInputUnderOutputAS = new(workerfakes.FakeArtifactSource)
-						fakeRemoteInputUnderOutputAS.VolumeOnReturns(nil, false, nil)
+						fakeRemoteInputUnderOutputAS.ExistsOnReturns(nil, false, nil)
 						fakeRemoteInputUnderOutput.SourceReturns(fakeRemoteInputUnderOutputAS)
 
 						fakeOutputUnderInputVolume = new(workerfakes.FakeVolume)

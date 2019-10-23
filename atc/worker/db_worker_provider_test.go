@@ -43,7 +43,7 @@ var _ = Describe("DBProvider", func() {
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
 
-		fakeFetcher *workerfakes.FakeFetcher
+		fakeFetcher                         *workerfakes.FakeFetcher
 		fakeImageFactory                    *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
 		fakeDBVolumeRepository              *dbfakes.FakeVolumeRepository
