@@ -70,3 +70,18 @@ func (gcf *gardenClientFactory) NewClient() Client {
 
 	return NewClient(NewRetryableConnection(connection.NewWithHijacker(hijackStreamer, gcf.logger)))
 }
+
+// Do not try any client method that requires hijack functionality (streaming logs)!
+func BasicGardenClientWithRequestTimeout(logger lager.Logger, requestTimeout time.Duration, address string) Client {
+	streamClient := &http.Client{
+		Timeout: requestTimeout,
+	}
+
+	streamer := &transport.WorkerHijackStreamer{
+		HttpClient:       streamClient,
+		HijackableClient: nil,
+		Req:              rata.NewRequestGenerator(address, routes.Routes),
+	}
+
+	return NewClient(connection.NewWithHijacker(streamer, logger))
+}
