@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 
@@ -32,13 +33,14 @@ var _ = Describe("Fetcher", func() {
 		fakeBuildStepDelegate *workerfakes.FakeImageFetchingDelegate
 
 		fakeWorker             *workerfakes.FakeWorker
+		fakeVolume             *workerfakes.FakeVolume
 		fakeFetchSourceFactory *workerfakes.FakeFetchSourceFactory
-		fakeResource *resourcefakes.FakeResource
-		fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
+		fakeResource           *resourcefakes.FakeResource
+		fakeUsedResourceCache  *dbfakes.FakeUsedResourceCache
 
 		getResult worker.GetResult
-		fetchErr        error
-		teamID          = 123
+		fetchErr  error
+		teamID    = 123
 
 		volume worker.Volume
 	)
@@ -51,6 +53,8 @@ var _ = Describe("Fetcher", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeWorker.NameReturns("some-worker")
 
+		fakeVolume = new(workerfakes.FakeVolume)
+		fakeVolume.HandleReturns("some-handle")
 		//TODO: stub out get()
 		fakeResource = new(resourcefakes.FakeResource)
 		fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
@@ -75,7 +79,9 @@ var _ = Describe("Fetcher", func() {
 			worker.ContainerSpec{
 				TeamID: teamID,
 			},
-			runtime.ProcessSpec{},
+			runtime.ProcessSpec{
+				Args: []string{resource.ResourcesDir("get")},
+			},
 			fakeResource,
 			db.NewBuildStepContainerOwner(0, "some-plan-id", 0),
 			worker.ImageFetcherSpec{
@@ -94,8 +100,7 @@ var _ = Describe("Fetcher", func() {
 			fakeFetchSource = new(workerfakes.FakeFetchSource)
 			fakeFetchSourceFactory.NewFetchSourceReturns(fakeFetchSource)
 
-			fakeFetchSource.FindReturns(worker.GetResult{}, nil, false, nil)
-			// fakeFetchSource.LockNameReturns("fake-lock-name", nil)
+			fakeFetchSource.FindReturns(worker.GetResult{}, fakeVolume, false, nil)
 		})
 
 		Describe("failing to get a lock", func() {
@@ -152,7 +157,7 @@ var _ = Describe("Fetcher", func() {
 			BeforeEach(func() {
 				fakeLock = new(lockfakes.FakeLock)
 				fakeLockFactory.AcquireReturns(fakeLock, true, nil)
-				fakeFetchSource.CreateReturns(worker.GetResult{}, nil, nil)
+				fakeFetchSource.CreateReturns(worker.GetResult{}, fakeVolume, nil)
 			})
 
 			It("acquires a lock with source lock name", func() {

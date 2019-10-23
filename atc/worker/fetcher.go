@@ -77,9 +77,19 @@ func (f *fetcher) Fetch(
 		"resource": processSpec.Args[0],
 	}
 
-	fetchSource := f.fetchSourceFactory.NewFetchSource(logger, gardenWorker, owner,
-		cache, resource, imageFetcherSpec.ResourceTypes, containerSpec, processSpec,
-		containerMetadata, imageFetcherSpec.Delegate)
+	// todo: just pass in imageFetcherSpec not its contents
+	fetchSource := f.fetchSourceFactory.NewFetchSource(
+		logger,
+		gardenWorker,
+		owner,
+		cache,
+		resource,
+		imageFetcherSpec.ResourceTypes,
+		containerSpec,
+		processSpec,
+		containerMetadata,
+		imageFetcherSpec.Delegate,
+	)
 
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
