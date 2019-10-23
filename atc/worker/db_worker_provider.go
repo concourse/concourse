@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/concourse/concourse/atc"
+
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	bclient "github.com/concourse/baggageclaim/client"
@@ -177,7 +179,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		savedWorker.Name(),
 		savedWorker.GardenAddr(),
 		provider.retryBackOffFactory,
-		5*time.Minute,
+		atc.GARDEN_CLIENT_HTTP_TIMEOUT,
 	)
 
 	gClient := gcf.NewClient()
