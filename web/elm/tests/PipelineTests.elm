@@ -515,6 +515,11 @@ all =
                             , style "border-radius" "50%"
                             ]
                         >> Query.count (Expect.equal 0)
+                , it "pin icon is dim when pipeline has no pinned resources" <|
+                    Common.queryView
+                        >> Query.find [ id "top-bar-app" ]
+                        >> Query.find [ id "pin-icon" ]
+                        >> Query.has [ style "opacity" "0.5" ]
                 , it "pin icon has white color when pipeline has pinned resources" <|
                     givenPinnedResource
                         >> Common.queryView

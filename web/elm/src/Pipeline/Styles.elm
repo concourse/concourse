@@ -90,14 +90,20 @@ pinIconDropdown =
     ]
 
 
-pinIcon : List (Html.Attribute msg)
-pinIcon =
+pinIcon : Bool -> List (Html.Attribute msg)
+pinIcon hasPinnedResources =
     [ style "background-image" "url(/public/images/pin-ic-white.svg)"
     , style "width" "40px"
     , style "height" "40px"
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "position" "relative"
+    , style "opacity" <|
+        if hasPinnedResources then
+            "1"
+
+        else
+            "0.5"
     ]
 
 

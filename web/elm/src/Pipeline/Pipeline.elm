@@ -456,7 +456,7 @@ viewPinMenu ({ pinnedResources, isPinMenuExpanded } as params) =
                 ([ onMouseEnter <| Hover <| Just PinIcon
                  , onMouseLeave <| Hover Nothing
                  ]
-                    ++ Styles.pinIcon
+                    ++ Styles.pinIcon True
                 )
                 (Html.div
                     (id "pin-badge" :: Styles.pinBadge)
@@ -470,7 +470,7 @@ viewPinMenu ({ pinnedResources, isPinMenuExpanded } as params) =
                 )
 
           else
-            Html.div Styles.pinIcon []
+            Html.div (Styles.pinIcon False) []
         ]
 
 
