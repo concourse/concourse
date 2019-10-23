@@ -445,14 +445,12 @@ var _ = Describe("ContainerRepository", func() {
 
 		Context("when there are failed containers", func() {
 			BeforeEach(func() {
-				result, err := psql.Insert("containers").SetMap(map[string]interface{}{
-					"state":        atc.ContainerStateFailed,
-					"handle":       "123-456-abc-def",
-					"worker_name":  defaultWorker.Name(),
-					"hijacked":     false,
-					"discontinued": false,
-				}).RunWith(dbConn).Exec()
-
+				result, err := psql.Insert("containers").
+					SetMap(map[string]interface{}{
+						"state":       atc.ContainerStateFailed,
+						"handle":      "123-456-abc-def",
+						"worker_name": defaultWorker.Name(),
+					}).RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.RowsAffected()).To(Equal(int64(1)))
 			})
@@ -486,24 +484,6 @@ var _ = Describe("ContainerRepository", func() {
 				})
 				It("returns an error", func() {
 					Expect(failedErr).To(HaveOccurred())
-				})
-			})
-
-			Context("when there is an invalid row", func() {
-				BeforeEach(func() {
-					By("adding a row without expected values")
-					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
-						"state":  "failed",
-						"handle": "123-456-abc-def",
-					}).RunWith(dbConn).Exec()
-
-					Expect(err).ToNot(HaveOccurred())
-					Expect(result.RowsAffected()).To(Equal(int64(1)))
-				})
-
-				It("destroy the invalid row", func() {
-					Expect(failedErr).ToNot(HaveOccurred())
-					Expect(failedContainersLen).To(Equal(1))
 				})
 			})
 		})
