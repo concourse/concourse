@@ -93,7 +93,6 @@ type fetchSource struct {
 	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
-
 func (s *fetchSource) Find() (GetResult, Volume, bool, error) {
 	sLog := s.logger.Session("find")
 	result := GetResult{}

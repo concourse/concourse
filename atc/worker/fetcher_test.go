@@ -185,7 +185,7 @@ var _ = Describe("Fetcher", func() {
 
 			BeforeEach(func() {
 				disaster = errors.New("fail")
-				fakeFetchSource.FindReturns(worker.GetResult{}, nil,false, disaster)
+				fakeFetchSource.FindReturns(worker.GetResult{}, nil, false, disaster)
 			})
 
 			It("returns an error", func() {
