@@ -51,8 +51,16 @@ github.com/The-Cloud-Source/goryman v0.0.0-20150410173800-c22b6e4a7ac1 h1:LirsQv
 github.com/The-Cloud-Source/goryman v0.0.0-20150410173800-c22b6e4a7ac1/go.mod h1:eoPf+25GcZRRy4HU0o2kK55qlGgadQuhME3/GYcX/MM=
 github.com/VividCortex/ewma v1.1.1 h1:MnEK4VOv6n0RSY4vtRe3h11qjxL3+t0B8yOL8iMXdcM=
 github.com/VividCortex/ewma v1.1.1/go.mod h1:2Tkkvm3sRDVXaiyucHiACn4cqf7DpdyLvmxzcbUokwA=
+github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 h1:JYp7IbQjafoB+tBA3gMyHYHrpOtNuDiK/uB5uXxq5wM=
+github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
+github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d h1:UQZhZ2O0vMHr2cI+DC1Mbh0TJxzA3RcLoMsFw+aXw7E=
+github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk541a8SKzHPHnH3zbiI+7dagKZ0cgpgrD7Fyho=
 github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190107113132-5452bdb42a73 h1:yZaBtrpzD3RjYCSxZ/Q4EZSYaaX31sW7+GG+xcJqcIA=
 github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190107113132-5452bdb42a73/go.mod h1:T9M45xf79ahXVelWoOBmH0y4aC1t5kXO5BxwyakgIGA=
+github.com/antchfx/jsonquery v1.0.0 h1:1Yhk496SrCoY6fJkFZqpXEqbwOw5sFtLns9la4NoK3I=
+github.com/antchfx/jsonquery v1.0.0/go.mod h1:h7950pvPrUZzJIflNqsELgDQovTpPNa0rAHf8NwjegY=
+github.com/antchfx/xpath v1.1.0 h1:mJTvYpiHvxNQRD4Lbfin/FodHVCHh2a5KrOFr4ZxMOI=
+github.com/antchfx/xpath v1.1.0/go.mod h1:Yee4kTMuNiPYJ7nSNorELQMr1J33uOpXDMByNYhvtNk=
 github.com/araddon/gou v0.0.0-20190110011759-c797efecbb61 h1:Xz25cuW4REGC5W5UtpMU3QItMIImag615HiQcRbxqKQ=
 github.com/araddon/gou v0.0.0-20190110011759-c797efecbb61/go.mod h1:ikc1XA58M+Rx7SEbf0bLJCfBkwayZ8T5jBo5FXK8Uz8=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da h1:8GUt8eRujhVEGZFFEjBj46YV4rDjvGrNxb0KMWYkL2I=
@@ -105,8 +113,6 @@ github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e/go.mod h1:P
 github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 h1:9j2KbUEQn5E7MEV3enSrkJTrBC0iDbosW5gXX+Z+dLE=
 github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2/go.mod h1:0a+Ghg38uB86Dx+de84dFSkILTnBHzCpFMRnjHgSzi4=
 github.com/cockroachdb/cmux v0.0.0-20170110192607-30d10be49292/go.mod h1:qRiX68mZX1lGBkTWyp3CLcenw9I94W2dLeRvMzcn9N4=
-github.com/concourse/baggageclaim v1.6.3 h1:k5FINjHbcZ0NGnAHqm3J8Pw6pgAXjREyTll1BSvaRgA=
-github.com/concourse/baggageclaim v1.6.3/go.mod h1:gKOIecb6eIQ1k2Wh0iyKvP1vqI8XN08qwtijwr3Iroc=
 github.com/concourse/baggageclaim v1.6.5 h1:nqUNImvNPagFWLpjmYM3K/iUtXcgjWCXGUVEcQtIHUc=
 github.com/concourse/baggageclaim v1.6.5/go.mod h1:XEX/nfW5iJQwJVLUh1AxyqtFRLeyM+iZLeKMUEloiKc=
 github.com/concourse/dex v0.0.0-20190417202333-2202f4ef4172 h1:lYBXqY+XJmyMD3uthg734qIxdHU+lAF8mnVk72gdFCA=
@@ -459,7 +465,6 @@ github.com/opencontainers/image-spec v1.0.1 h1:JMemWkRwHx4Zj+fVxWoMCFm/8sYGGrUVo
 github.com/opencontainers/image-spec v1.0.1/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zMzWCbyJoFRP3s7yZA0=
 github.com/opencontainers/runc v0.1.1 h1:GlxAyO6x8rfZYN9Tt0Kti5a/cP41iuiO2yYT0IJGY8Y=
 github.com/opencontainers/runc v0.1.1/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rmF59PVA73FjuZG0U=
-github.com/opencontainers/runtime-spec v1.0.1/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opentracing/opentracing-go v1.0.2 h1:3jA2P6O1F9UOrWVpwrIo17pu01KWvNWg4X946/Y5Zwg=
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/ory-am/common v0.4.0 h1:edGPoxYX4hno0IJHXh9TCMUPR6ZcJp+y6aClFYxeuUE=
@@ -704,6 +709,8 @@ google.golang.org/grpc v1.20.1/go.mod h1:10oTOabMzJvdu6/UiuZezV6QK5dSlG84ov/aaiq
 google.golang.org/grpc v1.21.0/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ijfRaM=
 google.golang.org/grpc v1.21.1 h1:j6XxA85m/6txkUCHvzlV5f+HBNl/1r5cZ2A/3IEFOO8=
 google.golang.org/grpc v1.21.1/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ijfRaM=
+gopkg.in/alecthomas/kingpin.v2 v2.2.6 h1:jMFz6MfLP0/4fUyZle81rXUoxOBFi19VUFKVDOQfozc=
+gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=
 gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175/go.mod h1:cuepJuh7vyXfUyUwEgHQXw849cJrilpS5NeIjOWESAw=
 gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d h1:TxyelI5cVkbREznMhfzycHdkp5cLA7DpE+GKjSslYhM=
 gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d/go.mod h1:cuepJuh7vyXfUyUwEgHQXw849cJrilpS5NeIjOWESAw=

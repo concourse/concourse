@@ -22,7 +22,11 @@ require (
 	github.com/SAP/go-hdb v0.13.1 // indirect
 	github.com/SermoDigital/jose v0.9.1 // indirect
 	github.com/The-Cloud-Source/goryman v0.0.0-20150410173800-c22b6e4a7ac1
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
+	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190107113132-5452bdb42a73 // indirect
+	github.com/antchfx/jsonquery v1.0.0
+	github.com/antchfx/xpath v1.1.0 // indirect
 	github.com/araddon/gou v0.0.0-20190110011759-c797efecbb61 // indirect
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
@@ -166,6 +170,7 @@ require (
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/pquerna/otp v1.1.0 // indirect
 	github.com/prometheus/client_golang v0.9.2
+	github.com/prometheus/common v0.0.0-20181126121408-4724e9255275
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20180130194729-c4fab1ac1bec // indirect
@@ -178,7 +183,6 @@ require (
 	github.com/square/certstrap v1.1.1
 	github.com/streadway/amqp v0.0.0-20190225234609-30f8ed68076e // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
-	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
@@ -200,6 +204,7 @@ require (
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456 // indirect
 	golang.org/x/tools v0.0.0-20190829051458-42f498d34c4d // indirect
+	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/gorethink/gorethink.v4 v4.1.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
