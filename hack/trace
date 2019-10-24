@@ -42,4 +42,4 @@ docker run \
   --rm \
   --tty \
   dlv \
-  attach $trace_pid $listen_listen_cmd
+  attach $trace_pid $listen_cmd
