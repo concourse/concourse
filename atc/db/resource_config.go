@@ -22,6 +22,7 @@ func (e BaseResourceTypeNotFoundError) Error() string {
 var ErrResourceConfigAlreadyExists = errors.New("resource config already exists")
 var ErrResourceConfigDisappeared = errors.New("resource config disappeared")
 var ErrResourceConfigParentDisappeared = errors.New("resource config parent disappeared")
+var ErrResourceConfigHasNoType = errors.New("resource config has no type")
 
 // ResourceConfig represents a resource type and config source.
 //
@@ -281,19 +282,33 @@ func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName stri
 	return id, true, nil
 }
 
-func findOrCreateResourceConfigScope(tx Tx, conn Conn, lockFactory lock.LockFactory, resourceConfig ResourceConfig, resource Resource, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
+func findOrCreateResourceConfigScope(
+	tx Tx,
+	conn Conn,
+	lockFactory lock.LockFactory,
+	resourceConfig ResourceConfig,
+	resource Resource,
+	resourceType string,
+	resourceTypes atc.VersionedResourceTypes,
+) (ResourceConfigScope, error) {
+
 	var unique bool
 	var uniqueResource Resource
 	var resourceID *int
+
 	if resource != nil {
 		if !atc.EnableGlobalResources {
 			unique = true
 		} else {
-			customType, found := resourceTypes.Lookup(resource.Type())
+			customType, found := resourceTypes.Lookup(resourceType)
 			if found {
 				unique = customType.UniqueVersionHistory
 			} else {
-				unique = resourceConfig.CreatedByBaseResourceType().UniqueVersionHistory
+				baseType := resourceConfig.CreatedByBaseResourceType()
+				if baseType == nil {
+					return nil, ErrResourceConfigHasNoType
+				}
+				unique = baseType.UniqueVersionHistory
 			}
 		}
 

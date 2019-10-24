@@ -483,6 +483,62 @@ var _ = Describe("Build", func() {
 				Expect(newRCV.CheckOrder()).To(Equal(rcv.CheckOrder()))
 			})
 		})
+
+		Context("when global resources is enabled", func() {
+			BeforeEach(func() {
+				atc.EnableGlobalResources = true
+			})
+
+			Context("using a given resource type", func() {
+				var givenType string
+
+				BeforeEach(func() {
+					givenType = "given-type"
+				})
+
+				Context("the resource types contain the given type", func() {
+					var resourceTypes atc.VersionedResourceTypes
+
+					BeforeEach(func() {
+						resourceTypes = atc.VersionedResourceTypes{
+							{
+								ResourceType: atc.ResourceType{
+									Name:                 "given-type",
+									Source:               atc.Source{"some": "source"},
+									Type:                 "some-type",
+									UniqueVersionHistory: true,
+								},
+								Version: atc.Version{"some-resource-type": "version"},
+							},
+						}
+					})
+
+					Context("but the resource type is different in the db", func() {
+						var resourceName string
+
+						BeforeEach(func() {
+							resourceName = "some-explicit-resource" // type: "some-type"
+						})
+
+						It("saves the output", func() {
+							build, err := job.CreateBuild()
+							Expect(err).ToNot(HaveOccurred())
+
+							err = build.SaveOutput(
+								givenType,
+								atc.Source{"some": "explicit-source"},
+								resourceTypes,
+								atc.Version{"some": "new-version"},
+								[]db.ResourceConfigMetadataField{},
+								"output-name",
+								resourceName,
+							)
+							Expect(err).ToNot(HaveOccurred())
+						})
+					})
+				})
+			})
+		})
 	})
 
 	Describe("Resources", func() {
