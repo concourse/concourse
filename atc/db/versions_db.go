@@ -22,23 +22,39 @@ func (e JobNotFoundError) Error() string {
 }
 
 type VersionsDB struct {
-	Conn      Conn
-	LimitRows int
+	conn      Conn
+	limitRows int
 
-	Cache *gocache.Cache
-
-	JobIDs           map[string]int
-	ResourceIDs      map[string]int
-	DisabledVersions map[int]map[string]bool
+	cache *gocache.Cache
 }
 
-func (versions VersionsDB) VersionIsDisabled(resourceID int, versionMD5 ResourceVersion) bool {
-	md5s, found := versions.DisabledVersions[resourceID]
-	return found && md5s[string(versionMD5)]
+func NewVersionsDB(conn Conn, limitRows int, cache *gocache.Cache) VersionsDB {
+	return VersionsDB{
+		conn:      conn,
+		limitRows: limitRows,
+		cache:     cache,
+	}
+}
+
+func (versions VersionsDB) VersionIsDisabled(resourceID int, versionMD5 ResourceVersion) (bool, error) {
+	var exists bool
+	err := versions.conn.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM resource_disabled_versions
+			WHERE resource_id = $1
+			AND version_md5 = $2
+		)`, resourceID, versionMD5).
+		Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
 
 func (versions VersionsDB) LatestVersionOfResource(resourceID int) (ResourceVersion, bool, error) {
-	tx, err := versions.Conn.Begin()
+	tx, err := versions.conn.Begin()
 	if err != nil {
 		return "", false, err
 	}
@@ -76,8 +92,8 @@ func (versions VersionsDB) SuccessfulBuilds(jobID int) PaginatedBuilds {
 		column:  "id",
 		jobID:   jobID,
 
-		limitRows: versions.LimitRows,
-		conn:      versions.Conn,
+		limitRows: versions.limitRows,
+		conn:      versions.conn,
 	}
 }
 
@@ -100,8 +116,8 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, constra
 		column:  "build_id",
 		jobID:   jobID,
 
-		limitRows: versions.LimitRows,
-		conn:      versions.Conn,
+		limitRows: versions.limitRows,
+		conn:      versions.conn,
 	}, nil
 }
 
@@ -110,7 +126,7 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 	rows, err := psql.Select("name", "resource_id", "version_md5").
 		From("build_resource_config_version_inputs").
 		Where(sq.Eq{"build_id": buildID}).
-		RunWith(versions.Conn).
+		RunWith(versions.conn).
 		Query()
 	if err != nil {
 		return nil, err
@@ -129,7 +145,7 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 	rows, err = psql.Select("name", "resource_id", "version_md5").
 		From("build_resource_config_version_outputs").
 		Where(sq.Eq{"build_id": buildID}).
-		RunWith(versions.Conn).
+		RunWith(versions.conn).
 		Query()
 	if err != nil {
 		return nil, err
@@ -160,7 +176,7 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersion, error) {
 	cacheKey := fmt.Sprintf("o%d", buildID)
 
-	c, found := versions.Cache.Get(cacheKey)
+	c, found := versions.cache.Get(cacheKey)
 	if found {
 		return c.([]AlgorithmVersion), nil
 	}
@@ -169,7 +185,7 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersi
 	err := psql.Select("outputs").
 		From("successful_build_outputs").
 		Where(sq.Eq{"build_id": buildID}).
-		RunWith(versions.Conn).
+		RunWith(versions.conn).
 		QueryRow().
 		Scan(&outputsJSON)
 	if err != nil {
@@ -190,8 +206,8 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersi
 	}
 
 	algorithmOutputs := []AlgorithmVersion{}
-	for resID, versions := range outputs {
-		for _, version := range versions {
+	for resID, v := range outputs {
+		for _, version := range v {
 			resourceID, err := strconv.Atoi(resID)
 			if err != nil {
 				return nil, err
@@ -208,7 +224,7 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersi
 		return algorithmOutputs[i].ResourceID < algorithmOutputs[j].ResourceID
 	})
 
-	versions.Cache.Set(cacheKey, algorithmOutputs, time.Hour)
+	versions.cache.Set(cacheKey, algorithmOutputs, time.Hour)
 
 	return algorithmOutputs, nil
 }
@@ -221,7 +237,7 @@ func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) 
 
 	cacheKey := fmt.Sprintf("v%d-%s", resourceID, versionJSON)
 
-	c, found := versions.Cache.Get(cacheKey)
+	c, found := versions.cache.Get(cacheKey)
 	if found {
 		return c.(ResourceVersion), true, nil
 	}
@@ -234,7 +250,7 @@ func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) 
 			"r.id": resourceID,
 		}).
 		Where(sq.Expr("rcv.version_md5 = md5(?)", versionJSON)).
-		RunWith(versions.Conn).
+		RunWith(versions.conn).
 		QueryRow().
 		Scan(&version)
 	if err != nil {
@@ -244,7 +260,7 @@ func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) 
 		return "", false, err
 	}
 
-	versions.Cache.Set(cacheKey, version, time.Hour)
+	versions.cache.Set(cacheKey, version, time.Hour)
 
 	return version, true, err
 }
@@ -260,7 +276,7 @@ func (versions VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
 		}).
 		OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
 		Limit(100).
-		RunWith(versions.Conn).
+		RunWith(versions.conn).
 		QueryRow().
 		Scan(&buildID)
 	if err != nil {
@@ -274,7 +290,7 @@ func (versions VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
 }
 
 func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (ResourceVersion, bool, error) {
-	tx, err := versions.Conn.Begin()
+	tx, err := versions.conn.Begin()
 	if err != nil {
 		return "", false, err
 	}
@@ -361,7 +377,7 @@ func (versions VersionsDB) LatestBuildPipes(buildID int) (map[int]int, error) {
 		Where(sq.Eq{
 			"p.to_build_id": buildID,
 		}).
-		RunWith(versions.Conn).
+		RunWith(versions.conn).
 		Query()
 	if err != nil {
 		return nil, err
@@ -412,8 +428,7 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 			},
 		}).
 		OrderBy("COALESCE(rerun_of, id) ASC, id ASC").
-		Limit(algorithmLimitRows).
-		RunWith(versions.Conn).
+		RunWith(versions.conn).
 		Query()
 	if err != nil {
 		return PaginatedBuilds{}, err
@@ -447,8 +462,8 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 		column:   "id",
 		jobID:    jobID,
 
-		limitRows: versions.LimitRows,
-		conn:      versions.Conn,
+		limitRows: versions.limitRows,
+		conn:      versions.conn,
 	}, nil
 }
 
@@ -485,7 +500,7 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 				},
 			}).
 			OrderBy("COALESCE(rerun_of, build_id) ASC, build_id ASC").
-			RunWith(versions.Conn).
+			RunWith(versions.conn).
 			Query()
 		if err != nil {
 			return PaginatedBuilds{}, err
@@ -533,8 +548,8 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		column:   "build_id",
 		jobID:    jobID,
 
-		limitRows: versions.LimitRows,
-		conn:      versions.Conn,
+		limitRows: versions.limitRows,
+		conn:      versions.conn,
 	}, nil
 
 }
@@ -604,15 +619,15 @@ func (versions VersionsDB) migrateUpper(jobID int, buildIDCursor int) (bool, err
 			},
 		}).
 		OrderBy("COALESCE(rerun_of, id) DESC, id DESC").
-		Limit(uint64(versions.LimitRows))
+		Limit(uint64(versions.limitRows))
 
-	return migrate(versions.Conn, buildsToMigrateQueryBuilder)
+	return migrate(versions.conn, buildsToMigrateQueryBuilder)
 }
 
 // Migrates a single build into the successful build outputs table.
 func (versions VersionsDB) migrateSingle(buildID int) (string, error) {
 	var outputs string
-	err := versions.Conn.QueryRow(`
+	err := versions.conn.QueryRow(`
 		WITH builds_to_migrate AS (
 			UPDATE builds
 			SET needs_v6_migration = false

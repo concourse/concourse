@@ -233,7 +233,7 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 		return nil, err
 	}
 
-	_, err = psql.Update("resources").
+	results, err := psql.Update("resources").
 		Set("resource_config_scope_id", resourceConfigScope.ID()).
 		Where(sq.Eq{"id": r.id}).
 		Where(sq.Or{
@@ -246,9 +246,21 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 		return nil, err
 	}
 
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
+	}
+
+	if rowsAffected > 0 {
+		err = requestScheduleForPipelinesUsingResourceConfigScope(r.conn, resourceConfigScope.ID())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return resourceConfigScope, nil
@@ -556,7 +568,12 @@ func (r *resource) DisableVersion(rcvID int) error {
 }
 
 func (r *resource) PinVersion(rcvID int) (bool, error) {
-	results, err := r.conn.Exec(`
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	results, err := tx.Exec(`
 	    INSERT INTO resource_pins(resource_id, version, comment_text)
 			VALUES ($1,
 				( SELECT rcv.version
@@ -580,13 +597,28 @@ func (r *resource) PinVersion(rcvID int) (bool, error) {
 		return false, nil
 	}
 
+	err = requestSchedule(tx, r.pipelineID)
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
 func (r *resource) UnpinVersion() error {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return err
+	}
+
 	results, err := psql.Delete("resource_pins").
 		Where(sq.Eq{"resource_pins.resource_id": r.id}).
-		RunWith(r.conn).
+		RunWith(tx).
 		Exec()
 	if err != nil {
 		return err
@@ -599,6 +631,16 @@ func (r *resource) UnpinVersion() error {
 
 	if rowsAffected != 1 {
 		return nonOneRowAffectedError{rowsAffected}
+	}
+
+	err = requestSchedule(tx, r.pipelineID)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -638,6 +680,11 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 
 	if rowsAffected != 1 {
 		return nonOneRowAffectedError{rowsAffected}
+	}
+
+	err = requestSchedule(tx, r.pipelineID)
+	if err != nil {
+		return err
 	}
 
 	return tx.Commit()

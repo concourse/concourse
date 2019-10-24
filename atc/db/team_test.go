@@ -1663,6 +1663,27 @@ var _ = Describe("Team", func() {
 			Expect(pipeline.Paused()).To(BeFalse())
 		})
 
+		It("requests schedule on the pipeline", func() {
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			var requestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+
+			config.Resources[0].Source = atc.Source{
+				"source-other-config": "some-other-value",
+			}
+
+			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			var newRequestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+		})
+
 		It("creates all of the resources from the pipeline in the database", func() {
 			savedPipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
 			Expect(err).ToNot(HaveOccurred())

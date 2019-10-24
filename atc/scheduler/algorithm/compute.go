@@ -1,6 +1,8 @@
 package algorithm
 
 import (
+	"fmt"
+
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -9,25 +11,29 @@ type Resolver interface {
 	InputConfigs() InputConfigs
 }
 
-func New() *algorithm {
-	return &algorithm{}
+func New(versionsDB db.VersionsDB) *algorithm {
+	return &algorithm{
+		versionsDB: versionsDB,
+	}
 }
 
-type algorithm struct{}
+type algorithm struct {
+	versionsDB db.VersionsDB
+}
 
 func (a *algorithm) Compute(
-	versions *db.VersionsDB,
 	job db.Job,
 	resources db.Resources,
+	relatedJobs NameToIDMap,
 ) (db.InputMapping, bool, error) {
-	resolvers, err := constructResolvers(versions, job, resources)
+	resolvers, err := constructResolvers(a.versionsDB, job, resources, relatedJobs)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("construct resolvers: %w", err)
 	}
 
-	inputMapper, err := newInputMapper(versions, job.ID())
+	inputMapper, err := newInputMapper(a.versionsDB, job.ID())
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("setting up input mapper: %w", err)
 	}
 
 	finalResolved := true
@@ -35,7 +41,7 @@ func (a *algorithm) Compute(
 	for _, resolver := range resolvers {
 		versionCandidates, resolveErr, err := resolver.Resolve(0)
 		if err != nil {
-			return nil, false, err
+			return nil, false, fmt.Errorf("resolve: %w", err)
 		}
 
 		var resolved bool

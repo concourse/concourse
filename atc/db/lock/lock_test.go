@@ -26,7 +26,6 @@ var _ = Describe("Locks", func() {
 
 		dbConn db.Conn
 
-		job         db.Job
 		team        db.Team
 		teamFactory db.TeamFactory
 
@@ -50,38 +49,6 @@ var _ = Describe("Locks", func() {
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "team-name"})
 		Expect(err).NotTo(HaveOccurred())
-
-		pipeline, _, err := team.SavePipeline("some-pipeline", atc.Config{
-			Jobs: atc.JobConfigs{
-				{
-					Name: "some-job",
-				},
-			},
-			Resources: atc.ResourceConfigs{
-				{
-					Name: "some-resource",
-					Type: "some-base-resource-type",
-					Source: atc.Source{
-						"some": "source",
-					},
-				},
-			},
-			ResourceTypes: atc.ResourceTypes{
-				{
-					Name: "some-resource-type",
-					Type: "some-type",
-					Source: atc.Source{
-						"source-config": "some-value",
-					},
-				},
-			},
-		}, db.ConfigVersion(0), false)
-		Expect(err).NotTo(HaveOccurred())
-
-		var found bool
-		job, found, err = pipeline.Job("some-job")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
 	})
 
 	AfterEach(func() {
@@ -273,50 +240,6 @@ var _ = Describe("Locks", func() {
 					Expect(lock2Err).NotTo(HaveOccurred())
 					Expect(lock2Acquired).To(BeTrue())
 				})
-			})
-		})
-	})
-
-	Describe("taking out a lock on job scheduling", func() {
-		Context("when it has been scheduled recently", func() {
-			It("does not get the lock", func() {
-				lock, acquired, err := job.AcquireSchedulingLock(logger, 1*time.Second)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
-
-				err = lock.Release()
-				Expect(err).NotTo(HaveOccurred())
-
-				_, acquired, err = job.AcquireSchedulingLock(logger, 1*time.Second)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeFalse())
-			})
-		})
-
-		Context("when there has not been any scheduling recently", func() {
-			It("gets and keeps the lock and stops others from getting it", func() {
-				lock, acquired, err := job.AcquireSchedulingLock(logger, 1*time.Second)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
-
-				Consistently(func() bool {
-					_, acquired, err = job.AcquireSchedulingLock(logger, 1*time.Second)
-					Expect(err).NotTo(HaveOccurred())
-
-					return acquired
-				}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
-
-				err = lock.Release()
-				Expect(err).NotTo(HaveOccurred())
-
-				time.Sleep(time.Second)
-
-				newLock, acquired, err := job.AcquireSchedulingLock(logger, 1*time.Second)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(acquired).To(BeTrue())
-
-				err = newLock.Release()
-				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 	})

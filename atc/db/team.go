@@ -514,6 +514,11 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
+	err = requestSchedule(tx, pipeline.id)
+	if err != nil {
+		return nil, false, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, false, err
@@ -1147,7 +1152,7 @@ func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, Created
 
 func scanPipeline(p *pipeline, scan scannable) error {
 	var groups sql.NullString
-	err := scan.Scan(&p.id, &p.name, &groups, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public)
+	err := scan.Scan(&p.id, &p.name, &groups, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.requestedTime)
 	if err != nil {
 		return err
 	}

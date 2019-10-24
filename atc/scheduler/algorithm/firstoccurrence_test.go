@@ -204,14 +204,7 @@ var _ = Describe("Resolve", func() {
 			Expect(err).ToNot(HaveOccurred())
 		}
 
-		schedulerCache := gocache.New(10*time.Second, 10*time.Second)
-		versionsDB := &db.VersionsDB{
-			Conn:        dbConn,
-			Cache:       schedulerCache,
-			JobIDs:      setup.jobIDs,
-			ResourceIDs: setup.resourceIDs,
-		}
-
+		versionsDB := db.NewVersionsDB(dbConn, 2, gocache.New(10*time.Second, 10*time.Second))
 		resourceConfigs := atc.ResourceConfigs{}
 		for _, resource := range resources {
 			resourceConfigs = append(resourceConfigs, resource)
@@ -246,13 +239,10 @@ var _ = Describe("Resolve", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		versionsDB.JobIDs = setup.jobIDs
-		versionsDB.ResourceIDs = setup.resourceIDs
-
-		algorithm := algorithm.New()
+		algorithm := algorithm.New(versionsDB)
 
 		var ok bool
-		inputMapping, ok, err = algorithm.Compute(versionsDB, job, dbResources)
+		inputMapping, ok, err = algorithm.Compute(job, dbResources, map[string]int{"j1": 1})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ok).To(BeTrue())
 	})

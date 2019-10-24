@@ -259,7 +259,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns all jobs from public and private pipelines from unauthenticated teams", func() {
-					Expect(dbJobFactory.AllActiveJobsCallCount()).To(Equal(1))
+					Expect(dbJobFactory.AllActiveJobsForDashboardCallCount()).To(Equal(1))
 				})
 			})
 		})

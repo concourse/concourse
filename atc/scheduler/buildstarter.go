@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 //go:generate counterfeiter . BuildStarter
@@ -11,8 +12,10 @@ import (
 type BuildStarter interface {
 	TryStartPendingBuildsForJob(
 		logger lager.Logger,
+		pipeline db.Pipeline,
 		job db.Job,
 		resources db.Resources,
+		relatedJobs algorithm.NameToIDMap,
 	) error
 }
 
@@ -29,27 +32,26 @@ type Build interface {
 }
 
 func NewBuildStarter(
-	pipeline db.Pipeline,
 	factory BuildFactory,
 	algorithm Algorithm,
 ) BuildStarter {
 	return &buildStarter{
-		pipeline:  pipeline,
 		factory:   factory,
 		algorithm: algorithm,
 	}
 }
 
 type buildStarter struct {
-	pipeline  db.Pipeline
 	factory   BuildFactory
 	algorithm Algorithm
 }
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
 	logger lager.Logger,
+	pipeline db.Pipeline,
 	job db.Job,
 	resources db.Resources,
+	relatedJobs algorithm.NameToIDMap,
 ) error {
 	nextPendingBuilds, err := job.GetPendingBuilds()
 	if err != nil {
@@ -57,10 +59,10 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 		return err
 	}
 
-	schedulableBuilds := s.constructBuilds(job, resources, nextPendingBuilds)
+	schedulableBuilds := s.constructBuilds(job, resources, relatedJobs, nextPendingBuilds)
 
 	for _, nextSchedulableBuild := range schedulableBuilds {
-		started, err := s.tryStartNextPendingBuild(logger, nextSchedulableBuild, job, resources)
+		started, err := s.tryStartNextPendingBuild(logger, pipeline, nextSchedulableBuild, job, resources)
 		if err != nil {
 			return err
 		}
@@ -73,17 +75,17 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	return nil
 }
 
-func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, builds []db.Build) []Build {
+func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
 	schedulableBuilds := []Build{}
 
 	for _, nextPendingBuild := range builds {
 		if nextPendingBuild.IsManuallyTriggered() {
 			schedulableBuilds = append(schedulableBuilds, &manualTriggerBuild{
-				Build:     nextPendingBuild,
-				pipeline:  s.pipeline,
-				algorithm: s.algorithm,
-				job:       job,
-				resources: resources,
+				Build:         nextPendingBuild,
+				algorithm:     s.algorithm,
+				job:           job,
+				resources:     resources,
+				relatedJobIDs: relatedJobIDs,
 			})
 		} else if nextPendingBuild.RerunOf() != 0 {
 			schedulableBuilds = append(schedulableBuilds, &rerunBuild{
@@ -101,6 +103,7 @@ func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, build
 
 func (s *buildStarter) tryStartNextPendingBuild(
 	logger lager.Logger,
+	pipeline db.Pipeline,
 	nextPendingBuild Build,
 	job db.Job,
 	resources db.Resources,
@@ -120,7 +123,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return true, nil
 	}
 
-	pipelinePaused, err := s.pipeline.CheckPaused()
+	pipelinePaused, err := pipeline.CheckPaused()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-is-paused", err)
 		return false, err
@@ -154,7 +157,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return false, nil
 	}
 
-	dbResourceTypes, err := s.pipeline.ResourceTypes()
+	dbResourceTypes, err := pipeline.ResourceTypes()
 	if err != nil {
 		return false, err
 	}

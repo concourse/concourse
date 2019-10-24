@@ -3,6 +3,7 @@ package db_test
 import (
 	"errors"
 	"strconv"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -130,9 +131,6 @@ var _ = Describe("Resource", func() {
 					_, err = brt.FindOrCreate(setupTx, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(setupTx.Commit()).To(Succeed())
-
-					_, err = pipeline.LoadVersionsDB()
-					Expect(err).ToNot(HaveOccurred())
 
 					resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
@@ -550,6 +548,35 @@ var _ = Describe("Resource", func() {
 					Expect(resource1.ResourceConfigScopeID()).ToNot(Equal(resource2.ResourceConfigScopeID()))
 				})
 			})
+		})
+
+		It("requests schedule on the pipeline", func() {
+			resource1, found, err := pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "some-type",
+			}
+
+			_, err = brt.FindOrCreate(setupTx, false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			var requestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
+			Expect(err).NotTo(HaveOccurred())
+
+			var newRequestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
 		})
 	})
 
@@ -1049,6 +1076,22 @@ var _ = Describe("Resource", func() {
 				})
 			})
 
+			Context("disabling a version", func() {
+				It("requests schedule on the pipeline", func() {
+					var requestedSchedule time.Time
+					err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = resource.DisableVersion(resourceVersions[9].ID)
+					Expect(err).ToNot(HaveOccurred())
+
+					var newRequestedSchedule time.Time
+					err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+				})
+			})
+
 			Context("when the version metadata is updated", func() {
 				var metadata db.ResourceConfigMetadataFields
 
@@ -1309,6 +1352,21 @@ var _ = Describe("Resource", func() {
 			})
 		})
 
+		It("requests schedule on the pipeline when a version is pinned", func() {
+			var requestedSchedule time.Time
+			err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+
+			found, err := resource.PinVersion(resID)
+			Expect(found).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+
+			var newRequestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+		})
+
 		Context("when we pin a resource to a version", func() {
 			BeforeEach(func() {
 				found, err := resource.PinVersion(resID)
@@ -1361,6 +1419,20 @@ var _ = Describe("Resource", func() {
 				It("should set the pin comment", func() {
 					Expect(resource.PinComment()).To(Equal("foo"))
 				})
+			})
+
+			It("requests schedule on the pipeline when a version is unpinned", func() {
+				var requestedSchedule time.Time
+				err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = resource.UnpinVersion()
+				Expect(err).ToNot(HaveOccurred())
+
+				var newRequestedSchedule time.Time
+				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
 			})
 
 			Context("when we unpin a resource to a version", func() {

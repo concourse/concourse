@@ -15,13 +15,13 @@ import (
 const (
 	LockTypeResourceConfigChecking = iota
 	LockTypeBuildTracking
-	LockTypeJobScheduling
 	LockTypeBatch
 	LockTypeVolumeCreating
 	LockTypeContainerCreating
 	LockTypeDatabaseMigration
 	LockTypeActiveTasks
 	LockTypeResourceScanning
+	LockTypeJobScheduling
 )
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
@@ -32,10 +32,6 @@ func NewBuildTrackingLockID(buildID int) LockID {
 
 func NewResourceConfigCheckingLockID(resourceConfigID int) LockID {
 	return LockID{LockTypeResourceConfigChecking, resourceConfigID}
-}
-
-func NewJobSchedulingLockLockID(jobID int) LockID {
-	return LockID{LockTypeJobScheduling, jobID}
 }
 
 func NewTaskLockID(taskName string) LockID {
@@ -56,6 +52,10 @@ func NewActiveTasksLockID() LockID {
 
 func NewResourceScanningLockID() LockID {
 	return LockID{LockTypeResourceScanning}
+}
+
+func NewJobSchedulingLockID(jobID int) LockID {
+	return LockID{LockTypeJobScheduling, jobID}
 }
 
 //go:generate counterfeiter . LockFactory

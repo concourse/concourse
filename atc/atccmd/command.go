@@ -39,10 +39,10 @@ import (
 	"github.com/concourse/concourse/atc/lidar"
 	"github.com/concourse/concourse/atc/lockrunner"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/pipelines"
-	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
+	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/syslog"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
@@ -56,6 +56,7 @@ import (
 	"github.com/cppforlife/go-semi-semantic/version"
 	multierror "github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
+	gocache "github.com/patrickmn/go-cache"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -73,6 +74,10 @@ import (
 	_ "github.com/concourse/concourse/atc/creds/ssm"
 	_ "github.com/concourse/concourse/atc/creds/vault"
 )
+
+const algorithmLimitRows = 100
+
+var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
 
 var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
@@ -115,10 +120,10 @@ type RunCommand struct {
 
 	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
-	EnableGlobalResources bool          `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
-	EnableLidar           bool          `long:"enable-lidar" description:"The Future™ of resource checking."`
-	LidarScannerInterval  time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
-	LidarCheckerInterval  time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
+	EnableGlobalResources bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
+
+	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
+	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
 	GlobalResourceCheckTimeout   time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -394,7 +399,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	atc.EnableGlobalResources = cmd.EnableGlobalResources
 
-	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
 	db.SetupConnectionRetryingDriver(
@@ -779,7 +783,6 @@ func (cmd *RunCommand) constructBackendMembers(
 	if err != nil {
 		return nil, err
 	}
-	checkContainerStrategy := worker.NewRandomPlacementStrategy()
 
 	engine := cmd.constructEngine(
 		pool,
@@ -794,33 +797,50 @@ func (cmd *RunCommand) constructBackendMembers(
 		lockFactory,
 	)
 
-	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
-		pool,
-		resourceFactory,
-		dbResourceConfigFactory,
-		cmd.ResourceTypeCheckingInterval,
-		cmd.ResourceCheckingInterval,
-		checkContainerStrategy,
-	)
-
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
-
+	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
 	bus := dbConn.Bus()
 
 	members := []grouper.Member{
-		{Name: "pipelines", Runner: pipelines.SyncRunner{
-			Syncer: cmd.constructPipelineSyncer(
-				logger.Session("pipelines"),
-				dbPipelineFactory,
-				radarSchedulerFactory,
+		{Name: "lidar", Runner: lidar.NewRunner(
+			logger.Session("lidar"),
+			clock.NewClock(),
+			lidar.NewScanner(
+				logger.Session("lidar-scanner"),
+				dbCheckFactory,
 				secretManager,
-				bus,
+				cmd.GlobalResourceCheckTimeout,
+				cmd.ResourceCheckingInterval,
 			),
-			Interval: 10 * time.Second,
-			Clock:    clock.NewClock(),
-		}},
+			cmd.LidarScannerInterval,
+			lidar.NewChecker(
+				logger.Session("lidar-checker"),
+				dbCheckFactory,
+				engine,
+			),
+			cmd.LidarCheckerInterval,
+			bus,
+		)},
+		{Name: "scheduler", Runner: scheduler.NewIntervalRunner(
+			logger.Session("scheduler-interval-runner"),
+			clock.NewClock(),
+			cmd.Developer.Noop,
+			scheduler.NewRunner(
+				logger.Session("scheduler"),
+				dbPipelineFactory,
+				&scheduler.Scheduler{
+					Algorithm: alg,
+					BuildStarter: scheduler.NewBuildStarter(
+						factory.NewBuildFactory(
+							atc.NewPlanFactory(time.Now().Unix()),
+						),
+						alg),
+				},
+			),
+			10*time.Second,
+		)},
 		{Name: "builds", Runner: builds.TrackerRunner{
 			Tracker: builds.NewTracker(
 				logger.Session("build-tracker"),
@@ -852,46 +872,6 @@ func (cmd *RunCommand) constructBackendMembers(
 			30*time.Second,
 		)},
 	}
-
-	var lidarRunner ifrit.Runner
-
-	if cmd.EnableLidar {
-		lidarRunner = lidar.NewRunner(
-			logger.Session("lidar"),
-			clock.NewClock(),
-			lidar.NewScanner(
-				logger.Session("lidar-scanner"),
-				dbCheckFactory,
-				secretManager,
-				cmd.GlobalResourceCheckTimeout,
-				cmd.ResourceCheckingInterval,
-			),
-			cmd.LidarScannerInterval,
-			lidar.NewChecker(
-				logger.Session("lidar-checker"),
-				dbCheckFactory,
-				engine,
-			),
-			cmd.LidarCheckerInterval,
-			bus,
-		)
-	} else {
-		lidarRunner = lidar.NewCheckerRunner(
-			logger.Session("lidar"),
-			clock.NewClock(),
-			lidar.NewChecker(
-				logger.Session("lidar-checker"),
-				dbCheckFactory,
-				engine,
-			),
-			cmd.LidarCheckerInterval,
-			bus,
-		)
-	}
-
-	members = append(members, grouper.Member{
-		Name: "lidar", Runner: lidarRunner,
-	})
 
 	if syslogDrainConfigured {
 		members = append(members, grouper.Member{
@@ -1561,50 +1541,6 @@ func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		h.baseHandler.ServeHTTP(w, r)
 	}
-}
-
-func (cmd *RunCommand) constructPipelineSyncer(
-	logger lager.Logger,
-	pipelineFactory db.PipelineFactory,
-	radarSchedulerFactory pipelines.RadarSchedulerFactory,
-	secretManager creds.Secrets,
-	bus db.NotificationsBus,
-) *pipelines.Syncer {
-	return pipelines.NewSyncer(
-		logger,
-		pipelineFactory,
-		func(pipeline db.Pipeline) ifrit.Runner {
-			variables := creds.NewVariables(secretManager, pipeline.TeamName(), pipeline.Name())
-			return grouper.NewParallel(os.Interrupt, grouper.Members{
-				{
-					Name: fmt.Sprintf("radar:%d", pipeline.ID()),
-					Runner: radar.NewRunner(
-						logger.Session("radar").WithData(lager.Data{
-							"team":     pipeline.TeamName(),
-							"pipeline": pipeline.Name(),
-						}),
-						(cmd.Developer.Noop || cmd.EnableLidar),
-						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables, bus),
-						pipeline,
-						1*time.Minute,
-					),
-				},
-				{
-					Name: fmt.Sprintf("scheduler:%d", pipeline.ID()),
-					Runner: &scheduler.Runner{
-						Logger: logger.Session("scheduler", lager.Data{
-							"team":     pipeline.TeamName(),
-							"pipeline": pipeline.Name(),
-						}),
-						Pipeline:  pipeline,
-						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline),
-						Noop:      cmd.Developer.Noop,
-						Interval:  10 * time.Second,
-					},
-				},
-			})
-		},
-	)
 }
 
 func (cmd *RunCommand) appendStaticWorker(

@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -11,17 +12,21 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	gocache "github.com/patrickmn/go-cache"
 )
 
 var _ = Describe("Build", func() {
 	var (
-		team db.Team
+		team       db.Team
+		versionsDB db.VersionsDB
 	)
 
 	BeforeEach(func() {
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 		Expect(err).ToNot(HaveOccurred())
+
+		versionsDB = db.NewVersionsDB(dbConn, 100, gocache.New(10*time.Second, 10*time.Second))
 	})
 
 	It("has no plan on creation", func() {
@@ -174,6 +179,7 @@ var _ = Describe("Build", func() {
 		var pipeline db.Pipeline
 		var build db.Build
 		var expectedOutputs []db.AlgorithmVersion
+		var job db.Job
 
 		BeforeEach(func() {
 			setupTx, err := dbConn.Begin()
@@ -210,7 +216,8 @@ var _ = Describe("Build", func() {
 			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
-			job, found, err := pipeline.Job("some-job")
+			var found bool
+			job, found, err = pipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -366,12 +373,26 @@ var _ = Describe("Build", func() {
 		})
 
 		It("inserts inputs and outputs into successful build versions", func() {
-			versionsDB, err := pipeline.LoadVersionsDB()
-			Expect(err).NotTo(HaveOccurred())
-
 			outputs, err := versionsDB.SuccessfulBuildOutputs(build.ID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(outputs).To(ConsistOf(expectedOutputs))
+		})
+
+		It("requests schedule on the pipeline", func() {
+			newBuild, err := job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			var requestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = newBuild.Finish(db.BuildStatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			var newRequestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
 		})
 	})
 
@@ -634,6 +655,70 @@ var _ = Describe("Build", func() {
 
 				Expect(newRCV.CheckOrder()).To(Equal(rcv.CheckOrder()))
 			})
+		})
+
+		It("requests schedule on the pipeline", func() {
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
+			Expect(err).ToNot(HaveOccurred())
+
+			var requestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version-2"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
+			Expect(err).ToNot(HaveOccurred())
+
+			var newRequestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+		})
+
+		It("requests schedule on all pipelines using the resource config", func() {
+			atc.EnableGlobalResources = true
+
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			pipelineConfig := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name:   "some-explicit-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "explicit-source"},
+					},
+				},
+			}
+
+			otherPipeline, _, err := team.SavePipeline("some-other-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, found, err := otherPipeline.Resource("some-explicit-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			var requestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, otherPipeline.ID()).Scan(&requestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
+			Expect(err).ToNot(HaveOccurred())
+
+			var newRequestedSchedule time.Time
+			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, otherPipeline.ID()).Scan(&newRequestedSchedule)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
 		})
 	})
 
@@ -1688,9 +1773,6 @@ var _ = Describe("Build", func() {
 
 				Expect(buildInputs).To(ConsistOf(expectedBuildInputs))
 
-				versionsDB, err := pipeline.LoadVersionsDB()
-				Expect(err).ToNot(HaveOccurred())
-
 				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes[otherJob.ID()]).To(Equal(otherBuild.ID()))
@@ -1713,9 +1795,6 @@ var _ = Describe("Build", func() {
 				Expect(reloadFound).To(BeTrue())
 
 				Expect(buildInputs).To(BeNil())
-
-				versionsDB, err := pipeline.LoadVersionsDB()
-				Expect(err).ToNot(HaveOccurred())
 
 				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
 				Expect(err).ToNot(HaveOccurred())
@@ -1921,9 +2000,6 @@ var _ = Describe("Build", func() {
 
 				Expect(buildInputs).To(ConsistOf(expectedBuildInputs))
 
-				versionsDB, err := pipeline.LoadVersionsDB()
-				Expect(err).ToNot(HaveOccurred())
-
 				buildPipes, err := versionsDB.LatestBuildPipes(retriggerBuild.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes).To(HaveLen(1))
@@ -1937,9 +2013,6 @@ var _ = Describe("Build", func() {
 				Expect(reloadFound).To(BeTrue())
 
 				Expect(buildInputs).To(BeNil())
-
-				versionsDB, err := pipeline.LoadVersionsDB()
-				Expect(err).ToNot(HaveOccurred())
 
 				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
 				Expect(err).ToNot(HaveOccurred())

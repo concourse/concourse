@@ -10,7 +10,7 @@ type inputMapper struct {
 	hasLatestBuild bool
 }
 
-func newInputMapper(vdb *db.VersionsDB, currentJobID int) (inputMapper, error) {
+func newInputMapper(vdb db.VersionsDB, currentJobID int) (inputMapper, error) {
 	latestBuildID, found, err := vdb.LatestBuildID(currentJobID)
 	if err != nil {
 		return inputMapper{}, err

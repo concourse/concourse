@@ -1,10 +1,4 @@
 BEGIN;
-  ALTER TABLE jobs
-    ADD COLUMN last_scheduled timestamp with time zone DEFAULT '1970-01-01 00:00:00'::timestamp with time zone NOT NULL;
-
-  ALTER TABLE pipelines
-    DROP COLUMN last_scheduled;
-
   CREATE TABLE build_pipes (
     "from_build_id" integer NOT NULL REFERENCES builds (id) ON DELETE CASCADE,
     "to_build_id" integer NOT NULL REFERENCES builds (id) ON DELETE CASCADE

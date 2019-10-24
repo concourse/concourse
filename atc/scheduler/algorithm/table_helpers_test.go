@@ -14,7 +14,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
+	a "github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/lib/pq"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
@@ -99,14 +99,6 @@ func (mapping StringMapping) Name(id int) string {
 const CurrentJobName = "current"
 
 func (example Example) Run() {
-	schedulerCache := gocache.New(10*time.Second, 10*time.Second)
-
-	versionsDB := &db.VersionsDB{
-		Conn:             dbConn,
-		Cache:            schedulerCache,
-		DisabledVersions: map[int]map[string]bool{},
-	}
-
 	setup := setupDB{
 		teamID:      1,
 		pipelineID:  1,
@@ -135,8 +127,9 @@ func (example Example) Run() {
 
 	resources := map[string]atc.ResourceConfig{}
 
+	var versionsDB db.VersionsDB
 	if example.LoadDB != "" {
-		versionsDB.LimitRows = 100
+		versionsDB = db.NewVersionsDB(dbConn, 100, gocache.New(10*time.Second, 10*time.Second))
 
 		dbFile, err := os.Open(example.LoadDB)
 		Expect(err).ToNot(HaveOccurred())
@@ -283,7 +276,7 @@ func (example Example) Run() {
 
 		log.Println("DONE IMPORTING")
 	} else {
-		versionsDB.LimitRows = 2
+		versionsDB = db.NewVersionsDB(dbConn, 2, gocache.New(10*time.Second, 10*time.Second))
 
 		for _, row := range example.DB.Resources {
 			setup.insertRowVersion(resources, row)
@@ -392,7 +385,7 @@ func (example Example) Run() {
 		}
 	}
 
-	inputConfigs := make(algorithm.InputConfigs, len(example.Inputs))
+	inputConfigs := make(a.InputConfigs, len(example.Inputs))
 	for i, input := range example.Inputs {
 		passed := db.JobSet{}
 		for _, jobName := range input.Passed {
@@ -400,7 +393,7 @@ func (example Example) Run() {
 			passed[setup.jobIDs.ID(jobName)] = true
 		}
 
-		inputConfigs[i] = algorithm.InputConfig{
+		inputConfigs[i] = a.InputConfig{
 			Name:            input.Name,
 			Passed:          passed,
 			ResourceID:      setup.resourceIDs.ID(input.Resource),
@@ -437,31 +430,6 @@ func (example Example) Run() {
 		})
 	}
 
-	rows, err := setup.psql.Select("rdv.resource_id, rdv.version_md5").
-		From("resource_disabled_versions rdv").
-		Join("resources r ON r.id = rdv.resource_id").
-		Where(sq.Eq{
-			"r.pipeline_id": 1,
-		}).
-		Query()
-	Expect(err).ToNot(HaveOccurred())
-
-	for rows.Next() {
-		var versionMD5 string
-		var resourceID int
-
-		err = rows.Scan(&resourceID, &versionMD5)
-		Expect(err).ToNot(HaveOccurred())
-
-		md5s, found := versionsDB.DisabledVersions[resourceID]
-		if !found {
-			md5s = map[string]bool{}
-			versionsDB.DisabledVersions[resourceID] = md5s
-		}
-
-		md5s[versionMD5] = true
-	}
-
 	resourceConfigs := atc.ResourceConfigs{}
 	for _, resource := range resources {
 		resourceConfigs = append(resourceConfigs, resource)
@@ -496,11 +464,8 @@ func (example Example) Run() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(found).To(BeTrue())
 
-	versionsDB.JobIDs = setup.jobIDs
-	versionsDB.ResourceIDs = setup.resourceIDs
-
-	algorithm := algorithm.New()
-	resolved, ok, resolvedErr := algorithm.Compute(versionsDB, job, dbResources)
+	algorithm := a.New(versionsDB)
+	resolved, ok, resolvedErr := algorithm.Compute(job, dbResources, a.NameToIDMap(setup.jobIDs))
 	if example.Error != nil {
 		Expect(resolvedErr).To(Equal(example.Error))
 	} else {

@@ -3,13 +3,13 @@ package algorithm
 import "github.com/concourse/concourse/atc/db"
 
 type pinnedResolver struct {
-	vdb         *db.VersionsDB
+	vdb         db.VersionsDB
 	inputConfig InputConfig
 
 	debug debugger
 }
 
-func NewPinnedResolver(vdb *db.VersionsDB, inputConfig InputConfig) Resolver {
+func NewPinnedResolver(vdb db.VersionsDB, inputConfig InputConfig) Resolver {
 	return &pinnedResolver{
 		vdb:         vdb,
 		inputConfig: inputConfig,

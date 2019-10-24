@@ -6,15 +6,16 @@ import (
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 type FakeAlgorithm struct {
-	ComputeStub        func(*db.VersionsDB, db.Job, db.Resources) (db.InputMapping, bool, error)
+	ComputeStub        func(db.Job, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, error)
 	computeMutex       sync.RWMutex
 	computeArgsForCall []struct {
-		arg1 *db.VersionsDB
-		arg2 db.Job
-		arg3 db.Resources
+		arg1 db.Job
+		arg2 db.Resources
+		arg3 algorithm.NameToIDMap
 	}
 	computeReturns struct {
 		result1 db.InputMapping
@@ -30,13 +31,13 @@ type FakeAlgorithm struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAlgorithm) Compute(arg1 *db.VersionsDB, arg2 db.Job, arg3 db.Resources) (db.InputMapping, bool, error) {
+func (fake *FakeAlgorithm) Compute(arg1 db.Job, arg2 db.Resources, arg3 algorithm.NameToIDMap) (db.InputMapping, bool, error) {
 	fake.computeMutex.Lock()
 	ret, specificReturn := fake.computeReturnsOnCall[len(fake.computeArgsForCall)]
 	fake.computeArgsForCall = append(fake.computeArgsForCall, struct {
-		arg1 *db.VersionsDB
-		arg2 db.Job
-		arg3 db.Resources
+		arg1 db.Job
+		arg2 db.Resources
+		arg3 algorithm.NameToIDMap
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("Compute", []interface{}{arg1, arg2, arg3})
 	fake.computeMutex.Unlock()
@@ -56,13 +57,13 @@ func (fake *FakeAlgorithm) ComputeCallCount() int {
 	return len(fake.computeArgsForCall)
 }
 
-func (fake *FakeAlgorithm) ComputeCalls(stub func(*db.VersionsDB, db.Job, db.Resources) (db.InputMapping, bool, error)) {
+func (fake *FakeAlgorithm) ComputeCalls(stub func(db.Job, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, error)) {
 	fake.computeMutex.Lock()
 	defer fake.computeMutex.Unlock()
 	fake.ComputeStub = stub
 }
 
-func (fake *FakeAlgorithm) ComputeArgsForCall(i int) (*db.VersionsDB, db.Job, db.Resources) {
+func (fake *FakeAlgorithm) ComputeArgsForCall(i int) (db.Job, db.Resources, algorithm.NameToIDMap) {
 	fake.computeMutex.RLock()
 	defer fake.computeMutex.RUnlock()
 	argsForCall := fake.computeArgsForCall[i]

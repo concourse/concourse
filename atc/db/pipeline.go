@@ -12,10 +12,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
-	gocache "github.com/patrickmn/go-cache"
 )
-
-const algorithmLimitRows = 100
 
 type ErrResourceNotFound struct {
 	Name string
@@ -41,6 +38,7 @@ type Pipeline interface {
 	ConfigVersion() ConfigVersion
 	Public() bool
 	Paused() bool
+	RequestedTime() time.Time
 
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
@@ -55,11 +53,13 @@ type Pipeline interface {
 	CreateOneOffBuild() (Build, error)
 	CreateStartedBuild(plan atc.Plan) (Build, error)
 
+	RequestSchedule() error
+	UpdateLastScheduled(time.Time) error
+
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
-	LoadVersionsDB() (*VersionsDB, error)
 	LoadDebugVersionsDB() (*atc.DebugVersionsDB, error)
 
 	Resource(name string) (Resource, bool, error)
@@ -93,6 +93,7 @@ type pipeline struct {
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
+	requestedTime time.Time
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -109,7 +110,8 @@ var pipelinesQuery = psql.Select(`
 		p.team_id,
 		t.name,
 		p.paused,
-		p.public
+		p.public,
+		p.schedule_requested
 	`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
@@ -129,6 +131,7 @@ func (p *pipeline) Groups() atc.GroupConfigs     { return p.groups }
 func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
 func (p *pipeline) Public() bool                 { return p.public }
 func (p *pipeline) Paused() bool                 { return p.paused }
+func (p *pipeline) RequestedTime() time.Time     { return p.requestedTime }
 
 // IMPORTANT: This method is broken with the new resource config versions changes
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
@@ -629,97 +632,6 @@ func (p *pipeline) Destroy() error {
 	return err
 }
 
-var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
-
-func (p *pipeline) LoadVersionsDB() (*VersionsDB, error) {
-	db := &VersionsDB{
-		Conn:      p.conn,
-		LimitRows: algorithmLimitRows,
-
-		Cache: schedulerCache,
-
-		JobIDs:           map[string]int{},
-		ResourceIDs:      map[string]int{},
-		DisabledVersions: map[int]map[string]bool{},
-	}
-
-	rows, err := psql.Select("j.name, j.id").
-		From("jobs j").
-		Where(sq.Eq{"j.pipeline_id": p.id}).
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		var name string
-		var id int
-		err = rows.Scan(&name, &id)
-		if err != nil {
-			return nil, err
-		}
-
-		db.JobIDs[name] = id
-	}
-
-	rows, err = psql.Select("r.name, r.id").
-		From("resources r").
-		Where(sq.Eq{"r.pipeline_id": p.id}).
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		var name string
-		var id int
-		err = rows.Scan(&name, &id)
-		if err != nil {
-			return nil, err
-		}
-
-		db.ResourceIDs[name] = id
-	}
-
-	rows, err = psql.Select("rdv.resource_id", "rdv.version_md5").
-		From("resource_disabled_versions rdv").
-		Join("resources r ON r.id = rdv.resource_id").
-		Where(sq.Eq{
-			"r.pipeline_id": p.id,
-		}).
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		var resourceID int
-		var versionMD5 string
-
-		err = rows.Scan(&resourceID, &versionMD5)
-		if err != nil {
-			return nil, err
-		}
-
-		md5s, found := db.DisabledVersions[resourceID]
-		if !found {
-			md5s = map[string]bool{}
-			db.DisabledVersions[resourceID] = md5s
-		}
-
-		md5s[versionMD5] = true
-	}
-
-	return db, nil
-}
-
 func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 	db := &atc.DebugVersionsDB{
 		BuildOutputs:     []atc.DebugBuildOutput{},
@@ -1012,6 +924,31 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	return build, nil
 }
 
+func (p *pipeline) RequestSchedule() error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	err = requestSchedule(tx, p.id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (p *pipeline) UpdateLastScheduled(requestedTime time.Time) error {
+	_, err := p.conn.Exec(`
+		UPDATE pipelines
+		SET last_scheduled = $2
+		WHERE id = $1`, p.id, requestedTime)
+
+	return err
+}
+
 func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {
 	_, err := tx.Exec(`
 		WITH max_checkorder AS (
@@ -1094,4 +1031,28 @@ func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resourc
 	}
 
 	return resources, nil
+}
+
+func requestSchedule(tx Tx, pipelineID int) error {
+	result, err := psql.Update("pipelines").
+		Set("schedule_requested", sq.Expr("now()")).
+		Where(sq.Eq{
+			"id": pipelineID,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows != 1 {
+		return nonOneRowAffectedError{rows}
+	}
+
+	return err
 }

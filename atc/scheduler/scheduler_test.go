@@ -2,12 +2,14 @@ package scheduler_test
 
 import (
 	"errors"
+	"fmt"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,27 +39,35 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("Schedule", func() {
 		var (
-			versionsDB   *db.VersionsDB
+			fakePipeline *dbfakes.FakePipeline
 			fakeJob      *dbfakes.FakeJob
 			fakeResource *dbfakes.FakeResource
 			scheduleErr  error
+
+			expectedResources db.Resources
+			expectedJobIDs    algorithm.NameToIDMap
 		)
 
 		BeforeEach(func() {
+			fakePipeline = new(dbfakes.FakePipeline)
+			fakePipeline.NameReturns("fake-pipeline")
+
 			fakeResource = new(dbfakes.FakeResource)
 			fakeResource.NameReturns("some-resource")
+
+			expectedResources = db.Resources{fakeResource}
+			expectedJobIDs = algorithm.NameToIDMap{"j1": 1}
 		})
 
 		JustBeforeEach(func() {
-			versionsDB = &db.VersionsDB{JobIDs: map[string]int{"j1": 1}}
-
 			var waiter interface{ Wait() }
 
 			scheduleErr = scheduler.Schedule(
 				lagertest.NewTestLogger("test"),
-				versionsDB,
+				fakePipeline,
 				fakeJob,
-				db.Resources{fakeResource},
+				expectedResources,
+				expectedJobIDs,
 			)
 			if waiter != nil {
 				waiter.Wait()
@@ -76,7 +86,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("returns the error", func() {
-					Expect(scheduleErr).To(Equal(disaster))
+					Expect(scheduleErr).To(Equal(fmt.Errorf("compute inputs: %w", disaster)))
 				})
 			})
 
@@ -101,9 +111,10 @@ var _ = Describe("Scheduler", func() {
 
 				It("mapped the inputs", func() {
 					Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
-					actualVersionsDB, actualJob, _ := fakeAlgorithm.ComputeArgsForCall(0)
-					Expect(actualVersionsDB).To(Equal(versionsDB))
+					actualJob, resources, relatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
 					Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
+					Expect(resources).To(Equal(expectedResources))
+					Expect(relatedJobs).To(Equal(expectedJobIDs))
 				})
 
 				Context("when saving the next input mapping fails", func() {
@@ -112,7 +123,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("returns the error", func() {
-						Expect(scheduleErr).To(Equal(disaster))
+						Expect(scheduleErr).To(Equal(fmt.Errorf("save next input mapping: %w", disaster)))
 					})
 				})
 
@@ -134,7 +145,7 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("returns the error", func() {
-							Expect(scheduleErr).To(Equal(disaster))
+							Expect(scheduleErr).To(Equal(fmt.Errorf("get next build inputs: %w", disaster)))
 						})
 					})
 
@@ -154,9 +165,11 @@ var _ = Describe("Scheduler", func() {
 
 							It("started all pending builds", func() {
 								Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
-								_, actualJob, actualResources := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
+								_, actualPipeline, actualJob, actualResources, relatedJobs := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
+								Expect(actualPipeline.Name()).To(Equal("fake-pipeline"))
 								Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
 								Expect(actualResources).To(Equal(db.Resources{fakeResource}))
+								Expect(relatedJobs).To(Equal(expectedJobIDs))
 							})
 						})
 
@@ -255,7 +268,7 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("returns the error", func() {
-							Expect(scheduleErr).To(Equal(disaster))
+							Expect(scheduleErr).To(Equal(fmt.Errorf("set has new inputs: %w", disaster)))
 						})
 					})
 
@@ -306,7 +319,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("returns the error", func() {
-						Expect(scheduleErr).To(Equal(disaster))
+						Expect(scheduleErr).To(Equal(fmt.Errorf("ensure pending build exists: %w", disaster)))
 					})
 
 					It("created a pending build for the right job", func() {

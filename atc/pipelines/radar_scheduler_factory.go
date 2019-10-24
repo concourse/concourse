@@ -4,13 +4,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
-	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 )
@@ -19,7 +15,6 @@ import (
 
 type RadarSchedulerFactory interface {
 	BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables vars.Variables, notifications radar.Notifications) radar.ScanRunnerFactory
-	BuildScheduler(pipeline db.Pipeline) scheduler.BuildScheduler
 }
 
 type radarSchedulerFactory struct {
@@ -63,18 +58,4 @@ func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline,
 		rsf.strategy,
 		notifications,
 	)
-}
-
-func (rsf *radarSchedulerFactory) BuildScheduler(pipeline db.Pipeline) scheduler.BuildScheduler {
-	alg := algorithm.New()
-	return &scheduler.Scheduler{
-		Algorithm: alg,
-		BuildStarter: scheduler.NewBuildStarter(
-			pipeline,
-			factory.NewBuildFactory(
-				atc.NewPlanFactory(time.Now().Unix()),
-			),
-			alg,
-		),
-	}
 }

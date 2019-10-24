@@ -3,7 +3,6 @@ package dbfakes
 
 import (
 	"sync"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -12,11 +11,10 @@ import (
 )
 
 type FakeJob struct {
-	AcquireSchedulingLockStub        func(lager.Logger, time.Duration) (lock.Lock, bool, error)
+	AcquireSchedulingLockStub        func(lager.Logger) (lock.Lock, bool, error)
 	acquireSchedulingLockMutex       sync.RWMutex
 	acquireSchedulingLockArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 time.Duration
 	}
 	acquireSchedulingLockReturns struct {
 		result1 lock.Lock
@@ -377,17 +375,16 @@ type FakeJob struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeJob) AcquireSchedulingLock(arg1 lager.Logger, arg2 time.Duration) (lock.Lock, bool, error) {
+func (fake *FakeJob) AcquireSchedulingLock(arg1 lager.Logger) (lock.Lock, bool, error) {
 	fake.acquireSchedulingLockMutex.Lock()
 	ret, specificReturn := fake.acquireSchedulingLockReturnsOnCall[len(fake.acquireSchedulingLockArgsForCall)]
 	fake.acquireSchedulingLockArgsForCall = append(fake.acquireSchedulingLockArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 time.Duration
-	}{arg1, arg2})
-	fake.recordInvocation("AcquireSchedulingLock", []interface{}{arg1, arg2})
+	}{arg1})
+	fake.recordInvocation("AcquireSchedulingLock", []interface{}{arg1})
 	fake.acquireSchedulingLockMutex.Unlock()
 	if fake.AcquireSchedulingLockStub != nil {
-		return fake.AcquireSchedulingLockStub(arg1, arg2)
+		return fake.AcquireSchedulingLockStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -402,17 +399,17 @@ func (fake *FakeJob) AcquireSchedulingLockCallCount() int {
 	return len(fake.acquireSchedulingLockArgsForCall)
 }
 
-func (fake *FakeJob) AcquireSchedulingLockCalls(stub func(lager.Logger, time.Duration) (lock.Lock, bool, error)) {
+func (fake *FakeJob) AcquireSchedulingLockCalls(stub func(lager.Logger) (lock.Lock, bool, error)) {
 	fake.acquireSchedulingLockMutex.Lock()
 	defer fake.acquireSchedulingLockMutex.Unlock()
 	fake.AcquireSchedulingLockStub = stub
 }
 
-func (fake *FakeJob) AcquireSchedulingLockArgsForCall(i int) (lager.Logger, time.Duration) {
+func (fake *FakeJob) AcquireSchedulingLockArgsForCall(i int) lager.Logger {
 	fake.acquireSchedulingLockMutex.RLock()
 	defer fake.acquireSchedulingLockMutex.RUnlock()
 	argsForCall := fake.acquireSchedulingLockArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeJob) AcquireSchedulingLockReturns(result1 lock.Lock, result2 bool, result3 error) {

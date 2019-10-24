@@ -10,6 +10,7 @@ import (
 type PipelineFactory interface {
 	VisiblePipelines([]string) ([]Pipeline, error)
 	AllPipelines() ([]Pipeline, error)
+	PipelinesToSchedule() ([]Pipeline, error)
 }
 
 type pipelineFactory struct {
@@ -60,6 +61,18 @@ func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, erro
 func (f *pipelineFactory) AllPipelines() ([]Pipeline, error) {
 	rows, err := pipelinesQuery.
 		OrderBy("team_id ASC", "ordering ASC").
+		RunWith(f.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	return scanPipelines(f.conn, f.lockFactory, rows)
+}
+
+func (f *pipelineFactory) PipelinesToSchedule() ([]Pipeline, error) {
+	rows, err := pipelinesQuery.
+		Where(sq.Expr("schedule_requested > last_scheduled")).
 		RunWith(f.conn).
 		Query()
 	if err != nil {

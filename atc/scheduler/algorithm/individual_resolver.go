@@ -5,13 +5,13 @@ import (
 )
 
 type individualResolver struct {
-	vdb         *db.VersionsDB
+	vdb         db.VersionsDB
 	inputConfig InputConfig
 
 	debug debugger
 }
 
-func NewIndividualResolver(vdb *db.VersionsDB, inputConfig InputConfig) Resolver {
+func NewIndividualResolver(vdb db.VersionsDB, inputConfig InputConfig) Resolver {
 	return &individualResolver{
 		vdb:         vdb,
 		inputConfig: inputConfig,
@@ -91,11 +91,11 @@ func (d *debugger) reset(depth int, inputName string) {
 
 func (d *debugger) log(messages ...interface{}) {
 	// log.Println(
-	// append(
-	// 	[]interface{}{
-	// 		strings.Repeat("-", d.depth) + fmt.Sprintf("[%s]", d.inputName),
-	// 	},
-	// 	messages...,
-	// )...,
+	// 	append(
+	// 		[]interface{}{
+	// 			strings.Repeat("-", d.depth) + fmt.Sprintf("[%s]", d.inputName),
+	// 		},
+	// 		messages...,
+	// 	)...,
 	// )
 }

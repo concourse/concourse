@@ -9,6 +9,7 @@ import (
 
 var _ = Describe("Job Factory", func() {
 	var jobFactory db.JobFactory
+	var publicPipeline db.Pipeline
 
 	BeforeEach(func() {
 		jobFactory = db.NewJobFactory(dbConn, lockFactory)
@@ -16,7 +17,7 @@ var _ = Describe("Job Factory", func() {
 		otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "other-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		publicPipeline, _, err := otherTeam.SavePipeline("public-pipeline", atc.Config{
+		publicPipeline, _, err = otherTeam.SavePipeline("public-pipeline", atc.Config{
 			Jobs: atc.JobConfigs{
 				{Name: "public-pipeline-job"},
 			},
@@ -76,9 +77,9 @@ var _ = Describe("Job Factory", func() {
 		})
 	})
 
-	Describe("AllActiveJobs", func() {
+	Describe("AllActiveJobsForDashboard", func() {
 		It("return all private and public pipelines", func() {
-			allJobs, err := jobFactory.AllActiveJobs()
+			allJobs, err := jobFactory.AllActiveJobsForDashboard()
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(len(allJobs)).To(Equal(3))

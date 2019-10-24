@@ -110,6 +110,29 @@ var _ = Describe("Resource Config Scope", func() {
 				Expect(latestVR.Version()).To(Equal(db.Version{"ref": "v3"}))
 				Expect(latestVR.CheckOrder()).To(Equal(2))
 			})
+
+			Context("when a new version is added", func() {
+				It("requests schedule on the pipeline", func() {
+					err := resourceScope.SaveVersions(originalVersionSlice)
+					Expect(err).ToNot(HaveOccurred())
+
+					var requestedSchedule time.Time
+					err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+					Expect(err).NotTo(HaveOccurred())
+
+					newVersions := []atc.Version{
+						{"ref": "v0"},
+						{"ref": "v3"},
+					}
+					err = resourceScope.SaveVersions(newVersions)
+					Expect(err).ToNot(HaveOccurred())
+
+					var newRequestedSchedule time.Time
+					err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+				})
+			})
 		})
 	})
 

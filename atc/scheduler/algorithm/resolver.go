@@ -7,6 +7,8 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
+type NameToIDMap map[string]int
+
 type InputConfigs []InputConfig
 
 type InputConfig struct {
@@ -24,9 +26,10 @@ type relatedInputConfigs struct {
 }
 
 func constructResolvers(
-	versions *db.VersionsDB,
+	versions db.VersionsDB,
 	job db.Job,
 	resources db.Resources,
+	relatedJobs NameToIDMap,
 ) ([]Resolver, error) {
 	resolvers := []Resolver{}
 	inputConfigsWithPassed := InputConfigs{}
@@ -38,7 +41,7 @@ func constructResolvers(
 
 		inputConfig := InputConfig{
 			Name:       input.Name,
-			ResourceID: versions.ResourceIDs[input.Resource],
+			ResourceID: resource.ID(),
 			JobID:      job.ID(),
 		}
 
@@ -66,7 +69,7 @@ func constructResolvers(
 		} else {
 			jobs := db.JobSet{}
 			for _, passedJobName := range input.Passed {
-				jobID := versions.JobIDs[passedJobName]
+				jobID := relatedJobs[passedJobName]
 				jobs[jobID] = true
 			}
 

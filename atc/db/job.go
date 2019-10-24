@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
@@ -60,7 +59,7 @@ type Job interface {
 
 	ClearTaskCache(string, string) (int64, error)
 
-	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
+	AcquireSchedulingLock(lager.Logger) (lock.Lock, bool, error)
 
 	SetHasNewInputs(bool) error
 	HasNewInputs() bool
@@ -352,7 +351,7 @@ func (j *job) GetFullNextBuildInputs() ([]BuildInput, bool, error) {
 
 	defer tx.Rollback()
 
-	var found bool
+	var inputsDetermined bool
 	err = psql.Select("inputs_determined").
 		From("jobs").
 		Where(sq.Eq{
@@ -361,12 +360,12 @@ func (j *job) GetFullNextBuildInputs() ([]BuildInput, bool, error) {
 		}).
 		RunWith(tx).
 		QueryRow().
-		Scan(&found)
+		Scan(&inputsDetermined)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !found {
+	if !inputsDetermined {
 		return nil, false, nil
 	}
 
@@ -524,6 +523,11 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
+	err = requestSchedule(tx, j.pipelineID)
+	if err != nil {
+		return nil, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
@@ -564,6 +568,11 @@ func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 	}
 
 	err = updateNextBuildForJob(tx, j.id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = requestSchedule(tx, j.pipelineID)
 	if err != nil {
 		return nil, err
 	}
@@ -611,54 +620,14 @@ func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
 	return rowsDeleted, tx.Commit()
 }
 
-func (j *job) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
-	lock, acquired, err := j.lockFactory.Acquire(
+func (j *job) AcquireSchedulingLock(logger lager.Logger) (lock.Lock, bool, error) {
+	return j.lockFactory.Acquire(
 		logger.Session("lock", lager.Data{
 			"job":      j.name,
 			"pipeline": j.pipelineName,
 		}),
-		lock.NewJobSchedulingLockLockID(j.id),
+		lock.NewJobSchedulingLockID(j.id),
 	)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired {
-		return nil, false, nil
-	}
-
-	var keepLock bool
-	defer func() {
-		if !keepLock {
-			err = lock.Release()
-			if err != nil {
-				logger.Error("failed-to-release-lock", err)
-			}
-		}
-	}()
-
-	result, err := j.conn.Exec(`
-		UPDATE jobs
-		SET last_scheduled = now()
-		WHERE id = $1
-			AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
-	`, j.id, interval.Seconds())
-	if err != nil {
-		return nil, false, err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return nil, false, err
-	}
-
-	if rows == 0 {
-		return nil, false, nil
-	}
-
-	keepLock = true
-
-	return lock, true, nil
 }
 
 func (j *job) isMaxInFlightReached(tx Tx, buildID int) (bool, error) {

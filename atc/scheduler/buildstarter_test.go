@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -32,7 +33,7 @@ var _ = Describe("BuildStarter", func() {
 		fakeFactory = new(schedulerfakes.FakeBuildFactory)
 		fakeAlgorithm = new(schedulerfakes.FakeAlgorithm)
 
-		buildStarter = scheduler.NewBuildStarter(fakePipeline, fakeFactory, fakeAlgorithm)
+		buildStarter = scheduler.NewBuildStarter(fakeFactory, fakeAlgorithm)
 
 		disaster = errors.New("bad thing")
 	})
@@ -44,6 +45,7 @@ var _ = Describe("BuildStarter", func() {
 		var resource *dbfakes.FakeResource
 		var resources db.Resources
 		var versionedResourceTypes atc.VersionedResourceTypes
+		var relatedJobs algorithm.NameToIDMap
 
 		BeforeEach(func() {
 			versionedResourceTypes = atc.VersionedResourceTypes{
@@ -67,6 +69,11 @@ var _ = Describe("BuildStarter", func() {
 
 				job = new(dbfakes.FakeJob)
 				job.GetPendingBuildsReturns(pendingBuilds, nil)
+				job.NameReturns("some-job")
+				job.IDReturns(1)
+				job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}})
+
+				relatedJobs = algorithm.NameToIDMap{"some-job": 1}
 
 				fakePipeline.CheckPausedReturns(false, nil)
 			})
@@ -75,10 +82,6 @@ var _ = Describe("BuildStarter", func() {
 				var abortedBuild *dbfakes.FakeBuild
 
 				BeforeEach(func() {
-					job = new(dbfakes.FakeJob)
-					job.NameReturns("some-job")
-					job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}})
-
 					abortedBuild = new(dbfakes.FakeBuild)
 					abortedBuild.IDReturns(42)
 					abortedBuild.IsAbortedReturns(true)
@@ -92,8 +95,10 @@ var _ = Describe("BuildStarter", func() {
 				JustBeforeEach(func() {
 					tryStartErr = buildStarter.TryStartPendingBuildsForJob(
 						lagertest.NewTestLogger("test"),
+						fakePipeline,
 						job,
 						resources,
+						relatedJobs,
 					)
 				})
 
@@ -114,9 +119,6 @@ var _ = Describe("BuildStarter", func() {
 
 			Context("when manually triggered", func() {
 				BeforeEach(func() {
-					job.NameReturns("some-job")
-					job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}})
-
 					createdBuild.IsManuallyTriggeredReturns(true)
 
 					resources = db.Resources{resource}
@@ -125,8 +127,10 @@ var _ = Describe("BuildStarter", func() {
 				JustBeforeEach(func() {
 					tryStartErr = buildStarter.TryStartPendingBuildsForJob(
 						lagertest.NewTestLogger("test"),
+						fakePipeline,
 						job,
 						resources,
+						relatedJobs,
 					)
 				})
 
@@ -157,7 +161,6 @@ var _ = Describe("BuildStarter", func() {
 						})
 
 						It("does not save the next input mapping", func() {
-							Expect(fakePipeline.LoadVersionsDBCallCount()).To(BeZero())
 							Expect(fakeAlgorithm.ComputeCallCount()).To(BeZero())
 						})
 
@@ -194,123 +197,86 @@ var _ = Describe("BuildStarter", func() {
 							resources = db.Resources{resource, otherResource}
 						})
 
-						It("loads the versions db", func() {
-							Expect(fakePipeline.LoadVersionsDBCallCount()).To(Equal(1))
+						It("computes a new set of versions for inputs to the build", func() {
+							Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
 						})
 
-						Context("when loading the versions DB fails", func() {
+						Context("when computing the next inputs fails", func() {
 							BeforeEach(func() {
-								fakePipeline.LoadVersionsDBReturns(nil, disaster)
+								fakeAlgorithm.ComputeReturns(nil, false, disaster)
 							})
 
-							It("returns an error", func() {
-								Expect(tryStartErr).To(Equal(disaster))
-							})
-
-							It("loaded the versions DB after checking all the resources", func() {
-								Expect(fakePipeline.LoadVersionsDBCallCount()).To(Equal(1))
-							})
-						})
-
-						Context("when loading the versions DB succeeds", func() {
-							var versionsDB *db.VersionsDB
-
-							BeforeEach(func() {
-								fakePipeline.LoadVersionsDBReturns(&db.VersionsDB{
-									DisabledVersions: map[int]map[string]bool{25: {"73": true}},
-									JobIDs: map[string]int{
-										"bad-luck-job": 13,
-									},
-									ResourceIDs: map[string]int{
-										"resource-127": 127,
-									},
-								}, nil)
-
-								versionsDB = &db.VersionsDB{JobIDs: map[string]int{"j1": 1}}
-								fakePipeline.LoadVersionsDBReturns(versionsDB, nil)
-							})
-
-							It("computes a new set of versions for inputs to the build", func() {
+							It("computes the next inputs for the right job and versions", func() {
 								Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
+								actualJob, _, actualRelatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
+								Expect(actualJob.Name()).To(Equal(job.Name()))
+								Expect(actualRelatedJobs).To(Equal(relatedJobs))
 							})
+						})
 
-							Context("when computing the next inputs fails", func() {
-								BeforeEach(func() {
-									fakeAlgorithm.ComputeReturns(nil, false, disaster)
-								})
+						Context("when computing the next inputs succeeds", func() {
+							var expectedInputMapping db.InputMapping
 
-								It("computes the next inputs for the right job and versions", func() {
-									Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
-									actualVersionsDB, actualJob, _ := fakeAlgorithm.ComputeArgsForCall(0)
-									Expect(actualVersionsDB).To(Equal(versionsDB))
-									Expect(actualJob.Name()).To(Equal(job.Name()))
-								})
-							})
-
-							Context("when computing the next inputs succeeds", func() {
-								var expectedInputMapping db.InputMapping
-
-								BeforeEach(func() {
-									expectedInputMapping = map[string]db.InputResult{
-										"input-1": db.InputResult{
-											Input: &db.AlgorithmInput{
-												AlgorithmVersion: db.AlgorithmVersion{
-													ResourceID: 1,
-													Version:    db.ResourceVersion("1"),
-												},
-												FirstOccurrence: true,
+							BeforeEach(func() {
+								expectedInputMapping = map[string]db.InputResult{
+									"input-1": db.InputResult{
+										Input: &db.AlgorithmInput{
+											AlgorithmVersion: db.AlgorithmVersion{
+												ResourceID: 1,
+												Version:    db.ResourceVersion("1"),
 											},
+											FirstOccurrence: true,
 										},
-									}
+									},
+								}
 
-									fakeAlgorithm.ComputeReturns(expectedInputMapping, true, nil)
+								fakeAlgorithm.ComputeReturns(expectedInputMapping, true, nil)
+							})
+
+							It("saves the next input mapping", func() {
+								Expect(job.SaveNextInputMappingCallCount()).To(Equal(1))
+							})
+
+							Context("when saving the next input mapping fails", func() {
+								BeforeEach(func() {
+									job.SaveNextInputMappingReturns(disaster)
 								})
 
-								It("saves the next input mapping", func() {
-									Expect(job.SaveNextInputMappingCallCount()).To(Equal(1))
+								It("saves the next input mapping with the right inputs", func() {
+									actualInputMapping, resolved := job.SaveNextInputMappingArgsForCall(0)
+									Expect(actualInputMapping).To(Equal(expectedInputMapping))
+									Expect(resolved).To(BeTrue())
+								})
+							})
+
+							Context("when saving the next input mapping succeeds", func() {
+								BeforeEach(func() {
+									job.SaveNextInputMappingReturns(nil)
 								})
 
-								Context("when saving the next input mapping fails", func() {
-									BeforeEach(func() {
-										job.SaveNextInputMappingReturns(disaster)
-									})
+								It("saved the next input mapping and adopts the inputs and pipes", func() {
+									Expect(createdBuild.AdoptInputsAndPipesCallCount()).To(Equal(1))
+									Expect(tryStartErr).NotTo(HaveOccurred())
+								})
+							})
 
-									It("saves the next input mapping with the right inputs", func() {
-										actualInputMapping, resolved := job.SaveNextInputMappingArgsForCall(0)
-										Expect(actualInputMapping).To(Equal(expectedInputMapping))
-										Expect(resolved).To(BeTrue())
-									})
+							Context("when creating a build plan", func() {
+								BeforeEach(func() {
+									createdBuild.AdoptInputsAndPipesReturns([]db.BuildInput{}, true, nil)
 								})
 
-								Context("when saving the next input mapping succeeds", func() {
-									BeforeEach(func() {
-										job.SaveNextInputMappingReturns(nil)
-									})
-
-									It("saved the next input mapping and adopts the inputs and pipes", func() {
-										Expect(createdBuild.AdoptInputsAndPipesCallCount()).To(Equal(1))
-										Expect(tryStartErr).NotTo(HaveOccurred())
-									})
-								})
-
-								Context("when creating a build plan", func() {
-									BeforeEach(func() {
-										createdBuild.AdoptInputsAndPipesReturns([]db.BuildInput{}, true, nil)
-									})
-
-									It("uses the updated list of resource types", func() {
-										Expect(fakeFactory.CreateCallCount()).To(Equal(1))
-										_, _, types, _ := fakeFactory.CreateArgsForCall(0)
-										Expect(types).To(ConsistOf(atc.VersionedResourceTypes{atc.VersionedResourceType{
-											ResourceType: atc.ResourceType{
-												Name:       "fake-resource-type",
-												Type:       "fake",
-												Source:     atc.Source{"im": "fake"},
-												Privileged: true,
-											},
-											Version: atc.Version{"version": "1.2.3"},
-										}}))
-									})
+								It("uses the updated list of resource types", func() {
+									Expect(fakeFactory.CreateCallCount()).To(Equal(1))
+									_, _, types, _ := fakeFactory.CreateArgsForCall(0)
+									Expect(types).To(ConsistOf(atc.VersionedResourceTypes{atc.VersionedResourceType{
+										ResourceType: atc.ResourceType{
+											Name:       "fake-resource-type",
+											Type:       "fake",
+											Source:     atc.Source{"im": "fake"},
+											Privileged: true,
+										},
+										Version: atc.Version{"version": "1.2.3"},
+									}}))
 								})
 							})
 						})
@@ -325,8 +291,11 @@ var _ = Describe("BuildStarter", func() {
 
 				BeforeEach(func() {
 					job.NameReturns("some-job")
+					job.IDReturns(1)
 					job.ConfigReturns(atc.JobConfig{Name: "some-job"})
 					createdBuild.IsManuallyTriggeredReturns(false)
+
+					relatedJobs = algorithm.NameToIDMap{"some-job": 1}
 
 					fakeDBResourceType := new(dbfakes.FakeResourceType)
 					fakeDBResourceType.NameReturns("some-resource-type")
@@ -338,8 +307,10 @@ var _ = Describe("BuildStarter", func() {
 				JustBeforeEach(func() {
 					tryStartErr = buildStarter.TryStartPendingBuildsForJob(
 						lagertest.NewTestLogger("test"),
+						fakePipeline,
 						job,
 						db.Resources{resource},
+						relatedJobs,
 					)
 				})
 

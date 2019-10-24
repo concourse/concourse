@@ -3,14 +3,15 @@ package scheduler
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 type manualTriggerBuild struct {
 	db.Build
 
-	pipeline  db.Pipeline
-	job       db.Job
-	resources db.Resources
+	job           db.Job
+	resources     db.Resources
+	relatedJobIDs algorithm.NameToIDMap
 
 	algorithm Algorithm
 }
@@ -33,13 +34,7 @@ func (m *manualTriggerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, 
 		}
 	}
 
-	versions, err := m.pipeline.LoadVersionsDB()
-	if err != nil {
-		logger.Error("failed-to-load-versions-db", err)
-		return nil, false, err
-	}
-
-	inputMapping, resolved, err := m.algorithm.Compute(versions, m.job, m.resources)
+	inputMapping, resolved, err := m.algorithm.Compute(m.job, m.resources, m.relatedJobIDs)
 	if err != nil {
 		return nil, false, err
 	}

@@ -9,7 +9,7 @@ import (
 
 type JobFactory interface {
 	VisibleJobs([]string) (Dashboard, error)
-	AllActiveJobs() (Dashboard, error)
+	AllActiveJobsForDashboard() (Dashboard, error)
 }
 
 type jobFactory struct {
@@ -36,6 +36,26 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
 	}
 
 	jobs := append(currentTeamJobs, otherTeamPublicJobs...)
+
+	return j.buildDashboard(jobs)
+}
+
+func (j *jobFactory) AllActiveJobsForDashboard() (Dashboard, error) {
+	rows, err := jobsQuery.
+		Where(sq.Eq{
+			"j.active": true,
+		}).
+		OrderBy("j.id ASC").
+		RunWith(j.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	jobs, err := scanJobs(j.conn, j.lockFactory, rows)
+	if err != nil {
+		return nil, err
+	}
 
 	return j.buildDashboard(jobs)
 }
@@ -73,26 +93,6 @@ func (j *jobFactory) otherTeamPublicJobs(teamNames []string) (Jobs, error) {
 	}
 
 	return scanJobs(j.conn, j.lockFactory, rows)
-}
-
-func (j *jobFactory) AllActiveJobs() (Dashboard, error) {
-	rows, err := jobsQuery.
-		Where(sq.Eq{
-			"j.active": true,
-		}).
-		OrderBy("j.id ASC").
-		RunWith(j.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	jobs, err := scanJobs(j.conn, j.lockFactory, rows)
-	if err != nil {
-		return nil, err
-	}
-
-	return j.buildDashboard(jobs)
 }
 
 func (j *jobFactory) buildDashboard(jobs Jobs) (Dashboard, error) {

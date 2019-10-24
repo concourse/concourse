@@ -1,14 +1,15 @@
 package scheduler
 
 import (
+	"context"
 	"errors"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 //go:generate counterfeiter . BuildScheduler
@@ -16,9 +17,10 @@ import (
 type BuildScheduler interface {
 	Schedule(
 		logger lager.Logger,
-		versions *db.VersionsDB,
+		pipeline db.Pipeline,
 		job db.Job,
 		resources db.Resources,
+		relatedJobIDs algorithm.NameToIDMap,
 	) error
 }
 
@@ -28,82 +30,76 @@ const maxJobsInFlight = 32
 
 var guardJobScheduling = make(chan struct{}, maxJobsInFlight)
 
-type Runner struct {
-	Logger    lager.Logger
-	Pipeline  db.Pipeline
-	Scheduler BuildScheduler
-	Noop      bool
-	Interval  time.Duration
+type schedulerRunner struct {
+	logger          lager.Logger
+	pipelineFactory db.PipelineFactory
+	scheduler       BuildScheduler
 }
 
-func (runner *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	close(ready)
+func NewRunner(logger lager.Logger, pipelineFactory db.PipelineFactory, scheduler BuildScheduler) Runner {
+	return &schedulerRunner{
+		logger:          logger,
+		pipelineFactory: pipelineFactory,
+		scheduler:       scheduler,
+	}
+}
 
-	if runner.Interval == 0 {
-		panic("unconfigured scheduler interval")
+func (s *schedulerRunner) Run(ctx context.Context) error {
+	s.logger.Info("start")
+	defer s.logger.Info("end")
+
+	pipelines, err := s.pipelineFactory.PipelinesToSchedule()
+	if err != nil {
+		s.logger.Error("failed-to-get-pipelines-to-schedule", err)
+		return err
 	}
 
-	runner.Logger.Info("start", lager.Data{
-		"interval": runner.Interval.String(),
-	})
+	for _, pipeline := range pipelines {
+		// Grabs out the requested time that triggered off the pipeline schedule in
+		// order to set the last scheduled to the exact time of this triggering
+		// request
+		requestedTime := pipeline.RequestedTime()
 
-	defer runner.Logger.Info("done")
+		go func(pipeline db.Pipeline, requestedTime time.Time) {
+			err = s.schedulePipeline(pipeline)
+			if err != nil {
+				s.logger.Error("failed-to-schedule-pipeline", err, lager.Data{"pipeline": pipeline.Name()})
+				return
+			}
 
-dance:
-	for {
-		err := runner.tick(runner.Logger.Session("tick"))
-		if err != nil {
-			return err
-		}
-
-		select {
-		case <-time.After(runner.Interval):
-		case <-signals:
-			break dance
-		}
+			err = pipeline.UpdateLastScheduled(requestedTime)
+			if err != nil {
+				s.logger.Error("failed-to-update-last-scheduled", err, lager.Data{"pipeline": pipeline.Name()})
+			}
+		}(pipeline, requestedTime)
 	}
 
 	return nil
 }
 
-func (runner *Runner) tick(logger lager.Logger) error {
-	if runner.Noop {
-		return nil
-	}
+func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline) error {
+	logger := s.logger.Session("pipeline", lager.Data{"pipeline": pipeline.Name()})
 
-	start := time.Now()
-
-	defer func() {
-		metric.SchedulingFullDuration{
-			PipelineName: runner.Pipeline.Name(),
-			Duration:     time.Since(start),
-		}.Emit(logger)
-	}()
-
-	found, err := runner.Pipeline.Reload()
-	if err != nil {
-		logger.Error("failed-to-update-pipeline-config", err)
-		return nil
-	}
-
-	if !found {
-		return errPipelineRemoved
-	}
-
-	versions, err := runner.Pipeline.LoadVersionsDB()
-	if err != nil {
-		logger.Error("failed-to-load-versions-db", err)
-		return err
-	}
-
-	jobs, err := runner.Pipeline.Jobs()
+	jobs, err := pipeline.Jobs()
 	if err != nil {
 		logger.Error("failed-to-get-jobs", err)
 		return err
 	}
 
+	resources, err := pipeline.Resources()
+	if err != nil {
+		logger.Error("failed-to-get-resources", err)
+		return err
+	}
+
+	jobsMap := map[string]int{}
+
 	for _, job := range jobs {
-		schedulingLock, acquired, err := job.AcquireSchedulingLock(logger, runner.Interval)
+		jobsMap[job.Name()] = job.ID()
+	}
+
+	for _, job := range jobs {
+		schedulingLock, acquired, err := job.AcquireSchedulingLock(logger)
 		if err != nil {
 			logger.Error("failed-to-acquire-scheduling-lock", err)
 			return nil
@@ -113,57 +109,61 @@ func (runner *Runner) tick(logger lager.Logger) error {
 			continue
 		}
 
-		guardJobScheduling <- struct{}{} // would block if guard channel is already filled
-		go func(j db.Job) {
-			runner.scheduleJob(logger, schedulingLock, versions, j)
+		guardJobScheduling <- struct{}{}
+		go func(job db.Job) {
+			err = s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
+			if err != nil {
+				err = pipeline.RequestSchedule()
+				if err != nil {
+					// XXX if requesting schedule fails because of a connection failure,
+					// we have no way of retrying the scheduler
+					logger.Error("failed-to-request-schedule-on-job", err, lager.Data{"pipeline": job.PipelineName(), "job": job.Name()})
+				}
+			}
 			<-guardJobScheduling
 		}(job)
 	}
 
-	return err
+	return nil
 }
 
-func (runner *Runner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, versions *db.VersionsDB, job db.Job) {
+func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, pipeline db.Pipeline, currentJob db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
+	logger = logger.Session("job", lager.Data{"job": currentJob.Name()})
+
 	defer schedulingLock.Release()
 
-	start := time.Now()
-
-	metric.SchedulingLoadVersionsDuration{
-		PipelineName: runner.Pipeline.Name(),
-		Duration:     time.Since(start),
-	}.Emit(logger)
-
-	found, err := job.Reload()
+	found, err := currentJob.Reload()
 	if err != nil {
 		logger.Error("failed-to-update-job-config", err)
-		return
+		return err
 	}
 
 	if !found {
 		logger.Error("job-not-found", err)
-		return
-	}
-
-	resources, err := runner.Pipeline.Resources()
-	if err != nil {
-		logger.Error("failed-to-get-resources", err)
-		return
+		return err
 	}
 
 	sLog := logger.Session("scheduling")
 	jStart := time.Now()
 
-	err = runner.Scheduler.Schedule(
+	err = s.scheduler.Schedule(
 		sLog,
-		versions,
-		job,
+		pipeline,
+		currentJob,
 		resources,
+		jobs,
 	)
+	if err != nil {
+		logger.Error("failed-to-schedule", err)
+		return err
+	}
 
 	metric.SchedulingJobDuration{
-		PipelineName: runner.Pipeline.Name(),
-		JobName:      job.Name(),
-		JobID:        job.ID(),
+		PipelineName: currentJob.PipelineName(),
+		JobName:      currentJob.Name(),
+		JobID:        currentJob.ID(),
 		Duration:     time.Since(jStart),
 	}.Emit(sLog)
+
+	return nil
 }

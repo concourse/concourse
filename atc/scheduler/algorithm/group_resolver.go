@@ -22,7 +22,7 @@ func newCandidateVersion(version db.ResourceVersion) *versionCandidate {
 }
 
 type groupResolver struct {
-	vdb          *db.VersionsDB
+	vdb          db.VersionsDB
 	inputConfigs InputConfigs
 	candidates   []*versionCandidate
 
@@ -31,7 +31,7 @@ type groupResolver struct {
 	debug debugger
 }
 
-func NewGroupResolver(vdb *db.VersionsDB, inputConfigs InputConfigs) Resolver {
+func NewGroupResolver(vdb db.VersionsDB, inputConfigs InputConfigs) Resolver {
 	return &groupResolver{
 		vdb:          vdb,
 		inputConfigs: inputConfigs,
@@ -89,7 +89,7 @@ func (r *groupResolver) Resolve(depth int) (map[string]*versionCandidate, db.Res
 					break
 				}
 
-				r.debug.log("job", jobID, "trying build", jobID, buildID)
+				r.debug.log("job", jobID, "trying build", buildID)
 
 				outputs, err := r.vdb.SuccessfulBuildOutputs(buildID)
 				if err != nil {
@@ -272,10 +272,15 @@ func (r *groupResolver) outputSatisfyCandidateConstraints(output db.AlgorithmVer
 		return false, false, "", nil
 	}
 
-	if r.vdb.VersionIsDisabled(output.ResourceID, output.Version) {
+	disabled, err := r.vdb.VersionIsDisabled(output.ResourceID, output.Version)
+	if err != nil {
+		return false, false, "", err
+	}
+
+	if disabled {
 		// this version is disabled so it cannot be used
 		r.debug.log("disabled", output.Version, passedJobID)
-		return false, true, "", nil
+		return false, false, "", nil
 	}
 
 	if inputConfig.PinnedVersion != nil {

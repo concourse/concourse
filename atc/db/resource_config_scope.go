@@ -79,7 +79,6 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
 	defer Rollback(tx)
 
 	var bumpCache bool
-
 	for _, version := range versions {
 		newVersion, err := saveResourceVersion(tx, rcsID, version, nil)
 		if err != nil {
@@ -102,6 +101,13 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
 	err = tx.Commit()
 	if err != nil {
 		return err
+	}
+
+	if bumpCache {
+		err = requestScheduleForPipelinesUsingResourceConfigScope(conn, rcsID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -304,4 +310,44 @@ func incrementCheckOrder(tx Tx, rcsID int, version string) error {
 		AND version_md5 = md5($2)
 		AND check_order <= mc.co;`, rcsID, version)
 	return err
+}
+
+func requestScheduleForPipelinesUsingResourceConfigScope(conn Conn, rcsID int) error {
+	rows, err := psql.Select("p.id").
+		From("pipelines p").
+		Join("resources r ON r.pipeline_id = p.id").
+		Where(sq.Eq{
+			"r.resource_config_scope_id": rcsID,
+		}).
+		RunWith(conn).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	var pipelines []int
+	for rows.Next() {
+		var pid int
+		err = rows.Scan(&pid)
+		if err != nil {
+			return err
+		}
+
+		pipelines = append(pipelines, pid)
+	}
+
+	for _, p := range pipelines {
+		_, err := psql.Update("pipelines").
+			Set("schedule_requested", sq.Expr("now()")).
+			Where(sq.Eq{
+				"id": p,
+			}).
+			RunWith(conn).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
