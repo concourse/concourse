@@ -74,6 +74,20 @@ var _ = Describe("Fly CLI", func() {
 				os.RemoveAll(tmpDir)
 			})
 
+			Context("when no fly target is specified", func() {
+				It("asks the user to specify a pipeline", func() {
+					flyCmd := exec.Command(flyPath, "delete-target")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Eventually(sess).Should(gexec.Exit(1))
+
+					Expect(sess.Err).To(gbytes.Say(`no target specified. specify the target with -t or log in`))
+				})
+			})
+
 			Context("when fly target is specified", func() {
 				It("should delete target", func() {
 					flyCmd := exec.Command(flyPath, "-t", "test", "delete-target")
@@ -108,8 +122,35 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			Context("when configuration all", func() {
-				It("should delete all targets", func() {
-					flyCmd := exec.Command(flyPath, "-t", "test", "delete-target", "--all")
+				It("should delete all targets when a target is set", func() {
+					flyCmd := exec.Command(flyPath, "-t", "test", "delete-target", "-a")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+
+					Expect(sess.Out).To(gbytes.Say(`deleted all targets`))
+
+					flyCmd = exec.Command(flyPath, "targets")
+					sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+					Expect(sess.Out).To(PrintTable(ui.Table{
+						Headers: ui.TableRow{
+							{Contents: "name", Color: color.New(color.Bold)},
+							{Contents: "url", Color: color.New(color.Bold)},
+							{Contents: "team", Color: color.New(color.Bold)},
+							{Contents: "expiry", Color: color.New(color.Bold)},
+						},
+						Data: []ui.TableRow{},
+					}))
+				})
+
+				It("should delete all targets even when no target is set", func() {
+					flyCmd := exec.Command(flyPath, "delete-target", "-a")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
