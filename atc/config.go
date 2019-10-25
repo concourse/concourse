@@ -12,7 +12,6 @@ import (
 )
 
 const ConfigVersionHeader = "X-Concourse-Config-Version"
-const DefaultPipelineName = "main"
 const DefaultTeamName = "main"
 
 // TIMEOUT CONSTANTS
