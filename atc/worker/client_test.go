@@ -557,7 +557,7 @@ var _ = FDescribe("Client", func() {
 
 		})
 
-		FIt("finds or creates a container", func() {
+		It("finds or creates a container", func() {
 			Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 			_, cancel, delegate, owner, createdMetadata, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
 			Expect(cancel).ToNot(BeNil())
