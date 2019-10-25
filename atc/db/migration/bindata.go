@@ -1,7 +1,9 @@
 package migration
 
-import "errors"
-import "os"
+import (
+	"errors"
+	"os"
+)
 
 func Asset(string) ([]byte, error) {
 	return nil, errors.New("no assets")

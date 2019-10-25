@@ -1,6 +1,9 @@
 package integration_test
 
 import (
+	"os/exec"
+	"time"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
@@ -9,8 +12,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"os/exec"
-	"time"
 )
 
 const second = 1

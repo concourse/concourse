@@ -1,9 +1,9 @@
 package gc_test
 
 import (
+	"context"
 	"os"
 	"time"
-	"context"
 
 	"code.cloudfoundry.org/lager"
 

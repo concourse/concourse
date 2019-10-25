@@ -156,7 +156,6 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 		delete(newPayload, "value")
 		payload = append(payload, newPayload)
 
-
 	// And a couple that need a small rename (new relic doesn't like some chars)
 	case "scheduling: full duration (ms)":
 		payload = append(payload, emitter.simplePayload(logger, event, "scheduling_full_duration_ms"))
