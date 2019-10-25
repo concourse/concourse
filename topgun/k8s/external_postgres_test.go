@@ -3,17 +3,11 @@ package k8s_test
 import (
 	"path"
 
-	"github.com/onsi/gomega/gexec"
-
 	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("External PostgreSQL", func() {
-	var (
-		pgReleaseName string
-		proxySession  *gexec.Session
-		atcEndpoint   string
-	)
+	var pgReleaseName string
 
 	BeforeEach(func() {
 		setReleaseNameAndNamespace("ep")
@@ -41,23 +35,25 @@ var _ = Describe("External PostgreSQL", func() {
 			"--set=secrets.postgresUser=pg-user",
 			"--set=worker.replicas=0",
 		)
-		waitAllPodsInNamespaceToBeReady(namespace)
 
-		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(
-			namespace, "service/"+releaseName+"-web", "8080")
+		waitAllPodsInNamespaceToBeReady(namespace)
 	})
 
 	AfterEach(func() {
 		helmDestroy(pgReleaseName)
-		cleanup(releaseName, namespace, proxySession)
+		cleanup(releaseName, namespace)
 	})
 
 	It("can have pipelines set", func() {
-		defer proxySession.Interrupt()
+		atc := endpointFactory.NewServiceEndpoint(
+			namespace,
+			releaseName+"-web",
+			"8080",
+		)
+		defer atc.Close()
 
 		By("Logging in")
-		fly.Login("test", "test", atcEndpoint)
+		fly.Login("test", "test", "http://"+atc.Address())
 
 		By("Setting and triggering a dumb pipeline")
 		fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "pipeline")

@@ -374,7 +374,7 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 func (repository *containerRepository) DestroyFailedContainers() (int, error) {
 	result, err := psql.Update("containers").
 		Set("state", atc.ContainerStateDestroying).
-		Where( sq.Eq{"state": string(atc.ContainerStateFailed)}).
+		Where(sq.Eq{"state": string(atc.ContainerStateFailed)}).
 		RunWith(repository.conn).
 		Exec()
 

@@ -5,20 +5,31 @@ set -e -u
 cd $(dirname $0)/..
 
 container_name=""
-case $1 in
-web)
-  container_name="concourse_web_1"
-  ;;
+listen_cmd=""
 
-worker)
-  container_name="concourse_worker_1"
-  ;;
+while test $# -gt 0; do
+   case "$1" in
+        web)
+            container_name="concourse_web_1"
+            shift
+            ;;
+        worker)
+            container_name="concourse_worker_1"
+            shift
+            ;;
+        --listen)
+            shift
+            listen_cmd=" --headless=true --listen=:$1"
+            shift
+            ;;
+        *)
+          echo "Usage: trace (web|worker) [--listen port]"
+          exit 1
+          ;;
+  esac
+done
 
-*)
-  echo "Usage: trace (web|worker)"
-  exit 1
-  ;;
-esac
+
 
 trace_pid=$(docker exec $container_name pidof concourse)
 
@@ -31,4 +42,4 @@ docker run \
   --rm \
   --tty \
   dlv \
-  attach $trace_pid
+  attach $trace_pid $listen_cmd

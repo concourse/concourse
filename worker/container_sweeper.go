@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc/worker/gclient"
 )
 
 // containerSweeper is an ifrit.Runner that periodically reports and
@@ -17,7 +18,7 @@ type containerSweeper struct {
 	logger       lager.Logger
 	interval     time.Duration
 	tsaClient    TSAClient
-	gardenClient garden.Client
+	gardenClient gclient.Client
 	maxInFlight  uint16
 }
 
@@ -25,7 +26,7 @@ func NewContainerSweeper(
 	logger lager.Logger,
 	sweepInterval time.Duration,
 	tsaClient TSAClient,
-	gardenClient garden.Client,
+	gardenClient gclient.Client,
 	maxInFlight uint16,
 ) *containerSweeper {
 	return &containerSweeper{

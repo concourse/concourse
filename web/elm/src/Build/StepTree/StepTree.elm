@@ -618,7 +618,7 @@ viewTimestampedLine { timestamps, highlight, id, lineNo, line, timeZone } =
         ]
         [ viewTimestamp
             { id = id
-            , line = lineNo
+            , lineNo = lineNo
             , date = ts
             , timeZone = timeZone
             }
@@ -635,17 +635,17 @@ viewLine line =
 
 viewTimestamp :
     { id : String
-    , line : Int
+    , lineNo : Int
     , date : Maybe Time.Posix
     , timeZone : Time.Zone
     }
     -> Html Message
-viewTimestamp { id, line, date, timeZone } =
+viewTimestamp { id, lineNo, date, timeZone } =
     Html.a
-        [ href (showHighlight (HighlightLine id line))
+        [ href (showHighlight (HighlightLine id lineNo))
         , StrictEvents.onLeftClickOrShiftLeftClick
-            (SetHighlight id line)
-            (ExtendHighlight id line)
+            (SetHighlight id lineNo)
+            (ExtendHighlight id lineNo)
         ]
         [ case date of
             Just d ->

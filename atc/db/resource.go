@@ -228,7 +228,7 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 		return nil, err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, r.type_, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +295,7 @@ func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceCo
 
 	defer Rollback(tx)
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, r.type_, resourceTypes)
 	if err != nil {
 		return false, err
 	}

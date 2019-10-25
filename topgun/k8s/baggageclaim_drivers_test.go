@@ -1,8 +1,6 @@
 package k8s_test
 
 import (
-	"time"
-
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,7 +9,7 @@ import (
 var _ = Describe("baggageclaim drivers", func() {
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, nil)
+		cleanup(releaseName, namespace)
 	})
 
 	onPks(func() {
@@ -47,18 +45,9 @@ func baggageclaimWorks(driver string, selectorFlags ...string) {
 		It("works", func() {
 			setReleaseNameAndNamespace("bd-" + driver)
 			deployWithDriverAndSelectors(driver, selectorFlags...)
-			waitAllPodsInNamespaceToBeReady(namespace)
 
-			By("Creating the web proxy")
-			_, atcEndpoint := startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
-
-			By("Logging in")
-			fly.Login("test", "test", atcEndpoint)
-
-			Eventually(func() []Worker {
-				return getRunningWorkers(fly.GetWorkers())
-			}, 2*time.Minute, 10*time.Second).
-				ShouldNot(HaveLen(0))
+			atc := waitAndLogin(namespace, releaseName+"-web")
+			defer atc.Close()
 
 			By("Setting and triggering a dumb pipeline")
 			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "some-pipeline")
@@ -82,7 +71,6 @@ func baggageclaimFails(driver string, selectorFlags ...string) {
 				return workerLogsSession.Out.Contents()
 
 			}).Should(ContainSubstring("failed-to-set-up-driver"))
-
 		})
 	})
 }

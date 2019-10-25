@@ -1,11 +1,6 @@
 package k8s_test
 
 import (
-	"time"
-
-	"github.com/onsi/gomega/gexec"
-
-	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -13,10 +8,7 @@ import (
 
 var _ = Describe("DNS Resolution", func() {
 
-	var (
-		atcEndpoint  string
-		proxySession *gexec.Session
-	)
+	var atc Endpoint
 
 	BeforeEach(func() {
 		setReleaseNameAndNamespace("dp")
@@ -32,21 +24,15 @@ var _ = Describe("DNS Resolution", func() {
 				`--set=worker.env[0].name=CONCOURSE_GARDEN_DNS_SERVER`,
 				`--set=worker.env[0].value=`+dnsServer)
 		}
+
 		deployConcourseChart(releaseName, args...)
-		waitAllPodsInNamespaceToBeReady(namespace)
-
-		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
-
-		By("Logging in")
-		fly.Login("test", "test", atcEndpoint)
-
-		By("waiting for a running worker")
-		Eventually(func() []Worker {
-			return getRunningWorkers(fly.GetWorkers())
-		}, 2*time.Minute, 10*time.Second).
-			ShouldNot(HaveLen(0))
+		atc = waitAndLogin(namespace, releaseName+"-web")
 	}
+
+	AfterEach(func() {
+		cleanup(releaseName, namespace)
+		atc.Close()
+	})
 
 	var fullAddress = func() string {
 		return releaseName + "-web." + namespace + ".svc.cluster.local:8080/api/v1/info"
@@ -55,10 +41,6 @@ var _ = Describe("DNS Resolution", func() {
 	var shortAddress = func() string {
 		return releaseName + "-web:8080/api/v1/info"
 	}
-
-	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
-	})
 
 	type Case struct {
 		// args
