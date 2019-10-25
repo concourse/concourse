@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/onsi/gomega/gbytes"
 
 	"github.com/concourse/concourse/worker/workerfakes"
 
@@ -16,47 +15,41 @@ import (
 	"github.com/concourse/concourse/worker"
 	"github.com/onsi/gomega/ghttp"
 
+	"github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Container Sweeper", func() {
+	const (
+	 sweepInterval              = 50 * time.Millisecond
+	 maxInFlight                =  uint16(1)
+	 gardenClientTimeoutRequest = 5 * time.Millisecond
+	)
+
 	var (
 		garden *ghttp.Server
 
 		testLogger = lagertest.NewTestLogger("container-sweeper")
-
-		sweepInterval time.Duration
-		maxInFlight   uint16
 
 		fakeTSAClient workerfakes.FakeTSAClient
 		gardenClient  gclient.Client
 
 		sweeper *worker.ContainerSweeper
 
-		gardenClientRequestTimeout time.Duration
-
 		osSignal  chan os.Signal
-		readyChan chan struct{}
 		exited    chan struct{}
 
-		//err error
 	)
 
 	BeforeEach(func() {
-		sweepInterval = 50 * time.Millisecond
-		maxInFlight = 1
-
-		gardenClientRequestTimeout = 5 * time.Millisecond
-
 		garden = ghttp.NewServer()
 
 		osSignal = make(chan os.Signal)
-		readyChan = make(chan struct{})
 		exited = make(chan struct{})
 
 		gardenAddr := fmt.Sprintf("http://%s", garden.Addr())
-		gardenClient = gclient.BasicGardenClientWithRequestTimeout(testLogger, gardenClientRequestTimeout, gardenAddr)
+		gardenClient = gclient.BasicGardenClientWithRequestTimeout(testLogger, gardenClientTimeoutRequest, gardenAddr)
 
 		fakeTSAClient = workerfakes.FakeTSAClient{}
 		fakeTSAClient.ReportContainersReturns(nil)
@@ -67,7 +60,7 @@ var _ = Describe("Container Sweeper", func() {
 
 	JustBeforeEach(func() {
 		go func() {
-			_ = sweeper.Run(osSignal, readyChan)
+			_ = sweeper.Run(osSignal, make(chan struct{}))
 			close(exited)
 		}()
 	})
