@@ -100,7 +100,6 @@ type GetResult struct {
 	Status        int
 	VersionResult runtime.VersionResult
 	GetArtifact   runtime.GetArtifact
-	Err           error
 }
 
 type ImageFetcherSpec struct {

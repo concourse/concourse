@@ -131,7 +131,6 @@ func (s *fetchSource) Find() (GetResult, Volume, bool, error) {
 				Metadata: atcMetaData,
 			},
 			runtime.GetArtifact{VolumeHandle: volume.Handle()},
-			nil,
 		},
 		volume, true, nil
 }
@@ -173,7 +172,6 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 			// todo: figure out what logically should be returned for VersionResult
 			runtime.VersionResult{},
 			runtime.GetArtifact{},
-			err,
 		}
 		return result, volume, err
 	}
@@ -192,7 +190,6 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 				failErr.ExitStatus,
 				runtime.VersionResult{},
 				runtime.GetArtifact{},
-				failErr,
 			}
 			// todo: check these return values
 			// 		 feels hidden to return 'volume'
