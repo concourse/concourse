@@ -170,6 +170,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		version,
 	)
 
+	//TODO Starting should be emitted just before the get script is executed rather than at this point.
 	step.delegate.Starting(logger)
 
 	getResult, err := step.workerClient.RunGetStep(
