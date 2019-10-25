@@ -173,6 +173,11 @@ configured job consists of the following fields:
   \reference{on_failure} step attribute.
 }{job-on-failure}
 
+\define-attribute{on_error: step}{
+  \italic{Optional.} Step to execute when the job errors. Equivalent to the
+  \reference{on_error} step attribute.
+}{job-on-error}
+
 \define-attribute{on_abort: step}{
   \italic{Optional.} Step to execute when the job aborts. Equivalent to the
   \reference{on_abort} step attribute.
