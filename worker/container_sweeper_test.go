@@ -123,7 +123,6 @@ var _ = Describe("Container Sweeper", func() {
 		})
 		AfterEach(func() {
 			gardenCancel()
-
 		})
 
 		It("request to garden times out eventually", func() {
