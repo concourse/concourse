@@ -1,0 +1,20 @@
+##
+# Host Database
+#
+# localhost is used to configure the loopback interface
+# when the system is booting.  Do not change this entry.
+##
+127.0.0.1	localhost
+255.255.255.255	broadcasthost
+::1             localhost
+10.32.40.47	openshift.cyberarkuslab.local
+# Added by Docker Desktop
+# To allow the same kube context to work on the host and the container:
+127.0.0.1 kubernetes.docker.internal
+# End of section
+127.0.0.1 conjur-master
+127.0.0.1 dap.k8scluster.local
+127.0.0.1 jenkins.k8scluster.local
+127.0.0.1 dashboard.k8scluster.local
+127.0.0.1 weave.k8scluster.local
+127.0.0.1 gogs.k8scluster.local

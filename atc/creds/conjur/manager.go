@@ -22,6 +22,7 @@ type Manager struct {
 	ConjurCertFile         string `long:"cert-file" description:"Cert file used if conjur instance is using a self signed cert. E.g. /path/to/conjur.pem"`
 	ConjurAuthnLogin       string `long:"authn-login" description:"Host username. E.g host/concourse"`
 	ConjurAuthnApiKey      string `long:"authn-api-key" description:"Api key related to the host"`
+	ConjurAuthnTokenFile   string `long:"authn-token-file" description:"Token file used if conjur instance is running in k8s or iam. E.g. /path/to/token_file"`
 	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS Secrets Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
 	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS Secrets Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
 	Conjur                 *Conjur
@@ -44,22 +45,30 @@ func buildSecretTemplate(name, tmpl string) (*template.Template, error) {
 	return t, nil
 }
 
-func (manager *Manager) Init(log lager.Logger) error {
-
-	config, err := conjurapi.LoadConfig()
-	if err != nil {
-		log.Error("load-conjur-config", err)
-		return err
+func newConjurClient(manager *Manager) (*conjurapi.Client, error) {
+	config := conjurapi.Config{
+		Account:      manager.ConjurAccount,
+		ApplianceURL: manager.ConjurApplianceUrl,
+		SSLCertPath:  manager.ConjurCertFile,
 	}
-	config.ApplianceURL = manager.ConjurApplianceUrl
-	config.Account = manager.ConjurAccount
 
-	conjur, err := conjurapi.NewClientFromKey(config,
+	if manager.ConjurAuthnTokenFile != "" {
+		return conjurapi.NewClientFromTokenFile(
+			config,
+			manager.ConjurAuthnTokenFile,
+		)
+	}
+
+	return conjurapi.NewClientFromKey(config,
 		authn.LoginPair{
 			Login:  manager.ConjurAuthnLogin,
 			APIKey: manager.ConjurAuthnApiKey,
 		},
 	)
+}
+
+func (manager *Manager) Init(log lager.Logger) error {
+	conjur, err := newConjurClient(manager)
 	if err != nil {
 		log.Error("create-conjur-api-instance", err)
 		return err
@@ -109,20 +118,6 @@ func (manager *Manager) Validate() error {
 		return err
 	}
 
-	// All of the AWS credential variables may be empty since credentials may be obtained via environemnt variables
-	// or other means. However, if one of them is provided, then all of them (except session token) must be provided.
-	if manager.ConjurApplianceUrl == "" && manager.ConjurAccount == "" && manager.ConjurAuthnLogin == "" && manager.ConjurAuthnApiKey == "" {
-		return nil
-	}
-
-	if manager.ConjurAuthnLogin == "" {
-		return errors.New("must provide conjur authn login")
-	}
-
-	if manager.ConjurAuthnApiKey == "" {
-		return errors.New("must provide conjur authn key")
-	}
-
 	if manager.ConjurApplianceUrl == "" {
 		return errors.New("must provide conjur appliance url")
 	}
@@ -131,25 +126,24 @@ func (manager *Manager) Validate() error {
 		return errors.New("must provide conjur account")
 	}
 
+	if manager.ConjurAuthnLogin == "" {
+		return errors.New("must provide conjur authn login")
+	}
+
+	if manager.ConjurAuthnApiKey == "" && manager.ConjurAuthnTokenFile == "" {
+		return errors.New("must provide conjur authn key or conjur authn token file")
+	}
+
+	if manager.ConjurAuthnApiKey != "" && manager.ConjurAuthnTokenFile != "" {
+		return errors.New("must provide conjur authn key or conjur authn token file")
+	}
+
 	return nil
 }
 
 func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactory, error) {
+	client, err := newConjurClient(manager)
 
-	config, err := conjurapi.LoadConfig()
-	if err != nil {
-		log.Error("load-conjur-config", err)
-		return nil, err
-	}
-	config.ApplianceURL = manager.ConjurApplianceUrl
-	config.Account = manager.ConjurAccount
-
-	client, err := conjurapi.NewClientFromKey(config,
-		authn.LoginPair{
-			Login:  manager.ConjurAuthnLogin,
-			APIKey: manager.ConjurAuthnApiKey,
-		},
-	)
 	if err != nil {
 		log.Error("create-conjur-api-instance", err)
 		return nil, err

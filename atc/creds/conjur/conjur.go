@@ -2,6 +2,7 @@ package conjur
 
 import (
 	"bytes"
+	"strings"
 	"text/template"
 	"time"
 
@@ -31,27 +32,33 @@ type SecretLookupPathConjur struct {
 	PipelineName string
 }
 
-func (n Conjur) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
 
 	lookupPaths := []creds.SecretLookupPath{}
-	for _, template := range n.secretTemplates {
+	for _, template := range c.secretTemplates {
+		c.log.Info(" teamname: " + teamName + "pipeline: " + pipelineName)
+
 		lPath := &SecretLookupPathConjur{
 			NameTemplate: template,
 			TeamName:     teamName,
 			PipelineName: pipelineName,
 		}
-		lookupPaths = append(lookupPaths, lPath)
+
+		samplePath, err := lPath.VariableToSecretPath("variable")
+		if err == nil && !strings.Contains(samplePath, "//") {
+			lookupPaths = append(lookupPaths, lPath)
+		}
 	}
+
 	return lookupPaths
 }
 
 func (c Conjur) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 	secretValue, err := c.client.RetrieveSecret(secretPath)
 	if err != nil {
-		c.log.Error("error-retrieving-secret", err)
 		return nil, nil, false, err
 	}
-	return string(secretValue), nil, true, err
+	return string(secretValue), nil, true, nil
 }
 
 func (sl SecretLookupPathConjur) VariableToSecretPath(varName string) (string, error) {
