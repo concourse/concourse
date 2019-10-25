@@ -215,6 +215,160 @@ var _ = FDescribe("Client", func() {
 		})
 	})
 
+	Describe("RunGetStep", func() {
+
+		var (
+			ctx                   context.Context
+			//cancel                func()
+			owner                 db.ContainerOwner
+			containerSpec         worker.ContainerSpec
+			workerSpec            worker.WorkerSpec
+			metadata              db.ContainerMetadata
+			imageSpec             worker.ImageFetcherSpec
+			fakeChosenWorker      *workerfakes.FakeWorker
+			fakeStrategy          *workerfakes.FakeContainerPlacementStrategy
+			fakeDelegate          *workerfakes.FakeImageFetchingDelegate
+			fakeResourceTypes     atc.VersionedResourceTypes
+			fakeContainer         *workerfakes.FakeContainer
+			fakeProcessSpec       runtime.ProcessSpec
+			fakeResource          *resourcefakes.FakeResource
+			fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
+
+			versionResult runtime.VersionResult
+			err           error
+
+			disasterErr error
+
+			result worker.GetResult
+		)
+
+		BeforeEach(func() {
+			ctx, _ = context.WithCancel(context.Background())
+			owner = new(dbfakes.FakeContainerOwner)
+			containerSpec = worker.ContainerSpec{}
+			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+			workerSpec = worker.WorkerSpec{}
+			fakeChosenWorker = new(workerfakes.FakeWorker)
+			fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
+			fakeResourceTypes = atc.VersionedResourceTypes{}
+			imageSpec = worker.ImageFetcherSpec{
+				Delegate:      fakeDelegate,
+				ResourceTypes: fakeResourceTypes,
+			}
+
+			fakeResource = new(resourcefakes.FakeResource)
+			fakeContainer = new(workerfakes.FakeContainer)
+			disasterErr = errors.New("oh no")
+			stdout := new(gbytes.Buffer)
+			stderr := new(gbytes.Buffer)
+			fakeProcessSpec = runtime.ProcessSpec{
+				Path:         "/opt/resource/out",
+				StdoutWriter: stdout,
+				StderrWriter: stderr,
+			}
+			fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
+
+			fakeChosenWorker = new(workerfakes.FakeWorker)
+			fakeChosenWorker.NameReturns("some-worker")
+			fakeChosenWorker.SatisfiesReturns(true)
+			fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeChosenWorker, nil)
+
+		})
+
+		JustBeforeEach(func() {
+			result, err = client.RunGetStep(
+				ctx,
+				logger,
+				owner,
+				containerSpec,
+				workerSpec,
+				fakeStrategy,
+				metadata,
+				imageSpec,
+				fakeProcessSpec,
+				fakeUsedResourceCache,
+				fakeResource,
+			)
+			versionResult = result.VersionResult
+		})
+
+		It("finds/chooses a worker", func() {
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+
+			_, _, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+			Expect(actualOwner).To(Equal(owner))
+			Expect(actualContainerSpec).To(Equal(containerSpec))
+			Expect(actualWorkerSpec).To(Equal(workerSpec))
+			Expect(strategy).To(Equal(fakeStrategy))
+		})
+
+		Context("worker is chosen", func() {
+			BeforeEach(func() {
+				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
+			})
+
+			It("calls Fetch on the worker", func() {
+				Expect(fakeChosenWorker.FetchCallCount()).To(Equal(1))
+				_, _, actualMetadata, actualChosenWorker, actualContainerSpec, actualProcessSpec, actualResource, actualOwner, actualImageFetcherSpec, actualResourceCache, actualLockName := fakeChosenWorker.FetchArgsForCall(0)
+
+				Expect(actualMetadata).To(Equal(metadata))
+				Expect(actualChosenWorker).To(Equal(fakeChosenWorker))
+				Expect(actualContainerSpec).To(Equal(containerSpec))
+				Expect(actualProcessSpec).To(Equal(fakeProcessSpec))
+				Expect(actualResource).To(Equal(fakeResource))
+				Expect(actualOwner).To(Equal(owner))
+				Expect(actualImageFetcherSpec).To(Equal(imageSpec))
+				Expect(actualResourceCache).To(Equal(fakeUsedResourceCache))
+				// Computed SHA
+				Expect(actualLockName).To(Equal("18c3de3f8ea112ba52e01f279b6cc62335b4bec2f359b9be7636a5ad7bf98f8c"))
+			})
+		})
+
+		Context("worker selection returns an error", func() {
+			BeforeEach(func() {
+				fakePool.FindOrChooseWorkerForContainerReturns(nil, disasterErr)
+			})
+
+			It("returns the error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(disasterErr))
+				//TODO do we care to assert on versionResult ?
+				Expect(versionResult).To(Equal(runtime.VersionResult{}))
+			})
+		})
+
+		Context("returns GetResult and error from worker -> Fetch", func() {
+			var (
+				fakeVolume    *workerfakes.FakeVolume
+				someGetResult worker.GetResult
+				someGetError  error
+			)
+			BeforeEach(func() {
+				someGetResult = worker.GetResult{
+					Status: 0,
+					VersionResult: runtime.VersionResult{
+						atc.Version{"some-version": "some-value"},
+						[]atc.MetadataField{{"foo", "bar"}},
+					},
+				}
+				someGetError = errors.New("some foo error")
+				fakeVolume = new(workerfakes.FakeVolume)
+
+				fakeChosenWorker.FetchReturns(someGetResult, fakeVolume, someGetError)
+
+			})
+
+			It("returns getResult from worker->Fetch", func() {
+				Expect(result).To(Equal(someGetResult))
+				Expect(err).To(Equal(someGetError))
+			})
+
+		})
+	})
+
 	Describe("RunTaskStep", func() {
 		var (
 			status       int
