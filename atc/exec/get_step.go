@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 )
+
+var ErrUndefinedGetResultState = errors.New("undefined 'get' result, script returned non-nil value but no err was returned")
 
 type ErrPipelineNotFound struct {
 	PipelineName string
@@ -183,11 +186,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		res,
 	)
 
-	if err != nil {
-		return err
-	}
-
-	if getResult.Status == 0 {
+	if getResult.Status == 0 && err == nil {
 		state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.Name), getResult.GetArtifact)
 
 		if step.plan.Resource != "" {
@@ -197,12 +196,17 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		step.delegate.Finished(logger, 0, getResult.VersionResult)
 
 		step.succeeded = true
-	} else {
-		// TODO  have a way of bubbling up the error message from getResult.Err
+
+		return nil
+	} else if getResult.Status != 0 {
 		step.delegate.Finished(logger, ExitStatus(getResult.Status), getResult.VersionResult)
+		return nil
+	} else {
+		// err is a concourse produced error, not associated to script failure
+		return err
 	}
 
-	return nil
+	return ErrUndefinedGetResultState
 }
 
 // Succeeded returns true if the resource was successfully fetched.
