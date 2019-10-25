@@ -11,7 +11,6 @@ module SubPage.SubPage exposing
     )
 
 import Application.Models exposing (Session)
-import Browser
 import Build.Build as Build
 import Build.Header.Models
 import Build.Models
@@ -21,7 +20,7 @@ import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
 import HoverState
-import Html
+import Html exposing (Html)
 import Job.Job as Job
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
@@ -225,7 +224,7 @@ handleDelivery session delivery =
 update : Session -> Message -> ET Model
 update session msg =
     genericUpdate
-        (Login.update msg >> Build.update session msg)
+        (Login.update msg >> Build.update msg)
         (Login.update msg >> Job.update msg)
         (Login.update msg >> Resource.update msg)
         (Login.update msg >> Pipeline.update msg)
@@ -295,47 +294,43 @@ urlUpdate route =
         identity
 
 
-view : Session -> Model -> Browser.Document TopLevelMessage
+view : Session -> Model -> ( String, Html Message )
 view ({ userState } as session) mdl =
-    let
-        ( title, body ) =
-            case mdl of
-                BuildModel model ->
-                    ( Build.documentTitle model
-                    , Build.view session model
-                    )
+    case mdl of
+        BuildModel model ->
+            ( Build.documentTitle model
+            , Build.view session model
+            )
 
-                JobModel model ->
-                    ( Job.documentTitle model
-                    , Job.view session model
-                    )
+        JobModel model ->
+            ( Job.documentTitle model
+            , Job.view session model
+            )
 
-                PipelineModel model ->
-                    ( Pipeline.documentTitle model
-                    , Pipeline.view session model
-                    )
+        PipelineModel model ->
+            ( Pipeline.documentTitle model
+            , Pipeline.view session model
+            )
 
-                ResourceModel model ->
-                    ( Resource.documentTitle model
-                    , Resource.view session model
-                    )
+        ResourceModel model ->
+            ( Resource.documentTitle model
+            , Resource.view session model
+            )
 
-                DashboardModel model ->
-                    ( Dashboard.documentTitle
-                    , Dashboard.view session model
-                    )
+        DashboardModel model ->
+            ( Dashboard.documentTitle
+            , Dashboard.view session model
+            )
 
-                NotFoundModel model ->
-                    ( NotFound.documentTitle
-                    , NotFound.view session model
-                    )
+        NotFoundModel model ->
+            ( NotFound.documentTitle
+            , NotFound.view session model
+            )
 
-                FlySuccessModel model ->
-                    ( FlySuccess.documentTitle
-                    , FlySuccess.view userState model
-                    )
-    in
-    { title = title ++ " - Concourse", body = [ Html.map Update body ] }
+        FlySuccessModel model ->
+            ( FlySuccess.documentTitle
+            , FlySuccess.view userState model
+            )
 
 
 subscriptions : Model -> List Subscription

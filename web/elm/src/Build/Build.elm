@@ -46,7 +46,7 @@ import Keyboard
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra
-import Message.Callback exposing (Callback(..))
+import Message.Callback exposing (Callback(..), TooltipPolicy(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
@@ -112,7 +112,6 @@ init flags =
           , previousTriggerBuildByKey = False
           , showHelp = False
           , highlight = flags.highlight
-          , hoveredCounter = 0
           , authorized = True
           , fetchingHistory = False
           , scrolledToCurrentBuild = False
@@ -317,18 +316,22 @@ handleDelivery session delivery ( model, effects ) =
             handleKeyPressed keyEvent ( model, effects )
 
         ClockTicked OneSecond time ->
-            let
-                newModel =
-                    { model
-                        | now = Just time
-                        , hoveredCounter = model.hoveredCounter + 1
-                    }
-            in
-            updateOutput
-                (Build.Output.Output.handleStepTreeMsg <|
-                    StepTree.updateTooltip session newModel
-                )
-                ( newModel, effects )
+            ( { model | now = Just time }
+            , effects
+                ++ (case session.hovered of
+                        HoverState.Hovered (FirstOccurrenceIcon stepID) ->
+                            [ GetViewportOf
+                                (FirstOccurrenceIcon stepID)
+                                AlwaysShow
+                            ]
+
+                        HoverState.Hovered (StepState stepID) ->
+                            [ GetViewportOf (StepState stepID) AlwaysShow ]
+
+                        _ ->
+                            []
+                   )
+            )
 
         ClockTicked FiveSeconds _ ->
             ( model, effects ++ [ Effects.FetchPipelines ] )
@@ -404,8 +407,8 @@ handleDelivery session delivery ( model, effects ) =
         |> Header.handleDelivery delivery
 
 
-update : { a | hovered : HoverState.HoverState } -> Message -> ET Model
-update session msg ( model, effects ) =
+update : Message -> ET Model
+update msg ( model, effects ) =
     (case msg of
         Click (BuildTab id name) ->
             ( model
@@ -415,15 +418,6 @@ update session msg ( model, effects ) =
                             Routes.buildRoute id name model.job
                    ]
             )
-
-        Hover _ ->
-            let
-                newModel =
-                    { model | hoveredCounter = 0 }
-            in
-            updateOutput
-                (Build.Output.Output.handleStepTreeMsg <| StepTree.updateTooltip session newModel)
-                ( newModel, effects )
 
         Click TriggerBuildButton ->
             (currentJob model

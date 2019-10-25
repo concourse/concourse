@@ -55,6 +55,10 @@
 
 * Fixed a [bug](https://github.com/concourse/concourse/issues/4493) where the job page would show a loading spinner forever when there were no builds (like before the job had ever been run) #4636.
 
+#### <sub><sup><a name="4630" href="#4630">:link:</a></sup></sub> fix
+
+* Fixed a [bug](https://github.com/concourse/concourse/issues/3921) where the tooltip that says 'new version' on a get step on the build page could be hidden underneath the build header #4630.
+
 #### <sub><sup><a name="4637" href="#4637">:link:</a></sup></sub> fix
 
 * Fixed a [bug](https://github.com/concourse/concourse/issues/3942) where log lines on the build page would have all their timestamps off by one. #4637

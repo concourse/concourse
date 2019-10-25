@@ -5,7 +5,6 @@ module Build.StepTree.StepTree exposing
     , setHighlight
     , switchTab
     , toggleStep
-    , updateTooltip
     , view
     )
 
@@ -38,13 +37,14 @@ import Dict exposing (Dict)
 import Duration
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, href, style, target)
+import Html.Attributes exposing (attribute, class, classList, href, id, style, target)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Message.Effects exposing (Effect(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
 import StrictEvents
 import Time
+import Tooltip
 import Url exposing (fromString)
 import Views.DictView as DictView
 import Views.Icon as Icon
@@ -132,14 +132,15 @@ initMultiStep hl resources planId constructor plans =
 
         selfFoci =
             Dict.singleton planId identity
-
-        foci =
-            inited
-                |> Array.map .foci
-                |> Array.indexedMap wrapMultiStep
-                |> Array.foldr Dict.union selfFoci
     in
-    StepTreeModel (constructor trees) foci hl Nothing
+    { tree = constructor trees
+    , foci =
+        inited
+            |> Array.map .foci
+            |> Array.indexedMap wrapMultiStep
+            |> Array.foldr Dict.union selfFoci
+    , highlight = hl
+    }
 
 
 initBottom :
@@ -186,7 +187,6 @@ initBottom hl create id name =
     { tree = create step
     , foci = Dict.singleton id identity
     , highlight = hl
-    , tooltip = Nothing
     }
 
 
@@ -204,7 +204,6 @@ initWrappedStep hl resources create plan =
     { tree = create tree
     , foci = Dict.map (always wrapStep) foci
     , highlight = hl
-    , tooltip = Nothing
     }
 
 
@@ -228,7 +227,6 @@ initHookedStep hl resources create hookedPlan =
             (Dict.map (always wrapStep) stepModel.foci)
             (Dict.map (always wrapHook) hookModel.foci)
     , highlight = hl
-    , tooltip = Nothing
     }
 
 
@@ -368,49 +366,6 @@ extendHighlight id line root =
                         HighlightLine id line
     in
     ( { root | highlight = hl }, [ ModifyUrl (showHighlight hl) ] )
-
-
-updateTooltip :
-    { a | hovered : HoverState.HoverState }
-    -> { b | hoveredCounter : Int }
-    -> StepTreeModel
-    -> ( StepTreeModel, List Effect )
-updateTooltip { hovered } { hoveredCounter } model =
-    let
-        newTooltip =
-            case hovered of
-                HoverState.Tooltip (FirstOccurrenceIcon x) _ ->
-                    if hoveredCounter > 0 then
-                        Just (FirstOccurrenceIcon x)
-
-                    else
-                        Nothing
-
-                HoverState.Hovered (FirstOccurrenceIcon x) ->
-                    if hoveredCounter > 0 then
-                        Just (FirstOccurrenceIcon x)
-
-                    else
-                        Nothing
-
-                HoverState.Tooltip (StepState x) _ ->
-                    if hoveredCounter > 0 then
-                        Just (StepState x)
-
-                    else
-                        Nothing
-
-                HoverState.Hovered (StepState x) ->
-                    if hoveredCounter > 0 then
-                        Just (StepState x)
-
-                    else
-                        Nothing
-
-                _ ->
-                    Nothing
-    in
-    ( { model | tooltip = newTooltip }, [] )
 
 
 view :
@@ -558,13 +513,21 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
             )
             [ Html.div
                 [ style "display" "flex" ]
-                [ viewStepHeaderIcon headerType (model.tooltip == Just (FirstOccurrenceIcon id)) id
+                [ viewStepHeaderIcon headerType id
                 , Html.h3 [] [ Html.text name ]
                 ]
             , Html.div
                 [ style "display" "flex" ]
                 [ viewVersion version
-                , viewStepState state id (viewDurationTooltip initialize start finish (model.tooltip == Just (StepState id)))
+                , viewStepState
+                    state
+                    id
+                    (viewDurationTooltip
+                        initialize
+                        start
+                        finish
+                        (showTooltip session <| StepState id)
+                    )
                 ]
             ]
         , if expanded then
@@ -586,6 +549,16 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
           else
             Html.text ""
         ]
+
+
+showTooltip : Tooltip.Model b -> DomID -> Bool
+showTooltip session domID =
+    case session.hovered of
+        HoverState.Tooltip x _ ->
+            x == domID
+
+        _ ->
+            False
 
 
 viewLogs :
@@ -733,11 +706,12 @@ viewMetadata =
 
 
 viewStepState : StepState -> StepID -> List (Html Message) -> Html Message
-viewStepState state id tooltip =
+viewStepState state stepID tooltip =
     let
-        eventHandlers =
+        attributes =
             [ onMouseLeave <| Hover Nothing
-            , onMouseEnter <| Hover (Just (StepState id))
+            , onMouseEnter <| Hover (Just (StepState stepID))
+            , id <| toHtmlID <| StepState stepID
             , style "position" "relative"
             ]
     in
@@ -755,7 +729,7 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "pending"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
@@ -766,7 +740,7 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "interrupted"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
@@ -777,7 +751,7 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "cancelled"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
@@ -788,7 +762,7 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "succeeded"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
@@ -799,7 +773,7 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "failed"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
@@ -810,37 +784,29 @@ viewStepState state id tooltip =
                 }
                 (attribute "data-step-state" "errored"
                     :: Styles.stepStatusIcon
-                    ++ eventHandlers
+                    ++ attributes
                 )
                 tooltip
 
 
-viewStepHeaderIcon : StepHeaderType -> Bool -> StepID -> Html Message
-viewStepHeaderIcon headerType tooltip id =
+viewStepHeaderIcon : StepHeaderType -> StepID -> Html Message
+viewStepHeaderIcon headerType stepID =
     let
         eventHandlers =
             if headerType == StepHeaderGet True then
                 [ onMouseLeave <| Hover Nothing
-                , onMouseEnter <| Hover <| Just <| FirstOccurrenceIcon id
+                , onMouseEnter <| Hover <| Just <| FirstOccurrenceIcon stepID
                 ]
 
             else
                 []
     in
     Html.div
-        (Styles.stepHeaderIcon headerType ++ eventHandlers)
-        (if tooltip then
-            [ Html.div
-                Styles.firstOccurrenceTooltip
-                [ Html.text "new version" ]
-            , Html.div
-                Styles.firstOccurrenceTooltipArrow
-                []
-            ]
-
-         else
-            []
+        (id (toHtmlID <| FirstOccurrenceIcon stepID)
+            :: Styles.stepHeaderIcon headerType
+            ++ eventHandlers
         )
+        []
 
 
 viewDurationTooltip : Maybe Time.Posix -> Maybe Time.Posix -> Maybe Time.Posix -> Bool -> List (Html Message)

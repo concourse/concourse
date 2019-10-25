@@ -27,7 +27,6 @@ type alias Model =
             , shiftDown : Bool
             , showHelp : Bool
             , highlight : Highlight
-            , hoveredCounter : Int
             , authorized : Bool
             , output : CurrentOutput
             , prep : Maybe Concourse.BuildPrep
