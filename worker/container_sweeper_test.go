@@ -58,6 +58,7 @@ var _ = Describe("Container Sweeper", func() {
 		gardenAddr := fmt.Sprintf("http://%s", garden.Addr())
 		gardenClient = gclient.BasicGardenClientWithRequestTimeout(testLogger, gardenClientRequestTimeout, gardenAddr)
 
+		fakeTSAClient = workerfakes.FakeTSAClient{}
 		fakeTSAClient.ReportContainersReturns(nil)
 
 		sweeper = worker.NewContainerSweeper(testLogger, sweepInterval, &fakeTSAClient, gardenClient, maxInFlight)
