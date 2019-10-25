@@ -342,12 +342,7 @@ func (client *client) RunGetStep(
 		resourceCache,
 		lockName,
 	)
-	if err != nil {
-		logger.Error("failed-to-fetch-resource", err)
-		return GetResult{}, err
-	}
-
-	return getResult, nil
+	return getResult, err
 }
 
 func (client *client) chooseTaskWorker(
