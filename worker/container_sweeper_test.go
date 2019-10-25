@@ -65,7 +65,16 @@ var _ = Describe("Container Sweeper", func() {
 
 	})
 
+	JustBeforeEach(func() {
+		go func() {
+			_ = sweeper.Run(osSignal, readyChan)
+			close(exited)
+		}()
+	})
+
 	AfterEach(func() {
+		close(osSignal)
+		<-exited
 		garden.Close()
 	})
 
@@ -74,12 +83,6 @@ var _ = Describe("Container Sweeper", func() {
 			gardenContext context.Context
 			gardenCancel  context.CancelFunc
 		)
-		JustBeforeEach(func() {
-			go func() {
-				_ = sweeper.Run(osSignal, readyChan)
-				close(exited)
-			}()
-		})
 
 		BeforeEach(func() {
 			gardenContext, gardenCancel = context.WithCancel(context.Background())
@@ -126,9 +129,8 @@ var _ = Describe("Container Sweeper", func() {
 
 		})
 		AfterEach(func() {
-			close(osSignal)
-			<-exited
 			gardenCancel()
+
 		})
 
 		It("request to garden times out eventually", func() {
