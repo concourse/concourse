@@ -597,9 +597,9 @@ var _ = FDescribe("Client", func() {
 
 			Context("when volumes are configured and present on the container", func() {
 				var (
-					fakeMountPath1 string = "some-artifact-root/some-output-configured-path/"
-					fakeMountPath2 string = "some-artifact-root/some-other-output/"
-					fakeMountPath3 string = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
+					fakeMountPath1 = "some-artifact-root/some-output-configured-path/"
+					fakeMountPath2 = "some-artifact-root/some-other-output/"
+					fakeMountPath3 = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
 
 					fakeVolume1 *workerfakes.FakeVolume
 					fakeVolume2 *workerfakes.FakeVolume
@@ -654,9 +654,9 @@ var _ = FDescribe("Client", func() {
 				fakeProcess         *gardenfakes.FakeProcess
 				fakeProcessExitCode int
 
-				fakeMountPath1 string = "some-artifact-root/some-output-configured-path/"
-				fakeMountPath2 string = "some-artifact-root/some-other-output/"
-				fakeMountPath3 string = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
+				fakeMountPath1 = "some-artifact-root/some-output-configured-path/"
+				fakeMountPath2 = "some-artifact-root/some-other-output/"
+				fakeMountPath3 = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
 
 				fakeVolume1 *workerfakes.FakeVolume
 				fakeVolume2 *workerfakes.FakeVolume
@@ -679,15 +679,15 @@ var _ = FDescribe("Client", func() {
 				fakeVolume3.HandleReturns("some-handle-3")
 
 				fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-					worker.VolumeMount{
+					{
 						Volume:    fakeVolume1,
 						MountPath: fakeMountPath1,
 					},
-					worker.VolumeMount{
+					{
 						Volume:    fakeVolume2,
 						MountPath: fakeMountPath2,
 					},
-					worker.VolumeMount{
+					{
 						Volume:    fakeVolume3,
 						MountPath: fakeMountPath3,
 					},
@@ -955,9 +955,9 @@ var _ = FDescribe("Client", func() {
 
 					Context("when volumes are configured and present on the container", func() {
 						var (
-							fakeMountPath1 string = "some-artifact-root/some-output-configured-path/"
-							fakeMountPath2 string = "some-artifact-root/some-other-output/"
-							fakeMountPath3 string = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
+							fakeMountPath1 = "some-artifact-root/some-output-configured-path/"
+							fakeMountPath2 = "some-artifact-root/some-other-output/"
+							fakeMountPath3 = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
 
 							fakeVolume1 *workerfakes.FakeVolume
 							fakeVolume2 *workerfakes.FakeVolume
@@ -1122,11 +1122,11 @@ var _ = FDescribe("Client", func() {
 	Describe("RunPutStep", func() {
 
 		var (
-			ctx               context.Context
-			cancel            func()
-			owner             db.ContainerOwner
-			containerSpec     worker.ContainerSpec
-			workerSpec        worker.WorkerSpec
+			ctx           context.Context
+			cancel        func()
+			owner         db.ContainerOwner
+			containerSpec worker.ContainerSpec
+			workerSpec    worker.WorkerSpec
 			// source            atc.Source
 			// params            atc.Params
 			metadata          db.ContainerMetadata
@@ -1137,7 +1137,7 @@ var _ = FDescribe("Client", func() {
 			fakeResourceTypes atc.VersionedResourceTypes
 			fakeContainer     *workerfakes.FakeContainer
 			fakeProcessSpec   runtime.ProcessSpec
-			fakeResource *resourcefakes.FakeResource
+			fakeResource      *resourcefakes.FakeResource
 
 			versionResult runtime.VersionResult
 			status        int
