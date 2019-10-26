@@ -104,18 +104,18 @@ func (emitter *NewRelicEmitter) emitPayload(logger lager.Logger, payload fullPay
 	resp, err := emitter.client.Do(req)
 
 	if err != nil {
-		logger.Error("new-relic-failed-to-send-request",
+		logger.Error("failed-to-send-request",
 			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
 		return
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			logger.Info("new-relic-failed-to-send-request",
-				lager.Data{"error": "Failed to read response body", "status-code": resp.StatusCode})
+			logger.Info("failed-to-read-response-body",
+				lager.Data{"error": err.Error(), "status-code": resp.StatusCode})
 			return
 		}
-		logger.Info("new-relic-failed-to-send-request",
+		logger.Info("received-non-2xx-response-status-code",
 			lager.Data{"response-body": string(bodyBytes), "status-code": resp.StatusCode })
 		return
 	}
@@ -124,6 +124,7 @@ func (emitter *NewRelicEmitter) emitPayload(logger lager.Logger, payload fullPay
 }
 
 func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
+	logger = logger.Session("new-relic")
 	payload := make(fullPayload, 0)
 
 	switch event.Name {
