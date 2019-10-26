@@ -322,7 +322,7 @@ func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, p
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", targetUrl)
 			tokenChannel <- r.FormValue("token")
-			if (r.Header.Get("Upgrade-Insecure-Requests") != "") {
+			if r.Header.Get("Upgrade-Insecure-Requests") != "" {
 				http.Redirect(w, r, fmt.Sprintf("%s/fly_success?noop=true", targetUrl), http.StatusFound)
 			}
 		}),

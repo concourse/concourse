@@ -130,6 +130,52 @@ var _ = Describe("ResourceType", func() {
 			})
 		})
 
+		Context("when the resource types list has resource with same name", func() {
+			BeforeEach(func() {
+				var (
+					created bool
+					err     error
+				)
+
+				pipeline, created, err = defaultTeam.SavePipeline(
+					"pipeline-with-types",
+					atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-name",
+								Type:   "some-name",
+								Source: atc.Source{},
+							},
+						},
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name:       "some-name",
+								Type:       "some-custom-type",
+								Source:     atc.Source{"some": "repository"},
+								CheckEvery: "10ms",
+							},
+						},
+					},
+					pipeline.ConfigVersion(),
+					false,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeFalse())
+			})
+
+			It("returns the resource types tree given a resource", func() {
+				resource, found, err := pipeline.Resource("some-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				tree := resourceTypes.Filter(resource)
+				Expect(len(tree)).To(Equal(1))
+
+				Expect(tree[0].Name()).To(Equal("some-name"))
+				Expect(tree[0].Type()).To(Equal("some-custom-type"))
+			})
+		})
+
 		Context("when building the dependency tree from resource types list", func() {
 			BeforeEach(func() {
 				var (

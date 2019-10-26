@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -14,9 +13,8 @@ import (
 var _ = Describe("Worker lifecycle", func() {
 
 	var (
-		proxySession *gexec.Session
-		atcEndpoint  string
-		gracePeriod  string
+		atc         Endpoint
+		gracePeriod string
 	)
 
 	JustBeforeEach(func() {
@@ -28,21 +26,7 @@ var _ = Describe("Worker lifecycle", func() {
 			`--set=worker.terminationGracePeriodSeconds=`+gracePeriod,
 		)
 
-		waitAllPodsInNamespaceToBeReady(namespace)
-
-		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(
-			namespace, "service/"+releaseName+"-web", "8080",
-		)
-
-		By("Logging in")
-		fly.Login("test", "test", atcEndpoint)
-
-		By("waiting for a running worker")
-		Eventually(func() []Worker {
-			return getRunningWorkers(fly.GetWorkers())
-		}, 2*time.Minute, 10*time.Second).
-			ShouldNot(HaveLen(0))
+		atc = waitAndLogin(namespace, releaseName+"-web")
 
 		fly.Run("set-pipeline", "-n",
 			"-c", "pipelines/task-waiting.yml",
@@ -72,7 +56,8 @@ var _ = Describe("Worker lifecycle", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
+		atc.Close()
+		cleanup(releaseName, namespace)
 	})
 
 	Context("terminating the worker", func() {

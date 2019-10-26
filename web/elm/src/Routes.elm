@@ -17,6 +17,7 @@ module Routes exposing
 
 import Concourse
 import Concourse.Pagination as Pagination exposing (Direction(..))
+import Maybe.Extra
 import Url
 import Url.Builder as Builder
 import Url.Parser
@@ -194,7 +195,13 @@ pipeline =
 dashboard : Parser (Route -> a) a
 dashboard =
     oneOf
-        [ map (Normal >> Dashboard) (top <?> Query.string "search")
+        [ map
+            (Maybe.map (String.replace "+" " ")
+                -- https://github.com/elm/url/issues/32
+                >> Normal
+                >> Dashboard
+            )
+            (top <?> Query.string "search")
         , map (Dashboard HighDensity) (s "hd")
         ]
 
@@ -332,108 +339,106 @@ sitemap =
         ]
 
 
-pageToQueryString : Maybe Pagination.Page -> String
-pageToQueryString page =
+pageToQueryParams : Maybe Pagination.Page -> List Builder.QueryParameter
+pageToQueryParams page =
     case page of
         Nothing ->
-            ""
+            []
 
         Just { direction, limit } ->
-            "?"
-                ++ (case direction of
-                        Since id ->
-                            "since=" ++ String.fromInt id
+            [ case direction of
+                Since id ->
+                    Builder.int "since" id
 
-                        Until id ->
-                            "until=" ++ String.fromInt id
+                Until id ->
+                    Builder.int "until" id
 
-                        From id ->
-                            "from=" ++ String.fromInt id
+                From id ->
+                    Builder.int "from" id
 
-                        To id ->
-                            "to=" ++ String.fromInt id
-                   )
-                ++ "&limit="
-                ++ String.fromInt limit
+                To id ->
+                    Builder.int "to" id
+            , Builder.int "limit" limit
+            ]
 
 
 toString : Route -> String
 toString route =
     case route of
         Build { id, highlight } ->
-            "/teams/"
-                ++ id.teamName
-                ++ "/pipelines/"
-                ++ id.pipelineName
-                ++ "/jobs/"
-                ++ id.jobName
-                ++ "/builds/"
-                ++ id.buildName
+            Builder.absolute
+                [ "teams"
+                , id.teamName
+                , "pipelines"
+                , id.pipelineName
+                , "jobs"
+                , id.jobName
+                , "builds"
+                , id.buildName
+                ]
+                []
                 ++ showHighlight highlight
 
         Job { id, page } ->
-            "/teams/"
-                ++ id.teamName
-                ++ "/pipelines/"
-                ++ id.pipelineName
-                ++ "/jobs/"
-                ++ id.jobName
-                ++ pageToQueryString page
+            Builder.absolute
+                [ "teams"
+                , id.teamName
+                , "pipelines"
+                , id.pipelineName
+                , "jobs"
+                , id.jobName
+                ]
+                (pageToQueryParams page)
 
         Resource { id, page } ->
-            "/teams/"
-                ++ id.teamName
-                ++ "/pipelines/"
-                ++ id.pipelineName
-                ++ "/resources/"
-                ++ id.resourceName
-                ++ pageToQueryString page
+            Builder.absolute
+                [ "teams"
+                , id.teamName
+                , "pipelines"
+                , id.pipelineName
+                , "resources"
+                , id.resourceName
+                ]
+                (pageToQueryParams page)
 
         OneOffBuild { id, highlight } ->
-            "/builds/"
-                ++ String.fromInt id
+            Builder.absolute
+                [ "builds"
+                , String.fromInt id
+                ]
+                []
                 ++ showHighlight highlight
 
         Pipeline { id, groups } ->
-            "/teams/"
-                ++ id.teamName
-                ++ "/pipelines/"
-                ++ id.pipelineName
-                ++ (case groups of
-                        [] ->
-                            ""
-
-                        gs ->
-                            "?group=" ++ String.join "&group=" gs
-                   )
+            Builder.absolute
+                [ "teams"
+                , id.teamName
+                , "pipelines"
+                , id.pipelineName
+                ]
+                (groups |> List.map (Builder.string "group"))
 
         Dashboard (Normal (Just search)) ->
-            "/?search=" ++ search
+            Builder.absolute [] [ Builder.string "search" search ]
 
         Dashboard (Normal Nothing) ->
-            "/"
+            Builder.absolute [] []
 
         Dashboard HighDensity ->
-            "/hd"
+            Builder.absolute [ "hd" ] []
 
-        FlySuccess noop (Just flyPort) ->
-            "/fly_success?fly_port="
-                ++ String.fromInt flyPort
-                ++ (if noop then
-                        "&noop=true"
+        FlySuccess noop flyPort ->
+            Builder.absolute [ "fly_success" ] <|
+                (flyPort
+                    |> Maybe.map (Builder.int "fly_port")
+                    |> Maybe.Extra.toList
+                )
+                    ++ (if noop then
+                            [ Builder.string "noop" "true" ]
 
-                    else
-                        ""
-                   )
-
-        FlySuccess noop Nothing ->
-            "/fly_success"
-                ++ (if noop then
-                        "?noop=true"
-
-                    else
-                        ""
-                   )
+                        else
+                            []
+                       )
 
 
 parsePath : Url.Url -> Maybe Route

@@ -245,11 +245,17 @@ func (c *check) AcquireTrackingLock(logger lager.Logger) (lock.Lock, bool, error
 func (c *check) AllCheckables() ([]Checkable, error) {
 	var checkables []Checkable
 
+	tx, err := c.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
 	rows, err := resourcesQuery.
 		Where(sq.Eq{
 			"r.resource_config_scope_id": c.resourceConfigScopeID,
 		}).
-		RunWith(c.conn).
+		RunWith(tx).
 		Query()
 
 	if err != nil {
@@ -276,7 +282,7 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 		Where(sq.Eq{
 			"ro.id": c.resourceConfigScopeID,
 		}).
-		RunWith(c.conn).
+		RunWith(tx).
 		Query()
 
 	if err != nil {
@@ -297,6 +303,11 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 		}
 
 		checkables = append(checkables, r)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
 	return checkables, nil

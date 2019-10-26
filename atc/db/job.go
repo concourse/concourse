@@ -161,12 +161,19 @@ func (j *job) Unpause() error {
 }
 
 func (j *job) FinishedAndNextBuild() (Build, Build, error) {
-	next, err := j.nextBuild()
+	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	finished, err := j.finishedBuild()
+	defer Rollback(tx)
+
+	next, err := j.nextBuild(tx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	finished, err := j.finishedBuild(tx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -175,10 +182,15 @@ func (j *job) FinishedAndNextBuild() (Build, Build, error) {
 	if next != nil && finished != nil && next.ID() == finished.ID() {
 		next = nil
 
-		next, err = j.nextBuild()
+		next, err = j.nextBuild(tx)
 		if err != nil {
 			return nil, nil, err
 		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return finished, next, nil
@@ -783,13 +795,13 @@ func (j *job) saveJobInputMapping(table string, inputMapping algorithm.InputMapp
 	return tx.Commit()
 }
 
-func (j *job) nextBuild() (Build, error) {
+func (j *job) nextBuild(tx Tx) (Build, error) {
 	var next Build
 
 	row := buildsQuery.
 		Where(sq.Eq{"j.id": j.id}).
 		Where(sq.Expr("b.id = j.next_build_id")).
-		RunWith(j.conn).
+		RunWith(tx).
 		QueryRow()
 
 	nextBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
@@ -803,13 +815,13 @@ func (j *job) nextBuild() (Build, error) {
 	return next, nil
 }
 
-func (j *job) finishedBuild() (Build, error) {
+func (j *job) finishedBuild(tx Tx) (Build, error) {
 	var finished Build
 
 	row := buildsQuery.
 		Where(sq.Eq{"j.id": j.id}).
 		Where(sq.Expr("b.id = j.latest_completed_build_id")).
-		RunWith(j.conn).
+		RunWith(tx).
 		QueryRow()
 
 	finishedBuild := &build{conn: j.conn, lockFactory: j.lockFactory}

@@ -57,7 +57,7 @@ type ResourceTypes []ResourceType
 func (resourceTypes ResourceTypes) Parent(checkable Checkable) (ResourceType, bool) {
 	for _, t := range resourceTypes {
 		if t.PipelineID() == checkable.PipelineID() {
-			if t.Name() != checkable.Name() && t.Name() == checkable.Type() {
+			if t != checkable && t.Name() == checkable.Type() {
 				return t, true
 			}
 		}
@@ -240,7 +240,7 @@ func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.Ve
 	}
 
 	// A nil value is passed into the Resource object parameter because we always want resource type versions to be shared
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, t.conn, t.lockFactory, resourceConfig, nil, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, t.conn, t.lockFactory, resourceConfig, nil, t.type_, resourceTypes)
 	if err != nil {
 		return nil, err
 	}

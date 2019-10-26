@@ -40,19 +40,6 @@ func (s *scanner) Run(ctx context.Context) error {
 	s.logger.Info("start")
 	defer s.logger.Info("end")
 
-	lock, acquired, err := s.checkFactory.AcquireScanningLock(s.logger)
-	if err != nil {
-		s.logger.Error("failed-to-get-scanning-lock", err)
-		return err
-	}
-
-	if !acquired {
-		s.logger.Debug("scanning-already-in-progress")
-		return nil
-	}
-
-	defer lock.Release()
-
 	resources, err := s.checkFactory.Resources()
 	if err != nil {
 		s.logger.Error("failed-to-get-resources", err)

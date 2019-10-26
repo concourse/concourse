@@ -232,19 +232,21 @@ appendStepLog output mtime tree =
         \step ->
             let
                 outputLineCount =
-                    Ansi.Log.update output (Ansi.Log.init Ansi.Log.Cooked) |> .lines |> Array.length
+                    Ansi.Log.update output (Ansi.Log.init Ansi.Log.Cooked)
+                        |> .lines
+                        |> Array.length
 
-                logLineCount =
-                    max (Array.length step.log.lines - 1) 0
+                lastLineNo =
+                    max (Array.length step.log.lines) 1
 
-                setLineTimestamp line timestamps =
-                    Dict.update line (always mtime) timestamps
+                setLineTimestamp lineNo timestamps =
+                    Dict.update lineNo (always mtime) timestamps
 
                 newTimestamps =
                     List.foldl
                         setLineTimestamp
                         step.timestamps
-                        (List.range logLineCount (logLineCount + outputLineCount - 1))
+                        (List.range lastLineNo (lastLineNo + outputLineCount - 1))
 
                 newLog =
                     Ansi.Log.update output step.log

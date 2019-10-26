@@ -21,6 +21,20 @@ type FakeContainerRepository struct {
 		result1 int
 		result2 error
 	}
+	DestroyUnknownContainersStub        func(string, []string) (int, error)
+	destroyUnknownContainersMutex       sync.RWMutex
+	destroyUnknownContainersArgsForCall []struct {
+		arg1 string
+		arg2 []string
+	}
+	destroyUnknownContainersReturns struct {
+		result1 int
+		result2 error
+	}
+	destroyUnknownContainersReturnsOnCall map[int]struct {
+		result1 int
+		result2 error
+	}
 	FindDestroyingContainersStub        func(string) ([]string, error)
 	findDestroyingContainersMutex       sync.RWMutex
 	findDestroyingContainersArgsForCall []struct {
@@ -143,6 +157,75 @@ func (fake *FakeContainerRepository) DestroyFailedContainersReturnsOnCall(i int,
 		})
 	}
 	fake.destroyFailedContainersReturnsOnCall[i] = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerRepository) DestroyUnknownContainers(arg1 string, arg2 []string) (int, error) {
+	var arg2Copy []string
+	if arg2 != nil {
+		arg2Copy = make([]string, len(arg2))
+		copy(arg2Copy, arg2)
+	}
+	fake.destroyUnknownContainersMutex.Lock()
+	ret, specificReturn := fake.destroyUnknownContainersReturnsOnCall[len(fake.destroyUnknownContainersArgsForCall)]
+	fake.destroyUnknownContainersArgsForCall = append(fake.destroyUnknownContainersArgsForCall, struct {
+		arg1 string
+		arg2 []string
+	}{arg1, arg2Copy})
+	fake.recordInvocation("DestroyUnknownContainers", []interface{}{arg1, arg2Copy})
+	fake.destroyUnknownContainersMutex.Unlock()
+	if fake.DestroyUnknownContainersStub != nil {
+		return fake.DestroyUnknownContainersStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.destroyUnknownContainersReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeContainerRepository) DestroyUnknownContainersCallCount() int {
+	fake.destroyUnknownContainersMutex.RLock()
+	defer fake.destroyUnknownContainersMutex.RUnlock()
+	return len(fake.destroyUnknownContainersArgsForCall)
+}
+
+func (fake *FakeContainerRepository) DestroyUnknownContainersCalls(stub func(string, []string) (int, error)) {
+	fake.destroyUnknownContainersMutex.Lock()
+	defer fake.destroyUnknownContainersMutex.Unlock()
+	fake.DestroyUnknownContainersStub = stub
+}
+
+func (fake *FakeContainerRepository) DestroyUnknownContainersArgsForCall(i int) (string, []string) {
+	fake.destroyUnknownContainersMutex.RLock()
+	defer fake.destroyUnknownContainersMutex.RUnlock()
+	argsForCall := fake.destroyUnknownContainersArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeContainerRepository) DestroyUnknownContainersReturns(result1 int, result2 error) {
+	fake.destroyUnknownContainersMutex.Lock()
+	defer fake.destroyUnknownContainersMutex.Unlock()
+	fake.DestroyUnknownContainersStub = nil
+	fake.destroyUnknownContainersReturns = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerRepository) DestroyUnknownContainersReturnsOnCall(i int, result1 int, result2 error) {
+	fake.destroyUnknownContainersMutex.Lock()
+	defer fake.destroyUnknownContainersMutex.Unlock()
+	fake.DestroyUnknownContainersStub = nil
+	if fake.destroyUnknownContainersReturnsOnCall == nil {
+		fake.destroyUnknownContainersReturnsOnCall = make(map[int]struct {
+			result1 int
+			result2 error
+		})
+	}
+	fake.destroyUnknownContainersReturnsOnCall[i] = struct {
 		result1 int
 		result2 error
 	}{result1, result2}
@@ -475,6 +558,8 @@ func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.destroyFailedContainersMutex.RLock()
 	defer fake.destroyFailedContainersMutex.RUnlock()
+	fake.destroyUnknownContainersMutex.RLock()
+	defer fake.destroyUnknownContainersMutex.RUnlock()
 	fake.findDestroyingContainersMutex.RLock()
 	defer fake.findDestroyingContainersMutex.RUnlock()
 	fake.findOrphanedContainersMutex.RLock()

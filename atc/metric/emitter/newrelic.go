@@ -102,7 +102,6 @@ func (emitter *NewRelicEmitter) emitPayload(logger lager.Logger, payload fullPay
 	req.Header.Add("X-Insert-Key", emitter.apikey)
 
 	resp, err := emitter.client.Do(req)
-
 	if err != nil {
 		logger.Error("failed-to-send-request",
 			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
@@ -136,7 +135,9 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 		"worker volumes",
 		"http response time",
 		"database queries",
-		"database connections":
+		"database connections",
+		"worker unknown containers",
+		"worker unknown volumes":
 		payload = append(payload, emitter.simplePayload(logger, event, ""))
 
 	// These are periodic metrics that are consolidated and only emitted once

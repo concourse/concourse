@@ -2,6 +2,7 @@ module Job.Styles exposing
     ( buildResourceHeader
     , buildResourceIcon
     , icon
+    , noBuildsMessage
     , triggerButton
     , triggerTooltip
     )
@@ -74,4 +75,11 @@ buildResourceIcon : List (Html.Attribute msg)
 buildResourceIcon =
     [ style "background-size" "contain"
     , style "margin-right" "5px"
+    ]
+
+
+noBuildsMessage : List (Html.Attribute msg)
+noBuildsMessage =
+    [ style "font-size" "16px"
+    , style "padding" "10px 0 0 30px"
     ]

@@ -177,14 +177,9 @@ func (command *BuildsCommand) Execute([]string) error {
 		},
 	}
 
-	var rangeUntil int
-	if command.Count < len(builds) {
-		rangeUntil = command.Count
-	} else {
-		rangeUntil = len(builds)
-	}
+	buildCap := command.buildCap(builds)
 
-	for _, b := range builds[:rangeUntil] {
+	for _, b := range builds[:buildCap] {
 		startTimeCell, endTimeCell, durationCell := populateTimeCells(time.Unix(b.StartTime, 0), time.Unix(b.EndTime, 0))
 
 		var pipelineJobCell, buildCell ui.TableCell
@@ -271,4 +266,12 @@ func (command *BuildsCommand) jobFlag() bool {
 
 func (command *BuildsCommand) pipelineFlag() bool {
 	return command.Pipeline != ""
+}
+
+func (command *BuildsCommand) buildCap(builds []atc.Build) int {
+	if command.Count < len(builds) {
+		return command.Count
+	}
+
+	return len(builds)
 }

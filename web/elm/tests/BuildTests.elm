@@ -2737,50 +2737,12 @@ all =
                                 (ClockTicked OneSecond <|
                                     Time.millisToPosix 1
                                 )
-                            >> Tuple.first
-                            >> Common.queryView
-                            >> Query.findAll
-                                (iconSelector
-                                    { size = "28px"
-                                    , image = "ic-arrow-downward-yellow.svg"
-                                    }
+                            >> Tuple.second
+                            >> Common.contains
+                                (Effects.GetViewportOf
+                                    (Message.Message.FirstOccurrenceIcon "foo")
+                                    Callback.AlwaysShow
                                 )
-                            >> Query.first
-                            >> Query.has
-                                [ style "position" "relative"
-                                , containing
-                                    [ containing [ text "new version" ]
-                                    , style "position" "absolute"
-                                    , style "left" "0"
-                                    , style "bottom" "100%"
-                                    , style "background-color" tooltipGreyHex
-                                    , style "padding" "5px"
-                                    , style "z-index" "100"
-                                    , style "width" "6em"
-                                    , style "pointer-events" "none"
-                                    , style "cursor" "default"
-                                    , style "user-select" "none"
-                                    , style "-ms-user-select" "none"
-                                    , style "-moz-user-select" "none"
-                                    , style "-khtml-user-select" "none"
-                                    , style "-webkit-user-select" "none"
-                                    , style "-webkit-touch-callout" "none"
-                                    ]
-                                , containing
-                                    [ style "width" "0"
-                                    , style "height" "0"
-                                    , style "left" "50%"
-                                    , style "margin-left" "-5px"
-                                    , style "border-top" <|
-                                        "5px solid "
-                                            ++ tooltipGreyHex
-                                    , style "border-left"
-                                        "5px solid transparent"
-                                    , style "border-right"
-                                        "5px solid transparent"
-                                    , style "position" "absolute"
-                                    ]
-                                ]
                     , test "mousing off yellow arrow triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> Application.update
@@ -2856,6 +2818,44 @@ all =
                         >> Application.handleDelivery
                             (ClockTicked OneSecond <|
                                 Time.millisToPosix 1
+                            )
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.GotViewport Callback.AlwaysShow <|
+                                Ok
+                                    { scene =
+                                        { width = 1
+                                        , height = 0
+                                        }
+                                    , viewport =
+                                        { width = 1
+                                        , height = 0
+                                        , x = 0
+                                        , y = 0
+                                        }
+                                    }
+                            )
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.GotElement <|
+                                Ok
+                                    { scene =
+                                        { width = 0
+                                        , height = 0
+                                        }
+                                    , viewport =
+                                        { width = 0
+                                        , height = 0
+                                        , x = 0
+                                        , y = 0
+                                        }
+                                    , element =
+                                        { x = 0
+                                        , y = 0
+                                        , width = 1
+                                        , height = 1
+                                        }
+                                    }
                             )
                         >> Tuple.first
                         >> Common.queryView
@@ -2968,6 +2968,51 @@ all =
                         >> Query.children []
                         >> Query.index -1
                         >> Query.has [ text "v3.1.4" ]
+                , test "one tick after hovering step state, GetElement fires" <|
+                    fetchPlanWithGetStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.InitializeTask
+                                                { source = "stdout", id = "plan" }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout", id = "plan" }
+                                                (Time.millisToPosix 10000)
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.FinishTask
+                                                { source = "stdout", id = "plan" }
+                                                0
+                                                (Time.millisToPosix 30000)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Hover <|
+                                    Just <|
+                                        Message.Message.StepState
+                                            "plan"
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 1
+                            )
+                        >> Tuple.second
+                        >> Common.contains
+                            (Effects.GetViewportOf
+                                (Message.Message.StepState "plan")
+                                Callback.AlwaysShow
+                            )
                 , test "finished task lists initialization duration in tooltip" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3006,6 +3051,44 @@ all =
                         >> Application.handleDelivery
                             (ClockTicked OneSecond <|
                                 Time.millisToPosix 1
+                            )
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.GotViewport Callback.AlwaysShow <|
+                                Ok
+                                    { scene =
+                                        { width = 1
+                                        , height = 0
+                                        }
+                                    , viewport =
+                                        { width = 1
+                                        , height = 0
+                                        , x = 0
+                                        , y = 0
+                                        }
+                                    }
+                            )
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.GotElement <|
+                                Ok
+                                    { scene =
+                                        { width = 0
+                                        , height = 0
+                                        }
+                                    , viewport =
+                                        { width = 0
+                                        , height = 0
+                                        , x = 0
+                                        , y = 0
+                                        }
+                                    , element =
+                                        { x = 0
+                                        , y = 0
+                                        , width = 1
+                                        , height = 1
+                                        }
+                                    }
                             )
                         >> Tuple.first
                         >> Common.queryView
@@ -3053,6 +3136,44 @@ all =
                         >> Application.handleDelivery
                             (ClockTicked OneSecond <|
                                 Time.millisToPosix 1
+                            )
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.GotViewport Callback.AlwaysShow <|
+                                Ok
+                                    { scene =
+                                        { width = 1
+                                        , height = 0
+                                        }
+                                    , viewport =
+                                        { width = 1
+                                        , height = 0
+                                        , x = 0
+                                        , y = 0
+                                        }
+                                    }
+                            )
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.GotElement <|
+                                Ok
+                                    { scene =
+                                        { width = 0
+                                        , height = 0
+                                        }
+                                    , viewport =
+                                        { width = 0
+                                        , height = 0
+                                        , x = 0
+                                        , y = 0
+                                        }
+                                    , element =
+                                        { x = 0
+                                        , y = 0
+                                        , width = 1
+                                        , height = 1
+                                        }
+                                    }
                             )
                         >> Tuple.first
                         >> Common.queryView

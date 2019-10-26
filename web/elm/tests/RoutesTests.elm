@@ -9,18 +9,18 @@ import Url
 all : Test
 all =
     describe "Routes"
-        [ test "parses dashboard search query" <|
+        [ test "parses dashboard search query respecting space" <|
             \_ ->
                 Routes.parsePath
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
                     , path = "/"
-                    , query = Just "search=asdf"
+                    , query = Just "search=asdf+sd"
                     , fragment = Nothing
                     }
                     |> Expect.equal
-                        (Just (Routes.Dashboard (Routes.Normal (Just "asdf"))))
+                        (Just (Routes.Dashboard (Routes.Normal (Just "asdf sd"))))
         , test "fly success has noop parameter" <|
             \_ ->
                 Routes.parsePath

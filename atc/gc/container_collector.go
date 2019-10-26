@@ -27,7 +27,7 @@ func NewContainerCollector(
 	containerRepository db.ContainerRepository,
 	jobRunner WorkerJobRunner,
 	missingContainerGracePeriod time.Duration,
-) Collector {
+) *containerCollector {
 	return &containerCollector{
 		containerRepository:         containerRepository,
 		jobRunner:                   jobRunner,
@@ -62,7 +62,7 @@ func (c *containerCollector) Run(ctx context.Context) error {
 		logger.Error("failed-to-clean-up-orphaned-containers", err)
 	}
 
-	err = c.cleanupFailedContainers(logger.Session("failed-containers"))
+	err = c.markFailedContainersAsDestroying(logger.Session("failed-containers"))
 	if err != nil {
 		errs = multierror.Append(errs, err)
 		logger.Error("failed-to-clean-up-failed-containers", err)
@@ -77,21 +77,21 @@ func (c *containerCollector) Run(ctx context.Context) error {
 	return errs
 }
 
-func (c *containerCollector) cleanupFailedContainers(logger lager.Logger) error {
-	failedContainersLen, err := c.containerRepository.DestroyFailedContainers()
+func (c *containerCollector) markFailedContainersAsDestroying(logger lager.Logger) error {
+	numFailedContainers, err := c.containerRepository.DestroyFailedContainers()
 	if err != nil {
 		logger.Error("failed-to-find-failed-containers-for-deletion", err)
 		return err
 	}
 
-	if failedContainersLen > 0 {
+	if numFailedContainers > 0 {
 		logger.Debug("found-failed-containers-for-deletion", lager.Data{
-			"number": failedContainersLen,
+			"number": numFailedContainers,
 		})
 	}
 
 	metric.FailedContainersToBeGarbageCollected{
-		Containers: failedContainersLen,
+		Containers: numFailedContainers,
 	}.Emit(logger)
 
 	return nil

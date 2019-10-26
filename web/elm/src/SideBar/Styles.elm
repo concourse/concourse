@@ -22,7 +22,6 @@ module SideBar.Styles exposing
     )
 
 import Colors
-import HoverState exposing (TooltipPosition)
 import Html
 import Html.Attributes exposing (style)
 import Views.Icon as Icon
@@ -251,22 +250,22 @@ pipelineIcon opacity =
     ]
 
 
-tooltip : TooltipPosition -> List (Html.Attribute msg)
-tooltip { left, top, marginTop } =
+tooltip : Float -> Float -> List (Html.Attribute msg)
+tooltip top left =
     [ style "position" "fixed"
     , style "left" <| String.fromFloat left ++ "px"
     , style "top" <| String.fromFloat top ++ "px"
-    , style "margin-top" <| String.fromFloat marginTop ++ "px"
+    , style "margin-top" "-15px"
     , style "z-index" "1"
     , style "display" "flex"
     ]
 
 
-tooltipArrow : TooltipPosition -> List (Html.Attribute msg)
-tooltipArrow { arrowSize } =
-    [ style "border-right" <| String.fromFloat arrowSize ++ "px solid " ++ Colors.frame
-    , style "border-top" <| String.fromFloat arrowSize ++ "px solid transparent"
-    , style "border-bottom" <| String.fromFloat arrowSize ++ "px solid transparent"
+tooltipArrow : List (Html.Attribute msg)
+tooltipArrow =
+    [ style "border-right" <| "15px solid " ++ Colors.frame
+    , style "border-top" "15px solid transparent"
+    , style "border-bottom" "15px solid transparent"
     ]
 
 

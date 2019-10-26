@@ -72,9 +72,6 @@ team session t =
             else
                 Styles.TeamInvisible
         , domID = SideBarTeam t.name
-        , tooltip =
-            HoverState.tooltip (SideBarTeam t.name)
-                session.hovered
         }
     , isExpanded = t.isExpanded
     , pipelines = List.map (Pipeline.pipeline session) session.pipelines
