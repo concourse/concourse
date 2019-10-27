@@ -30,7 +30,9 @@ func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string) []cred
 		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, teamName, pipelineName)+"/"))
 	}
 	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, teamName)+"/"))
-	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, v.SharedPath)+"/"))
+	if v.SharedPath != "" {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, v.SharedPath)+"/"))
+	}
 	return lookupPaths
 }
 
