@@ -39,7 +39,7 @@ var _ = Describe("DelegateFactory", func() {
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123456789, 0))
 		credVars := vars.StaticVariables{
 			"source-param": "super-secret-source",
-			"git-key":      "123\n456\n789",
+			"git-key":      "123\n456\n789\n",
 		}
 		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 	})

@@ -70,3 +70,7 @@ There is no configuration required to take advantage of these new improvements.
 #### <sub><sup><a name="4637" href="#4637">:link:</a></sup></sub> fix
 
 * Fixed a [bug](https://github.com/concourse/concourse/issues/3942) where log lines on the build page would have all their timestamps off by one. #4637
+
+#### <sub><sup><a name="4668" href="#4668">:link:</a></sup></sub> fix
+
+* @evanchaoli fixed a [bug](https://github.com/concourse/concourse/issues/4656) where secret redaction incorrectly "redacts" empty string resulting in mangled logs. #4668
