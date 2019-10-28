@@ -6,6 +6,10 @@ This should help reduce the amount of duplicated work (when running more than 1 
 
 There is no configuration required to take advantage of these new improvements.
 
+#### <sub><sup><a name="4535" href="#4535">:link:</a></sup></sub> feature, breaking
+
+* The cf auth connector used to only return spaces for the `developer` role. Now it returns spaces for `developer`, `auditor`, and `manager`.
+
 #### <sub><sup><a name="4480" href="#4480">:link:</a></sup></sub> feature
 
 * @ProvoK added support for a `?title=` query parameter on the pipeline/job badge endpoints! Now you can make it say something other than "build". #4480
