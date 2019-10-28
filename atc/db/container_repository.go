@@ -166,15 +166,13 @@ func (repository *containerRepository) FindDestroyingContainers(workerName strin
 }
 
 func (repository *containerRepository) RemoveMissingContainers(gracePeriod time.Duration) (int, error) {
-	result, err := psql.Delete("containers").
+	result, err := psql.Delete("containers c USING workers w").
+		Where(sq.Expr("c.worker_name = w.name")).
 		Where(
 			sq.And{
-				sq.Eq{
-					"state": []string{atc.ContainerStateCreated, atc.ContainerStateFailed},
-				},
-				sq.Gt{
-					"NOW() - missing_since": fmt.Sprintf("%.0f seconds", gracePeriod.Seconds()),
-				},
+				sq.Expr(fmt.Sprintf("c.state='%s'", atc.ContainerStateCreated)),
+				sq.Expr(fmt.Sprintf("w.state!='%s'", WorkerStateStalled)),
+				sq.Expr(fmt.Sprintf("NOW() - missing_since > '%s'", fmt.Sprintf("%.0f seconds", gracePeriod.Seconds()))),
 			},
 		).RunWith(repository.conn).
 		Exec()
