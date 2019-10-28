@@ -3,8 +3,9 @@ package resource_test
 import (
 	"context"
 	"errors"
-	"github.com/concourse/concourse/atc/runtime"
 	"io/ioutil"
+
+	"github.com/concourse/concourse/atc/runtime"
 
 	"code.cloudfoundry.org/garden"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
@@ -117,6 +118,7 @@ var _ = Describe("Resource Put", func() {
 				Expect(putErr).NotTo(HaveOccurred())
 			})
 
+			// TODO This test should be move into worker/container_test
 			It("does not run or attach to anything", func() {
 				Expect(fakeContainer.RunCallCount()).To(BeZero())
 				Expect(fakeContainer.AttachCallCount()).To(BeZero())

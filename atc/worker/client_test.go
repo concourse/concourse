@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("Client", func() {
+var _ = Describe("Client", func() {
 	var (
 		logger          *lagertest.TestLogger
 		fakePool        *workerfakes.FakePool
@@ -218,7 +218,7 @@ var _ = FDescribe("Client", func() {
 	Describe("RunGetStep", func() {
 
 		var (
-			ctx                   context.Context
+			ctx context.Context
 			//cancel                func()
 			owner                 db.ContainerOwner
 			containerSpec         worker.ContainerSpec
@@ -373,6 +373,7 @@ var _ = FDescribe("Client", func() {
 		var (
 			status       int
 			volumeMounts []worker.VolumeMount
+			inputSources []worker.InputSource
 			err          error
 
 			fakeWorker           *workerfakes.FakeWorker
@@ -420,10 +421,11 @@ var _ = FDescribe("Client", func() {
 					CPU:    &cpu,
 					Memory: &memory,
 				},
-				Dir:     "some-artifact-root",
-				Env:     []string{"SECURE=secret-task-param"},
-				Inputs:  []worker.InputSource{},
-				Outputs: worker.OutputPaths{},
+				Dir:          "some-artifact-root",
+				Env:          []string{"SECURE=secret-task-param"},
+				InputFooBars: nil,
+				Inputs:       inputSources,
+				Outputs:      worker.OutputPaths{},
 			}
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 			fakeMetadata = db.ContainerMetadata{
@@ -560,6 +562,8 @@ var _ = FDescribe("Client", func() {
 		It("finds or creates a container", func() {
 			Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 			_, cancel, delegate, owner, createdMetadata, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+			Expect(containerSpec.Inputs).To(Equal(fakeContainerSpec.Inputs))
+			Expect(containerSpec).To(Equal(fakeContainerSpec))
 			Expect(cancel).ToNot(BeNil())
 			Expect(owner).To(Equal(fakeContainerOwner))
 			Expect(delegate).To(Equal(fakeDelegate))
@@ -568,7 +572,7 @@ var _ = FDescribe("Client", func() {
 				Type:             db.ContainerTypeTask,
 				StepName:         "some-step",
 			}))
-			Expect(containerSpec).To(Equal(fakeContainerSpec))
+
 		})
 
 		Context("found a container that has already exited", func() {
@@ -1122,13 +1126,10 @@ var _ = FDescribe("Client", func() {
 	Describe("RunPutStep", func() {
 
 		var (
-			ctx           context.Context
-			cancel        func()
-			owner         db.ContainerOwner
-			containerSpec worker.ContainerSpec
-			workerSpec    worker.WorkerSpec
-			// source            atc.Source
-			// params            atc.Params
+			ctx               context.Context
+			owner             db.ContainerOwner
+			containerSpec     worker.ContainerSpec
+			workerSpec        worker.WorkerSpec
 			metadata          db.ContainerMetadata
 			imageSpec         worker.ImageFetcherSpec
 			fakeChosenWorker  *workerfakes.FakeWorker
@@ -1147,7 +1148,7 @@ var _ = FDescribe("Client", func() {
 		)
 
 		BeforeEach(func() {
-			ctx, cancel = context.WithCancel(context.Background())
+			ctx = context.Background()
 			owner = new(dbfakes.FakeContainerOwner)
 			containerSpec = worker.ContainerSpec{}
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
@@ -1171,8 +1172,6 @@ var _ = FDescribe("Client", func() {
 			}
 			fakeResource = new(resourcefakes.FakeResource)
 
-			// source = atc.Source{"some": "super-secret-source"}
-			// params = atc.Params{"some-param": "some-value"}
 			fakeChosenWorker = new(workerfakes.FakeWorker)
 			fakeChosenWorker.NameReturns("some-worker")
 			fakeChosenWorker.SatisfiesReturns(true)
@@ -1217,9 +1216,9 @@ var _ = FDescribe("Client", func() {
 				Expect(fakeChosenWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 				_, _, actualDelegate, actualOwner, actualMetadata, actualContainerSpec, actualResourceTypes := fakeChosenWorker.FindOrCreateContainerArgsForCall(0)
 
+				Expect(actualContainerSpec).To(Equal(containerSpec))
 				Expect(actualDelegate).To(Equal(fakeDelegate))
 				Expect(actualOwner).To(Equal(owner))
-				Expect(actualContainerSpec).To(Equal(containerSpec))
 				Expect(actualMetadata).To(Equal(metadata))
 				Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 			})
@@ -1237,10 +1236,8 @@ var _ = FDescribe("Client", func() {
 			})
 		})
 
-		Context("found a container that has already exited", func() {
-			var status int
+		Context("found a container that has run resource.Put and exited", func() {
 			BeforeEach(func() {
-				status = 8
 				fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 				fakeContainer.PropertyStub = func(prop string) (result string, err error) {
 					if prop == "concourse:exit-status" {
@@ -1250,8 +1247,8 @@ var _ = FDescribe("Client", func() {
 				}
 			})
 
-			It("does not attach to any process", func() {
-				Expect(fakeContainer.AttachCallCount()).To(BeZero())
+			It("does not invoke resource.Put", func() {
+				Expect(fakeResource.PutCallCount()).To(Equal(0))
 			})
 
 			It("returns result of container process", func() {
@@ -1260,307 +1257,72 @@ var _ = FDescribe("Client", func() {
 			})
 		})
 
-		Context("container has not already exited", func() {
-			var (
-				fakeProcess         *gardenfakes.FakeProcess
-				fakeProcessExitCode int
-
-				stdoutBuf *gbytes.Buffer
-				stderrBuf *gbytes.Buffer
-			)
-
+		Context("calling resource.Put", func() {
 			BeforeEach(func() {
-				stdoutBuf = new(gbytes.Buffer)
-				stderrBuf = new(gbytes.Buffer)
-				fakeProcess = new(gardenfakes.FakeProcess)
-				fakeContainer.PropertyReturns("", errors.New("not exited"))
+				fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+				fakeContainer.PropertyReturns("0", fmt.Errorf("property not found"))
 			})
 
-			Context("found container that is already running", func() {
+			It("calls resource.Put with the correct ctx, processSpec and container", func() {
+				actualCtx, actualProcessSpec, actualContainer := fakeResource.PutArgsForCall(0)
+				Expect(actualCtx).To(Equal(ctx))
+				Expect(actualProcessSpec).To(Equal(fakeProcessSpec))
+				Expect(actualContainer).To(Equal(fakeContainer))
+			})
+
+			Context("when PUT returns an error", func() {
+
+				Context("when the error is ErrResourceScriptFailed", func() {
+					var (
+						scriptFailErr runtime.ErrResourceScriptFailed
+					)
+					BeforeEach(func() {
+						scriptFailErr = runtime.ErrResourceScriptFailed{
+							ExitStatus: 10,
+						}
+
+						fakeResource.PutReturns(
+							runtime.VersionResult{},
+							scriptFailErr,
+						)
+					})
+
+					It("returns a PutResult with the exit status from ErrResourceScriptFailed", func() {
+						Expect(status).To(Equal(10))
+						Expect(err).To(Equal(scriptFailErr))
+					})
+				})
+
+				Context("when the error is NOT ErrResourceScriptFailed", func() {
+					BeforeEach(func() {
+						fakeResource.PutReturns(
+							runtime.VersionResult{},
+							disasterErr,
+						)
+					})
+
+					It("returns a PutResult with status -1 and the error", func() {
+						Expect(status).To(Equal(-1))
+						Expect(err).To(Equal(disasterErr))
+					})
+
+				})
+			})
+
+			Context("when PUT succeeds", func() {
 				var expectedVersionResult runtime.VersionResult
 				BeforeEach(func() {
-					fakeContainer.AttachStub = func(arg1 context.Context, arg2 string, arg3 garden.ProcessIO) (garden.Process, error) {
-						_, _ = arg3.Stdout.Write([]byte(`{"version": { "foo": "bar" }}`))
-						return fakeProcess, nil
-					}
 					expectedVersionResult = runtime.VersionResult{
 						Version:  atc.Version(map[string]string{"foo": "bar"}),
 						Metadata: nil,
 					}
+
+					fakeResource.PutReturns(expectedVersionResult, nil)
 				})
-
-				It("does not create a new container", func() {
-					Expect(fakeContainer.RunCallCount()).To(BeZero())
-				})
-
-				It("attaches to the running process", func() {
-					Expect(err).ToNot(HaveOccurred())
-					Expect(fakeContainer.AttachCallCount()).To(Equal(1))
-					Expect(fakeContainer.RunCallCount()).To(Equal(0))
-					_, _, actualProcessIO := fakeContainer.AttachArgsForCall(0)
-					Expect(actualProcessIO.Stderr).To(Equal(stderrBuf))
-				})
-
-				Context("when the process is interrupted", func() {
-					var stopped chan struct{}
-					BeforeEach(func() {
-						stopped = make(chan struct{})
-
-						fakeProcess.WaitStub = func() (int, error) {
-							defer GinkgoRecover()
-
-							<-stopped
-							return 128 + 15, nil
-						}
-
-						fakeContainer.StopStub = func(bool) error {
-							close(stopped)
-							return nil
-						}
-
-						cancel()
-					})
-
-					It("stops the container", func() {
-						Expect(fakeContainer.StopCallCount()).To(Equal(1))
-						Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
-						Expect(err).To(Equal(context.Canceled))
-					})
-
-					Context("when container.stop returns an error", func() {
-						var disaster error
-
-						BeforeEach(func() {
-							disaster = errors.New("gotta get away")
-
-							fakeContainer.StopStub = func(bool) error {
-								close(stopped)
-								return disaster
-							}
-						})
-
-						It("doesn't return the error", func() {
-							Expect(err).To(Equal(context.Canceled))
-						})
-					})
-				})
-
-				Context("when the process exits successfully", func() {
-					BeforeEach(func() {
-						fakeProcessExitCode = 0
-						fakeProcess.WaitReturns(fakeProcessExitCode, nil)
-					})
-					It("returns a successful result", func() {
-						Expect(versionResult).To(Equal(expectedVersionResult))
-						Expect(status).To(BeZero())
-						Expect(err).ToNot(HaveOccurred())
-					})
-
-				})
-
-				Context("when the process exits with an error", func() {
-					disaster := errors.New("process failed")
-					BeforeEach(func() {
-						fakeProcessExitCode = 128 + 15
-						fakeProcess.WaitReturns(fakeProcessExitCode, disaster)
-					})
-					It("returns an unsuccessful result", func() {
-						Expect(status).To(Equal(-1))
-						Expect(err).To(HaveOccurred())
-						Expect(err).To(Equal(disaster))
-						Expect(versionResult).To(Equal(runtime.VersionResult{}))
-					})
-
-					It("returns no version results", func() {
-						Expect(versionResult).To(Equal(runtime.VersionResult{}))
-					})
-				})
-
-				Context("when the process exits with nonzero status", func() {
-					BeforeEach(func() {
-						fakeProcessExitCode = 128 + 15
-						fakeProcess.WaitReturns(fakeProcessExitCode, nil)
-					})
-					It("returns an unsuccessful result", func() {
-						Expect(status).To(Equal(fakeProcessExitCode))
-						Expect(err).To(HaveOccurred())
-						Expect(err).To(BeAssignableToTypeOf(runtime.ErrResourceScriptFailed{}))
-						Expect(versionResult).To(Equal(runtime.VersionResult{}))
-					})
-
-					It("returns no version results", func() {
-						Expect(versionResult).To(Equal(runtime.VersionResult{}))
-					})
-				})
-			})
-
-			Context("created a new container", func() {
-				BeforeEach(func() {
-					fakeContainer.AttachReturns(nil, errors.New("container not running"))
-					fakeContainer.RunReturns(fakeProcess, nil)
-
-					stdoutBuf = new(gbytes.Buffer)
-					stderrBuf = new(gbytes.Buffer)
-					fakeProcessSpec = runtime.ProcessSpec{
-						Path:         "/opt/resource/out",
-						Args:         []string{"/tmp/build/put"},
-						StdoutWriter: stdoutBuf,
-						StderrWriter: stderrBuf,
-					}
-					fakeContainer.RunStub = func(arg1 context.Context, arg2 garden.ProcessSpec, arg3 garden.ProcessIO) (garden.Process, error) {
-						_, _ = arg3.Stdout.Write([]byte(`{"version": { "foo": "bar" }}`))
-						return fakeProcess, nil
-					}
-				})
-
-				It("runs a new process in the container", func() {
-					Eventually(fakeContainer.RunCallCount()).Should(Equal(1))
-
-					_, gardenProcessSpec, actualProcessIO := fakeContainer.RunArgsForCall(0)
-					Expect(gardenProcessSpec.ID).To(Equal("resource"))
-					Expect(gardenProcessSpec.Path).To(Equal(fakeProcessSpec.Path))
-					Expect(gardenProcessSpec.Args).To(ConsistOf(fakeProcessSpec.Args))
-					Expect(actualProcessIO.Stdout).To(Not(Equal(stdoutBuf)))
-					Expect(actualProcessIO.Stderr).To(Equal(stderrBuf))
-				})
-
-				Context("when the process is interrupted", func() {
-					var stopped chan struct{}
-					BeforeEach(func() {
-						stopped = make(chan struct{})
-
-						fakeProcess.WaitStub = func() (int, error) {
-							defer GinkgoRecover()
-
-							<-stopped
-							return 128 + 15, nil // wat?
-						}
-
-						fakeContainer.StopStub = func(bool) error {
-							close(stopped)
-							return nil
-						}
-
-						cancel()
-					})
-
-					It("stops the container", func() {
-						Expect(fakeContainer.StopCallCount()).To(Equal(1))
-						Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
-						Expect(err).To(Equal(context.Canceled))
-					})
-
-					Context("when container.stop returns an error", func() {
-						var disaster error
-
-						BeforeEach(func() {
-							disaster = errors.New("gotta get away")
-
-							fakeContainer.StopStub = func(bool) error {
-								close(stopped)
-								return disaster
-							}
-						})
-
-						It("doesn't return the error", func() {
-							Expect(err).To(Equal(context.Canceled))
-						})
-					})
-				})
-
-				Context("when the process exits successfully", func() {
-
-					// It("puts the resource with the given context", func() {
-					// 	Expect(fakeResource.PutCallCount()).To(Equal(1))
-					// 	putCtx, _, _, _ := fakeResource.PutArgsForCall(0)
-					// 	Expect(putCtx).To(Equal(ctx))
-					// })
-
-					// It("puts the resource with the correct source and params", func() {
-					// 	Expect(fakeResource.PutCallCount()).To(Equal(1))
-					//
-					// 	_, _, putSource, putParams := fakeResource.PutArgsForCall(0)
-					// 	Expect(putSource).To(Equal(atc.Source{"some": "super-secret-source"}))
-					// 	Expect(putParams).To(Equal(atc.Params{"some-param": "some-value"}))
-					// })
-
-					// It("puts the resource with the io config forwarded", func() {
-					// 	Expect(fakeResource.PutCallCount()).To(Equal(1))
-					//
-					// 	_, ioConfig, _, _ := fakeResource.PutArgsForCall(0)
-					// 	Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
-					// 	Expect(ioConfig.Stderr).To(Equal(stderrBuf))
-					// })
-
-					// It("runs the get resource action", func() {
-					// 	Expect(fakeResource.PutCallCount()).To(Equal(1))
-					// })
-					It("returns a successful result", func() {
-						Expect(status).To(BeZero())
-						Expect(err).ToNot(HaveOccurred())
-					})
-
-					It("saves the exit status property", func() {
-						Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
-
-						name, value := fakeContainer.SetPropertyArgsForCall(0)
-						Expect(name).To(Equal("concourse:resource-result"))
-						Expect(value).To(Equal(string(`{"version": { "foo": "bar" }}`)))
-					})
-
-					Context("when saving the exit status succeeds", func() {
-						BeforeEach(func() {
-							fakeContainer.SetPropertyReturns(nil)
-						})
-
-						It("returns successfully", func() {
-							Expect(err).ToNot(HaveOccurred())
-						})
-					})
-
-					Context("when saving the exit status fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeContainer.SetPropertyStub = func(name string, value string) error {
-								defer GinkgoRecover()
-
-								if name == "concourse:resource-result" {
-									return disaster
-								}
-
-								return nil
-							}
-						})
-
-						It("returns the error", func() {
-							Expect(err).To(Equal(disaster))
-						})
-					})
-				})
-
-				Context("when the process exits on failure", func() {
-					BeforeEach(func() {
-						fakeProcessExitCode = 128 + 15
-						fakeProcess.WaitReturns(fakeProcessExitCode, nil)
-					})
-					It("returns an unsuccessful result", func() {
-						Expect(status).To(Equal(fakeProcessExitCode))
-						Expect(err).To(HaveOccurred())
-						Expect(err).To(BeAssignableToTypeOf(runtime.ErrResourceScriptFailed{}))
-					})
-				})
-
-				Context("when running the container fails with an error", func() {
-					disaster := errors.New("nope")
-
-					BeforeEach(func() {
-						fakeContainer.RunReturns(nil, disaster)
-					})
-
-					It("returns the error", func() {
-						Expect(err).To(Equal(disaster))
-					})
+				It("returns the correct VersionResult and Status", func() {
+					Expect(err).To(BeNil())
+					Expect(status).To(Equal(0))
+					Expect(versionResult).To(Equal(expectedVersionResult))
 				})
 			})
 		})

@@ -144,6 +144,7 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	return nil
 }
 
+// todo: this needs to be modified to not be resource specific
 func (container *gardenWorkerContainer) RunScript(
 	ctx context.Context,
 	path string,
@@ -177,7 +178,6 @@ func (container *gardenWorkerContainer) RunScript(
 
 	var process garden.Process
 	var err error
-
 	if recoverable {
 		process, err = container.Attach(ctx, runtime.ResourceProcessID, processIO)
 		if err != nil {

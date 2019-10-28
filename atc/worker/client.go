@@ -30,7 +30,12 @@ type Client interface {
 	FindContainer(logger lager.Logger, teamID int, handle string) (Container, bool, error)
 	FindVolume(logger lager.Logger, teamID int, handle string) (Volume, bool, error)
 	CreateVolume(logger lager.Logger, vSpec VolumeSpec, wSpec WorkerSpec, volumeType db.VolumeType) (Volume, error)
-	StreamFileFromArtifact(ctx context.Context, logger lager.Logger, artifact runtime.Artifact, filePath string) (io.ReadCloser, error)
+	StreamFileFromArtifact(
+		ctx context.Context,
+		logger lager.Logger,
+		artifact runtime.Artifact,
+		filePath string,
+	) (io.ReadCloser, error)
 
 	RunTaskStep(
 		context.Context,
@@ -44,6 +49,7 @@ type Client interface {
 		runtime.ProcessSpec,
 		lock.LockFactory,
 	) TaskResult
+
 	RunPutStep(
 		context.Context,
 		lager.Logger,
@@ -162,16 +168,15 @@ func (client *client) RunTaskStep(
 	processSpec runtime.ProcessSpec,
 	lockFactory lock.LockFactory,
 ) TaskResult {
-	var err error
-	err = client.wireInputsAndCaches(logger, &containerSpec)
+	err := client.wireInputsAndCaches(logger, &containerSpec)
 	if err != nil {
-		return TaskResult{Err: err}
+		return TaskResult{Status: -1, Err: err}
 	}
 
 	if containerSpec.ImageSpec.ImageArtifact != nil {
 		err = client.wireImageVolume(logger, &containerSpec.ImageSpec)
 		if err != nil {
-			return TaskResult{Err: err}
+			return TaskResult{Status: -1, Err: err}
 		}
 	}
 	chosenWorker, err := client.chooseTaskWorker(
@@ -185,7 +190,10 @@ func (client *client) RunTaskStep(
 		processSpec.StdoutWriter,
 	)
 	if err != nil {
-		return TaskResult{Err: err}
+		// todo: should we return a -1 exit code our tests assert we do
+		// 		 leaving it empty isnt great, ints default to 0 which
+		//       indicates success
+		return TaskResult{Status: -1, Err: err}
 	}
 
 	if strategy.ModifiesActiveTasks() {
@@ -203,7 +211,7 @@ func (client *client) RunTaskStep(
 	)
 
 	if err != nil {
-		return TaskResult{Err: err}
+		return TaskResult{Status: -1, Err: err}
 	}
 
 	// container already exited
@@ -214,7 +222,7 @@ func (client *client) RunTaskStep(
 
 		status, err := strconv.Atoi(code)
 		if err != nil {
-			return TaskResult{Err: err}
+			return TaskResult{Status: -1, Err: err}
 		}
 
 		return TaskResult{
@@ -255,7 +263,7 @@ func (client *client) RunTaskStep(
 		)
 
 		if err != nil {
-			return TaskResult{Err: err}
+			return TaskResult{Status: -1, Err: err}
 		}
 	}
 
@@ -483,7 +491,10 @@ func (client *client) RunPutStep(
 	vr := runtime.VersionResult{}
 	err := client.wireInputsAndCaches(logger, &containerSpec)
 	if err != nil {
-		return PutResult{Status: -1, VersionResult: vr, Err: err}
+
+		// why do we return -1 as status, are we sure a proc can't exit with -1 naturely
+		// TODO Does it make sense to return -1 here ? Probably NOT
+		return PutResult{Status: -1, VersionResult: runtime.VersionResult{}, Err: err}
 	}
 
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
@@ -495,7 +506,7 @@ func (client *client) RunPutStep(
 		strategy,
 	)
 	if err != nil {
-		return PutResult{Status: -1, VersionResult: vr, Err: err}
+		return PutResult{Status: -1, VersionResult: runtime.VersionResult{}, Err: err}
 	}
 
 	container, err := chosenWorker.FindOrCreateContainer(
@@ -508,50 +519,52 @@ func (client *client) RunPutStep(
 		imageFetcherSpec.ResourceTypes,
 	)
 	if err != nil {
-		return PutResult{Status: -1, VersionResult: vr, Err: err}
+		return PutResult{Status: -1, VersionResult: runtime.VersionResult{}, Err: err}
 	}
 
+	// todo: should we flow on exitStatus as well, its more indicative that container
+	// has already exited
 	// container already exited
 	exitStatusProp, err := container.Property(taskExitStatusPropertyName)
 	if err == nil {
 		logger.Info("already-exited", lager.Data{"status": exitStatusProp})
-		return PutResult{Status: -1, VersionResult: vr, Err: nil}
+
+		status, err := strconv.Atoi(exitStatusProp)
+		if err != nil {
+			//TODO This is more confusing. We should differentiate failure vs. error very explicitly
+			return PutResult{-1, runtime.VersionResult{}, err}
+		}
+		return PutResult{Status: status, VersionResult: runtime.VersionResult{}, Err: nil}
 	}
 
-	var result PutResult
 	vr, err = resource.Put(ctx, spec, container)
-
 	if err != nil {
 		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
-			result = PutResult{failErr.ExitStatus, runtime.VersionResult{}, failErr}
+			return PutResult{failErr.ExitStatus, runtime.VersionResult{}, failErr}
 		} else {
-			result = PutResult{-1, runtime.VersionResult{}, err}
+			return PutResult{-1, runtime.VersionResult{}, err}
 		}
-	} else {
-		result = PutResult{0, vr, nil}
 	}
-	return result
+	return PutResult{0, vr, nil}
 }
 
-// todo: don't modify spec inside here, do it in the caller. Specs don't change after you write them
+// todo: don't modify spec inside here, Specs don't change after you write them
 func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSpec) error {
 	var inputs []InputSource
 
 	for _, foobar := range spec.InputFooBars {
 		artifact := foobar.Artifact()
 
-		var (
-			artifactVolume Volume
-			found          bool
-			err            error
-		)
 		if cache, ok := artifact.(*runtime.CacheArtifact); ok {
 			// task caches may not have a volume, it will be discovered on
 			// the worker later. We do not stream task caches
 			artifactSrc := NewCacheArtifactSource(*cache)
-			inputs = append(inputs, inputSource{artifactSrc, foobar.DestinationPath()})
+			inputs = append(inputs, inputSource{
+				artifactSrc,
+				foobar.DestinationPath(),
+			})
 		} else {
-			artifactVolume, found, err = client.FindVolume(logger, spec.TeamID, artifact.ID())
+			artifactVolume, found, err := client.FindVolume(logger, spec.TeamID, artifact.ID())
 			if err != nil {
 				return err
 			}
@@ -560,7 +573,10 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 			}
 
 			source := NewStreamableArtifactSource(artifact, artifactVolume)
-			inputs = append(inputs, inputSource{source, foobar.DestinationPath()})
+			inputs = append(inputs, inputSource{
+				source,
+				foobar.DestinationPath(),
+			})
 		}
 	}
 
@@ -585,7 +601,12 @@ func (client *client) wireImageVolume(logger lager.Logger, spec *ImageSpec) erro
 	return nil
 }
 
-func (client *client) StreamFileFromArtifact(ctx context.Context, logger lager.Logger, artifact runtime.Artifact, filePath string) (io.ReadCloser, error) {
+func (client *client) StreamFileFromArtifact(
+	ctx context.Context,
+	logger lager.Logger,
+	artifact runtime.Artifact,
+	filePath string,
+) (io.ReadCloser, error) {
 	artifactVolume, found, err := client.FindVolume(logger, 0, artifact.ID())
 	if err != nil {
 		return nil, err
