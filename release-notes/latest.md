@@ -1,3 +1,11 @@
+#### <sub><sup><a name="4583" href="#4583">:link:</a></sup></sub> feature
+
+* We've introudced a `components` table in order to better synchronize all the internal processes that run on the web nodes.
+
+This should help reduce the amount of duplicated work (when running more than 1 ATC), and decrease the load on your database.
+
+There is no configuration required to take advantage of these new improvements.
+
 #### <sub><sup><a name="4480" href="#4480">:link:</a></sup></sub> feature
 
 * @ProvoK added support for a `?title=` query parameter on the pipeline/job badge endpoints! Now you can make it say something other than "build". #4480
