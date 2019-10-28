@@ -3,7 +3,11 @@
 \title{\code{on_error} step hook}{on-error-step-hook}
 
 Any step can have \code{on_error} tacked onto it, whose value is a second step
-to execute only if the parent step errors.
+to execute only if the parent step terminates abnormally in any way other than
+those handled by the \reference{on-abort-step-hook} or
+\reference{on-failure-step-hook} -- this covers scenarios as broad as
+configuration mistakes, temporary network issues or running longer than a
+\reference{timeout-step-modifier}.
 
 \define-attribute{on_error: step}{
   The step to execute when the parent step errors. If the attached step
