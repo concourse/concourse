@@ -209,6 +209,8 @@ type RunCommand struct {
 	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 
 	ConfigRBAC string `long:"config-rbac" description:"Customize RBAC role-action mapping."`
+
+	PipelineTTL time.Duration `long:"pipeline-ttl" description:"A pipeline having no build for ttl will be paused, for 2*ttl will be destroyed. 0 means no ttl. (Example: 30m, 60h, valid time units are m and h)."`
 }
 
 type Migration struct {
@@ -966,6 +968,7 @@ func (cmd *RunCommand) constructGCMember(
 	fetchSourceFactory := fetcher.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
 	resourceFetcher := fetcher.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
+	dbPipelineFactory := db.NewPipelineFactory(gcConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
@@ -1019,6 +1022,7 @@ func (cmd *RunCommand) constructGCMember(
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, jobRunner, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
 		atc.ComponentCollectorVarSources:        gc.NewCollectorTask(cmd.varSourcePool.(gc.Collector)),
+		atc.ComponentCollectorPipelines:         gc.NewPipelineCollector(dbPipelineFactory, cmd.PipelineTTL),
 	}
 
 	for collectorName, collector := range collectors {
@@ -1444,6 +1448,9 @@ func (cmd *RunCommand) configureComponentIntervals(componentFactory db.Component
 			}, {
 				Name:     atc.ComponentCollectorVarSources,
 				Interval: 60 * time.Second,
+			}, {
+				Name:     atc.ComponentCollectorPipelines,
+				Interval: 5 * time.Minute,
 			},
 		})
 }

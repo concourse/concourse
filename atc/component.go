@@ -20,6 +20,7 @@ const (
 	ComponentCollectorVolumes           = "collector_volumes"
 	ComponentCollectorWorkers           = "collector_workers"
 	ComponentCollectorVarSources        = "collector_var_sources"
+	ComponentCollectorPipelines         = "collector_pipelines"
 )
 
 type Component struct {
