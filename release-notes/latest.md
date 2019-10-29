@@ -8,7 +8,7 @@ There is no configuration required to take advantage of these new improvements.
 
 #### <sub><sup><a name="4535" href="#4535">:link:</a></sup></sub> feature, breaking
 
-* The cf auth connector used to only return spaces for the `developer` role. Now it returns spaces for `developer`, `auditor`, and `manager`.
+* The CloudFoundry auth connector, when configured to authorize users based on CF space membership, will now authorize space auditors and space managers in addition to space developers. This is a breaking change as any teams with CF space-based configuration may grant access to users that they wouldn't have before. #4661
 
 #### <sub><sup><a name="4480" href="#4480">:link:</a></sup></sub> feature
 
