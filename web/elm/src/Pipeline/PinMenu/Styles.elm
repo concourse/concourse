@@ -1,7 +1,6 @@
 module Pipeline.PinMenu.Styles exposing
     ( pinBadge
     , pinIcon
-    , pinIconContainer
     , pinIconDropdown
     , title
     )
@@ -18,42 +17,33 @@ import Pipeline.PinMenu.Views
         )
 
 
-pinIconContainer : Background -> List (Html.Attribute msg)
-pinIconContainer background =
-    [ style "margin-right" "15px"
-    , style "top" "10px"
-    , style "position" "relative"
-    , style "height" "40px"
+pinIcon : { a | iconStyle : Brightness, background : Background } -> List (Html.Attribute msg)
+pinIcon { iconStyle, background } =
+    [ style "position" "relative"
     , style "display" "flex"
     , style "max-width" "20%"
-    ]
-        ++ (case background of
-                Spotlight ->
-                    [ style "background-color" Colors.pinHighlight
-                    , style "border-radius" "50%"
-                    ]
-
-                Dark ->
-                    []
-           )
-
-
-pinIcon : Brightness -> List (Html.Attribute msg)
-pinIcon brightness =
-    [ style "background-image" "url(/public/images/pin-ic-white.svg)"
-    , style "width" "40px"
-    , style "height" "40px"
+    , style "background-image" "url(/public/images/pin-ic-white.svg)"
+    , style "border-left" <| "1px solid " ++ Colors.background
+    , style "width" "54px"
+    , style "height" "54px"
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "position" "relative"
     , style "opacity" <|
-        case brightness of
+        case iconStyle of
             Bright ->
                 "1"
 
             Dim ->
                 "0.5"
     ]
+        ++ (case background of
+                Light ->
+                    [ style "background-color" Colors.secondaryTopBar ]
+
+                Dark ->
+                    []
+           )
 
 
 pinBadge :

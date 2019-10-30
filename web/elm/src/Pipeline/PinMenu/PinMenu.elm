@@ -89,7 +89,7 @@ pinMenu { hovered } { pinnedResources, pipeline } =
             Views.Dim
     , background =
         if hasPinnedResources && isHovered then
-            Views.Spotlight
+            Views.Light
 
         else
             Views.Dark
@@ -98,7 +98,7 @@ pinMenu { hovered } { pinnedResources, pipeline } =
             Just
                 { color = Colors.pinned
                 , diameterPx = 15
-                , position = Views.TopRight (Views.Px 3) (Views.Px 3)
+                , position = Views.TopRight (Views.Px 10) (Views.Px 10)
                 , text = String.fromInt pinCount
                 }
 
@@ -162,26 +162,24 @@ viewPinMenu ({ isPinMenuExpanded } as params) =
 
 
 viewView : View -> Html Message
-viewView { hoverable, background, iconStyle, badge, dropdown } =
+viewView view =
     Html.div
-        (id "pin-icon" :: Styles.pinIconContainer background)
-        [ Html.div
-            ((if hoverable then
-                [ onMouseEnter <| Hover <| Just PinIcon
-                , onMouseLeave <| Hover Nothing
-                ]
+        (id "pin-icon"
+            :: (if view.hoverable then
+                    [ onMouseEnter <| Hover <| Just PinIcon
+                    , onMouseLeave <| Hover Nothing
+                    ]
 
-              else
-                []
-             )
-                ++ Styles.pinIcon iconStyle
-            )
-            ([ Maybe.map viewBadge badge
-             , Maybe.map viewDropdown dropdown
-             ]
-                |> List.filterMap identity
-            )
-        ]
+                else
+                    []
+               )
+            ++ Styles.pinIcon view
+        )
+        ([ Maybe.map viewBadge view.badge
+         , Maybe.map viewDropdown view.dropdown
+         ]
+            |> List.filterMap identity
+        )
 
 
 viewBadge : Badge -> Html Message

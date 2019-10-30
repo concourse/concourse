@@ -484,27 +484,6 @@ all =
                                 "url(/public/images/concourse-logo-white.svg)"
                             ]
                         >> Query.has [ tag "a", attribute <| Attr.href "/" ]
-                , it "pin icon has a pin background" <|
-                    Common.queryView
-                        >> Query.find [ id "top-bar-app" ]
-                        >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
-                , it "there is some space between the pin icon and the user menu" <|
-                    Common.queryView
-                        >> Query.find [ id "top-bar-app" ]
-                        >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style "margin-right" "15px" ]
-                , it "pin icon has relative positioning" <|
-                    Common.queryView
-                        >> Query.find [ id "top-bar-app" ]
-                        >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style "position" "relative" ]
-                , it "pin icon has white color when pipeline has pinned resources" <|
-                    givenPinnedResource
-                        >> Common.queryView
-                        >> Query.find [ id "top-bar-app" ]
-                        >> Query.find [ id "pin-icon" ]
-                        >> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
                 ]
             , test "top bar lays out contents horizontally" <|
                 \_ ->

@@ -87,8 +87,8 @@ all =
                                 , diameterPx = 15
                                 , position =
                                     Views.TopRight
-                                        (Views.Px 3)
-                                        (Views.Px 3)
+                                        (Views.Px 10)
+                                        (Views.Px 10)
                                 , text = "1"
                                 }
                             )
@@ -98,12 +98,12 @@ all =
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .dropdown
                         |> Expect.equal Nothing
-            , test "hovering changes background to spotlight" <|
+            , test "hovering makes background light" <|
                 \_ ->
                     model
                         |> PinMenu.pinMenu { hovered = HoverState.Hovered PinIcon }
                         |> .background
-                        |> Expect.equal Views.Spotlight
+                        |> Expect.equal Views.Light
             , test "hovering reveals dropdown" <|
                 \_ ->
                     model

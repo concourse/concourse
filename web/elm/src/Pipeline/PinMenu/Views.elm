@@ -8,7 +8,7 @@ module Pipeline.PinMenu.Views exposing
 
 type Background
     = Dark
-    | Spotlight
+    | Light
 
 
 type Brightness
