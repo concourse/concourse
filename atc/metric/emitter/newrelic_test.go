@@ -1,10 +1,11 @@
-package emitter
+package emitter_test
 
 import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/metric/emitter"
 	"github.com/concourse/flag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,14 +16,14 @@ var _ = Describe("newrelic metric", func() {
 	OKResponse := `{"success":true,"uuid":"12345678-1234-5678-9012-123456789012"}`
 	var (
 		newrelicServer     *ghttp.Server
-		newrelicConfig     *NewRelicConfig
-		emitter            metric.Emitter
+		newrelicConfig     *emitter.NewRelicConfig
+		metricEmitter      metric.Emitter
 		logger             lager.Logger
 		compressionEnabled bool
 	)
 	emitSampleMetrics := func(times int, expectLenInBuffer int) {
 		for i := 0; i < times; i++ {
-			emitter.Emit(logger, metric.Event{
+			metricEmitter.Emit(logger, metric.Event{
 				Name:  "build started",
 				Value: "",
 				State: metric.EventStateOK,
@@ -31,8 +32,8 @@ var _ = Describe("newrelic metric", func() {
 			})
 		}
 
-		if newrelicEmitter, OK := emitter.(*NewRelicEmitter); OK {
-			Expect(newrelicEmitter.batchEmitter.emitBuffer).To(HaveLen(expectLenInBuffer))
+		if newrelicEmitter, OK := metricEmitter.(*emitter.NewRelicEmitter); OK {
+			Expect(newrelicEmitter.BufferPayloadSize()).To(Equal(expectLenInBuffer))
 		} else {
 			Fail("failed to convert the emitter to NewRelicEmitter")
 		}
@@ -45,21 +46,21 @@ var _ = Describe("newrelic metric", func() {
 			ghttp.VerifyRequest("POST", "/EVENTS"),
 			ghttp.RespondWithJSONEncoded(200, OKResponse),
 		))
-		newrelicConfig = &NewRelicConfig{
-			AccountID:          "ACCOUNT-1",
-			APIKey:             "INSERT-API-KEY-1",
-			ServicePrefix:      "",
-			CompressionEnabled: compressionEnabled,
-			FlushInterval:      30 * time.Second,
+		newrelicConfig = &emitter.NewRelicConfig{
+			AccountID:         "ACCOUNT-1",
+			APIKey:            "INSERT-API-KEY-1",
+			ServicePrefix:     "",
+			EnableCompression: compressionEnabled,
+			FlushInterval:     30 * time.Second,
 		}
 		var err error
-		emitter, err = newrelicConfig.NewEmitter()
+		metricEmitter, err = newrelicConfig.NewEmitter()
 		if err != nil {
 			Fail("failed to create emitter from new relic configuration")
 		}
 
-		if newrelicEmitter, OK := emitter.(*NewRelicEmitter); OK {
-			newrelicEmitter.batchEmitter.url = newrelicServer.URL() + "/EVENTS"
+		if newrelicEmitter, OK := metricEmitter.(*emitter.NewRelicEmitter); OK {
+			newrelicEmitter.SetUrl(newrelicServer.URL() + "/EVENTS")
 		} else {
 			Fail("failed to convert the emitter to NewRelicEmitter")
 		}

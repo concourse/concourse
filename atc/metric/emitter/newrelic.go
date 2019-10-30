@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	newrelicPayloadMaxSize = 1024 * 1024
+	newrelicPayloadMaxBytes = 1024 * 1024
 )
 
 type (
@@ -35,21 +35,16 @@ type (
 	}
 
 	NewRelicConfig struct {
-		AccountID          string        `long:"newrelic-account-id" description:"New Relic Account ID"`
-		APIKey             string        `long:"newrelic-api-key" description:"New Relic Insights API Key"`
-		ServicePrefix      string        `long:"newrelic-service-prefix" default:"" description:"An optional prefix for emitted New Relic events"`
-		CompressionEnabled bool          `long:"newrelic-metric-compression" description:"New Relic payload compression flag"`
-		FlushInterval      time.Duration `long:"newrelic-flush-interval" default:"60s" description:"Newrelic metric flush interval in seconds"`
+		AccountID         string        `long:"newrelic-account-id" description:"New Relic Account ID"`
+		APIKey            string        `long:"newrelic-api-key" description:"New Relic Insights API Key"`
+		ServicePrefix     string        `long:"newrelic-service-prefix" default:"" description:"An optional prefix for emitted New Relic events"`
+		EnableCompression bool          `long:"newrelic-metric-compression" description:"New Relic payload compression flag"`
+		FlushInterval     time.Duration `long:"newrelic-flush-interval" default:"60s" description:"Newrelic metric flush interval in seconds"`
 	}
 
 	singlePayload map[string]interface{}
 
 	batchPayload []byte
-
-	BatchEmitter interface {
-		Emit(logger lager.Logger, payload singlePayload)
-		Flush(logger lager.Logger)
-	}
 
 	batchEmitter struct {
 		client        *http.Client
@@ -90,7 +85,7 @@ func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
 			client:        client,
 			url:           fmt.Sprintf("https://insights-collector.newrelic.com/v1/accounts/%s/events", config.AccountID),
 			apikey:        config.APIKey,
-			compression:   config.CompressionEnabled,
+			compression:   config.EnableCompression,
 			flushInterval: config.FlushInterval,
 			lastEmitTime:  time.Now(),
 		},
@@ -226,13 +221,27 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	}
 }
 
+func (emitter *NewRelicEmitter) BufferPayloadSize() int {
+	size := 0
+	if emitter.batchEmitter.emitBuffer != nil {
+		size = len(emitter.batchEmitter.emitBuffer)
+	}
+	return size
+}
+
+func (emitter *NewRelicEmitter) SetUrl(url string) {
+	emitter.batchEmitter.url = url
+}
+
 func (emitter *batchEmitter) Flush(logger lager.Logger) {
-	if emitter.flushThreshold() {
-		batchPayload := emitter.flush()
-		if batchPayload != nil && len(batchPayload) > 0 {
-			emitter.updateLastEmitTime()
-			go emitter.emitBatch(logger, batchPayload)
-		}
+	if !emitter.flushThreshold() {
+		return
+	}
+
+	batchPayload := emitter.flush()
+	if batchPayload != nil && len(batchPayload) > 0 {
+		emitter.updateLastEmitTime()
+		go emitter.emitBatch(logger, batchPayload)
 	}
 }
 
@@ -255,7 +264,6 @@ func (emitter *batchEmitter) Emit(logger lager.Logger, payload singlePayload) {
 // enqueue new payload
 // if enqueue the new payload would exceed the max limit (1Mb)
 // return everything that's enqueued and enqueue the new payload
-// lock and unlock should be applied.
 func (emitter *batchEmitter) enqueue(newPayload singlePayload) (batchPayload, *loggableError) {
 	var (
 		tempBuff []byte
@@ -281,7 +289,7 @@ func (emitter *batchEmitter) enqueue(newPayload singlePayload) (batchPayload, *l
 	}
 
 	// when combined new payload exceeds 1MB
-	if payloadSize > newrelicPayloadMaxSize-2 { // reduce '[' and ']' for the json payload
+	if payloadSize > newrelicPayloadMaxBytes-2 { // reduce '[' and ']' for the json payload
 		buff = formatBatchEmitBuffer(emitter.emitBuffer)
 		emitter.emitBuffer = newPayloadData
 	} else {
@@ -293,7 +301,7 @@ func (emitter *batchEmitter) enqueue(newPayload singlePayload) (batchPayload, *l
 func (emitter *batchEmitter) bufferSize(buff []byte) (int, *loggableError) {
 	payloadSize := len(buff)
 	// for better performance, we only check compressed data size when the data in the buffer is larger than 1MB
-	if emitter.compression && payloadSize >= newrelicPayloadMaxSize-2 { // reduce size for '[' and ']'
+	if emitter.compression && payloadSize >= newrelicPayloadMaxBytes-2 { // reduce size for '[' and ']'
 		zippedBuffer, err := gZipBuffer(buff)
 		if err != nil {
 			return 0, newLoggableError("failed-to-gzip-payload", err)
@@ -326,23 +334,22 @@ func (emitter *batchEmitter) flushThreshold() bool {
 	return time.Now().Sub(emitter.lastEmitTime) > emitter.flushInterval
 }
 
-func gZipBuffer(body []byte) (io.Reader, error) {
-	var err error
-
+func gZipBuffer(body []byte) (reader io.Reader, err error) {
 	readBuffer := bufio.NewReader(bytes.NewReader(body))
 	buffer := bytes.NewBuffer([]byte{})
 	writer := gzip.NewWriter(buffer)
+
+	defer func() {
+		cerr := writer.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
 	_, err = readBuffer.WriteTo(writer)
 	if err != nil {
 		return nil, err
 	}
-
-	err = writer.Close()
-	if err != nil {
-		return nil, err
-	}
-
 	return buffer, nil
 }
 
