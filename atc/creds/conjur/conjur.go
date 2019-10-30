@@ -8,16 +8,19 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/cyberark/conjur-api-go/conjurapi"
 )
+
+type IConjurClient interface {
+	RetrieveSecret(string) ([]byte, error)
+}
 
 type Conjur struct {
 	log             lager.Logger
-	client          *conjurapi.Client
+	client          IConjurClient
 	secretTemplates []*template.Template
 }
 
-func NewConjur(log lager.Logger, client *conjurapi.Client, secretTemplates []*template.Template) *Conjur {
+func NewConjur(log lager.Logger, client IConjurClient, secretTemplates []*template.Template) *Conjur {
 	return &Conjur{
 		log:             log,
 		client:          client,
@@ -33,7 +36,6 @@ type SecretLookupPathConjur struct {
 }
 
 func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
-
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, template := range c.secretTemplates {
 		c.log.Info(" teamname: " + teamName + "pipeline: " + pipelineName)
@@ -56,7 +58,7 @@ func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string) []cre
 func (c Conjur) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 	secretValue, err := c.client.RetrieveSecret(secretPath)
 	if err != nil {
-		return nil, nil, false, err
+		return nil, nil, false, nil
 	}
 	return string(secretValue), nil, true, nil
 }

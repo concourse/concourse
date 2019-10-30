@@ -13,8 +13,11 @@ import (
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
 )
 
-const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
-const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
+// Do not know if these constants are doing anything
+// Defaults are grabbed from the 'default:' path in the Manager struct for PipelineSecretTemplate and TeamSecretTemplate
+
+const DefaultPipelineSecretTemplate = "concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+const DefaultTeamSecretTemplate = "concourse/{{.Team}}/{{.Secret}}"
 
 type Manager struct {
 	ConjurApplianceUrl     string `long:"appliance-url" description:"URL of the conjur instance"`
@@ -23,8 +26,9 @@ type Manager struct {
 	ConjurAuthnLogin       string `long:"authn-login" description:"Host username. E.g host/concourse"`
 	ConjurAuthnApiKey      string `long:"authn-api-key" description:"Api key related to the host"`
 	ConjurAuthnTokenFile   string `long:"authn-token-file" description:"Token file used if conjur instance is running in k8s or iam. E.g. /path/to/token_file"`
-	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS Secrets Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS Secrets Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"Conjur secret identifier template used for pipeline specific parameter" default:"concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
+	TeamSecretTemplate     string `long:"team-secret-template" description:"Conjur secret identifier template used for team specific parameter" default:"concourse/{{.Team}}/{{.Secret}}"`
+	SecretTemplate         string `long:"secret-template" description:"Conjur secret identifier template used for full path conjur secrets" default:"vaultName/{{.Secret}}"`
 	Conjur                 *Conjur
 }
 
@@ -159,5 +163,10 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 		return nil, err
 	}
 
-	return NewConjurFactory(log, client, []*template.Template{pipelineSecretTemplate, teamSecretTemplate}), nil
+	secretTemplate, err := buildSecretTemplate("secret-template", manager.SecretTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewConjurFactory(log, client, []*template.Template{pipelineSecretTemplate, teamSecretTemplate, secretTemplate}), nil
 }

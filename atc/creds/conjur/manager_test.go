@@ -69,14 +69,14 @@ var _ = Describe("Manager", func() {
 				Expect(manager.Validate()).ToNot(BeNil())
 			},
 			Entry("only account", "account", "", "", ""),
-			Entry("account & login", "account", "login", "", ""),
-			Entry("account & apiKey", "account", "", "apiKey", ""),
 			Entry("only login", "", "login", "", ""),
-			Entry("login & apiKey", "", "login", "apiKey", ""),
 			Entry("only apiKey", "", "", "apiKey", ""),
 			Entry("only token file", "", "", "", "tokenFile"),
+			Entry("account & login", "account", "login", "", ""),
+			Entry("account & apiKey", "account", "", "apiKey", ""),
 			Entry("account & tokenFile", "account", "", "", "tokenFile"),
-			Entry("login & token file", "", "login", "", "tokenFile"),
+			Entry("login & apiKey", "", "login", "apiKey", ""),
+			Entry("login & tokenFile", "", "login", "", "tokenFile"),
 			Entry("account & login & apiKey & tokenFile", "account", "login", "apikey", "tokenFile"),
 		)
 
