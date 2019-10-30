@@ -693,7 +693,7 @@ func validateVarSources(c Config) error {
 		// TODO: this check should eventually be removed once all credential managers
 		// are supported in pipeline. - @evanchaoli
 		switch cm.Type {
-		case "vault":
+		case "vault", "dummy":
 		default:
 			return fmt.Errorf("credential manager type %s is not supported in pipeline yet", cm.Type)
 		}
