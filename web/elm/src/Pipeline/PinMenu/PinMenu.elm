@@ -177,7 +177,6 @@ viewView { hoverable, background, iconStyle, badge, dropdown } =
                 ++ Styles.pinIcon iconStyle
             )
             ([ Maybe.map viewBadge badge
-             , Maybe.map viewDropdownArrow dropdown
              , Maybe.map viewDropdown dropdown
              ]
                 |> List.filterMap identity
@@ -197,21 +196,6 @@ viewDropdown dropdown =
     Html.ul
         (Styles.pinIconDropdown dropdown)
         (List.map viewDropdownItem dropdown.items)
-
-
-viewDropdownArrow : Dropdown -> Html Message
-viewDropdownArrow _ =
-    Html.div
-        [ style "border-width" "5px"
-        , style "border-style" "solid"
-        , style "border-color" "transparent transparent #ffffff transparent"
-        , style "top" "100%"
-        , style "right" "50%"
-        , style "margin-right" "-5px"
-        , style "margin-top" "-10px"
-        , style "position" "absolute"
-        ]
-        []
 
 
 viewDropdownItem : DropdownItem -> Html Message

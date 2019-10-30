@@ -505,48 +505,6 @@ all =
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find [ id "pin-icon" ]
                         >> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
-                , it "dropdown list has upward-pointing arrow" <|
-                    givenPinnedResource
-                        >> Application.update
-                            (Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just Message.Message.PinIcon
-                            )
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "top-bar-app" ]
-                        >> Query.find [ id "pin-icon" ]
-                        >> Query.children
-                            [ style "border-width" "5px"
-                            , style "border-style" "solid"
-                            , style "border-color" "transparent transparent #ffffff transparent"
-                            ]
-                        >> Query.count (Expect.equal 1)
-                , it "dropdown list arrow is centered below the pin icon above the list" <|
-                    givenPinnedResource
-                        >> Application.update
-                            (Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just Message.Message.PinIcon
-                            )
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "top-bar-app" ]
-                        >> Query.find [ id "pin-icon" ]
-                        >> Query.children
-                            [ style "border-width" "5px"
-                            , style "border-style" "solid"
-                            , style "border-color"
-                                "transparent transparent #ffffff transparent"
-                            ]
-                        >> Query.first
-                        >> Query.has
-                            [ style "top" "100%"
-                            , style "right" "50%"
-                            , style "margin-right" "-5px"
-                            , style "margin-top" "-10px"
-                            , style "position" "absolute"
-                            ]
                 ]
             , test "top bar lays out contents horizontally" <|
                 \_ ->
