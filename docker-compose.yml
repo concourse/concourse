@@ -13,12 +13,8 @@ services:
   web:
     build: .
     image: concourse/concourse:local
-    extra_hosts:
-      conjur-master: 10.0.0.26
     volumes:
     - .:/src
-    - /Users/acopeland/conjur-conjur.pem:/tmp/conjur-conjur.pem
-    - /Users/acopeland/token_file:/tmp/token-file
     command: web
     depends_on: [db]
     ports:
@@ -33,15 +29,6 @@ services:
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
-
-      CONCOURSE_CONJUR_APPLIANCE_URL: https://conjur-master
-      CONCOURSE_CONJUR_ACCOUNT: conjur
-      CONCOURSE_CONJUR_AUTHN_LOGIN: admin
-      CONCOURSE_CONJUR_AUTHN_API_KEY: zape7r225mk8td062fm19n94f3gbnkby3t97ryw289xssb3djj2b7
-      # CONCOURSE_CONJUR_AUTHN_TOKEN_FILE: /tmp/token-file
-      # CONCOURSE_CONJUR_PIPELINE_SECRET_TEMPLATE: concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}
-      # CONCOURSE_CONJUR_TEAM_SECRET_TEMPLATE: concourse/{{.Team}}/{{.Secret}}
-      CONCOURSE_CONJUR_CERT_FILE: /tmp/conjur-conjur.pem
 
   worker:
     build: .
