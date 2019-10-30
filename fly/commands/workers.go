@@ -212,7 +212,7 @@ func (w *worker) ageCell() ui.TableCell {
 		} else if age/hour > 0 {
 			column.Contents = fmt.Sprintf("%dh%dm", age/hour, (age%hour)/minute)
 		} else if age/minute > 0 {
-			column.Contents = fmt.Sprintf("%dm%ds", age/minute, age%minute)
+			column.Contents = fmt.Sprintf("%dh%dm", age/minute, age%minute)
 		} else {
 			column.Contents = fmt.Sprintf("%ds", age)
 		}
