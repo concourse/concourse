@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -354,6 +355,8 @@ func (c *engineCheck) Run(logger lager.Logger) {
 		return
 	}
 
+	defer c.trackFinished(logger)
+
 	logger.Info("running")
 
 	state := c.runState()
@@ -391,4 +394,23 @@ func (c *engineCheck) runState() exec.RunState {
 func (c *engineCheck) clearRunState() {
 	id := fmt.Sprintf("check:%v", c.check.ID())
 	c.trackedStates.Delete(id)
+}
+
+func (c *engineCheck) trackFinished(logger lager.Logger) {
+	found, err := c.check.Reload()
+	if err != nil {
+		logger.Error("failed-to-load-check-from-db", err)
+		return
+	}
+
+	if !found {
+		logger.Info("check-removed")
+		return
+	}
+
+	metric.CheckFinished{
+		CheckName:             c.check.Plan().Check.Name,
+		ResourceConfigScopeID: strconv.Itoa(c.check.ResourceConfigScopeID()),
+		Success:               c.check.CheckError() == nil,
+	}.Emit(logger)
 }
