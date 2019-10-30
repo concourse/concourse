@@ -1,6 +1,7 @@
 package lockrunner
 
 import (
+	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"os"
 	"time"
@@ -55,6 +56,7 @@ func (r *runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 
 	for {
 		ctx, cancel := context.WithCancel(context.Background())
+		ctx = lagerctx.NewContext(ctx, r.logger)
 
 		select {
 		case <-ticker.C():
