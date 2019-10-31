@@ -39,8 +39,8 @@
       --version ref:bceaf
   }}}
 
-  Note that the version needs to be provided as key-value pairs. For the git
-  resource the \code{ref:} prefix is used. For example, the \italic{registry} 
+  Note that the version needs to be provided as a key-value pair. For the git
+  resource the \code{ref:} prefix is used while the \italic{registry} 
   resource might use \code{digest} as a prefix like \code{digest:sha256:94be7d7b}.
 
   A comment can be provided using the \code{--comment} flag,
