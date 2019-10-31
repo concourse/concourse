@@ -41,6 +41,7 @@ type PutStep struct {
 	plan                  atc.PutPlan
 	metadata              StepMetadata
 	containerMetadata     db.ContainerMetadata
+	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
 	workerClient          worker.Client
@@ -53,6 +54,7 @@ func NewPutStep(
 	plan atc.PutPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
+	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
@@ -63,6 +65,7 @@ func NewPutStep(
 		plan:                  plan,
 		metadata:              metadata,
 		containerMetadata:     containerMetadata,
+		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		workerClient:          workerClient,
 		strategy:              strategy,
@@ -162,7 +165,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	//TODO: add a test to validate the correct source and params are passed
-	res := resource.NewResource(source, params, nil)
+	res := step.resourceFactory.NewResource(source, params, nil)
 
 	step.delegate.Starting(logger)
 

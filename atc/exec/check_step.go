@@ -21,6 +21,7 @@ type CheckStep struct {
 	plan              atc.CheckPlan
 	metadata          StepMetadata
 	containerMetadata db.ContainerMetadata
+	resourceFactory   resource.ResourceFactory
 	strategy          worker.ContainerPlacementStrategy
 	pool              worker.Pool
 	delegate          CheckDelegate
@@ -39,6 +40,7 @@ func NewCheckStep(
 	planID atc.PlanID,
 	plan atc.CheckPlan,
 	metadata StepMetadata,
+	resourceFactory resource.ResourceFactory,
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
@@ -48,6 +50,7 @@ func NewCheckStep(
 		planID:            planID,
 		plan:              plan,
 		metadata:          metadata,
+		resourceFactory:   resourceFactory,
 		containerMetadata: containerMetadata,
 		pool:              pool,
 		strategy:          strategy,
@@ -143,7 +146,7 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
-	checkable := resource.NewResource(source, nil, step.plan.FromVersion)
+	checkable := step.resourceFactory.NewResource(source, nil, step.plan.FromVersion)
 	versions, err := checkable.Check(deadline, processSpec, container)
 	if err != nil {
 		if err == context.DeadlineExceeded {

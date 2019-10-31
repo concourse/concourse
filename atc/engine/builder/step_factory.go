@@ -16,6 +16,7 @@ import (
 type stepFactory struct {
 	pool                  worker.Pool
 	client                worker.Client
+	resourceFactory       resource.ResourceFactory
 	teamFactory           db.TeamFactory
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
@@ -27,6 +28,7 @@ type stepFactory struct {
 func NewStepFactory(
 	pool worker.Pool,
 	client worker.Client,
+	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
@@ -37,6 +39,7 @@ func NewStepFactory(
 	return &stepFactory{
 		pool:                  pool,
 		client:                client,
+		resourceFactory:       resourceFactory,
 		teamFactory:           teamFactory,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,

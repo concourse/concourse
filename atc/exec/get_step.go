@@ -61,6 +61,7 @@ type GetStep struct {
 	plan                 atc.GetPlan
 	metadata             StepMetadata
 	containerMetadata    db.ContainerMetadata
+	resourceFactory      resource.ResourceFactory
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
@@ -74,6 +75,7 @@ func NewGetStep(
 	plan atc.GetPlan,
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
+	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
 	workerPool worker.Pool,
@@ -85,6 +87,7 @@ func NewGetStep(
 		plan:                 plan,
 		metadata:             metadata,
 		containerMetadata:    containerMetadata,
+		resourceFactory:      resourceFactory,
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
 		workerPool:           workerPool,
@@ -164,7 +167,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		StderrWriter: step.delegate.Stderr(),
 	}
 
-	res := resource.NewResource(
+	res := step.resourceFactory.NewResource(
 		source,
 		params,
 		version,
