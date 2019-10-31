@@ -2073,23 +2073,24 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				Context("when getting the build to rerun succeeds", func() {
+					var fakeBuild *dbfakes.FakeBuild
 					BeforeEach(func() {
-						build := new(dbfakes.FakeBuild)
-						build.IDReturns(1)
-						build.NameReturns("1")
-						build.JobNameReturns("some-job")
-						build.PipelineNameReturns("a-pipeline")
-						build.TeamNameReturns("some-team")
-						build.StatusReturns(db.BuildStatusStarted)
-						build.StartTimeReturns(time.Unix(1, 0))
-						build.EndTimeReturns(time.Unix(100, 0))
+						fakeBuild = new(dbfakes.FakeBuild)
+						fakeBuild.IDReturns(1)
+						fakeBuild.NameReturns("1")
+						fakeBuild.JobNameReturns("some-job")
+						fakeBuild.PipelineNameReturns("a-pipeline")
+						fakeBuild.TeamNameReturns("some-team")
+						fakeBuild.StatusReturns(db.BuildStatusStarted)
+						fakeBuild.StartTimeReturns(time.Unix(1, 0))
+						fakeBuild.EndTimeReturns(time.Unix(100, 0))
 
-						fakeJob.BuildReturns(build, true, nil)
+						fakeJob.BuildReturns(fakeBuild, true, nil)
 					})
 
-					Context("when creating the rerun build fails", func() {
+					Context("when the build has no inputs", func() {
 						BeforeEach(func() {
-							fakeJob.RerunBuildReturns(nil, errors.New("nopers"))
+							fakeBuild.InputsReadyReturns(false)
 						})
 
 						It("returns a 500", func() {
@@ -2097,34 +2098,48 @@ var _ = Describe("Jobs API", func() {
 						})
 					})
 
-					Context("when creating the rerun build succeeds", func() {
+					Context("when the build is input ready", func() {
 						BeforeEach(func() {
-							build := new(dbfakes.FakeBuild)
-							build.IDReturns(2)
-							build.NameReturns("1.1")
-							build.JobNameReturns("some-job")
-							build.PipelineNameReturns("a-pipeline")
-							build.TeamNameReturns("some-team")
-							build.StatusReturns(db.BuildStatusStarted)
-							build.StartTimeReturns(time.Unix(1, 0))
-							build.EndTimeReturns(time.Unix(100, 0))
+							fakeBuild.InputsReadyReturns(true)
+						})
+						Context("when creating the rerun build fails", func() {
+							BeforeEach(func() {
+								fakeJob.RerunBuildReturns(nil, errors.New("nopers"))
+							})
 
-							fakeJob.RerunBuildReturns(build, nil)
+							It("returns a 500", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
 						})
 
-						It("returns 200 OK", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
+						Context("when creating the rerun build succeeds", func() {
+							BeforeEach(func() {
+								build := new(dbfakes.FakeBuild)
+								build.IDReturns(2)
+								build.NameReturns("1.1")
+								build.JobNameReturns("some-job")
+								build.PipelineNameReturns("a-pipeline")
+								build.TeamNameReturns("some-team")
+								build.StatusReturns(db.BuildStatusStarted)
+								build.StartTimeReturns(time.Unix(1, 0))
+								build.EndTimeReturns(time.Unix(100, 0))
 
-						It("returns Content-Type 'application/json'", func() {
-							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-						})
+								fakeJob.RerunBuildReturns(build, nil)
+							})
 
-						It("returns the build", func() {
-							body, err := ioutil.ReadAll(response.Body)
-							Expect(err).NotTo(HaveOccurred())
+							It("returns 200 OK", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
 
-							Expect(body).To(MatchJSON(`{
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
+							It("returns the build", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchJSON(`{
 							"id": 2,
 							"name": "1.1",
 							"job_name": "some-job",
@@ -2135,6 +2150,7 @@ var _ = Describe("Jobs API", func() {
 							"start_time": 1,
 							"end_time": 100
 						}`))
+							})
 						})
 					})
 				})

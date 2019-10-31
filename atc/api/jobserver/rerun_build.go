@@ -2,6 +2,7 @@ package jobserver
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/concourse/concourse/atc/api/present"
@@ -37,6 +38,12 @@ func (s *Server) RerunJobBuild(pipeline db.Pipeline) http.Handler {
 
 		if !found {
 			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		if !buildToRerun.InputsReady() {
+			logger.Error("build-to-rerun-has-no-inputs", errors.New("build has no inputs"))
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
