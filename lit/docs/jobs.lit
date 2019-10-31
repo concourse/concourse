@@ -67,11 +67,16 @@ configured job consists of the following fields:
     \italic{Optional.} Keep logs for the last specified number of builds.
   }{job-build-log-retention-builds}
 
+  \define-attribute{minimum_succeeded_builds: number}{
+    \italic{Optional.} Keep logs for at least N successful builds.
+  }{job-build-log-retention-minimum-succeeded-builds}
+
   Builds which are not retained by one of the above configurations will have
   their logs reaped.
 
   The following example will keep logs for any builds that have completed in
-  the last 2 days, while also keeping the last 1000 builds.
+  the last 2 days, while also keeping the last 1000 builds, with at least one
+  successful build.
 
   \codeblock{yaml}{{{
   jobs:
@@ -79,6 +84,7 @@ configured job consists of the following fields:
     build_log_retention:
       days: 2
       builds: 1000
+      minimum_succeeded_builds: 1
     plan:
     - get: 10m
     - task: smoke-tests
@@ -89,8 +95,10 @@ configured job consists of the following fields:
   them will be retained thanks to the \reference{job-build-log-retention-days}
   configuration. Similarly, if there are 1000 builds spanning more than 2 days,
   they will also be kept thanks to the
-  \reference{job-build-log-retention-builds} configuration. Both policies
-  operate independently.
+  \reference{job-build-log-retention-builds} configuration. And if they all
+  happened to have failed, the
+  \reference{job-build-log-retention-minimum-succeeded-builds} will keep around
+  at least one successful build. All policies operate independently.
 }{job-build-log-retention}
 
 \define-attribute{build_logs_to_retain: number}{
