@@ -52,9 +52,9 @@
       --comment "Some reason"
   }}}
 
-  This can for example be used to pull in a fixed version of an external dependency
-  which might break your build in a new release. After the problem has been resolved
-  the pin can then be removed again.
+  This can, for example, be used to pull in a fixed version of an external dependency
+  which might break your build in a new release. After the problem has been resolved,
+  the pin can be removed.
   Another example could be running a build with a set of older inputs when needed.
 
   To remove the pin on a resource use:
@@ -63,7 +63,7 @@
   $ fly -t example unpin-resource --resource my-pipeline/my-resource
   }}
 
-  You can also pin a version via the UI by clicking on the pin icon next to the version on
-  the resouce page of the resource you want to change. A default comment is autmatically
-  generated containing your username and a timestamp which can be further edited.
+  You can also pin a resource via the UI by clicking on the pin button next to the desired version on
+  the resource page. A default comment is automatically
+  generated containing your username and a timestamp. This comment can be edited.
 }
