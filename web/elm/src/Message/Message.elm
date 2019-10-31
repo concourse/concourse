@@ -54,6 +54,7 @@ type DomID
     | FirstOccurrenceIcon StepID
     | StepState StepID
     | PinIcon
+    | PinMenuDropDown String
     | PinButton VersionId
     | PinBar
     | PipelineButton Concourse.PipelineIdentifier

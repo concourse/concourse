@@ -5,63 +5,79 @@ import Concourse
 import Dict
 import Expect
 import HoverState
+import Json.Encode as JE
 import Message.Message exposing (DomID(..), Message(..))
 import Pipeline.PinMenu.PinMenu as PinMenu
 import Pipeline.PinMenu.Views as Views
+import Pipeline.Pipeline as Pipeline
 import Routes
+import SideBar.Styles as SS
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (id)
 
 
+init =
+    Pipeline.init
+        { pipelineLocator =
+            { teamName = "team"
+            , pipelineName = "pipeline"
+            }
+        , turbulenceImgSrc = ""
+        , selectedGroups = []
+        }
+        |> Tuple.first
+
+
 all : Test
 all =
     describe "pin menu"
-        [ test "not hoverable if there are no pinned resources" <|
+        [ test "not clickable if there are no pinned resources" <|
             \_ ->
-                { pinnedResources = []
-                , pipeline = { pipelineName = "pipeline", teamName = "team" }
-                }
+                init
                     |> PinMenu.pinMenu { hovered = HoverState.NoHover }
-                    |> .hoverable
+                    |> .clickable
                     |> Expect.equal False
         , test "has dim icon if there are no pinned resources" <|
             \_ ->
-                { pinnedResources = []
-                , pipeline = { pipelineName = "pipeline", teamName = "team" }
-                }
+                init
                     |> PinMenu.pinMenu { hovered = HoverState.NoHover }
-                    |> .iconStyle
-                    |> Expect.equal Views.Dim
-        , test "has dark background when unhovered" <|
+                    |> .opacity
+                    |> Expect.equal SS.Dim
+        , test "has dark background" <|
             \_ ->
-                { pinnedResources = []
-                , pipeline = { pipelineName = "pipeline", teamName = "team" }
-                }
+                init
                     |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                     |> .background
                     |> Expect.equal Views.Dark
         , test "has no badge if there are no pinned resources" <|
             \_ ->
-                { pinnedResources = []
-                , pipeline = { pipelineName = "pipeline", teamName = "team" }
-                }
+                init
                     |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                     |> .badge
                     |> Expect.equal Nothing
         , describe "with pinned resources" <|
             let
                 model =
-                    { pinnedResources =
-                        [ ( "test"
-                          , Dict.fromList [ ( "version", "v1" ) ]
-                          )
-                        ]
-                    , pipeline =
-                        { pipelineName = "pipeline"
-                        , teamName = "team"
-                        }
+                    { init
+                        | fetchedResources =
+                            Just <|
+                                JE.list identity
+                                    [ JE.object
+                                        [ ( "team_name", JE.string "team" )
+                                        , ( "pipeline_name", JE.string "pipeline" )
+                                        , ( "name", JE.string "test" )
+                                        , ( "type", JE.string "type" )
+                                        , ( "pinned_version"
+                                          , JE.object
+                                                [ ( "version"
+                                                  , JE.string "v1"
+                                                  )
+                                                ]
+                                          )
+                                        ]
+                                    ]
                     }
             in
             [ test "is hoverable" <|
@@ -70,12 +86,18 @@ all =
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .hoverable
                         |> Expect.equal True
-            , test "has dark background" <|
+            , test "is clickable" <|
                 \_ ->
                     model
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
-                        |> .background
-                        |> Expect.equal Views.Dark
+                        |> .clickable
+                        |> Expect.equal True
+            , test "has greyed-out icon" <|
+                \_ ->
+                    model
+                        |> PinMenu.pinMenu { hovered = HoverState.NoHover }
+                        |> .opacity
+                        |> Expect.equal SS.GreyedOut
             , test "has pin count badge" <|
                 \_ ->
                     model
@@ -98,32 +120,107 @@ all =
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .dropdown
                         |> Expect.equal Nothing
-            , test "hovering makes background light" <|
+            , test "has bright icon when hovered" <|
                 \_ ->
                     model
                         |> PinMenu.pinMenu { hovered = HoverState.Hovered PinIcon }
+                        |> .opacity
+                        |> Expect.equal SS.Bright
+            , test "clicking brightens background" <|
+                \_ ->
+                    ( model, [] )
+                        |> PinMenu.update (Click PinIcon)
+                        |> Tuple.first
+                        |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .background
                         |> Expect.equal Views.Light
-            , test "hovering reveals dropdown" <|
+            , test "clicking brightens icon" <|
                 \_ ->
-                    model
-                        |> PinMenu.pinMenu { hovered = HoverState.Hovered PinIcon }
+                    ( model, [] )
+                        |> PinMenu.update (Click PinIcon)
+                        |> Tuple.first
+                        |> PinMenu.pinMenu { hovered = HoverState.NoHover }
+                        |> .opacity
+                        |> Expect.equal SS.Bright
+            , test "clicking reveals dropdown" <|
+                \_ ->
+                    ( model, [] )
+                        |> PinMenu.update (Click PinIcon)
+                        |> Tuple.first
+                        |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .dropdown
                         |> Expect.equal
                             (Just
-                                { background = Colors.white
-                                , position =
+                                { position =
                                     Views.TopRight
                                         (Views.Percent 100)
                                         (Views.Percent 0)
-                                , paddingPx = 10
                                 , items =
                                     [ { title =
                                             { content = "test"
                                             , fontWeight = 700
-                                            , color = Colors.frame
+                                            , color = Colors.text
                                             }
-                                      , table = [ PinMenu.TableRow "version" "v1" ]
+                                      , table =
+                                            [ { left = "version"
+                                              , right = "v1"
+                                              , color = Colors.text
+                                              }
+                                            ]
+                                      , background = Colors.groupsBarBackground
+                                      , paddingPx = 5
+                                      , hoverable = True
+                                      , onClick =
+                                            GoToRoute <|
+                                                Routes.Resource
+                                                    { id =
+                                                        { teamName = "team"
+                                                        , pipelineName = "pipeline"
+                                                        , resourceName = "test"
+                                                        }
+                                                    , page = Nothing
+                                                    }
+                                      }
+                                    ]
+                                }
+                            )
+            , test "clicking again dismisses dropdown" <|
+                \_ ->
+                    ( { model | pinMenuExpanded = True }, [] )
+                        |> PinMenu.update (Click PinIcon)
+                        |> Tuple.first
+                        |> PinMenu.pinMenu { hovered = HoverState.NoHover }
+                        |> .dropdown
+                        |> Expect.equal Nothing
+            , test "hovered dropdown item has darker background" <|
+                \_ ->
+                    { model | pinMenuExpanded = True }
+                        |> PinMenu.pinMenu
+                            { hovered =
+                                HoverState.Hovered <| PinMenuDropDown "test"
+                            }
+                        |> .dropdown
+                        |> Expect.equal
+                            (Just
+                                { position =
+                                    Views.TopRight
+                                        (Views.Percent 100)
+                                        (Views.Percent 0)
+                                , items =
+                                    [ { title =
+                                            { content = "test"
+                                            , fontWeight = 700
+                                            , color = Colors.text
+                                            }
+                                      , table =
+                                            [ { left = "version"
+                                              , right = "v1"
+                                              , color = Colors.text
+                                              }
+                                            ]
+                                      , background = Colors.frame
+                                      , paddingPx = 5
+                                      , hoverable = True
                                       , onClick =
                                             GoToRoute <|
                                                 Routes.Resource

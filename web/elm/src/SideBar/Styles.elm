@@ -8,6 +8,7 @@ module SideBar.Styles exposing
     , hamburgerIcon
     , hamburgerMenu
     , iconGroup
+    , opacityAttr
     , pipeline
     , pipelineIcon
     , pipelineLink

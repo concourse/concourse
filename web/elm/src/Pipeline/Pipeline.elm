@@ -74,6 +74,7 @@ type alias Model =
         , hideLegend : Bool
         , hideLegendCounter : Float
         , isToggleLoading : Bool
+        , pinMenuExpanded : Bool
         }
 
 
@@ -102,6 +103,7 @@ init flags =
             , isToggleLoading = False
             , selectedGroups = flags.selectedGroups
             , isUserMenuExpanded = False
+            , pinMenuExpanded = False
             }
     in
     ( model
@@ -315,7 +317,7 @@ handleDelivery delivery ( model, effects ) =
 
 update : Message -> ET Model
 update msg ( model, effects ) =
-    case msg of
+    (case msg of
         ToggleGroup group ->
             ( model
             , effects
@@ -349,18 +351,8 @@ update msg ( model, effects ) =
 
         _ ->
             ( model, effects )
-
-
-getPinnedResources : Model -> List ( String, Concourse.Version )
-getPinnedResources model =
-    case model.fetchedResources of
-        Nothing ->
-            []
-
-        Just res ->
-            Json.Decode.decodeValue (Json.Decode.list Concourse.decodeResource) res
-                |> Result.withDefault []
-                |> List.filterMap (\r -> Maybe.map (\v -> ( r.name, v )) r.pinnedVersion)
+    )
+        |> PinMenu.update msg
 
 
 subscriptions : List Subscription
@@ -400,12 +392,7 @@ view session model =
                 [ SideBar.hamburgerMenu session
                 , TopBar.concourseLogo
                 , TopBar.breadcrumbs route
-                , PinMenu.viewPinMenu
-                    { pinnedResources = getPinnedResources model
-                    , pipeline = model.pipelineLocator
-                    , isPinMenuExpanded =
-                        HoverState.isHovered PinIcon session.hovered
-                    }
+                , PinMenu.viewPinMenu session model
                 , Html.div
                     (id "top-bar-pause-toggle"
                         :: (Styles.pauseToggle <| isPaused model.pipeline)

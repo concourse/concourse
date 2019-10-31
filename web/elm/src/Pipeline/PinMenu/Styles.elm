@@ -1,7 +1,9 @@
 module Pipeline.PinMenu.Styles exposing
     ( pinBadge
     , pinIcon
+    , pinIconBackground
     , pinIconDropdown
+    , pinIconDropdownItem
     , title
     )
 
@@ -11,39 +13,42 @@ import Html.Attributes exposing (style)
 import Pipeline.PinMenu.Views
     exposing
         ( Background(..)
-        , Brightness(..)
         , Distance(..)
         , Position(..)
         )
+import SideBar.Styles as SS
 
 
-pinIcon : { a | iconStyle : Brightness, background : Background } -> List (Html.Attribute msg)
-pinIcon { iconStyle, background } =
+pinIconBackground : { a | background : Background } -> List (Html.Attribute msg)
+pinIconBackground { background } =
     [ style "position" "relative"
-    , style "display" "flex"
-    , style "max-width" "20%"
-    , style "background-image" "url(/public/images/pin-ic-white.svg)"
     , style "border-left" <| "1px solid " ++ Colors.background
+    , style "background-color" <|
+        case background of
+            Light ->
+                Colors.sideBar
+
+            Dark ->
+                Colors.frame
+    ]
+
+
+pinIcon : { a | opacity : SS.Opacity, clickable : Bool } -> List (Html.Attribute msg)
+pinIcon { opacity, clickable } =
+    [ style "background-image" "url(/public/images/pin-ic-white.svg)"
     , style "width" "54px"
     , style "height" "54px"
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "position" "relative"
-    , style "opacity" <|
-        case iconStyle of
-            Bright ->
-                "1"
+    , style "cursor" <|
+        if clickable then
+            "pointer"
 
-            Dim ->
-                "0.5"
+        else
+            "default"
+    , SS.opacityAttr opacity
     ]
-        ++ (case background of
-                Light ->
-                    [ style "background-color" Colors.secondaryTopBar ]
-
-                Dark ->
-                    []
-           )
 
 
 pinBadge :
@@ -81,18 +86,11 @@ pinBadge { color, diameterPx, position } =
             ]
 
 
-pinIconDropdown :
-    { a
-        | background : String
-        , position : Position
-        , paddingPx : Int
-    }
-    -> List (Html.Attribute msg)
-pinIconDropdown { background, position, paddingPx } =
+pinIconDropdown : { a | position : Position } -> List (Html.Attribute msg)
+pinIconDropdown { position } =
     case position of
         TopRight top right ->
-            [ style "background-color" background
-            , style "color" Colors.pinIconHover
+            [ style "color" Colors.pinIconHover
             , style "position" "absolute"
             , style "top" <|
                 case top of
@@ -110,10 +108,21 @@ pinIconDropdown { background, position, paddingPx } =
                         String.fromInt pct ++ "%"
             , style "white-space" "nowrap"
             , style "list-style-type" "none"
-            , style "padding" <| String.fromInt paddingPx ++ "px"
             , style "margin-top" "0"
             , style "z-index" "1"
             ]
+
+
+pinIconDropdownItem :
+    { a | paddingPx : Int, background : String }
+    -> List (Html.Attribute msg)
+pinIconDropdownItem { paddingPx, background } =
+    [ style "padding" <| String.fromInt paddingPx ++ "px"
+    , style "background-color" background
+    , style "cursor" "pointer"
+    , style "font-weight" "400"
+    , style "border" <| "1px solid " ++ Colors.groupBorderSelected
+    ]
 
 
 title : { a | fontWeight : Int, color : String } -> List (Html.Attribute msg)
