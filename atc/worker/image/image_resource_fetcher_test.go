@@ -5,9 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/resource"
 	"io"
 	"io/ioutil"
+
+	"github.com/concourse/concourse/atc/resource"
 
 	"github.com/concourse/concourse/atc/runtime"
 
