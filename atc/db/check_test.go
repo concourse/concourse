@@ -65,9 +65,7 @@ var _ = Describe("Check", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("starts the check", func() {
-			check.Reload()
-
+		It("sets the startTime of check", func() {
 			Expect(check.StartTime()).To(BeTemporally("~", time.Now(), time.Second))
 		})
 
@@ -87,11 +85,14 @@ var _ = Describe("Check", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		It("sets the endTime of check", func() {
+			Expect(check.EndTime()).To(BeTemporally("~", time.Now(), time.Second))
+		})
+
 		It("finishes the check", func() {
 			check.Reload()
 
 			Expect(check.Status()).To(Equal(db.CheckStatusSucceeded))
-			Expect(check.EndTime()).To(BeTemporally("~", time.Now(), time.Second))
 			Expect(check.CheckError()).To(BeNil())
 		})
 
