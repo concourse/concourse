@@ -1000,7 +1000,7 @@ var _ = Describe("Build", func() {
 
 			It("returns the correct pipeline", func() {
 				Expect(found).To(BeTrue())
-				Expect(foundPipeline).To(Equal(createdPipeline))
+				Expect(foundPipeline.Name()).To(Equal(createdPipeline.Name()))
 			})
 		})
 

@@ -289,10 +289,10 @@ func (versions VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
 	return buildID, true, nil
 }
 
-func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (ResourceVersion, bool, error) {
+func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (ResourceVersion, bool, bool, error) {
 	tx, err := versions.conn.Begin()
 	if err != nil {
-		return "", false, err
+		return "", false, false, err
 	}
 
 	defer tx.Rollback()
@@ -310,64 +310,82 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 		if err == sql.ErrNoRows {
 			version, found, err := versions.latestVersionOfResource(tx, resourceID)
 			if err != nil {
-				return "", false, err
+				return "", false, false, err
 			}
 
 			if !found {
-				return "", false, nil
+				return "", false, false, nil
 			}
 
 			err = tx.Commit()
 			if err != nil {
-				return "", false, err
+				return "", false, false, err
 			}
 
-			return version, true, nil
+			return version, false, true, nil
 		}
 
-		return "", false, err
+		return "", false, false, err
 	}
 
 	var nextVersion ResourceVersion
-	err = psql.Select("rcv.version_md5").
+	rows, err := psql.Select("rcv.version_md5").
 		From("resource_config_versions rcv").
 		Where(sq.Expr("rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID)).
 		Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_md5 = rcv.version_md5)", resourceID)).
 		Where(sq.Gt{"rcv.check_order": checkOrder}).
 		OrderBy("rcv.check_order ASC").
+		Limit(2).
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return "", false, false, err
+	}
+
+	if rows.Next() {
+		err = rows.Scan(&nextVersion)
+		if err != nil {
+			return "", false, false, err
+		}
+
+		var hasNext bool
+		if rows.Next() {
+			hasNext = true
+		}
+
+		rows.Close()
+
+		err = tx.Commit()
+		if err != nil {
+			return "", false, false, err
+		}
+
+		return nextVersion, hasNext, true, nil
+	}
+
+	err = psql.Select("rcv.version_md5").
+		From("resource_config_versions rcv").
+		Where(sq.Expr("rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID)).
+		Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_md5 = rcv.version_md5)", resourceID)).
+		Where(sq.LtOrEq{"rcv.check_order": checkOrder}).
+		OrderBy("rcv.check_order DESC").
 		Limit(1).
 		RunWith(tx).
 		QueryRow().
 		Scan(&nextVersion)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			err = psql.Select("rcv.version_md5").
-				From("resource_config_versions rcv").
-				Where(sq.Expr("rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID)).
-				Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_md5 = rcv.version_md5)", resourceID)).
-				Where(sq.LtOrEq{"rcv.check_order": checkOrder}).
-				OrderBy("rcv.check_order DESC").
-				Limit(1).
-				RunWith(tx).
-				QueryRow().
-				Scan(&nextVersion)
-			if err != nil {
-				if err == sql.ErrNoRows {
-					return "", false, nil
-				}
-				return "", false, err
-			}
-		} else {
-			return "", false, err
+			return "", false, false, nil
 		}
+		return "", false, false, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return "", false, err
+		return "", false, false, err
 	}
 
-	return nextVersion, true, nil
+	return nextVersion, false, true, nil
 }
 
 func (versions VersionsDB) LatestBuildPipes(buildID int) (map[int]int, error) {
@@ -457,10 +475,12 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 		OrderBy("COALESCE(rerun_of, id) DESC, id DESC")
 
 	return PaginatedBuilds{
-		builder:  builder,
-		buildIDs: buildIDs,
-		column:   "id",
-		jobID:    jobID,
+		builder:      builder,
+		buildIDs:     buildIDs,
+		unusedBuilds: true,
+
+		column: "id",
+		jobID:  jobID,
 
 		limitRows: versions.limitRows,
 		conn:      versions.conn,
@@ -474,14 +494,14 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		return PaginatedBuilds{}, err
 	}
 
-	for {
-		rows, err := psql.Select("build_id").
-			From("successful_build_outputs").
-			Where(sq.Expr("outputs @> ?::jsonb", versionsJSON)).
-			Where(sq.Eq{
+	rows, err := psql.Select("id").
+		From("builds").
+		Where(sq.And{
+			sq.Eq{
 				"job_id": jobID,
-			}).
-			Where(sq.Or{
+				"status": "succeeded",
+			},
+			sq.Or{
 				sq.And{
 					sq.Gt{
 						"rerun_of": buildID,
@@ -492,43 +512,30 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 				},
 				sq.And{
 					sq.Gt{
-						"build_id": buildID,
+						"id": buildID,
 					},
 					sq.Eq{
 						"rerun_of": nil,
 					},
 				},
-			}).
-			OrderBy("COALESCE(rerun_of, build_id) ASC, build_id ASC").
-			RunWith(versions.conn).
-			Query()
+			},
+		}).
+		OrderBy("COALESCE(rerun_of, id) ASC, id ASC").
+		RunWith(versions.conn).
+		Query()
+	if err != nil {
+		return PaginatedBuilds{}, err
+	}
+
+	for rows.Next() {
+		var buildID int
+
+		err = rows.Scan(&buildID)
 		if err != nil {
 			return PaginatedBuilds{}, err
 		}
 
-		for rows.Next() {
-			var buildID int
-
-			err = rows.Scan(&buildID)
-			if err != nil {
-				return PaginatedBuilds{}, err
-			}
-
-			buildIDs = append(buildIDs, buildID)
-		}
-
-		if len(buildIDs) == 0 {
-			migrated, err := versions.migrateUpper(jobID, buildID)
-			if err != nil {
-				return PaginatedBuilds{}, err
-			}
-
-			if !migrated {
-				break
-			}
-		} else {
-			break
-		}
+		buildIDs = append(buildIDs, buildID)
 	}
 
 	builder := psql.Select("build_id").
@@ -543,10 +550,12 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		OrderBy("COALESCE(rerun_of, build_id) DESC, build_id DESC")
 
 	return PaginatedBuilds{
-		builder:  builder,
-		buildIDs: buildIDs,
-		column:   "build_id",
-		jobID:    jobID,
+		builder:      builder,
+		buildIDs:     buildIDs,
+		unusedBuilds: true,
+
+		column: "build_id",
+		jobID:  jobID,
 
 		limitRows: versions.limitRows,
 		conn:      versions.conn,
@@ -662,8 +671,9 @@ type PaginatedBuilds struct {
 	builder sq.SelectBuilder
 	column  string
 
-	buildIDs []int
-	offset   int
+	unusedBuilds bool
+	buildIDs     []int
+	offset       int
 
 	jobID int
 
@@ -729,6 +739,7 @@ func (bs *PaginatedBuilds) Next() (int, bool, error) {
 			} else {
 				bs.buildIDs = buildIDs
 				bs.offset = 0
+				bs.unusedBuilds = false
 
 				break
 			}
@@ -739,6 +750,10 @@ func (bs *PaginatedBuilds) Next() (int, bool, error) {
 	bs.offset++
 
 	return id, true, nil
+}
+
+func (bs *PaginatedBuilds) HasNext() bool {
+	return bs.unusedBuilds && len(bs.buildIDs)-bs.offset+1 > 0
 }
 
 // Migrates a fixed limit of builds for a job

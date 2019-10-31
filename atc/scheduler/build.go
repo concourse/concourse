@@ -9,6 +9,7 @@ import (
 type manualTriggerBuild struct {
 	db.Build
 
+	pipeline      db.Pipeline
 	job           db.Job
 	resources     db.Resources
 	relatedJobIDs algorithm.NameToIDMap
@@ -34,9 +35,16 @@ func (m *manualTriggerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, 
 		}
 	}
 
-	inputMapping, resolved, err := m.algorithm.Compute(m.job, m.resources, m.relatedJobIDs)
+	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(m.job, m.resources, m.relatedJobIDs)
 	if err != nil {
 		return nil, false, err
+	}
+
+	if hasNextInputs {
+		err = m.pipeline.RequestSchedule()
+		if err != nil {
+			return nil, false, err
+		}
 	}
 
 	err = m.job.SaveNextInputMapping(inputMapping, resolved)

@@ -242,7 +242,7 @@ var _ = Describe("Resolve", func() {
 		algorithm := algorithm.New(versionsDB)
 
 		var ok bool
-		inputMapping, ok, err = algorithm.Compute(job, dbResources, map[string]int{"j1": 1})
+		inputMapping, ok, _, err = algorithm.Compute(job, dbResources, map[string]int{"j1": 1})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ok).To(BeTrue())
 	})

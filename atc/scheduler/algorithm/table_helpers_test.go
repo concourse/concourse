@@ -72,6 +72,8 @@ type Result struct {
 	PassedBuildIDs   map[string][]int
 	Errors           map[string]string
 	ExpectedMigrated map[int]map[int][]string
+	HasNext          bool
+	NoNext           bool
 }
 
 type StringMapping map[string]int
@@ -465,7 +467,7 @@ func (example Example) Run() {
 	Expect(found).To(BeTrue())
 
 	algorithm := a.New(versionsDB)
-	resolved, ok, resolvedErr := algorithm.Compute(job, dbResources, a.NameToIDMap(setup.jobIDs))
+	resolved, ok, hasNext, resolvedErr := algorithm.Compute(job, dbResources, a.NameToIDMap(setup.jobIDs))
 	if example.Error != nil {
 		Expect(resolvedErr).To(Equal(example.Error))
 	} else {
@@ -579,6 +581,14 @@ func (example Example) Run() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(rerunBuildID).To(Equal(actualRerunOfBuildID))
 			}
+		}
+
+		if example.Result.HasNext == true {
+			Expect(hasNext).To(Equal(true))
+		}
+
+		if example.Result.NoNext == true {
+			Expect(hasNext).To(Equal(false))
 		}
 	}
 }

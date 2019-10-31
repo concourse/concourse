@@ -80,9 +80,9 @@ var _ = Describe("Scheduler", func() {
 				fakeJob.NameReturns("some-job-1")
 			})
 
-			Context("when mapping the inputs fails", func() {
+			Context("when computing the inputs fails", func() {
 				BeforeEach(func() {
-					fakeAlgorithm.ComputeReturns(nil, false, disaster)
+					fakeAlgorithm.ComputeReturns(nil, false, false, disaster)
 				})
 
 				It("returns the error", func() {
@@ -90,7 +90,7 @@ var _ = Describe("Scheduler", func() {
 				})
 			})
 
-			Context("when mapping the inputs succeeds", func() {
+			Context("when computing the inputs succeeds", func() {
 				var expectedInputMapping db.InputMapping
 
 				BeforeEach(func() {
@@ -106,15 +106,35 @@ var _ = Describe("Scheduler", func() {
 						},
 					}
 
-					fakeAlgorithm.ComputeReturns(expectedInputMapping, true, nil)
+					fakeAlgorithm.ComputeReturns(expectedInputMapping, true, false, nil)
 				})
 
-				It("mapped the inputs", func() {
+				It("computed the inputs", func() {
 					Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
 					actualJob, resources, relatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
 					Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
 					Expect(resources).To(Equal(expectedResources))
 					Expect(relatedJobs).To(Equal(expectedJobIDs))
+				})
+
+				Context("when the algorithm can run again", func() {
+					BeforeEach(func() {
+						fakeAlgorithm.ComputeReturns(expectedInputMapping, true, true, nil)
+					})
+
+					It("requests schedule on the pipeline", func() {
+						Expect(fakePipeline.RequestScheduleCallCount()).To(Equal(1))
+					})
+				})
+
+				Context("when the algorithm can not compute a next set of inputs", func() {
+					BeforeEach(func() {
+						fakeAlgorithm.ComputeReturns(expectedInputMapping, true, false, nil)
+					})
+
+					It("does not request schedule on the pipeline", func() {
+						Expect(fakePipeline.RequestScheduleCallCount()).To(Equal(0))
+					})
 				})
 
 				Context("when saving the next input mapping fails", func() {
@@ -213,7 +233,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when no input mapping is found", func() {
 				BeforeEach(func() {
-					fakeAlgorithm.ComputeReturns(db.InputMapping{}, false, nil)
+					fakeAlgorithm.ComputeReturns(db.InputMapping{}, false, false, nil)
 				})
 
 				It("starts all pending builds and returns no error", func() {

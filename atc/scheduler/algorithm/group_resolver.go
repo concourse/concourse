@@ -8,9 +8,10 @@ import (
 )
 
 type versionCandidate struct {
-	Version        db.ResourceVersion
-	VouchedForBy   map[int]bool
-	SourceBuildIds []int
+	Version             db.ResourceVersion
+	VouchedForBy        map[int]bool
+	SourceBuildIds      []int
+	HasNextEveryVersion bool
 }
 
 func newCandidateVersion(version db.ResourceVersion) *versionCandidate {
@@ -137,7 +138,7 @@ func (r *groupResolver) Resolve(depth int) (map[string]*versionCandidate, db.Res
 						restore[c] = candidate
 
 						r.debug.log("setting candidate", c, "to", output.Version, "vouched resource", output.ResourceID, "by job", jobID)
-						r.candidates[c] = r.vouchForCandidate(candidate, output.Version, jobID, buildID)
+						r.candidates[c] = r.vouchForCandidate(candidate, output.Version, jobID, buildID, paginatedBuilds.HasNext())
 					}
 				}
 
@@ -311,7 +312,7 @@ func (r *groupResolver) outputSatisfyCandidateConstraints(output db.AlgorithmVer
 	return true, false, "", nil
 }
 
-func (r *groupResolver) vouchForCandidate(oldCandidate *versionCandidate, version db.ResourceVersion, passedJobID int, passedBuildID int) *versionCandidate {
+func (r *groupResolver) vouchForCandidate(oldCandidate *versionCandidate, version db.ResourceVersion, passedJobID int, passedBuildID int, hasNext bool) *versionCandidate {
 	// create a new candidate with the new version
 	newCandidate := newCandidateVersion(version)
 
@@ -326,6 +327,8 @@ func (r *groupResolver) vouchForCandidate(oldCandidate *versionCandidate, versio
 				newCandidate.SourceBuildIds = append(newCandidate.SourceBuildIds, sourceBuildId)
 			}
 		}
+
+		newCandidate.HasNextEveryVersion = oldCandidate.HasNextEveryVersion
 	}
 
 	// vouch for the version with this new passed job and append the passed build
@@ -333,6 +336,7 @@ func (r *groupResolver) vouchForCandidate(oldCandidate *versionCandidate, versio
 	// build IDs are used for the build pipes table.
 	newCandidate.VouchedForBy[passedJobID] = true
 	newCandidate.SourceBuildIds = append(newCandidate.SourceBuildIds, passedBuildID)
+	newCandidate.HasNextEveryVersion = newCandidate.HasNextEveryVersion || hasNext
 
 	return newCandidate
 }

@@ -29,6 +29,7 @@ func (r *individualResolver) Resolve(depth int) (map[string]*versionCandidate, d
 	r.debug.reset(0, r.inputConfig.Name)
 
 	var version db.ResourceVersion
+	var hasNext bool
 	if r.inputConfig.UseEveryVersion {
 		buildID, found, err := r.vdb.LatestBuildID(r.inputConfig.JobID)
 		if err != nil {
@@ -36,7 +37,7 @@ func (r *individualResolver) Resolve(depth int) (map[string]*versionCandidate, d
 		}
 
 		if found {
-			version, found, err = r.vdb.NextEveryVersion(buildID, r.inputConfig.ResourceID)
+			version, hasNext, found, err = r.vdb.NextEveryVersion(buildID, r.inputConfig.ResourceID)
 			if err != nil {
 				return nil, "", err
 			}
@@ -72,11 +73,14 @@ func (r *individualResolver) Resolve(depth int) (map[string]*versionCandidate, d
 		r.debug.log("setting candidate", r.inputConfig.Name, "to version for latest", version)
 	}
 
-	versionCandidate := map[string]*versionCandidate{
-		r.inputConfig.Name: newCandidateVersion(version),
+	candidate := newCandidateVersion(version)
+	candidate.HasNextEveryVersion = hasNext
+
+	versionCandidates := map[string]*versionCandidate{
+		r.inputConfig.Name: candidate,
 	}
 
-	return versionCandidate, "", nil
+	return versionCandidates, "", nil
 }
 
 type debugger struct {

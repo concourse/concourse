@@ -888,7 +888,8 @@ var _ = Describe("Team", func() {
 			})
 
 			It("returns the pipelines", func() {
-				Expect(pipelines).To(Equal([]db.Pipeline{pipeline1, pipeline2}))
+				Expect(pipelines[0].Name()).To(Equal(pipeline1.Name()))
+				Expect(pipelines[1].Name()).To(Equal(pipeline2.Name()))
 			})
 		})
 		Context("when the team has no configured pipelines", func() {

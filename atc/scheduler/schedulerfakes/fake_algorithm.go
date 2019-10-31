@@ -10,7 +10,7 @@ import (
 )
 
 type FakeAlgorithm struct {
-	ComputeStub        func(db.Job, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, error)
+	ComputeStub        func(db.Job, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, bool, error)
 	computeMutex       sync.RWMutex
 	computeArgsForCall []struct {
 		arg1 db.Job
@@ -20,18 +20,20 @@ type FakeAlgorithm struct {
 	computeReturns struct {
 		result1 db.InputMapping
 		result2 bool
-		result3 error
+		result3 bool
+		result4 error
 	}
 	computeReturnsOnCall map[int]struct {
 		result1 db.InputMapping
 		result2 bool
-		result3 error
+		result3 bool
+		result4 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAlgorithm) Compute(arg1 db.Job, arg2 db.Resources, arg3 algorithm.NameToIDMap) (db.InputMapping, bool, error) {
+func (fake *FakeAlgorithm) Compute(arg1 db.Job, arg2 db.Resources, arg3 algorithm.NameToIDMap) (db.InputMapping, bool, bool, error) {
 	fake.computeMutex.Lock()
 	ret, specificReturn := fake.computeReturnsOnCall[len(fake.computeArgsForCall)]
 	fake.computeArgsForCall = append(fake.computeArgsForCall, struct {
@@ -45,10 +47,10 @@ func (fake *FakeAlgorithm) Compute(arg1 db.Job, arg2 db.Resources, arg3 algorith
 		return fake.ComputeStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2, ret.result3, ret.result4
 	}
 	fakeReturns := fake.computeReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
 }
 
 func (fake *FakeAlgorithm) ComputeCallCount() int {
@@ -57,7 +59,7 @@ func (fake *FakeAlgorithm) ComputeCallCount() int {
 	return len(fake.computeArgsForCall)
 }
 
-func (fake *FakeAlgorithm) ComputeCalls(stub func(db.Job, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, error)) {
+func (fake *FakeAlgorithm) ComputeCalls(stub func(db.Job, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, bool, error)) {
 	fake.computeMutex.Lock()
 	defer fake.computeMutex.Unlock()
 	fake.ComputeStub = stub
@@ -70,18 +72,19 @@ func (fake *FakeAlgorithm) ComputeArgsForCall(i int) (db.Job, db.Resources, algo
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeAlgorithm) ComputeReturns(result1 db.InputMapping, result2 bool, result3 error) {
+func (fake *FakeAlgorithm) ComputeReturns(result1 db.InputMapping, result2 bool, result3 bool, result4 error) {
 	fake.computeMutex.Lock()
 	defer fake.computeMutex.Unlock()
 	fake.ComputeStub = nil
 	fake.computeReturns = struct {
 		result1 db.InputMapping
 		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeAlgorithm) ComputeReturnsOnCall(i int, result1 db.InputMapping, result2 bool, result3 error) {
+func (fake *FakeAlgorithm) ComputeReturnsOnCall(i int, result1 db.InputMapping, result2 bool, result3 bool, result4 error) {
 	fake.computeMutex.Lock()
 	defer fake.computeMutex.Unlock()
 	fake.ComputeStub = nil
@@ -89,14 +92,16 @@ func (fake *FakeAlgorithm) ComputeReturnsOnCall(i int, result1 db.InputMapping, 
 		fake.computeReturnsOnCall = make(map[int]struct {
 			result1 db.InputMapping
 			result2 bool
-			result3 error
+			result3 bool
+			result4 error
 		})
 	}
 	fake.computeReturnsOnCall[i] = struct {
 		result1 db.InputMapping
 		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 func (fake *FakeAlgorithm) Invocations() map[string][][]interface{} {

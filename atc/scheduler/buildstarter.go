@@ -59,7 +59,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 		return err
 	}
 
-	schedulableBuilds := s.constructBuilds(job, resources, relatedJobs, nextPendingBuilds)
+	schedulableBuilds := s.constructBuilds(pipeline, job, resources, relatedJobs, nextPendingBuilds)
 
 	for _, nextSchedulableBuild := range schedulableBuilds {
 		started, err := s.tryStartNextPendingBuild(logger, pipeline, nextSchedulableBuild, job, resources)
@@ -75,7 +75,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	return nil
 }
 
-func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
+func (s *buildStarter) constructBuilds(pipeline db.Pipeline, job db.Job, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
 	schedulableBuilds := []Build{}
 
 	for _, nextPendingBuild := range builds {
@@ -83,6 +83,7 @@ func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, relat
 			schedulableBuilds = append(schedulableBuilds, &manualTriggerBuild{
 				Build:         nextPendingBuild,
 				algorithm:     s.algorithm,
+				pipeline:      pipeline,
 				job:           job,
 				resources:     resources,
 				relatedJobIDs: relatedJobIDs,

@@ -11,7 +11,7 @@ import (
 //go:generate counterfeiter . Algorithm
 
 type Algorithm interface {
-	Compute(db.Job, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, error)
+	Compute(db.Job, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, bool, error)
 }
 
 type Scheduler struct {
@@ -26,9 +26,16 @@ func (s *Scheduler) Schedule(
 	resources db.Resources,
 	relatedJobs algorithm.NameToIDMap,
 ) error {
-	inputMapping, resolved, err := s.Algorithm.Compute(job, resources, relatedJobs)
+	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(job, resources, relatedJobs)
 	if err != nil {
 		return fmt.Errorf("compute inputs: %w", err)
+	}
+
+	if runAgain {
+		err = pipeline.RequestSchedule()
+		if err != nil {
+			return fmt.Errorf("request schedule: %w", err)
+		}
 	}
 
 	err = job.SaveNextInputMapping(inputMapping, resolved)

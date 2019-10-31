@@ -203,7 +203,7 @@ var _ = Describe("BuildStarter", func() {
 
 						Context("when computing the next inputs fails", func() {
 							BeforeEach(func() {
-								fakeAlgorithm.ComputeReturns(nil, false, disaster)
+								fakeAlgorithm.ComputeReturns(nil, false, false, disaster)
 							})
 
 							It("computes the next inputs for the right job and versions", func() {
@@ -230,7 +230,27 @@ var _ = Describe("BuildStarter", func() {
 									},
 								}
 
-								fakeAlgorithm.ComputeReturns(expectedInputMapping, true, nil)
+								fakeAlgorithm.ComputeReturns(expectedInputMapping, true, false, nil)
+							})
+
+							Context("when the algorithm can run again", func() {
+								BeforeEach(func() {
+									fakeAlgorithm.ComputeReturns(expectedInputMapping, true, true, nil)
+								})
+
+								It("requests schedule on the pipeline", func() {
+									Expect(fakePipeline.RequestScheduleCallCount()).To(Equal(1))
+								})
+							})
+
+							Context("when the algorithm can not run again", func() {
+								BeforeEach(func() {
+									fakeAlgorithm.ComputeReturns(expectedInputMapping, true, false, nil)
+								})
+
+								It("does not requests schedule on the pipeline", func() {
+									Expect(fakePipeline.RequestScheduleCallCount()).To(Equal(0))
+								})
 							})
 
 							It("saves the next input mapping", func() {
