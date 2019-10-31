@@ -178,6 +178,8 @@ type RunCommand struct {
 	DefaultDaysToRetainBuildLogs uint64 `long:"default-days-to-retain-build-logs" description:"Default days to retain build logs. 0 means unlimited"`
 	MaxDaysToRetainBuildLogs     uint64 `long:"max-days-to-retain-build-logs" description:"Maximum days to retain build logs, 0 means not specified. Will override values configured in jobs"`
 
+	MaxJobsInFlight uint64 `long:"max-jobs-in-flight" default:"32" description:"Maximum number of jobs to be scheduling at the same time"`
+
 	DefaultCpuLimit    *int    `long:"default-task-cpu-limit" description:"Default max number of cpu shares per task, 0 means unlimited"`
 	DefaultMemoryLimit *string `long:"default-task-memory-limit" description:"Default maximum memory per task, 0 means unlimited"`
 
@@ -838,6 +840,7 @@ func (cmd *RunCommand) constructBackendMembers(
 						),
 						alg),
 				},
+				cmd.MaxJobsInFlight,
 			),
 			10*time.Second,
 		)},

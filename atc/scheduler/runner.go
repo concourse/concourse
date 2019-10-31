@@ -26,21 +26,20 @@ type BuildScheduler interface {
 
 var errPipelineRemoved = errors.New("pipeline removed")
 
-const maxJobsInFlight = 32
-
-var guardJobScheduling = make(chan struct{}, maxJobsInFlight)
-
 type schedulerRunner struct {
-	logger          lager.Logger
-	pipelineFactory db.PipelineFactory
-	scheduler       BuildScheduler
+	logger             lager.Logger
+	pipelineFactory    db.PipelineFactory
+	scheduler          BuildScheduler
+	guardJobScheduling chan struct{}
 }
 
-func NewRunner(logger lager.Logger, pipelineFactory db.PipelineFactory, scheduler BuildScheduler) Runner {
+func NewRunner(logger lager.Logger, pipelineFactory db.PipelineFactory, scheduler BuildScheduler, maxJobs uint64) Runner {
+	newGuardJobScheduling := make(chan struct{}, maxJobs)
 	return &schedulerRunner{
-		logger:          logger,
-		pipelineFactory: pipelineFactory,
-		scheduler:       scheduler,
+		logger:             logger,
+		pipelineFactory:    pipelineFactory,
+		scheduler:          scheduler,
+		guardJobScheduling: newGuardJobScheduling,
 	}
 }
 
@@ -109,7 +108,7 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline) error {
 			continue
 		}
 
-		guardJobScheduling <- struct{}{}
+		s.guardJobScheduling <- struct{}{}
 		go func(job db.Job) {
 			err = s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
 			if err != nil {
@@ -120,7 +119,7 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline) error {
 					logger.Error("failed-to-request-schedule-on-job", err, lager.Data{"pipeline": job.PipelineName(), "job": job.Name()})
 				}
 			}
-			<-guardJobScheduling
+			<-s.guardJobScheduling
 		}(job)
 	}
 

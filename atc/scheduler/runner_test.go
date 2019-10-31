@@ -79,6 +79,7 @@ var _ = Describe("Runner", func() {
 			lagertest.NewTestLogger("test"),
 			fakePipelineFactory,
 			fakeScheduler,
+			32,
 		)
 	})
 
