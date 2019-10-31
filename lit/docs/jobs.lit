@@ -68,7 +68,7 @@ configured job consists of the following fields:
   }{job-build-log-retention-builds}
 
   \define-attribute{minimum_succeeded_builds: number}{
-    \italic{Optional.} Keep logs for at least N successfull builds.
+    \italic{Optional.} Keep logs for at least N successful builds.
   }{job-build-log-retention-minimum-succeeded-builds}
 
   Builds which are not retained by one of the above configurations will have
@@ -76,7 +76,7 @@ configured job consists of the following fields:
 
   The following example will keep logs for any builds that have completed in
   the last 2 days, while also keeping the last 1000 builds, with at least one
-  successfull build.
+  successful build.
 
   \codeblock{yaml}{{{
   jobs:
