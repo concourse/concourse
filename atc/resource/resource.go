@@ -10,6 +10,27 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
+//go:generate counterfeiter . ResourceFactory
+type ResourceFactory interface {
+	NewResource (source atc.Source, params atc.Params, version atc.Version) Resource
+}
+
+type resourceFactory struct {
+}
+
+func NewResourceFactory() ResourceFactory {
+	return resourceFactory{}
+
+}
+func (rf resourceFactory) NewResource(source atc.Source, params atc.Params, version atc.Version) Resource {
+	return &resource{
+		Source:  source,
+		Params:  params,
+		Version: version,
+	}
+}
+
+
 //go:generate counterfeiter . Resource
 
 type Resource interface {
@@ -27,14 +48,6 @@ type Metadata interface {
 
 func ResourcesDir(suffix string) string {
 	return filepath.Join("/tmp", "build", suffix)
-}
-
-func NewResource(source atc.Source, params atc.Params, version atc.Version) Resource {
-	return &resource{
-		Source:  source,
-		Params:  params,
-		Version: version,
-	}
 }
 
 type resource struct {

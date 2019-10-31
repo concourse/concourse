@@ -55,17 +55,20 @@ type ImageResourceFetcher interface {
 }
 
 type imageResourceFetcherFactory struct {
+	resourceFactory resource.ResourceFactory
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
 	resourceFetcher         worker.Fetcher
 }
 
 func NewImageResourceFetcherFactory(
+	resourceFactory resource.ResourceFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	resourceFetcher worker.Fetcher,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
+		resourceFactory: resourceFactory,
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
 		resourceFetcher:         resourceFetcher,
@@ -83,6 +86,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	return &imageResourceFetcher{
 		worker:                  worker,
 		resourceFetcher:         f.resourceFetcher,
+		resourceFactory: f.resourceFactory,
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
 
@@ -97,6 +101,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 type imageResourceFetcher struct {
 	worker                  worker.Worker
 	resourceFetcher         worker.Fetcher
+	resourceFactory resource.ResourceFactory
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
 
@@ -160,7 +165,7 @@ func (i *imageResourceFetcher) Fetch(
 		StdoutWriter: i.imageFetchingDelegate.Stdout(),
 		StderrWriter: i.imageFetchingDelegate.Stderr(),
 	}
-	res := resource.NewResource(
+	res := i.resourceFactory.NewResource(
 		i.imageResource.Source,
 		params,
 		version,
@@ -260,7 +265,7 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
-	checkResourceType := resource.NewResource(resourceType.Source, nil, resourceType.Version)
+	checkResourceType := i.resourceFactory.NewResource(resourceType.Source, nil, resourceType.Version)
 	versions, err := checkResourceType.Check(context.TODO(), processSpec, resourceTypeContainer)
 	if err != nil {
 		return err
@@ -321,7 +326,7 @@ func (i *imageResourceFetcher) getLatestVersion(
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
-	checkingResource := resource.NewResource(i.imageResource.Source, nil, i.imageResource.Version)
+	checkingResource := i.resourceFactory.NewResource(i.imageResource.Source, nil, i.imageResource.Version)
 	versions, err := checkingResource.Check(context.TODO(), processSpec, imageContainer)
 	if err != nil {
 		return nil, err
