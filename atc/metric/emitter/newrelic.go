@@ -118,6 +118,8 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	// These are the simple ones that only need a small name transformation
 	case "build started",
 		"build finished",
+		"resource checked",
+		"check finished",
 		"worker containers",
 		"worker volumes",
 		"http response time",
