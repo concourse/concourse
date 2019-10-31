@@ -30,12 +30,12 @@ import (
 
 var _ = Describe("Image", func() {
 	var (
-		fakeResourceFetcher       *workerfakes.FakeFetcher
+		fakeResourceFetcher *workerfakes.FakeFetcher
 
-		fakeResourceFactory			*resourcefakes.FakeResourceFactory
+		fakeResourceFactory *resourcefakes.FakeResourceFactory
 
 		fakeCheckResource *resourcefakes.FakeResource
-		fakeGetResource		*resourcefakes.FakeResource
+		fakeGetResource   *resourcefakes.FakeResource
 
 		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
@@ -60,8 +60,6 @@ var _ = Describe("Image", func() {
 		fetchedVersion        atc.Version
 		fetchErr              error
 		teamID                int
-
-
 	)
 	BeforeEach(func() {
 		fakeResourceFetcher = new(workerfakes.FakeFetcher)
@@ -167,13 +165,23 @@ var _ = Describe("Image", func() {
 				})
 
 				Context("and the custom type has a version", func() {
-					BeforeEach(func(){
-						fakeResourceFactory.NewResourceReturnsOnCall(0,fakeCheckResource)
-						fakeResourceFactory.NewResourceReturnsOnCall(1,fakeGetResource)
+					BeforeEach(func() {
+						fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResource)
+						fakeResourceFactory.NewResourceReturnsOnCall(1, fakeGetResource)
 					})
 					It("does not check for versions of the custom type", func() {
 						Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 					})
+
+					It("ran 'check' with the right config", func() {
+						Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
+						_, checkProcessSpec, checkImageContainer := fakeCheckResource.CheckArgsForCall(0)
+						Expect(checkProcessSpec).To(Equal(runtime.ProcessSpec{
+							Path: "/opt/resource/check",
+						}))
+						Expect(checkImageContainer).To(Equal(fakeContainer))
+					})
+
 				})
 
 				Context("and the custom type does not have a version", func() {
@@ -191,11 +199,11 @@ var _ = Describe("Image", func() {
 
 						fakeCheckResourceType = new(resourcefakes.FakeResource)
 						fakeCheckResourceType.CheckReturns(
-							[]atc.Version{{"some-key":"some-value"}},
+							[]atc.Version{{"some-key": "some-value"}},
 							nil)
-						fakeResourceFactory.NewResourceReturnsOnCall(0,fakeCheckResourceType)
-						fakeResourceFactory.NewResourceReturnsOnCall(1,fakeCheckResource)
-						fakeResourceFactory.NewResourceReturnsOnCall(2,fakeGetResource)
+						fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResourceType)
+						fakeResourceFactory.NewResourceReturnsOnCall(1, fakeCheckResource)
+						fakeResourceFactory.NewResourceReturnsOnCall(2, fakeGetResource)
 
 						fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 					})
@@ -226,8 +234,8 @@ var _ = Describe("Image", func() {
 
 			Context("when check returns a version", func() {
 				BeforeEach(func() {
-					fakeResourceFactory.NewResourceReturnsOnCall(0,fakeCheckResource)
-					fakeResourceFactory.NewResourceReturnsOnCall(1,fakeGetResource)
+					fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResource)
+					fakeResourceFactory.NewResourceReturnsOnCall(1, fakeGetResource)
 
 					fakeCheckResource.CheckReturns([]atc.Version{{"v": "1"}}, nil)
 				})
@@ -271,7 +279,6 @@ var _ = Describe("Image", func() {
 								fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
 								someStdoutWriter      io.Writer
 								someStderrWriter      io.Writer
-
 							)
 
 							BeforeEach(func() {
@@ -350,7 +357,7 @@ var _ = Describe("Image", func() {
 								Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
 								_, checkProcessSpec, checkImageContainer := fakeCheckResource.CheckArgsForCall(0)
 								Expect(checkProcessSpec).To(Equal(runtime.ProcessSpec{
-									Path:"/opt/resource/check",
+									Path: "/opt/resource/check",
 								}))
 								Expect(checkImageContainer).To(Equal(fakeContainer))
 							})
@@ -405,7 +412,7 @@ var _ = Describe("Image", func() {
 			Context("when check returns no versions", func() {
 				BeforeEach(func() {
 					fakeCheckResource.CheckReturns([]atc.Version{}, nil)
-					fakeResourceFactory.NewResourceReturnsOnCall(0,fakeCheckResource)
+					fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResource)
 				})
 
 				It("exits with ErrImageUnavailable", func() {
@@ -425,7 +432,7 @@ var _ = Describe("Image", func() {
 				BeforeEach(func() {
 					disaster = errors.New("wah")
 					fakeCheckResource.CheckReturns(nil, disaster)
-					fakeResourceFactory.NewResourceReturnsOnCall(0,fakeCheckResource)
+					fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResource)
 				})
 
 				It("returns the error", func() {
@@ -461,7 +468,7 @@ var _ = Describe("Image", func() {
 	Context("when a version is specified", func() {
 		BeforeEach(func() {
 			version = atc.Version{"v": "1"}
-			fakeResourceFactory.NewResourceReturnsOnCall(0,fakeGetResource)
+			fakeResourceFactory.NewResourceReturnsOnCall(0, fakeGetResource)
 		})
 
 		Context("when saving the version in the database succeeds", func() {
@@ -522,9 +529,9 @@ var _ = Describe("Image", func() {
 
 					It("calls resourceFetcher.Fetch with the correct args", func() {
 						actualCtx, _, actualMetadata, actualWorker,
-						actualContainerSpec, actualProcessSpec, actualResource,
-						actualContainerOwner, actualImageFetcherSpec,
-						actualResourceCache, lockname := fakeResourceFetcher.FetchArgsForCall(0)
+							actualContainerSpec, actualProcessSpec, actualResource,
+							actualContainerOwner, actualImageFetcherSpec,
+							actualResourceCache, lockname := fakeResourceFetcher.FetchArgsForCall(0)
 
 						Expect(actualCtx).To(Equal(ctx))
 						Expect(actualMetadata).To(Equal(db.ContainerMetadata{
