@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"time"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
@@ -450,6 +452,69 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(builds).To(ConsistOf(build1DB, build2DB))
+		})
+	})
+
+	Describe("AllBuilds by date", func() {
+		var build1DB db.Build
+		var build2DB db.Build
+
+		BeforeEach(func() {
+			pipeline, _, err := team.SavePipeline("other-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+			}, db.ConfigVersion(0), false)
+			Expect(err).NotTo(HaveOccurred())
+
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build1DB, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			build2DB, err = job.CreateBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			started, err := build1DB.Start(atc.Plan{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
+
+			started, err = build2DB.Start(atc.Plan{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
+		})
+
+		Describe("with a future date as Page.Since", func() {
+			It("should return nothing", func() {
+				page := db.Page{
+					Limit:   10,
+					Since:   int(time.Now().Unix() + 10),
+					UseDate: true,
+				}
+				builds, _, err := buildFactory.AllBuilds(page)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(builds)).To(Equal(0))
+			})
+		})
+
+		Describe("with a very old date as Page.Until", func() {
+			It("should return nothing", func() {
+				page := db.Page{
+					Limit:   10,
+					Until:   int(time.Now().Unix() - 10000),
+					UseDate: true,
+				}
+				builds, _, err := buildFactory.AllBuilds(page)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(builds)).To(Equal(0))
+			})
 		})
 	})
 })

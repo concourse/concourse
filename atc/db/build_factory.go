@@ -178,7 +178,9 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 
 		defer sinceRow.Close()
 
+		found := false
 		for sinceRow.Next() {
+			found = true
 			build := &build{conn: conn, lockFactory: lockFactory}
 			err = scanBuild(build, sinceRow, conn.EncryptionStrategy())
 			if err != nil {
@@ -192,6 +194,9 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 			// Setting `Until` instead of `Since` to adapt to the point
 			// of view of pagination.
 			newPage.Until = build.ID() - 1
+		}
+		if !found {
+			return []Build{}, Pagination{}, nil
 		}
 	}
 
@@ -210,7 +215,10 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 		}
 
 		defer untilRow.Close()
+
+		found := false
 		for untilRow.Next() {
+			found = true
 			build := &build{conn: conn, lockFactory: lockFactory}
 			err = scanBuild(build, untilRow, conn.EncryptionStrategy())
 			if err != nil {
@@ -224,6 +232,9 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 			// Setting `Since` instead of `Until` to adapt to the point
 			// of view of pagination.
 			newPage.Since = build.ID() + 1
+		}
+		if !found {
+			return []Build{}, Pagination{}, nil
 		}
 	}
 
