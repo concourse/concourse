@@ -163,17 +163,17 @@ pinMenu { hovered } model =
                                             , color = Colors.text
                                             }
                                         )
-                            , paddingPx = 5
+                            , paddingPx = 10
                             , background =
                                 if
                                     hovered
                                         == HoverState.Hovered
                                             (PinMenuDropDown resourceName)
                                 then
-                                    Colors.frame
+                                    Colors.sideBarActive
 
                                 else
-                                    Colors.groupsBarBackground
+                                    Colors.sideBar
                             , hoverable = True
                             , onClick =
                                 GoToRoute <|
@@ -219,18 +219,18 @@ getPinnedResources fetchedResources =
 viewView : View -> Html Message
 viewView view =
     Html.div
-        (Styles.pinIconBackground view)
+        (([ ( id "pin-icon", True )
+          , ( onMouseEnter <| Hover <| Just PinIcon, view.hoverable )
+          , ( onMouseLeave <| Hover Nothing, view.hoverable )
+          , ( onClick <| Click PinIcon, view.clickable )
+          ]
+            |> List.filter Tuple.second
+            |> List.map Tuple.first
+         )
+            ++ Styles.pinIconBackground view
+        )
         (Html.div
-            (([ ( id "pin-icon", True )
-              , ( onMouseEnter <| Hover <| Just PinIcon, view.hoverable )
-              , ( onMouseLeave <| Hover Nothing, view.hoverable )
-              , ( onClick <| Click PinIcon, view.clickable )
-              ]
-                |> List.filter Tuple.second
-                |> List.map Tuple.first
-             )
-                ++ Styles.pinIcon view
-            )
+            (Styles.pinIcon view)
             []
             :: ([ Maybe.map viewBadge view.badge
                 , Maybe.map viewDropdown view.dropdown

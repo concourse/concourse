@@ -167,8 +167,8 @@ all =
                                               , color = Colors.text
                                               }
                                             ]
-                                      , background = Colors.groupsBarBackground
-                                      , paddingPx = 5
+                                      , background = Colors.sideBar
+                                      , paddingPx = 10
                                       , hoverable = True
                                       , onClick =
                                             GoToRoute <|
@@ -218,8 +218,8 @@ all =
                                               , color = Colors.text
                                               }
                                             ]
-                                      , background = Colors.frame
-                                      , paddingPx = 5
+                                      , background = Colors.sideBarActive
+                                      , paddingPx = 10
                                       , hoverable = True
                                       , onClick =
                                             GoToRoute <|

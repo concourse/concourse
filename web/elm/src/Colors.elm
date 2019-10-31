@@ -40,6 +40,7 @@ module Colors exposing
     , secondaryTopBar
     , sectionHeader
     , sideBar
+    , sideBarActive
     , started
     , startedFaded
     , statusColor
@@ -277,6 +278,11 @@ groupBackground =
 sideBar : String
 sideBar =
     "#333333"
+
+
+sideBarActive : String
+sideBarActive =
+    "#272727"
 
 
 errorLog : String

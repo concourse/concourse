@@ -19,10 +19,24 @@ import Pipeline.PinMenu.Views
 import SideBar.Styles as SS
 
 
-pinIconBackground : { a | background : Background } -> List (Html.Attribute msg)
-pinIconBackground { background } =
+pinIconBackground :
+    { a | background : Background, clickable : Bool }
+    -> List (Html.Attribute msg)
+pinIconBackground { background, clickable } =
     [ style "position" "relative"
     , style "border-left" <| "1px solid " ++ Colors.background
+    , style "border-bottom" <| "1px solid " ++ Colors.frame
+    , style "width" "54px"
+    , style "height" "54px"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "justify-content" "center"
+    , style "cursor" <|
+        if clickable then
+            "pointer"
+
+        else
+            "default"
     , style "background-color" <|
         case background of
             Light ->
@@ -33,20 +47,15 @@ pinIconBackground { background } =
     ]
 
 
-pinIcon : { a | opacity : SS.Opacity, clickable : Bool } -> List (Html.Attribute msg)
-pinIcon { opacity, clickable } =
+pinIcon : { a | opacity : SS.Opacity } -> List (Html.Attribute msg)
+pinIcon { opacity } =
     [ style "background-image" "url(/public/images/pin-ic-white.svg)"
-    , style "width" "54px"
-    , style "height" "54px"
+    , style "width" "18px"
+    , style "height" "18px"
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
+    , style "background-size" "contain"
     , style "position" "relative"
-    , style "cursor" <|
-        if clickable then
-            "pointer"
-
-        else
-            "default"
     , SS.opacityAttr opacity
     ]
 
@@ -108,7 +117,8 @@ pinIconDropdown { position } =
                         String.fromInt pct ++ "%"
             , style "white-space" "nowrap"
             , style "list-style-type" "none"
-            , style "margin-top" "0"
+            , style "margin-top" "1px"
+            , style "margin-right" "-2px"
             , style "z-index" "1"
             ]
 
@@ -121,7 +131,9 @@ pinIconDropdownItem { paddingPx, background } =
     , style "background-color" background
     , style "cursor" "pointer"
     , style "font-weight" "400"
-    , style "border" <| "1px solid " ++ Colors.groupBorderSelected
+    , style "border-width" "0 1px 1px 1px"
+    , style "border-style" "solid"
+    , style "border-color" Colors.frame
     ]
 
 
