@@ -8,6 +8,7 @@ module SideBar.Styles exposing
     , hamburgerIcon
     , hamburgerMenu
     , iconGroup
+    , opacityAttr
     , pipeline
     , pipelineIcon
     , pipelineLink
@@ -179,7 +180,7 @@ pipelineLink { opacity, rectangle } =
         ++ (case rectangle of
                 Dark ->
                     [ style "border" <| "1px solid " ++ Colors.groupBorderSelected
-                    , style "background-color" "#272727"
+                    , style "background-color" Colors.sideBarActive
                     ]
 
                 Light ->
