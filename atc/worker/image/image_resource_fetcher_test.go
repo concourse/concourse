@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -108,6 +107,16 @@ var _ = Describe("Image", func() {
 		fakeCheckResource = new(resourcefakes.FakeResource)
 
 	})
+
+	ExpectVersionSaveToDatabaseFails := func(expectedError error) {
+		It("returns the error", func() {
+			Expect(fetchErr).To(Equal(expectedError))
+		})
+
+		It("does not construct the 'get' resource", func() {
+			Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(0))
+		})
+	}
 
 	JustBeforeEach(func() {
 		imageResourceFetcher = image.NewImageResourceFetcherFactory(
@@ -353,15 +362,6 @@ var _ = Describe("Image", func() {
 								Expect(fetchedVersion).To(Equal(atc.Version{"v": "1"}))
 							})
 
-							It("ran 'check' with the right config", func() {
-								Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
-								_, checkProcessSpec, checkImageContainer := fakeCheckResource.CheckArgsForCall(0)
-								Expect(checkProcessSpec).To(Equal(runtime.ProcessSpec{
-									Path: "/opt/resource/check",
-								}))
-								Expect(checkImageContainer).To(Equal(fakeContainer))
-							})
-
 							It("saved the image resource version in the database", func() {
 								Expect(fakeImageFetchingDelegate.ImageVersionDeterminedCallCount()).To(Equal(1))
 								Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(fakeUsedResourceCache))
@@ -388,24 +388,27 @@ var _ = Describe("Image", func() {
 									Expect(fetchErr).To(Equal(image.ErrImageGetDidNotProduceVolume))
 								})
 							})
+
+							//This is the only test thats not repeated in the flow below
+							It("ran 'check' with the right config", func() {
+								Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
+								_, checkProcessSpec, checkImageContainer := fakeCheckResource.CheckArgsForCall(0)
+								Expect(checkProcessSpec).To(Equal(runtime.ProcessSpec{
+									Path: "/opt/resource/check",
+								}))
+								Expect(checkImageContainer).To(Equal(fakeContainer))
+							})
 						})
 					})
 				})
 
 				Context("when saving the version in the database fails", func() {
-					var imageVersionSavingCalamity error
+					var imageVersionSavingCalamity = errors.New("hang in there bud")
 					BeforeEach(func() {
-						imageVersionSavingCalamity = errors.New("hang in there bud")
 						fakeImageFetchingDelegate.ImageVersionDeterminedReturns(imageVersionSavingCalamity)
 					})
 
-					It("returns the error", func() {
-						Expect(fetchErr).To(Equal(imageVersionSavingCalamity))
-					})
-
-					It("does not construct the 'get' resource", func() {
-						Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(0))
-					})
+					ExpectVersionSaveToDatabaseFails(imageVersionSavingCalamity)
 				})
 			})
 
@@ -477,12 +480,14 @@ var _ = Describe("Image", func() {
 			})
 
 			Context("when fetching resource fails", func() {
+				var someError error
 				BeforeEach(func() {
-					fakeResourceFetcher.FetchReturns(worker.GetResult{}, nil, fmt.Errorf("can't fetch"))
+					someError = errors.New("some thing bad happened")
+					fakeResourceFetcher.FetchReturns(worker.GetResult{}, &workerfakes.FakeVolume{}, someError)
 				})
 
 				It("returns error", func() {
-					Expect(fetchErr).To(Equal(fmt.Errorf("can't fetch")))
+					Expect(fetchErr).To(Equal(someError))
 				})
 			})
 
@@ -494,9 +499,9 @@ var _ = Describe("Image", func() {
 
 				BeforeEach(func() {
 					fakeVolume = &workerfakes.FakeVolume{}
-					fakeVolume.StreamOutReturns(tgzStreamWith("some-tar-contents"), nil)
-
 					fakeResourceFetcher.FetchReturns(worker.GetResult{}, fakeVolume, nil)
+
+					fakeVolume.StreamOutReturns(tgzStreamWith("some-tar-contents"), nil)
 
 					fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
 					fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
@@ -610,23 +615,15 @@ var _ = Describe("Image", func() {
 					})
 				})
 			})
-
 		})
 
 		Context("when saving the version in the database fails", func() {
-			var imageVersionSavingCalamity error
+			var imageVersionSavingCalamity = errors.New("hang in there bud")
 			BeforeEach(func() {
-				imageVersionSavingCalamity = errors.New("hang in there bud")
 				fakeImageFetchingDelegate.ImageVersionDeterminedReturns(imageVersionSavingCalamity)
 			})
 
-			It("returns the error", func() {
-				Expect(fetchErr).To(Equal(imageVersionSavingCalamity))
-			})
-
-			It("does not construct the 'get' resource", func() {
-				Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(0))
-			})
+			ExpectVersionSaveToDatabaseFails(imageVersionSavingCalamity)
 		})
 	})
 })
