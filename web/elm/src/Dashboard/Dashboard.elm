@@ -525,7 +525,11 @@ clusterNameView session =
 
 
 dashboardView :
-    { a | hovered : HoverState.HoverState, screenSize : ScreenSize }
+    { a
+        | hovered : HoverState.HoverState
+        , screenSize : ScreenSize
+        , userState : UserState.UserState
+    }
     -> Model
     -> Html Message
 dashboardView session model =
@@ -547,6 +551,7 @@ dashboardView session model =
             <|
                 welcomeCard session model
                     :: pipelinesView
+                        session
                         { groups = model.groups
                         , substate = substate
                         , query = model.query
@@ -559,14 +564,10 @@ dashboardView session model =
 
 
 welcomeCard :
-    { a | hovered : HoverState.HoverState }
-    ->
-        { b
-            | groups : List Group
-            , userState : UserState.UserState
-        }
+    { a | hovered : HoverState.HoverState, userState : UserState.UserState }
+    -> { b | groups : List Group, userState : UserState.UserState }
     -> Html Message
-welcomeCard { hovered } { groups, userState } =
+welcomeCard session { groups, userState } =
     let
         cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
         cliIcon hoverable cli =
@@ -606,12 +607,18 @@ welcomeCard { hovered } { groups, userState } =
                         [ style "margin-right" "10px" ]
                         [ Html.text Text.cliInstructions ]
                     ]
-                        ++ List.map (cliIcon hovered) Cli.clis
+                        ++ List.map (cliIcon session.hovered) Cli.clis
                 , Html.div
                     []
                     [ Html.text Text.setPipelineInstructions ]
                 ]
-                    ++ loginInstruction userState
+                    ++ loginInstruction
+                        (if session.userState == UserState.UserStateLoggedOut then
+                            session.userState
+
+                         else
+                            userState
+                        )
             , Html.pre
                 Styles.asciiArt
                 [ Html.text Text.asciiArt ]
@@ -674,16 +681,18 @@ turbulenceView path =
 
 
 pipelinesView :
-    { groups : List Group
-    , substate : Models.SubState
-    , hovered : HoverState.HoverState
-    , pipelineRunningKeyframes : String
-    , query : String
-    , userState : UserState.UserState
-    , highDensity : Bool
-    }
+    { a | userState : UserState.UserState }
+    ->
+        { groups : List Group
+        , substate : Models.SubState
+        , hovered : HoverState.HoverState
+        , pipelineRunningKeyframes : String
+        , query : String
+        , userState : UserState.UserState
+        , highDensity : Bool
+        }
     -> List (Html Message)
-pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, userState, highDensity } =
+pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, query, userState, highDensity } =
     let
         filteredGroups =
             groups |> Filter.filterGroups query |> List.sortWith Group.ordering
@@ -702,7 +711,12 @@ pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, user
                             , now = substate.now
                             , hovered = hovered
                             , pipelineRunningKeyframes = pipelineRunningKeyframes
-                            , userState = userState
+                            , userState =
+                                if session.userState == UserState.UserStateLoggedOut then
+                                    session.userState
+
+                                else
+                                    userState
                             }
                         )
     in

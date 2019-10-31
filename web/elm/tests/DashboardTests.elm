@@ -2027,7 +2027,7 @@ all =
                         , test "when not running, status text shows age" <|
                             \_ ->
                                 Common.init "/"
-                                    |> givenDataUnauthenticatedFromApplication
+                                    |> givenDataUnauthenticated
                                         (\u ->
                                             { teams =
                                                 [ { id = 0, name = "team" } ]
@@ -2044,6 +2044,7 @@ all =
                                             , user = u
                                             }
                                         )
+                                    |> Tuple.first
                                     |> afterSeconds 1
                                     |> Common.queryView
                                     |> findStatusText
@@ -2935,8 +2936,9 @@ all =
             , test "lays out children on two lines when view width is below 1230px" <|
                 \_ ->
                     Common.init "/"
-                        |> givenDataUnauthenticatedFromApplication
+                        |> givenDataUnauthenticated
                             (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Tuple.first
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived <|
                                 WindowResized 1229 300
@@ -3019,8 +3021,9 @@ all =
                 , test "the legend separator is gone when the window width is below 812px" <|
                     \_ ->
                         Common.init "/"
-                            |> givenDataUnauthenticatedFromApplication
+                            |> givenDataUnauthenticated
                                 (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Tuple.first
                             |> Application.update
                                 (ApplicationMsgs.DeliveryReceived <|
                                     WindowResized 800 300
@@ -3035,8 +3038,9 @@ all =
                 , test "legend items wrap when window width is below 812px" <|
                     \_ ->
                         Common.init "/"
-                            |> givenDataUnauthenticatedFromApplication
+                            |> givenDataUnauthenticated
                                 (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> Tuple.first
                             |> Application.update
                                 (ApplicationMsgs.DeliveryReceived <|
                                     WindowResized 800 300
@@ -3434,14 +3438,16 @@ all =
             , test "hides after 6 seconds" <|
                 \_ ->
                     Common.init "/"
-                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Tuple.first
                         |> afterSeconds 6
                         |> Common.queryView
                         |> Query.hasNot [ id "dashboard-info" ]
             , test "reappears on mouse action" <|
                 \_ ->
                     Common.init "/"
-                        |> givenDataUnauthenticatedFromApplication (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Tuple.first
                         |> afterSeconds 6
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived Moused)
@@ -3451,8 +3457,9 @@ all =
             , test "is replaced by keyboard help when pressing '?'" <|
                 \_ ->
                     Common.init "/"
-                        |> givenDataUnauthenticatedFromApplication
+                        |> givenDataUnauthenticated
                             (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> Tuple.first
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived <|
                                 KeyDown
@@ -3557,16 +3564,6 @@ userWithRoles roles =
     }
 
 
-givenDataUnauthenticatedFromApplication :
-    (Maybe Concourse.User -> Concourse.APIData)
-    -> Application.Model
-    -> Application.Model
-givenDataUnauthenticatedFromApplication data =
-    Application.handleCallback
-        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data Nothing ))
-        >> Tuple.first
-
-
 givenDataUnauthenticated :
     (Maybe Concourse.User -> Concourse.APIData)
     -> Application.Model
@@ -3574,8 +3571,34 @@ givenDataUnauthenticated :
 givenDataUnauthenticated data =
     Application.handleCallback
         (Callback.APIDataFetched <|
-            Ok ( Time.millisToPosix 0, data Nothing )
+            Ok
+                ( Time.millisToPosix 0
+                , data <|
+                    Just
+                        { id = "0"
+                        , userName = "test"
+                        , name = "test"
+                        , email = "test"
+                        , isAdmin = False
+                        , teams =
+                            Dict.empty
+                        }
+                )
         )
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.UserFetched <|
+                Err <|
+                    Http.BadStatus
+                        { url = "http://example.com"
+                        , status =
+                            { code = 401
+                            , message = ""
+                            }
+                        , headers = Dict.empty
+                        , body = ""
+                        }
+            )
 
 
 givenClusterInfo :
