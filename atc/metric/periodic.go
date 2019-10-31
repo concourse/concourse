@@ -72,6 +72,15 @@ func tick(logger lager.Logger) {
 	)
 
 	emit(
+		logger.Session("checks-deleted"),
+		Event{
+			Name:  "Checks deleted",
+			Value: ChecksDeleted.Delta(),
+			State: EventStateOK,
+		},
+	)
+
+	emit(
 		logger.Session("containers-created"),
 		Event{
 			Name:  "containers created",

@@ -22,6 +22,7 @@ var FailedVolumes = Meter(0)
 
 var ContainersDeleted = Meter(0)
 var VolumesDeleted = Meter(0)
+var ChecksDeleted = Meter(0)
 
 type SchedulingFullDuration struct {
 	PipelineName string
@@ -507,27 +508,80 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 	)
 }
 
-type CheckFinished struct {
-	ResourceConfigScopeID string
+type CheckStarted struct {
+	ResourceConfigScopeID int
 	CheckName             string
-	Success               bool
+	CheckPendingDuration  time.Duration
+}
+
+func (event CheckStarted) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("check-started"),
+		Event{
+			Name:  "check started",
+			Value: ms(event.CheckPendingDuration),
+			State: EventStateOK,
+			Attributes: map[string]string{
+				"scope_id":   strconv.Itoa(event.ResourceConfigScopeID),
+				"check_name": event.CheckName,
+			},
+		},
+	)
+}
+
+type CheckFinished struct {
+	ResourceConfigScopeID int
+	CheckName             string
+	CheckStatus           db.CheckStatus
+	CheckDuration         time.Duration
 }
 
 func (event CheckFinished) Emit(logger lager.Logger) {
-	state := EventStateOK
-	if !event.Success {
-		state = EventStateWarning
-	}
 	emit(
 		logger.Session("check-finished"),
 		Event{
 			Name:  "check finished",
-			Value: 1,
-			State: state,
+			Value: ms(event.CheckDuration),
+			State: EventStateOK,
 			Attributes: map[string]string{
-				"scope_id":   event.ResourceConfigScopeID,
+				"scope_id":     strconv.Itoa(event.ResourceConfigScopeID),
+				"check_name":   event.CheckName,
+				"check_status": string(event.CheckStatus),
+			},
+		},
+	)
+}
+
+type CheckEnqueue struct {
+	CheckName string
+}
+
+func (event CheckEnqueue) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("check-enqueued"),
+		Event{
+			Name:  "check enqueue",
+			Value: 1,
+			State: EventStateOK,
+			Attributes: map[string]string{
 				"check_name": event.CheckName,
 			},
+		},
+	)
+}
+
+type CheckQueueSize struct {
+	Checks int
+}
+
+func (event CheckQueueSize) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("check-queue-size"),
+		Event{
+			Name:       "check queue size",
+			Value:      event.Checks,
+			State:      EventStateOK,
+			Attributes: map[string]string{},
 		},
 	)
 }

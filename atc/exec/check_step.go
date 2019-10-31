@@ -3,7 +3,6 @@ package exec
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -11,7 +10,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
@@ -151,12 +149,6 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 		}
 		return err
 	}
-
-	metric.CheckFinished{
-		CheckName:             step.plan.Name,
-		ResourceConfigScopeID: strconv.Itoa(step.metadata.ResourceConfigScopeID),
-		Success:               err == nil,
-	}.Emit(logger)
 
 	err = step.delegate.SaveVersions(versions)
 	if err != nil {
