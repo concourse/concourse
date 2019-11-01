@@ -36,8 +36,6 @@ var _ = Describe("IntervalRunner", func() {
 		runTimes  chan time.Time
 		fakeClock *fakeclock.FakeClock
 		fakeLock  *lockfakes.FakeLock
-
-		noop bool
 	)
 
 	BeforeEach(func() {
@@ -64,7 +62,6 @@ var _ = Describe("IntervalRunner", func() {
 		intervalRunner = scheduler.NewIntervalRunner(
 			logger,
 			fakeClock,
-			noop,
 			fakeLockFactory,
 			fakeComponentFactory,
 			fakeRunner,

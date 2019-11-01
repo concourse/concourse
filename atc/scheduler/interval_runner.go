@@ -22,7 +22,6 @@ type Runner interface {
 func NewIntervalRunner(
 	logger lager.Logger,
 	clock clock.Clock,
-	noop bool,
 	lockFactory lock.LockFactory,
 	componentFactory db.ComponentFactory,
 	runner Runner,
@@ -31,7 +30,6 @@ func NewIntervalRunner(
 	return &intervalRunner{
 		logger:           logger,
 		clock:            clock,
-		noop:             noop,
 		componentName:    atc.ComponentScheduler,
 		lockFactory:      lockFactory,
 		componentFactory: componentFactory,
@@ -43,7 +41,6 @@ func NewIntervalRunner(
 type intervalRunner struct {
 	logger           lager.Logger
 	runner           Runner
-	noop             bool
 	componentName    string
 	lockFactory      lock.LockFactory
 	componentFactory db.ComponentFactory

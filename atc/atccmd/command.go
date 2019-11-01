@@ -138,10 +138,6 @@ type RunCommand struct {
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
-	Developer struct {
-		Noop bool `short:"n" long:"noop"              description:"Don't actually do any automatic scheduling or checking."`
-	} `group:"Developer Options"`
-
 	Worker struct {
 		GardenURL       flag.URL          `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
 		BaggageclaimURL flag.URL          `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
@@ -840,7 +836,6 @@ func (cmd *RunCommand) constructBackendMembers(
 		{Name: atc.ComponentScheduler, Runner: scheduler.NewIntervalRunner(
 			logger.Session("scheduler-interval-runner"),
 			clock.NewClock(),
-			cmd.Developer.Noop,
 			lockFactory,
 			componentFactory,
 			scheduler.NewRunner(
