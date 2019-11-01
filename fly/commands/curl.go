@@ -14,7 +14,7 @@ type CurlCommand struct {
 	Args struct {
 		Path  string   `positional-arg-name:"PATH" required:"true"`
 		Query string   `positional-arg-name:"QUERY"`
-		Rest  []string `positional-arg-name:"curl flags"`
+		Rest  []string `positional-arg-name:"curl flags" description:"To pass flags to curl, pass a -- argument, so that fly can distinguish them from its own flags"`
 	} `positional-args:"yes"`
 	PrintAndExit bool `long:"print-and-exit" description:"Print curl command and exit"`
 }

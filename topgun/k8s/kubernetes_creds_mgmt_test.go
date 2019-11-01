@@ -2,9 +2,6 @@ package k8s_test
 
 import (
 	"encoding/json"
-	"time"
-
-	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -13,30 +10,21 @@ import (
 
 var _ = Describe("Kubernetes credential management", func() {
 	var (
-		proxySession *gexec.Session
-		atcEndpoint  string
-		username     = "test"
-		password     = "test"
+		atc                Endpoint
+		username, password = "test", "test"
 	)
 
 	BeforeEach(func() {
 		setReleaseNameAndNamespace("k8s-cm")
 	})
 
+	AfterEach(func() {
+		atc.Close()
+		cleanup(releaseName, namespace)
+	})
+
 	JustBeforeEach(func() {
-		waitAllPodsInNamespaceToBeReady(namespace)
-
-		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
-
-		By("Logging in")
-		fly.Login(username, password, atcEndpoint)
-
-		By("Waiting for a running worker")
-		Eventually(func() []Worker {
-			return getRunningWorkers(fly.GetWorkers())
-		}, 2*time.Minute, 10*time.Second).
-			ShouldNot(HaveLen(0))
+		atc = waitAndLogin(namespace, releaseName+"-web")
 	})
 
 	Context("/api/v1/info/creds", func() {
@@ -53,10 +41,10 @@ var _ = Describe("Kubernetes credential management", func() {
 		})
 
 		It("Contains kubernetes config", func() {
-			token, err := FetchToken(atcEndpoint, username, password)
+			token, err := FetchToken("http://"+atc.Address(), username, password)
 			Expect(err).ToNot(HaveOccurred())
 
-			body, err := RequestCredsInfo(atcEndpoint, token.AccessToken)
+			body, err := RequestCredsInfo("http://"+atc.Address(), token.AccessToken)
 			Expect(err).ToNot(HaveOccurred())
 
 			err = json.Unmarshal(body, &parsedResponse)
@@ -88,8 +76,11 @@ var _ = Describe("Kubernetes credential management", func() {
 		}
 
 		Context("using per-team credentials", func() {
-			secretNameFoo := "foo"
-			secretNameCaz := "caz"
+
+			const (
+				secretNameFoo = "foo"
+				secretNameCaz = "caz"
+			)
 
 			Context("using the default namespace created by the chart", func() {
 				BeforeEach(func() {
@@ -124,8 +115,11 @@ var _ = Describe("Kubernetes credential management", func() {
 		})
 
 		Context("using per-pipeline credentials", func() {
-			secretNameFoo := "pipeline.foo"
-			secretNameCaz := "pipeline.caz"
+
+			const (
+				secretNameFoo = "pipeline.foo"
+				secretNameCaz = "pipeline.caz"
+			)
 
 			Context("using the default namespace created by the chart", func() {
 				BeforeEach(func() {
@@ -180,10 +174,6 @@ var _ = Describe("Kubernetes credential management", func() {
 			<-sess.Exited
 			Expect(sess.ExitCode()).NotTo(Equal(0))
 		})
-	})
-
-	AfterEach(func() {
-		cleanup(releaseName, namespace, proxySession)
 	})
 
 })

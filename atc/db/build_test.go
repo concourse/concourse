@@ -655,70 +655,126 @@ var _ = Describe("Build", func() {
 
 				Expect(newRCV.CheckOrder()).To(Equal(rcv.CheckOrder()))
 			})
+
+			It("requests schedule on the pipeline", func() {
+				build, err := job.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
+				Expect(err).ToNot(HaveOccurred())
+
+				var requestedSchedule time.Time
+				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version-2"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
+				Expect(err).ToNot(HaveOccurred())
+
+				var newRequestedSchedule time.Time
+				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+			})
+
+			It("requests schedule on all pipelines using the resource config", func() {
+				atc.EnableGlobalResources = true
+
+				build, err := job.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				pipelineConfig := atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name:   "some-explicit-resource",
+							Type:   "some-type",
+							Source: atc.Source{"some": "explicit-source"},
+						},
+					},
+				}
+
+				otherPipeline, _, err := team.SavePipeline("some-other-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				resource, found, err := otherPipeline.Resource("some-explicit-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+
+				var requestedSchedule time.Time
+				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, otherPipeline.ID()).Scan(&requestedSchedule)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
+				Expect(err).ToNot(HaveOccurred())
+
+				var newRequestedSchedule time.Time
+				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, otherPipeline.ID()).Scan(&newRequestedSchedule)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+			})
 		})
 
-		It("requests schedule on the pipeline", func() {
-			build, err := job.CreateBuild()
-			Expect(err).ToNot(HaveOccurred())
+		Context("when global resources is enabled", func() {
+			BeforeEach(func() {
+				atc.EnableGlobalResources = true
+			})
 
-			err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
-			Expect(err).ToNot(HaveOccurred())
+			Context("using a given resource type", func() {
+				var givenType string
 
-			var requestedSchedule time.Time
-			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
-			Expect(err).NotTo(HaveOccurred())
+				BeforeEach(func() {
+					givenType = "given-type"
+				})
 
-			err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version-2"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
-			Expect(err).ToNot(HaveOccurred())
+				Context("the resource types contain the given type", func() {
+					var resourceTypes atc.VersionedResourceTypes
 
-			var newRequestedSchedule time.Time
-			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
-		})
+					BeforeEach(func() {
+						resourceTypes = atc.VersionedResourceTypes{
+							{
+								ResourceType: atc.ResourceType{
+									Name:                 "given-type",
+									Source:               atc.Source{"some": "source"},
+									Type:                 "some-type",
+									UniqueVersionHistory: true,
+								},
+								Version: atc.Version{"some-resource-type": "version"},
+							},
+						}
+					})
 
-		It("requests schedule on all pipelines using the resource config", func() {
-			atc.EnableGlobalResources = true
+					Context("but the resource type is different in the db", func() {
+						var resourceName string
 
-			build, err := job.CreateBuild()
-			Expect(err).ToNot(HaveOccurred())
+						BeforeEach(func() {
+							resourceName = "some-explicit-resource" // type: "some-type"
+						})
 
-			pipelineConfig := atc.Config{
-				Jobs: atc.JobConfigs{
-					{
-						Name: "some-job",
-					},
-				},
-				Resources: atc.ResourceConfigs{
-					{
-						Name:   "some-explicit-resource",
-						Type:   "some-type",
-						Source: atc.Source{"some": "explicit-source"},
-					},
-				},
-			}
+						It("saves the output", func() {
+							build, err := job.CreateBuild()
+							Expect(err).ToNot(HaveOccurred())
 
-			otherPipeline, _, err := team.SavePipeline("some-other-pipeline", pipelineConfig, db.ConfigVersion(1), false)
-			Expect(err).ToNot(HaveOccurred())
-
-			resource, found, err := otherPipeline.Resource("some-explicit-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			var requestedSchedule time.Time
-			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, otherPipeline.ID()).Scan(&requestedSchedule)
-			Expect(err).NotTo(HaveOccurred())
-
-			err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
-			Expect(err).ToNot(HaveOccurred())
-
-			var newRequestedSchedule time.Time
-			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, otherPipeline.ID()).Scan(&newRequestedSchedule)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+							err = build.SaveOutput(
+								givenType,
+								atc.Source{"some": "explicit-source"},
+								resourceTypes,
+								atc.Version{"some": "new-version"},
+								[]db.ResourceConfigMetadataField{},
+								"output-name",
+								resourceName,
+							)
+							Expect(err).ToNot(HaveOccurred())
+						})
+					})
+				})
+			})
 		})
 	})
 

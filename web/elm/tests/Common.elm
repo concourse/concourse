@@ -19,6 +19,7 @@ import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Expect exposing (Expectation)
 import Html
+import List.Extra
 import Message.Callback as Callback
 import Message.Effects exposing (Effect)
 import Message.Message exposing (DomID, Message(..))
@@ -34,8 +35,7 @@ queryView : Application.Model -> Query.Single TopLevelMessage
 queryView =
     Application.view
         >> .body
-        >> List.head
-        >> Maybe.withDefault (Html.text "")
+        >> Html.div []
         >> Query.fromHtml
 
 

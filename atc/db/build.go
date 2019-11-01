@@ -925,7 +925,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource, resourceType, resourceTypes)
 	if err != nil {
 		return err
 	}
@@ -1258,6 +1258,13 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	inputs := []BuildInput{}
 	outputs := []BuildOutput{}
 
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer Rollback(tx)
+
 	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", `COALESCE(inputs.first_occurrence, NOT EXISTS (
 			SELECT 1
 			FROM build_resource_config_version_inputs i, builds b
@@ -1283,7 +1290,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			AND outputs.resource_id = resources.id
 			AND outputs.build_id = inputs.build_id
 		)`)).
-		RunWith(b.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, nil, err
@@ -1326,7 +1333,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("outputs.resource_id = resources.id")).
 		Where(sq.Expr("resources.resource_config_scope_id = versions.resource_config_scope_id")).
-		RunWith(b.conn).
+		RunWith(tx).
 		Query()
 
 	if err != nil {
@@ -1356,6 +1363,11 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			Name:    outputName,
 			Version: version,
 		})
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return inputs, outputs, nil
@@ -1478,7 +1490,7 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 }
 
 func buildStartedChannel() string {
-	return fmt.Sprintf("build_started")
+	return atc.ComponentBuildTracker
 }
 
 func buildEventsChannel(buildID int) string {

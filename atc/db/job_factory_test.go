@@ -79,7 +79,7 @@ var _ = Describe("Job Factory", func() {
 
 	Describe("AllActiveJobsForDashboard", func() {
 		It("return all private and public pipelines", func() {
-			allJobs, err := jobFactory.AllActiveJobsForDashboard()
+			allJobs, err := jobFactory.AllActiveJobs()
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(len(allJobs)).To(Equal(3))

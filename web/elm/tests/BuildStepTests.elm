@@ -24,7 +24,7 @@ import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (class, style, tag)
+import Test.Html.Selector exposing (class, style, tag, text)
 import Time
 
 
@@ -35,54 +35,53 @@ all =
             [ test "has a table that left aligns text in cells" <|
                 given iVisitABuildWithAGetStep
                     >> given theGetStepIsExpanded
-                    >> when iAmLookingAtTheGetStepInTheBuildOutput
+                    >> when iAmLookingAtTheStepBody
                     >> when iAmLookingAtTheMetadataTableCells
                     >> then_ iSeeTheyLeftAlignText
             , test "has a table that top aligns text in cells" <|
                 given iVisitABuildWithAGetStep
                     >> given theGetStepIsExpanded
-                    >> when iAmLookingAtTheGetStepInTheBuildOutput
+                    >> when iAmLookingAtTheStepBody
                     >> when iAmLookingAtTheMetadataTableCells
                     >> then_ iSeeTheyTopAlignText
             , test "has a table that padds in cells" <|
                 given iVisitABuildWithAGetStep
                     >> given theGetStepIsExpanded
-                    >> when iAmLookingAtTheGetStepInTheBuildOutput
+                    >> when iAmLookingAtTheStepBody
                     >> when iAmLookingAtTheMetadataTableCells
                     >> then_ iSeeTheyHavePaddingAllAround
             , test "has a table that has a bottom margin to let content (logs) underneath breathe" <|
                 given iVisitABuildWithAGetStep
                     >> given theGetStepIsExpanded
-                    >> when iAmLookingAtTheGetStepInTheBuildOutput
+                    >> when iAmLookingAtTheStepBody
                     >> when iAmLookingAtTheMetadataTable
                     >> then_ iSeeABottomMargin
             , test "has a table that has cells with bottom borders" <|
                 given iVisitABuildWithAGetStep
                     >> given theGetStepIsExpanded
-                    >> when iAmLookingAtTheGetStepInTheBuildOutput
+                    >> when iAmLookingAtTheStepBody
                     >> when iAmLookingAtTheMetadataTableCells
                     >> then_ iSeeLightGrayBottomBorder
             , test "has a table with cells that don't have a shared border" <|
                 given iVisitABuildWithAGetStep
                     >> given theGetStepIsExpanded
-                    >> when iAmLookingAtTheGetStepInTheBuildOutput
+                    >> when iAmLookingAtTheStepBody
                     >> when iAmLookingAtTheMetadataTable
                     >> then_ iSeeATableWithBorderCollapse
             , test "has a table that colors key cells light gray" <|
                 given iVisitABuildWithAGetStep
                     >> given theGetStepIsExpanded
-                    >> when iAmLookingAtTheGetStepInTheBuildOutput
+                    >> when iAmLookingAtTheStepBody
                     >> when iAmLookingAtTheMetadataTableKeyCell
                     >> then_ iSeeLightGrayCellBackground
             , test "has a table that colors value cells dark gray" <|
                 given iVisitABuildWithAGetStep
                     >> given theGetStepIsExpanded
-                    >> when iAmLookingAtTheGetStepInTheBuildOutput
+                    >> when iAmLookingAtTheStepBody
                     >> when iAmLookingAtTheMetadataTableValueCell
                     >> then_ iSeeDarkGrayCellBackground
             ]
-        , describe
-            "retry step"
+        , describe "retry step"
             [ test "has tab list above" <|
                 given iVisitABuildWithARetryStep
                     >> when iAmLookingAtTheRetryStepInTheBuildOutput
@@ -207,6 +206,14 @@ all =
                     ]
                 ]
             ]
+        , describe "task step"
+            [ test "logs show timestamps" <|
+                given iVisitABuildWithATaskStep
+                    >> given thereIsALog
+                    >> given theTaskStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeATimestamp
+            ]
         ]
 
 
@@ -214,6 +221,12 @@ iVisitABuildWithARetryStep =
     iOpenTheBuildPage
         >> myBrowserFetchedTheBuild
         >> thePlanContainsARetryStep
+
+
+iVisitABuildWithATaskStep =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsATaskStep
 
 
 iVisitABuildWithAGetStep =
@@ -226,6 +239,11 @@ iVisitABuildWithAGetStep =
 theGetStepIsExpanded =
     Tuple.first
         >> Application.update (Update <| Message.Click <| StepHeader "getStepId")
+
+
+theTaskStepIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeader taskStepId)
 
 
 thePlanContainsARetryStep =
@@ -255,6 +273,25 @@ thePlanContainsARetryStep =
                       }
                     )
             )
+
+
+thePlanContainsATaskStep =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = taskStepId
+                      , step = Concourse.BuildStepTask "task-name"
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+
+taskStepId =
+    "taskStepId"
 
 
 thePlanContainsAGetStep =
@@ -305,7 +342,7 @@ iAmLookingAtTheRetryStepInTheBuildOutput =
         >> Query.find [ class "retry" ]
 
 
-iAmLookingAtTheGetStepInTheBuildOutput =
+iAmLookingAtTheStepBody =
     Tuple.first
         >> Common.queryView
         >> Query.find [ class "build-step" ]
@@ -434,6 +471,10 @@ iSeeItIsTransparent =
     Query.has [ style "opacity" "0.5" ]
 
 
+iSeeATimestamp =
+    Query.has [ text "00:00:01" ]
+
+
 iAmLookingAtTheSecondTab =
     iAmLookingAtTheTabList >> Query.children [] >> Query.index 1
 
@@ -457,6 +498,40 @@ taskInitialized stepId =
                                 , id = stepId
                                 }
                                 (Time.millisToPosix 0)
+                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      }
+                    ]
+            )
+
+
+thereIsALog =
+    Tuple.first
+        >> Application.handleDelivery
+            (EventsReceived <|
+                Ok
+                    [ { data =
+                            InitializeTask
+                                { source = "stdout"
+                                , id = taskStepId
+                                }
+                                (Time.millisToPosix 0)
+                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      }
+                    , { data =
+                            StartTask
+                                { source = "stdout"
+                                , id = taskStepId
+                                }
+                                (Time.millisToPosix 0)
+                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      }
+                    , { data =
+                            Log
+                                { source = "stdout"
+                                , id = taskStepId
+                                }
+                                "the log output"
+                                (Just <| Time.millisToPosix 1000)
                       , url = "http://localhost:8080/api/v1/builds/1/events"
                       }
                     ]

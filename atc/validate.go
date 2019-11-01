@@ -25,8 +25,8 @@ type ConfigWarning struct {
 }
 
 func (c Config) Validate() ([]ConfigWarning, []string) {
-	warnings := []ConfigWarning{}
-	errorMessages := []string{}
+	var warnings []ConfigWarning
+	var errorMessages []string
 
 	groupsErr := validateGroups(c)
 	if groupsErr != nil {
@@ -53,7 +53,7 @@ func (c Config) Validate() ([]ConfigWarning, []string) {
 }
 
 func validateGroups(c Config) error {
-	errorMessages := []string{}
+	var errorMessages []string
 
 	jobsGrouped := make(map[string]bool)
 	groupNames := make(map[string]int)
@@ -109,7 +109,7 @@ func validateGroups(c Config) error {
 }
 
 func validateResources(c Config) error {
-	errorMessages := []string{}
+	var errorMessages []string
 
 	names := map[string]int{}
 
@@ -145,7 +145,7 @@ func validateResources(c Config) error {
 }
 
 func validateResourceTypes(c Config) error {
-	errorMessages := []string{}
+	var errorMessages []string
 
 	names := map[string]int{}
 
@@ -208,8 +208,8 @@ func usedResources(c Config) map[string]bool {
 }
 
 func validateJobs(c Config) ([]ConfigWarning, error) {
-	errorMessages := []string{}
-	warnings := []ConfigWarning{}
+	var errorMessages []string
+	var warnings []ConfigWarning
 
 	names := map[string]int{}
 
@@ -395,8 +395,8 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		return []ConfigWarning{}, []string{message}
 	}
 
-	errorMessages := []string{}
-	warnings := []ConfigWarning{}
+	var errorMessages []string
+	var warnings []ConfigWarning
 
 	switch {
 	case plan.Do != nil:
@@ -626,8 +626,8 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 }
 
 func validateInapplicableFields(inapplicableFields []string, plan PlanConfig, identifier string) []string {
-	errorMessages := []string{}
-	foundInapplicableFields := []string{}
+	var errorMessages []string
+	var foundInapplicableFields []string
 
 	for _, field := range inapplicableFields {
 		switch field {

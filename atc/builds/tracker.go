@@ -26,14 +26,16 @@ type Tracker struct {
 	engine       engine.Engine
 }
 
-func (bt *Tracker) Track() {
+func (bt *Tracker) Track() error {
 	tLog := bt.logger.Session("track")
 
 	tLog.Debug("start")
 	defer tLog.Debug("done")
+
 	builds, err := bt.buildFactory.GetAllStartedBuilds()
 	if err != nil {
 		tLog.Error("failed-to-lookup-started-builds", err)
+		return err
 	}
 
 	for _, build := range builds {
@@ -46,6 +48,8 @@ func (bt *Tracker) Track() {
 		engineBuild := bt.engine.NewBuild(build)
 		go engineBuild.Run(btLog)
 	}
+
+	return nil
 }
 
 func (bt *Tracker) Release() {

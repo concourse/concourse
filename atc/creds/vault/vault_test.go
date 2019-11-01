@@ -122,5 +122,30 @@ var _ = Describe("Vault", func() {
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
 		})
+
+		Context("without shared", func() {
+			JustBeforeEach(func() {
+				v = &vault.Vault{
+					SecretReader: msr,
+					Prefix:       "/concourse",
+				}
+
+				variables = creds.NewVariables(v, "team", "pipeline")
+			})
+
+			It("should not get secret from root", func() {
+				v.SecretReader = &MockSecretReader{&[]MockSecret{
+					{
+						path: "/concourse/foo",
+						secret: &vaultapi.Secret{
+							Data: map[string]interface{}{"value": "foo"},
+						},
+					}},
+				}
+				_, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+				Expect(found).To(BeFalse())
+				Expect(err).To(BeNil())
+			})
+		})
 	})
 })

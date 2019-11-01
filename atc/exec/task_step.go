@@ -234,10 +234,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	err = result.Err
 	if err != nil {
 		if err == context.Canceled || err == context.DeadlineExceeded {
-			registerErr := step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
-			if registerErr != nil {
-				return registerErr
-			}
+			step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 		}
 		return err
 	}
@@ -245,10 +242,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	step.succeeded = (result.Status == 0)
 	step.delegate.Finished(logger, ExitStatus(result.Status))
 
-	err = step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
-	if err != nil {
-		return err
-	}
+	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 
 	// Do not initialize caches for one-off builds
 	if step.metadata.JobID != 0 {
@@ -392,7 +386,7 @@ func (step *TaskStep) workerSpec(logger lager.Logger, resourceTypes atc.Versione
 	return workerSpec, nil
 }
 
-func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig, volumeMounts []worker.VolumeMount, metadata db.ContainerMetadata) error {
+func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig, volumeMounts []worker.VolumeMount, metadata db.ContainerMetadata) {
 	logger.Debug("registering-outputs", lager.Data{"outputs": config.Outputs})
 
 	for _, output := range config.Outputs {
@@ -410,8 +404,6 @@ func (step *TaskStep) registerOutputs(logger lager.Logger, repository *artifact.
 			}
 		}
 	}
-
-	return nil
 }
 
 func (step *TaskStep) registerCaches(logger lager.Logger, repository *artifact.Repository, config atc.TaskConfig, volumeMounts []worker.VolumeMount, metadata db.ContainerMetadata) error {

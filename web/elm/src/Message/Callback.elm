@@ -1,4 +1,7 @@
-module Message.Callback exposing (Callback(..))
+module Message.Callback exposing
+    ( Callback(..)
+    , TooltipPolicy(..)
+    )
 
 import Browser.Dom
 import Concourse
@@ -53,5 +56,10 @@ type Callback
     | BuildAborted (Fetched ())
     | VisibilityChanged VisibilityAction Concourse.PipelineIdentifier (Fetched ())
     | PipelinesFetched (Fetched (List Concourse.Pipeline))
-    | GotViewport (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | GotViewport TooltipPolicy (Result Browser.Dom.Error Browser.Dom.Viewport)
     | GotElement (Result Browser.Dom.Error Browser.Dom.Element)
+
+
+type TooltipPolicy
+    = AlwaysShow
+    | OnlyShowWhenOverflowing

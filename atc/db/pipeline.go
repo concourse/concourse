@@ -515,13 +515,20 @@ func (p *pipeline) Jobs() (Jobs, error) {
 func (p *pipeline) Dashboard() (Dashboard, error) {
 	dashboard := Dashboard{}
 
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
 	rows, err := jobsQuery.
 		Where(sq.Eq{
 			"pipeline_id": p.id,
 			"active":      true,
 		}).
 		OrderBy("j.id ASC").
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -532,12 +539,17 @@ func (p *pipeline) Dashboard() (Dashboard, error) {
 		return nil, err
 	}
 
-	nextBuilds, err := p.getBuildsFrom("next_build_id")
+	nextBuilds, err := p.getBuildsFrom(tx, "next_build_id")
 	if err != nil {
 		return nil, err
 	}
 
-	finishedBuilds, err := p.getBuildsFrom("latest_completed_build_id")
+	finishedBuilds, err := p.getBuildsFrom(tx, "latest_completed_build_id")
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -641,6 +653,11 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		ResourceIDs:      map[string]int{},
 	}
 
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
 	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, b.job_id").
 		From("build_resource_config_version_outputs o").
 		Join("builds b ON b.id = o.build_id").
@@ -655,7 +672,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -688,7 +705,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -731,7 +748,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 			"d.resource_id": nil,
 			"d.version_md5": nil,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -752,7 +769,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 	rows, err = psql.Select("j.name, j.id").
 		From("jobs j").
 		Where(sq.Eq{"j.pipeline_id": p.id}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -774,7 +791,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 	rows, err = psql.Select("r.name, r.id").
 		From("resources r").
 		Where(sq.Eq{"r.pipeline_id": p.id}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -791,6 +808,11 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		}
 
 		db.ResourceIDs[name] = id
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
 	return db, nil
@@ -968,13 +990,13 @@ func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, re
 	return err
 }
 
-func (p *pipeline) getBuildsFrom(col string) (map[string]Build, error) {
+func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 	rows, err := buildsQuery.
 		Where(sq.Eq{
 			"b.pipeline_id": p.id,
 		}).
 		Where(sq.Expr("j." + col + " = b.id")).
-		RunWith(p.conn).Query()
+		RunWith(tx).Query()
 	if err != nil {
 		return nil, err
 	}

@@ -360,7 +360,10 @@ type credVarsIterator struct {
 
 func (it *credVarsIterator) YieldCred(name, value string) {
 	for _, lineValue := range strings.Split(value, "\n") {
-		it.line = strings.Replace(it.line, lineValue, "((redacted))", -1)
+		lineValue = strings.TrimSpace(lineValue)
+		if lineValue != "" {
+			it.line = strings.Replace(it.line, lineValue, "((redacted))", -1)
+		}
 	}
 }
 

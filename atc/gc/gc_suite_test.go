@@ -1,6 +1,7 @@
 package gc_test
 
 import (
+	"context"
 	"os"
 	"time"
 
@@ -19,6 +20,10 @@ import (
 
 	"testing"
 )
+
+type Collector interface {
+	Run(context.Context) error
+}
 
 func TestGc(t *testing.T) {
 	RegisterFailHandler(Fail)

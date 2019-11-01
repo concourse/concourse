@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
 
@@ -14,7 +13,7 @@ import (
 )
 
 var _ = Describe("ResourceConfigCollector", func() {
-	var collector atccmd.Collector
+	var collector Collector
 
 	BeforeEach(func() {
 		collector = gc.NewResourceConfigCollector(resourceConfigFactory)

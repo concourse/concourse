@@ -6,7 +6,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
 
@@ -15,8 +14,8 @@ import (
 )
 
 var _ = Describe("ResourceCacheCollector", func() {
-	var collector atccmd.Collector
-	var buildCollector atccmd.Collector
+	var collector Collector
+	var buildCollector Collector
 
 	BeforeEach(func() {
 		collector = gc.NewResourceCacheCollector(resourceCacheLifecycle)
@@ -25,7 +24,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 	Describe("Run", func() {
 		Describe("resource caches", func() {
-			var resourceCacheUseCollector atccmd.Collector
+			var resourceCacheUseCollector Collector
 
 			var oneOffBuild db.Build
 			var jobBuild db.Build

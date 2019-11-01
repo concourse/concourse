@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/gc/gcfakes"
@@ -32,9 +31,9 @@ var _ = Describe("ContainerCollector", func() {
 
 		creatingContainer *dbfakes.FakeCreatingContainer
 
-		collector                   atccmd.Collector
-		realCollector               atccmd.Collector
-		fakeCollector               atccmd.Collector
+		collector                   Collector
+		realCollector               Collector
+		fakeCollector               Collector
 		missingContainerGracePeriod time.Duration
 	)
 
@@ -100,8 +99,7 @@ var _ = Describe("ContainerCollector", func() {
 				Context("when destroying failed containers fails", func() {
 					BeforeEach(func() {
 						fakeContainerRepository.DestroyFailedContainersReturns(
-							0,
-							errors.New("You have to be able to accept failure to get better"),
+							0, errors.New("You have to be able to accept failure to get better"),
 						)
 					})
 

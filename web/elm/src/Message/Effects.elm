@@ -16,7 +16,7 @@ import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Json.Encode
-import Message.Callback exposing (Callback(..))
+import Message.Callback exposing (Callback(..), TooltipPolicy(..))
 import Message.Message
     exposing
         ( DomID(..)
@@ -168,7 +168,7 @@ type Effect
     | ChangeVisibility VisibilityAction Concourse.PipelineIdentifier
     | LoadSideBarState
     | SaveSideBarState Bool
-    | GetViewportOf DomID
+    | GetViewportOf DomID TooltipPolicy
     | GetElement DomID
 
 
@@ -438,9 +438,9 @@ runEffect effect key csrfToken =
         SaveSideBarState isOpen ->
             saveSideBarState isOpen
 
-        GetViewportOf domID ->
+        GetViewportOf domID tooltipPolicy ->
             Browser.Dom.getViewportOf (toHtmlID domID)
-                |> Task.attempt GotViewport
+                |> Task.attempt (GotViewport tooltipPolicy)
 
         GetElement domID ->
             Browser.Dom.getElement (toHtmlID domID)
@@ -455,6 +455,12 @@ toHtmlID domId =
 
         SideBarPipeline p ->
             Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+
+        FirstOccurrenceIcon stepID ->
+            stepID ++ "_first_occurrence"
+
+        StepState stepID ->
+            stepID ++ "_state"
 
         _ ->
             ""

@@ -17,6 +17,21 @@ func SetupTeam(dbConn *sql.DB, team, auth string) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func SetupPipeline(dbConn *sql.DB, pipeline string) {
+	_, err := dbConn.Exec("INSERT INTO pipelines(name, team_id) VALUES($1, 1)", pipeline)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func SetupResource(dbConn *sql.DB, resource, config string) {
+	_, err := dbConn.Exec("INSERT INTO resources(name, config, pipeline_id) VALUES($1, $2, 1)", resource, config)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func ExpectResourceWithType(dbConn *sql.DB, resourceName, resourceType string) {
+
+	Expect(fetchResourceType(dbConn, resourceName)).To(Equal(resourceType))
+}
+
 func ExpectTeamWithUsersAndGroups(dbConn *sql.DB, team string, users, groups []string) {
 
 	auth := fetchTeamAuth(dbConn, team)
@@ -129,4 +144,11 @@ func readTeamLegacyAuth(dbConn *sql.DB, team string) []byte {
 	err := dbConn.QueryRow("SELECT legacy_auth FROM teams WHERE name = $1", team).Scan(&auth)
 	Expect(err).NotTo(HaveOccurred())
 	return auth
+}
+
+func fetchResourceType(dbConn *sql.DB, name string) string {
+	var raw string
+	err := dbConn.QueryRow("SELECT type FROM resources WHERE name = $1", name).Scan(&raw)
+	Expect(err).NotTo(HaveOccurred())
+	return raw
 }

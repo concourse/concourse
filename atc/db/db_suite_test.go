@@ -31,6 +31,7 @@ var (
 
 	dbConn                              db.Conn
 	fakeSecrets                         *credsfakes.FakeSecrets
+	componentFactory                    db.ComponentFactory
 	buildFactory                        db.BuildFactory
 	volumeRepository                    db.VolumeRepository
 	containerRepository                 db.ContainerRepository
@@ -98,6 +99,7 @@ var _ = BeforeEach(func() {
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
 
 	fakeSecrets = new(credsfakes.FakeSecrets)
+	componentFactory = db.NewComponentFactory(dbConn)
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 5*time.Minute)
 	volumeRepository = db.NewVolumeRepository(dbConn)
 	containerRepository = db.NewContainerRepository(dbConn)

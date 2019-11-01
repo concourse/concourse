@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/concourse/concourse/atc/metric"
+
 	"code.cloudfoundry.org/lager"
 )
 
@@ -41,6 +43,24 @@ func (s *Server) ReportWorkerVolumes(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("handles-info", lager.Data{
 		"handles-count": len(handles),
 	})
+
+	numUnknownVolumes, err := s.repository.DestroyUnknownVolumes(workerName, handles)
+	if err != nil {
+		logger.Error("failed-to-destroy-unknown-volumes", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if numUnknownVolumes > 0 {
+		logger.Info("unknown-volume-handles", lager.Data{
+			"worker-name":   workerName,
+			"handles-count": numUnknownVolumes,
+		})
+	}
+
+	metric.WorkerUnknownVolumes{
+		WorkerName: workerName,
+		Volumes:    numUnknownVolumes,
+	}.Emit(logger)
 
 	err = s.repository.UpdateVolumesMissingSince(workerName, handles)
 	if err != nil {

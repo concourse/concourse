@@ -19,7 +19,7 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if acc.IsAdmin() {
-		dashboard, err = s.jobFactory.AllActiveJobsForDashboard()
+		dashboard, err = s.jobFactory.AllActiveJobs()
 	} else {
 		dashboard, err = s.jobFactory.VisibleJobs(acc.TeamNames())
 	}
