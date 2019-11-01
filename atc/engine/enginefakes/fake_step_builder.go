@@ -4,16 +4,18 @@ package enginefakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/exec"
 )
 
 type FakeStepBuilder struct {
-	BuildStepStub        func(db.Build) (exec.Step, error)
+	BuildStepStub        func(lager.Logger, db.Build) (exec.Step, error)
 	buildStepMutex       sync.RWMutex
 	buildStepArgsForCall []struct {
-		arg1 db.Build
+		arg1 lager.Logger
+		arg2 db.Build
 	}
 	buildStepReturns struct {
 		result1 exec.Step
@@ -23,10 +25,11 @@ type FakeStepBuilder struct {
 		result1 exec.Step
 		result2 error
 	}
-	CheckStepStub        func(db.Check) (exec.Step, error)
+	CheckStepStub        func(lager.Logger, db.Check) (exec.Step, error)
 	checkStepMutex       sync.RWMutex
 	checkStepArgsForCall []struct {
-		arg1 db.Check
+		arg1 lager.Logger
+		arg2 db.Check
 	}
 	checkStepReturns struct {
 		result1 exec.Step
@@ -40,16 +43,17 @@ type FakeStepBuilder struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeStepBuilder) BuildStep(arg1 db.Build) (exec.Step, error) {
+func (fake *FakeStepBuilder) BuildStep(arg1 lager.Logger, arg2 db.Build) (exec.Step, error) {
 	fake.buildStepMutex.Lock()
 	ret, specificReturn := fake.buildStepReturnsOnCall[len(fake.buildStepArgsForCall)]
 	fake.buildStepArgsForCall = append(fake.buildStepArgsForCall, struct {
-		arg1 db.Build
-	}{arg1})
-	fake.recordInvocation("BuildStep", []interface{}{arg1})
+		arg1 lager.Logger
+		arg2 db.Build
+	}{arg1, arg2})
+	fake.recordInvocation("BuildStep", []interface{}{arg1, arg2})
 	fake.buildStepMutex.Unlock()
 	if fake.BuildStepStub != nil {
-		return fake.BuildStepStub(arg1)
+		return fake.BuildStepStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -64,17 +68,17 @@ func (fake *FakeStepBuilder) BuildStepCallCount() int {
 	return len(fake.buildStepArgsForCall)
 }
 
-func (fake *FakeStepBuilder) BuildStepCalls(stub func(db.Build) (exec.Step, error)) {
+func (fake *FakeStepBuilder) BuildStepCalls(stub func(lager.Logger, db.Build) (exec.Step, error)) {
 	fake.buildStepMutex.Lock()
 	defer fake.buildStepMutex.Unlock()
 	fake.BuildStepStub = stub
 }
 
-func (fake *FakeStepBuilder) BuildStepArgsForCall(i int) db.Build {
+func (fake *FakeStepBuilder) BuildStepArgsForCall(i int) (lager.Logger, db.Build) {
 	fake.buildStepMutex.RLock()
 	defer fake.buildStepMutex.RUnlock()
 	argsForCall := fake.buildStepArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeStepBuilder) BuildStepReturns(result1 exec.Step, result2 error) {
@@ -103,16 +107,17 @@ func (fake *FakeStepBuilder) BuildStepReturnsOnCall(i int, result1 exec.Step, re
 	}{result1, result2}
 }
 
-func (fake *FakeStepBuilder) CheckStep(arg1 db.Check) (exec.Step, error) {
+func (fake *FakeStepBuilder) CheckStep(arg1 lager.Logger, arg2 db.Check) (exec.Step, error) {
 	fake.checkStepMutex.Lock()
 	ret, specificReturn := fake.checkStepReturnsOnCall[len(fake.checkStepArgsForCall)]
 	fake.checkStepArgsForCall = append(fake.checkStepArgsForCall, struct {
-		arg1 db.Check
-	}{arg1})
-	fake.recordInvocation("CheckStep", []interface{}{arg1})
+		arg1 lager.Logger
+		arg2 db.Check
+	}{arg1, arg2})
+	fake.recordInvocation("CheckStep", []interface{}{arg1, arg2})
 	fake.checkStepMutex.Unlock()
 	if fake.CheckStepStub != nil {
-		return fake.CheckStepStub(arg1)
+		return fake.CheckStepStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -127,17 +132,17 @@ func (fake *FakeStepBuilder) CheckStepCallCount() int {
 	return len(fake.checkStepArgsForCall)
 }
 
-func (fake *FakeStepBuilder) CheckStepCalls(stub func(db.Check) (exec.Step, error)) {
+func (fake *FakeStepBuilder) CheckStepCalls(stub func(lager.Logger, db.Check) (exec.Step, error)) {
 	fake.checkStepMutex.Lock()
 	defer fake.checkStepMutex.Unlock()
 	fake.CheckStepStub = stub
 }
 
-func (fake *FakeStepBuilder) CheckStepArgsForCall(i int) db.Check {
+func (fake *FakeStepBuilder) CheckStepArgsForCall(i int) (lager.Logger, db.Check) {
 	fake.checkStepMutex.RLock()
 	defer fake.checkStepMutex.RUnlock()
 	argsForCall := fake.checkStepArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeStepBuilder) CheckStepReturns(result1 exec.Step, result2 error) {

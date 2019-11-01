@@ -310,8 +310,10 @@ func (c *checkFactory) CreateCheck(
 		metadata:              meta,
 
 		pipelineRef: pipelineRef{
-			conn:        c.conn,
-			lockFactory: c.lockFactory,
+			conn:         c.conn,
+			lockFactory:  c.lockFactory,
+			pipelineID:   meta.PipelineID,
+			pipelineName: meta.PipelineName,
 		},
 	}, true, err
 }

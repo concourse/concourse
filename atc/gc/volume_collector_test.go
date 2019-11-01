@@ -15,7 +15,7 @@ import (
 
 var _ = Describe("VolumeCollector", func() {
 	var (
-		volumeCollector          Collector
+		volumeCollector          GcCollector
 		missingVolumeGracePeriod time.Duration
 
 		volumeRepository   db.VolumeRepository

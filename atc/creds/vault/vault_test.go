@@ -53,7 +53,7 @@ var _ = Describe("Vault", func() {
 			SharedPath:   "shared",
 		}
 
-		variables = creds.NewVariables(v, "team", "pipeline")
+		variables = creds.NewVariables(v, "team", "pipeline", false)
 	})
 
 	Describe("Get()", func() {
@@ -130,7 +130,7 @@ var _ = Describe("Vault", func() {
 					Prefix:       "/concourse",
 				}
 
-				variables = creds.NewVariables(v, "team", "pipeline")
+				variables = creds.NewVariables(v, "team", "pipeline", false)
 			})
 
 			It("should not get secret from root", func() {
@@ -144,6 +144,31 @@ var _ = Describe("Vault", func() {
 				}
 				_, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
 				Expect(found).To(BeFalse())
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("allowRootPath", func() {
+			JustBeforeEach(func() {
+				v = &vault.Vault{
+					SecretReader: msr,
+					Prefix:       "/concourse",
+				}
+
+				variables = creds.NewVariables(v, "team", "pipeline", true)
+			})
+
+			It("should not get secret from root", func() {
+				v.SecretReader = &MockSecretReader{&[]MockSecret{
+					{
+						path: "/concourse/foo",
+						secret: &vaultapi.Secret{
+							Data: map[string]interface{}{"value": "foo"},
+						},
+					}},
+				}
+				_, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
 			})
 		})

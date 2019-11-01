@@ -113,14 +113,6 @@ func (c *check) TeamName() string {
 	return c.metadata.TeamName
 }
 
-func (c *check) PipelineID() int {
-	return c.metadata.PipelineID
-}
-
-func (c *check) PipelineName() string {
-	return c.metadata.PipelineName
-}
-
 func (c *check) ResourceConfigID() int {
 	return c.metadata.ResourceConfigID
 }

@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"code.cloudfoundry.org/lager"
 	"errors"
 	"time"
 
@@ -83,6 +84,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeResourceTypes []db.ResourceType
 			fromVersion       atc.Version
 			manuallyTriggered bool
+			logger            lager.Logger
 		)
 
 		BeforeEach(func() {
@@ -92,19 +94,27 @@ var _ = Describe("CheckFactory", func() {
 			fakeResource.NameReturns("some-name")
 			fakeResource.TagsReturns([]string{"tag-a", "tag-b"})
 			fakeResource.SourceReturns(atc.Source{"some": "source"})
+			fakeResource.PipelineIDReturns(defaultPipeline.ID())
+			fakeResource.PipelineNameReturns(defaultPipeline.Name())
+			fakeResource.PipelineReturns(defaultPipeline, true, nil)
 
 			fakeResourceType = new(dbfakes.FakeResourceType)
 			fakeResourceType.NameReturns("some-type")
 			fakeResourceType.TypeReturns("some-base-type")
 			fakeResourceType.TagsReturns([]string{"some-tag"})
 			fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
+			fakeResourceType.PipelineIDReturns(defaultPipeline.ID())
+			fakeResourceType.PipelineNameReturns(defaultPipeline.Name())
+			fakeResourceType.PipelineReturns(defaultPipeline, true, nil)
 
 			fakeResourceTypes = []db.ResourceType{fakeResourceType}
 			manuallyTriggered = true
+
+			logger = lager.NewLogger("db-test")
 		})
 
 		JustBeforeEach(func() {
-			check, created, err = checkFactory.TryCreateCheck(fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
+			check, created, err = checkFactory.TryCreateCheck(logger, fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
 		})
 
 		Context("when the resource parent type is not a custom type", func() {

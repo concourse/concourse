@@ -21,7 +21,7 @@ import (
 	"testing"
 )
 
-type Collector interface {
+type GcCollector interface {
 	Run(context.Context) error
 }
 

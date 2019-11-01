@@ -106,6 +106,8 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeDBPipeline.ReloadReturns(true, nil)
 		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+		fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
+		fakeDBPipeline.VariablesReturns(variables, nil)
 
 		fakeResourceType.IDReturns(1)
 		fakeResourceType.NameReturns("some-custom-resource")
@@ -120,8 +122,6 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBResource.SourceReturns(atc.Source{"uri": "((source-params))"})
 		fakeDBResource.TagsReturns(atc.Tags{"some-tag"})
 		fakeDBResource.SetResourceConfigReturns(fakeResourceConfigScope, nil)
-
-		fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
 
 		scanner = NewResourceScanner(
 			fakeClock,

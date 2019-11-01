@@ -99,7 +99,7 @@ var _ = Describe("Ssm", func() {
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
 		ssmAccess = NewSsm(lager.NewLogger("ssm_test"), &mockService, []*template.Template{t1, t2})
-		variables = creds.NewVariables(ssmAccess, "alpha", "bogus")
+		variables = creds.NewVariables(ssmAccess, "alpha", "bogus", false)
 		Expect(ssmAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (string, error) {
 			if input == "/concourse/alpha/bogus/cheery" {
@@ -173,7 +173,7 @@ var _ = Describe("Ssm", func() {
 		})
 
 		It("should allow empty pipeline name", func() {
-			variables := creds.NewVariables(ssmAccess, "alpha", "")
+			variables := creds.NewVariables(ssmAccess, "alpha", "", false)
 			mockService.stubGetParameter = func(input string) (string, error) {
 				Expect(input).To(Equal("/concourse/alpha/cheery"))
 				return "team power", nil

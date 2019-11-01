@@ -101,6 +101,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeDBPipeline.ReloadReturns(true, nil)
 		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
 		fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
+		fakeDBPipeline.VariablesReturns(variables, nil)
 
 		scanner = NewResourceTypeScanner(
 			fakeClock,

@@ -1,6 +1,7 @@
 package configvalidate_test
 
 import (
+	"github.com/concourse/concourse/atc/configvalidate"
 	"strings"
 
 	. "github.com/concourse/concourse/atc"
@@ -84,7 +85,7 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		_, errorMessages = config.Validate()
+		_, errorMessages = configvalidate.Validate(config)
 	})
 
 	Context("when the config is valid", func() {

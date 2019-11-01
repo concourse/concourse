@@ -362,7 +362,7 @@ var _ = Describe("Containers API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					pipelineName, resourceName, secretManager := dbTeam.FindCheckContainersArgsForCall(0)
+					_, pipelineName, resourceName, secretManager := dbTeam.FindCheckContainersArgsForCall(0)
 					Expect(pipelineName).To(Equal("some-pipeline"))
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(secretManager).To(Equal(fakeSecretManager))

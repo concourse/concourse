@@ -343,6 +343,7 @@ func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan, credVa
 	stepMetadata := exec.StepMetadata{
 		TeamID:                check.TeamID(),
 		TeamName:              check.TeamName(),
+		PipelineID:            check.PipelineID(),
 		PipelineName:          check.PipelineName(),
 		ResourceConfigScopeID: check.ResourceConfigScopeID(),
 		ResourceConfigID:      check.ResourceConfigID(),

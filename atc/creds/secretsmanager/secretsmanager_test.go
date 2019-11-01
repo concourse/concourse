@@ -52,7 +52,7 @@ var _ = Describe("SecretsManager", func() {
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
 		secretAccess = NewSecretsManager(lager.NewLogger("secretsmanager_test"), &mockService, []*template.Template{t1, t2})
-		variables = creds.NewVariables(secretAccess, "alpha", "bogus")
+		variables = creds.NewVariables(secretAccess, "alpha", "bogus", false)
 		Expect(secretAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (*secretsmanager.GetSecretValueOutput, error) {
 			if input == "/concourse/alpha/bogus/cheery" {
@@ -107,7 +107,7 @@ var _ = Describe("SecretsManager", func() {
 		})
 
 		It("should allow empty pipeline name", func() {
-			variables := creds.NewVariables(secretAccess, "alpha", "")
+			variables := creds.NewVariables(secretAccess, "alpha", "", false)
 			mockService.stubGetParameter = func(input string) (*secretsmanager.GetSecretValueOutput, error) {
 				Expect(input).To(Equal("/concourse/alpha/cheery"))
 				return &secretsmanager.GetSecretValueOutput{SecretString: aws.String("team power")}, nil

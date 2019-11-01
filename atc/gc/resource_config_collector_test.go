@@ -13,7 +13,7 @@ import (
 )
 
 var _ = Describe("ResourceConfigCollector", func() {
-	var collector Collector
+	var collector GcCollector
 
 	BeforeEach(func() {
 		collector = gc.NewResourceConfigCollector(resourceConfigFactory)

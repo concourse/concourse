@@ -12,8 +12,8 @@ import (
 )
 
 var _ = Describe("ResourceCacheUseCollector", func() {
-	var collector Collector
-	var buildCollector Collector
+	var collector GcCollector
+	var buildCollector GcCollector
 
 	BeforeEach(func() {
 		collector = gc.NewResourceCacheUseCollector(resourceCacheLifecycle)
