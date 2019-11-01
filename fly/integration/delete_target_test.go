@@ -75,7 +75,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			Context("when no fly target is specified", func() {
-				It("asks the user to specify a pipeline", func() {
+				It("asks the user to specify a target or log in", func() {
 					flyCmd := exec.Command(flyPath, "delete-target")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
