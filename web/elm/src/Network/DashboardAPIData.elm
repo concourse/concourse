@@ -26,17 +26,12 @@ remoteData =
                                             |> Task.map (Maybe.withDefault [])
                                             |> Task.andThen
                                                 (\resources ->
-                                                    Network.Info.fetch
-                                                        |> Task.andThen
-                                                            (\clusterInfo ->
-                                                                Task.succeed
-                                                                    { teams = teams
-                                                                    , pipelines = pipelines
-                                                                    , jobs = jobs
-                                                                    , resources = resources
-                                                                    , version = clusterInfo.version
-                                                                    }
-                                                            )
+                                                    Task.succeed
+                                                        { teams = teams
+                                                        , pipelines = pipelines
+                                                        , jobs = jobs
+                                                        , resources = resources
+                                                        }
                                                 )
                                     )
                         )

@@ -1041,7 +1041,6 @@ all =
                             [ jobFunc status
                             ]
                         , resources = []
-                        , version = ""
                         }
                         >> Tuple.first
                         >> Common.queryView
@@ -1237,7 +1236,6 @@ all =
                                         [ onePipelinePaused "team" ]
                                     , jobs = []
                                     , resources = []
-                                    , version = ""
                                     }
                                 |> Tuple.first
                                 |> Common.queryView
@@ -1342,7 +1340,6 @@ all =
                                             , otherJob secondStatus
                                             ]
                                         , resources = []
-                                        , version = ""
                                         }
                                     |> Tuple.first
                                     |> Common.queryView
@@ -1384,7 +1381,6 @@ all =
                                     , pipelines = [ onePipeline "team" ]
                                     , jobs = circularJobs
                                     , resources = []
-                                    , version = ""
                                     }
                                 |> Tuple.first
                                 |> Common.queryView
@@ -1410,7 +1406,6 @@ all =
                                             [ onePipelinePaused "team" ]
                                         , jobs = []
                                         , resources = []
-                                        , version = ""
                                         }
                                     |> Tuple.first
                                     |> Common.queryView
@@ -1515,7 +1510,6 @@ all =
                                                 , otherJob secondStatus
                                                 ]
                                             , resources = []
-                                            , version = ""
                                             }
                                         |> Tuple.first
                                         |> Common.queryView
@@ -1708,7 +1702,6 @@ all =
                                           , icon = Nothing
                                           }
                                         ]
-                                    , version = ""
                                     }
                                 |> Tuple.first
                                 |> Common.queryView
@@ -1882,7 +1875,6 @@ all =
                                             [ onePipelinePaused "team" ]
                                         , jobs = []
                                         , resources = []
-                                        , version = ""
                                         }
                                     |> Tuple.first
                                     |> Common.queryView
@@ -2012,7 +2004,6 @@ all =
                                                 BuildStatusSucceeded
                                             ]
                                         , resources = []
-                                        , version = ""
                                         }
                                     |> Tuple.first
                                     |> afterSeconds 1
@@ -3388,15 +3379,7 @@ all =
                 , test "shows concourse version" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated
-                                { teams =
-                                    [ { id = 0, name = "team" } ]
-                                , pipelines =
-                                    [ onePipeline "team" ]
-                                , jobs = []
-                                , resources = []
-                                , version = "1.2.3"
-                                }
+                            |> givenClusterInfo "1.2.3" "cluster-name"
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ id "concourse-info" ]
@@ -3605,7 +3588,6 @@ givenPipelineWithJob =
           }
         ]
     , resources = []
-    , version = ""
     }
 
 
@@ -3623,7 +3605,6 @@ oneTeamOnePipelinePaused teamName =
         ]
     , jobs = []
     , resources = []
-    , version = ""
     }
 
 
@@ -3641,7 +3622,6 @@ oneTeamOnePipelineNonPublic teamName =
         ]
     , jobs = []
     , resources = []
-    , version = ""
     }
 
 
@@ -3693,7 +3673,6 @@ apiData pipelines =
                 )
     , jobs = []
     , resources = []
-    , version = ""
     }
 
 

@@ -882,7 +882,6 @@ type alias APIData =
     , pipelines : List Pipeline
     , jobs : List Job
     , resources : List Resource
-    , version : String
     }
 
 

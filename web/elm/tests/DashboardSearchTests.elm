@@ -89,7 +89,6 @@ all =
                                   }
                                 ]
                           , resources = []
-                          , version = ""
                           }
                         )
                     )
@@ -189,7 +188,6 @@ all =
                                 ]
                           , jobs = []
                           , resources = []
-                          , version = "0.0.0-dev"
                           }
                         )
                     )

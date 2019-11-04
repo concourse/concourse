@@ -144,11 +144,7 @@ handleCallback msg ( model, effects ) =
                             }
             in
             if model.highDensity && noPipelines { groups = groups } then
-                ( { newModel
-                    | groups = groups
-                    , highDensity = False
-                    , version = apiData.version
-                  }
+                ( { newModel | groups = groups, highDensity = False }
                 , effects
                     ++ [ ModifyUrl <|
                             Routes.toString <|
@@ -157,12 +153,12 @@ handleCallback msg ( model, effects ) =
                 )
 
             else
-                ( { newModel
-                    | groups = groups
-                    , version = apiData.version
-                  }
+                ( { newModel | groups = groups }
                 , effects
                 )
+
+        ClusterInfoFetched (Ok { version }) ->
+            ( { model | version = version }, effects )
 
         LoggedOut (Ok ()) ->
             ( model
