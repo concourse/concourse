@@ -705,7 +705,7 @@ all =
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ] Nothing
+                                , apiData [ ( "team", [] ) ]
                                 )
                         )
                     |> Expect.all
@@ -718,7 +718,6 @@ all =
                                         ( Time.millisToPosix 0
                                         , apiData
                                             [ ( "team", [ "pipeline" ] ) ]
-                                            Nothing
                                         )
                                 )
                             >> Tuple.first
@@ -737,7 +736,7 @@ all =
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
-                                , apiData [ ( "team", [ "pipeline" ] ) ] Nothing
+                                , apiData [ ( "team", [ "pipeline" ] ) ]
                                 )
                         )
                     |> Tuple.first
@@ -745,7 +744,7 @@ all =
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ] Nothing
+                                , apiData [ ( "team", [] ) ]
                                 )
                         )
                     |> Expect.all
@@ -762,7 +761,7 @@ all =
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ] Nothing
+                                , apiData [ ( "team", [] ) ]
                                 )
                         )
                     |> Tuple.first
@@ -775,9 +774,7 @@ all =
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
-                                , apiData
-                                    [ ( "team", [ "pipeline" ] ) ]
-                                    Nothing
+                                , apiData [ ( "team", [ "pipeline" ] ) ]
                                 )
                         )
                     |> Tuple.first
@@ -801,7 +798,7 @@ all =
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ] Nothing
+                                , apiData [ ( "team", [] ) ]
                                 )
                         )
                     |> Tuple.first
@@ -814,7 +811,7 @@ all =
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ] Nothing
+                                , apiData [ ( "team", [] ) ]
                                 )
                         )
                     |> Tuple.first
@@ -827,7 +824,7 @@ all =
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ] Nothing
+                                , apiData [ ( "team", [] ) ]
                                 )
                         )
                     |> Tuple.first
@@ -841,7 +838,7 @@ all =
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ] Nothing
+                                , apiData [ ( "team", [] ) ]
                                 )
                         )
                     |> Tuple.first
@@ -1036,19 +1033,16 @@ all =
                                 job
                     in
                     givenDataUnauthenticated
-                        (\u ->
-                            { teams =
-                                [ { id = 0, name = "team" } ]
-                            , pipelines =
-                                [ onePipeline "team" ]
-                            , jobs =
-                                [ jobFunc status
-                                ]
-                            , resources = []
-                            , version = ""
-                            , user = u
-                            }
-                        )
+                        { teams =
+                            [ { id = 0, name = "team" } ]
+                        , pipelines =
+                            [ onePipeline "team" ]
+                        , jobs =
+                            [ jobFunc status
+                            ]
+                        , resources = []
+                        , version = ""
+                        }
                         >> Tuple.first
                         >> Common.queryView
             in
@@ -1237,17 +1231,14 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
-                                    (\u ->
-                                        { teams =
-                                            [ { id = 0, name = "team" } ]
-                                        , pipelines =
-                                            [ onePipelinePaused "team" ]
-                                        , jobs = []
-                                        , resources = []
-                                        , version = ""
-                                        , user = u
-                                        }
-                                    )
+                                    { teams =
+                                        [ { id = 0, name = "team" } ]
+                                    , pipelines =
+                                        [ onePipelinePaused "team" ]
+                                    , jobs = []
+                                    , resources = []
+                                    , version = ""
+                                    }
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> findBanner
@@ -1342,20 +1333,17 @@ all =
                             givenTwoJobs firstStatus secondStatus =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated
-                                        (\u ->
-                                            { teams =
-                                                [ { id = 0, name = "team" } ]
-                                            , pipelines =
-                                                [ onePipeline "team" ]
-                                            , jobs =
-                                                [ job firstStatus
-                                                , otherJob secondStatus
-                                                ]
-                                            , resources = []
-                                            , version = ""
-                                            , user = u
-                                            }
-                                        )
+                                        { teams =
+                                            [ { id = 0, name = "team" } ]
+                                        , pipelines =
+                                            [ onePipeline "team" ]
+                                        , jobs =
+                                            [ job firstStatus
+                                            , otherJob secondStatus
+                                            ]
+                                        , resources = []
+                                        , version = ""
+                                        }
                                     |> Tuple.first
                                     |> Common.queryView
                         in
@@ -1392,15 +1380,12 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
-                                    (\u ->
-                                        { teams = [ { id = 0, name = "team" } ]
-                                        , pipelines = [ onePipeline "team" ]
-                                        , jobs = circularJobs
-                                        , resources = []
-                                        , version = ""
-                                        , user = u
-                                        }
-                                    )
+                                    { teams = [ { id = 0, name = "team" } ]
+                                    , pipelines = [ onePipeline "team" ]
+                                    , jobs = circularJobs
+                                    , resources = []
+                                    , version = ""
+                                    }
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> findBanner
@@ -1419,17 +1404,14 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> givenDataUnauthenticated
-                                        (\u ->
-                                            { teams =
-                                                [ { id = 0, name = "team" } ]
-                                            , pipelines =
-                                                [ onePipelinePaused "team" ]
-                                            , jobs = []
-                                            , resources = []
-                                            , version = ""
-                                            , user = u
-                                            }
-                                        )
+                                        { teams =
+                                            [ { id = 0, name = "team" } ]
+                                        , pipelines =
+                                            [ onePipelinePaused "team" ]
+                                        , jobs = []
+                                        , resources = []
+                                        , version = ""
+                                        }
                                     |> Tuple.first
                                     |> Common.queryView
                                     |> findBanner
@@ -1524,20 +1506,17 @@ all =
                                 givenTwoJobs firstStatus secondStatus =
                                     whenOnDashboard { highDensity = False }
                                         |> givenDataUnauthenticated
-                                            (\u ->
-                                                { teams =
-                                                    [ { id = 0, name = "team" } ]
-                                                , pipelines =
-                                                    [ onePipeline "team" ]
-                                                , jobs =
-                                                    [ job firstStatus
-                                                    , otherJob secondStatus
-                                                    ]
-                                                , resources = []
-                                                , version = ""
-                                                , user = u
-                                                }
-                                            )
+                                            { teams =
+                                                [ { id = 0, name = "team" } ]
+                                            , pipelines =
+                                                [ onePipeline "team" ]
+                                            , jobs =
+                                                [ job firstStatus
+                                                , otherJob secondStatus
+                                                ]
+                                            , resources = []
+                                            , version = ""
+                                            }
                                         |> Tuple.first
                                         |> Common.queryView
                             in
@@ -1700,40 +1679,37 @@ all =
                         givenResourceError _ =
                             whenOnDashboard { highDensity = True }
                                 |> givenDataUnauthenticated
-                                    (\user ->
-                                        { teams =
-                                            [ { id = 0
-                                              , name = "team"
-                                              }
-                                            ]
-                                        , pipelines =
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
-                                        , jobs = []
-                                        , resources =
-                                            [ { teamName = "team"
-                                              , pipelineName = "pipeline"
-                                              , name = "resource"
-                                              , failingToCheck = True
-                                              , checkError = ""
-                                              , checkSetupError = ""
-                                              , lastChecked = Nothing
-                                              , pinnedVersion = Nothing
-                                              , pinnedInConfig = False
-                                              , pinComment = Nothing
-                                              , icon = Nothing
-                                              }
-                                            ]
-                                        , version = ""
-                                        , user = user
-                                        }
-                                    )
+                                    { teams =
+                                        [ { id = 0
+                                          , name = "team"
+                                          }
+                                        ]
+                                    , pipelines =
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                    , jobs = []
+                                    , resources =
+                                        [ { teamName = "team"
+                                          , pipelineName = "pipeline"
+                                          , name = "resource"
+                                          , failingToCheck = True
+                                          , checkError = ""
+                                          , checkSetupError = ""
+                                          , lastChecked = Nothing
+                                          , pinnedVersion = Nothing
+                                          , pinnedInConfig = False
+                                          , pinComment = Nothing
+                                          , icon = Nothing
+                                          }
+                                        ]
+                                    , version = ""
+                                    }
                                 |> Tuple.first
                                 |> Common.queryView
 
@@ -1900,17 +1876,14 @@ all =
                             setup =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated
-                                        (\u ->
-                                            { teams =
-                                                [ { id = 0, name = "team" } ]
-                                            , pipelines =
-                                                [ onePipelinePaused "team" ]
-                                            , jobs = []
-                                            , resources = []
-                                            , version = ""
-                                            , user = u
-                                            }
-                                        )
+                                        { teams =
+                                            [ { id = 0, name = "team" } ]
+                                        , pipelines =
+                                            [ onePipelinePaused "team" ]
+                                        , jobs = []
+                                        , resources = []
+                                        , version = ""
+                                        }
                                     |> Tuple.first
                                     |> Common.queryView
                         in
@@ -2028,22 +2001,19 @@ all =
                             \_ ->
                                 Common.init "/"
                                     |> givenDataUnauthenticated
-                                        (\u ->
-                                            { teams =
-                                                [ { id = 0, name = "team" } ]
-                                            , pipelines =
-                                                [ onePipeline "team" ]
-                                            , jobs =
-                                                [ jobWithNameTransitionedAt
-                                                    "job"
-                                                    (Just <| Time.millisToPosix 0)
-                                                    BuildStatusSucceeded
-                                                ]
-                                            , resources = []
-                                            , version = ""
-                                            , user = u
-                                            }
-                                        )
+                                        { teams =
+                                            [ { id = 0, name = "team" } ]
+                                        , pipelines =
+                                            [ onePipeline "team" ]
+                                        , jobs =
+                                            [ jobWithNameTransitionedAt
+                                                "job"
+                                                (Just <| Time.millisToPosix 0)
+                                                BuildStatusSucceeded
+                                            ]
+                                        , resources = []
+                                        , version = ""
+                                        }
                                     |> Tuple.first
                                     |> afterSeconds 1
                                     |> Common.queryView
@@ -3419,17 +3389,14 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
-                                (\u ->
-                                    { teams =
-                                        [ { id = 0, name = "team" } ]
-                                    , pipelines =
-                                        [ onePipeline "team" ]
-                                    , jobs = []
-                                    , resources = []
-                                    , version = "1.2.3"
-                                    , user = u
-                                    }
-                                )
+                                { teams =
+                                    [ { id = 0, name = "team" } ]
+                                , pipelines =
+                                    [ onePipeline "team" ]
+                                , jobs = []
+                                , resources = []
+                                , version = "1.2.3"
+                                }
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ id "concourse-info" ]
@@ -3541,15 +3508,13 @@ whenOnDashboard { highDensity } =
 
 
 givenDataAndUser :
-    (Maybe Concourse.User -> Concourse.APIData)
+    Concourse.APIData
     -> Concourse.User
     -> Application.Model
     -> ( Application.Model, List Effects.Effect )
 givenDataAndUser data user =
     Application.handleCallback
-        (Callback.APIDataFetched <|
-            Ok ( Time.millisToPosix 0, data Nothing )
-        )
+        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data ))
         >> Tuple.first
         >> Application.handleCallback (Callback.UserFetched <| Ok user)
 
@@ -3567,26 +3532,12 @@ userWithRoles roles =
 
 
 givenDataUnauthenticated :
-    (Maybe Concourse.User -> Concourse.APIData)
+    Concourse.APIData
     -> Application.Model
     -> ( Application.Model, List Effects.Effect )
 givenDataUnauthenticated data =
     Application.handleCallback
-        (Callback.APIDataFetched <|
-            Ok
-                ( Time.millisToPosix 0
-                , data <|
-                    Just
-                        { id = "0"
-                        , userName = "test"
-                        , name = "test"
-                        , email = "test"
-                        , isAdmin = False
-                        , teams =
-                            Dict.empty
-                        }
-                )
-        )
+        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data ))
         >> Tuple.first
         >> Application.handleCallback
             (Callback.UserFetched <|
@@ -3615,8 +3566,8 @@ givenClusterInfo version clusterName =
         )
 
 
-givenPipelineWithJob : Maybe Concourse.User -> Concourse.APIData
-givenPipelineWithJob user =
+givenPipelineWithJob : Concourse.APIData
+givenPipelineWithJob =
     { teams = []
     , pipelines =
         [ { id = 0
@@ -3655,12 +3606,11 @@ givenPipelineWithJob user =
         ]
     , resources = []
     , version = ""
-    , user = user
     }
 
 
-oneTeamOnePipelinePaused : String -> Maybe Concourse.User -> Concourse.APIData
-oneTeamOnePipelinePaused teamName user =
+oneTeamOnePipelinePaused : String -> Concourse.APIData
+oneTeamOnePipelinePaused teamName =
     { teams = [ { id = 0, name = teamName } ]
     , pipelines =
         [ { id = 0
@@ -3674,12 +3624,11 @@ oneTeamOnePipelinePaused teamName user =
     , jobs = []
     , resources = []
     , version = ""
-    , user = user
     }
 
 
-oneTeamOnePipelineNonPublic : String -> Maybe Concourse.User -> Concourse.APIData
-oneTeamOnePipelineNonPublic teamName user =
+oneTeamOnePipelineNonPublic : String -> Concourse.APIData
+oneTeamOnePipelineNonPublic teamName =
     { teams = [ { id = 0, name = teamName } ]
     , pipelines =
         [ { id = 0
@@ -3693,11 +3642,10 @@ oneTeamOnePipelineNonPublic teamName user =
     , jobs = []
     , resources = []
     , version = ""
-    , user = user
     }
 
 
-oneTeamOnePipeline : String -> Maybe Concourse.User -> Concourse.APIData
+oneTeamOnePipeline : String -> Concourse.APIData
 oneTeamOnePipeline teamName =
     apiData [ ( teamName, [ "pipeline" ] ) ]
 
@@ -3724,8 +3672,8 @@ onePipelinePaused teamName =
     }
 
 
-apiData : List ( String, List String ) -> Maybe Concourse.User -> Concourse.APIData
-apiData pipelines user =
+apiData : List ( String, List String ) -> Concourse.APIData
+apiData pipelines =
     { teams = pipelines |> List.map Tuple.first |> List.indexedMap Concourse.Team
     , pipelines =
         pipelines
@@ -3746,7 +3694,6 @@ apiData pipelines user =
     , jobs = []
     , resources = []
     , version = ""
-    , user = user
     }
 
 

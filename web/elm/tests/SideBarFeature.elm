@@ -769,7 +769,6 @@ apiDataLoads =
                             ]
                       , jobs = []
                       , resources = []
-                      , user = Nothing
                       , version = "0.0.0-dev"
                       }
                     )
@@ -810,7 +809,6 @@ thereAreNoPipelines =
                   , pipelines = []
                   , jobs = []
                   , resources = []
-                  , user = Nothing
                   , version = "0.0.0-dev"
                   }
                 )

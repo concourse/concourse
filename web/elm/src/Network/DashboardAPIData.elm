@@ -7,7 +7,6 @@ import Network.Job
 import Network.Pipeline
 import Network.Resource
 import Network.Team
-import Network.User
 import Task exposing (Task)
 
 
@@ -30,21 +29,13 @@ remoteData =
                                                     Network.Info.fetch
                                                         |> Task.andThen
                                                             (\clusterInfo ->
-                                                                Network.User.fetchUser
-                                                                    |> Task.map Just
-                                                                    |> Task.onError
-                                                                        (always <| Task.succeed Nothing)
-                                                                    |> Task.andThen
-                                                                        (\user ->
-                                                                            Task.succeed
-                                                                                { teams = teams
-                                                                                , pipelines = pipelines
-                                                                                , jobs = jobs
-                                                                                , resources = resources
-                                                                                , user = user
-                                                                                , version = clusterInfo.version
-                                                                                }
-                                                                        )
+                                                                Task.succeed
+                                                                    { teams = teams
+                                                                    , pipelines = pipelines
+                                                                    , jobs = jobs
+                                                                    , resources = resources
+                                                                    , version = clusterInfo.version
+                                                                    }
                                                             )
                                                 )
                                     )

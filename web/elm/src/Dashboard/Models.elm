@@ -14,7 +14,6 @@ import Dashboard.Group.Models
 import Login.Login as Login
 import RemoteData
 import Time
-import UserState
 
 
 type DashboardError
@@ -27,7 +26,6 @@ type alias Model =
             { state : RemoteData.RemoteData DashboardError SubState
             , turbulencePath : String
             , pipelineRunningKeyframes : String
-            , userState : UserState.UserState
             , highDensity : Bool
             , query : String
             }
