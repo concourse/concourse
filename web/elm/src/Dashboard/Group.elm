@@ -413,13 +413,12 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
             , class <| .sectionHeaderClass Effects.stickyHeaderConfig
             ]
             (Html.div
-                ([ class "dashboard-team-name" ]
-                ++ (if List.isEmpty g.pipelines then
-                        []
-                   else
-                        [ onClick (FilterMsg ("team:" ++ g.teamName))
-                        , style "cursor" "pointer" ]
-                   )
+                (if List.isEmpty g.pipelines then
+                    [ class "dashboard-team-name" ]
+                else
+                    [ class "dashboard-team-name"
+                    , onClick (FilterMsg ("team:" ++ g.teamName))
+                    , style "cursor" "pointer" ]
                 )
                 [ Html.text g.teamName ]
                 :: (Maybe.Extra.toList <|
