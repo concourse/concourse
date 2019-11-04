@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -23,26 +22,26 @@ type (
 	}
 
 	NewRelicEmitter struct {
-		Client              *http.Client
-		Url                 string
-		apikey              string
-		prefix              string
-		containers          *stats
-		volumes             *stats
-		BatchSize           int
-		BatchDuration       time.Duration
-		CompressionDisabled bool
-		LastEmitTime        time.Time
-		NewRelicBatch       []NewRelicEvent
+		Client             *http.Client
+		Url                string
+		apikey             string
+		prefix             string
+		containers         *stats
+		volumes            *stats
+		BatchSize          int
+		BatchDuration      time.Duration
+		DisableCompression bool
+		LastEmitTime       time.Time
+		NewRelicBatch      []NewRelicEvent
 	}
 
 	NewRelicConfig struct {
-		AccountID           string        `long:"newrelic-account-id" description:"New Relic Account ID"`
-		APIKey              string        `long:"newrelic-api-key" description:"New Relic Insights API Key"`
-		ServicePrefix       string        `long:"newrelic-service-prefix" default:"" description:"An optional prefix for emitted New Relic events"`
-		BatchSize           uint64        `long:"newrelic-batch-size" default:"2000" description:"Number of events to batch together before emitting"`
-		BatchDuration       time.Duration `long:"newrelic-batch-duration" default:"60s" description:"Length of time to wait between emitting until all currently batched events are emitted"`
-		CompressionDisabled bool          `long:"newrelic-batch-compression-disabled" description:"Compress the batch before emitting"`
+		AccountID          string        `long:"newrelic-account-id" description:"New Relic Account ID"`
+		APIKey             string        `long:"newrelic-api-key" description:"New Relic Insights API Key"`
+		ServicePrefix      string        `long:"newrelic-service-prefix" default:"" description:"An optional prefix for emitted New Relic events"`
+		BatchSize          uint64        `long:"newrelic-batch-size" default:"2000" description:"Number of events to batch together before emitting"`
+		BatchDuration      time.Duration `long:"newrelic-batch-duration" default:"60s" description:"Length of time to wait between emitting until all currently batched events are emitted"`
+		DisableCompression bool          `long:"newrelic-batch-disable-compression" description:"Disables compression of the batch before sending it"`
 	}
 
 	NewRelicEvent map[string]interface{}
@@ -64,17 +63,17 @@ func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
 	}
 
 	return &NewRelicEmitter{
-		Client:              client,
-		Url:                 fmt.Sprintf("https://insights-collector.newrelic.com/v1/accounts/%s/events", config.AccountID),
-		apikey:              config.APIKey,
-		prefix:              config.ServicePrefix,
-		containers:          new(stats),
-		volumes:             new(stats),
-		BatchSize:           int(config.BatchSize),
-		BatchDuration:       config.BatchDuration,
-		CompressionDisabled: config.CompressionDisabled,
-		LastEmitTime:        time.Now(),
-		NewRelicBatch:       make([]NewRelicEvent, 0),
+		Client:             client,
+		Url:                "https://insights-collector.newrelic.com/v1/accounts/" + config.AccountID + "/events",
+		apikey:             config.APIKey,
+		prefix:             config.ServicePrefix,
+		containers:         new(stats),
+		volumes:            new(stats),
+		BatchSize:          int(config.BatchSize),
+		BatchDuration:      config.BatchDuration,
+		DisableCompression: config.DisableCompression,
+		LastEmitTime:       time.Now(),
+		NewRelicBatch:      make([]NewRelicEvent, 0),
 	}, nil
 }
 
@@ -93,7 +92,7 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 		"database connections",
 		"worker unknown containers",
 		"worker unknown volumes":
-		emitter.NewRelicBatch = append(emitter.NewRelicBatch, emitter.transformToNewRelicEvent(logger, event, ""))
+		emitter.NewRelicBatch = append(emitter.NewRelicBatch, emitter.transformToNewRelicEvent(event, ""))
 
 	// These are periodic metrics that are consolidated and only emitted once
 	// per cycle (the emit trigger is chosen because it's currently last in the
@@ -105,7 +104,7 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	case "containers created":
 		emitter.containers.created = event.Value
 	case "failed containers":
-		singleEvent := emitter.transformToNewRelicEvent(logger, event, "containers")
+		singleEvent := emitter.transformToNewRelicEvent(event, "containers")
 		singleEvent["failed"] = singleEvent["value"]
 		singleEvent["created"] = emitter.containers.created
 		singleEvent["deleted"] = emitter.containers.deleted
@@ -117,7 +116,7 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	case "volumes created":
 		emitter.volumes.created = event.Value
 	case "failed volumes":
-		singleEvent := emitter.transformToNewRelicEvent(logger, event, "volumes")
+		singleEvent := emitter.transformToNewRelicEvent(event, "volumes")
 		singleEvent["failed"] = singleEvent["value"]
 		singleEvent["created"] = emitter.volumes.created
 		singleEvent["deleted"] = emitter.volumes.deleted
@@ -126,13 +125,13 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 
 	// And a couple that need a small rename (new relic doesn't like some chars)
 	case "scheduling: full duration (ms)":
-		emitter.NewRelicBatch = append(emitter.NewRelicBatch, emitter.transformToNewRelicEvent(logger, event,
+		emitter.NewRelicBatch = append(emitter.NewRelicBatch, emitter.transformToNewRelicEvent(event,
 			"scheduling_full_duration_ms"))
 	case "scheduling: loading versions duration (ms)":
-		emitter.NewRelicBatch = append(emitter.NewRelicBatch, emitter.transformToNewRelicEvent(logger, event,
+		emitter.NewRelicBatch = append(emitter.NewRelicBatch, emitter.transformToNewRelicEvent(event,
 			"scheduling_load_duration_ms"))
 	case "scheduling: job duration (ms)":
-		emitter.NewRelicBatch = append(emitter.NewRelicBatch, emitter.transformToNewRelicEvent(logger, event,
+		emitter.NewRelicBatch = append(emitter.NewRelicBatch, emitter.transformToNewRelicEvent(event,
 			"scheduling_job_duration_ms"))
 	default:
 		// Ignore the rest
@@ -142,7 +141,7 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	// otherwise recording it. (This won't be easily graphable, that's okay,
 	// this is more for monitoring synthetics)
 	if event.State != metric.EventStateOK {
-		singlePayload := emitter.transformToNewRelicEvent(logger, event, "alert")
+		singlePayload := emitter.transformToNewRelicEvent(event, "alert")
 		// We don't have friendly names for all the metrics, and part of the
 		// point of this alert is to catch events we should be logging but
 		// didn't; therefore, be consistently inconsistent and use the
@@ -166,13 +165,13 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 // NewRelic has strict requirements around the structure of the events
 // Keys must be alphanumeric and can contain hyphens or underscores
 // Values must be sting, int, or unix timestamps. No maps/arrays.
-func (emitter *NewRelicEmitter) transformToNewRelicEvent(logger lager.Logger, event metric.Event, nameOverride string) NewRelicEvent {
+func (emitter *NewRelicEmitter) transformToNewRelicEvent(event metric.Event, nameOverride string) NewRelicEvent {
 	name := nameOverride
 	if name == "" {
 		name = strings.Replace(event.Name, " ", "_", -1)
 	}
 
-	eventType := fmt.Sprintf("%s%s", emitter.prefix, name)
+	eventType := emitter.prefix + name
 
 	payload := NewRelicEvent{
 		"eventType": eventType,
@@ -183,7 +182,7 @@ func (emitter *NewRelicEmitter) transformToNewRelicEvent(logger lager.Logger, ev
 	}
 
 	for k, v := range event.Attributes {
-		payload[fmt.Sprintf("_%s", k)] = v
+		payload["_"+k] = v
 	}
 	return payload
 }
@@ -206,11 +205,12 @@ func (emitter *NewRelicEmitter) emitBatch(logger lager.Logger, payload []NewReli
 	req, err := http.NewRequest("POST", emitter.Url, batch)
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
+		return
 	}
 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("X-Insert-Key", emitter.apikey)
-	if !emitter.CompressionDisabled {
+	if !emitter.DisableCompression {
 		req.Header.Add("Content-Encoding", "gzip")
 	}
 
@@ -237,7 +237,7 @@ func (emitter *NewRelicEmitter) emitBatch(logger lager.Logger, payload []NewReli
 
 func (emitter *NewRelicEmitter) marshalJSON(logger lager.Logger, batch []NewRelicEvent) (io.Reader, error) {
 	var batchJson *bytes.Buffer
-	if emitter.CompressionDisabled {
+	if emitter.DisableCompression {
 		marshaled, err := json.Marshal(batch)
 		if err != nil {
 			logger.Error("failed-to-serialize-payload", err)
