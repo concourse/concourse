@@ -194,6 +194,9 @@ A task's configuration specifies the following:
   \define-attribute{path: string}{
     \italic{Required.} The command to execute.
 
+    \code{path} is relative to the working directory. If \code{dir} is specified
+    to set the working directory, then \code{path} is relative to it.
+
     This is commonly a path to a script provided by one of the task's inputs,
     e.g. \code{my-resource/scripts/test}. It could also be a command like
     \code{bash} (respecting standard \code{$PATH} lookup rules), or an absolute
