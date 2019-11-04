@@ -66,6 +66,7 @@ init flags url =
             { userState = UserStateUnknown
             , hovered = HoverState.NoHover
             , clusterName = ""
+            , version = ""
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
@@ -185,13 +186,13 @@ handleCallback callback model =
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
-        ClusterInfoFetched (Ok { clusterName }) ->
+        ClusterInfoFetched (Ok { clusterName, version }) ->
             let
                 session =
                     model.session
 
                 newSession =
-                    { session | clusterName = clusterName }
+                    { session | clusterName = clusterName, version = version }
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
