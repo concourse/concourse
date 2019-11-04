@@ -37,7 +37,7 @@ import Dashboard.Styles as Styles
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
-import Html.Events exposing (on)
+import Html.Events exposing (on, onClick)
 import Json.Decode
 import List.Extra
 import Maybe.Extra
@@ -413,7 +413,14 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
             , class <| .sectionHeaderClass Effects.stickyHeaderConfig
             ]
             (Html.div
-                [ class "dashboard-team-name" ]
+                ([ class "dashboard-team-name" ]
+                ++ (if List.isEmpty g.pipelines then
+                        []
+                   else
+                        [ onClick (FilterMsg ("team:" ++ g.teamName))
+                        , style "cursor" "pointer" ]
+                   )
+                )
                 [ Html.text g.teamName ]
                 :: (Maybe.Extra.toList <|
                         Maybe.map (Tag.view False) g.tag

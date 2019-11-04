@@ -866,6 +866,39 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-name-wrapper" ]
                     |> Query.has [ style "letter-spacing" ".2em" ]
+        , describe "clicking on team name"
+            [ test
+                "filters by team when there are pipelines"
+              <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (oneTeamOnePipeline "teamA")
+                            (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find (teamHeaderSelector ++ [ containing [ text "teamA" ] ])
+                        |> Query.find [ class "dashboard-team-name"]
+                        |> Event.simulate Event.click
+                        |> Event.expect
+                            (ApplicationMsgs.Update <|
+                                Msgs.FilterMsg <|
+                                    "team:teamA"
+                            )
+            , test "does not filter by team when there are no pipelines" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataAndUser
+                            (apiData [ ( "teamA", [] ) ])
+                            (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find (teamHeaderSelector ++ [ containing [ text "teamA" ] ])
+                        |> Query.find [ class "dashboard-team-name"]
+                        |> Event.simulate Event.click
+                        |> Event.toResult
+                        |> Expect.err
+            ]
         , describe "team pills"
             [ test
                 ("shows team name with no pill when unauthenticated "
