@@ -68,15 +68,23 @@ configured job consists of the following fields:
   }{job-build-log-retention-builds}
 
   \define-attribute{minimum_succeeded_builds: number}{
-    \italic{Optional.} Keep logs for at least N successful builds.
+    \italic{Optional.} Keep a minimum number of successful build logs that
+    would normally be reaped. Requires \reference{job-build-log-retention-builds}
+    to be set to an integer higher than 0 in order to work. For example, if
+    \reference{job-build-log-retention-builds} is set to 5, and this attribute
+    to 1, say a job has the following build history:
+    7(f), 6(f), 5(f), 4(f), 3(f), 2(f), 1(s),
+    where f means failed and s means succeeded, then builds 2
+    and 3 will be reaped, because it retains 5 build logs, and at least 1
+    succeeded build log. Default is 0.
   }{job-build-log-retention-minimum-succeeded-builds}
 
   Builds which are not retained by one of the above configurations will have
   their logs reaped.
 
   The following example will keep logs for any builds that have completed in
-  the last 2 days, while also keeping the last 1000 builds, with at least one
-  successful build.
+  the last 2 days, while also keeping the last 1000 builds and at least 1
+  succeeded build.
 
   \codeblock{yaml}{{{
   jobs:
