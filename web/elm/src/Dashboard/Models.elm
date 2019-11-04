@@ -64,7 +64,6 @@ type alias FooterModel r =
         , hideFooterCounter : Int
         , showHelp : Bool
         , groups : List Dashboard.Group.Models.Group
-        , version : String
         , dropdown : Dropdown
         , highDensity : Bool
     }

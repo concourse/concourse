@@ -2,7 +2,6 @@ module Network.DashboardAPIData exposing (remoteData)
 
 import Concourse
 import Http
-import Network.Info
 import Network.Job
 import Network.Pipeline
 import Network.Resource

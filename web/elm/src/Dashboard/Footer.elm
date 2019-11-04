@@ -69,7 +69,11 @@ handleDelivery delivery ( model, effects ) =
 
 
 view :
-    { a | hovered : HoverState.HoverState, screenSize : ScreenSize.ScreenSize }
+    { a
+        | hovered : HoverState.HoverState
+        , screenSize : ScreenSize.ScreenSize
+        , version : String
+    }
     -> FooterModel r
     -> Html Message
 view session model =
@@ -114,11 +118,14 @@ keyboardHelp =
 
 
 infoBar :
-    { a | hovered : HoverState.HoverState, screenSize : ScreenSize.ScreenSize }
+    { a
+        | hovered : HoverState.HoverState
+        , screenSize : ScreenSize.ScreenSize
+        , version : String
+    }
     ->
         { b
-            | version : String
-            , highDensity : Bool
+            | highDensity : Bool
             , groups : List Group
         }
     -> Html Message
@@ -131,7 +138,7 @@ infoBar session model =
                 }
         )
         [ legend session model
-        , concourseInfo session model
+        , concourseInfo session
         ]
 
 
@@ -176,10 +183,9 @@ legend session model =
 
 
 concourseInfo :
-    { a | hovered : HoverState.HoverState }
-    -> { b | version : String }
+    { a | hovered : HoverState.HoverState, version : String }
     -> Html Message
-concourseInfo { hovered } { version } =
+concourseInfo { hovered, version } =
     Html.div (id "concourse-info" :: Styles.info)
         [ Html.div
             Styles.infoItem

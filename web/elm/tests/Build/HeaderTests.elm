@@ -171,6 +171,7 @@ session =
     , screenSize = ScreenSize.Desktop
     , userState = UserState.UserStateLoggedOut
     , clusterName = ""
+    , version = ""
     , turbulenceImgSrc = ""
     , notFoundImgSrc = ""
     , csrfToken = ""

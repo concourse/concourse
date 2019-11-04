@@ -92,7 +92,6 @@ init flags =
       , turbulencePath = flags.turbulencePath
       , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
       , groups = []
-      , version = ""
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
@@ -156,9 +155,6 @@ handleCallback msg ( model, effects ) =
                 ( { newModel | groups = groups }
                 , effects
                 )
-
-        ClusterInfoFetched (Ok { version }) ->
-            ( { model | version = version }, effects )
 
         LoggedOut (Ok ()) ->
             ( model
