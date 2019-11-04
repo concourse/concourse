@@ -574,7 +574,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , version = ""
                               }
                             )
                         )
@@ -621,7 +620,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , version = ""
                               }
                             )
                         )
@@ -893,7 +891,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , version = ""
                               }
                             )
                         )
@@ -966,7 +963,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , version = ""
                               }
                             )
                         )
@@ -1012,7 +1008,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , version = ""
                               }
                             )
                         )
@@ -1050,7 +1045,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , version = ""
                               }
                             )
                         )
@@ -1082,7 +1076,6 @@ all =
                                     ]
                               , jobs = []
                               , resources = []
-                              , version = "0.0.0-dev"
                               }
                             )
                     )
