@@ -129,6 +129,8 @@ type RunCommand struct {
 	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 
+	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
+
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
 	Developer struct {
@@ -593,6 +595,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbWorkerFactory,
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
+		cmd.GardenRequestTimeout,
 	)
 
 	pool := worker.NewPool(workerProvider)
@@ -760,6 +763,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		dbWorkerFactory,
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
+		cmd.GardenRequestTimeout,
 	)
 
 	pool := worker.NewPool(workerProvider)
@@ -979,6 +983,7 @@ func (cmd *RunCommand) constructGCMember(
 		dbWorkerFactory,
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
+		cmd.GardenRequestTimeout,
 	)
 
 	jobRunner := gc.NewWorkerJobRunner(

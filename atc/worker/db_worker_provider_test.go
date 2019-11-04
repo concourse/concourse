@@ -35,14 +35,13 @@ var _ = Describe("DBProvider", func() {
 
 		logger *lagertest.TestLogger
 
-		fakeGardenBackend                 *gfakes.FakeBackend
-		gardenAddr                        string
-		baggageclaimURL                   string
-		wantWorkerVersion                 version.Version
-		baggageclaimServer                *ghttp.Server
-		gardenServer                      *server.GardenServer
-		provider                          WorkerProvider
-		baggageclaimResponseHeaderTimeout time.Duration
+		fakeGardenBackend  *gfakes.FakeBackend
+		gardenAddr         string
+		baggageclaimURL    string
+		wantWorkerVersion  version.Version
+		baggageclaimServer *ghttp.Server
+		gardenServer       *server.GardenServer
+		provider           WorkerProvider
 
 		fakeImageFactory                    *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
@@ -64,6 +63,11 @@ var _ = Describe("DBProvider", func() {
 
 		fakeWorker1 *dbfakes.FakeWorker
 		fakeWorker2 *dbfakes.FakeWorker
+	)
+
+	const (
+		baggageclaimResponseHeaderTimeout = 10 * time.Minute
+		gardenRequestTimeout              = 5 * time.Minute
 	)
 
 	BeforeEach(func() {
@@ -92,7 +96,6 @@ var _ = Describe("DBProvider", func() {
 		fakeGardenBackend = new(gfakes.FakeBackend)
 		logger = lagertest.NewTestLogger("test")
 		gardenServer = server.New("tcp", gardenAddr, 0, fakeGardenBackend, logger)
-		baggageclaimResponseHeaderTimeout = 10 * time.Minute
 
 		go func() {
 			defer GinkgoRecover()
@@ -176,6 +179,7 @@ var _ = Describe("DBProvider", func() {
 			fakeDBWorkerFactory,
 			wantWorkerVersion,
 			baggageclaimResponseHeaderTimeout,
+			gardenRequestTimeout,
 		)
 		baggageclaimURL = baggageclaimServer.URL()
 	})
