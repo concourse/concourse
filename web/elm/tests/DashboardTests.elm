@@ -3548,8 +3548,10 @@ givenDataAndUser :
 givenDataAndUser data user =
     Application.handleCallback
         (Callback.APIDataFetched <|
-            Ok ( Time.millisToPosix 0, data <| Just user )
+            Ok ( Time.millisToPosix 0, data Nothing )
         )
+        >> Tuple.first
+        >> Application.handleCallback (Callback.UserFetched <| Ok user)
 
 
 userWithRoles : List ( String, List String ) -> Concourse.User
