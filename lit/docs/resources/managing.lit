@@ -28,3 +28,42 @@
   \italic{bosh-io-release} resource might use \code{version:11.2} in place of
   \code{ref:abcdef}.
 }
+
+\section{
+  \title{\code{fly pin-resource}}{fly-pin-resource}
+
+  To pin a resource to a specific version of that resource, run:
+
+  \codeblock{bash}{{{
+  $ fly -t example pin-resource --resource my-pipeline/my-resource \
+      --version ref:bceaf
+  }}}
+
+  Note that the version needs to be provided as a key-value pair. For the git
+  resource the \code{ref:} prefix is used while the \italic{registry} 
+  resource might use \code{digest} as a prefix like \code{digest:sha256:94be7d7b}.
+
+  A comment can be provided using the \code{--comment} flag,
+  which is then also visible in the UI :
+
+  \codeblock{bash}{{{
+  $ fly -t example pin-resource --resource my-pipeline/my-resource \
+      --version ref:abcdef \
+      --comment "Some reason"
+  }}}
+
+  This can, for example, be used to pull in a fixed version of an external dependency
+  which might break your build in a new release. After the problem has been resolved,
+  the pin can be removed.
+  Another example could be running a build with a set of older inputs when needed.
+
+  To remove the pin on a resource use:
+
+  \codeblock{bash}{{
+  $ fly -t example unpin-resource --resource my-pipeline/my-resource
+  }}
+
+  You can also pin a resource via the UI by clicking on the pin button next to the desired version on
+  the resource page. A default comment is automatically
+  generated containing your username and a timestamp. This comment can be edited.
+}
