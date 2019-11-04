@@ -47,12 +47,12 @@ import Monocle.Optional
 import Ordering exposing (Ordering)
 import Set
 import Time
-import UserState exposing (UserState)
+import UserState exposing (UserState(..))
 
 
-ordering : Ordering Group
-ordering =
-    Ordering.byFieldWith Tag.ordering .tag
+ordering : { a | userState : UserState } -> Ordering Group
+ordering session =
+    Ordering.byFieldWith Tag.ordering (tag session)
         |> Ordering.breakTiesWith (Ordering.byField .teamName)
 
 
@@ -339,28 +339,28 @@ groups apiData =
             allTeamNames apiData
     in
     teamNames
-        |> List.map (group (allPipelines apiData) apiData.user)
+        |> List.map (group <| allPipelines apiData)
 
 
-group : List Pipeline -> Maybe Concourse.User -> String -> Group
-group pipelines user name =
+group : List Pipeline -> String -> Group
+group pipelines name =
     { pipelines = List.filter (.teamName >> (==) name) pipelines
     , teamName = name
-    , tag = user |> Maybe.andThen (\u -> Tag.tag u name)
     }
 
 
 view :
-    { dragState : DragState
-    , dropState : DropState
-    , now : Time.Posix
-    , hovered : HoverState.HoverState
-    , pipelineRunningKeyframes : String
-    , userState : UserState
-    }
+    { a | userState : UserState }
+    ->
+        { dragState : DragState
+        , dropState : DropState
+        , now : Time.Posix
+        , hovered : HoverState.HoverState
+        , pipelineRunningKeyframes : String
+        }
     -> Group
     -> Html Message
-view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState } g =
+view session { dragState, dropState, now, hovered, pipelineRunningKeyframes } g =
     let
         pipelines =
             if List.isEmpty g.pipelines then
@@ -393,7 +393,7 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
                                         , pipeline = pipeline
                                         , hovered = hovered
                                         , pipelineRunningKeyframes = pipelineRunningKeyframes
-                                        , userState = userState
+                                        , userState = session.userState
                                         }
                                     ]
                                 ]
@@ -416,7 +416,7 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
                 [ class "dashboard-team-name" ]
                 [ Html.text g.teamName ]
                 :: (Maybe.Extra.toList <|
-                        Maybe.map (Tag.view False) g.tag
+                        Maybe.map (Tag.view False) (tag session g)
                    )
             )
         , Html.div
@@ -425,14 +425,24 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
         ]
 
 
-hdView : String -> Group -> List (Html Message)
-hdView pipelineRunningKeyframes g =
+tag : { a | userState : UserState } -> Group -> Maybe Tag.Tag
+tag { userState } g =
+    case userState of
+        UserStateLoggedIn user ->
+            Tag.tag user g.teamName
+
+        _ ->
+            Nothing
+
+
+hdView : String -> { a | userState : UserState } -> Group -> List (Html Message)
+hdView pipelineRunningKeyframes session g =
     let
         header =
             Html.div
                 [ class "dashboard-team-name" ]
                 [ Html.text g.teamName ]
-                :: (Maybe.Extra.toList <| Maybe.map (Tag.view True) g.tag)
+                :: (Maybe.Extra.toList <| Maybe.map (Tag.view True) (tag session g))
 
         teamPipelines =
             if List.isEmpty g.pipelines then

@@ -558,16 +558,15 @@ dashboardView session model =
                         , hovered = session.hovered
                         , pipelineRunningKeyframes =
                             model.pipelineRunningKeyframes
-                        , userState = model.userState
                         , highDensity = model.highDensity
                         }
 
 
 welcomeCard :
     { a | hovered : HoverState.HoverState, userState : UserState.UserState }
-    -> { b | groups : List Group, userState : UserState.UserState }
+    -> { b | groups : List Group }
     -> Html Message
-welcomeCard session { groups, userState } =
+welcomeCard session { groups } =
     let
         cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
         cliIcon hoverable cli =
@@ -612,13 +611,7 @@ welcomeCard session { groups, userState } =
                     []
                     [ Html.text Text.setPipelineInstructions ]
                 ]
-                    ++ loginInstruction
-                        (if session.userState == UserState.UserStateLoggedOut then
-                            session.userState
-
-                         else
-                            userState
-                        )
+                    ++ loginInstruction session.userState
             , Html.pre
                 Styles.asciiArt
                 [ Html.text Text.asciiArt ]
@@ -688,35 +681,29 @@ pipelinesView :
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
         , query : String
-        , userState : UserState.UserState
         , highDensity : Bool
         }
     -> List (Html Message)
-pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, query, userState, highDensity } =
+pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, query, highDensity } =
     let
         filteredGroups =
-            groups |> Filter.filterGroups query |> List.sortWith Group.ordering
+            groups |> Filter.filterGroups query |> List.sortWith (Group.ordering session)
 
         groupViews =
             if highDensity then
                 filteredGroups
-                    |> List.concatMap (Group.hdView pipelineRunningKeyframes)
+                    |> List.concatMap (Group.hdView pipelineRunningKeyframes session)
 
             else
                 filteredGroups
                     |> List.map
                         (Group.view
+                            session
                             { dragState = substate.dragState
                             , dropState = substate.dropState
                             , now = substate.now
                             , hovered = hovered
                             , pipelineRunningKeyframes = pipelineRunningKeyframes
-                            , userState =
-                                if session.userState == UserState.UserStateLoggedOut then
-                                    session.userState
-
-                                else
-                                    userState
                             }
                         )
     in
