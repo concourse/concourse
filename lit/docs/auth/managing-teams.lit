@@ -27,7 +27,7 @@
   Once the team has been created, you can use \reference{fly-login} to log in:
 
   \codeblock{bash}{{
-  $ fly login -n my-team
+  $ fly -t example login -n my-team
   }}
 
   Any newly configured pipelines (via \reference{fly-set-pipeline}) and one-off
@@ -47,7 +47,7 @@
     \reference{team-member-role}.
 
     More advanced \reference{user-roles}{roles} configuration can be specified
-    through the \code{--configuration} or \code{-c} flag.
+    through the \code{--config} or \code{-c} flag.
 
     The \code{-c} flag expects a \code{.yml} file with a single field,
     \code{roles:}, pointing to a list of role authorization configs.

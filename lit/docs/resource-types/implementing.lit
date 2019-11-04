@@ -96,7 +96,7 @@ UI, so you should make your output pretty.
 }
 
 \section{
-  \title{\code{in}\aux{: Fetch a given resource.}}
+  \title{\code{in}\aux{: Fetch a given resource.}}{resource-in}
 
   The \code{in} script is passed a destination directory as command line argument \code{$1}, and
   is given on stdin the configured source and a precise version of the resource
@@ -159,7 +159,7 @@ UI, so you should make your output pretty.
 }
 
 \section{
-  \title{\code{out}\aux{: Update a resource.}}
+  \title{\code{out}\aux{: Update a resource.}}{resource-out}
 
   The \code{out} script is called with a path to the directory containing the
   build's full set of sources as the first argument, and is given on stdin the
