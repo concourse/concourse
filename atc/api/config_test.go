@@ -225,6 +225,16 @@ var _ = Describe("Config API", func() {
 									fakeResourceType.TagsReturns(atc.Tags{"some-tag"})
 
 									fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeResourceType}, nil)
+
+									resources, _ := fakePipeline.Resources()
+									resource_types, _ := fakePipeline.ResourceTypes()
+									jobs, _ := fakePipeline.Jobs()
+									fakePipeline.ConfigReturns(atc.Config{
+										Groups:        fakePipeline.Groups(),
+										Resources:     resources.Configs(),
+										ResourceTypes: resource_types.Configs(),
+										Jobs:          jobs.Configs(),
+									}, nil)
 								})
 
 								It("returns 200", func() {
@@ -250,35 +260,15 @@ var _ = Describe("Config API", func() {
 								})
 							})
 
-							Context("when finding the resource types fails", func() {
+							Context("when finding the config fails", func() {
 								BeforeEach(func() {
-									fakePipeline.ResourceTypesReturns(nil, errors.New("failed"))
+									fakePipeline.ConfigReturns(atc.Config{}, errors.New("fail"))
 								})
 
 								It("returns 500", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 								})
 							})
-						})
-
-						Context("when finding the resources fails", func() {
-							BeforeEach(func() {
-								fakePipeline.ResourcesReturns(nil, errors.New("failed"))
-							})
-
-							It("returns 500", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							})
-						})
-					})
-
-					Context("when finding the jobs fails", func() {
-						BeforeEach(func() {
-							fakePipeline.JobsReturns(nil, errors.New("failed"))
-						})
-
-						It("returns 500", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
 					})
 				})

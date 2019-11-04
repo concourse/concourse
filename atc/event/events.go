@@ -1,6 +1,8 @@
 package event
 
-import "github.com/concourse/concourse/atc"
+import (
+	"github.com/concourse/concourse/atc"
+)
 
 type Error struct {
 	Message string `json:"message"`
@@ -164,3 +166,30 @@ type FinishPut struct {
 
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }
 func (FinishPut) Version() atc.EventVersion { return "5.1" }
+
+type InitializeSetPipeline struct {
+	Origin Origin `json:"origin"`
+	Time   int64  `json:"time,omitempty"`
+}
+
+func (InitializeSetPipeline) EventType() atc.EventType  { return EventTypeInitializeSetPipeline }
+func (InitializeSetPipeline) Version() atc.EventVersion { return "5.8" }
+
+type StartSetPipeline struct {
+	Origin Origin `json:"origin"`
+	Time   int64  `json:"time,omitempty"`
+}
+
+func (StartSetPipeline) EventType() atc.EventType  { return EventTypeStartSetPipeline }
+func (StartSetPipeline) Version() atc.EventVersion { return "5.8" }
+
+type FinishSetPipeline struct {
+	Origin              Origin `json:"origin"`
+	Time                int64  `json:"time"`
+	ExitStatus          int    `json:"exit_status"`
+	ConfigVersionBefore int    `json:"before_version"`
+	ConfigVersionAfter  int    `json:"after_version"`
+}
+
+func (FinishSetPipeline) EventType() atc.EventType  { return EventTypeFinishSetPipeline }
+func (FinishSetPipeline) Version() atc.EventVersion { return "5.8" }

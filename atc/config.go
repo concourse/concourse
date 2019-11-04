@@ -316,6 +316,9 @@ type PlanConfig struct {
 	// inlined task config
 	TaskConfig *TaskConfig `json:"config,omitempty"`
 
+	// name of 'set_pipeline'
+	SetPipeline string `json:"set_pipeline,omitempty"`
+
 	// used by Get and Put for specifying params to the resource
 	// used by Task for passing params to external task config
 	Params Params `json:"params,omitempty"`

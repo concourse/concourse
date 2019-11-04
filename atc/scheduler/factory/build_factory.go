@@ -242,6 +242,15 @@ func (factory *buildFactory) constructUnhookedPlan(
 
 			VersionedResourceTypes: resourceTypes,
 		})
+
+	case planConfig.SetPipeline != "":
+		plan = factory.planFactory.NewPlan(atc.SetPipelinePlan{
+			Name:                   planConfig.SetPipeline,
+			Params:                 planConfig.Params,
+			ImageArtifactName:      planConfig.ImageArtifactName,
+			VersionedResourceTypes: resourceTypes,
+		})
+
 	case planConfig.Try != nil:
 		nextStep, err := factory.constructPlanFromConfig(
 			*planConfig.Try,

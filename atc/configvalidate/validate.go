@@ -378,6 +378,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		foundTypes.Find("task")
 	}
 
+	if plan.SetPipeline != "" {
+		foundTypes.Find("set_pipeline")
+	}
+
 	if plan.Do != nil {
 		foundTypes.Find("do")
 	}
@@ -569,6 +573,9 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 			[]string{"resource", "passed", "trigger"},
 			plan, identifier)...,
 		)
+
+	case plan.SetPipeline != "":
+		// TODO
 
 	case plan.Try != nil:
 		subIdentifier := fmt.Sprintf("%s.try", identifier)

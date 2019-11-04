@@ -36,6 +36,15 @@ const (
 	// finished putting something
 	EventTypeFinishPut atc.EventType = "finish-put"
 
+	// initialize setting pipeline
+	EventTypeInitializeSetPipeline atc.EventType = "initialize-set-pipeline"
+
+	// started setting pipeline
+	EventTypeStartSetPipeline atc.EventType = "start-set-pipeline"
+
+	// finished setting pipeline
+	EventTypeFinishSetPipeline atc.EventType = "finish-set-pipeline"
+
 	// error occurred
 	EventTypeError atc.EventType = "error"
 )
