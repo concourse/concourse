@@ -190,7 +190,6 @@ dashboardWithJob j =
                             ]
                       , jobs = [ j ]
                       , resources = []
-                      , user = Nothing
                       , version = "0.0.0-dev"
                       }
                     )

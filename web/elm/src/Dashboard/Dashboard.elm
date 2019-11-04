@@ -93,7 +93,6 @@ init flags =
       , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
       , groups = []
       , version = ""
-      , userState = UserState.UserStateUnknown
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
@@ -143,21 +142,12 @@ handleCallback msg ( model, effects ) =
                                         , dropState = Models.NotDropping
                                         }
                             }
-
-                userState =
-                    case apiData.user of
-                        Just u ->
-                            UserState.UserStateLoggedIn u
-
-                        Nothing ->
-                            UserState.UserStateLoggedOut
             in
             if model.highDensity && noPipelines { groups = groups } then
                 ( { newModel
                     | groups = groups
                     , highDensity = False
                     , version = apiData.version
-                    , userState = userState
                   }
                 , effects
                     ++ [ ModifyUrl <|
@@ -170,13 +160,12 @@ handleCallback msg ( model, effects ) =
                 ( { newModel
                     | groups = groups
                     , version = apiData.version
-                    , userState = userState
                   }
                 , effects
                 )
 
         LoggedOut (Ok ()) ->
-            ( { model | userState = UserState.UserStateLoggedOut }
+            ( model
             , effects
                 ++ [ NavigateTo <|
                         Routes.toString <|

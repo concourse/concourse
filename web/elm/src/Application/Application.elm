@@ -154,21 +154,6 @@ handleCallback callback model =
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
-        APIDataFetched (Ok ( _, data )) ->
-            let
-                session =
-                    model.session
-
-                newSession =
-                    { session
-                        | userState =
-                            data.user
-                                |> Maybe.map UserStateLoggedIn
-                                |> Maybe.withDefault UserStateLoggedOut
-                    }
-            in
-            subpageHandleCallback callback ( { model | session = newSession }, [] )
-
         APIDataFetched (Err err) ->
             let
                 session =

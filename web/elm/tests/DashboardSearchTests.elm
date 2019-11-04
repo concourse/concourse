@@ -89,7 +89,6 @@ all =
                                   }
                                 ]
                           , resources = []
-                          , user = Nothing
                           , version = ""
                           }
                         )
@@ -190,7 +189,6 @@ all =
                                 ]
                           , jobs = []
                           , resources = []
-                          , user = Nothing
                           , version = "0.0.0-dev"
                           }
                         )

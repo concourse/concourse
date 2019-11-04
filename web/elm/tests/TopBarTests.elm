@@ -574,7 +574,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , user = Nothing
                               , version = ""
                               }
                             )
@@ -622,7 +621,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , user = Nothing
                               , version = ""
                               }
                             )
@@ -895,7 +893,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , user = Nothing
                               , version = ""
                               }
                             )
@@ -969,7 +966,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , user = Nothing
                               , version = ""
                               }
                             )
@@ -1016,7 +1012,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , user = Nothing
                               , version = ""
                               }
                             )
@@ -1055,7 +1050,6 @@ all =
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
                               , resources = []
-                              , user = Nothing
                               , version = ""
                               }
                             )
@@ -1088,7 +1082,6 @@ all =
                                     ]
                               , jobs = []
                               , resources = []
-                              , user = Nothing
                               , version = "0.0.0-dev"
                               }
                             )
