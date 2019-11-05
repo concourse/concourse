@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	bclient "github.com/concourse/baggageclaim/client"
@@ -32,6 +30,7 @@ type dbWorkerProvider struct {
 	dbWorkerFactory                   db.WorkerFactory
 	workerVersion                     version.Version
 	baggageclaimResponseHeaderTimeout time.Duration
+	gardenRequestTimeout              time.Duration
 }
 
 func NewDBWorkerProvider(
@@ -47,7 +46,7 @@ func NewDBWorkerProvider(
 	dbTeamFactory db.TeamFactory,
 	workerFactory db.WorkerFactory,
 	workerVersion version.Version,
-	baggageclaimResponseHeaderTimeout time.Duration,
+	baggageclaimResponseHeaderTimeout, gardenRequestTimeout time.Duration,
 ) WorkerProvider {
 	return &dbWorkerProvider{
 		lockFactory:                       lockFactory,
@@ -63,6 +62,7 @@ func NewDBWorkerProvider(
 		dbWorkerFactory:                   workerFactory,
 		workerVersion:                     workerVersion,
 		baggageclaimResponseHeaderTimeout: baggageclaimResponseHeaderTimeout,
+		gardenRequestTimeout:              gardenRequestTimeout,
 	}
 }
 
@@ -179,7 +179,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		savedWorker.Name(),
 		savedWorker.GardenAddr(),
 		provider.retryBackOffFactory,
-		atc.GARDEN_CLIENT_HTTP_TIMEOUT,
+		provider.gardenRequestTimeout,
 	)
 
 	gClient := gcf.NewClient()
