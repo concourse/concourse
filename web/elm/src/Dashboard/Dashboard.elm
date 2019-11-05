@@ -27,6 +27,7 @@ import Dashboard.Models as Models
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
 import Dashboard.Text as Text
+import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
@@ -97,6 +98,7 @@ init flags =
       , showHelp = False
       , highDensity = flags.searchType == Routes.HighDensity
       , query = Routes.extractQuery flags.searchType
+      , pipelinesWithResourceErrors = Dict.empty
       , isUserMenuExpanded = False
       , dropdown = Hidden
       }
@@ -122,8 +124,7 @@ handleCallback msg ( model, effects ) =
         APIDataFetched (Ok ( now, apiData )) ->
             let
                 groups =
-                    model.groups
-                        |> Group.groups apiData
+                    Group.groups apiData
 
                 newModel =
                     case model.state of
@@ -158,31 +159,19 @@ handleCallback msg ( model, effects ) =
                 )
 
         AllResourcesFetched (Ok resources) ->
-            let
-                belongsTo : Pipeline -> Concourse.Resource -> Bool
-                belongsTo p r =
-                    (r.teamName == p.teamName) && (r.pipelineName == p.name)
-
-                resourceError : List Concourse.Resource -> Pipeline -> Bool
-                resourceError rs p =
-                    rs |> List.filter (belongsTo p) |> List.any .failingToCheck
-
-                newGroups =
-                    model.groups
-                        |> List.map
-                            (\g ->
-                                let
-                                    newPipelines =
-                                        g.pipelines
-                                            |> List.map
-                                                (\p ->
-                                                    { p | resourceError = resourceError resources p }
-                                                )
-                                in
-                                { g | pipelines = newPipelines }
+            ( { model
+                | pipelinesWithResourceErrors =
+                    resources
+                        |> List.foldr
+                            (\r ->
+                                Dict.update ( r.teamName, r.pipelineName )
+                                    (Maybe.withDefault False
+                                        >> (||) r.failingToCheck
+                                        >> Just
+                                    )
                             )
-            in
-            ( { model | groups = newGroups }
+                            model.pipelinesWithResourceErrors
+              }
             , effects
             )
 
@@ -570,6 +559,7 @@ dashboardView session model =
                         , pipelineRunningKeyframes =
                             model.pipelineRunningKeyframes
                         , highDensity = model.highDensity
+                        , pipelinesWithResourceErrors = model.pipelinesWithResourceErrors
                         }
 
 
@@ -693,9 +683,10 @@ pipelinesView :
         , pipelineRunningKeyframes : String
         , query : String
         , highDensity : Bool
+        , pipelinesWithResourceErrors : Dict ( String, String ) Bool
         }
     -> List (Html Message)
-pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, query, highDensity } =
+pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, query, highDensity, pipelinesWithResourceErrors } =
     let
         filteredGroups =
             groups |> Filter.filterGroups query |> List.sortWith (Group.ordering session)
@@ -703,7 +694,13 @@ pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, que
         groupViews =
             if highDensity then
                 filteredGroups
-                    |> List.concatMap (Group.hdView pipelineRunningKeyframes session)
+                    |> List.concatMap
+                        (Group.hdView
+                            { pipelineRunningKeyframes = pipelineRunningKeyframes
+                            , pipelinesWithResourceErrors = pipelinesWithResourceErrors
+                            }
+                            session
+                        )
 
             else
                 filteredGroups
@@ -715,6 +712,7 @@ pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, que
                             , now = substate.now
                             , hovered = hovered
                             , pipelineRunningKeyframes = pipelineRunningKeyframes
+                            , pipelinesWithResourceErrors = pipelinesWithResourceErrors
                             }
                         )
     in

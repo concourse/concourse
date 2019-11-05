@@ -42,9 +42,10 @@ pipelineNotSetView =
 hdPipelineView :
     { pipeline : Pipeline
     , pipelineRunningKeyframes : String
+    , resourceError : Bool
     }
     -> Html Message
-hdPipelineView { pipeline, pipelineRunningKeyframes } =
+hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError } =
     Html.a
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
@@ -66,7 +67,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
             (class "dashboardhd-pipeline-name" :: Styles.pipelineCardBodyHd)
             [ Html.text pipeline.name ]
         ]
-            ++ (if pipeline.resourceError then
+            ++ (if resourceError then
                     [ Html.div Styles.resourceErrorTriangle [] ]
 
                 else
@@ -80,9 +81,10 @@ pipelineView :
     , hovered : HoverState.HoverState
     , pipelineRunningKeyframes : String
     , userState : UserState
+    , resourceError : Bool
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError } =
     Html.div
         Styles.pipelineCard
         [ Html.div
@@ -93,14 +95,14 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState } =
                     }
             )
             []
-        , headerView pipeline
+        , headerView pipeline resourceError
         , bodyView hovered pipeline
         , footerView userState pipeline now hovered
         ]
 
 
-headerView : Pipeline -> Html Message
-headerView pipeline =
+headerView : Pipeline -> Bool -> Html Message
+headerView pipeline resourceError =
     Html.a
         [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
@@ -114,7 +116,7 @@ headerView pipeline =
                 [ Html.text pipeline.name ]
             , Html.div
                 [ classList
-                    [ ( "dashboard-resource-error", pipeline.resourceError )
+                    [ ( "dashboard-resource-error", resourceError )
                     ]
                 ]
                 []
