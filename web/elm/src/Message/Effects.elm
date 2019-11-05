@@ -16,6 +16,7 @@ import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Json.Encode
+import Maybe exposing (Maybe)
 import Message.Callback exposing (Callback(..), TooltipPolicy(..))
 import Message.Message
     exposing
@@ -130,6 +131,7 @@ type Effect
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
     | FetchPipelines
+    | FetchAllResources
     | GetCurrentTime
     | GetCurrentTimeZone
     | DoTriggerBuild Concourse.JobIdentifier
@@ -225,6 +227,11 @@ runEffect effect key csrfToken =
         FetchPipeline id ->
             Network.Pipeline.fetchPipeline id
                 |> Task.attempt PipelineFetched
+
+        FetchAllResources ->
+            Network.Resource.fetchAllResources
+                |> Task.map (Maybe.withDefault [])
+                |> Task.attempt AllResourcesFetched
 
         FetchClusterInfo ->
             Network.Info.fetch

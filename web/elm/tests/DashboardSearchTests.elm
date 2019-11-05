@@ -88,7 +88,6 @@ all =
                                   , groups = []
                                   }
                                 ]
-                          , resources = []
                           }
                         )
                     )
@@ -187,7 +186,6 @@ all =
                                   }
                                 ]
                           , jobs = []
-                          , resources = []
                           }
                         )
                     )

@@ -4,7 +4,6 @@ import Concourse
 import Http
 import Network.Job
 import Network.Pipeline
-import Network.Resource
 import Network.Team
 import Task exposing (Task)
 
@@ -21,17 +20,11 @@ remoteData =
                                 |> Task.map (Maybe.withDefault [])
                                 |> Task.andThen
                                     (\jobs ->
-                                        Network.Resource.fetchAllResources
-                                            |> Task.map (Maybe.withDefault [])
-                                            |> Task.andThen
-                                                (\resources ->
-                                                    Task.succeed
-                                                        { teams = teams
-                                                        , pipelines = pipelines
-                                                        , jobs = jobs
-                                                        , resources = resources
-                                                        }
-                                                )
+                                        Task.succeed
+                                            { teams = teams
+                                            , pipelines = pipelines
+                                            , jobs = jobs
+                                            }
                                     )
                         )
             )
