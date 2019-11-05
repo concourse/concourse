@@ -189,7 +189,6 @@ dashboardWithJob j =
                               }
                             ]
                       , jobs = [ j ]
-                      , resources = []
                       }
                     )
             )

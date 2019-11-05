@@ -149,8 +149,8 @@ setDropIndex dropIdx dropState =
             NotDropping
 
 
-allPipelines : Concourse.APIData -> List Pipeline
-allPipelines data =
+allPipelines : Concourse.APIData -> List Pipeline -> List Pipeline
+allPipelines data existingPipelines =
     data.pipelines
         |> List.map
             (\p ->
@@ -162,20 +162,19 @@ allPipelines data =
                                     (j.teamName == p.teamName)
                                         && (j.pipelineName == p.name)
                                 )
+
+                    resourceError =
+                        existingPipelines
+                            |> List.Extra.find (\ep -> ep.teamName == p.teamName && ep.name == p.name)
+                            |> Maybe.map .resourceError
+                            |> Maybe.withDefault False
                 in
                 { id = p.id
                 , name = p.name
                 , teamName = p.teamName
                 , public = p.public
                 , jobs = jobs
-                , resourceError =
-                    data.resources
-                        |> List.any
-                            (\r ->
-                                (r.teamName == p.teamName)
-                                    && (r.pipelineName == p.name)
-                                    && r.failingToCheck
-                            )
+                , resourceError = resourceError
                 , status = pipelineStatus p jobs
                 , isToggleLoading = False
                 , isVisibilityLoading = False
@@ -332,14 +331,18 @@ allTeamNames apiData =
         |> Set.toList
 
 
-groups : Concourse.APIData -> List Group
-groups apiData =
+groups : Concourse.APIData -> List Group -> List Group
+groups apiData existingGroups =
     let
         teamNames =
             allTeamNames apiData
+
+        existingPipelines =
+            existingGroups
+                |> List.concatMap (\g -> g.pipelines)
     in
     teamNames
-        |> List.map (group <| allPipelines apiData)
+        |> List.map (group <| allPipelines apiData existingPipelines)
 
 
 group : List Pipeline -> String -> Group

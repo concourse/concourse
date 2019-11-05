@@ -573,7 +573,6 @@ all =
                                     ]
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
-                              , resources = []
                               }
                             )
                         )
@@ -619,7 +618,6 @@ all =
                                     ]
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
-                              , resources = []
                               }
                             )
                         )
@@ -890,7 +888,6 @@ all =
                                     ]
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
-                              , resources = []
                               }
                             )
                         )
@@ -962,7 +959,6 @@ all =
                                     ]
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
-                              , resources = []
                               }
                             )
                         )
@@ -1007,7 +1003,6 @@ all =
                             , { teams = [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
-                              , resources = []
                               }
                             )
                         )
@@ -1044,7 +1039,6 @@ all =
                                     ]
                               , pipelines = [ onePipeline "team1" ]
                               , jobs = []
-                              , resources = []
                               }
                             )
                         )
@@ -1075,7 +1069,6 @@ all =
                                       }
                                     ]
                               , jobs = []
-                              , resources = []
                               }
                             )
                     )

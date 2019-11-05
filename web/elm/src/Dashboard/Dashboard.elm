@@ -122,7 +122,8 @@ handleCallback msg ( model, effects ) =
         APIDataFetched (Ok ( now, apiData )) ->
             let
                 groups =
-                    Group.groups apiData
+                    model.groups
+                        |> Group.groups apiData
 
                 newModel =
                     case model.state of
@@ -155,6 +156,35 @@ handleCallback msg ( model, effects ) =
                 ( { newModel | groups = groups }
                 , effects
                 )
+
+        AllResourcesFetched (Ok resources) ->
+            let
+                belongsTo : Pipeline -> Concourse.Resource -> Bool
+                belongsTo p r =
+                    (r.teamName == p.teamName) && (r.pipelineName == p.name)
+
+                resourceError : List Concourse.Resource -> Pipeline -> Bool
+                resourceError rs p =
+                    rs |> List.filter (belongsTo p) |> List.any .failingToCheck
+
+                newGroups =
+                    model.groups
+                        |> List.map
+                            (\g ->
+                                let
+                                    newPipelines =
+                                        g.pipelines
+                                            |> List.map
+                                                (\p ->
+                                                    { p | resourceError = resourceError resources p }
+                                                )
+                                in
+                                { g | pipelines = newPipelines }
+                            )
+            in
+            ( { model | groups = newGroups }
+            , effects
+            )
 
         LoggedOut (Ok ()) ->
             ( model
@@ -247,7 +277,7 @@ handleDeliveryBody delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchData, FetchPipelines ] )
+            ( model, effects ++ [ FetchData, FetchPipelines, FetchAllResources ] )
 
         _ ->
             ( model, effects )

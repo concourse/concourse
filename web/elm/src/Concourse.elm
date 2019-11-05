@@ -881,7 +881,6 @@ type alias APIData =
     { teams : List Team
     , pipelines : List Pipeline
     , jobs : List Job
-    , resources : List Resource
     }
 
 

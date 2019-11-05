@@ -46,6 +46,7 @@ type Callback
     | Checked (Fetched Concourse.Check)
     | CommentSet (Fetched ())
     | APIDataFetched (Fetched ( Time.Posix, Concourse.APIData ))
+    | AllResourcesFetched (Fetched (List Concourse.Resource))
     | LoggedOut (Fetched ())
     | ScreenResized Browser.Dom.Viewport
     | BuildJobDetailsFetched (Fetched Concourse.Job)

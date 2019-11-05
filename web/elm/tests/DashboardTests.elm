@@ -20,19 +20,16 @@ import Common
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli as Cli
-import Dashboard.Dashboard as Dashboard
 import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Http
 import Keyboard
-import List.Extra
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message as Msgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
-import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -49,7 +46,6 @@ import Test.Html.Selector
         )
 import Time
 import Url
-import UserState
 
 
 almostBlack : String
@@ -1040,7 +1036,6 @@ all =
                         , jobs =
                             [ jobFunc status
                             ]
-                        , resources = []
                         }
                         >> Tuple.first
                         >> Common.queryView
@@ -1235,7 +1230,6 @@ all =
                                     , pipelines =
                                         [ onePipelinePaused "team" ]
                                     , jobs = []
-                                    , resources = []
                                     }
                                 |> Tuple.first
                                 |> Common.queryView
@@ -1339,7 +1333,6 @@ all =
                                             [ job firstStatus
                                             , otherJob secondStatus
                                             ]
-                                        , resources = []
                                         }
                                     |> Tuple.first
                                     |> Common.queryView
@@ -1380,7 +1373,6 @@ all =
                                     { teams = [ { id = 0, name = "team" } ]
                                     , pipelines = [ onePipeline "team" ]
                                     , jobs = circularJobs
-                                    , resources = []
                                     }
                                 |> Tuple.first
                                 |> Common.queryView
@@ -1405,7 +1397,6 @@ all =
                                         , pipelines =
                                             [ onePipelinePaused "team" ]
                                         , jobs = []
-                                        , resources = []
                                         }
                                     |> Tuple.first
                                     |> Common.queryView
@@ -1509,7 +1500,6 @@ all =
                                                 [ job firstStatus
                                                 , otherJob secondStatus
                                                 ]
-                                            , resources = []
                                             }
                                         |> Tuple.first
                                         |> Common.queryView
@@ -1688,21 +1678,25 @@ all =
                                           }
                                         ]
                                     , jobs = []
-                                    , resources =
-                                        [ { teamName = "team"
-                                          , pipelineName = "pipeline"
-                                          , name = "resource"
-                                          , failingToCheck = True
-                                          , checkError = ""
-                                          , checkSetupError = ""
-                                          , lastChecked = Nothing
-                                          , pinnedVersion = Nothing
-                                          , pinnedInConfig = False
-                                          , pinComment = Nothing
-                                          , icon = Nothing
-                                          }
-                                        ]
                                     }
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllResourcesFetched <|
+                                        Ok
+                                            [ { teamName = "team"
+                                              , pipelineName = "pipeline"
+                                              , name = "resource"
+                                              , failingToCheck = True
+                                              , checkError = ""
+                                              , checkSetupError = ""
+                                              , lastChecked = Nothing
+                                              , pinnedVersion = Nothing
+                                              , pinnedInConfig = False
+                                              , pinComment = Nothing
+                                              , icon = Nothing
+                                              }
+                                            ]
+                                    )
                                 |> Tuple.first
                                 |> Common.queryView
 
@@ -1874,7 +1868,6 @@ all =
                                         , pipelines =
                                             [ onePipelinePaused "team" ]
                                         , jobs = []
-                                        , resources = []
                                         }
                                     |> Tuple.first
                                     |> Common.queryView
@@ -2003,7 +1996,6 @@ all =
                                                 (Just <| Time.millisToPosix 0)
                                                 BuildStatusSucceeded
                                             ]
-                                        , resources = []
                                         }
                                     |> Tuple.first
                                     |> afterSeconds 1
@@ -3449,6 +3441,16 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains Effects.FetchData
+        , test "auto refreshes resources every five seconds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.update
+                        (ApplicationMsgs.DeliveryReceived <|
+                            ClockTicked FiveSeconds <|
+                                Time.millisToPosix 0
+                        )
+                    |> Tuple.second
+                    |> Common.contains Effects.FetchAllResources
         ]
 
 
@@ -3587,7 +3589,6 @@ givenPipelineWithJob =
           , groups = []
           }
         ]
-    , resources = []
     }
 
 
@@ -3604,7 +3605,6 @@ oneTeamOnePipelinePaused teamName =
           }
         ]
     , jobs = []
-    , resources = []
     }
 
 
@@ -3621,7 +3621,6 @@ oneTeamOnePipelineNonPublic teamName =
           }
         ]
     , jobs = []
-    , resources = []
     }
 
 
@@ -3672,7 +3671,6 @@ apiData pipelines =
                             )
                 )
     , jobs = []
-    , resources = []
     }
 
 

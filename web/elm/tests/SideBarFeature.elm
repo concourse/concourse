@@ -768,7 +768,6 @@ apiDataLoads =
                               }
                             ]
                       , jobs = []
-                      , resources = []
                       }
                     )
                 )
@@ -807,7 +806,6 @@ thereAreNoPipelines =
                 , { teams = []
                   , pipelines = []
                   , jobs = []
-                  , resources = []
                   }
                 )
             )
