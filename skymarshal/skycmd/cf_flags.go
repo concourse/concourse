@@ -3,6 +3,7 @@ package skycmd
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/concourse/dex/connector/cf"
 	"github.com/concourse/flag"
@@ -68,10 +69,13 @@ func (flag *CFFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type CFTeamFlags struct {
-	Users      []string `long:"user" description:"A whitelisted CloudFoundry user" value-name:"USERNAME"`
-	Orgs       []string `long:"org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME"`
-	Spaces     []string `long:"space" description:"A whitelisted CloudFoundry space" value-name:"ORG_NAME:SPACE_NAME"`
-	SpaceGuids []string `long:"space-guid" description:"(Deprecated) A whitelisted CloudFoundry space guid" value-name:"SPACE_GUID"`
+	Users           []string `long:"user" description:"A whitelisted CloudFoundry user" value-name:"USERNAME"`
+	Orgs            []string `long:"org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME"`
+	Spaces          []string `long:"space" description:"A whitelisted CloudFoundry space for users with any role" value-name:"ORG_NAME:SPACE_NAME"`
+	SpaceDevelopers []string `long:"space-developer" description:"A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME"`
+	SpaceAuditors   []string `long:"space-auditor" description:"A whitelisted CloudFoundry space for users with the 'auditor' role" value-name:"ORG_NAME:SPACE_NAME"`
+	SpaceManagers   []string `long:"space-manager" description:"A whitelisted CloudFoundry space for users with the 'manager' role" value-name:"ORG_NAME:SPACE_NAME"`
+	SpaceGuids      []string `long:"space-guid" description:"(Deprecated) A whitelisted CloudFoundry space guid" value-name:"SPACE_GUID"`
 }
 
 func (flag *CFTeamFlags) GetUsers() []string {
@@ -82,6 +86,15 @@ func (flag *CFTeamFlags) GetGroups() []string {
 	var groups []string
 	groups = append(groups, flag.Orgs...)
 	groups = append(groups, flag.Spaces...)
+	for _, space := range flag.SpaceDevelopers {
+		groups = append(groups, fmt.Sprintf("%s:developer", space))
+	}
+	for _, space := range flag.SpaceAuditors {
+		groups = append(groups, fmt.Sprintf("%s:auditor", space))
+	}
+	for _, space := range flag.SpaceManagers {
+		groups = append(groups, fmt.Sprintf("%s:manager", space))
+	}
 	groups = append(groups, flag.SpaceGuids...)
 	return groups
 }
