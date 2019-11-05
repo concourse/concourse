@@ -1662,24 +1662,6 @@ all =
                         givenResourceError : () -> Query.Single ApplicationMsgs.TopLevelMessage
                         givenResourceError _ =
                             whenOnDashboard { highDensity = True }
-                                |> givenDataUnauthenticated
-                                    { teams =
-                                        [ { id = 0
-                                          , name = "team"
-                                          }
-                                        ]
-                                    , pipelines =
-                                        [ { id = 0
-                                          , name = "pipeline"
-                                          , paused = False
-                                          , public = True
-                                          , teamName = "team"
-                                          , groups = []
-                                          }
-                                        ]
-                                    , jobs = []
-                                    }
-                                |> Tuple.first
                                 |> Application.handleCallback
                                     (Callback.AllResourcesFetched <|
                                         Ok
@@ -1697,6 +1679,24 @@ all =
                                               }
                                             ]
                                     )
+                                |> Tuple.first
+                                |> givenDataUnauthenticated
+                                    { teams =
+                                        [ { id = 0
+                                          , name = "team"
+                                          }
+                                        ]
+                                    , pipelines =
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                    , jobs = []
+                                    }
                                 |> Tuple.first
                                 |> Common.queryView
 

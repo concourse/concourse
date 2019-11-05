@@ -34,6 +34,7 @@ import Dashboard.Group.Tag as Tag
 import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
+import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
@@ -149,8 +150,8 @@ setDropIndex dropIdx dropState =
             NotDropping
 
 
-allPipelines : Concourse.APIData -> List Pipeline -> List Pipeline
-allPipelines data existingPipelines =
+allPipelines : Concourse.APIData -> List Pipeline
+allPipelines data =
     data.pipelines
         |> List.map
             (\p ->
@@ -162,19 +163,12 @@ allPipelines data existingPipelines =
                                     (j.teamName == p.teamName)
                                         && (j.pipelineName == p.name)
                                 )
-
-                    resourceError =
-                        existingPipelines
-                            |> List.Extra.find (\ep -> ep.teamName == p.teamName && ep.name == p.name)
-                            |> Maybe.map .resourceError
-                            |> Maybe.withDefault False
                 in
                 { id = p.id
                 , name = p.name
                 , teamName = p.teamName
                 , public = p.public
                 , jobs = jobs
-                , resourceError = resourceError
                 , status = pipelineStatus p jobs
                 , isToggleLoading = False
                 , isVisibilityLoading = False
@@ -331,18 +325,14 @@ allTeamNames apiData =
         |> Set.toList
 
 
-groups : Concourse.APIData -> List Group -> List Group
-groups apiData existingGroups =
+groups : Concourse.APIData -> List Group
+groups apiData =
     let
         teamNames =
             allTeamNames apiData
-
-        existingPipelines =
-            existingGroups
-                |> List.concatMap (\g -> g.pipelines)
     in
     teamNames
-        |> List.map (group <| allPipelines apiData existingPipelines)
+        |> List.map (group <| allPipelines apiData)
 
 
 group : List Pipeline -> String -> Group
@@ -360,10 +350,11 @@ view :
         , now : Time.Posix
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
+        , pipelinesWithResourceErrors : Dict ( String, String ) Bool
         }
     -> Group
     -> Html Message
-view session { dragState, dropState, now, hovered, pipelineRunningKeyframes } g =
+view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pipelinesWithResourceErrors } g =
     let
         pipelines =
             if List.isEmpty g.pipelines then
@@ -394,6 +385,10 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes } g 
                                     [ Pipeline.pipelineView
                                         { now = now
                                         , pipeline = pipeline
+                                        , resourceError =
+                                            pipelinesWithResourceErrors
+                                                |> Dict.get ( pipeline.teamName, pipeline.name )
+                                                |> Maybe.withDefault False
                                         , hovered = hovered
                                         , pipelineRunningKeyframes = pipelineRunningKeyframes
                                         , userState = session.userState
@@ -438,8 +433,12 @@ tag { userState } g =
             Nothing
 
 
-hdView : String -> { a | userState : UserState } -> Group -> List (Html Message)
-hdView pipelineRunningKeyframes session g =
+hdView :
+    { pipelineRunningKeyframes : String, pipelinesWithResourceErrors : Dict ( String, String ) Bool }
+    -> { a | userState : UserState }
+    -> Group
+    -> List (Html Message)
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors } session g =
     let
         header =
             Html.div
@@ -458,6 +457,10 @@ hdView pipelineRunningKeyframes session g =
                             Pipeline.hdPipelineView
                                 { pipeline = p
                                 , pipelineRunningKeyframes = pipelineRunningKeyframes
+                                , resourceError =
+                                    pipelinesWithResourceErrors
+                                        |> Dict.get ( p.teamName, p.name )
+                                        |> Maybe.withDefault False
                                 }
                         )
     in

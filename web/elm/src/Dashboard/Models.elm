@@ -11,6 +11,7 @@ module Dashboard.Models exposing
 
 import Concourse
 import Dashboard.Group.Models
+import Dict exposing (Dict)
 import Login.Login as Login
 import RemoteData
 import Time
@@ -28,6 +29,7 @@ type alias Model =
             , pipelineRunningKeyframes : String
             , highDensity : Bool
             , query : String
+            , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             }
         )
 

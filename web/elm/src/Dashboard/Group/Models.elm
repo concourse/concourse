@@ -16,7 +16,6 @@ type alias Pipeline =
     , teamName : String
     , public : Bool
     , jobs : List Concourse.Job
-    , resourceError : Bool
     , status : PipelineStatus.PipelineStatus
     , isToggleLoading : Bool
     , isVisibilityLoading : Bool
