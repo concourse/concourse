@@ -203,6 +203,8 @@ type RunCommand struct {
 	} `group:"Authentication"`
 
 	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
+
+	ConfigRBAC string `long:"config-rbac" description:"Customize RBAC role-action mapping."`
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -606,7 +608,17 @@ func (cmd *RunCommand) constructAPIMembers(
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
+
 	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
+	customActionRoleMap := accessor.CustomActionRoleMap{}
+	err = accessor.ParseCustomActionRoleMap(cmd.ConfigRBAC, &customActionRoleMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse RBAC config file (%s): %s", cmd.ConfigRBAC, err.Error())
+	}
+	err = accessFactory.CustomizeActionRoleMap(logger, customActionRoleMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to customize RBAC: %s", err.Error())
+	}
 
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,

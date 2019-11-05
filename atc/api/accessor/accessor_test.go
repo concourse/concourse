@@ -1,17 +1,18 @@
 package accessor_test
 
 import (
+	"code.cloudfoundry.org/lager"
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
-	jwt "github.com/dgrijalva/jwt-go"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Accessor", func() {
@@ -851,4 +852,44 @@ var _ = Describe("Accessor", func() {
 		Entry("pipeline-operator :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "pipeline-operator", true),
 		Entry("viewer :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "viewer", true),
 	)
+
+	Describe("Customize RBAC", func() {
+		JustBeforeEach(func() {
+			customData := accessor.CustomActionRoleMap{
+				"pipeline-operator": []string{atc.HijackContainer, atc.CreatePipelineBuild},
+			}
+
+			logger := lager.NewLogger("test")
+			err := accessorFactory.CustomizeActionRoleMap(logger, customData)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		DescribeTable("role actions",
+			func(action, role string, authorized bool) {
+				claims := &jwt.MapClaims{"teams": map[string][]string{"some-team": {role}}}
+				token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+				tokenString, err := token.SignedString(key)
+				Expect(err).NotTo(HaveOccurred())
+				req.Header.Add("Authorization", fmt.Sprintf("BEARER %s", tokenString))
+				access := accessorFactory.Create(req, action)
+
+				Expect(access.IsAuthorized("some-team")).To(Equal(authorized))
+			},
+			Entry("owner :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "owner", true),
+			Entry("member :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "member", true),
+			Entry("pipeline-operator :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "pipeline-operator", true),
+			Entry("viewer :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "viewer", false),
+
+			Entry("owner :: "+atc.HijackContainer, atc.HijackContainer, "owner", true),
+			Entry("member :: "+atc.HijackContainer, atc.HijackContainer, "member", true),
+			Entry("pipeline-operator :: "+atc.HijackContainer, atc.HijackContainer, "pipeline-operator", true),
+			Entry("viewer :: "+atc.HijackContainer, atc.HijackContainer, "viewer", false),
+
+			// Verify one un-customized action just in case.
+			Entry("owner :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "owner", true),
+			Entry("member :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "member", true),
+			Entry("pipeline-operator :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "pipeline-operator", true),
+			Entry("viewer :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "viewer", true),
+		)
+	})
 })
