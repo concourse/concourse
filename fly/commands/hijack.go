@@ -31,7 +31,7 @@ type HijackCommand struct {
 	StepType       string                   `          long:"step-type"                         description:"Type of step to hijack (e.g. get, put, task)"`
 	Attempt        string                   `short:"a" long:"attempt" value-name:"N[,N,...]"    description:"Attempt number of step to hijack."`
 	PositionalArgs struct {
-		Command []string `positional-arg-name:"command" description:"The command to run in the container (default: bash)"`
+		Command []string `positional-arg-name:"command" description:"The command to run in the container (default: sh)"`
 	} `positional-args:"yes"`
 }
 
@@ -314,7 +314,7 @@ func remoteCommand(argv []string) (string, []string) {
 
 	switch len(argv) {
 	case 0:
-		path = "bash"
+		path = "sh"
 	case 1:
 		path = argv[0]
 	default:

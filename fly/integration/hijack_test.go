@@ -26,7 +26,7 @@ var _ = Describe("Hijacking", func() {
 		hijacked = nil
 		workingDirectory = ""
 		user = "root"
-		path = "bash"
+		path = "sh"
 		args = nil
 	})
 
@@ -738,7 +738,7 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with a specific path and args", func() {
 			BeforeEach(func() {
-				path = "sh"
+				path = "bash"
 				args = []string{"echo hello"}
 
 				containerArguments = "build_id=2&step_name=some-step"
@@ -748,7 +748,7 @@ var _ = Describe("Hijacking", func() {
 			})
 
 			It("hijacks and runs the provided path with args", func() {
-				hijack("-b", "2", "-s", "some-step", "sh", "echo hello")
+				hijack("-b", "2", "-s", "some-step", "bash", "echo hello")
 			})
 		})
 
