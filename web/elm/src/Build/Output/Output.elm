@@ -162,6 +162,21 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
+        InitializeSetPipeline origin time ->
+            ( updateStep origin.id (setInitialize time) model
+            , effects
+            )
+
+        StartSetPipeline origin time ->
+            ( updateStep origin.id (setStart time) model
+            , effects
+            )
+
+        FinishSetPipeline origin exitStatus time ->
+            ( updateStep origin.id (finishStep exitStatus (Just time)) model
+            , effects
+            )
+
         InitializeGet origin time ->
             ( updateStep origin.id (setInitialize time) model
             , effects

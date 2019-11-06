@@ -61,6 +61,9 @@ init hl resources buildPlan =
         Concourse.BuildStepTask name ->
             initBottom hl Task buildPlan.id name
 
+        Concourse.BuildStepSetPipeline name ->
+            initBottom hl Task buildPlan.id name
+
         Concourse.BuildStepArtifactInput name ->
             initBottom hl
                 (\s ->

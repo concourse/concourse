@@ -123,6 +123,9 @@ type BuildEvent
     | InitializeTask Origin Time.Posix
     | StartTask Origin Time.Posix
     | FinishTask Origin Int Time.Posix
+    | InitializeSetPipeline Origin Time.Posix
+    | StartSetPipeline Origin Time.Posix
+    | FinishSetPipeline Origin Int Time.Posix
     | InitializeGet Origin Time.Posix
     | StartGet Origin Time.Posix
     | FinishGet Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
