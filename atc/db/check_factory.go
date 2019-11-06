@@ -156,11 +156,11 @@ func (c *checkFactory) TryCreateCheck(logger lager.Logger, checkable Checkable, 
 	)
 
 	pp, found, err := checkable.Pipeline()
-	if !found {
-		return nil, false, fmt.Errorf("pipeline not found")
-	}
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to reload pipeline: %s", err.Error())
+	}
+	if !found {
+		return nil, false, fmt.Errorf("pipeline not found")
 	}
 
 	varss, err := pp.Variables(logger, globalVars)

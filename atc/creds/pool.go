@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 )
 
+//go:generate counterfeiter . VarSourcePool
+
 type VarSourcePool interface {
 	FindOrCreate(lager.Logger, map[string]interface{}, ManagerFactory) (Secrets, error)
 }
@@ -44,7 +46,7 @@ func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]i
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	if inPool, ok := pool.pool[key]; !ok {
+	if _, ok := pool.pool[key]; !ok {
 		manager, err := factory.NewInstance(config)
 		if err != nil {
 			return nil, err
@@ -61,11 +63,9 @@ func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]i
 		pool.pool[key] = &inPoolManager{
 			manager:        manager,
 			secretsFactory: secretsFactory,
-			lastUseTime:    time.Now(),
 		}
 	} else {
 		logger.Debug("found-existing-credential-manager")
-		inPool.lastUseTime = time.Now()
 	}
 
 	return pool.pool[key].NewSecrets(), nil

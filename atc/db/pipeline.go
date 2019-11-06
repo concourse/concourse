@@ -140,9 +140,9 @@ func (p *pipeline) TeamName() string         { return p.teamName }
 func (p *pipeline) Groups() atc.GroupConfigs { return p.groups }
 
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
-func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
-func (p *pipeline) Public() bool                 { return p.public }
-func (p *pipeline) Paused() bool                 { return p.paused }
+func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
+func (p *pipeline) Public() bool                     { return p.public }
+func (p *pipeline) Paused() bool                     { return p.paused }
 
 // IMPORTANT: This method is broken with the new resource config versions changes
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {

@@ -93,7 +93,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	warnings, errorMessages := configvalidate.Validate(config)
 	if len(errorMessages) > 0 {
-		session.Info("ignoring-invalid-config")
+		session.Info("ignoring-invalid-config", lager.Data{"errors": errorMessages})
 		s.handleBadRequest(w, errorMessages...)
 		return
 	}
