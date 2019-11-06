@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/testhelpers"
 
@@ -17,7 +18,7 @@ var _ = Describe("Factory Hooks", func() {
 		resourceTypes       atc.VersionedResourceTypes
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
-		version             atc.Version
+		buildInputs         []db.BuildInput
 	)
 
 	BeforeEach(func() {
@@ -41,6 +42,13 @@ var _ = Describe("Factory Hooks", func() {
 					Source: atc.Source{"some": "custom-source"},
 				},
 				Version: atc.Version{"some": "version"},
+			},
+		}
+
+		buildInputs = []db.BuildInput{
+			{
+				Name:    "some-resource",
+				Version: atc.Version{"ref": "v1"},
 			},
 		}
 	})
@@ -490,7 +498,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			}, resources, resourceTypes, buildInputs)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnErrorPlan{
@@ -507,7 +515,7 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
-						Version:                &version,
+						Version:                &atc.Version{"ref": "v1"},
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
@@ -529,7 +537,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			}, resources, resourceTypes, buildInputs)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnErrorPlan{
@@ -545,7 +553,7 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
-						Version:                &version,
+						Version:                &atc.Version{"ref": "v1"},
 						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -568,7 +576,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			}, resources, resourceTypes, buildInputs)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
@@ -583,7 +591,7 @@ var _ = Describe("Factory Hooks", func() {
 					Source: atc.Source{
 						"uri": "git://some-resource",
 					},
-					Version:                &version,
+					Version:                &atc.Version{"ref": "v1"},
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
@@ -602,7 +610,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			}, resources, resourceTypes, buildInputs)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
@@ -619,7 +627,7 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
-						Version:                &version,
+						Version:                &atc.Version{"ref": "v1"},
 						VersionedResourceTypes: resourceTypes,
 					}),
 				}),
@@ -641,7 +649,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			}, resources, resourceTypes, buildInputs)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
@@ -657,7 +665,7 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
-						Version:                &version,
+						Version:                &atc.Version{"ref": "v1"},
 						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -683,7 +691,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			}, resources, resourceTypes, buildInputs)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
@@ -699,7 +707,7 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
-						Version:                &version,
+						Version:                &atc.Version{"ref": "v1"},
 						VersionedResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -773,7 +781,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			}, resources, resourceTypes, buildInputs)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
@@ -790,7 +798,7 @@ var _ = Describe("Factory Hooks", func() {
 							Source: atc.Source{
 								"uri": "git://some-resource",
 							},
-							Version:                &version,
+							Version:                &atc.Version{"ref": "v1"},
 							VersionedResourceTypes: resourceTypes,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -806,7 +814,7 @@ var _ = Describe("Factory Hooks", func() {
 					Source: atc.Source{
 						"uri": "git://some-resource",
 					},
-					Version:                &version,
+					Version:                &atc.Version{"ref": "v1"},
 					VersionedResourceTypes: resourceTypes,
 				}),
 			})
