@@ -94,7 +94,6 @@ func detectInputsFromParam(value interface{}) []string {
 		for _, value := range actual {
 			inputs = append(inputs, detectInputsFromParam(value)...)
 		}
-
 		return inputs
 	default:
 		return []string{}
@@ -107,7 +106,6 @@ func NewDetectInputs(params map[string]interface{}) PutInputs {
 	for _, value := range params {
 		inputs = append(inputs, detectInputsFromParam(value)...)
 	}
-
 	return &detectInputs{
 		inputs: inputs,
 	}
