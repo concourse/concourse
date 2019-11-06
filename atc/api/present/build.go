@@ -28,6 +28,11 @@ func Build(build db.Build) atc.Build {
 		APIURL:       apiURL,
 	}
 
+	if build.RerunOf() != 0 {
+		atcBuild.RerunNumber = strconv.Itoa(build.RerunNumber())
+		atcBuild.RerunOf = build.RerunOfName()
+	}
+
 	if !build.StartTime().IsZero() {
 		atcBuild.StartTime = build.StartTime().Unix()
 	}

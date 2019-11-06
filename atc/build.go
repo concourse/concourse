@@ -22,6 +22,8 @@ type Build struct {
 	StartTime    int64  `json:"start_time,omitempty"`
 	EndTime      int64  `json:"end_time,omitempty"`
 	ReapTime     int64  `json:"reap_time,omitempty"`
+	RerunNumber  string `json:"rerun_number,omitempty"`
+	RerunOf      string `json:"rerun_of,omitempty"`
 }
 
 func (b Build) IsRunning() bool {
