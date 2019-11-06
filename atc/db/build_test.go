@@ -1760,9 +1760,17 @@ var _ = Describe("Build", func() {
 					}}, true)
 				Expect(err).ToNot(HaveOccurred())
 
+				Expect(build.InputsReady()).To(BeFalse())
+
 				_, found, err = build.AdoptInputsAndPipes()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
+
+				reloaded, err := build.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(reloaded).To(BeTrue())
+
+				Expect(build.InputsReady()).To(BeTrue())
 
 				// Set up new next build inputs
 				inputVersions := db.InputMapping{
@@ -1983,9 +1991,16 @@ var _ = Describe("Build", func() {
 					}}, true)
 				Expect(err).ToNot(HaveOccurred())
 
+				Expect(retriggerBuild.InputsReady()).To(BeFalse())
+
 				_, found, err = retriggerBuild.AdoptInputsAndPipes()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
+
+				reloaded, err := retriggerBuild.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(reloaded).To(BeTrue())
+				Expect(retriggerBuild.InputsReady()).To(BeTrue())
 
 				// Set up new next build inputs
 				inputVersions := db.InputMapping{
@@ -2060,6 +2075,11 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes).To(HaveLen(1))
 				Expect(buildPipes[otherJob.ID()]).To(Equal(otherBuild.ID()))
+
+				reloaded, err := retriggerBuild.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(reloaded).To(BeTrue())
+				Expect(retriggerBuild.InputsReady()).To(BeTrue())
 			})
 		})
 
@@ -2073,6 +2093,11 @@ var _ = Describe("Build", func() {
 				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes).To(HaveLen(0))
+
+				reloaded, err := retriggerBuild.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(reloaded).To(BeTrue())
+				Expect(retriggerBuild.InputsReady()).To(BeFalse())
 			})
 		})
 	})
