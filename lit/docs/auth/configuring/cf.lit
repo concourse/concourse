@@ -65,7 +65,27 @@ component.
     }
   }{
     \definition{\code{--cf-space=ORG_NAME:SPACE_NAME}}{
-      Authorize the members of a space within an organization.
+      Deprecated in favor of \code{--cf-space-with-developer-role}. Authorize the members with \code{developer} role of a space within an organization.
+    }
+  }{
+    \definition{\code{--cf-space-with-any-role=ORG_NAME:SPACE_NAME}}{
+      Authorize the members with any role of a space within an organization.
+    }
+  }{
+    \definition{\code{--cf-space-with-developer-role=ORG_NAME:SPACE_NAME}}{
+      Authorize the members with \code{developer} role of a space within an organization.
+    }
+  }{
+    \definition{\code{--cf-space-with-auditor-role=ORG_NAME:SPACE_NAME}}{
+      Authorize the members with \code{auditor} role of a space within an organization.
+    }
+  }{
+    \definition{\code{--cf-space-with-manager-role=ORG_NAME:SPACE_NAME}}{
+      Authorize the members with \code{manager} role of a space within an organization.
+    }
+  }{
+    \definition{\code{--cf-space-guid=SPACE_GUID}}{
+      Authorize the members with any role of a space within an organization by space GUID.
     }
   }
 
@@ -98,9 +118,13 @@ component.
 
     \codeblock{bash}{{{
     CONCOURSE_MAIN_TEAM_CF_USER=username
-    CONCOURSE_MAIN_TEAM_CF_SPACE=org-name:space-name
-    CONCOURSE_MAIN_TEAM_CF_SPACE_GUID=SPACE_GUID
     CONCOURSE_MAIN_TEAM_CF_ORG=org-name
+    CONCOURSE_MAIN_TEAM_CF_SPACE=org-name:space-name
+    CONCOURSE_MAIN_TEAM_CF_SPACE_WITH_ANY_ROLE=org-name:space-name
+    CONCOURSE_MAIN_TEAM_CF_SPACE_WITH_DEVELOPER_ROLE=org-name:space-name
+    CONCOURSE_MAIN_TEAM_CF_SPACE_WITH_AUDITOR_ROLE=org-name:space-name
+    CONCOURSE_MAIN_TEAM_CF_SPACE_WITH_MANAGER_ROLE=org-name:space-name
+    CONCOURSE_MAIN_TEAM_CF_SPACE_GUID=SPACE_GUID
     }}}
 
     Multiple users, spaces, etc. may be specified by comma-separating them.
