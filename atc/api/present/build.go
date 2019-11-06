@@ -30,7 +30,10 @@ func Build(build db.Build) atc.Build {
 
 	if build.RerunOf() != 0 {
 		atcBuild.RerunNumber = strconv.Itoa(build.RerunNumber())
-		atcBuild.RerunOf = build.RerunOfName()
+		atcBuild.RerunOf = &atc.RerunOfBuild{
+			Name: build.RerunOfName(),
+			ID:   build.RerunOf(),
+		}
 	}
 
 	if !build.StartTime().IsZero() {

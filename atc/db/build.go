@@ -1254,17 +1254,6 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 		return nil, false, err
 	}
 
-	_, err = psql.Update("builds").
-		Set("inputs_ready", true).
-		Where(sq.Eq{
-			"id": b.id,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, false, err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, false, err
