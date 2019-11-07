@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -30,8 +29,8 @@ func TestK8s(t *testing.T) {
 }
 
 type environment struct {
-	ChartsDir            string `env:"CHARTS_DIR,required"`
-	ConcourseChartDir    string `env:"CONCOURSE_CHART_DIR"`
+	HelmChartsDir        string `env:"HELM_CHARTS_DIR,required"`
+	ConcourseChartDir    string `env:"CONCOURSE_CHART_DIR,required"`
 	ConcourseImageDigest string `env:"CONCOURSE_IMAGE_DIGEST"`
 	ConcourseImageName   string `env:"CONCOURSE_IMAGE_NAME,required"`
 	ConcourseImageTag    string `env:"CONCOURSE_IMAGE_TAG"`
@@ -54,10 +53,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	if parsedEnv.FlyPath == "" {
 		parsedEnv.FlyPath = BuildBinary()
-	}
-
-	if parsedEnv.ConcourseChartDir == "" {
-		parsedEnv.ConcourseChartDir = path.Join(parsedEnv.ChartsDir, "stable/concourse")
 	}
 
 	By("Checking if kubectl has a context set")
