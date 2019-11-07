@@ -1,6 +1,7 @@
 package pipelines
 
 import (
+	"github.com/concourse/concourse/atc/creds"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -20,7 +21,7 @@ import (
 //go:generate counterfeiter . RadarSchedulerFactory
 
 type RadarSchedulerFactory interface {
-	BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables vars.Variables, notifications radar.Notifications) radar.ScanRunnerFactory
+	BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables vars.Variables, pool creds.VarSourcePool, notifications radar.Notifications) radar.ScanRunnerFactory
 	BuildScheduler(pipeline db.Pipeline) scheduler.BuildScheduler
 }
 
@@ -51,7 +52,7 @@ func NewRadarSchedulerFactory(
 	}
 }
 
-func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables vars.Variables, notifications radar.Notifications) radar.ScanRunnerFactory {
+func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables vars.Variables, varSourcePool creds.VarSourcePool, notifications radar.Notifications) radar.ScanRunnerFactory {
 	return radar.NewScanRunnerFactory(
 		rsf.pool,
 		rsf.resourceFactory,
@@ -62,6 +63,7 @@ func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline,
 		clock.NewClock(),
 		externalURL,
 		variables,
+		varSourcePool,
 		rsf.strategy,
 		notifications,
 	)

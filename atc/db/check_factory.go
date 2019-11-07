@@ -56,6 +56,7 @@ type checkFactory struct {
 	lockFactory lock.LockFactory
 
 	secrets             creds.Secrets
+	varSourcePool       creds.VarSourcePool
 	defaultCheckTimeout time.Duration
 }
 
@@ -63,6 +64,7 @@ func NewCheckFactory(
 	conn Conn,
 	lockFactory lock.LockFactory,
 	secrets creds.Secrets,
+	varSourcePool creds.VarSourcePool,
 	defaultCheckTimeout time.Duration,
 ) CheckFactory {
 	return &checkFactory{
@@ -70,6 +72,7 @@ func NewCheckFactory(
 		lockFactory: lockFactory,
 
 		secrets:             secrets,
+		varSourcePool:       varSourcePool,
 		defaultCheckTimeout: defaultCheckTimeout,
 	}
 }
@@ -163,7 +166,7 @@ func (c *checkFactory) TryCreateCheck(logger lager.Logger, checkable Checkable, 
 		return nil, false, fmt.Errorf("pipeline not found")
 	}
 
-	varss, err := pp.Variables(logger, globalVars)
+	varss, err := pp.Variables(logger, globalVars, c.varSourcePool)
 	if err != nil {
 		return nil, false, err
 	}

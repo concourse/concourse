@@ -40,7 +40,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 		}
 
 		globalVariables := creds.NewVariables(s.secretManager, dbPipeline.TeamName(), dbPipeline.Name(), false)
-		variables, err := dbPipeline.Variables(logger, globalVariables)
+		variables, err := dbPipeline.Variables(logger, globalVariables, s.varSourcePool)
 		if err != nil {
 			logger.Error("failed-to-create-var-sources", err)
 			w.WriteHeader(http.StatusInternalServerError)

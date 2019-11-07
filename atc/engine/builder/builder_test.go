@@ -2,6 +2,7 @@ package builder_test
 
 import (
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -29,6 +30,7 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory     *builderfakes.FakeStepFactory
 			fakeDelegateFactory *builderfakes.FakeDelegateFactory
 			fakeSecretManager   *credsfakes.FakeSecrets
+			fakeVarSourcePool   *credsfakes.FakeVarSourcePool
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -40,18 +42,20 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 			fakeDelegateFactory = new(builderfakes.FakeDelegateFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
+			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
 				fakeDelegateFactory,
 				"http://example.com",
 				fakeSecretManager,
+				fakeVarSourcePool,
 				false,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
 
-			logger = lager.NewLogger("builder-test")
+			logger = lagertest.NewTestLogger("builder-test")
 		})
 
 		Context("with no build", func() {
@@ -772,6 +776,7 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory     *builderfakes.FakeStepFactory
 			fakeDelegateFactory *builderfakes.FakeDelegateFactory
 			fakeSecretManager   *credsfakes.FakeSecrets
+			fakeVarSourcePool   *credsfakes.FakeVarSourcePool
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -783,18 +788,20 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 			fakeDelegateFactory = new(builderfakes.FakeDelegateFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
+			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
 				fakeDelegateFactory,
 				"http://example.com",
 				fakeSecretManager,
+				fakeVarSourcePool,
 				false,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
 
-			logger = lager.NewLogger("builder-test")
+			logger = lagertest.NewTestLogger("builder-test")
 		})
 
 		Context("with no check", func() {

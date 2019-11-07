@@ -29,6 +29,7 @@ type resourceScanner struct {
 	dbPipeline            db.Pipeline
 	externalURL           string
 	variables             vars.Variables
+	varSourcePool         creds.VarSourcePool
 	strategy              worker.ContainerPlacementStrategy
 }
 
@@ -41,6 +42,7 @@ func NewResourceScanner(
 	dbPipeline db.Pipeline,
 	externalURL string,
 	variables vars.Variables,
+	varSourcePool creds.VarSourcePool,
 	strategy worker.ContainerPlacementStrategy,
 ) Scanner {
 	return &resourceScanner{
@@ -52,6 +54,7 @@ func NewResourceScanner(
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
 		variables:             variables,
+		varSourcePool:         varSourcePool,
 		strategy:              strategy,
 	}
 }
@@ -164,7 +167,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 	}
 
 	// Combine pipeline specific var_sources with the global credential manager.
-	varss, err := scanner.dbPipeline.Variables(logger, scanner.variables)
+	varss, err := scanner.dbPipeline.Variables(logger, scanner.variables, scanner.varSourcePool)
 	if err != nil {
 		return 0, err
 	}

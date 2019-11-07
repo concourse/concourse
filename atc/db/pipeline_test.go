@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/vars"
 	"strconv"
 	"time"
@@ -2272,7 +2273,8 @@ var _ = Describe("Pipeline", func() {
 		)
 		BeforeEach(func() {
 			globalVars := vars.StaticVariables{"gk": "gv"}
-			pvars, err = pipeline.Variables(logger, globalVars)
+			varSourcePool := creds.NewVarSourcePool(1*time.Minute)
+			pvars, err = pipeline.Variables(logger, globalVars, varSourcePool)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

@@ -12,6 +12,7 @@ import (
 
 type VarSourcePool interface {
 	FindOrCreate(lager.Logger, map[string]interface{}, ManagerFactory) (Secrets, error)
+	Size() int
 }
 
 type inPoolManager struct {
@@ -33,6 +34,10 @@ type varSourcePool struct {
 	pool map[string]*inPoolManager
 	lock sync.Mutex
 	ttl  time.Duration
+}
+
+func (pool *varSourcePool) Size() int {
+	return len(pool.pool)
 }
 
 func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]interface{}, factory ManagerFactory) (Secrets, error) {
@@ -75,13 +80,9 @@ func (pool *varSourcePool) Collect(logger lager.Logger) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	logger.Debug("before collect", lager.Data{"pool-size": len(pool.pool)})
-	defer func() {
-		logger.Debug("after collect", lager.Data{"pool-size": len(pool.pool)})
-	}()
+	logger.Debug("before-collect", lager.Data{"pool-size": len(pool.pool)})
 
 	toDeleteKeys := []string{}
-
 	for key, manager := range pool.pool {
 		if manager.lastUseTime.Add(pool.ttl).Before(time.Now()) {
 			toDeleteKeys = append(toDeleteKeys, key)
@@ -93,15 +94,15 @@ func (pool *varSourcePool) Collect(logger lager.Logger) error {
 		delete(pool.pool, key)
 	}
 
+	logger.Debug("after-collect", lager.Data{"pool-size": len(pool.pool)})
+
 	return nil
 }
 
-var pool = &varSourcePool{
-	pool: map[string]*inPoolManager{},
-	lock: sync.Mutex{},
-	ttl:  5 * time.Minute,
-}
-
-func VarSourcePoolInstance() *varSourcePool {
-	return pool
+func NewVarSourcePool(ttl time.Duration) VarSourcePool {
+	return &varSourcePool{
+		pool: map[string]*inPoolManager{},
+		lock: sync.Mutex{},
+		ttl:  ttl,
+	}
 }

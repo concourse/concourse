@@ -86,6 +86,7 @@ type ATCCommand struct {
 
 type RunCommand struct {
 	Logger flag.Lager
+	VarSourcePool creds.VarSourcePool
 
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
@@ -450,6 +451,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	cmd.VarSourcePool = creds.NewVarSourcePool(5 * time.Minute)
+
 	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
@@ -610,7 +613,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.VarSourcePool, cmd.GlobalResourceCheckTimeout)
 
 	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
 	customActionRoleMap := accessor.CustomActionRoleMap{}
@@ -815,7 +818,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.VarSourcePool, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	componentFactory := db.NewComponentFactory(dbConn)
 
@@ -1015,7 +1018,7 @@ func (cmd *RunCommand) constructGCMember(
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, jobRunner, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
-		atc.ComponentCollectorVarSources:        gc.NewCollectorTask(creds.VarSourcePoolInstance()),
+		atc.ComponentCollectorVarSources:        gc.NewCollectorTask(cmd.VarSourcePool.(gc.Collector)),
 	}
 
 	for collectorName, collector := range collectors {
@@ -1475,6 +1478,7 @@ func (cmd *RunCommand) constructEngine(
 		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
 		secretManager,
+		cmd.VarSourcePool,
 		cmd.EnableRedactSecrets,
 	)
 
@@ -1594,6 +1598,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		concourse.Version,
 		concourse.WorkerVersion,
 		secretManager,
+		cmd.VarSourcePool,
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
 	)
@@ -1643,7 +1648,7 @@ func (cmd *RunCommand) constructPipelineSyncer(
 							"pipeline": pipeline.Name(),
 						}),
 						(cmd.Developer.Noop || cmd.EnableLidar),
-						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables, bus),
+						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), variables, cmd.VarSourcePool, bus),
 						pipeline,
 						1*time.Minute,
 					),

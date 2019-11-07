@@ -9,6 +9,7 @@ import (
 type Server struct {
 	logger                lager.Logger
 	secretManager         creds.Secrets
+	varSourcePool         creds.VarSourcePool
 	checkFactory          db.CheckFactory
 	resourceFactory       db.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
@@ -17,6 +18,7 @@ type Server struct {
 func NewServer(
 	logger lager.Logger,
 	secretManager creds.Secrets,
+	varSourcePool creds.VarSourcePool,
 	checkFactory db.CheckFactory,
 	resourceFactory db.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
@@ -24,6 +26,7 @@ func NewServer(
 	return &Server{
 		logger:                logger,
 		secretManager:         secretManager,
+		varSourcePool:         varSourcePool,
 		checkFactory:          checkFactory,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,

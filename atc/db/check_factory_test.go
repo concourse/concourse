@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
 	"time"
 
@@ -110,7 +111,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeResourceTypes = []db.ResourceType{fakeResourceType}
 			manuallyTriggered = true
 
-			logger = lager.NewLogger("db-test")
+			logger = lagertest.NewTestLogger("db-test")
 		})
 
 		JustBeforeEach(func() {

@@ -1,6 +1,7 @@
 package radar
 
 import (
+	"github.com/concourse/concourse/atc/creds"
 	"time"
 
 	"github.com/concourse/concourse/atc/db"
@@ -36,6 +37,7 @@ func NewScanRunnerFactory(
 	clock clock.Clock,
 	externalURL string,
 	variables vars.Variables,
+	varSourcePool creds.VarSourcePool,
 	strategy worker.ContainerPlacementStrategy,
 	notifications Notifications,
 ) ScanRunnerFactory {
@@ -48,6 +50,7 @@ func NewScanRunnerFactory(
 		dbPipeline,
 		externalURL,
 		variables,
+		varSourcePool,
 		strategy,
 	)
 
@@ -60,6 +63,7 @@ func NewScanRunnerFactory(
 		dbPipeline,
 		externalURL,
 		variables,
+		varSourcePool,
 		strategy,
 	)
 	return &scanRunnerFactory{

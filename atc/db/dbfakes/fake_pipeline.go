@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -474,11 +475,12 @@ type FakePipeline struct {
 	varSourcesReturnsOnCall map[int]struct {
 		result1 atc.VarSourceConfigs
 	}
-	VariablesStub        func(lager.Logger, vars.Variables) (vars.Variables, error)
+	VariablesStub        func(lager.Logger, vars.Variables, creds.VarSourcePool) (vars.Variables, error)
 	variablesMutex       sync.RWMutex
 	variablesArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 vars.Variables
+		arg3 creds.VarSourcePool
 	}
 	variablesReturns struct {
 		result1 vars.Variables
@@ -2689,17 +2691,18 @@ func (fake *FakePipeline) VarSourcesReturnsOnCall(i int, result1 atc.VarSourceCo
 	}{result1}
 }
 
-func (fake *FakePipeline) Variables(arg1 lager.Logger, arg2 vars.Variables) (vars.Variables, error) {
+func (fake *FakePipeline) Variables(arg1 lager.Logger, arg2 vars.Variables, arg3 creds.VarSourcePool) (vars.Variables, error) {
 	fake.variablesMutex.Lock()
 	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
 	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 vars.Variables
-	}{arg1, arg2})
-	fake.recordInvocation("Variables", []interface{}{arg1, arg2})
+		arg3 creds.VarSourcePool
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Variables", []interface{}{arg1, arg2, arg3})
 	fake.variablesMutex.Unlock()
 	if fake.VariablesStub != nil {
-		return fake.VariablesStub(arg1, arg2)
+		return fake.VariablesStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -2714,17 +2717,17 @@ func (fake *FakePipeline) VariablesCallCount() int {
 	return len(fake.variablesArgsForCall)
 }
 
-func (fake *FakePipeline) VariablesCalls(stub func(lager.Logger, vars.Variables) (vars.Variables, error)) {
+func (fake *FakePipeline) VariablesCalls(stub func(lager.Logger, vars.Variables, creds.VarSourcePool) (vars.Variables, error)) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = stub
 }
 
-func (fake *FakePipeline) VariablesArgsForCall(i int) (lager.Logger, vars.Variables) {
+func (fake *FakePipeline) VariablesArgsForCall(i int) (lager.Logger, vars.Variables, creds.VarSourcePool) {
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
 	argsForCall := fake.variablesArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakePipeline) VariablesReturns(result1 vars.Variables, result2 error) {

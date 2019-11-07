@@ -28,6 +28,7 @@ type scannerFactory struct {
 	resourceCheckingInterval     time.Duration
 	externalURL                  string
 	secretManager                creds.Secrets
+	varSourcePool creds.VarSourcePool
 	strategy                     worker.ContainerPlacementStrategy
 }
 
@@ -44,6 +45,7 @@ func NewScannerFactory(
 	resourceCheckingInterval time.Duration,
 	externalURL string,
 	secretManager creds.Secrets,
+	varSourcePool creds.VarSourcePool,
 	strategy worker.ContainerPlacementStrategy,
 ) ScannerFactory {
 	return &scannerFactory{
@@ -54,16 +56,13 @@ func NewScannerFactory(
 		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
 		externalURL:                  externalURL,
 		secretManager:                secretManager,
+		varSourcePool:varSourcePool,
 		strategy:                     strategy,
 	}
 }
 
 func (f *scannerFactory) NewResourceScanner(logger lager.Logger, dbPipeline db.Pipeline) Scanner {
 	globalVariables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name(), false)
-	variables, err := dbPipeline.Variables(logger, globalVariables)
-	if err != nil {
-		return nil
-	}
 
 	return NewResourceScanner(
 		clock.NewClock(),
@@ -73,17 +72,14 @@ func (f *scannerFactory) NewResourceScanner(logger lager.Logger, dbPipeline db.P
 		f.resourceCheckingInterval,
 		dbPipeline,
 		f.externalURL,
-		variables,
+		globalVariables,
+		f.varSourcePool,
 		f.strategy,
 	)
 }
 
 func (f *scannerFactory) NewResourceTypeScanner(logger lager.Logger, dbPipeline db.Pipeline) Scanner {
 	globalVariables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name(), false)
-	variables, err := dbPipeline.Variables(logger, globalVariables)
-	if err != nil {
-		return nil
-	}
 
 	return NewResourceTypeScanner(
 		clock.NewClock(),
@@ -93,7 +89,8 @@ func (f *scannerFactory) NewResourceTypeScanner(logger lager.Logger, dbPipeline 
 		f.resourceTypeCheckingInterval,
 		dbPipeline,
 		f.externalURL,
-		variables,
+		globalVariables,
+		f.varSourcePool,
 		f.strategy,
 	)
 }

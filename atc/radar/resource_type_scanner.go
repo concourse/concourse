@@ -25,6 +25,7 @@ type resourceTypeScanner struct {
 	dbPipeline            db.Pipeline
 	externalURL           string
 	variables             vars.Variables
+	varSourcePool         creds.VarSourcePool
 	strategy              worker.ContainerPlacementStrategy
 }
 
@@ -37,6 +38,7 @@ func NewResourceTypeScanner(
 	dbPipeline db.Pipeline,
 	externalURL string,
 	variables vars.Variables,
+	varSourcePool creds.VarSourcePool,
 	strategy worker.ContainerPlacementStrategy,
 ) Scanner {
 	return &resourceTypeScanner{
@@ -48,6 +50,7 @@ func NewResourceTypeScanner(
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
 		variables:             variables,
+		varSourcePool:         varSourcePool,
 		strategy:              strategy,
 	}
 }
@@ -125,7 +128,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		return 0, err
 	}
 
-	varss, err := scanner.dbPipeline.Variables(logger, scanner.variables)
+	varss, err := scanner.dbPipeline.Variables(logger, scanner.variables, scanner.varSourcePool)
 	if err != nil {
 		return 0, err
 	}

@@ -42,6 +42,7 @@ func NewStepBuilder(
 	delegateFactory DelegateFactory,
 	externalURL string,
 	secrets creds.Secrets,
+	varSourcePool creds.VarSourcePool,
 	redactSecrets bool,
 ) *stepBuilder {
 	return &stepBuilder{
@@ -49,6 +50,7 @@ func NewStepBuilder(
 		delegateFactory: delegateFactory,
 		externalURL:     externalURL,
 		globalSecrets:   secrets,
+		varSourcePool:   varSourcePool,
 		redactSecrets:   redactSecrets,
 	}
 }
@@ -58,6 +60,7 @@ type stepBuilder struct {
 	delegateFactory DelegateFactory
 	externalURL     string
 	globalSecrets   creds.Secrets
+	varSourcePool   creds.VarSourcePool
 	redactSecrets   bool
 }
 
@@ -79,7 +82,7 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 	}
 
 	globalVars := creds.NewVariables(builder.globalSecrets, build.TeamName(), build.PipelineName(), false)
-	varss, err := pipeline.Variables(logger, globalVars)
+	varss, err := pipeline.Variables(logger, globalVars, builder.varSourcePool)
 	if err != nil {
 		return exec.IdentityStep{}, err
 	}
@@ -107,7 +110,7 @@ func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec
 	}
 
 	globalVars := creds.NewVariables(builder.globalSecrets, check.TeamName(), check.PipelineName(), false)
-	varss, err := pipeline.Variables(logger, globalVars)
+	varss, err := pipeline.Variables(logger, globalVars, builder.varSourcePool)
 	if err != nil {
 		return exec.IdentityStep{}, fmt.Errorf("failed to create pipeline variables: %s", err.Error())
 	}

@@ -3,6 +3,7 @@ package radar_test
 import (
 	"context"
 	"errors"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -38,6 +39,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceConfig        *dbfakes.FakeResourceConfig
 		fakeResourceConfigScope   *dbfakes.FakeResourceConfigScope
 		fakeClock                 *fakeclock.FakeClock
+		fakeVarSourcePool         *credsfakes.FakeVarSourcePool
 		interval                  time.Duration
 		variables                 vars.Variables
 		metadata                  db.ContainerMetadata
@@ -71,7 +73,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		}
 
 		fakeClock = fakeclock.NewFakeClock(epoch)
-
+		fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 		fakeContainer = new(workerfakes.FakeContainer)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakePool = new(workerfakes.FakePool)
@@ -112,6 +114,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			fakeDBPipeline,
 			"https://www.example.com",
 			variables,
+			fakeVarSourcePool,
 			fakeStrategy,
 		)
 	})

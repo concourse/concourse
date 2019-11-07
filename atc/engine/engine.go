@@ -185,7 +185,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 		logger.Error("failed-to-build-step", err)
 
 		// Fails the build if BuildStep returned error. Because some unrecoverable error,
-		// like pipeline credential manager is wrong, will cause a build to never start
+		// like pipeline var_source is wrong, will cause a build to never start
 		// to run.
 		builder.NewBuildStepDelegate(
 			b.build, b.build.PrivatePlan().ID, nil, clock.NewClock(),

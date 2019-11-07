@@ -29,11 +29,6 @@ services:
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
-      # FIXME - EVAN: delete VAULT vars.
-      CONCOURSE_VAULT_URL: http://192.168.1.12:7200
-      CONCOURSE_VAULT_PATH_PREFIX: concourse
-      CONCOURSE_VAULT_CLIENT_TOKEN: abc
-      CONCOURSE_ENABLE_LIDAR: "true"
 
   worker:
     build: .

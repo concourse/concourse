@@ -59,7 +59,7 @@ type Team interface {
 	IsContainerWithinTeam(string, bool) (bool, error)
 
 	FindContainerByHandle(string) (Container, bool, error)
-	FindCheckContainers(lager.Logger, string, string, creds.Secrets) ([]Container, map[int]time.Time, error)
+	FindCheckContainers(lager.Logger, string, string, creds.Secrets, creds.VarSourcePool) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
@@ -392,7 +392,7 @@ func (t *team) SavePipeline(
 				"name":              pipelineName,
 				"groups":            groupsPayload,
 				"var_sources":       encryptedVarSourcesPayload,
-				"var_sources_nonce": nonce,
+				"nonce": nonce,
 				"version":           sq.Expr("nextval('config_version_seq')"),
 				"ordering":          sq.Expr("currval('pipelines_id_seq')"),
 				"paused":            initiallyPaused,
@@ -410,7 +410,7 @@ func (t *team) SavePipeline(
 		update := psql.Update("pipelines").
 			Set("groups", groupsPayload).
 			Set("var_sources", encryptedVarSourcesPayload).
-			Set("var_sources_nonce", nonce).
+			Set("nonce", nonce).
 			Set("version", sq.Expr("nextval('config_version_seq')")).
 			Where(sq.Eq{
 				"name":    pipelineName,
@@ -778,7 +778,7 @@ func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
 	return tx.Commit()
 }
 
-func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, secretManager creds.Secrets) ([]Container, map[int]time.Time, error) {
+func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) ([]Container, map[int]time.Time, error) {
 	pipeline, found, err := t.Pipeline(pipelineName)
 	if err != nil {
 		return nil, nil, err
@@ -801,7 +801,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 	}
 
 	globalVariables := creds.NewVariables(secretManager, t.name, pipeline.Name(), false)
-	variables, err := pipeline.Variables(logger, globalVariables)
+	variables, err := pipeline.Variables(logger, globalVariables, varSourcePool)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -1,13 +1,13 @@
 package ssm_test
 
 import (
+	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
 	"strconv"
 	"text/template"
 
 	"github.com/concourse/concourse/atc/creds"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
@@ -98,7 +98,7 @@ var _ = Describe("Ssm", func() {
 		t2, err := template.New("test").Parse(DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		ssmAccess = NewSsm(lager.NewLogger("ssm_test"), &mockService, []*template.Template{t1, t2})
+		ssmAccess = NewSsm(lagertest.NewTestLogger("ssm_test"), &mockService, []*template.Template{t1, t2})
 		variables = creds.NewVariables(ssmAccess, "alpha", "bogus", false)
 		Expect(ssmAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (string, error) {

@@ -1,7 +1,7 @@
 package vault
 
 import (
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"fmt"
 	"testing"
 	"time"
@@ -47,7 +47,7 @@ func testWithoutVaultErrors(t *testing.T) {
 		Renewed:      make(chan bool, 1),
 		Delay:        1 * time.Second,
 	}
-	logger := lager.NewLogger("vault-test")
+	logger := lagertest.NewTestLogger("vault-test")
 	ra := NewReAuther(logger, ma, 10*time.Second, 1*time.Second, 64*time.Second)
 	select {
 	case <-ra.LoggedIn():
@@ -107,7 +107,7 @@ func testExponentialBackoff(t *testing.T) {
 		Delay:        1 * time.Second,
 		LoginError:   fmt.Errorf("Could not login to Vault"),
 	}
-	logger := lager.NewLogger("vault-test")
+	logger := lagertest.NewTestLogger("vault-test")
 	ra := NewReAuther(logger, ma, 0, 1*time.Second, maxRetryInterval)
 
 	select {
