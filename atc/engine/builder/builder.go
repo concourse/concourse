@@ -91,6 +91,10 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 	return builder.buildStep(build, build.PrivatePlan(), credVarsTracker), nil
 }
 
+func (builder *stepBuilder) BuildStepErrored(logger lager.Logger, build db.Build, err error) {
+	builder.delegateFactory.BuildStepDelegate(build, build.PrivatePlan().ID, nil).Errored(logger, err.Error())
+}
+
 func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec.Step, error) {
 
 	if check == nil {

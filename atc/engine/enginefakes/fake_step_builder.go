@@ -25,6 +25,13 @@ type FakeStepBuilder struct {
 		result1 exec.Step
 		result2 error
 	}
+	BuildStepErroredStub        func(lager.Logger, db.Build, error)
+	buildStepErroredMutex       sync.RWMutex
+	buildStepErroredArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 db.Build
+		arg3 error
+	}
 	CheckStepStub        func(lager.Logger, db.Check) (exec.Step, error)
 	checkStepMutex       sync.RWMutex
 	checkStepArgsForCall []struct {
@@ -107,6 +114,39 @@ func (fake *FakeStepBuilder) BuildStepReturnsOnCall(i int, result1 exec.Step, re
 	}{result1, result2}
 }
 
+func (fake *FakeStepBuilder) BuildStepErrored(arg1 lager.Logger, arg2 db.Build, arg3 error) {
+	fake.buildStepErroredMutex.Lock()
+	fake.buildStepErroredArgsForCall = append(fake.buildStepErroredArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 db.Build
+		arg3 error
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("BuildStepErrored", []interface{}{arg1, arg2, arg3})
+	fake.buildStepErroredMutex.Unlock()
+	if fake.BuildStepErroredStub != nil {
+		fake.BuildStepErroredStub(arg1, arg2, arg3)
+	}
+}
+
+func (fake *FakeStepBuilder) BuildStepErroredCallCount() int {
+	fake.buildStepErroredMutex.RLock()
+	defer fake.buildStepErroredMutex.RUnlock()
+	return len(fake.buildStepErroredArgsForCall)
+}
+
+func (fake *FakeStepBuilder) BuildStepErroredCalls(stub func(lager.Logger, db.Build, error)) {
+	fake.buildStepErroredMutex.Lock()
+	defer fake.buildStepErroredMutex.Unlock()
+	fake.BuildStepErroredStub = stub
+}
+
+func (fake *FakeStepBuilder) BuildStepErroredArgsForCall(i int) (lager.Logger, db.Build, error) {
+	fake.buildStepErroredMutex.RLock()
+	defer fake.buildStepErroredMutex.RUnlock()
+	argsForCall := fake.buildStepErroredArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
 func (fake *FakeStepBuilder) CheckStep(arg1 lager.Logger, arg2 db.Check) (exec.Step, error) {
 	fake.checkStepMutex.Lock()
 	ret, specificReturn := fake.checkStepReturnsOnCall[len(fake.checkStepArgsForCall)]
@@ -176,6 +216,8 @@ func (fake *FakeStepBuilder) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.buildStepMutex.RLock()
 	defer fake.buildStepMutex.RUnlock()
+	fake.buildStepErroredMutex.RLock()
+	defer fake.buildStepErroredMutex.RUnlock()
 	fake.checkStepMutex.RLock()
 	defer fake.checkStepMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

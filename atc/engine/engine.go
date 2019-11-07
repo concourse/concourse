@@ -6,14 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/metric"
 )
@@ -37,6 +35,8 @@ type Runnable interface {
 type StepBuilder interface {
 	BuildStep(lager.Logger, db.Build) (exec.Step, error)
 	CheckStep(lager.Logger, db.Check) (exec.Step, error)
+
+	BuildStepErrored(lager.Logger, db.Build, error)
 }
 
 func NewEngine(builder StepBuilder) Engine {
@@ -187,9 +187,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 		// Fails the build if BuildStep returned error. Because some unrecoverable error,
 		// like pipeline var_source is wrong, will cause a build to never start
 		// to run.
-		builder.NewBuildStepDelegate(
-			b.build, b.build.PrivatePlan().ID, nil, clock.NewClock(),
-		).Errored(logger, err.Error())
+		b.builder.BuildStepErrored(logger, b.build, err)
 		b.finish(logger.Session("finish"), err, false)
 
 		return
