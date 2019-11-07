@@ -73,20 +73,27 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 		return exec.IdentityStep{}, errors.New("schema not supported")
 	}
 
-	pipeline, found, err := build.Pipeline()
-	if err != nil {
-		return exec.IdentityStep{}, errors.New(fmt.Sprintf("failed to find pipeline: %s", err.Error()))
-	}
-	if !found {
-		return exec.IdentityStep{}, errors.New("pipeline not found")
-	}
+	var credVarsTracker vars.CredVarsTracker
 
 	globalVars := creds.NewVariables(builder.globalSecrets, build.TeamName(), build.PipelineName(), false)
-	varss, err := pipeline.Variables(logger, globalVars, builder.varSourcePool)
-	if err != nil {
-		return exec.IdentityStep{}, err
+	// "fly execute" generated build will have no pipeline.
+	if build.PipelineID() == 0 {
+		credVarsTracker = vars.NewCredVarsTracker(globalVars, builder.redactSecrets)
+	} else {
+		pipeline, found, err := build.Pipeline()
+		if err != nil {
+			return exec.IdentityStep{}, errors.New(fmt.Sprintf("failed to find pipeline: %s", err.Error()))
+		}
+		if !found {
+			return exec.IdentityStep{}, errors.New("pipeline not found")
+		}
+
+		varss, err := pipeline.Variables(logger, globalVars, builder.varSourcePool)
+		if err != nil {
+			return exec.IdentityStep{}, err
+		}
+		credVarsTracker = vars.NewCredVarsTracker(varss, builder.redactSecrets)
 	}
-	credVarsTracker := vars.NewCredVarsTracker(varss, builder.redactSecrets)
 
 	return builder.buildStep(build, build.PrivatePlan(), credVarsTracker), nil
 }

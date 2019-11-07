@@ -146,8 +146,8 @@ type build struct {
 	teamID   int
 	teamName string
 
-	jobID        int
-	jobName      string
+	jobID   int
+	jobName string
 
 	isManuallyTriggered bool
 
@@ -160,9 +160,9 @@ type build struct {
 	endTime    time.Time
 	reapTime   time.Time
 
-	drained     bool
-	aborted     bool
-	completed   bool
+	drained   bool
+	aborted   bool
+	completed bool
 }
 
 func newEmptyBuild(conn Conn, lockFactory lock.LockFactory) *build {
