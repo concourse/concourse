@@ -1,35 +1,19 @@
 package exec
 
 import (
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/concourse/baggageclaim"
-	"io/ioutil"
-	"sigs.k8s.io/yaml"
-	"strings"
-
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/vars"
+	"io/ioutil"
+	"sigs.k8s.io/yaml"
 )
-
-//go:generate counterfeiter . SetPipelineDelegate
-
-type SetPipelineDelegate interface {
-	BuildStepDelegate
-
-	Initializing(lager.Logger)
-	Starting(lager.Logger)
-	Finished(lager.Logger, ExitStatus, db.ConfigVersion, db.ConfigVersion)
-
-	FindTeam() (db.Team, bool, error)
-}
 
 // SetPipelineStep sets a pipeline to current team. If pipeline_name specified
 // is "self", then it will self set the current pipeline. This step takes pipeline
@@ -38,8 +22,8 @@ type SetPipelineStep struct {
 	planID      atc.PlanID
 	plan        atc.SetPipelinePlan
 	metadata    StepMetadata
-	delegate    SetPipelineDelegate
-	lockFactory lock.LockFactory
+	delegate    BuildStepDelegate
+	teamFactory db.TeamFactory
 	succeeded   bool
 }
 
@@ -47,15 +31,15 @@ func NewSetPipelineStep(
 	planID atc.PlanID,
 	plan atc.SetPipelinePlan,
 	metadata StepMetadata,
-	delegate SetPipelineDelegate,
-	lockFactory lock.LockFactory,
+	delegate BuildStepDelegate,
+	teamFactory db.TeamFactory,
 ) Step {
 	return &SetPipelineStep{
-		planID:   planID,
-		plan:     plan,
-		metadata: metadata,
+		planID:      planID,
+		plan:        plan,
+		metadata:    metadata,
 		delegate:    delegate,
-		lockFactory: lockFactory,
+		teamFactory: teamFactory,
 	}
 }
 
@@ -68,51 +52,53 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 
 	step.delegate.Initializing(logger)
 
-	variables := step.delegate.Variables()
-	params, err := creds.NewParams(variables, step.plan.Params).Evaluate()
-	if err != nil {
-		return err
-	}
+	stdout := step.delegate.Stdout()
+	stderr := step.delegate.Stderr()
 
-	spParams, err := atc.NewSetPipelineParams(params)
-	if err != nil {
-		return err
-	}
-
-	repository := state.Artifacts()
-	artifactSource := setPipelineArtifactSource{
+	source := setPipelineSource{
 		ctx:    ctx,
 		logger: logger,
-		params: spParams,
-		repo:   repository,
+		step:   step,
+		repo:   state.Artifacts(),
 	}
 
-	atcConfig, err := artifactSource.FetchConfig()
+	err := source.Validate()
+	if err != nil {
+		return err
+	}
+
+	err = source.EvaluatePlan(step.delegate.Variables())
+	if err != nil {
+		return err
+	}
+
+	atcConfig, err := source.FetchConfig()
 	if err != nil {
 		return err
 	}
 
 	step.delegate.Starting(logger)
 
-	stdout := step.delegate.Stdout()
-
-	if spParams.PipelineName == "self" {
-		spParams.PipelineName = step.metadata.PipelineName
+	warnings, errors := atcConfig.Validate()
+	for _, warning := range warnings {
+		fmt.Fprintf(stderr, "WARNING: %s\n", warning.Message)
 	}
 
-	team, found, err := step.delegate.FindTeam()
-	if err != nil {
-		logger.Error("failed-to-find-team", err)
-		return err
+	if len(errors) > 0 {
+		fmt.Fprintln(step.delegate.Stderr(), "invalid pipeline:")
+
+		for _, e := range errors {
+			fmt.Fprintf(stderr, "- %s", e)
+		}
+
+		step.delegate.Finished(logger, false)
+		return nil
 	}
-	if !found {
-		err = fmt.Errorf("team not found")
-		logger.Error("failed-to-find-team", err)
-		return err
-	}
+
+	team := step.teamFactory.GetByID(step.metadata.TeamID)
 
 	fromVersion := db.ConfigVersion(0)
-	pipeline, found, err := team.Pipeline(spParams.PipelineName)
+	pipeline, found, err := team.Pipeline(step.plan.Name)
 	if err != nil {
 		return nil
 	}
@@ -132,18 +118,14 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 	if !diffExists {
 		logger.Debug("no-diff")
 
-		if spParams.FailWhenNoDiff {
-			return errors.New("no diff found")
-		}
-
 		fmt.Fprintf(stdout, "No diff found.\n")
 		step.succeeded = true
-		step.delegate.Finished(logger, ExitStatus(0), fromVersion, fromVersion)
+		step.delegate.Finished(logger, true)
 		return nil
 	}
 
 	fmt.Fprintf(stdout, "Updating the pipeline.\n")
-	pipeline, _, err = team.SavePipeline(spParams.PipelineName, *atcConfig, fromVersion, false)
+	pipeline, _, err = team.SavePipeline(step.plan.Name, *atcConfig, fromVersion, false)
 	if err != nil {
 		return err
 	}
@@ -151,7 +133,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 	fmt.Fprintf(stdout, "Done successfully.\n")
 	logger.Info("saved-pipeline", lager.Data{"team": team.Name(), "pipeline": pipeline.Name()})
 	step.succeeded = true
-	step.delegate.Finished(logger, ExitStatus(0), fromVersion, pipeline.ConfigVersion())
+	step.delegate.Finished(logger, true)
 
 	return nil
 }
@@ -160,36 +142,19 @@ func (step *SetPipelineStep) Succeeded() bool {
 	return step.succeeded
 }
 
-type setPipelineArtifactSource struct {
-	params atc.SetPipelineParams
+type setPipelineSource struct {
 	ctx    context.Context
 	logger lager.Logger
 	repo   *artifact.Repository
+	step   *SetPipelineStep
 }
 
 // streamInBytes streams a file from other resource and returns a byte array.
-func (s setPipelineArtifactSource) streamInBytes(path string) ([]byte, error) {
-	segs := strings.SplitN(path, "/", 2)
-	if len(segs) != 2 {
-		return nil, UnspecifiedArtifactSourceError{path}
-	}
-
-	sourceName := artifact.Name(segs[0])
-	filePath := segs[1]
-
-	source, found := s.repo.SourceFor(sourceName)
-	if !found {
-		return nil, UnknownArtifactSourceError{sourceName, path}
-	}
-
-	stream, err := source.StreamFile(s.ctx, s.logger, filePath)
+func (s setPipelineSource) streamInBytes(path string) ([]byte, error) {
+	stream, err := s.repo.StreamFile(s.ctx, s.logger, path)
 	if err != nil {
-		if err == baggageclaim.ErrFileNotFound {
-			return nil, fmt.Errorf("task config '%s/%s' not found", sourceName, filePath)
-		}
 		return nil, err
 	}
-
 	defer stream.Close()
 
 	byteConfig, err := ioutil.ReadAll(stream)
@@ -202,17 +167,17 @@ func (s setPipelineArtifactSource) streamInBytes(path string) ([]byte, error) {
 
 // FetchConfig streams pipeline configure file and var files from other resources
 // and construct an atc.Config object.
-func (s setPipelineArtifactSource) FetchConfig() (*atc.Config, error) {
-	config, err := s.streamInBytes(s.params.Config)
+func (s setPipelineSource) FetchConfig() (*atc.Config, error) {
+	config, err := s.streamInBytes(s.step.plan.File)
 	if err != nil {
 		return nil, err
 	}
 
 	staticVarss := []vars.Variables{}
-	if len(s.params.Var) > 0 {
-		staticVarss = append(staticVarss, vars.StaticVariables(s.params.Var))
+	if len(s.step.plan.Vars) > 0 {
+		staticVarss = append(staticVarss, vars.StaticVariables(s.step.plan.Vars))
 	}
-	for _, lvf := range s.params.LoadVarsFrom {
+	for _, lvf := range s.step.plan.VarFiles {
 		bytes, err := s.streamInBytes(lvf)
 		if err != nil {
 			return nil, err
@@ -241,4 +206,38 @@ func (s setPipelineArtifactSource) FetchConfig() (*atc.Config, error) {
 	}
 
 	return &atcConfig, nil
+}
+
+func (s setPipelineSource) Validate() error {
+	if s.step.plan.File == "" {
+		return errors.New("file is not specified")
+	}
+
+	return nil
+}
+
+func (s setPipelineSource) EvaluatePlan(variables vars.Variables) error {
+	params := atc.Params{
+		"file":      s.step.plan.File,
+		"vars":      s.step.plan.Vars,
+		"var_files": s.step.plan.VarFiles,
+	}
+
+	params, err := creds.NewParams(variables, params).Evaluate()
+	if err != nil {
+		return err
+	}
+
+	s.step.plan.File = params["file"].(string)
+	s.step.plan.Vars = params["vars"].(map[string]interface{})
+	s.step.plan.VarFiles = []string{}
+	for _, ele := range params["var_files"].([]interface{}) {
+		s.step.plan.VarFiles = append(s.step.plan.VarFiles, ele.(string))
+	}
+
+	if s.step.plan.Name == "self" {
+		s.step.plan.Name = s.step.metadata.PipelineName
+	}
+
+	return nil
 }

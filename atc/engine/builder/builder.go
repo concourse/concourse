@@ -23,7 +23,7 @@ type StepFactory interface {
 	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) exec.Step
 	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step
 	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.CheckDelegate) exec.Step
-	SetPipelineStep(atc.Plan, exec.StepMetadata, exec.SetPipelineDelegate) exec.Step
+	SetPipelineStep(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
 	ArtifactInputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 	ArtifactOutputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 }
@@ -34,7 +34,7 @@ type DelegateFactory interface {
 	GetDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.GetDelegate
 	PutDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.PutDelegate
 	TaskDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.TaskDelegate
-	SetPipelineDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.SetPipelineDelegate
+	SetPipelineDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate
 	CheckDelegate(db.Check, atc.PlanID, vars.CredVarsTracker) exec.CheckDelegate
 	BuildStepDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate
 }

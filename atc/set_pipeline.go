@@ -7,7 +7,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type SetPipelineParams struct {
+type SetPipelineParamsXX struct {
 	PipelineName   string                 `json:"pipeline_name"`
 	Config         string                 `json:"config"`
 	LoadVarsFrom   []string               `json:"load_vars_from,omitempty"`
@@ -15,27 +15,27 @@ type SetPipelineParams struct {
 	FailWhenNoDiff bool                   `json:"fail_when_no_diff,omitempty"`
 }
 
-func NewSetPipelineParams(params Params) (SetPipelineParams, error) {
+func NewSetPipelineParams(params Params) (SetPipelineParamsXX, error) {
 	bytes, err := yaml.Marshal(params)
 	if err != nil {
-		return SetPipelineParams{}, err
+		return SetPipelineParamsXX{}, err
 	}
 
-	var spParams SetPipelineParams
+	var spParams SetPipelineParamsXX
 	err = yaml.UnmarshalStrict(bytes, &spParams, yaml.DisallowUnknownFields)
 	if err != nil {
-		return SetPipelineParams{}, err
+		return SetPipelineParamsXX{}, err
 	}
 
 	err = spParams.Validate()
 	if err != nil {
-		return SetPipelineParams{}, err
+		return SetPipelineParamsXX{}, err
 	}
 
 	return spParams, nil
 }
 
-func (config SetPipelineParams) Validate() error {
+func (config SetPipelineParamsXX) Validate() error {
 	var messages []string
 
 	if config.PipelineName == "" {

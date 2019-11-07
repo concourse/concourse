@@ -53,11 +53,17 @@ func (err TaskImageSourceParametersError) Error() string {
 //go:generate counterfeiter . TaskDelegate
 
 type TaskDelegate interface {
-	BuildStepDelegate
+	ImageVersionDetermined(db.UsedResourceCache) error
+
+	Stdout() io.Writer
+	Stderr() io.Writer
+
+	Variables() vars.CredVarsTracker
 
 	Initializing(lager.Logger, atc.TaskConfig)
 	Starting(lager.Logger, atc.TaskConfig)
 	Finished(lager.Logger, ExitStatus)
+	Errored(lager.Logger, string)
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the

@@ -232,8 +232,8 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Name:              planConfig.Task,
 			Privileged:        planConfig.Privileged,
 			Config:            planConfig.TaskConfig,
-			ConfigPath:        planConfig.TaskConfigPath,
-			Vars:              planConfig.TaskVars,
+			ConfigPath:        planConfig.ConfigPath,
+			Vars:              planConfig.Vars,
 			Tags:              planConfig.Tags,
 			Params:            planConfig.Params,
 			InputMapping:      planConfig.InputMapping,
@@ -245,10 +245,14 @@ func (factory *buildFactory) constructUnhookedPlan(
 
 	case planConfig.SetPipeline != "":
 		plan = factory.planFactory.NewPlan(atc.SetPipelinePlan{
-			Name:                   planConfig.SetPipeline,
-			Params:                 planConfig.Params,
-			ImageArtifactName:      planConfig.ImageArtifactName,
-			VersionedResourceTypes: resourceTypes,
+			Name:         planConfig.SetPipeline,
+			File:         planConfig.ConfigPath,
+			Vars:         planConfig.Vars,
+			VarFiles: planConfig.VarFiles,
+
+			//Params:                 planConfig.Params,
+			//ImageArtifactName:      planConfig.ImageArtifactName,
+			//VersionedResourceTypes: resourceTypes,
 		})
 
 	case planConfig.Try != nil:

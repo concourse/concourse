@@ -245,7 +245,7 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 	groupDiffs := groupDiffIndices(GroupIndex(c.Groups), GroupIndex(newConfig.Groups))
 	if len(groupDiffs) > 0 {
 		diffExists = true
-		fmt.Println("groups:")
+		fmt.Fprintln(out, "groups:")
 
 		for _, diff := range groupDiffs {
 			diff.Render(indent, "group")
@@ -265,7 +265,7 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 	resourceDiffs := diffIndices(ResourceIndex(c.Resources), ResourceIndex(newConfig.Resources))
 	if len(resourceDiffs) > 0 {
 		diffExists = true
-		fmt.Println("resources:")
+		fmt.Fprintln(out, "resources:")
 
 		for _, diff := range resourceDiffs {
 			diff.Render(indent, "resource")
@@ -275,7 +275,7 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 	resourceTypeDiffs := diffIndices(ResourceTypeIndex(c.ResourceTypes), ResourceTypeIndex(newConfig.ResourceTypes))
 	if len(resourceTypeDiffs) > 0 {
 		diffExists = true
-		fmt.Println("resource types:")
+		fmt.Fprintln(out, "resource types:")
 
 		for _, diff := range resourceTypeDiffs {
 			diff.Render(indent, "resource type")
@@ -285,7 +285,7 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 	jobDiffs := diffIndices(JobIndex(c.Jobs), JobIndex(newConfig.Jobs))
 	if len(jobDiffs) > 0 {
 		diffExists = true
-		fmt.Println("jobs:")
+		fmt.Fprintln(out, "jobs:")
 
 		for _, diff := range jobDiffs {
 			diff.Render(indent, "job")

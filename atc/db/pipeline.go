@@ -228,17 +228,17 @@ func (p *pipeline) Reload() (bool, error) {
 func (p *pipeline) Config() (atc.Config, error) {
 	jobs, err := p.Jobs()
 	if err != nil {
-		return atc.Config{}, fmt.Errorf("failed-to-get-jobs: %s", err)
+		return atc.Config{}, fmt.Errorf("failed to get jobs: %s", err)
 	}
 
 	resources, err := p.Resources()
 	if err != nil {
-		return atc.Config{}, fmt.Errorf("failed-to-get-resources: %s", err)
+		return atc.Config{}, fmt.Errorf("failed to get resources: %s", err)
 	}
 
 	resourceTypes, err := p.ResourceTypes()
 	if err != nil {
-		return atc.Config{}, fmt.Errorf("failed-to-get-resources-types: %s", err)
+		return atc.Config{}, fmt.Errorf("failed to get resources-types: %s", err)
 	}
 
 	config := atc.Config{

@@ -309,15 +309,17 @@ type PlanConfig struct {
 	Task string `json:"task,omitempty"`
 	// run task privileged
 	Privileged bool `json:"privileged,omitempty"`
-	// task config path, e.g. foo/build.yml
-	TaskConfigPath string `json:"file,omitempty"`
-	// task variables, if task is specified as external file via TaskConfigPath
-	TaskVars Params `json:"vars,omitempty"`
 	// inlined task config
 	TaskConfig *TaskConfig `json:"config,omitempty"`
 
 	// name of 'set_pipeline'
-	SetPipeline string `json:"set_pipeline,omitempty"`
+	SetPipeline string                 `json:"set_pipeline,omitempty"`
+	VarFiles    []string               `json:"var_files,omitempty"`
+
+	// config path, e.g. foo/build.yml. Multiple steps might have this field, e.g. Task step and SetPipeline step.
+	ConfigPath string `json:"file,omitempty"`
+	// variables, Multiple steps might have this field, e.g. Task step and SetPipeline step.
+	Vars Params `json:"vars,omitempty"`
 
 	// used by Get and Put for specifying params to the resource
 	// used by Task for passing params to external task config

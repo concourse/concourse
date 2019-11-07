@@ -167,29 +167,27 @@ type FinishPut struct {
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }
 func (FinishPut) Version() atc.EventVersion { return "5.1" }
 
-type InitializeSetPipeline struct {
+type Initialize struct {
 	Origin Origin `json:"origin"`
 	Time   int64  `json:"time,omitempty"`
 }
 
-func (InitializeSetPipeline) EventType() atc.EventType  { return EventTypeInitializeSetPipeline }
-func (InitializeSetPipeline) Version() atc.EventVersion { return "5.8" }
+func (Initialize) EventType() atc.EventType  { return EventTypeInitialize }
+func (Initialize) Version() atc.EventVersion { return "1.0" }
 
-type StartSetPipeline struct {
+type Start struct {
 	Origin Origin `json:"origin"`
 	Time   int64  `json:"time,omitempty"`
 }
 
-func (StartSetPipeline) EventType() atc.EventType  { return EventTypeStartSetPipeline }
-func (StartSetPipeline) Version() atc.EventVersion { return "5.8" }
+func (Start) EventType() atc.EventType  { return EventTypeStart }
+func (Start) Version() atc.EventVersion { return "1.0" }
 
-type FinishSetPipeline struct {
-	Origin              Origin `json:"origin"`
-	Time                int64  `json:"time"`
-	ExitStatus          int    `json:"exit_status"`
-	ConfigVersionBefore int    `json:"before_version"`
-	ConfigVersionAfter  int    `json:"after_version"`
+type Finish struct {
+	Origin    Origin `json:"origin"`
+	Time      int64  `json:"time"`
+	Succeeded bool   `json:"succeeded"`
 }
 
-func (FinishSetPipeline) EventType() atc.EventType  { return EventTypeFinishSetPipeline }
-func (FinishSetPipeline) Version() atc.EventVersion { return "5.8" }
+func (Finish) EventType() atc.EventType  { return EventTypeFinish }
+func (Finish) Version() atc.EventVersion { return "1.0" }

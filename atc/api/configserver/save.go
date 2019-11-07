@@ -183,7 +183,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 				errs = multierror.Append(errs, err)
 			}
 
-			if plan.TaskConfigPath != "" {
+			if plan.ConfigPath != "" {
 				// external task - we can't really validate much right now, because task yaml will be
 				// retrieved in runtime during job execution. but we can validate vars and params which will be
 				// passed to this task
@@ -192,7 +192,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 					errs = multierror.Append(errs, err)
 				}
 
-				err = creds.NewTaskVarsValidator(credMgrVars, plan.TaskVars).Validate()
+				err = creds.NewTaskVarsValidator(credMgrVars, plan.Vars).Validate()
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}

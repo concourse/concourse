@@ -18,6 +18,7 @@ type stepFactory struct {
 	pool                  worker.Pool
 	client                worker.Client
 	resourceFetcher       fetcher.Fetcher
+	teamFactory db.TeamFactory
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultLimits         atc.ContainerLimits
@@ -30,6 +31,7 @@ func NewStepFactory(
 	pool worker.Pool,
 	client worker.Client,
 	resourceFetcher fetcher.Fetcher,
+	teamFactory db.TeamFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultLimits atc.ContainerLimits,
@@ -41,6 +43,7 @@ func NewStepFactory(
 		pool:                  pool,
 		client:                client,
 		resourceFetcher:       resourceFetcher,
+		teamFactory: teamFactory,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		defaultLimits:         defaultLimits,
@@ -145,14 +148,14 @@ func (factory *stepFactory) TaskStep(
 func (factory *stepFactory) SetPipelineStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
-	delegate exec.SetPipelineDelegate,
+	delegate exec.BuildStepDelegate,
 ) exec.Step {
 	spStep := exec.NewSetPipelineStep(
 		plan.ID,
 		*plan.SetPipeline,
 		stepMetadata,
 		delegate,
-		factory.lockFactory,
+		factory.teamFactory,
 	)
 
 	return exec.LogError(spStep, delegate)
