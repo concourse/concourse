@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-const maxForwards = 2
+const maxForwards = 3
 
 type server struct {
 	logger            lager.Logger
@@ -499,6 +499,7 @@ func (server *server) parseRequest(cli string) (request, string, error) {
 
 		var garden = fs.String("garden", "", "garden address to forward")
 		var baggageclaim = fs.String("baggageclaim", "", "baggageclaim address to forward")
+		var healthcheck = fs.String("healthcheck", "", "healthcheck address to forward")
 
 		err := fs.Parse(args)
 		if err != nil {
@@ -510,6 +511,7 @@ func (server *server) parseRequest(cli string) (request, string, error) {
 
 			gardenAddr:       *garden,
 			baggageclaimAddr: *baggageclaim,
+			healthcheckAddr:  *healthcheck,
 		}
 	case tsa.LandWorker:
 		req = landWorkerRequest{

@@ -44,6 +44,7 @@ type Worker interface {
 	State() WorkerState
 	GardenAddr() *string
 	BaggageclaimURL() *string
+	HealthcheckURL() string
 	CertsPath() *string
 	ResourceCerts() (*UsedWorkerResourceCerts, bool, error)
 	HTTPProxyURL() string
@@ -83,6 +84,7 @@ type worker struct {
 	state            WorkerState
 	gardenAddr       *string
 	baggageclaimURL  *string
+	healthcheckURL   string
 	httpProxyURL     string
 	httpsProxyURL    string
 	noProxy          string
@@ -106,6 +108,7 @@ func (worker *worker) State() WorkerState       { return worker.state }
 func (worker *worker) GardenAddr() *string      { return worker.gardenAddr }
 func (worker *worker) CertsPath() *string       { return worker.certsPath }
 func (worker *worker) BaggageclaimURL() *string { return worker.baggageclaimURL }
+func (worker *worker) HealthcheckURL() string   { return worker.healthcheckURL }
 
 func (worker *worker) HTTPProxyURL() string                    { return worker.httpProxyURL }
 func (worker *worker) HTTPSProxyURL() string                   { return worker.httpsProxyURL }

@@ -28,6 +28,10 @@ type Beacon struct {
 	LocalBaggageclaimNetwork string
 	LocalBaggageclaimAddr    string
 
+	LocalHealthcheckNetwork string
+	LocalHealthcheckAddr    string
+	HealthcheckTimeout      time.Duration
+
 	drained int32
 }
 
@@ -192,6 +196,10 @@ func (beacon *Beacon) registerWorker(
 
 			LocalBaggageclaimNetwork: beacon.LocalBaggageclaimNetwork,
 			LocalBaggageclaimAddr:    beacon.LocalBaggageclaimAddr,
+
+			LocalHealthcheckNetwork: beacon.LocalHealthcheckNetwork,
+			LocalHealthcheckAddr:    beacon.LocalHealthcheckAddr,
+			HealthcheckTimeout:      beacon.HealthcheckTimeout,
 
 			ConnectionDrainTimeout: beacon.ConnectionDrainTimeout,
 

@@ -34,9 +34,11 @@ exec ssh \
   -i "$WORKER_KEY" \
   -R 0.0.0.0:7777:127.0.0.1:7777 \
   -R 0.0.0.0:7788:127.0.0.1:7788 \
+  -R 0.0.0.0:8888:127.0.0.1:8888 \
   -p "$PORT" \
   "$HOST" \
   forward-worker \
     --garden 0.0.0.0:7777 \
     --baggageclaim 0.0.0.0:7788 \
+    --healthcheck 0.0.0.0:8888 \
     < "$WORKER_PAYLOAD"

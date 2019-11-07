@@ -64,6 +64,7 @@ type target struct {
 	url       string
 	token     *TargetToken
 	info      atc.Info
+	health    atc.Health
 }
 
 func newTarget(
@@ -394,6 +395,16 @@ func (t *target) getInfo() (atc.Info, error) {
 	var err error
 	t.info, err = t.client.GetInfo()
 	return t.info, err
+}
+
+func (t *target) getHealth() (atc.Health, error) {
+	if (t.health != atc.Health{}) {
+		return t.health, nil
+	}
+
+	var err error
+	t.health, err = t.client.GetHealth()
+	return t.health, err
 }
 
 func defaultHttpClient(token *TargetToken, insecure bool, caCertPool *x509.CertPool) *http.Client {

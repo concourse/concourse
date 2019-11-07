@@ -95,7 +95,6 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	)
 
 	tsaClient := cmd.TSA.Client(atcWorker)
-
 	beaconRunner := worker.NewBeaconRunner(
 		logger.Session("beacon-runner"),
 		tsaClient,
@@ -103,6 +102,8 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.ConnectionDrainTimeout,
 		cmd.gardenAddr(),
 		cmd.baggageclaimAddr(),
+		cmd.healthcheckAddr(),
+		cmd.HealthCheckTimeout,
 	)
 
 	gardenClient := gclient.BasicGardenClientWithRequestTimeout(
@@ -229,6 +230,10 @@ func (cmd *WorkerCommand) baggageclaimAddr() string {
 
 func (cmd *WorkerCommand) baggageclaimURL() string {
 	return fmt.Sprintf("http://%s", cmd.baggageclaimAddr())
+}
+
+func (cmd *WorkerCommand) healthcheckAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.HealthcheckBindIP, cmd.HealthcheckBindPort)
 }
 
 func (cmd *WorkerCommand) workerName() (string, error) {

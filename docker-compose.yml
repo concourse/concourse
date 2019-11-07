@@ -39,6 +39,7 @@ services:
     ports:
     - 7777:7777
     - 7788:7788
+    - 8888:8888
     stop_signal: SIGUSR2
     environment:
       CONCOURSE_LOG_LEVEL: debug

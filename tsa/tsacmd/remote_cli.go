@@ -28,6 +28,7 @@ type forwardWorkerRequest struct {
 
 	gardenAddr       string
 	baggageclaimAddr string
+	healthcheckAddr  string
 }
 
 func (req forwardWorkerRequest) Handle(ctx context.Context, state ConnState, channel ssh.Channel) error {
@@ -44,7 +45,7 @@ func (req forwardWorkerRequest) Handle(ctx context.Context, state ConnState, cha
 	}
 
 	forwards := map[string]ForwardedTCPIP{}
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
 		select {
 		case forwarded := <-state.ForwardedTCPIPs:
 			logger.Info("forwarded-tcpip", lager.Data{
@@ -69,8 +70,14 @@ func (req forwardWorkerRequest) Handle(ctx context.Context, state ConnState, cha
 		return fmt.Errorf("baggageclaim address (%s) not forwarded", req.baggageclaimAddr)
 	}
 
+	healthcheckForward, found := forwards[req.healthcheckAddr]
+	if !found {
+		return fmt.Errorf("healthcheck address (%s) not forwarded", req.healthcheckAddr)
+	}
+
 	worker.GardenAddr = fmt.Sprintf("%s:%d", req.server.forwardHost, gardenForward.BoundPort)
 	worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", req.server.forwardHost, baggageclaimForward.BoundPort)
+	worker.HealthcheckURL = fmt.Sprintf("http://%s:%d", req.server.forwardHost, healthcheckForward.BoundPort)
 
 	heartbeater := tsa.NewHeartbeater(
 		clock.NewClock(),

@@ -46,6 +46,7 @@ func (err *HandshakeError) Error() string {
 const (
 	gardenForwardAddr       = "0.0.0.0:7777"
 	baggageclaimForwardAddr = "0.0.0.0:7788"
+	healthcheckForwardAddr  = "0.0.0.0:8888"
 )
 
 // Client is used to communicate with a pool of remote SSH gateways.
@@ -74,6 +75,16 @@ type RegisterOptions struct {
 	// canceled, the keepalive loop is stopped, and the connection will break
 	// after it has been idle for this duration, if configured.
 	ConnectionDrainTimeout time.Duration
+
+	// The local health check address to forward through the SSH gateway.
+	LocalHealthcheckNetwork string
+	LocalHealthcheckAddr    string
+
+	// Depending on the load the health check of the worker might take different time.
+	// This is the maximal duration after which the checking will be stopped on the worker side.
+	//TODO do we actually need this client side timeout stored in the DB?
+	//TODO should we have server side timeout as well?
+	HealthcheckTimeout time.Duration
 
 	// RegisteredFunc is called when the initial registration has completed.
 	//
@@ -126,6 +137,14 @@ func (client *Client) Register(ctx context.Context, opts RegisterOptions) error 
 
 	go proxyListenerTo(ctx, baggageclaimListener, opts.LocalBaggageclaimNetwork, opts.LocalBaggageclaimAddr)
 
+	healthcheckListener, err := sshClient.Listen("tcp", healthcheckForwardAddr)
+	if err != nil {
+		logger.Error("failed-to-listen-for-healthcheck", err)
+		return err
+	}
+
+	go proxyListenerTo(ctx, healthcheckListener, opts.LocalHealthcheckNetwork, opts.LocalHealthcheckAddr)
+
 	eventsR, eventsW := io.Pipe()
 	defer eventsW.Close()
 
@@ -158,7 +177,7 @@ func (client *Client) Register(ctx context.Context, opts RegisterOptions) error 
 	err = client.run(
 		ctx,
 		sshClient,
-		"forward-worker --garden "+gardenForwardAddr+" --baggageclaim "+baggageclaimForwardAddr,
+		"forward-worker --garden "+gardenForwardAddr+" --baggageclaim "+baggageclaimForwardAddr+" --healthcheck "+healthcheckForwardAddr,
 		eventsW,
 	)
 	if err != nil {

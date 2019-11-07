@@ -288,6 +288,7 @@ func (heartbeater *Heartbeater) pingWorker(logger lager.Logger) (atc.Worker, boo
 		"baggageclaim-took": afterBaggageclaim.Sub(beforeBaggageclaim).String(),
 	}
 
+	//TODO here we might call the worker healthcheck instead?
 	if healthy {
 		logger.Debug("reached-worker", durationData)
 	} else {

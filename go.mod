@@ -31,18 +31,19 @@ require (
 	github.com/aws/aws-sdk-go v1.25.18
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
+	github.com/bmizerany/pat v0.0.0-20170815010413-6226ea591a40 // indirect
 	github.com/boombuler/barcode v1.0.0 // indirect
 	github.com/briankassouf/jose v0.9.1 // indirect
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/census-instrumentation/opencensus-proto v0.2.1 // indirect
 	github.com/centrify/cloud-golang-sdk v0.0.0-20180119173102-7c97cc6fde16 // indirect
+	github.com/charlievieth/fs v0.0.0-20170613215519-7dc373669fa1 // indirect
 	github.com/chrismalek/oktasdk-go v0.0.0-20181212195951-3430665dfaa0 // indirect
 	github.com/circonus-labs/circonus-gometrics v2.2.1+incompatible // indirect
 	github.com/circonus-labs/circonusllhist v0.0.0-20180430145027-5eb751da55c6 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v1.6.5
 	github.com/concourse/dex v0.0.0-20191105150807-8bbc2a6df1ea
 	github.com/concourse/flag v1.0.0
 	github.com/concourse/go-archive v1.0.1
@@ -180,14 +181,13 @@ require (
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
-	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
+	github.com/tedsuo/rata v1.0.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 // indirect
 	github.com/ugorji/go/codec v0.0.0-20181209151446-772ced7fd4c2 // indirect
 	github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6
 	github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
-	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.2 // indirect

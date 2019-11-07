@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/api/cliserver"
 	"github.com/concourse/concourse/atc/api/configserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
+	"github.com/concourse/concourse/atc/api/healthserver"
 	"github.com/concourse/concourse/atc/api/infoserver"
 	"github.com/concourse/concourse/atc/api/jobserver"
 	"github.com/concourse/concourse/atc/api/loglevelserver"
@@ -95,6 +96,7 @@ func NewHandler(
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
+	healthServer := healthserver.NewServer(logger, dbWorkerFactory)
 	artifactServer := artifactserver.NewServer(logger, workerClient)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 
@@ -181,6 +183,7 @@ func NewHandler(
 		atc.DownloadCLI:  http.HandlerFunc(cliServer.Download),
 		atc.GetInfo:      http.HandlerFunc(infoServer.Info),
 		atc.GetInfoCreds: http.HandlerFunc(infoServer.Creds),
+		atc.GetHealth:    http.HandlerFunc(healthServer.Health),
 
 		atc.ListActiveUsersSince: http.HandlerFunc(usersServer.GetUsersSince),
 
