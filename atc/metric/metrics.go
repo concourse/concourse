@@ -511,6 +511,7 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 type CheckStarted struct {
 	ResourceConfigScopeID int
 	CheckName             string
+	CheckStatus           db.CheckStatus
 	CheckPendingDuration  time.Duration
 }
 
@@ -522,8 +523,9 @@ func (event CheckStarted) Emit(logger lager.Logger) {
 			Value: ms(event.CheckPendingDuration),
 			State: EventStateOK,
 			Attributes: map[string]string{
-				"scope_id":   strconv.Itoa(event.ResourceConfigScopeID),
-				"check_name": event.CheckName,
+				"scope_id":     strconv.Itoa(event.ResourceConfigScopeID),
+				"check_name":   event.CheckName,
+				"check_status": string(event.CheckStatus),
 			},
 		},
 	)

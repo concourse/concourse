@@ -242,6 +242,7 @@ func (c *check) finish(status CheckStatus, checkError error) error {
 	}
 
 	c.endTime = endTime
+	c.status = status
 
 	return nil
 }

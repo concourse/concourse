@@ -412,6 +412,7 @@ func (c *engineCheck) trackStarted(logger lager.Logger) {
 	metric.CheckStarted{
 		CheckName:             c.check.Plan().Check.Name,
 		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
+		CheckStatus:           c.check.Status(),
 		CheckPendingDuration:  c.check.StartTime().Sub(c.check.CreateTime()),
 	}.Emit(logger)
 }
