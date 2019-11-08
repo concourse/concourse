@@ -64,7 +64,7 @@ type FakeDelegateFactory struct {
 	putDelegateReturnsOnCall map[int]struct {
 		result1 exec.PutDelegate
 	}
-	SetPipelineDelegateStub        func(db.Build, atc.PlanID, vars.CredVarsTracker) exec.SetPipelineDelegate
+	SetPipelineDelegateStub        func(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate
 	setPipelineDelegateMutex       sync.RWMutex
 	setPipelineDelegateArgsForCall []struct {
 		arg1 db.Build
@@ -72,10 +72,10 @@ type FakeDelegateFactory struct {
 		arg3 vars.CredVarsTracker
 	}
 	setPipelineDelegateReturns struct {
-		result1 exec.SetPipelineDelegate
+		result1 exec.BuildStepDelegate
 	}
 	setPipelineDelegateReturnsOnCall map[int]struct {
-		result1 exec.SetPipelineDelegate
+		result1 exec.BuildStepDelegate
 	}
 	TaskDelegateStub        func(db.Build, atc.PlanID, vars.CredVarsTracker) exec.TaskDelegate
 	taskDelegateMutex       sync.RWMutex
@@ -342,7 +342,7 @@ func (fake *FakeDelegateFactory) PutDelegateReturnsOnCall(i int, result1 exec.Pu
 	}{result1}
 }
 
-func (fake *FakeDelegateFactory) SetPipelineDelegate(arg1 db.Build, arg2 atc.PlanID, arg3 vars.CredVarsTracker) exec.SetPipelineDelegate {
+func (fake *FakeDelegateFactory) SetPipelineDelegate(arg1 db.Build, arg2 atc.PlanID, arg3 vars.CredVarsTracker) exec.BuildStepDelegate {
 	fake.setPipelineDelegateMutex.Lock()
 	ret, specificReturn := fake.setPipelineDelegateReturnsOnCall[len(fake.setPipelineDelegateArgsForCall)]
 	fake.setPipelineDelegateArgsForCall = append(fake.setPipelineDelegateArgsForCall, struct {
@@ -368,7 +368,7 @@ func (fake *FakeDelegateFactory) SetPipelineDelegateCallCount() int {
 	return len(fake.setPipelineDelegateArgsForCall)
 }
 
-func (fake *FakeDelegateFactory) SetPipelineDelegateCalls(stub func(db.Build, atc.PlanID, vars.CredVarsTracker) exec.SetPipelineDelegate) {
+func (fake *FakeDelegateFactory) SetPipelineDelegateCalls(stub func(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate) {
 	fake.setPipelineDelegateMutex.Lock()
 	defer fake.setPipelineDelegateMutex.Unlock()
 	fake.SetPipelineDelegateStub = stub
@@ -381,26 +381,26 @@ func (fake *FakeDelegateFactory) SetPipelineDelegateArgsForCall(i int) (db.Build
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeDelegateFactory) SetPipelineDelegateReturns(result1 exec.SetPipelineDelegate) {
+func (fake *FakeDelegateFactory) SetPipelineDelegateReturns(result1 exec.BuildStepDelegate) {
 	fake.setPipelineDelegateMutex.Lock()
 	defer fake.setPipelineDelegateMutex.Unlock()
 	fake.SetPipelineDelegateStub = nil
 	fake.setPipelineDelegateReturns = struct {
-		result1 exec.SetPipelineDelegate
+		result1 exec.BuildStepDelegate
 	}{result1}
 }
 
-func (fake *FakeDelegateFactory) SetPipelineDelegateReturnsOnCall(i int, result1 exec.SetPipelineDelegate) {
+func (fake *FakeDelegateFactory) SetPipelineDelegateReturnsOnCall(i int, result1 exec.BuildStepDelegate) {
 	fake.setPipelineDelegateMutex.Lock()
 	defer fake.setPipelineDelegateMutex.Unlock()
 	fake.SetPipelineDelegateStub = nil
 	if fake.setPipelineDelegateReturnsOnCall == nil {
 		fake.setPipelineDelegateReturnsOnCall = make(map[int]struct {
-			result1 exec.SetPipelineDelegate
+			result1 exec.BuildStepDelegate
 		})
 	}
 	fake.setPipelineDelegateReturnsOnCall[i] = struct {
-		result1 exec.SetPipelineDelegate
+		result1 exec.BuildStepDelegate
 	}{result1}
 }
 

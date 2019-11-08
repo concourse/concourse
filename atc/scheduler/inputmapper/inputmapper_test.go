@@ -355,7 +355,7 @@ var _ = Describe("Inputmapper", func() {
 				fakeJob.NameReturns("some-job")
 				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
-						{Task: "some-task", TaskConfigPath: "some-task.yml"},
+						{Task: "some-task", ConfigPath: "some-task.yml"},
 					},
 				})
 
