@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/vars"
 )
 
 type resourceTypeScanner struct {
@@ -24,7 +23,7 @@ type resourceTypeScanner struct {
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
 	externalURL           string
-	variables             vars.Variables
+	secrets               creds.Secrets
 	varSourcePool         creds.VarSourcePool
 	strategy              worker.ContainerPlacementStrategy
 }
@@ -37,7 +36,7 @@ func NewResourceTypeScanner(
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
-	variables vars.Variables,
+	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	strategy worker.ContainerPlacementStrategy,
 ) Scanner {
@@ -49,7 +48,7 @@ func NewResourceTypeScanner(
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
-		variables:             variables,
+		secrets:               secrets,
 		varSourcePool:         varSourcePool,
 		strategy:              strategy,
 	}
@@ -128,7 +127,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		return 0, err
 	}
 
-	varss, err := scanner.dbPipeline.Variables(logger, scanner.variables, scanner.varSourcePool)
+	varss, err := scanner.dbPipeline.Variables(logger, scanner.secrets, scanner.varSourcePool)
 	if err != nil {
 		return 0, err
 	}
@@ -143,7 +142,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		return 0, err
 	}
 
-	source, err := creds.NewSource(scanner.variables, savedResourceType.Source()).Evaluate()
+	source, err := creds.NewSource(varss, savedResourceType.Source()).Evaluate()
 	if err != nil {
 		logger.Error("failed-to-evaluate-resource-type-source", err)
 		scanner.setCheckError(logger, savedResourceType, err)

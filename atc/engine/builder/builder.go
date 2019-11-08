@@ -75,9 +75,9 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 
 	var credVarsTracker vars.CredVarsTracker
 
-	globalVars := creds.NewVariables(builder.globalSecrets, build.TeamName(), build.PipelineName(), false)
 	// "fly execute" generated build will have no pipeline.
 	if build.PipelineID() == 0 {
+		globalVars := creds.NewVariables(builder.globalSecrets, build.TeamName(), build.PipelineName(), false)
 		credVarsTracker = vars.NewCredVarsTracker(globalVars, builder.redactSecrets)
 	} else {
 		pipeline, found, err := build.Pipeline()
@@ -88,7 +88,7 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 			return exec.IdentityStep{}, errors.New("pipeline not found")
 		}
 
-		varss, err := pipeline.Variables(logger, globalVars, builder.varSourcePool)
+		varss, err := pipeline.Variables(logger, builder.globalSecrets, builder.varSourcePool)
 		if err != nil {
 			return exec.IdentityStep{}, err
 		}
@@ -120,8 +120,7 @@ func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec
 		return exec.IdentityStep{}, errors.New("pipeline not found")
 	}
 
-	globalVars := creds.NewVariables(builder.globalSecrets, check.TeamName(), check.PipelineName(), false)
-	varss, err := pipeline.Variables(logger, globalVars, builder.varSourcePool)
+	varss, err := pipeline.Variables(logger, builder.globalSecrets, builder.varSourcePool)
 	if err != nil {
 		return exec.IdentityStep{}, fmt.Errorf("failed to create pipeline variables: %s", err.Error())
 	}

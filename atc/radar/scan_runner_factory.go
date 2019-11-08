@@ -4,13 +4,11 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"time"
 
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/vars"
-
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . ScanRunnerFactory
@@ -36,7 +34,7 @@ func NewScanRunnerFactory(
 	dbPipeline db.Pipeline,
 	clock clock.Clock,
 	externalURL string,
-	variables vars.Variables,
+	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	strategy worker.ContainerPlacementStrategy,
 	notifications Notifications,
@@ -49,7 +47,7 @@ func NewScanRunnerFactory(
 		resourceTypeCheckingInterval,
 		dbPipeline,
 		externalURL,
-		variables,
+		secrets,
 		varSourcePool,
 		strategy,
 	)
@@ -62,7 +60,7 @@ func NewScanRunnerFactory(
 		resourceCheckingInterval,
 		dbPipeline,
 		externalURL,
-		variables,
+		secrets,
 		varSourcePool,
 		strategy,
 	)

@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"encoding/json"
 )
@@ -19,6 +20,7 @@ type inPoolManager struct {
 	manager        Manager
 	secretsFactory SecretsFactory
 	lastUseTime    time.Time
+	clock          clock.Clock
 }
 
 func (m *inPoolManager) Close(logger lager.Logger) {
@@ -26,14 +28,15 @@ func (m *inPoolManager) Close(logger lager.Logger) {
 }
 
 func (m *inPoolManager) NewSecrets() Secrets {
-	m.lastUseTime = time.Now()
+	m.lastUseTime = m.clock.Now()
 	return m.secretsFactory.NewSecrets()
 }
 
 type varSourcePool struct {
-	pool map[string]*inPoolManager
-	lock sync.Mutex
-	ttl  time.Duration
+	pool  map[string]*inPoolManager
+	lock  sync.Mutex
+	ttl   time.Duration
+	clock clock.Clock
 }
 
 func (pool *varSourcePool) Size() int {
@@ -66,6 +69,7 @@ func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]i
 		}
 
 		pool.pool[key] = &inPoolManager{
+			clock:          pool.clock,
 			manager:        manager,
 			secretsFactory: secretsFactory,
 		}
@@ -84,7 +88,7 @@ func (pool *varSourcePool) Collect(logger lager.Logger) error {
 
 	toDeleteKeys := []string{}
 	for key, manager := range pool.pool {
-		if manager.lastUseTime.Add(pool.ttl).Before(time.Now()) {
+		if manager.lastUseTime.Add(pool.ttl).Before(pool.clock.Now()) {
 			toDeleteKeys = append(toDeleteKeys, key)
 			manager.Close(logger)
 		}
@@ -99,10 +103,11 @@ func (pool *varSourcePool) Collect(logger lager.Logger) error {
 	return nil
 }
 
-func NewVarSourcePool(ttl time.Duration) VarSourcePool {
+func NewVarSourcePool(ttl time.Duration, clock clock.Clock) VarSourcePool {
 	return &varSourcePool{
-		pool: map[string]*inPoolManager{},
-		lock: sync.Mutex{},
-		ttl:  ttl,
+		pool:  map[string]*inPoolManager{},
+		lock:  sync.Mutex{},
+		ttl:   ttl,
+		clock: clock,
 	}
 }

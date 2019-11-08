@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/vars"
 )
 
 var GlobalResourceCheckTimeout time.Duration
@@ -28,7 +27,7 @@ type resourceScanner struct {
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
 	externalURL           string
-	variables             vars.Variables
+	secrets               creds.Secrets
 	varSourcePool         creds.VarSourcePool
 	strategy              worker.ContainerPlacementStrategy
 }
@@ -41,7 +40,7 @@ func NewResourceScanner(
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
-	variables vars.Variables,
+	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	strategy worker.ContainerPlacementStrategy,
 ) Scanner {
@@ -53,7 +52,7 @@ func NewResourceScanner(
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
-		variables:             variables,
+		secrets:               secrets,
 		varSourcePool:         varSourcePool,
 		strategy:              strategy,
 	}
@@ -167,7 +166,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 	}
 
 	// Combine pipeline specific var_sources with the global credential manager.
-	varss, err := scanner.dbPipeline.Variables(logger, scanner.variables, scanner.varSourcePool)
+	varss, err := scanner.dbPipeline.Variables(logger, scanner.secrets, scanner.varSourcePool)
 	if err != nil {
 		return 0, err
 	}

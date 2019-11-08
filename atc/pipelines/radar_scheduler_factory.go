@@ -15,14 +15,13 @@ import (
 	"github.com/concourse/concourse/atc/scheduler/inputmapper/inputconfig"
 	"github.com/concourse/concourse/atc/scheduler/maxinflight"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/vars"
 )
 
 //go:generate counterfeiter . RadarSchedulerFactory
 
 type RadarSchedulerFactory interface {
-	BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables vars.Variables, pool creds.VarSourcePool, notifications radar.Notifications) radar.ScanRunnerFactory
-	BuildScheduler(pipeline db.Pipeline) scheduler.BuildScheduler
+	BuildScanRunnerFactory(db.Pipeline, string, creds.Secrets, creds.VarSourcePool, radar.Notifications) radar.ScanRunnerFactory
+	BuildScheduler(db.Pipeline) scheduler.BuildScheduler
 }
 
 type radarSchedulerFactory struct {
@@ -52,7 +51,7 @@ func NewRadarSchedulerFactory(
 	}
 }
 
-func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, variables vars.Variables, varSourcePool creds.VarSourcePool, notifications radar.Notifications) radar.ScanRunnerFactory {
+func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline, externalURL string, secrets creds.Secrets, varSourcePool creds.VarSourcePool, notifications radar.Notifications) radar.ScanRunnerFactory {
 	return radar.NewScanRunnerFactory(
 		rsf.pool,
 		rsf.resourceFactory,
@@ -62,7 +61,7 @@ func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(dbPipeline db.Pipeline,
 		dbPipeline,
 		clock.NewClock(),
 		externalURL,
-		variables,
+		secrets,
 		varSourcePool,
 		rsf.strategy,
 		notifications,

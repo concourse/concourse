@@ -1,6 +1,7 @@
 package creds_test
 
 import (
+	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/creds"
@@ -20,6 +21,7 @@ var _ = Context("pool", func() {
 		factory          creds.ManagerFactory
 		varSourcePool    creds.VarSourcePool
 		config1, config2 map[string]interface{}
+		fakeClock        *fakeclock.FakeClock
 	)
 
 	BeforeEach(func() {
@@ -33,17 +35,19 @@ var _ = Context("pool", func() {
 		config2 = map[string]interface{}{
 			"vars": map[string]interface{}{"k2": "v2"},
 		}
+
+		fakeClock = fakeclock.NewFakeClock(time.Now())
 	})
 
 	Context("FindOrCreate", func() {
 		BeforeEach(func() {
-			varSourcePool = creds.NewVarSourcePool(5 * time.Minute)
+			varSourcePool = creds.NewVarSourcePool(5*time.Minute, fakeClock)
 		})
 
 		Context("add 1 config", func() {
 			var (
 				secrets creds.Secrets
-				err error
+				err     error
 			)
 
 			JustBeforeEach(func() {
@@ -72,7 +76,7 @@ var _ = Context("pool", func() {
 		Context("add 2 configs", func() {
 			var (
 				secrets1, secrets2 creds.Secrets
-				err error
+				err                error
 			)
 			JustBeforeEach(func() {
 				secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
@@ -113,7 +117,7 @@ var _ = Context("pool", func() {
 		Context("add same config for multiple times", func() {
 			var (
 				secrets1, secrets2 creds.Secrets
-				err error
+				err                error
 			)
 			JustBeforeEach(func() {
 				secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
@@ -164,24 +168,24 @@ var _ = Context("pool", func() {
 		var err error
 
 		BeforeEach(func() {
-			varSourcePool = creds.NewVarSourcePool(4 * time.Second)
+			varSourcePool = creds.NewVarSourcePool(7*time.Second, fakeClock)
 		})
 		It("should clean up once ttl expires", func() {
 			_, err = varSourcePool.FindOrCreate(logger, config1, factory)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(1))
 
-			time.Sleep(2*time.Second)
+			fakeClock.IncrementBySeconds(4)
 			_, err = varSourcePool.FindOrCreate(logger, config2, factory)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(2))
 
-			time.Sleep(2*time.Second)
+			fakeClock.IncrementBySeconds(4)
 			err = varSourcePool.(gc.Collector).Collect(logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(1))
 
-			time.Sleep(2*time.Second)
+			fakeClock.IncrementBySeconds(4)
 			err = varSourcePool.(gc.Collector).Collect(logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(0))

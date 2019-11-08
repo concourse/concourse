@@ -87,7 +87,7 @@ type Pipeline interface {
 	Destroy() error
 	Rename(string) error
 
-	Variables(lager.Logger, vars.Variables, creds.VarSourcePool) (vars.Variables, error)
+	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 }
 
 type pipeline struct {
@@ -1106,7 +1106,8 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 // Variables creates variables for this pipeline. If this pipeline has its own
 // var_sources, a vars.MultiVars containing all pipeline specific var_sources
 // plug the global variables, otherwise just return the global variables.
-func (p *pipeline) Variables(logger lager.Logger, globalVars vars.Variables, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
+func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
+	globalVars := creds.NewVariables(globalSecrets, p.TeamName(), p.Name(), false)
 	varss := []vars.Variables{}
 	for _, cm := range p.varSources {
 		factory := creds.ManagerFactories()[cm.Type]

@@ -800,8 +800,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, res
 		return nil, nil, err
 	}
 
-	globalVariables := creds.NewVariables(secretManager, t.name, pipeline.Name(), false)
-	variables, err := pipeline.Variables(logger, globalVariables, varSourcePool)
+	variables, err := pipeline.Variables(logger, secretManager, varSourcePool)
 	if err != nil {
 		return nil, nil, err
 	}

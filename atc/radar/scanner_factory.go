@@ -62,8 +62,6 @@ func NewScannerFactory(
 }
 
 func (f *scannerFactory) NewResourceScanner(logger lager.Logger, dbPipeline db.Pipeline) Scanner {
-	globalVariables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name(), false)
-
 	return NewResourceScanner(
 		clock.NewClock(),
 		f.pool,
@@ -72,15 +70,13 @@ func (f *scannerFactory) NewResourceScanner(logger lager.Logger, dbPipeline db.P
 		f.resourceCheckingInterval,
 		dbPipeline,
 		f.externalURL,
-		globalVariables,
+		f.secretManager,
 		f.varSourcePool,
 		f.strategy,
 	)
 }
 
 func (f *scannerFactory) NewResourceTypeScanner(logger lager.Logger, dbPipeline db.Pipeline) Scanner {
-	globalVariables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name(), false)
-
 	return NewResourceTypeScanner(
 		clock.NewClock(),
 		f.pool,
@@ -89,7 +85,7 @@ func (f *scannerFactory) NewResourceTypeScanner(logger lager.Logger, dbPipeline 
 		f.resourceTypeCheckingInterval,
 		dbPipeline,
 		f.externalURL,
-		globalVariables,
+		f.secretManager,
 		f.varSourcePool,
 		f.strategy,
 	)

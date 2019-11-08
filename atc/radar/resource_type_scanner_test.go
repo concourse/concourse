@@ -40,6 +40,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceConfigScope   *dbfakes.FakeResourceConfigScope
 		fakeClock                 *fakeclock.FakeClock
 		fakeVarSourcePool         *credsfakes.FakeVarSourcePool
+		fakeSecrets               *credsfakes.FakeSecrets
 		interval                  time.Duration
 		variables                 vars.Variables
 		metadata                  db.ContainerMetadata
@@ -56,6 +57,15 @@ var _ = Describe("ResourceTypeScanner", func() {
 	BeforeEach(func() {
 		fakeLock = &lockfakes.FakeLock{}
 		interval = 1 * time.Minute
+
+		fakeSecrets = new(credsfakes.FakeSecrets)
+		fakeSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
+			if key == "source-params" {
+				return "some-secret-sauce", nil, true, nil
+			}
+			return nil, nil, false, nil
+		}
+
 		variables = vars.StaticVariables{
 			"source-params": "some-secret-sauce",
 		}
@@ -113,7 +123,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
-			variables,
+			fakeSecrets,
 			fakeVarSourcePool,
 			fakeStrategy,
 		)

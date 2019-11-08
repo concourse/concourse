@@ -151,13 +151,6 @@ func (c *checkFactory) TryCreateCheck(logger lager.Logger, checkable Checkable, 
 		}
 	}
 
-	globalVars := creds.NewVariables(
-		c.secrets,
-		checkable.TeamName(),
-		checkable.PipelineName(),
-		false,
-	)
-
 	pp, found, err := checkable.Pipeline()
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to reload pipeline: %s", err.Error())
@@ -166,7 +159,7 @@ func (c *checkFactory) TryCreateCheck(logger lager.Logger, checkable Checkable, 
 		return nil, false, fmt.Errorf("pipeline not found")
 	}
 
-	varss, err := pp.Variables(logger, globalVars, c.varSourcePool)
+	varss, err := pp.Variables(logger, c.secrets, c.varSourcePool)
 	if err != nil {
 		return nil, false, err
 	}

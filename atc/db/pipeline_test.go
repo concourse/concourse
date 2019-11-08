@@ -1,7 +1,9 @@
 package db_test
 
 import (
+	"code.cloudfoundry.org/clock"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/vars"
 	"strconv"
 	"time"
@@ -2272,9 +2274,15 @@ var _ = Describe("Pipeline", func() {
 			err error
 		)
 		BeforeEach(func() {
-			globalVars := vars.StaticVariables{"gk": "gv"}
-			varSourcePool := creds.NewVarSourcePool(1*time.Minute)
-			pvars, err = pipeline.Variables(logger, globalVars, varSourcePool)
+			fakeSecrets = new(credsfakes.FakeSecrets)
+			fakeSecrets.GetStub = func(key string)(interface{}, *time.Time, bool, error) {
+				if key == "gk" {
+					return "gv", nil, true, nil
+				}
+				return nil, nil, false, nil
+			}
+			varSourcePool := creds.NewVarSourcePool(1*time.Minute, clock.NewClock())
+			pvars, err = pipeline.Variables(logger, fakeSecrets, varSourcePool)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
