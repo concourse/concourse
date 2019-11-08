@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
@@ -33,6 +34,8 @@ type GardenBackend struct {
 	GardenConfig flag.File `long:"config"               description:"Path to a config file to use for Garden. You can also specify Garden flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
 
 	DNS DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
+
+	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 }
 
 func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Command) {

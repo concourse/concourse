@@ -6,16 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 )
 
 const ConfigVersionHeader = "X-Concourse-Config-Version"
 const DefaultTeamName = "main"
-
-// TIMEOUT CONSTANTS
-const GARDEN_CLIENT_HTTP_TIMEOUT = 5 * time.Minute
 
 type Tags []string
 

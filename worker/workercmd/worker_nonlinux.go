@@ -4,6 +4,7 @@ package workercmd
 
 import (
 	"runtime"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -11,7 +12,9 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-type GardenBackend struct{}
+type GardenBackend struct {
+	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
+}
 
 type Certs struct{}
 
