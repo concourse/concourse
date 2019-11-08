@@ -108,7 +108,7 @@ all =
             fetchBuild =
                 Application.handleCallback <|
                     Callback.BuildFetched <|
-                        Ok ( 1, theBuild )
+                        Ok theBuild
 
             fetchBuildWithStatus :
                 BuildStatus
@@ -118,18 +118,16 @@ all =
                 Application.handleCallback
                     (Callback.BuildFetched
                         (Ok
-                            ( 1
-                            , { id = 1
-                              , name = "1"
-                              , job = Nothing
-                              , status = status
-                              , duration =
-                                    { startedAt = Nothing
-                                    , finishedAt = Nothing
-                                    }
-                              , reapTime = Nothing
-                              }
-                            )
+                            { id = 1
+                            , name = "1"
+                            , job = Nothing
+                            , status = status
+                            , duration =
+                                { startedAt = Nothing
+                                , finishedAt = Nothing
+                                }
+                            , reapTime = Nothing
+                            }
                         )
                     )
                     >> Tuple.first
@@ -163,7 +161,7 @@ all =
             fetchStartedBuild =
                 Application.handleCallback <|
                     Callback.BuildFetched <|
-                        Ok ( 1, startedBuild )
+                        Ok startedBuild
 
             fetchJobDetails :
                 Application.Model
@@ -256,23 +254,21 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                ( 1
-                                , { id = 307
-                                  , name = "307"
-                                  , job =
-                                        Just
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            , jobName = "j"
-                                            }
-                                  , status = BuildStatusStarted
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
+                                { id = 307
+                                , name = "307"
+                                , job =
+                                    Just
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , jobName = "j"
                                         }
-                                  , reapTime = Nothing
-                                  }
-                                )
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt = Nothing
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -332,23 +328,21 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                ( 1
-                                , { id = 307
-                                  , name = "307"
-                                  , job =
-                                        Just
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            , jobName = "j"
-                                            }
-                                  , status = BuildStatusStarted
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
+                                { id = 307
+                                , name = "307"
+                                , job =
+                                    Just
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , jobName = "j"
                                         }
-                                  , reapTime = Nothing
-                                  }
-                                )
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt = Nothing
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -403,23 +397,21 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                ( 1
-                                , { id = 307
-                                  , name = "307"
-                                  , job =
-                                        Just
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            , jobName = "j"
-                                            }
-                                  , status = BuildStatusStarted
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
+                                { id = 307
+                                , name = "307"
+                                , job =
+                                    Just
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , jobName = "j"
                                         }
-                                  , reapTime = Nothing
-                                  }
-                                )
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt = Nothing
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -474,23 +466,21 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                ( 1
-                                , { id = 307
-                                  , name = "307"
-                                  , job =
-                                        Just
-                                            { teamName = "t"
-                                            , pipelineName = "p"
-                                            , jobName = "j"
-                                            }
-                                  , status = BuildStatusStarted
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
+                                { id = 307
+                                , name = "307"
+                                , job =
+                                    Just
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , jobName = "j"
                                         }
-                                  , reapTime = Nothing
-                                  }
-                                )
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt = Nothing
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -601,23 +591,21 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                ( 1
-                                , { id = 1
-                                  , name = "1"
-                                  , job =
-                                        Just
-                                            { teamName = "team"
-                                            , pipelineName = "pipeline"
-                                            , jobName = "job"
-                                            }
-                                  , status = BuildStatusSucceeded
-                                  , duration =
-                                        { startedAt = buildTime
-                                        , finishedAt = buildTime
+                                { id = 1
+                                , name = "1"
+                                , job =
+                                    Just
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        , jobName = "job"
                                         }
-                                  , reapTime = buildTime
-                                  }
-                                )
+                                , status = BuildStatusSucceeded
+                                , duration =
+                                    { startedAt = buildTime
+                                    , finishedAt = buildTime
+                                    }
+                                , reapTime = buildTime
+                                }
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -632,7 +620,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        (Callback.BuildFetched <| Ok theBuild)
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.PlanAndResourcesFetched 1 <|
@@ -656,23 +644,21 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                ( 1
-                                , { id = 1
-                                  , name = "1"
-                                  , job =
-                                        Just
-                                            { teamName = "team"
-                                            , pipelineName = "pipeline"
-                                            , jobName = "job"
-                                            }
-                                  , status = BuildStatusAborted
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Just <| Time.millisToPosix 0
+                                { id = 1
+                                , name = "1"
+                                , job =
+                                    Just
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        , jobName = "job"
                                         }
-                                  , reapTime = Nothing
-                                  }
-                                )
+                                , status = BuildStatusAborted
+                                , duration =
+                                    { startedAt = Nothing
+                                    , finishedAt = Just <| Time.millisToPosix 0
+                                    }
+                                , reapTime = Nothing
+                                }
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -702,23 +688,21 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                ( 1
-                                , { id = 1
-                                  , name = "1"
-                                  , job =
-                                        Just
-                                            { teamName = "team"
-                                            , pipelineName = "pipeline"
-                                            , jobName = "job"
-                                            }
-                                  , status = BuildStatusPending
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
+                                { id = 1
+                                , name = "1"
+                                , job =
+                                    Just
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        , jobName = "job"
                                         }
-                                  , reapTime = Nothing
-                                  }
-                                )
+                                , status = BuildStatusPending
+                                , duration =
+                                    { startedAt = Nothing
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -742,7 +726,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        (Callback.BuildFetched <| Ok theBuild)
                     |> Tuple.second
                     |> Common.contains (Effects.Focus Build.bodyId)
         , test "events from a different build are discarded" <|
@@ -760,18 +744,16 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                ( 1
-                                , { id = 1
-                                  , name = "1"
-                                  , job = Nothing
-                                  , status = BuildStatusStarted
-                                  , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
-                                        }
-                                  , reapTime = Nothing
-                                  }
-                                )
+                                { id = 1
+                                , name = "1"
+                                , job = Nothing
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt = Nothing
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -821,19 +803,17 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                ( 1
-                                , { id = 1
-                                  , name = "1"
-                                  , job = Nothing
-                                  , status = BuildStatusStarted
-                                  , duration =
-                                        { startedAt =
-                                            Just <| Time.millisToPosix 0
-                                        , finishedAt = Nothing
-                                        }
-                                  , reapTime = Nothing
-                                  }
-                                )
+                                { id = 1
+                                , name = "1"
+                                , job = Nothing
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt =
+                                        Just <| Time.millisToPosix 0
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -888,7 +868,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        (Callback.BuildFetched <| Ok startedBuild)
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
@@ -900,7 +880,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        (Callback.BuildFetched <| Ok theBuild)
                     |> Tuple.first
                     |> receiveEvent
                         { url = "http://localhost:8080/api/v1/builds/1/events"
@@ -912,7 +892,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        (Callback.BuildFetched <| Ok theBuild)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "build-body" ]
@@ -940,7 +920,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        (Callback.BuildFetched <| Ok startedBuild)
                     |> Tuple.first
                     |> Application.update
                         (Msgs.Update <|
@@ -961,7 +941,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        (Callback.BuildFetched <| Ok startedBuild)
                     |> Tuple.first
                     |> Application.update
                         (Msgs.Update <|
@@ -991,7 +971,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        (Callback.BuildFetched <| Ok startedBuild)
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
@@ -1055,7 +1035,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        (Callback.BuildFetched <| Ok startedBuild)
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
@@ -1082,7 +1062,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        (Callback.BuildFetched <| Ok startedBuild)
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
@@ -1099,7 +1079,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        (Callback.BuildFetched <| Ok startedBuild)
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
@@ -1116,7 +1096,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        (Callback.BuildFetched <| Ok startedBuild)
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
@@ -1154,7 +1134,7 @@ all =
                     }
                     |> Tuple.second
                     |> Common.contains
-                        (Effects.FetchJobBuild 1
+                        (Effects.FetchJobBuild
                             { teamName = "team"
                             , pipelineName = "pipeline"
                             , jobName = "job"
@@ -1297,7 +1277,7 @@ all =
             , test "when build finishes, shows finished timestamp" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok startedBuild)
                         |> Tuple.first
                         |> receiveEvent
                             { url = "http://localhost:8080/api/v1/builds/1/events"
@@ -1318,7 +1298,7 @@ all =
             , test "when build finishes succesfully, header background is green" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok startedBuild)
                         |> Tuple.first
                         |> receiveEvent
                             { url = "http://localhost:8080/api/v1/builds/1/events"
@@ -1338,7 +1318,7 @@ all =
             , test "when less than 24h old, shows relative time since build" <|
                 \_ ->
                     initFromApplication
-                        |> Application.handleCallback (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        |> Application.handleCallback (Callback.BuildFetched <| Ok theBuild)
                         |> Tuple.first
                         |> Application.update
                             (Msgs.DeliveryReceived <|
@@ -1354,9 +1334,7 @@ all =
                 \_ ->
                     initFromApplication
                         |> Application.handleCallback
-                            (Callback.BuildFetched <|
-                                Ok ( 1, theBuild )
-                            )
+                            (Callback.BuildFetched <| Ok theBuild)
                         |> Tuple.first
                         |> Application.update
                             (Msgs.DeliveryReceived <|
@@ -1377,9 +1355,7 @@ all =
                             )
                         |> Tuple.first
                         |> Application.handleCallback
-                            (Callback.BuildFetched <|
-                                Ok ( 1, theBuild )
-                            )
+                            (Callback.BuildFetched <| Ok theBuild)
                         |> Tuple.first
                         |> Application.update
                             (Msgs.DeliveryReceived <|
@@ -2174,7 +2150,7 @@ all =
                     givenBuildStarted
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.BuildPrepFetched <| Ok ( 1, prep ))
+                            (Callback.BuildPrepFetched <| Ok prep)
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ class "prep-status-list" ]
@@ -2213,7 +2189,7 @@ all =
                     givenBuildStarted
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.BuildPrepFetched <| Ok ( 1, prep ))
+                            (Callback.BuildPrepFetched <| Ok prep)
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ class "prep-status-list" ]
@@ -2250,7 +2226,7 @@ all =
                     givenBuildStarted
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.BuildPrepFetched <| Ok ( 1, prep ))
+                            (Callback.BuildPrepFetched <| Ok prep)
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ class "prep-status-list" ]
@@ -3469,23 +3445,21 @@ all =
                             |> Application.handleCallback
                                 (Callback.BuildFetched <|
                                     Ok
-                                        ( 1
-                                        , { id = 307
-                                          , name = "307"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
-                                          , status = BuildStatusStarted
-                                          , duration =
-                                                { startedAt = Nothing
-                                                , finishedAt = Nothing
+                                        { id = 307
+                                        , name = "307"
+                                        , job =
+                                            Just
+                                                { teamName = "t"
+                                                , pipelineName = "p"
+                                                , jobName = "j"
                                                 }
-                                          , reapTime = Nothing
-                                          }
-                                        )
+                                        , status = BuildStatusStarted
+                                        , duration =
+                                            { startedAt = Nothing
+                                            , finishedAt = Nothing
+                                            }
+                                        , reapTime = Nothing
+                                        }
                                 )
                             |> Tuple.first
                             |> Application.handleCallback

@@ -150,23 +150,21 @@ myBrowserFetchedTheBuild =
         >> Application.handleCallback
             (Callback.BuildFetched <|
                 Ok
-                    ( 1
-                    , { id = 1
-                      , name = "1"
-                      , job =
-                            Just
-                                { teamName = "other-team"
-                                , pipelineName = "yet-another-pipeline"
-                                , jobName = "job"
-                                }
-                      , status = BuildStatusStarted
-                      , duration =
-                            { startedAt = Nothing
-                            , finishedAt = Nothing
+                    { id = 1
+                    , name = "1"
+                    , job =
+                        Just
+                            { teamName = "other-team"
+                            , pipelineName = "yet-another-pipeline"
+                            , jobName = "job"
                             }
-                      , reapTime = Nothing
-                      }
-                    )
+                    , status = BuildStatusStarted
+                    , duration =
+                        { startedAt = Nothing
+                        , finishedAt = Nothing
+                        }
+                    , reapTime = Nothing
+                    }
             )
 
 

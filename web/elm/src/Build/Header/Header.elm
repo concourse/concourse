@@ -466,8 +466,8 @@ update msg ( model, effects ) =
 handleCallback : Callback -> ET (Model r)
 handleCallback callback ( model, effects ) =
     case callback of
-        BuildFetched (Ok ( browsingIndex, b )) ->
-            handleBuildFetched browsingIndex b ( model, effects )
+        BuildFetched (Ok b) ->
+            handleBuildFetched b ( model, effects )
 
         BuildTriggered (Ok b) ->
             ( { model
@@ -493,27 +493,23 @@ handleCallback callback ( model, effects ) =
             ( model, effects )
 
 
-handleBuildFetched : Int -> Concourse.Build -> ET (Model r)
-handleBuildFetched browsingIndex b ( model, effects ) =
-    if browsingIndex == model.browsingIndex then
-        ( { model
-            | history =
-                List.Extra.setIf (.id >> (==) b.id)
-                    { id = b.id
-                    , name = b.name
-                    , status = b.status
-                    }
-                    model.history
-            , fetchingHistory = True
-            , job = b.job
-            , id = b.id
-            , name = b.name
-          }
-        , effects
-        )
-
-    else
-        ( model, effects )
+handleBuildFetched : Concourse.Build -> ET (Model r)
+handleBuildFetched b ( model, effects ) =
+    ( { model
+        | history =
+            List.Extra.setIf (.id >> (==) b.id)
+                { id = b.id
+                , name = b.name
+                , status = b.status
+                }
+                model.history
+        , fetchingHistory = True
+        , job = b.job
+        , id = b.id
+        , name = b.name
+      }
+    , effects
+    )
 
 
 handleHistoryFetched : Paginated Concourse.Build -> ET (Model r)
