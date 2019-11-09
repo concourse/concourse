@@ -219,7 +219,6 @@ func (s setPipelineSource) Validate() error {
 func (s setPipelineSource) EvaluatePlan(variables vars.Variables) error {
 	params := atc.Params{
 		"file":      s.step.plan.File,
-		"vars":      s.step.plan.Vars,
 		"var_files": s.step.plan.VarFiles,
 	}
 
@@ -229,7 +228,6 @@ func (s setPipelineSource) EvaluatePlan(variables vars.Variables) error {
 	}
 
 	s.step.plan.File = params["file"].(string)
-	s.step.plan.Vars = params["vars"].(map[string]interface{})
 	s.step.plan.VarFiles = []string{}
 	for _, ele := range params["var_files"].([]interface{}) {
 		s.step.plan.VarFiles = append(s.step.plan.VarFiles, ele.(string))

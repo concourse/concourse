@@ -471,8 +471,8 @@ var _ = Describe("BuildStarter", func() {
 
 								It("stops creating builds for job", func() {
 									Expect(fakeFactory.CreateCallCount()).To(Equal(1))
-									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
-									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+									actualJob, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
+									Expect(actualJob).To(Equal(job))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
@@ -515,20 +515,20 @@ var _ = Describe("BuildStarter", func() {
 
 								It("creates build plans for all builds", func() {
 									Expect(fakeFactory.CreateCallCount()).To(Equal(3))
-									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
-									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+									actualJob, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
+									Expect(actualJob).To(Equal(job))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
-									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(1)
-									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+									actualJob, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(1)
+									Expect(actualJob).To(Equal(job))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
-									actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(2)
-									Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+									actualJob, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(2)
+									Expect(actualJob).To(Equal(job))
 									Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
 									Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 									Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))

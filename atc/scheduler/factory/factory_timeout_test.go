@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 
 	. "github.com/onsi/ginkgo"
@@ -15,12 +16,14 @@ var _ = Describe("Factory Timeout Step", func() {
 		buildFactory        factory.BuildFactory
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
+		fakeJob             *dbfakes.FakeJob
 	)
 
 	BeforeEach(func() {
 		actualPlanFactory = atc.NewPlanFactory(321)
 		expectedPlanFactory = atc.NewPlanFactory(321)
 		buildFactory = factory.NewBuildFactory(actualPlanFactory)
+		fakeJob = new(dbfakes.FakeJob)
 
 		resourceTypes = atc.VersionedResourceTypes{
 			{
@@ -35,15 +38,18 @@ var _ = Describe("Factory Timeout Step", func() {
 	})
 
 	Context("When there is a task with a timeout", func() {
-		It("builds correctly", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+		BeforeEach(func() {
+			fakeJob.ConfigReturns(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task:    "first task",
 						Timeout: "10s",
 					},
 				},
-			}, nil, resourceTypes, nil)
+			})
+		})
+		It("builds correctly", func() {
+			actual, err := buildFactory.Create(fakeJob, nil, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.TimeoutPlan{

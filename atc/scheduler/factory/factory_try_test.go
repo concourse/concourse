@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/testhelpers"
 
@@ -16,12 +17,14 @@ var _ = Describe("Factory Try Step", func() {
 		buildFactory        factory.BuildFactory
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
+		fakeJob             *dbfakes.FakeJob
 	)
 
 	BeforeEach(func() {
 		actualPlanFactory = atc.NewPlanFactory(123)
 		expectedPlanFactory = atc.NewPlanFactory(123)
 		buildFactory = factory.NewBuildFactory(actualPlanFactory)
+		fakeJob = new(dbfakes.FakeJob)
 
 		resourceTypes = atc.VersionedResourceTypes{
 			{
@@ -36,8 +39,8 @@ var _ = Describe("Factory Try Step", func() {
 	})
 
 	Context("when there is a task wrapped in a try", func() {
-		It("builds correctly", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+		BeforeEach(func(){
+			fakeJob.ConfigReturns(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Try: &atc.PlanConfig{
@@ -48,7 +51,10 @@ var _ = Describe("Factory Try Step", func() {
 						Task: "second task",
 					},
 				},
-			}, nil, resourceTypes, nil)
+			})
+		})
+		It("builds correctly", func() {
+			actual, err := buildFactory.Create(fakeJob, nil, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
@@ -69,8 +75,8 @@ var _ = Describe("Factory Try Step", func() {
 	})
 
 	Context("when the try also has a hook", func() {
-		It("builds correctly", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+		BeforeEach(func() {
+			fakeJob.ConfigReturns(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Try: &atc.PlanConfig{
@@ -81,7 +87,10 @@ var _ = Describe("Factory Try Step", func() {
 						},
 					},
 				},
-			}, nil, nil, nil)
+			})
+		})
+		It("builds correctly", func() {
+			actual, err := buildFactory.Create(fakeJob, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{

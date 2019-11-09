@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
@@ -9,13 +10,18 @@ import (
 )
 
 var _ = Describe("Factory Put", func() {
+	var fakeJob *dbfakes.FakeJob
+
+	BeforeEach(func() {
+		fakeJob = new(dbfakes.FakeJob)
+	})
+
 	Describe("Put/Get locations", func() {
 		var (
 			buildFactory factory.BuildFactory
 
 			resources           atc.ResourceConfigs
 			resourceTypes       atc.VersionedResourceTypes
-			input               atc.JobConfig
 			actualPlanFactory   atc.PlanFactory
 			expectedPlanFactory atc.PlanFactory
 		)
@@ -47,18 +53,18 @@ var _ = Describe("Factory Put", func() {
 
 		Context("with a put at the top-level", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Put:      "some-put",
 							Resource: "some-resource",
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{
@@ -90,18 +96,18 @@ var _ = Describe("Factory Put", func() {
 
 		Context("with a put for a non-existent resource", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Put:      "some-put",
 							Resource: "what-resource",
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct error", func() {
-				_, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				_, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).To(Equal(factory.ErrResourceNotFound))
 			})
 		})
@@ -113,7 +119,6 @@ var _ = Describe("Factory Put", func() {
 
 			resources           atc.ResourceConfigs
 			resourceTypes       atc.VersionedResourceTypes
-			input               atc.JobConfig
 			actualPlanFactory   atc.PlanFactory
 			expectedPlanFactory atc.PlanFactory
 		)
@@ -145,18 +150,18 @@ var _ = Describe("Factory Put", func() {
 
 		Context("when I have a put at the top-level", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Put:      "some-put",
 							Resource: "some-resource",
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{
@@ -187,7 +192,7 @@ var _ = Describe("Factory Put", func() {
 
 		Context("when I have a put in a hook", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Task: "some-task",
@@ -196,11 +201,11 @@ var _ = Describe("Factory Put", func() {
 							},
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{
@@ -239,7 +244,7 @@ var _ = Describe("Factory Put", func() {
 
 		Context("when I have a put inside an aggregate", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Aggregate: &atc.PlanSequence{
@@ -252,11 +257,11 @@ var _ = Describe("Factory Put", func() {
 							},
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{
@@ -294,7 +299,7 @@ var _ = Describe("Factory Put", func() {
 
 		Context("when I have a put inside a parallel", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							InParallel: &atc.InParallelConfig{
@@ -311,11 +316,11 @@ var _ = Describe("Factory Put", func() {
 							},
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{
@@ -357,7 +362,7 @@ var _ = Describe("Factory Put", func() {
 
 		Context("when a put plan follows a task plan", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Task: "some-task",
@@ -367,11 +372,11 @@ var _ = Describe("Factory Put", func() {
 							Resource: "some-resource",
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{
@@ -410,7 +415,7 @@ var _ = Describe("Factory Put", func() {
 
 		Context("when a put plan is between two task plans", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Task: "those who resist our will",
@@ -422,7 +427,7 @@ var _ = Describe("Factory Put", func() {
 							Task: "some-other-task",
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan", func() {
@@ -461,7 +466,7 @@ var _ = Describe("Factory Put", func() {
 					}),
 				})
 
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(actual).To(testhelpers.MatchPlan(expectedPlan))
@@ -470,7 +475,7 @@ var _ = Describe("Factory Put", func() {
 
 		Context("when I have a put specifying inputs", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Put:      "some-put",
@@ -478,11 +483,11 @@ var _ = Describe("Factory Put", func() {
 							Inputs:   &atc.InputsConfig{Specified: []string{"input-1", "input-2"}},
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan with inputs specified", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{
@@ -514,7 +519,7 @@ var _ = Describe("Factory Put", func() {
 
 		Context("when I have a put specifying all inputs", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Put:      "some-put",
@@ -522,11 +527,11 @@ var _ = Describe("Factory Put", func() {
 							Inputs:   &atc.InputsConfig{All: true},
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan with all inputs", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{
@@ -558,18 +563,18 @@ var _ = Describe("Factory Put", func() {
 
 		Context("when I have a put specifying no inputs", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Put:      "some-put",
 							Resource: "some-resource",
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan without inputs specified", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				putPlan := expectedPlanFactory.NewPlan(atc.PutPlan{

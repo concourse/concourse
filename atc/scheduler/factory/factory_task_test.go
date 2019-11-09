@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
@@ -15,7 +16,7 @@ var _ = Describe("Factory Task", func() {
 
 			resources           atc.ResourceConfigs
 			resourceTypes       atc.VersionedResourceTypes
-			input               atc.JobConfig
+			fakeJob             *dbfakes.FakeJob
 			actualPlanFactory   atc.PlanFactory
 			expectedPlanFactory atc.PlanFactory
 			params              atc.Params
@@ -25,6 +26,7 @@ var _ = Describe("Factory Task", func() {
 			actualPlanFactory = atc.NewPlanFactory(123)
 			expectedPlanFactory = atc.NewPlanFactory(123)
 			buildFactory = factory.NewBuildFactory(actualPlanFactory)
+			fakeJob = new(dbfakes.FakeJob)
 
 			resources = atc.ResourceConfigs{
 				{
@@ -53,18 +55,18 @@ var _ = Describe("Factory Task", func() {
 					"baz": "qux",
 				}
 
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Task:   "some-task",
 							Params: params,
 						},
 					},
-				}
+				})
 			})
 
 			It("returns the correct plan", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -78,7 +80,7 @@ var _ = Describe("Factory Task", func() {
 
 		Context("when input mapping is specified", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Task: "some-task",
@@ -99,11 +101,11 @@ var _ = Describe("Factory Task", func() {
 							},
 						},
 					},
-				}
+				})
 			})
 
 			It("creates build plan with aliased inputs", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -131,7 +133,7 @@ var _ = Describe("Factory Task", func() {
 
 		Context("when output mapping is specified", func() {
 			BeforeEach(func() {
-				input = atc.JobConfig{
+				fakeJob.ConfigReturns(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Task: "some-task",
@@ -152,11 +154,11 @@ var _ = Describe("Factory Task", func() {
 							},
 						},
 					},
-				}
+				})
 			})
 
 			It("creates build plan with aliased output", func() {
-				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
