@@ -1,8 +1,8 @@
 package tracing
 
 import (
-	"go.opentelemetry.io/exporter/trace/stdout"
-	"go.opentelemetry.io/sdk/export"
+	"go.opentelemetry.io/otel/exporter/trace/stdout"
+	"go.opentelemetry.io/otel/sdk/export"
 )
 
 // Stdout is an exporter that just prints the spans to the standard output.

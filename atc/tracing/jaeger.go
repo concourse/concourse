@@ -3,18 +3,16 @@ package tracing
 import (
 	"fmt"
 
-	"go.opentelemetry.io/exporter/trace/jaeger"
-	"go.opentelemetry.io/sdk/export"
+	"go.opentelemetry.io/otel/exporter/trace/jaeger"
+	"go.opentelemetry.io/otel/sdk/export"
 )
 
 // Jaeger configures support for exporting traces to Jaeger.
 //
-// TODO allow configuring tags
-//      https://github.com/open-telemetry/opentelemetry-go/issues/202
-//
 type Jaeger struct {
-	Endpoint string `long:"tracing-jaeger-endpoint" description:"jaeger http-based thrift collector"`
-	Service  string `long:"tracing-jaeger-service"  description:"jaeger process service name"        default:"web"`
+	Endpoint string            `long:"tracing-jaeger-endpoint" description:"jaeger http-based thrift collector"`
+	Tags     map[string]string `long:"tracing-jaeger-tags"     description:"tags to add to the components"`
+	Service  string            `long:"tracing-jaeger-service"  description:"jaeger process service name"        default:"web"`
 }
 
 func (j Jaeger) IsConfigured() bool {
@@ -26,6 +24,7 @@ func (j Jaeger) Exporter() (export.SpanSyncer, error) {
 		jaeger.WithCollectorEndpoint(j.Endpoint),
 		jaeger.WithProcess(jaeger.Process{
 			ServiceName: j.Service,
+			Tags:        keyValueSlice(j.Tags),
 		}),
 	)
 	if err != nil {

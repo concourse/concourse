@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"go.opentelemetry.io/api/trace"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 type FakeTracer struct {

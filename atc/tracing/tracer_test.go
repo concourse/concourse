@@ -5,9 +5,10 @@ import (
 
 	"github.com/concourse/concourse/atc/tracing"
 	"github.com/concourse/concourse/atc/tracing/tracingfakes"
-	"go.opentelemetry.io/api/core"
-	"go.opentelemetry.io/api/key"
-	"go.opentelemetry.io/api/trace"
+	"go.opentelemetry.io/otel/api/core"
+	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/global"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,6 +22,7 @@ var _ = Describe("Tracer", func() {
 
 	BeforeEach(func() {
 		fakeTracer := new(tracingfakes.FakeTracer)
+		fakeTraceProvider := new(tracingfakes.FakeProvider)
 		fakeSpan = new(tracingfakes.FakeSpan)
 
 		fakeTracer.StartReturns(
@@ -28,7 +30,9 @@ var _ = Describe("Tracer", func() {
 			fakeSpan,
 		)
 
-		trace.SetGlobalTracer(fakeTracer)
+		fakeTraceProvider.GetTracerReturns(fakeTracer)
+
+		global.SetTraceProvider(fakeTraceProvider)
 	})
 
 	Describe("StartSpan", func() {

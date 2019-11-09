@@ -30,11 +30,11 @@ require (
 	github.com/aws/aws-sdk-go v1.25.18
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
+	github.com/bombsimon/wsl v1.2.6 // indirect
 	github.com/boombuler/barcode v1.0.0 // indirect
 	github.com/briankassouf/jose v0.9.1 // indirect
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
-	github.com/census-instrumentation/opencensus-proto v0.2.1 // indirect
 	github.com/centrify/cloud-golang-sdk v0.0.0-20180119173102-7c97cc6fde16 // indirect
 	github.com/chrismalek/oktasdk-go v0.0.0-20181212195951-3430665dfaa0 // indirect
 	github.com/circonus-labs/circonus-gometrics v2.2.1+incompatible // indirect
@@ -128,8 +128,8 @@ require (
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v1.2.0
 	github.com/mattbaird/elastigo v0.0.0-20170123220020-2fe47fd29e4b // indirect
-	github.com/mattn/go-colorable v0.1.2
-	github.com/mattn/go-isatty v0.0.8
+	github.com/mattn/go-colorable v0.1.4
+	github.com/mattn/go-isatty v0.0.10
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.2
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
@@ -142,8 +142,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/oklog/run v1.0.0 // indirect
-	github.com/onsi/ginkgo v1.10.1
-	github.com/onsi/gomega v1.7.0
+	github.com/onsi/ginkgo v1.10.3
+	github.com/onsi/gomega v1.7.1
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
@@ -152,6 +152,7 @@ require (
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pborman/uuid v1.2.0 // indirect
+	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/peterhellberg/link v1.0.0
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
 	github.com/pkg/errors v0.8.1
@@ -163,10 +164,12 @@ require (
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20180130194729-c4fab1ac1bec // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
+	github.com/securego/gosec v0.0.0-20191104154532-b4c76d4234af // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/smartystreets/assertions v0.0.0-20190116191733-b6c0e53d7304 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190222223459-a17d461953aa // indirect
+	github.com/spf13/viper v1.5.0 // indirect
 	github.com/square/certstrap v1.1.1
 	github.com/streadway/amqp v0.0.0-20190225234609-30f8ed68076e // indirect
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
@@ -178,17 +181,20 @@ require (
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
-	go.opentelemetry.io v0.0.0-20191011010735-3516ebc456c7
-	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
+	go.opentelemetry.io/otel v0.1.0
+	go.opentelemetry.io/otel/exporter/trace/jaeger v1.0.0
+	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	google.golang.org/grpc v1.24.0
+	golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd // indirect
+	golang.org/x/tools v0.0.0-20191108193012-7d206e10da11 // indirect
+	google.golang.org/grpc v1.25.1
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/gorethink/gorethink.v4 v4.1.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 	gopkg.in/ory-am/dockertest.v2 v2.2.3 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.0
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.5
 	gotest.tools v2.1.0+incompatible // indirect
 	k8s.io/api v0.0.0-20190313235455-40a48860b5ab
 	k8s.io/apimachinery v0.0.0-20190313205120-d7deff9243b1

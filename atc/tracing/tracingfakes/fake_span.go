@@ -6,9 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/api/core"
-	"go.opentelemetry.io/api/distributedcontext"
-	"go.opentelemetry.io/api/trace"
+	"go.opentelemetry.io/otel/api/core"
+	"go.opentelemetry.io/otel/api/trace"
 	"google.golang.org/grpc/codes"
 )
 
@@ -53,16 +52,6 @@ type FakeSpan struct {
 	linkArgsForCall []struct {
 		arg1 core.SpanContext
 		arg2 []core.KeyValue
-	}
-	ModifyAttributeStub        func(distributedcontext.Mutator)
-	modifyAttributeMutex       sync.RWMutex
-	modifyAttributeArgsForCall []struct {
-		arg1 distributedcontext.Mutator
-	}
-	ModifyAttributesStub        func(...distributedcontext.Mutator)
-	modifyAttributesMutex       sync.RWMutex
-	modifyAttributesArgsForCall []struct {
-		arg1 []distributedcontext.Mutator
 	}
 	SetAttributeStub        func(core.KeyValue)
 	setAttributeMutex       sync.RWMutex
@@ -321,68 +310,6 @@ func (fake *FakeSpan) LinkArgsForCall(i int) (core.SpanContext, []core.KeyValue)
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeSpan) ModifyAttribute(arg1 distributedcontext.Mutator) {
-	fake.modifyAttributeMutex.Lock()
-	fake.modifyAttributeArgsForCall = append(fake.modifyAttributeArgsForCall, struct {
-		arg1 distributedcontext.Mutator
-	}{arg1})
-	fake.recordInvocation("ModifyAttribute", []interface{}{arg1})
-	fake.modifyAttributeMutex.Unlock()
-	if fake.ModifyAttributeStub != nil {
-		fake.ModifyAttributeStub(arg1)
-	}
-}
-
-func (fake *FakeSpan) ModifyAttributeCallCount() int {
-	fake.modifyAttributeMutex.RLock()
-	defer fake.modifyAttributeMutex.RUnlock()
-	return len(fake.modifyAttributeArgsForCall)
-}
-
-func (fake *FakeSpan) ModifyAttributeCalls(stub func(distributedcontext.Mutator)) {
-	fake.modifyAttributeMutex.Lock()
-	defer fake.modifyAttributeMutex.Unlock()
-	fake.ModifyAttributeStub = stub
-}
-
-func (fake *FakeSpan) ModifyAttributeArgsForCall(i int) distributedcontext.Mutator {
-	fake.modifyAttributeMutex.RLock()
-	defer fake.modifyAttributeMutex.RUnlock()
-	argsForCall := fake.modifyAttributeArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeSpan) ModifyAttributes(arg1 ...distributedcontext.Mutator) {
-	fake.modifyAttributesMutex.Lock()
-	fake.modifyAttributesArgsForCall = append(fake.modifyAttributesArgsForCall, struct {
-		arg1 []distributedcontext.Mutator
-	}{arg1})
-	fake.recordInvocation("ModifyAttributes", []interface{}{arg1})
-	fake.modifyAttributesMutex.Unlock()
-	if fake.ModifyAttributesStub != nil {
-		fake.ModifyAttributesStub(arg1...)
-	}
-}
-
-func (fake *FakeSpan) ModifyAttributesCallCount() int {
-	fake.modifyAttributesMutex.RLock()
-	defer fake.modifyAttributesMutex.RUnlock()
-	return len(fake.modifyAttributesArgsForCall)
-}
-
-func (fake *FakeSpan) ModifyAttributesCalls(stub func(...distributedcontext.Mutator)) {
-	fake.modifyAttributesMutex.Lock()
-	defer fake.modifyAttributesMutex.Unlock()
-	fake.ModifyAttributesStub = stub
-}
-
-func (fake *FakeSpan) ModifyAttributesArgsForCall(i int) []distributedcontext.Mutator {
-	fake.modifyAttributesMutex.RLock()
-	defer fake.modifyAttributesMutex.RUnlock()
-	argsForCall := fake.modifyAttributesArgsForCall[i]
-	return argsForCall.arg1
-}
-
 func (fake *FakeSpan) SetAttribute(arg1 core.KeyValue) {
 	fake.setAttributeMutex.Lock()
 	fake.setAttributeArgsForCall = append(fake.setAttributeArgsForCall, struct {
@@ -626,10 +553,6 @@ func (fake *FakeSpan) Invocations() map[string][][]interface{} {
 	defer fake.isRecordingMutex.RUnlock()
 	fake.linkMutex.RLock()
 	defer fake.linkMutex.RUnlock()
-	fake.modifyAttributeMutex.RLock()
-	defer fake.modifyAttributeMutex.RUnlock()
-	fake.modifyAttributesMutex.RLock()
-	defer fake.modifyAttributesMutex.RUnlock()
 	fake.setAttributeMutex.RLock()
 	defer fake.setAttributeMutex.RUnlock()
 	fake.setAttributesMutex.RLock()

@@ -1,14 +1,17 @@
 package tracing
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/api/trace.Tracer
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/api/trace.Span
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Tracer
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Provider
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Span
 
 import (
 	"context"
+	"fmt"
 
-	"go.opentelemetry.io/api/trace"
-	"go.opentelemetry.io/sdk/export"
-	sdktrace "go.opentelemetry.io/sdk/trace"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/global"
+	"go.opentelemetry.io/otel/sdk/export"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 // StartSpan creates a span, giving back a context that has itself added as the
@@ -49,7 +52,7 @@ func StartSpan(
 	component string,
 	attrs Attrs,
 ) (context.Context, trace.Span) {
-	ctx, span := trace.GlobalTracer().Start(
+	ctx, span := global.TraceProvider().GetTracer("atc").Start(
 		ctx,
 		component,
 	)
@@ -64,16 +67,17 @@ func StartSpan(
 // By default, a noop tracer is registered, thus, it's safe to call StartSpan
 // and other related methods even before `ConfigureTracer` it called.
 //
-func ConfigureTracer(exporter export.SpanSyncer) {
-	sdktrace.Register()
-
-	sdktrace.RegisterSpanProcessor(
-		sdktrace.NewSimpleSpanProcessor(exporter),
-	)
-
-	sdktrace.ApplyConfig(
+func ConfigureTracer(exporter export.SpanSyncer) error {
+	tp, err := sdktrace.NewProvider(sdktrace.WithConfig(
 		sdktrace.Config{
 			DefaultSampler: sdktrace.AlwaysSample(),
-		},
+		}),
+		sdktrace.WithSyncer(exporter),
 	)
+	if err != nil {
+		return fmt.Errorf("failed to configure trace provider: %w", err)
+	}
+
+	global.SetTraceProvider(tp)
+	return nil
 }
