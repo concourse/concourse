@@ -114,29 +114,29 @@ decodeBuildEvent =
                                 (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
-                    "initialize-set-pipeline" ->
+                    "initialize" ->
                         Json.Decode.field
                             "data"
-                            (Json.Decode.map2 InitializeSetPipeline
+                            (Json.Decode.map2 Initialize
                                 (Json.Decode.field "origin" <| Json.Decode.lazy (\_ -> decodeOrigin))
                                 (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
-                    "start-set-pipeline" ->
+                    "start" ->
                         Json.Decode.field
                             "data"
-                            (Json.Decode.map2 StartSetPipeline
+                            (Json.Decode.map2 Start
                                 (Json.Decode.field "origin" decodeOrigin)
                                 (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
                             )
 
-                    "finish-set-pipeline" ->
+                    "finish" ->
                         Json.Decode.field
                             "data"
-                            (Json.Decode.map3 FinishSetPipeline
+                            (Json.Decode.map3 Finish
                                 (Json.Decode.field "origin" decodeOrigin)
-                                (Json.Decode.field "exit_status" Json.Decode.int)
                                 (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
+                                (Json.Decode.field "succeeded"  Json.Decode.bool)
                             )
 
                     "initialize-get" ->

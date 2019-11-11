@@ -61,9 +61,6 @@ init hl resources buildPlan =
         Concourse.BuildStepTask name ->
             initBottom hl Task buildPlan.id name
 
-        Concourse.BuildStepSetPipeline name ->
-            initBottom hl Task buildPlan.id name
-
         Concourse.BuildStepArtifactInput name ->
             initBottom hl
                 (\s ->
@@ -83,6 +80,9 @@ init hl resources buildPlan =
 
         Concourse.BuildStepPut name ->
             initBottom hl Put buildPlan.id name
+
+        Concourse.BuildStepSetPipeline name ->
+            initBottom hl SetPipeline buildPlan.id name
 
         Concourse.BuildStepAggregate plans ->
             initMultiStep hl resources buildPlan.id Aggregate plans
@@ -272,6 +272,9 @@ treeIsActive stepTree =
         Task step ->
             stepIsActive step
 
+        SetPipeline step ->
+            stepIsActive step
+
         ArtifactInput _ ->
             False
 
@@ -400,6 +403,9 @@ viewTree session model tree =
 
         Put step ->
             viewStep model session step StepHeaderPut
+
+        SetPipeline step ->
+            viewStep model session step StepHeaderSetPipeline
 
         Try step ->
             viewTree session model step
