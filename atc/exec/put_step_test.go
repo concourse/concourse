@@ -264,21 +264,44 @@ var _ = Describe("PutStep", func() {
 			})
 
 			Context("when the inputs are detected", func() {
-				BeforeEach(func() {
-					putPlan.Inputs = &atc.InputsConfig{
-						Detect: true,
-					}
-					putPlan.Params = atc.Params{"some-param": "some-source/source", "another-param": "does-not-exist", "number-param": 123}
+				Context("when the params are only strings", func() {
+					BeforeEach(func() {
+						putPlan.Inputs = &atc.InputsConfig{
+							Detect: true,
+						}
+						putPlan.Params = atc.Params{"some-param": "some-source/source", "another-param": "does-not-exist", "number-param": 123}
+					})
+
+					It("initializes the container with detected inputs", func() {
+						_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+						Expect(containerSpec.Inputs).To(HaveLen(1))
+						Expect([]worker.ArtifactSource{
+							containerSpec.Inputs[0].Source(),
+						}).To(ConsistOf(
+							exec.PutResourceSource{fakeSource},
+						))
+					})
 				})
 
-				It("initializes the container with detected inputs", func() {
-					_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
-					Expect(containerSpec.Inputs).To(HaveLen(1))
-					Expect([]worker.ArtifactSource{
-						containerSpec.Inputs[0].Source(),
-					}).To(ConsistOf(
-						exec.PutResourceSource{fakeSource},
-					))
+				Context("when the params have maps and slices", func() {
+					BeforeEach(func() {
+						putPlan.Inputs = &atc.InputsConfig{
+							Detect: true,
+						}
+						putPlan.Params = atc.Params{"some-slice": []interface{}{[]interface{}{"some-source/source", "does-not-exist", 123}, []interface{}{"does not exist-2"}}, "some-map": map[string]interface{}{"key": "some-other-source/source"}}
+					})
+
+					It("initializes the container with detected inputs", func() {
+						_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+						Expect(containerSpec.Inputs).To(HaveLen(2))
+						Expect([]worker.ArtifactSource{
+							containerSpec.Inputs[0].Source(),
+							containerSpec.Inputs[1].Source(),
+						}).To(ConsistOf(
+							exec.PutResourceSource{fakeSource},
+							exec.PutResourceSource{fakeOtherSource},
+						))
+					})
 				})
 			})
 

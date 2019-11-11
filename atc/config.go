@@ -202,10 +202,15 @@ func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 }
 
 const InputsAll = "all"
+const InputsDetect = "detect"
 
 func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	if c.All {
 		return json.Marshal(InputsAll)
+	}
+
+	if c.Detect {
+		return json.Marshal(InputsDetect)
 	}
 
 	if c.Specified != nil {

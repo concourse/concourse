@@ -75,19 +75,39 @@ type detectInputs struct {
 	inputs []string
 }
 
+func detectInputsFromParam(value interface{}) []string {
+	switch actual := value.(type) {
+	case string:
+		input := actual
+		if idx := strings.IndexByte(actual, '/'); idx >= 0 {
+			input = actual[:idx]
+		}
+		return []string{input}
+	case map[string]interface{}:
+		var inputs []string
+		for _, value := range actual {
+			inputs = append(inputs, detectInputsFromParam(value)...)
+		}
+		return inputs
+	case []interface{}:
+		var inputs []string
+		for _, value := range actual {
+			inputs = append(inputs, detectInputsFromParam(value)...)
+		}
+
+		return inputs
+	default:
+		return []string{}
+	}
+}
+
 func NewDetectInputs(params map[string]interface{}) PutInputs {
 	var inputs []string
+
 	for _, value := range params {
-		switch actual := value.(type) {
-		case string:
-			input := actual
-			if idx := strings.IndexByte(actual, '/'); idx >= 0 {
-				input = actual[:idx]
-			}
-			inputs = append(inputs, input)
-		default:
-		}
+		inputs = append(inputs, detectInputsFromParam(value)...)
 	}
+
 	return &detectInputs{
 		inputs: inputs,
 	}

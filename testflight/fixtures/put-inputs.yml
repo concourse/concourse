@@ -10,6 +10,11 @@ resources:
   source:
     initial_version: v1
 
+- name: map-input
+  type: mock
+  source:
+    initial_version: v1
+
 - name: some-resource
   type: mock
   source:
@@ -69,6 +74,47 @@ jobs:
   - get: specified-input
   - get: all-input
   - put: some-resource
+  - task: failing-task
+    config:
+      platform: linux
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+      run:
+        path: sh
+        args: ["-c", "exit 1"]
+
+- name: job-using-detect-inputs-simple
+  plan:
+  - get: specified-input
+  - get: all-input
+  - put: some-resource
+    inputs: detect
+    params:
+      specified: specified-input/something
+      not_there: does-not-exist
+  - task: failing-task
+    config:
+      platform: linux
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+      run:
+        path: sh
+        args: ["-c", "exit 1"]
+
+- name: job-using-detect-inputs-complex
+  plan:
+  - get: specified-input
+  - get: all-input
+  - get: map-input
+  - put: some-resource
+    inputs: detect
+    params:
+      specified: [[specified-input/something, 123456], [does-not-exist]]
+      map_param:
+        some-input: map-input/input
+        no: does-not-exist-too
   - task: failing-task
     config:
       platform: linux
