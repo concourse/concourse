@@ -219,7 +219,6 @@ var _ = Describe("Client", func() {
 
 		var (
 			ctx context.Context
-			//cancel                func()
 			owner                 db.ContainerOwner
 			containerSpec         worker.ContainerSpec
 			workerSpec            worker.WorkerSpec
@@ -298,11 +297,11 @@ var _ = Describe("Client", func() {
 
 			Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
 
-			_, _, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+			_, _, actualOwner, actualContainerSpec, actualWorkerSpec, actualStrategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
 			Expect(actualOwner).To(Equal(owner))
 			Expect(actualContainerSpec).To(Equal(containerSpec))
 			Expect(actualWorkerSpec).To(Equal(workerSpec))
-			Expect(strategy).To(Equal(fakeStrategy))
+			Expect(actualStrategy).To(Equal(fakeStrategy))
 		})
 
 		Context("worker is chosen", func() {

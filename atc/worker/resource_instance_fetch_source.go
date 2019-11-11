@@ -139,7 +139,7 @@ func (s *fetchSource) Find() (GetResult, Volume, bool, error) {
 // yet before creating it under the lock
 func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 	sLog := s.logger.Session("create")
-	result := GetResult{}
+	result := GetResult{} // TODO: no
 	var volume Volume
 
 	findResult, volume, found, err := s.Find()
@@ -167,6 +167,7 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 
 	if err != nil {
 		sLog.Error("failed-to-construct-resource", err)
+		// TODO: don't use 1 to mark concourse errors
 		result = GetResult{
 			1,
 			// todo: figure out what logically should be returned for VersionResult
@@ -176,19 +177,20 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 		return result, volume, err
 	}
 
-	volume = getResourceVolume(s.processSpec, container)
+	volume = volumeWithFetchedBits(s.processSpec, container)
 
 	vr, err := s.resource.Get(ctx, s.processSpec, container)
 
 	if err != nil {
 		sLog.Error("failed-to-fetch-resource", err)
-		// TODO Is this compatible with previous behaviour of returning a nil when error type is NOT ErrResourceScriptFailed
+		// TODO: Is this compatible with previous behaviour of returning a nil when error type is NOT ErrResourceScriptFailed
 
 		// if error returned from running the actual script
 		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
+			// TODO: we need to pass along the script error message
 			result = GetResult{
 				failErr.ExitStatus,
-				runtime.VersionResult{},
+				runtime.VersionResult{}, // dont need to init these
 				runtime.GetArtifact{},
 			}
 			// todo: check these return values
@@ -218,6 +220,7 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 		return result, nil, err
 	}
 
+	// TODO: set exitstatus
 	return GetResult{
 		VersionResult: vr,
 		GetArtifact: runtime.GetArtifact{
@@ -226,7 +229,8 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 	}, volume, nil
 }
 
-func getResourceVolume(processSpec runtime.ProcessSpec, container Container) Volume {
+func volumeWithFetchedBits(processSpec runtime.ProcessSpec, container Container) Volume {
+	// TODO: this is implicit, ResourcesDir("get") is always inflated
 	resourcePath := processSpec.Args[0]
 	for _, mount := range container.VolumeMounts() {
 		if mount.MountPath == resourcePath {

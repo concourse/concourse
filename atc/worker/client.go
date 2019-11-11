@@ -108,6 +108,10 @@ type GetResult struct {
 	GetArtifact   runtime.GetArtifact
 }
 
+func (result GetResult) ExitSuccessful() bool {
+	return result.Status == 0
+}
+
 type ImageFetcherSpec struct {
 	ResourceTypes atc.VersionedResourceTypes
 	Delegate      ImageFetchingDelegate
@@ -334,6 +338,10 @@ func (client *client) RunGetStep(
 	}
 
 	sign, err := resource.Signature()
+	if err != nil {
+		return GetResult{}, err
+	}
+
 	lockName := lockName(sign, chosenWorker.Name())
 
 	getResult, _, err := chosenWorker.Fetch(

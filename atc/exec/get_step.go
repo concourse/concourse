@@ -2,7 +2,6 @@ package exec
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -17,8 +16,6 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 )
-
-var ErrUndefinedGetResultState = errors.New("undefined 'get' result, script returned non-nil value but no err was returned")
 
 type ErrPipelineNotFound struct {
 	PipelineName string
@@ -167,19 +164,21 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		StderrWriter: step.delegate.Stderr(),
 	}
 
-	res := step.resourceFactory.NewResource(
+	resourceToGet := step.resourceFactory.NewResource(
 		source,
 		params,
 		version,
 	)
 
-	//TODO Starting should be emitted just before the get script is executed rather than at this point.
+	containerOwner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
+
+	// TODO: Starting should be emitted just before the get script is executed rather than at this point
 	step.delegate.Starting(logger)
 
 	getResult, err := step.workerClient.RunGetStep(
 		ctx,
 		logger,
-		db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID),
+		containerOwner,
 		containerSpec,
 		workerSpec,
 		step.strategy,
@@ -187,30 +186,32 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		imageSpec,
 		processSpec,
 		resourceCache,
-		res,
+		resourceToGet,
 	)
+	if err != nil {
+		return err
+	}
 
-	if getResult.Status == 0 && err == nil {
-		state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.Name), getResult.GetArtifact)
+	if getResult.ExitSuccessful() {
+		state.ArtifactRepository().RegisterArtifact(
+			build.ArtifactName(step.plan.Name),
+			getResult.GetArtifact,
+		)
 
 		if step.plan.Resource != "" {
 			step.delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
 		}
 
-		step.delegate.Finished(logger, 0, getResult.VersionResult)
-
 		step.succeeded = true
-
-		return nil
-	} else if getResult.Status != 0 {
-		step.delegate.Finished(logger, ExitStatus(getResult.Status), getResult.VersionResult)
-		return nil
-	} else {
-		// err is a concourse produced error, not associated to script failure
-		return err
 	}
 
-	return ErrUndefinedGetResultState
+	step.delegate.Finished(
+		logger,
+		ExitStatus(getResult.Status),
+		getResult.VersionResult,
+	)
+
+	return nil
 }
 
 // Succeeded returns true if the resource was successfully fetched.
