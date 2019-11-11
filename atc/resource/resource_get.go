@@ -27,9 +27,5 @@ func (resource *resource) Get(
 		spec.StderrWriter,
 		true,
 	)
-	if err != nil {
-		return vr, err
-	}
-
-	return vr, nil
+	return vr, err
 }
