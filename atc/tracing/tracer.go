@@ -14,6 +14,14 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
+// Configured indicates whether tracing has been configured or not.
+//
+// This variable is needed in order to shortcircuit span generation when
+// tracing hasn't been configured.
+//
+//
+var Configured bool
+
 // StartSpan creates a span, giving back a context that has itself added as the
 // parent span.
 //
@@ -52,12 +60,18 @@ func StartSpan(
 	component string,
 	attrs Attrs,
 ) (context.Context, trace.Span) {
+	if !Configured {
+		return ctx, trace.NoopSpan{}
+	}
+
 	ctx, span := global.TraceProvider().GetTracer("atc").Start(
 		ctx,
 		component,
 	)
 
-	span.SetAttributes(keyValueSlice(attrs)...)
+	if len(attrs) != 0 {
+		span.SetAttributes(keyValueSlice(attrs)...)
+	}
 
 	return ctx, span
 }
@@ -79,5 +93,6 @@ func ConfigureTracer(exporter export.SpanSyncer) error {
 	}
 
 	global.SetTraceProvider(tp)
+	Configured = true
 	return nil
 }

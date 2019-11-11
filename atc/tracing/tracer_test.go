@@ -33,6 +33,7 @@ var _ = Describe("Tracer", func() {
 		fakeTraceProvider.GetTracerReturns(fakeTracer)
 
 		global.SetTraceProvider(fakeTraceProvider)
+		tracing.Configured = true
 	})
 
 	Describe("StartSpan", func() {
