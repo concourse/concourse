@@ -6,13 +6,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"sigs.k8s.io/yaml"
+
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/vars"
-	"io/ioutil"
-	"sigs.k8s.io/yaml"
 )
 
 // SetPipelineStep sets a pipeline to current team. If pipeline_name specified
@@ -63,11 +63,6 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	err := source.Validate()
-	if err != nil {
-		return err
-	}
-
-	err = source.EvaluatePlan(step.delegate.Variables())
 	if err != nil {
 		return err
 	}
@@ -211,30 +206,6 @@ func (s setPipelineSource) FetchConfig() (*atc.Config, error) {
 func (s setPipelineSource) Validate() error {
 	if s.step.plan.File == "" {
 		return errors.New("file is not specified")
-	}
-
-	return nil
-}
-
-func (s setPipelineSource) EvaluatePlan(variables vars.Variables) error {
-	params := atc.Params{
-		"file":      s.step.plan.File,
-		"var_files": s.step.plan.VarFiles,
-	}
-
-	params, err := creds.NewParams(variables, params).Evaluate()
-	if err != nil {
-		return err
-	}
-
-	s.step.plan.File = params["file"].(string)
-	s.step.plan.VarFiles = []string{}
-	for _, ele := range params["var_files"].([]interface{}) {
-		s.step.plan.VarFiles = append(s.step.plan.VarFiles, ele.(string))
-	}
-
-	if s.step.plan.Name == "self" {
-		s.step.plan.Name = s.step.metadata.PipelineName
 	}
 
 	return nil
