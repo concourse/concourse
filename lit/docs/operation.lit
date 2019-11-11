@@ -11,6 +11,7 @@ them, but we do recommend at least learning how to set up \reference{creds} and
 \include-section{./operation/encryption.lit}
 \include-section{./operation/creds.lit}
 \include-section{./operation/metrics.lit}
+\include-section{./operation/tracing.lit}
 \include-section{./operation/container-placement.lit}
 \include-section{./operation/global-resources.lit}
 \include-section{./operation/administration.lit}
