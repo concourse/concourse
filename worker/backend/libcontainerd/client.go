@@ -22,7 +22,7 @@ func New(address string) (c *client, err error) {
 
 	c.containerd, err = containerd.New(address)
 	if err != nil {
-		err = fmt.Errorf("failed to connect to socket: %w", err)
+		err = fmt.Errorf("failed to connect to addr %s: %w", address, err)
 		return
 	}
 

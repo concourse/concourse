@@ -1,18 +1,23 @@
 package backend
 
 import (
+	"context"
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	_ "github.com/concourse/concourse/worker/backend/libcontainerd"
+	"github.com/concourse/concourse/worker/backend/libcontainerd"
 )
 
 var _ garden.Backend = (*Backend)(nil)
 
-type Backend struct{}
+type Backend struct {
+	client libcontainerd.Client
+}
 
-func New() Backend {
-	return Backend{}
+func New(client libcontainerd.Client) Backend {
+	return Backend{
+		client: client,
+	}
 }
 
 // setup?
@@ -43,6 +48,7 @@ func (b *Backend) GraceTime(container garden.Container) (duration time.Duration)
 //
 // TODO - we might use the `version` service here as a proxy to "ping"
 func (b *Backend) Ping() (err error) {
+	err = b.client.Version(context.Background())
 	return
 }
 
