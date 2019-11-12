@@ -28,7 +28,8 @@ type Certs struct {
 }
 
 type GardenBackend struct {
-	UseHoudini bool `long:"use-houdini" description:"Use the insecure Houdini Garden backend."`
+	UseHoudini    bool `long:"use-houdini"    description:"Use the insecure Houdini Garden backend."`
+	UseContainerd bool `long:"use-containerd" description:"Use the containerd backend."`
 
 	GDN          string    `long:"bin"    default:"gdn" description:"Path to 'gdn' executable (or leave as 'gdn' to find it in $PATH)."`
 	GardenConfig flag.File `long:"config"               description:"Path to a config file to use for Garden. You can also specify Garden flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
@@ -67,11 +68,16 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 	}
 
 	var runner ifrit.Runner
-	if cmd.Garden.UseHoudini {
+
+	switch {
+	case cmd.Garden.UseHoudini:
 		runner, err = cmd.houdiniRunner(logger)
-	} else {
+	case cmd.Garden.UseContainerd:
+		runner, err = cmd.containerdRunner(logger)
+	default:
 		runner, err = cmd.gdnRunner(logger)
 	}
+
 	if err != nil {
 		return atc.Worker{}, nil, err
 	}
