@@ -4,22 +4,18 @@ import (
 	"testing"
 
 	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var (
-	fakeContainer *workerfakes.FakeContainer
+	resourceFactory resource.ResourceFactory
 
-	resourceForContainer resource.Resource
 )
 
 var _ = BeforeEach(func() {
-	fakeContainer = new(workerfakes.FakeContainer)
 
-	resourceForContainer = resource.NewResource(fakeContainer)
+	resourceFactory = resource.NewResourceFactory()
 })
 
 func TestResource(t *testing.T) {
