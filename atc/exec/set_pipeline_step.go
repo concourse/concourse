@@ -95,7 +95,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 	fromVersion := db.ConfigVersion(0)
 	pipeline, found, err := team.Pipeline(step.plan.Name)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	var existingConfig atc.Config

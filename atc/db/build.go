@@ -133,8 +133,6 @@ type Build interface {
 
 	IsDrained() bool
 	SetDrained(bool) error
-
-	Team() (Team, bool, error)
 }
 
 type build struct {
@@ -830,10 +828,6 @@ func (b *build) Artifacts() ([]WorkerArtifact, error) {
 	}
 
 	return artifacts, nil
-}
-
-func (b *build) Team() (Team, bool, error) {
-	return NewTeamFactory(b.conn, b.lockFactory).FindTeam(b.TeamName())
 }
 
 func (b *build) SaveOutput(

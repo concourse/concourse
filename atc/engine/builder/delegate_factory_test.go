@@ -302,6 +302,30 @@ var _ = Describe("DelegateFactory", func() {
 			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
 		})
 
+		Describe("Initializing", func() {
+			JustBeforeEach(func() {
+				delegate.Initializing(logger)
+			})
+
+			It("saves an event", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				event := fakeBuild.SaveEventArgsForCall(0)
+				Expect(event.EventType()).To(Equal(atc.EventType("initialize")))
+			})
+		})
+
+		Describe("Finished", func() {
+			JustBeforeEach(func() {
+				delegate.Finished(logger, true)
+			})
+
+			It("saves an event", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				event := fakeBuild.SaveEventArgsForCall(0)
+				Expect(event.EventType()).To(Equal(atc.EventType("finish")))
+			})
+		})
+
 		Describe("ImageVersionDetermined", func() {
 			var fakeResourceCache *dbfakes.FakeUsedResourceCache
 

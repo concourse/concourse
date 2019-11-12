@@ -80,6 +80,10 @@ var _ = Describe("ValidateConfig", func() {
 								"some-param": "some-value",
 							},
 						},
+						{
+							SetPipeline: "some-pipeline",
+							ConfigPath:  "some-file",
+						},
 					},
 				},
 				{
@@ -1260,6 +1264,21 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a set_pipeline step has no file configured", func(){
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, PlanConfig{
+						SetPipeline:      "other-pipeline",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does return an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].set_pipeline.other-pipeline does not specify any pipeline configuration"))
+				})
+			})
+
 			Context("when a job's input's passed constraints reference a bogus job", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
@@ -1395,6 +1414,5 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job has negative build_log_retention.days: -1"))
 			})
 		})
-
 	})
 })

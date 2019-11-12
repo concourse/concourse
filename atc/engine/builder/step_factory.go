@@ -18,7 +18,7 @@ type stepFactory struct {
 	pool                  worker.Pool
 	client                worker.Client
 	resourceFetcher       fetcher.Fetcher
-	teamFactory db.TeamFactory
+	teamFactory           db.TeamFactory
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultLimits         atc.ContainerLimits
@@ -43,7 +43,7 @@ func NewStepFactory(
 		pool:                  pool,
 		client:                client,
 		resourceFetcher:       resourceFetcher,
-		teamFactory: teamFactory,
+		teamFactory:           teamFactory,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		defaultLimits:         defaultLimits,

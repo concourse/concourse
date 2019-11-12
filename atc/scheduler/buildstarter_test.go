@@ -290,7 +290,7 @@ var _ = Describe("BuildStarter", func() {
 								Expect(tryStartErr).NotTo(HaveOccurred())
 							})
 
-							Context("when creaing a build plan", func() {
+							Context("when creating a build plan", func() {
 								BeforeEach(func() {
 									job.GetNextBuildInputsReturns([]db.BuildInput{}, true, nil)
 									fakePipeline.CheckPausedReturns(false, nil)
