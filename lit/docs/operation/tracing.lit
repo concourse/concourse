@@ -20,6 +20,11 @@ other systems is planned to expand as the underlying SDK
   There's only one variable that is required to be set in order to leverage
   Jaeger's integration with Concourse: \code{CONCOURSE_TRACING_JAEGER_ENDPOINT}.
 
+
+  \codeblock{bash}{{{
+  CONCOURSE_TRACING_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+  }}}
+
   This tells Concourse how to target Jaeger's Thrift HTTP endpoint to send the
   traces to.
 }
