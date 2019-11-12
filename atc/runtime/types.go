@@ -62,6 +62,7 @@ func (art TaskArtifact) ID() string {
 	return art.VolumeHandle
 }
 
+//go:generate counterfeiter . Runner
 type Runner interface {
 	RunScript(
 		context.Context,
