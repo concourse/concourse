@@ -14,7 +14,7 @@
 
 * @pivotal-bin-ju @taylorsilva @xtreme-sameer-vohra added batching to the NewRelic emitter and logging info for non 2xx responses from NewRelic #4698.
 
-#### <sub><sup><a name="4753" href="#4753">:link:</a></sup></sub> feature
+#### <sub><sup><a name="4755" href="#4755">:link:</a></sup></sub> feature
 
-* When using `fly intercept` to get a shell inside a target container, we default to the more ubiquitous `sh` over `bash` #4753.
+* When using `fly intercept` to get a shell inside a target container, we default to the more ubiquitous `sh` over `bash` #4755.
 
