@@ -136,7 +136,7 @@ decodeBuildEvent =
                             (Json.Decode.map3 Finish
                                 (Json.Decode.field "origin" decodeOrigin)
                                 (Json.Decode.field "time" <| Json.Decode.map dateFromSeconds Json.Decode.int)
-                                (Json.Decode.field "succeeded"  Json.Decode.bool)
+                                (Json.Decode.field "succeeded" Json.Decode.bool)
                             )
 
                     "initialize-get" ->

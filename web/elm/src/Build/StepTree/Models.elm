@@ -186,6 +186,7 @@ map f tree =
 
         SetPipeline step ->
             SetPipeline (f step)
+
         _ ->
             tree
 
