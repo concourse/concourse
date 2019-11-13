@@ -13,7 +13,7 @@ func (resource *resource) Check(
 	runnable runtime.Runner) ([]atc.Version, error) {
 	var versions []atc.Version
 
-	inputArgs, err := resource.Signature()
+	input, err := resource.Signature()
 	if err != nil {
 		return versions, err
 	}
@@ -21,14 +21,10 @@ func (resource *resource) Check(
 		ctx,
 		spec.Path,
 		nil,
-		inputArgs,
+		input,
 		&versions,
 		nil,
 		false,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return versions, nil
+	return versions, err
 }
