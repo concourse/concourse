@@ -143,11 +143,6 @@ type SetPipelinePlan struct {
 	File     string                 `json:"config"`
 	Vars     map[string]interface{} `json:"vars,omitempty"`
 	VarFiles []string               `json:"var_files,omitempty"`
-
-	//Params            Params `json:"params"`
-	//ImageArtifactName string `json:"image,omitempty"`
-
-	//VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }
 
 type RetryPlan []Plan

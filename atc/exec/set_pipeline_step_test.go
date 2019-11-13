@@ -22,10 +22,17 @@ import (
 
 var _ = Describe("GetStep", func() {
 
-	const badPipelineContent = `
+	const badPipelineContentWithInvalidSyntax = `
 ---
 jobs:
 - name:
+`
+
+
+	const badPipelineContentWithUnknownField = `
+---
+foo:
+- name: bar
 `
 
 	const pipelineContent = `
@@ -186,9 +193,20 @@ jobs:
 			})
 		})
 
-		Context("when pipeline file exists but bad format", func() {
+		Context("when pipeline file exists but with unknown field", func() {
 			BeforeEach(func() {
-				fakeSource.StreamFileReturns(&fakeReadCloser{str: badPipelineContent}, nil)
+				fakeSource.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithUnknownField}, nil)
+			})
+
+			It("should not return error", func() {
+				Expect(stepErr).To(HaveOccurred())
+				Expect(stepErr.Error()).To(Equal(`error unmarshaling JSON: while decoding JSON: json: unknown field "foo"`))
+			})
+		})
+
+		Context("when pipeline file exists but bad syntax", func() {
+			BeforeEach(func() {
+				fakeSource.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
 			})
 
 			It("should not return error", func() {
@@ -237,7 +255,7 @@ jobs:
 				})
 
 				It("should stdout have message", func() {
-					Expect(stdout).To(gbytes.Say("Done successfully."))
+					Expect(stdout).To(gbytes.Say("done"))
 				})
 			})
 
@@ -253,7 +271,7 @@ jobs:
 					})
 
 					It("should log no-diff", func() {
-						Expect(stdout).To(gbytes.Say("No diff found."))
+						Expect(stdout).To(gbytes.Say("no diff found."))
 					})
 				})
 
@@ -287,7 +305,8 @@ jobs:
 				})
 
 				It("should stdout have message", func() {
-					Expect(stdout).To(gbytes.Say("Done successfully."))
+					Expect(stdout).To(gbytes.Say("setting pipeline: some-pipeline"))
+					Expect(stdout).To(gbytes.Say("done"))
 				})
 
 				It("should finish successfully", func() {

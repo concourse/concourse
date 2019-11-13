@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sigs.k8s.io/yaml"
 	"strings"
 
 	"golang.org/x/crypto/ssh"
@@ -23,7 +24,32 @@ type Config struct {
 	VarSources    VarSourceConfigs `json:"var_sources,omitempty"`
 }
 
-var TopLevelConfigKeys = []string{"groups", "resources", "resource_types", "jobs", "var_sources"}
+func UnmarshalConfig(payload []byte, config interface{}) error {
+	// a 'skeleton' of Config, specifying only the toplevel fields
+	type skeletonConfig struct {
+		Groups        interface{} `json:"groups,omitempty"`
+		Resources     interface{} `json:"resources,omitempty"`
+		ResourceTypes interface{} `json:"resource_types,omitempty"`
+		Jobs          interface{} `json:"jobs,omitempty"`
+	}
+
+	var stripped skeletonConfig
+	err := yaml.UnmarshalStrict(payload, &stripped)
+	if err != nil {
+		return err
+	}
+
+	strippedPayload, err := yaml.Marshal(stripped)
+	if err != nil {
+		return err
+	}
+
+	return yaml.UnmarshalStrict(
+		strippedPayload,
+		&config,
+		yaml.DisallowUnknownFields,
+	)
+}
 
 type GroupConfig struct {
 	Name      string   `json:"name"`

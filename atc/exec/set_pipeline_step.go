@@ -113,19 +113,19 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 	if !diffExists {
 		logger.Debug("no-diff")
 
-		fmt.Fprintf(stdout, "No diff found.\n")
+		fmt.Fprintf(stdout, "no diff found.\n")
 		step.succeeded = true
 		step.delegate.Finished(logger, true)
 		return nil
 	}
 
-	fmt.Fprintf(stdout, "Updating the pipeline.\n")
+	fmt.Fprintf(stdout, "setting pipeline: %s\n", step.plan.Name)
 	pipeline, _, err = team.SavePipeline(step.plan.Name, *atcConfig, fromVersion, false)
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(stdout, "Done successfully.\n")
+	fmt.Fprintf(stdout, "done\n")
 	logger.Info("saved-pipeline", lager.Data{"team": team.Name(), "pipeline": pipeline.Name()})
 	step.succeeded = true
 	step.delegate.Finished(logger, true)
@@ -195,7 +195,7 @@ func (s setPipelineSource) FetchConfig() (*atc.Config, error) {
 	}
 
 	atcConfig := atc.Config{}
-	err = yaml.Unmarshal(config, &atcConfig)
+	err = atc.UnmarshalConfig(config, &atcConfig)
 	if err != nil {
 		return nil, err
 	}

@@ -310,7 +310,7 @@ var _ = Describe("Config API", func() {
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
-										"malformed config"
+										"malformed config: error converting YAML to JSON: yaml: line 1: did not find expected node content"
 									]
 								}`))
 						})
@@ -338,7 +338,7 @@ var _ = Describe("Config API", func() {
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
-										"malformed config"
+										"malformed config: error converting YAML to JSON: yaml: line 1: did not find expected node content"
 									]
 								}`))
 						})
@@ -930,30 +930,16 @@ jobs:
 						request.Body = gbytes.BufferWithBytes(remoraPayload)
 					})
 
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					It("returns 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 					})
 
 					It("returns Content-Type 'application/json'", func() {
 						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 					})
 
-					It("saves it", func() {
-						Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
-
-						name, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
-						Expect(name).To(Equal("a-pipeline"))
-						Expect(savedConfig).To(Equal(atc.Config{
-							Jobs: atc.JobConfigs{
-								{
-									Name:   "some-job",
-									Public: true,
-									Plan:   atc.PlanSequence{},
-								},
-							},
-						}))
-						Expect(id).To(Equal(db.ConfigVersion(42)))
-						Expect(initiallyPaused).To(BeTrue())
+					It("not save it", func() {
+						Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
 					})
 				})
 
@@ -986,7 +972,7 @@ jobs:
 					})
 
 					It("returns an error in the response body", func() {
-						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring("pubic"))
+						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring(`malformed config: error unmarshaling JSON: while decoding JSON: json: unknown field \"extra\"`))
 					})
 
 					It("does not save it", func() {
