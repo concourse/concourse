@@ -630,7 +630,7 @@ func (client *client) StreamFileFromArtifact(
 	return source.StreamFile(ctx, logger, filePath)
 }
 
-func lockName(resourceJson []byte, workerName string) string {
-	jsonRes := append(resourceJson, []byte(workerName)...)
+func lockName(resourceJSON []byte, workerName string) string {
+	jsonRes := append(resourceJSON, []byte(workerName)...)
 	return fmt.Sprintf("%x", sha256.Sum256(jsonRes))
 }

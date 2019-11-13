@@ -218,7 +218,7 @@ var _ = Describe("Client", func() {
 	Describe("RunGetStep", func() {
 
 		var (
-			ctx context.Context
+			ctx                   context.Context
 			owner                 db.ContainerOwner
 			containerSpec         worker.ContainerSpec
 			workerSpec            worker.WorkerSpec
@@ -233,8 +233,7 @@ var _ = Describe("Client", func() {
 			fakeResource          *resourcefakes.FakeResource
 			fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
 
-			versionResult runtime.VersionResult
-			err           error
+			err error
 
 			disasterErr error
 
@@ -289,7 +288,6 @@ var _ = Describe("Client", func() {
 				fakeUsedResourceCache,
 				fakeResource,
 			)
-			versionResult = result.VersionResult
 		})
 
 		It("finds/chooses a worker", func() {
@@ -326,24 +324,37 @@ var _ = Describe("Client", func() {
 			})
 		})
 
-		Context("worker selection returns an error", func() {
+		Context("Worker selection returns an error", func() {
 			BeforeEach(func() {
 				fakePool.FindOrChooseWorkerForContainerReturns(nil, disasterErr)
 			})
 
-			It("returns the error", func() {
+			It("Returns the error", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(Equal(disasterErr))
-				//TODO do we care to assert on versionResult ?
-				Expect(versionResult).To(Equal(runtime.VersionResult{}))
+
+				Expect(result).To(Equal(worker.GetResult{}))
 			})
 		})
 
-		Context("returns GetResult and error from worker -> Fetch", func() {
+		Context("Worker.Fetch returns an error", func() {
+			BeforeEach(func() {
+				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
+				fakeChosenWorker.FetchReturns(worker.GetResult{}, nil, disasterErr)
+			})
+
+			It("Returns the error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(disasterErr))
+
+				Expect(result).To(Equal(worker.GetResult{}))
+			})
+		})
+
+		Context("worker.Fetch is successful", func() {
 			var (
 				fakeVolume    *workerfakes.FakeVolume
 				someGetResult worker.GetResult
-				someGetError  error
 			)
 			BeforeEach(func() {
 				someGetResult = worker.GetResult{
@@ -353,16 +364,13 @@ var _ = Describe("Client", func() {
 						[]atc.MetadataField{{"foo", "bar"}},
 					},
 				}
-				someGetError = errors.New("some foo error")
 				fakeVolume = new(workerfakes.FakeVolume)
-
-				fakeChosenWorker.FetchReturns(someGetResult, fakeVolume, someGetError)
-
+				fakeChosenWorker.FetchReturns(someGetResult, fakeVolume, nil)
 			})
 
 			It("returns getResult from worker->Fetch", func() {
 				Expect(result).To(Equal(someGetResult))
-				Expect(err).To(Equal(someGetError))
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 		})

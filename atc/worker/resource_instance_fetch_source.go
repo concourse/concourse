@@ -18,7 +18,6 @@ import (
 //go:generate counterfeiter . FetchSource
 
 type FetchSource interface {
-	//LockName() (string, error)
 	Find() (GetResult, Volume, bool, error)
 	Create(context.Context) (GetResult, Volume, error)
 }
@@ -113,8 +112,10 @@ func (s *fetchSource) Find() (GetResult, Volume, bool, error) {
 		return result, nil, false, err
 	}
 
-	// TODO pass version down so it can be used in the log statement.
-	//s.logger.Debug("found-initialized-versioned-source", lager.Data{"version": s.resourceInstance.Version(), "metadata": metadata.ToATCMetadata()})
+	s.logger.Debug("found-initialized-versioned-source", lager.Data{
+		"version":  s.cache.Version(),
+		"metadata": metadata.ToATCMetadata(),
+	})
 
 	atcMetaData := []atc.MetadataField{}
 	for _, m := range metadata {
@@ -126,8 +127,8 @@ func (s *fetchSource) Find() (GetResult, Volume, bool, error) {
 
 	return GetResult{
 			0,
-			// todo: figure out what logically should be returned for VersionResult
 			runtime.VersionResult{
+				Version:  s.cache.Version(),
 				Metadata: atcMetaData,
 			},
 			runtime.GetArtifact{VolumeHandle: volume.Handle()},
@@ -139,12 +140,10 @@ func (s *fetchSource) Find() (GetResult, Volume, bool, error) {
 // yet before creating it under the lock
 func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 	sLog := s.logger.Session("create")
-	result := GetResult{} // TODO: no
-	var volume Volume
 
 	findResult, volume, found, err := s.Find()
 	if err != nil {
-		return result, nil, err
+		return GetResult{}, nil, err
 	}
 
 	if found {
@@ -167,61 +166,46 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 
 	if err != nil {
 		sLog.Error("failed-to-construct-resource", err)
-		// TODO: don't use 1 to mark concourse errors
-		result = GetResult{
-			1,
-			// todo: figure out what logically should be returned for VersionResult
-			runtime.VersionResult{},
-			runtime.GetArtifact{},
-		}
-		return result, volume, err
+		return GetResult{}, nil, err
 	}
 
-	volume = volumeWithFetchedBits(s.processSpec, container)
-
 	vr, err := s.resource.Get(ctx, s.processSpec, container)
-
 	if err != nil {
 		sLog.Error("failed-to-fetch-resource", err)
 		// TODO: Is this compatible with previous behaviour of returning a nil when error type is NOT ErrResourceScriptFailed
 
-		// if error returned from running the actual script
 		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
 			// TODO: we need to pass along the script error message
-			result = GetResult{
-				failErr.ExitStatus,
-				runtime.VersionResult{}, // dont need to init these
-				runtime.GetArtifact{},
-			}
-			// todo: check these return values
-			// 		 feels hidden to return 'volume'
-			return result, nil, nil
+			//		 contained in failErr.Stderr
+			return GetResult{
+				Status: failErr.ExitStatus,
+			}, nil, nil
 		}
-		// todo: same
-		return result, nil, err
+		return GetResult{}, nil, err
 	}
+
+	volume = volumeWithFetchedBits(s.processSpec.Args[0], container)
 
 	err = volume.SetPrivileged(false)
 	if err != nil {
 		sLog.Error("failed-to-set-volume-unprivileged", err)
-		return result, nil, err
+		return GetResult{}, nil, err
 	}
 
-	// this initializes the worker resource cache, not the actual core resource cache
 	err = volume.InitializeResourceCache(s.cache)
 	if err != nil {
 		sLog.Error("failed-to-initialize-cache", err)
-		return result, nil, err
+		return GetResult{}, nil, err
 	}
 
 	err = s.dbResourceCacheFactory.UpdateResourceCacheMetadata(s.cache, vr.Metadata)
 	if err != nil {
 		s.logger.Error("failed-to-update-resource-cache-metadata", err, lager.Data{"resource-cache": s.cache})
-		return result, nil, err
+		return GetResult{}, nil, err
 	}
 
-	// TODO: set exitstatus
 	return GetResult{
+		Status:        0,
 		VersionResult: vr,
 		GetArtifact: runtime.GetArtifact{
 			VolumeHandle: volume.Handle(),
@@ -229,11 +213,9 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 	}, volume, nil
 }
 
-func volumeWithFetchedBits(processSpec runtime.ProcessSpec, container Container) Volume {
-	// TODO: this is implicit, ResourcesDir("get") is always inflated
-	resourcePath := processSpec.Args[0]
+func volumeWithFetchedBits(bitsDestinationPath string, container Container) Volume {
 	for _, mount := range container.VolumeMounts() {
-		if mount.MountPath == resourcePath {
+		if mount.MountPath == bitsDestinationPath {
 			return mount.Volume
 		}
 	}
