@@ -3,10 +3,12 @@ package resource_test
 import (
 	"context"
 	"errors"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -14,9 +16,9 @@ import (
 
 var _ = Describe("Resource Get", func() {
 	var (
-		ctx    context.Context
+		ctx             context.Context
 		someProcessSpec runtime.ProcessSpec
-		fakeRunnable runtimefakes.FakeRunner
+		fakeRunnable    runtimefakes.FakeRunner
 
 		getVersionResult runtime.VersionResult
 
@@ -49,35 +51,35 @@ var _ = Describe("Resource Get", func() {
 	})
 
 	Context("when Runnable -> RunScript succeeds", func() {
-		BeforeEach(func(){
+		BeforeEach(func() {
 			fakeRunnable.RunScriptReturns(nil)
 		})
 
-		It("Invokes Runnable -> RunScript with the correct arguments", func(){
+		It("Invokes Runnable -> RunScript with the correct arguments", func() {
 			actualCtx, actualSpecPath, actualSpecArgs,
 				actualInputArgs, actualVersionResultRef, actualSpecStdErrWriter,
-				actualRecoverableBool :=  fakeRunnable.RunScriptArgsForCall(0)
+				actualRecoverableBool := fakeRunnable.RunScriptArgsForCall(0)
 
-				signature, err := resource.Signature()
-				Expect(err).ToNot(HaveOccurred())
+			signature, err := resource.Signature()
+			Expect(err).ToNot(HaveOccurred())
 
-				Expect(actualCtx).To(Equal(ctx))
-				Expect(actualSpecPath).To(Equal(someProcessSpec.Path))
-				Expect(actualSpecArgs).To(Equal(someProcessSpec.Args))
-				Expect(actualInputArgs).To(Equal(signature))
-				Expect(actualVersionResultRef).To(Equal(&getVersionResult))
-				Expect(actualSpecStdErrWriter).To(Equal(someProcessSpec.StderrWriter))
-				Expect(actualRecoverableBool).To(BeTrue())
+			Expect(actualCtx).To(Equal(ctx))
+			Expect(actualSpecPath).To(Equal(someProcessSpec.Path))
+			Expect(actualSpecArgs).To(Equal(someProcessSpec.Args))
+			Expect(actualInputArgs).To(Equal(signature))
+			Expect(actualVersionResultRef).To(Equal(&getVersionResult))
+			Expect(actualSpecStdErrWriter).To(Equal(someProcessSpec.StderrWriter))
+			Expect(actualRecoverableBool).To(BeTrue())
 		})
 
-		It("doesnt return an error", func(){
+		It("doesnt return an error", func() {
 			Expect(getErr).To(BeNil())
 		})
 	})
 
 	Context("when Runnable -> RunScript returns an error", func() {
 		var disasterErr = errors.New("there was an issue")
-		BeforeEach(func(){
+		BeforeEach(func() {
 			fakeRunnable.RunScriptReturns(disasterErr)
 		})
 		It("returns the error", func() {
