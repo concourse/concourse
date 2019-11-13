@@ -72,12 +72,13 @@ func (f *fetcher) Fetch(
 ) (GetResult, Volume, error) {
 	result := GetResult{}
 	var volume Volume
-	// TODO resource_instance_fetch_source.go already knows which volume to use for the resource output, can this be consolidated
+	// TODO: resource_instance_fetch_source.go already knows which volume to use for the resource output, can this be consolidated
 	containerSpec.Outputs = map[string]string{
 		"resource": processSpec.Args[0],
 	}
 
-	// todo: just pass in imageFetcherSpec not its contents
+	// TODO: just pass in imageFetcherSpec not its contents
+	//		 this might be a bad idea, don't want the fetchsource to know about images?
 	fetchSource := f.fetchSourceFactory.NewFetchSource(
 		logger,
 		gardenWorker,
@@ -94,7 +95,14 @@ func (f *fetcher) Fetch(
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
 	defer ticker.Stop()
 
-	result, volume, err := f.fetchWithLock(ctx, logger, fetchSource, imageFetcherSpec.Delegate.Stdout(), cache, lockName)
+	result, volume, err := f.fetchUnderLock(
+		ctx,
+		logger,
+		fetchSource,
+		imageFetcherSpec.Delegate.Stdout(),
+		cache,
+		lockName,
+	)
 	if err == nil || err != ErrFailedToGetLock {
 		return result, volume, err
 	}
@@ -102,7 +110,14 @@ func (f *fetcher) Fetch(
 	for {
 		select {
 		case <-ticker.C():
-			result, volume, err = f.fetchWithLock(ctx, logger, fetchSource, imageFetcherSpec.Delegate.Stdout(), cache, lockName)
+			result, volume, err = f.fetchUnderLock(
+				ctx,
+				logger,
+				fetchSource,
+				imageFetcherSpec.Delegate.Stdout(),
+				cache,
+				lockName,
+			)
 			if err != nil {
 				if err == ErrFailedToGetLock {
 					break
@@ -118,7 +133,7 @@ func (f *fetcher) Fetch(
 	}
 }
 
-func (f *fetcher) fetchWithLock(
+func (f *fetcher) fetchUnderLock(
 	ctx context.Context,
 	logger lager.Logger,
 	source FetchSource,
