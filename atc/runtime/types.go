@@ -65,13 +65,13 @@ func (art TaskArtifact) ID() string {
 //go:generate counterfeiter . Runner
 type Runner interface {
 	RunScript(
-		context.Context,
-		string,
-		[]string,
-		[]byte,
-		interface{},
-		io.Writer,
-		bool,
+		ctx context.Context,
+		path string,
+		args []string,
+		input []byte,
+		output interface{},
+		logDest io.Writer,
+		recoverable bool,
 	) error
 }
 
