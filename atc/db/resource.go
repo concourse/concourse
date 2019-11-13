@@ -341,6 +341,13 @@ func (r *resource) CurrentPinnedVersion() atc.Version {
 }
 
 func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool, error) {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return nil, Pagination{}, false, err
+	}
+
+	defer Rollback(tx)
+
 	query := `
 		SELECT v.id, v.version, v.metadata, v.check_order,
 			NOT EXISTS (
@@ -355,9 +362,8 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 	`
 
 	var rows *sql.Rows
-	var err error
 	if page.Until != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
+		rows, err = tx.Query(fmt.Sprintf(`
 			SELECT sub.*
 				FROM (
 						%s
@@ -371,7 +377,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 			return nil, Pagination{}, false, err
 		}
 	} else if page.Since != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
+		rows, err = tx.Query(fmt.Sprintf(`
 			%s
 				AND v.check_order < (SELECT check_order FROM resource_config_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
@@ -381,7 +387,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 			return nil, Pagination{}, false, err
 		}
 	} else if page.To != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
+		rows, err = tx.Query(fmt.Sprintf(`
 			SELECT sub.*
 				FROM (
 						%s
@@ -395,7 +401,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 			return nil, Pagination{}, false, err
 		}
 	} else if page.From != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
+		rows, err = tx.Query(fmt.Sprintf(`
 			%s
 				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
@@ -405,7 +411,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 			return nil, Pagination{}, false, err
 		}
 	} else {
-		rows, err = r.conn.Query(fmt.Sprintf(`
+		rows, err = tx.Query(fmt.Sprintf(`
 			%s
 			ORDER BY v.check_order DESC
 			LIMIT $2
@@ -465,7 +471,7 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 	var minCheckOrder int
 	var maxCheckOrder int
 
-	err = r.conn.QueryRow(`
+	err = tx.QueryRow(`
 		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
 			COALESCE(MIN(v.check_order), 0) as minCheckOrder
 		FROM resource_config_versions v, resources r
@@ -477,6 +483,11 @@ func (r *resource) Versions(page Page) ([]atc.ResourceVersion, Pagination, bool,
 
 	firstRCVCheckOrder := checkOrderRVs[0]
 	lastRCVCheckOrder := checkOrderRVs[len(checkOrderRVs)-1]
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, Pagination{}, false, nil
+	}
 
 	var pagination Pagination
 
