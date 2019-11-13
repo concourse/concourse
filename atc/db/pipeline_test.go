@@ -1,6 +1,10 @@
 package db_test
 
 import (
+	"code.cloudfoundry.org/clock"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
+	"github.com/concourse/concourse/vars"
 	"strconv"
 	"time"
 
@@ -8,6 +12,10 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/event"
+
+	// load dummy credential manager
+	_ "github.com/concourse/concourse/atc/creds/dummy"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -31,6 +39,15 @@ var _ = Describe("Pipeline", func() {
 					Name:      "some-group",
 					Jobs:      []string{"job-1", "job-2"},
 					Resources: []string{"some-resource", "some-other-resource"},
+				},
+			},
+			VarSources: atc.VarSourceConfigs{
+				{
+					Name: "some",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{"pk": "pv"},
+					},
 				},
 			},
 			Jobs: atc.JobConfigs{
@@ -2248,6 +2265,45 @@ var _ = Describe("Pipeline", func() {
 				})
 			})
 
+		})
+	})
+
+	Describe("Variables", func() {
+		var (
+			pvars vars.Variables
+			err error
+		)
+		BeforeEach(func() {
+			fakeSecrets = new(credsfakes.FakeSecrets)
+			fakeSecrets.GetStub = func(key string)(interface{}, *time.Time, bool, error) {
+				if key == "gk" {
+					return "gv", nil, true, nil
+				}
+				return nil, nil, false, nil
+			}
+			varSourcePool := creds.NewVarSourcePool(1*time.Minute, clock.NewClock())
+			pvars, err = pipeline.Variables(logger, fakeSecrets, varSourcePool)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should get var from pipeline var source", func() {
+			v, found, err := pvars.Get(vars.VariableDefinition{Name: "pk"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(v.(string)).To(Equal("pv"))
+		})
+
+		It("should get var from global var source", func() {
+			v, found, err := pvars.Get(vars.VariableDefinition{Name: "gk"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(v.(string)).To(Equal("gv"))
+		})
+
+		It("should not get var 'foo'", func() {
+			_, found, err := pvars.Get(vars.VariableDefinition{Name: "foo"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
 		})
 	})
 })

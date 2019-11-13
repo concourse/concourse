@@ -1,6 +1,7 @@
 package radar
 
 import (
+	"code.cloudfoundry.org/lager"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -15,8 +16,8 @@ import (
 
 // go:generate counterfeiter . ScannerFactory
 type ScannerFactory interface {
-	NewResourceScanner(dbPipeline db.Pipeline) Scanner
-	NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner
+	NewResourceScanner(lager.Logger, db.Pipeline) Scanner
+	NewResourceTypeScanner(lager.Logger, db.Pipeline) Scanner
 }
 
 type scannerFactory struct {
@@ -27,6 +28,7 @@ type scannerFactory struct {
 	resourceCheckingInterval     time.Duration
 	externalURL                  string
 	secretManager                creds.Secrets
+	varSourcePool creds.VarSourcePool
 	strategy                     worker.ContainerPlacementStrategy
 }
 
@@ -43,6 +45,7 @@ func NewScannerFactory(
 	resourceCheckingInterval time.Duration,
 	externalURL string,
 	secretManager creds.Secrets,
+	varSourcePool creds.VarSourcePool,
 	strategy worker.ContainerPlacementStrategy,
 ) ScannerFactory {
 	return &scannerFactory{
@@ -53,13 +56,12 @@ func NewScannerFactory(
 		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
 		externalURL:                  externalURL,
 		secretManager:                secretManager,
+		varSourcePool:varSourcePool,
 		strategy:                     strategy,
 	}
 }
 
-func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
-	variables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name())
-
+func (f *scannerFactory) NewResourceScanner(logger lager.Logger, dbPipeline db.Pipeline) Scanner {
 	return NewResourceScanner(
 		clock.NewClock(),
 		f.pool,
@@ -68,14 +70,13 @@ func (f *scannerFactory) NewResourceScanner(dbPipeline db.Pipeline) Scanner {
 		f.resourceCheckingInterval,
 		dbPipeline,
 		f.externalURL,
-		variables,
+		f.secretManager,
+		f.varSourcePool,
 		f.strategy,
 	)
 }
 
-func (f *scannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner {
-	variables := creds.NewVariables(f.secretManager, dbPipeline.TeamName(), dbPipeline.Name())
-
+func (f *scannerFactory) NewResourceTypeScanner(logger lager.Logger, dbPipeline db.Pipeline) Scanner {
 	return NewResourceTypeScanner(
 		clock.NewClock(),
 		f.pool,
@@ -84,7 +85,8 @@ func (f *scannerFactory) NewResourceTypeScanner(dbPipeline db.Pipeline) Scanner 
 		f.resourceTypeCheckingInterval,
 		dbPipeline,
 		f.externalURL,
-		variables,
+		f.secretManager,
+		f.varSourcePool,
 		f.strategy,
 	)
 }

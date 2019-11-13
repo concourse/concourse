@@ -22,12 +22,15 @@ type Secrets struct {
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (secrets Secrets) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+func (secrets Secrets) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	if len(pipelineName) > 0 {
 		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+teamName+":"+pipelineName+"."))
 	}
 	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+teamName+":"))
+	if allowRootPath {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+":"))
+	}
 	return lookupPaths
 }
 

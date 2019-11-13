@@ -153,7 +153,7 @@ var _ = Describe("Scanner", func() {
 
 							It("creates a check", func() {
 								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-								_, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+								_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 								Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
 							})
 
@@ -174,7 +174,7 @@ var _ = Describe("Scanner", func() {
 
 							It("creates a check", func() {
 								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-								_, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+								_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 								Expect(fromVersion).To(BeNil())
 							})
 
@@ -229,11 +229,11 @@ var _ = Describe("Scanner", func() {
 							It("creates a check for both the parent and the resource", func() {
 								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
 
-								checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+								_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 								Expect(checkable).To(Equal(fakeResourceType))
 								Expect(manuallyTriggered).To(BeFalse())
 
-								checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+								_, checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
 								Expect(checkable).To(Equal(fakeResource))
 								Expect(manuallyTriggered).To(BeFalse())
 							})

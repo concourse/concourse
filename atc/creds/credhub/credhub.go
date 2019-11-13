@@ -18,12 +18,15 @@ type CredHubAtc struct {
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (c CredHubAtc) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+func (c CredHubAtc) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	if len(pipelineName) > 0 {
 		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, teamName, pipelineName)+"/"))
 	}
 	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, teamName)+"/"))
+	if allowRootPath {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(c.prefix+"/"))
+	}
 	return lookupPaths
 }
 

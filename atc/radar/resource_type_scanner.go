@@ -2,6 +2,7 @@ package radar
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/vars"
 )
 
 type resourceTypeScanner struct {
@@ -23,7 +23,8 @@ type resourceTypeScanner struct {
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
 	externalURL           string
-	variables             vars.Variables
+	secrets               creds.Secrets
+	varSourcePool         creds.VarSourcePool
 	strategy              worker.ContainerPlacementStrategy
 }
 
@@ -35,7 +36,8 @@ func NewResourceTypeScanner(
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
 	externalURL string,
-	variables vars.Variables,
+	secrets creds.Secrets,
+	varSourcePool creds.VarSourcePool,
 	strategy worker.ContainerPlacementStrategy,
 ) Scanner {
 	return &resourceTypeScanner{
@@ -46,7 +48,8 @@ func NewResourceTypeScanner(
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
 		externalURL:           externalURL,
-		variables:             variables,
+		secrets:               secrets,
+		varSourcePool:         varSourcePool,
 		strategy:              strategy,
 	}
 }
@@ -86,6 +89,14 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		return 0, err
 	}
 
+	found, err = scanner.dbPipeline.Reload()
+	if !found {
+		return 0, fmt.Errorf("pipeline %s(%d) not found", scanner.dbPipeline.Name(), scanner.dbPipeline.ID())
+	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to reload pipeline %s(%d)", scanner.dbPipeline.Name(), scanner.dbPipeline.ID())
+	}
+
 	resourceTypes, err := scanner.dbPipeline.ResourceTypes()
 	if err != nil {
 		logger.Error("failed-to-get-resource-types", err)
@@ -116,8 +127,13 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		return 0, err
 	}
 
+	varss, err := scanner.dbPipeline.Variables(logger, scanner.secrets, scanner.varSourcePool)
+	if err != nil {
+		return 0, err
+	}
+
 	versionedResourceTypes, err := creds.NewVersionedResourceTypes(
-		scanner.variables,
+		varss,
 		resourceTypes.Deserialize(),
 	).Evaluate()
 	if err != nil {
@@ -126,7 +142,7 @@ func (scanner *resourceTypeScanner) scan(logger lager.Logger, resourceTypeID int
 		return 0, err
 	}
 
-	source, err := creds.NewSource(scanner.variables, savedResourceType.Source()).Evaluate()
+	source, err := creds.NewSource(varss, savedResourceType.Source()).Evaluate()
 	if err != nil {
 		logger.Error("failed-to-evaluate-resource-type-source", err)
 		scanner.setCheckError(logger, savedResourceType, err)

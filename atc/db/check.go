@@ -24,10 +24,11 @@ const (
 //go:generate counterfeiter . Check
 
 type Check interface {
+	PipelineRef
+
 	ID() int
 	TeamID() int
 	TeamName() string
-	PipelineName() string
 	ResourceConfigScopeID() int
 	ResourceConfigID() int
 	BaseResourceTypeID() int
@@ -65,6 +66,8 @@ var checksQuery = psql.Select(
 	From("checks c")
 
 type check struct {
+	pipelineRef
+
 	id                    int
 	resourceConfigScopeID int
 	metadata              CheckMetadata
@@ -77,17 +80,19 @@ type check struct {
 	createTime time.Time
 	startTime  time.Time
 	endTime    time.Time
-
-	conn        Conn
-	lockFactory lock.LockFactory
 }
 
 type CheckMetadata struct {
 	TeamID             int    `json:"team_id"`
 	TeamName           string `json:"team_name"`
+	PipelineID         int    `json:"pipeline_id"`
 	PipelineName       string `json:"pipeline_name"`
 	ResourceConfigID   int    `json:"resource_config_id"`
 	BaseResourceTypeID int    `json:"base_resource_type_id"`
+}
+
+func newEmptyCheck(conn Conn, lockFactory lock.LockFactory) *check {
+	return &check{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
 func (c *check) ID() int                    { return c.id }
@@ -106,10 +111,6 @@ func (c *check) TeamID() int {
 
 func (c *check) TeamName() string {
 	return c.metadata.TeamName
-}
-
-func (c *check) PipelineName() string {
-	return c.metadata.PipelineName
 }
 
 func (c *check) ResourceConfigID() int {
@@ -265,11 +266,7 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		r := &resource{
-			conn:        c.conn,
-			lockFactory: c.lockFactory,
-		}
-
+		r := newEmptyResource(c.conn, c.lockFactory)
 		err = scanResource(r, rows)
 		if err != nil {
 			return nil, err
@@ -292,11 +289,7 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		r := &resourceType{
-			conn:        c.conn,
-			lockFactory: c.lockFactory,
-		}
-
+		r := newEmptyResourceType(c.conn, c.lockFactory)
 		err = scanResourceType(r, rows)
 		if err != nil {
 			return nil, err
@@ -366,6 +359,9 @@ func scanCheck(c *check, row scannable) error {
 			return err
 		}
 	}
+
+	c.pipelineID = c.metadata.PipelineID
+	c.pipelineName = c.metadata.PipelineName
 
 	if checkError.Valid {
 		c.checkError = errors.New(checkError.String)

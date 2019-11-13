@@ -40,6 +40,6 @@ func (rs RetryableSecrets) Get(secretPath string) (interface{}, *time.Time, bool
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (rs RetryableSecrets) NewSecretLookupPaths(teamName string, pipelineName string) []SecretLookupPath {
-	return rs.secrets.NewSecretLookupPaths(teamName, pipelineName)
+func (rs RetryableSecrets) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []SecretLookupPath {
+	return rs.secrets.NewSecretLookupPaths(teamName, pipelineName, allowRootPath)
 }

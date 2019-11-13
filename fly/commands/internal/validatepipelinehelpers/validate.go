@@ -2,8 +2,9 @@ package validatepipelinehelpers
 
 import (
 	"fmt"
-
 	"github.com/concourse/concourse/atc"
+
+	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/go-concourse/concourse"
@@ -29,7 +30,7 @@ func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, 
 		}
 	}
 
-	warnings, errorMessages := unmarshalledTemplate.Validate()
+	warnings, errorMessages := configvalidate.Validate(unmarshalledTemplate)
 
 	if len(warnings) > 0 {
 		configWarnings := make([]concourse.ConfigWarning, len(warnings))

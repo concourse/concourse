@@ -36,7 +36,7 @@ var _ = Describe("Vault", func() {
 	var variables vars.Variables
 	var msr *MockSecretReader
 
-	JustBeforeEach(func() {
+	BeforeEach(func() {
 
 		msr = &MockSecretReader{&[]MockSecret{
 			{
@@ -53,7 +53,7 @@ var _ = Describe("Vault", func() {
 			SharedPath:   "shared",
 		}
 
-		variables = creds.NewVariables(v, "team", "pipeline")
+		variables = creds.NewVariables(v, "team", "pipeline", false)
 	})
 
 	Describe("Get()", func() {
@@ -124,13 +124,13 @@ var _ = Describe("Vault", func() {
 		})
 
 		Context("without shared", func() {
-			JustBeforeEach(func() {
+			BeforeEach(func() {
 				v = &vault.Vault{
 					SecretReader: msr,
 					Prefix:       "/concourse",
 				}
 
-				variables = creds.NewVariables(v, "team", "pipeline")
+				variables = creds.NewVariables(v, "team", "pipeline", false)
 			})
 
 			It("should not get secret from root", func() {
@@ -145,6 +145,43 @@ var _ = Describe("Vault", func() {
 				_, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
 				Expect(found).To(BeFalse())
 				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("allowRootPath", func() {
+			BeforeEach(func() {
+				v.SecretReader = &MockSecretReader{&[]MockSecret{
+					{
+						path: "/concourse/foo",
+						secret: &vaultapi.Secret{
+							Data: map[string]interface{}{"value": "foo"},
+						},
+					}},
+				}
+			})
+
+			Context("is true", func() {
+				BeforeEach(func() {
+					variables = creds.NewVariables(v, "team", "pipeline", true)
+				})
+
+				It("should get secret from root", func() {
+					_, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+					Expect(err).To(BeNil())
+					Expect(found).To(BeTrue())
+				})
+			})
+
+			Context("is false", func() {
+				BeforeEach(func() {
+					variables = creds.NewVariables(v, "team", "pipeline", false)
+				})
+
+				It("should not get secret from root", func() {
+					_, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+					Expect(err).To(BeNil())
+					Expect(found).To(BeFalse())
+				})
 			})
 		})
 	})

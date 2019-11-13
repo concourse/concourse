@@ -1,12 +1,12 @@
 package secretsmanager_test
 
 import (
+	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
 	"text/template"
 
 	"github.com/concourse/concourse/atc/creds"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -51,8 +51,8 @@ var _ = Describe("SecretsManager", func() {
 		t2, err := template.New("test").Parse(DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		secretAccess = NewSecretsManager(lager.NewLogger("secretsmanager_test"), &mockService, []*template.Template{t1, t2})
-		variables = creds.NewVariables(secretAccess, "alpha", "bogus")
+		secretAccess = NewSecretsManager(lagertest.NewTestLogger("secretsmanager_test"), &mockService, []*template.Template{t1, t2})
+		variables = creds.NewVariables(secretAccess, "alpha", "bogus", false)
 		Expect(secretAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (*secretsmanager.GetSecretValueOutput, error) {
 			if input == "/concourse/alpha/bogus/cheery" {
@@ -107,7 +107,7 @@ var _ = Describe("SecretsManager", func() {
 		})
 
 		It("should allow empty pipeline name", func() {
-			variables := creds.NewVariables(secretAccess, "alpha", "")
+			variables := creds.NewVariables(secretAccess, "alpha", "", false)
 			mockService.stubGetParameter = func(input string) (*secretsmanager.GetSecretValueOutput, error) {
 				Expect(input).To(Equal("/concourse/alpha/cheery"))
 				return &secretsmanager.GetSecretValueOutput{SecretString: aws.String("team power")}, nil

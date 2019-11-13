@@ -41,6 +41,10 @@ func (manager Manager) Health() (*creds.HealthResponse, error) {
 	}, nil
 }
 
+func (manager Manager) Close(logger lager.Logger) {
+
+}
+
 func (manager Manager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
 	return NewSecretsFactory(manager.Vars), nil
 }

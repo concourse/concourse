@@ -3,6 +3,7 @@ package radar_test
 import (
 	"context"
 	"errors"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -38,6 +39,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeResourceConfig        *dbfakes.FakeResourceConfig
 		fakeResourceConfigScope   *dbfakes.FakeResourceConfigScope
 		fakeClock                 *fakeclock.FakeClock
+		fakeVarSourcePool         *credsfakes.FakeVarSourcePool
+		fakeSecrets               *credsfakes.FakeSecrets
 		interval                  time.Duration
 		variables                 vars.Variables
 		metadata                  db.ContainerMetadata
@@ -54,6 +57,15 @@ var _ = Describe("ResourceTypeScanner", func() {
 	BeforeEach(func() {
 		fakeLock = &lockfakes.FakeLock{}
 		interval = 1 * time.Minute
+
+		fakeSecrets = new(credsfakes.FakeSecrets)
+		fakeSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
+			if key == "source-params" {
+				return "some-secret-sauce", nil, true, nil
+			}
+			return nil, nil, false, nil
+		}
+
 		variables = vars.StaticVariables{
 			"source-params": "some-secret-sauce",
 		}
@@ -71,7 +83,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		}
 
 		fakeClock = fakeclock.NewFakeClock(epoch)
-
+		fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 		fakeContainer = new(workerfakes.FakeContainer)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakePool = new(workerfakes.FakePool)
@@ -101,6 +113,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeDBPipeline.ReloadReturns(true, nil)
 		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
 		fakeDBPipeline.ResourceTypeByIDReturns(fakeResourceType, true, nil)
+		fakeDBPipeline.VariablesReturns(variables, nil)
 
 		scanner = NewResourceTypeScanner(
 			fakeClock,
@@ -110,7 +123,8 @@ var _ = Describe("ResourceTypeScanner", func() {
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
-			variables,
+			fakeSecrets,
+			fakeVarSourcePool,
 			fakeStrategy,
 		)
 	})

@@ -1,8 +1,9 @@
 package vault
 
 import (
+	"fmt"
 	"github.com/concourse/concourse/atc/creds"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 )
 
 type vaultManagerFactory struct{}
@@ -26,4 +27,14 @@ func (factory *vaultManagerFactory) AddConfig(group *flags.Group) creds.Manager 
 	subGroup.Namespace = "vault"
 
 	return manager
+}
+
+func (factory *vaultManagerFactory) NewInstance(config interface{}) (creds.Manager, error) {
+	if c, ok := config.(map[string]interface{}); !ok {
+		return nil, fmt.Errorf("invalid vault config format")
+	} else {
+		manager := &VaultManager{}
+		manager.Config(c)
+		return manager, nil
+	}
 }

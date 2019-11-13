@@ -65,6 +65,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 
 	config := atc.Config{
 		Groups:        pipeline.Groups(),
+		VarSources:    pipeline.VarSources(),
 		Resources:     resources.Configs(),
 		ResourceTypes: resourceTypes.Configs(),
 		Jobs:          jobs.Configs(),

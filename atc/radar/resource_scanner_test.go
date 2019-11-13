@@ -3,6 +3,7 @@ package radar_test
 import (
 	"context"
 	"errors"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -38,6 +39,8 @@ var _ = Describe("ResourceScanner", func() {
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeDBPipeline            *dbfakes.FakePipeline
 		fakeClock                 *fakeclock.FakeClock
+		fakeVarSourcePool         *credsfakes.FakeVarSourcePool
+		fakeSecrets               *credsfakes.FakeSecrets
 		interval                  time.Duration
 		variables                 vars.Variables
 
@@ -61,6 +64,15 @@ var _ = Describe("ResourceScanner", func() {
 		fakeLock = &lockfakes.FakeLock{}
 		interval = 1 * time.Minute
 		GlobalResourceCheckTimeout = 1 * time.Hour
+
+		fakeSecrets = new(credsfakes.FakeSecrets)
+		fakeSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
+			if key == "source-params" {
+				return "some-secret-sauce", nil, true, nil
+			}
+			return nil, nil, false, nil
+		}
+
 		variables = vars.StaticVariables{
 			"source-params": "some-secret-sauce",
 		}
@@ -83,6 +95,7 @@ var _ = Describe("ResourceScanner", func() {
 			},
 		}
 
+		fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 		fakeContainer = new(workerfakes.FakeContainer)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakePool = new(workerfakes.FakePool)
@@ -106,6 +119,8 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeDBPipeline.ReloadReturns(true, nil)
 		fakeDBPipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+		fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
+		fakeDBPipeline.VariablesReturns(variables, nil)
 
 		fakeResourceType.IDReturns(1)
 		fakeResourceType.NameReturns("some-custom-resource")
@@ -121,8 +136,6 @@ var _ = Describe("ResourceScanner", func() {
 		fakeDBResource.TagsReturns(atc.Tags{"some-tag"})
 		fakeDBResource.SetResourceConfigReturns(fakeResourceConfigScope, nil)
 
-		fakeDBPipeline.ResourceByIDReturns(fakeDBResource, true, nil)
-
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakePool,
@@ -131,7 +144,8 @@ var _ = Describe("ResourceScanner", func() {
 			interval,
 			fakeDBPipeline,
 			"https://www.example.com",
-			variables,
+			fakeSecrets,
+			fakeVarSourcePool,
 			fakeStrategy,
 		)
 	})

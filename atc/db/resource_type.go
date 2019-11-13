@@ -24,9 +24,9 @@ func (e ResourceTypeNotFoundError) Error() string {
 //go:generate counterfeiter . ResourceType
 
 type ResourceType interface {
+	PipelineRef
+
 	ID() int
-	PipelineID() int
-	PipelineName() string
 	TeamID() int
 	TeamName() string
 	Name() string
@@ -151,9 +151,9 @@ var resourceTypesQuery = psql.Select(
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
+	pipelineRef
+
 	id                   int
-	pipelineID           int
-	pipelineName         string
 	teamID               int
 	teamName             string
 	name                 string
@@ -169,14 +169,9 @@ type resourceType struct {
 	checkSetupError      error
 	checkError           error
 	uniqueVersionHistory bool
-
-	conn        Conn
-	lockFactory lock.LockFactory
 }
 
 func (t *resourceType) ID() int                       { return t.id }
-func (t *resourceType) PipelineID() int               { return t.pipelineID }
-func (t *resourceType) PipelineName() string          { return t.pipelineName }
 func (t *resourceType) TeamID() int                   { return t.teamID }
 func (t *resourceType) TeamName() string              { return t.teamName }
 func (t *resourceType) Name() string                  { return t.name }
@@ -195,6 +190,10 @@ func (t *resourceType) UniqueVersionHistory() bool    { return t.uniqueVersionHi
 
 func (t *resourceType) Version() atc.Version              { return t.version }
 func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
+
+func newEmptyResourceType(conn Conn, lockFactory lock.LockFactory) *resourceType {
+	return &resourceType{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+}
 
 func (t *resourceType) Reload() (bool, error) {
 	row := resourceTypesQuery.Where(sq.Eq{"r.id": t.id}).RunWith(t.conn).QueryRow()

@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("BuildLogCollector", func() {
 	var (
-		buildLogCollector   Collector
+		buildLogCollector   GcCollector
 		fakePipelineFactory *dbfakes.FakePipelineFactory
 		batchSize           int
 		buildLogRetainCalc  BuildLogRetentionCalculator

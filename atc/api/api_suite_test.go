@@ -53,6 +53,7 @@ var (
 	dbCheckFactory          *dbfakes.FakeCheckFactory
 	dbTeam                  *dbfakes.FakeTeam
 	fakeSecretManager       *credsfakes.FakeSecrets
+	fakeVarSourcePool       *credsfakes.FakeVarSourcePool
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
@@ -123,6 +124,7 @@ var _ = BeforeEach(func() {
 	fakeDestroyer = new(gcfakes.FakeDestroyer)
 
 	fakeSecretManager = new(credsfakes.FakeSecrets)
+	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 	credsManagers = make(creds.Managers)
 	var err error
 
@@ -187,6 +189,7 @@ var _ = BeforeEach(func() {
 		"1.2.3",
 		"4.5.6",
 		fakeSecretManager,
+		fakeVarSourcePool,
 		credsManagers,
 		interceptTimeoutFactory,
 	)

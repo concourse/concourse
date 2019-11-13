@@ -1617,7 +1617,7 @@ var _ = Describe("Jobs API", func() {
 								})
 
 								It("runs the check from the current pinned version", func() {
-									_, _, fromVersion, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
+									_, _, _, fromVersion, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
 									Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
 								})
 
