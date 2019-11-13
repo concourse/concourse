@@ -9,6 +9,16 @@ import (
 )
 
 type FakeClient struct {
+	InitStub        func() error
+	initMutex       sync.RWMutex
+	initArgsForCall []struct {
+	}
+	initReturns struct {
+		result1 error
+	}
+	initReturnsOnCall map[int]struct {
+		result1 error
+	}
 	VersionStub        func(context.Context) error
 	versionMutex       sync.RWMutex
 	versionArgsForCall []struct {
@@ -22,6 +32,58 @@ type FakeClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeClient) Init() error {
+	fake.initMutex.Lock()
+	ret, specificReturn := fake.initReturnsOnCall[len(fake.initArgsForCall)]
+	fake.initArgsForCall = append(fake.initArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Init", []interface{}{})
+	fake.initMutex.Unlock()
+	if fake.InitStub != nil {
+		return fake.InitStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.initReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) InitCallCount() int {
+	fake.initMutex.RLock()
+	defer fake.initMutex.RUnlock()
+	return len(fake.initArgsForCall)
+}
+
+func (fake *FakeClient) InitCalls(stub func() error) {
+	fake.initMutex.Lock()
+	defer fake.initMutex.Unlock()
+	fake.InitStub = stub
+}
+
+func (fake *FakeClient) InitReturns(result1 error) {
+	fake.initMutex.Lock()
+	defer fake.initMutex.Unlock()
+	fake.InitStub = nil
+	fake.initReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) InitReturnsOnCall(i int, result1 error) {
+	fake.initMutex.Lock()
+	defer fake.initMutex.Unlock()
+	fake.InitStub = nil
+	if fake.initReturnsOnCall == nil {
+		fake.initReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.initReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeClient) Version(arg1 context.Context) error {
@@ -87,6 +149,8 @@ func (fake *FakeClient) VersionReturnsOnCall(i int, result1 error) {
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.initMutex.RLock()
+	defer fake.initMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

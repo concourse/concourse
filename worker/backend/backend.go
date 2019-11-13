@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -20,9 +21,15 @@ func New(client libcontainerd.Client) Backend {
 	}
 }
 
-// setup?
+// Start sets up the connectivity to `containerd`.
 //
 func (b *Backend) Start() (err error) {
+	err = b.client.Init()
+	if err != nil {
+		err = fmt.Errorf("failed to initialize contianerd client: %w", err)
+		return
+	}
+
 	return
 }
 

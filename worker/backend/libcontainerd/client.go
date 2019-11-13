@@ -10,19 +10,25 @@ import (
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Client
 
 type Client interface {
+	Init() (err error)
 	Version(ctx context.Context) (err error)
 }
 
 type client struct {
+	addr       string
 	containerd *containerd.Client
 }
 
-func New(address string) (c *client, err error) {
-	c = new(client)
+func New(addr string) *client {
+	return &client{
+		addr: addr,
+	}
+}
 
-	c.containerd, err = containerd.New(address)
+func (c *client) Init() (err error) {
+	c.containerd, err = containerd.New(c.addr)
 	if err != nil {
-		err = fmt.Errorf("failed to connect to addr %s: %w", address, err)
+		err = fmt.Errorf("failed to connect to addr %s: %w", c.addr, err)
 		return
 	}
 
