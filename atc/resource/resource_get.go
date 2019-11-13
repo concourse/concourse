@@ -13,7 +13,7 @@ func (resource *resource) Get(
 ) (runtime.VersionResult, error) {
 	var vr runtime.VersionResult
 
-	inputArgs, err := resource.Signature()
+	input, err := resource.Signature()
 	if err != nil {
 		return vr, err
 	}
@@ -22,7 +22,7 @@ func (resource *resource) Get(
 		ctx,
 		spec.Path,
 		spec.Args,
-		inputArgs,
+		input,
 		&vr,
 		spec.StderrWriter,
 		true,

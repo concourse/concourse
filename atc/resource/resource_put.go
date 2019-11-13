@@ -14,7 +14,7 @@ func (resource *resource) Put(
 ) (runtime.VersionResult, error) {
 	vr := runtime.VersionResult{}
 
-	inputArgs, err := resource.Signature()
+	input, err := resource.Signature()
 	if err != nil {
 		return vr, err
 	}
@@ -23,7 +23,7 @@ func (resource *resource) Put(
 		ctx,
 		spec.Path,
 		[]string{spec.Dir},
-		inputArgs,
+		input,
 		&vr,
 		spec.StderrWriter,
 		true,

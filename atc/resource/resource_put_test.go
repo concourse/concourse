@@ -65,8 +65,8 @@ var _ = Describe("Resource Put", func() {
 		})
 
 		It("Invokes Runnable -> RunScript with the correct arguments", func() {
-			actualCtx, actualSpecPath, actualSpecArgs,
-				actualInputArgs, actualVersionResultRef, actualSpecStdErrWriter,
+			actualCtx, actualSpecPath, actualArgs, actualInput,
+				actualVersionResultRef, actualSpecStdErrWriter,
 				actualRecoverableBool := fakeRunnable.RunScriptArgsForCall(0)
 
 			signature, err := resource.Signature()
@@ -74,8 +74,8 @@ var _ = Describe("Resource Put", func() {
 
 			Expect(actualCtx).To(Equal(ctx))
 			Expect(actualSpecPath).To(Equal(someProcessSpec.Path))
-			Expect(actualSpecArgs).To(Equal([]string{someProcessSpec.Dir}))
-			Expect(actualInputArgs).To(Equal(signature))
+			Expect(actualArgs).To(Equal([]string{someProcessSpec.Dir}))
+			Expect(actualInput).To(Equal(signature))
 			Expect(actualVersionResultRef).To(Equal(&putVersionResult))
 			Expect(actualSpecStdErrWriter).To(Equal(someProcessSpec.StderrWriter))
 			Expect(actualRecoverableBool).To(BeTrue())
