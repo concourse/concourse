@@ -35,8 +35,6 @@ func (c *client) Init() (err error) {
 	return
 }
 
-// this could be used as `ping`?
-//
 func (c *client) Version(ctx context.Context) (err error) {
 	_, err = c.containerd.Version(ctx)
 	return

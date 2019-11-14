@@ -33,14 +33,8 @@ func (b *Backend) Start() (err error) {
 	return
 }
 
-// teardown?
-//
-func (b *Backend) Stop() {
-	return
-}
+func (b *Backend) Stop() {}
 
-// ??
-//
 func (b *Backend) GraceTime(container garden.Container) (duration time.Duration) {
 	return
 }
@@ -72,22 +66,6 @@ func (b *Backend) Capacity() (capacity garden.Capacity, err error) { return }
 // * When one of the bind_mount paths does not exist.
 // * When resource allocations fail (subnet, user ID, etc).
 func (b *Backend) Create(spec garden.ContainerSpec) (container garden.Container, err error) {
-
-	// concourse image format:
-	// - {env, user} comes from a metadata format
-	// - rootfs comes from a well known writable location
-	// - bind mounts
-	//   - e.g., to mount certs, `/scratch` ...
-	//   - how do we specify these?
-	// - network
-	//   - how do we specify this?
-	// - env
-	// - properties
-	//   - which ones do we add?
-	// - gracetime
-	//   - do we use this?
-	// - what else?
-
 	return
 }
 

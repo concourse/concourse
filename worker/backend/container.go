@@ -95,7 +95,8 @@ func (c *Container) BulkNetOut(netOutRules []garden.NetOutRule) (err error) { re
 
 // Run a script inside a container.
 //
-// The root user will be mapped to a non-root UID in the host unless the container (not this process) was created with 'privileged' true.
+// The root user will be mapped to a non-root UID in the host unless the
+// container (not this process) was created with 'privileged' true.
 //
 // Errors:
 // * TODO.

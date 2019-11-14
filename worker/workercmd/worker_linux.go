@@ -75,7 +75,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 	case cmd.Garden.UseHoudini:
 		runner, err = cmd.houdiniRunner(logger)
 	case cmd.Garden.UseContainerd:
-		runner, err = cmd.containerdRunner(logger)
+		runner = cmd.containerdRunner(logger)
 	default:
 		runner, err = cmd.gdnRunner(logger)
 	}
@@ -95,8 +95,8 @@ func trySetConcourseDirInPATH() {
 
 	err := os.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
 	if err != nil {
-		// programming error
-		panic(fmt.Errorf("failed to set PATH environment varaible: %w", err))
+		// programming mistake
+		panic(fmt.Errorf("failed to set PATH environment variable: %w", err))
 	}
 }
 

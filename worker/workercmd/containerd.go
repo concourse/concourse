@@ -36,7 +36,7 @@ func containerdGardenServerRunner(logger lager.Logger, bindAddr, containerdAddr 
 	}
 }
 
-func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, error) {
+func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) ifrit.Runner {
 	var (
 		sock = filepath.Join(cmd.WorkDir.Path(), "containerd.sock")
 		root = filepath.Join(cmd.WorkDir.Path(), "containerd")
@@ -75,5 +75,5 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 				logger, cmd.bindAddr(), sock,
 			),
 		},
-	}), nil
+	})
 }
