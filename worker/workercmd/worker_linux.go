@@ -67,6 +67,8 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		return atc.Worker{}, nil, err
 	}
 
+	trySetConcourseDirInPATH()
+
 	var runner ifrit.Runner
 
 	switch {
@@ -85,15 +87,20 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 	return worker, runner, nil
 }
 
-func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
-	if binDir := concourseCmd.DiscoverAsset("bin"); binDir != "" {
-		// ensure packaged 'gdn' executable is available in $PATH
-		err := os.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
-		if err != nil {
-			return nil, err
-		}
+func trySetConcourseDirInPATH() {
+	binDir := concourseCmd.DiscoverAsset("bin")
+	if binDir == "" {
+		return
 	}
 
+	err := os.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
+	if err != nil {
+		// programming error
+		panic(fmt.Errorf("failed to set PATH environment varaible: %w", err))
+	}
+}
+
+func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 	depotDir := filepath.Join(cmd.WorkDir.Path(), "depot")
 
 	// must be readable by other users so unprivileged containers can run their
