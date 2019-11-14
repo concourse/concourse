@@ -175,11 +175,16 @@ type BoshInstance struct {
 func StartDeploy(manifest string, args ...string) *gexec.Session {
 	WaitForDeploymentAndCompileLocks()
 
+	var modifiedSuiteName string
+	if suiteName != "" {
+		modifiedSuiteName = "-" + suiteName
+	}
+
 	return SpawnBosh(
 		append([]string{
 			"deploy", manifest,
 			"--vars-store", filepath.Join(tmp, DeploymentName+"-vars.yml"),
-			"-v", "suite='-" + suiteName + "'",
+			"-v", "suite='" + modifiedSuiteName + "'",
 			"-v", "deployment_name='" + DeploymentName + "'",
 			"-v", "concourse_release_version='" + concourseReleaseVersion + "'",
 			"-v", "bpm_release_version='" + bpmReleaseVersion + "'",
