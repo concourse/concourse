@@ -24,7 +24,7 @@ interval triggers, via the \resource{time}.
 the pipelines more self-contained and keeping Concourse itself small and
 generic without resorting to a complicated plugin system.
 
-\reference{jobs} are sequences \reference{get-step}{\code{get}},
+\reference{jobs} are sequences of \reference{get-step}{\code{get}},
 \reference{put-step}{\code{put}}, and \reference{task-step}{\code{task}} steps
 to execute. These \reference{steps}{steps} determine the job's inputs and
 outputs. Jobs are designed to be idempotent and loosely coupled, allowing the
