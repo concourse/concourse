@@ -61,8 +61,8 @@ func (factory *teamFactory) createTeam(t atc.Team, admin bool) (Team, error) {
 		conn:        factory.conn,
 		lockFactory: factory.lockFactory,
 	}
-	err = factory.scanTeam(team, row)
 
+	err = factory.scanTeam(team, row)
 	if err != nil {
 		return nil, err
 	}
