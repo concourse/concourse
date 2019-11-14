@@ -37,29 +37,42 @@ func containerdGardenServerRunner(logger lager.Logger, bindAddr, containerdAddr 
 }
 
 func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, error) {
-	containerdSock := filepath.Join(cmd.WorkDir.Path(), "containerd.sock")
+	var (
+		sock = filepath.Join(cmd.WorkDir.Path(), "containerd.sock")
+		root = filepath.Join(cmd.WorkDir.Path(), "containerd")
+		bin  = "containerd"
+	)
 
-	containerdArgs := []string{
-		"--address", containerdSock,
-		"--root", filepath.Join(cmd.WorkDir.Path(), "containerd"),
+	args := []string{
+		"--address=" + sock,
+		"--root=" + root,
 	}
 
-	containerdCmd := exec.Command("containerd", containerdArgs...)
-	containerdCmd.Stdout = os.Stdout
-	containerdCmd.Stderr = os.Stderr
-	containerdCmd.SysProcAttr = &syscall.SysProcAttr{
+	if cmd.Garden.Config.Path() != "" {
+		args = append(args, "--config", cmd.Garden.Config.Path())
+	}
+
+	if cmd.Garden.Bin != "" {
+		bin = cmd.Garden.Bin
+	}
+
+	command := exec.Command(bin, args...)
+
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	command.SysProcAttr = &syscall.SysProcAttr{
 		Pdeathsig: syscall.SIGKILL,
 	}
 
 	return grouper.NewParallel(os.Interrupt, grouper.Members{
 		{
 			Name:   "containerd",
-			Runner: cmdRunner{cmd: containerdCmd},
+			Runner: cmdRunner{command},
 		},
 		{
 			Name: "containerd-backend",
 			Runner: containerdGardenServerRunner(
-				logger, cmd.bindAddr(), containerdSock,
+				logger, cmd.bindAddr(), sock,
 			),
 		},
 	}), nil
