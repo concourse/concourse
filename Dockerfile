@@ -20,7 +20,7 @@ RUN apt update && apt install -y curl
 
 RUN set -x && \
 	curl -sSL https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION.linux-amd64.tar.gz \
-		| tar -zvxf - -C /usr/local/concourse/bin && \
+		| tar -zvxf - -C /usr/local/concourse/bin --strip-components=1 && \
 	curl -sSL https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.amd64 \ 
 		-o /usr/local/concourse/bin/runc && chmod +x /usr/local/concourse/bin/runc && \
 	curl -sSL https://github.com/containernetworking/plugins/releases/download/$CNI_VERSION/cni-plugins-linux-amd64-$CNI_VERSION.tgz \
