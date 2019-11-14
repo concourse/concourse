@@ -243,6 +243,7 @@ func (p *pipeline) Config() (atc.Config, error) {
 
 	config := atc.Config{
 		Groups:        p.Groups(),
+		VarSources:    p.VarSources(),
 		Resources:     resources.Configs(),
 		ResourceTypes: resourceTypes.Configs(),
 		Jobs:          jobs.Configs(),

@@ -28,13 +28,6 @@ jobs:
 - name:
 `
 
-
-	const badPipelineContentWithUnknownField = `
----
-foo:
-- name: bar
-`
-
 	const pipelineContent = `
 ---
 jobs:
@@ -190,17 +183,6 @@ jobs:
 			It("should fail with error of file not configured", func() {
 				Expect(stepErr).To(HaveOccurred())
 				Expect(stepErr.Error()).To(Equal("file not found"))
-			})
-		})
-
-		Context("when pipeline file exists but with unknown field", func() {
-			BeforeEach(func() {
-				fakeSource.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithUnknownField}, nil)
-			})
-
-			It("should not return error", func() {
-				Expect(stepErr).To(HaveOccurred())
-				Expect(stepErr.Error()).To(Equal(`error unmarshaling JSON: while decoding JSON: json: unknown field "foo"`))
 			})
 		})
 

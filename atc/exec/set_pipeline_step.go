@@ -10,6 +10,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/vars"
@@ -74,7 +75,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 
 	step.delegate.Starting(logger)
 
-	warnings, errors := atcConfig.Validate()
+	warnings, errors := configvalidate.Validate(atcConfig)
 	for _, warning := range warnings {
 		fmt.Fprintf(stderr, "WARNING: %s\n", warning.Message)
 	}
@@ -109,7 +110,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 		}
 	}
 
-	diffExists := existingConfig.Diff(stdout, *atcConfig)
+	diffExists := existingConfig.Diff(stdout, atcConfig)
 	if !diffExists {
 		logger.Debug("no-diff")
 
@@ -120,7 +121,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	fmt.Fprintf(stdout, "setting pipeline: %s\n", step.plan.Name)
-	pipeline, _, err = team.SavePipeline(step.plan.Name, *atcConfig, fromVersion, false)
+	pipeline, _, err = team.SavePipeline(step.plan.Name, atcConfig, fromVersion, false)
 	if err != nil {
 		return err
 	}
@@ -162,10 +163,10 @@ func (s setPipelineSource) streamInBytes(path string) ([]byte, error) {
 
 // FetchConfig streams pipeline configure file and var files from other resources
 // and construct an atc.Config object.
-func (s setPipelineSource) FetchConfig() (*atc.Config, error) {
+func (s setPipelineSource) FetchConfig() (atc.Config, error) {
 	config, err := s.streamInBytes(s.step.plan.File)
 	if err != nil {
-		return nil, err
+		return atc.Config{}, err
 	}
 
 	staticVarss := []vars.Variables{}
@@ -175,13 +176,13 @@ func (s setPipelineSource) FetchConfig() (*atc.Config, error) {
 	for _, lvf := range s.step.plan.VarFiles {
 		bytes, err := s.streamInBytes(lvf)
 		if err != nil {
-			return nil, err
+			return atc.Config{}, err
 		}
 
 		sv := vars.StaticVariables{}
 		err = yaml.Unmarshal(bytes, &sv)
 		if err != nil {
-			return nil, err
+			return atc.Config{}, err
 		}
 
 		staticVarss = append(staticVarss, sv)
@@ -190,17 +191,17 @@ func (s setPipelineSource) FetchConfig() (*atc.Config, error) {
 	if len(staticVarss) > 0 {
 		config, err = vars.NewTemplateResolver(config, staticVarss).Resolve(false, false)
 		if err != nil {
-			return nil, err
+			return atc.Config{}, err
 		}
 	}
 
 	atcConfig := atc.Config{}
 	err = atc.UnmarshalConfig(config, &atcConfig)
 	if err != nil {
-		return nil, err
+		return atc.Config{}, err
 	}
 
-	return &atcConfig, nil
+	return atcConfig, nil
 }
 
 func (s setPipelineSource) Validate() error {

@@ -18,23 +18,24 @@ type Tags []string
 
 type Config struct {
 	Groups        GroupConfigs     `json:"groups,omitempty"`
+	VarSources    VarSourceConfigs `json:"var_sources,omitempty"`
 	Resources     ResourceConfigs  `json:"resources,omitempty"`
 	ResourceTypes ResourceTypes    `json:"resource_types,omitempty"`
 	Jobs          JobConfigs       `json:"jobs,omitempty"`
-	VarSources    VarSourceConfigs `json:"var_sources,omitempty"`
 }
 
 func UnmarshalConfig(payload []byte, config interface{}) error {
 	// a 'skeleton' of Config, specifying only the toplevel fields
 	type skeletonConfig struct {
 		Groups        interface{} `json:"groups,omitempty"`
+		VarSources    interface{} `json:"var_sources,omitempty"`
 		Resources     interface{} `json:"resources,omitempty"`
 		ResourceTypes interface{} `json:"resource_types,omitempty"`
 		Jobs          interface{} `json:"jobs,omitempty"`
 	}
 
 	var stripped skeletonConfig
-	err := yaml.UnmarshalStrict(payload, &stripped)
+	err := yaml.Unmarshal(payload, &stripped)
 	if err != nil {
 		return err
 	}
@@ -47,7 +48,6 @@ func UnmarshalConfig(payload []byte, config interface{}) error {
 	return yaml.UnmarshalStrict(
 		strippedPayload,
 		&config,
-		yaml.DisallowUnknownFields,
 	)
 }
 
@@ -339,8 +339,8 @@ type PlanConfig struct {
 	TaskConfig *TaskConfig `json:"config,omitempty"`
 
 	// name of 'set_pipeline'
-	SetPipeline string                 `json:"set_pipeline,omitempty"`
-	VarFiles    []string               `json:"var_files,omitempty"`
+	SetPipeline string   `json:"set_pipeline,omitempty"`
+	VarFiles    []string `json:"var_files,omitempty"`
 
 	// config path, e.g. foo/build.yml. Multiple steps might have this field, e.g. Task step and SetPipeline step.
 	ConfigPath string `json:"file,omitempty"`

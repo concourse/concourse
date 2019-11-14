@@ -92,8 +92,8 @@ jobs:
 
 			By("set-pipeline step should succeed")
 			execS = fly("trigger-job", "-w", "-j", pipelineName+"/sp")
-			Expect(execS.Out).To(gbytes.Say("Updating the pipeline."))
-			Expect(execS.Out).To(gbytes.Say("Done successfully."))
+			Expect(execS.Out).To(gbytes.Say("setting pipeline: second-sp"))
+			Expect(execS.Out).To(gbytes.Say("done"))
 
 			By("should trigger the second pipeline job successfully")
 			execS = fly("trigger-job", "-w", "-j", secondPipelineName+"/normal-job")
@@ -119,8 +119,8 @@ jobs:
 		It("set the other pipeline", func() {
 			By("set-pipeline step should succeed")
 			execS := fly("trigger-job", "-w", "-j", pipelineName+"/sp")
-			Expect(execS.Out).To(gbytes.Say("Updating the pipeline."))
-			Expect(execS.Out).To(gbytes.Say("Done successfully."))
+			Expect(execS.Out).To(gbytes.Say("setting pipeline: self-reset"))
+			Expect(execS.Out).To(gbytes.Say("done"))
 
 			By("should trigger the pipeline job successfully")
 			execS = fly("trigger-job", "-w", "-j", pipelineName+"/normal-job")
