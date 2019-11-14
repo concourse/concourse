@@ -190,6 +190,13 @@ func (worker *worker) Retire() error {
 }
 
 func (worker *worker) Prune() error {
+	tx, err := worker.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
 	rows, err := sq.Delete("workers").
 		Where(sq.Eq{
 			"name": worker.name,
@@ -198,7 +205,7 @@ func (worker *worker) Prune() error {
 			"state": string(WorkerStateRunning),
 		}).
 		PlaceholderFormat(sq.Dollar).
-		RunWith(worker.conn).
+		RunWith(tx).
 		Exec()
 
 	if err != nil {
@@ -214,7 +221,7 @@ func (worker *worker) Prune() error {
 		//check whether the worker exists in the database at all
 		var one int
 		err := psql.Select("1").From("workers").Where(sq.Eq{"name": worker.name}).
-			RunWith(worker.conn).
+			RunWith(tx).
 			QueryRow().
 			Scan(&one)
 		if err != nil {
@@ -227,7 +234,7 @@ func (worker *worker) Prune() error {
 		return ErrCannotPruneRunningWorker
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 func (worker *worker) Delete() error {
