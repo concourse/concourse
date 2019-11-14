@@ -472,7 +472,7 @@ func (b *build) Finish(status BuildStatus) error {
 	}
 
 	if b.jobID != 0 {
-		err = requestSchedule(tx, b.pipelineID)
+		err = requestScheduleOnDownstreamJobs(tx, b.jobID)
 		if err != nil {
 			return err
 		}
@@ -967,19 +967,16 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	err = requestSchedule(tx, b.pipelineID)
-	if err != nil {
-		return err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return err
 	}
 
-	err = requestScheduleForPipelinesUsingResourceConfigScope(b.conn, resourceConfigScope.ID())
-	if err != nil {
-		return err
+	if newVersion {
+		err = requestScheduleForJobsUsingResourceConfigScope(b.conn, resourceConfigScope.ID())
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

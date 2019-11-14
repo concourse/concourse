@@ -81,6 +81,12 @@ var _ = Describe("Pipeline", func() {
 					Name: "random-job",
 				},
 				{
+					Name: "job-1",
+				},
+				{
+					Name: "job-2",
+				},
+				{
 					Name:         "other-serial-group-job",
 					SerialGroups: []string{"serial-group", "really-different-group"},
 				},
@@ -334,6 +340,12 @@ var _ = Describe("Pipeline", func() {
 						Name:         "different-serial-group-job",
 						SerialGroups: []string{"different-serial-group"},
 					},
+					{
+						Name: "job-1",
+					},
+					{
+						Name: "job-2",
+					},
 				},
 			}
 
@@ -450,6 +462,14 @@ var _ = Describe("Pipeline", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
+				job1, found, err := dbPipeline.Job("job-1")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				job2, found, err := dbPipeline.Job("job-2")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
 				versions, err := dbPipeline.LoadDebugVersionsDB()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(versions.ResourceVersions).To(BeEmpty())
@@ -468,6 +488,8 @@ var _ = Describe("Pipeline", func() {
 					"random-job":                 randomJob.ID(),
 					"other-serial-group-job":     otherSerialGroupJob.ID(),
 					"different-serial-group-job": differentSerialGroupJob.ID(),
+					"job-1":                      job1.ID(),
+					"job-2":                      job2.ID(),
 				}))
 
 				By("initially having no latest versioned resource")
@@ -512,6 +534,8 @@ var _ = Describe("Pipeline", func() {
 					"random-job":                 randomJob.ID(),
 					"other-serial-group-job":     otherSerialGroupJob.ID(),
 					"different-serial-group-job": differentSerialGroupJob.ID(),
+					"job-1":                      job1.ID(),
+					"job-2":                      job2.ID(),
 				}))
 
 				By("not including saved versioned resources of other pipelines")
@@ -544,6 +568,8 @@ var _ = Describe("Pipeline", func() {
 					"random-job":                 randomJob.ID(),
 					"other-serial-group-job":     otherSerialGroupJob.ID(),
 					"different-serial-group-job": differentSerialGroupJob.ID(),
+					"job-1":                      job1.ID(),
+					"job-2":                      job2.ID(),
 				}))
 
 				By("including outputs of successful builds")
@@ -591,6 +617,8 @@ var _ = Describe("Pipeline", func() {
 					"random-job":                 randomJob.ID(),
 					"other-serial-group-job":     otherSerialGroupJob.ID(),
 					"different-serial-group-job": differentSerialGroupJob.ID(),
+					"job-1":                      job1.ID(),
+					"job-2":                      job2.ID(),
 				}))
 
 				By("not including outputs of failed builds")
@@ -636,6 +664,8 @@ var _ = Describe("Pipeline", func() {
 					"random-job":                 randomJob.ID(),
 					"other-serial-group-job":     otherSerialGroupJob.ID(),
 					"different-serial-group-job": differentSerialGroupJob.ID(),
+					"job-1":                      job1.ID(),
+					"job-2":                      job2.ID(),
 				}))
 
 				By("not including outputs of builds in other pipelines")
@@ -685,6 +715,8 @@ var _ = Describe("Pipeline", func() {
 					"random-job":                 randomJob.ID(),
 					"other-serial-group-job":     otherSerialGroupJob.ID(),
 					"different-serial-group-job": differentSerialGroupJob.ID(),
+					"job-1":                      job1.ID(),
+					"job-2":                      job2.ID(),
 				}))
 
 				By("including build inputs")
@@ -905,6 +937,14 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
+			job1, found, err := pipeline.Job("job-1")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			job2, found, err := pipeline.Job("job-2")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
 			otherSerialGroupJob, found, err := pipeline.Job("other-serial-group-job")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -922,8 +962,10 @@ var _ = Describe("Pipeline", func() {
 			Expect(actualDashboard[2].Job.Name()).To(Equal(aJob.Name()))
 			Expect(actualDashboard[3].Job.Name()).To(Equal(sharedJob.Name()))
 			Expect(actualDashboard[4].Job.Name()).To(Equal(randomJob.Name()))
-			Expect(actualDashboard[5].Job.Name()).To(Equal(otherSerialGroupJob.Name()))
-			Expect(actualDashboard[6].Job.Name()).To(Equal(differentSerialGroupJob.Name()))
+			Expect(actualDashboard[5].Job.Name()).To(Equal(job1.Name()))
+			Expect(actualDashboard[6].Job.Name()).To(Equal(job2.Name()))
+			Expect(actualDashboard[7].Job.Name()).To(Equal(otherSerialGroupJob.Name()))
+			Expect(actualDashboard[8].Job.Name()).To(Equal(differentSerialGroupJob.Name()))
 
 			By("returning a job's most recent pending build if there are no running builds")
 			job, found, err = pipeline.Job("job-name")
@@ -1122,8 +1164,10 @@ var _ = Describe("Pipeline", func() {
 			Expect(jobs[2].Name()).To(Equal("a-job"))
 			Expect(jobs[3].Name()).To(Equal("shared-job"))
 			Expect(jobs[4].Name()).To(Equal("random-job"))
-			Expect(jobs[5].Name()).To(Equal("other-serial-group-job"))
-			Expect(jobs[6].Name()).To(Equal("different-serial-group-job"))
+			Expect(jobs[5].Name()).To(Equal("job-1"))
+			Expect(jobs[6].Name()).To(Equal("job-2"))
+			Expect(jobs[7].Name()).To(Equal("other-serial-group-job"))
+			Expect(jobs[8].Name()).To(Equal("different-serial-group-job"))
 		})
 	})
 

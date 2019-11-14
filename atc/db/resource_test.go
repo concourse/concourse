@@ -50,6 +50,19 @@ var _ = Describe("Resource", func() {
 						CheckTimeout: "1m",
 					},
 				},
+				Jobs: atc.JobConfigs{
+					{
+						Name: "job-using-resource",
+						Plan: atc.PlanSequence{
+							{
+								Get: "some-other-resource",
+							},
+						},
+					},
+					{
+						Name: "not-using-resource",
+					},
+				},
 			},
 			0,
 			false,
@@ -171,6 +184,153 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
+	Describe("Enable/Disable Version", func() {
+		var resource db.Resource
+		var rcv db.ResourceConfigVersion
+		var err error
+		var found bool
+
+		BeforeEach(func() {
+			resource, found, err = pipeline.Resource("some-other-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "git",
+			}
+
+			_, err = brt.FindOrCreate(setupTx, false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = resourceScope.SaveVersions([]atc.Version{
+				{"disabled": "version"},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			rcv, found, err = resourceScope.FindVersion(atc.Version{"disabled": "version"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		Context("when disabling a version that exists", func() {
+			var disableErr error
+			var requestedSchedule1 time.Time
+			var requestedSchedule2 time.Time
+			var jobUsingResource db.Job
+			var jobNotUsingResource db.Job
+
+			BeforeEach(func() {
+				jobUsingResource, found, err = pipeline.Job("job-using-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				requestedSchedule1 = jobUsingResource.ScheduleRequested()
+
+				jobNotUsingResource, found, err = pipeline.Job("not-using-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				requestedSchedule2 = jobNotUsingResource.ScheduleRequested()
+
+				disableErr = resource.DisableVersion(rcv.ID())
+			})
+
+			It("successfully disables the version", func() {
+				Expect(disableErr).ToNot(HaveOccurred())
+
+				versions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(HaveLen(1))
+				Expect(versions[0].Version).To(Equal(atc.Version{"disabled": "version"}))
+				Expect(versions[0].Enabled).To(BeFalse())
+			})
+
+			It("requests schedule on the jobs using that resource", func() {
+				found, err := jobUsingResource.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(jobUsingResource.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule1))
+			})
+
+			It("does not request schedule on jobs that do not use the resource", func() {
+				found, err := jobNotUsingResource.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(jobNotUsingResource.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule2))
+			})
+
+			Context("when enabling that version", func() {
+				var enableErr error
+				BeforeEach(func() {
+					enableErr = resource.EnableVersion(rcv.ID())
+				})
+
+				It("successfully enables the version", func() {
+					Expect(enableErr).ToNot(HaveOccurred())
+
+					versions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(versions).To(HaveLen(1))
+					Expect(versions[0].Version).To(Equal(atc.Version{"disabled": "version"}))
+					Expect(versions[0].Enabled).To(BeTrue())
+				})
+
+				It("request schedule on the jobs using that resource", func() {
+					found, err := jobUsingResource.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					Expect(jobUsingResource.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule1))
+				})
+
+				It("does not request schedule on jobs that do not use the resource", func() {
+					found, err := jobNotUsingResource.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					Expect(jobNotUsingResource.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule2))
+				})
+			})
+		})
+
+		Context("when disabling version that does not exist", func() {
+			var disableErr error
+			BeforeEach(func() {
+				resource, found, err := pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				disableErr = resource.DisableVersion(123456)
+			})
+
+			It("returns an error", func() {
+				Expect(disableErr).To(HaveOccurred())
+			})
+		})
+
+		Context("when enabling a version that is already enabled", func() {
+			var enableError error
+			BeforeEach(func() {
+				enableError = resource.EnableVersion(rcv.ID())
+			})
+
+			It("returns a non one row affected error", func() {
+				Expect(enableError).To(Equal(db.NonOneRowAffectedError{0}))
+			})
+		})
+	})
+
 	Describe("SetResourceConfig", func() {
 		var pipeline db.Pipeline
 		var config atc.Config
@@ -207,6 +367,19 @@ var _ = Describe("Resource", func() {
 						Name:   "other-pipeline-resource",
 						Type:   "some-resourceType",
 						Source: atc.Source{"some": "repository"},
+					},
+				},
+				Jobs: atc.JobConfigs{
+					{
+						Name: "job-using-resource",
+						Plan: atc.PlanSequence{
+							{
+								Get: "some-resource",
+							},
+						},
+					},
+					{
+						Name: "not-using-resource",
 					},
 				},
 			}
@@ -550,33 +723,61 @@ var _ = Describe("Resource", func() {
 			})
 		})
 
-		It("requests schedule on the pipeline", func() {
-			resource1, found, err := pipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
+		Context("when requesting schedule for setting resource config", func() {
+			var resource1 db.Resource
 
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
+			BeforeEach(func() {
+				var err error
+				var found bool
+				resource1, found, err = pipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
 
-			_, err = brt.FindOrCreate(setupTx, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
+				brt := db.BaseResourceType{
+					Name: "some-type",
+				}
 
-			var requestedSchedule time.Time
-			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
-			Expect(err).NotTo(HaveOccurred())
+				_, err = brt.FindOrCreate(setupTx, false)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+			})
 
-			_, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-			Expect(err).NotTo(HaveOccurred())
+			It("requests schedule on the jobs that use the resource", func() {
+				job, found, err := pipeline.Job("job-using-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-			var newRequestedSchedule time.Time
-			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+				requestedSchedule := job.ScheduleRequested()
+
+				_, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
+				Expect(err).NotTo(HaveOccurred())
+
+				found, err = job.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(job.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+			})
+
+			It("does not request schedule on the jobs that do not use the resource", func() {
+				job, found, err := pipeline.Job("not-using-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				requestedSchedule := job.ScheduleRequested()
+
+				_, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
+				Expect(err).NotTo(HaveOccurred())
+
+				found, err = job.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(job.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule))
+			})
 		})
 	})
 
@@ -1076,22 +1277,6 @@ var _ = Describe("Resource", func() {
 				})
 			})
 
-			Context("disabling a version", func() {
-				It("requests schedule on the pipeline", func() {
-					var requestedSchedule time.Time
-					err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = resource.DisableVersion(resourceVersions[9].ID)
-					Expect(err).ToNot(HaveOccurred())
-
-					var newRequestedSchedule time.Time
-					err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
-				})
-			})
-
 			Context("when the version metadata is updated", func() {
 				var metadata db.ResourceConfigMetadataFields
 
@@ -1352,19 +1537,42 @@ var _ = Describe("Resource", func() {
 			})
 		})
 
-		It("requests schedule on the pipeline when a version is pinned", func() {
-			var requestedSchedule time.Time
-			err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
-			Expect(err).NotTo(HaveOccurred())
+		Context("when requesting schedule for version pinning", func() {
+			It("requests schedule on all jobs using the resource", func() {
+				job, found, err := pipeline.Job("job-using-resource")
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
 
-			found, err := resource.PinVersion(resID)
-			Expect(found).To(BeTrue())
-			Expect(err).ToNot(HaveOccurred())
+				requestedSchedule := job.ScheduleRequested()
 
-			var newRequestedSchedule time.Time
-			err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+				found, err = resource.PinVersion(resID)
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+
+				found, err = job.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(job.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+			})
+
+			It("does not request schedule on jobs that do not use the resource", func() {
+				job, found, err := pipeline.Job("not-using-resource")
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+
+				requestedSchedule := job.ScheduleRequested()
+
+				found, err = resource.PinVersion(resID)
+				Expect(found).To(BeTrue())
+				Expect(err).ToNot(HaveOccurred())
+
+				found, err = job.Reload()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(job.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule))
+			})
 		})
 
 		Context("when we pin a resource to a version", func() {
@@ -1421,18 +1629,36 @@ var _ = Describe("Resource", func() {
 				})
 			})
 
-			It("requests schedule on the pipeline when a version is unpinned", func() {
-				var requestedSchedule time.Time
-				err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
-				Expect(err).NotTo(HaveOccurred())
+			Context("when requesting schedule for version unpinning", func() {
+				It("requests schedule on all jobs using the resource", func() {
+					job, found, err := pipeline.Job("job-using-resource")
+					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
 
-				err = resource.UnpinVersion()
-				Expect(err).ToNot(HaveOccurred())
+					requestedSchedule := job.ScheduleRequested()
 
-				var newRequestedSchedule time.Time
-				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+					err = resource.UnpinVersion()
+					Expect(err).ToNot(HaveOccurred())
+
+					found, err = job.Reload()
+					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(job.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+				})
+
+				It("does not request schedule on jobs that do not use the resource", func() {
+					job, found, err := pipeline.Job("not-using-resource")
+					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+
+					requestedSchedule := job.ScheduleRequested()
+
+					err = resource.UnpinVersion()
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(job.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule))
+				})
 			})
 
 			Context("when we unpin a resource to a version", func() {

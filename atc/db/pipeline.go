@@ -38,7 +38,6 @@ type Pipeline interface {
 	ConfigVersion() ConfigVersion
 	Public() bool
 	Paused() bool
-	RequestedTime() time.Time
 
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
@@ -53,7 +52,6 @@ type Pipeline interface {
 	CreateOneOffBuild() (Build, error)
 	CreateStartedBuild(plan atc.Plan) (Build, error)
 
-	RequestSchedule() error
 	UpdateLastScheduled(time.Time) error
 
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
@@ -93,7 +91,6 @@ type pipeline struct {
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
-	requestedTime time.Time
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -110,8 +107,7 @@ var pipelinesQuery = psql.Select(`
 		p.team_id,
 		t.name,
 		p.paused,
-		p.public,
-		p.schedule_requested
+		p.public
 	`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
@@ -131,7 +127,6 @@ func (p *pipeline) Groups() atc.GroupConfigs     { return p.groups }
 func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
 func (p *pipeline) Public() bool                 { return p.public }
 func (p *pipeline) Paused() bool                 { return p.paused }
-func (p *pipeline) RequestedTime() time.Time     { return p.requestedTime }
 
 // IMPORTANT: This method is broken with the new resource config versions changes
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
@@ -946,22 +941,6 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	return build, nil
 }
 
-func (p *pipeline) RequestSchedule() error {
-	tx, err := p.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer Rollback(tx)
-
-	err = requestSchedule(tx, p.id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
 func (p *pipeline) UpdateLastScheduled(requestedTime time.Time) error {
 	_, err := p.conn.Exec(`
 		UPDATE pipelines
@@ -1053,28 +1032,4 @@ func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resourc
 	}
 
 	return resources, nil
-}
-
-func requestSchedule(tx Tx, pipelineID int) error {
-	result, err := psql.Update("pipelines").
-		Set("schedule_requested", sq.Expr("now()")).
-		Where(sq.Eq{
-			"id": pipelineID,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return nonOneRowAffectedError{rows}
-	}
-
-	return err
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
@@ -35,6 +36,7 @@ type Job interface {
 	Config() atc.JobConfig
 	Tags() []string
 	Public() bool
+	ScheduleRequested() time.Time
 
 	Reload() (bool, error)
 
@@ -44,6 +46,8 @@ type Job interface {
 	ScheduleBuild(Build) (bool, error)
 	CreateBuild() (Build, error)
 	RerunBuild(Build) (Build, error)
+
+	RequestSchedule() error
 
 	Builds(page Page) ([]Build, Pagination, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
@@ -65,7 +69,7 @@ type Job interface {
 	HasNewInputs() bool
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs").
+var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -92,6 +96,7 @@ type job struct {
 	config             atc.JobConfig
 	tags               []string
 	hasNewInputs       bool
+	scheduleRequested  time.Time
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -113,7 +118,7 @@ func (j *job) SetHasNewInputs(hasNewInputs bool) error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
 	return nil
@@ -131,18 +136,19 @@ func (jobs Jobs) Configs() atc.JobConfigs {
 	return configs
 }
 
-func (j *job) ID() int                 { return j.id }
-func (j *job) Name() string            { return j.name }
-func (j *job) Paused() bool            { return j.paused }
-func (j *job) FirstLoggedBuildID() int { return j.firstLoggedBuildID }
-func (j *job) PipelineID() int         { return j.pipelineID }
-func (j *job) PipelineName() string    { return j.pipelineName }
-func (j *job) TeamID() int             { return j.teamID }
-func (j *job) TeamName() string        { return j.teamName }
-func (j *job) Config() atc.JobConfig   { return j.config }
-func (j *job) Tags() []string          { return j.tags }
-func (j *job) Public() bool            { return j.Config().Public }
-func (j *job) HasNewInputs() bool      { return j.hasNewInputs }
+func (j *job) ID() int                      { return j.id }
+func (j *job) Name() string                 { return j.name }
+func (j *job) Paused() bool                 { return j.paused }
+func (j *job) FirstLoggedBuildID() int      { return j.firstLoggedBuildID }
+func (j *job) PipelineID() int              { return j.pipelineID }
+func (j *job) PipelineName() string         { return j.pipelineName }
+func (j *job) TeamID() int                  { return j.teamID }
+func (j *job) TeamName() string             { return j.teamName }
+func (j *job) Config() atc.JobConfig        { return j.config }
+func (j *job) Tags() []string               { return j.tags }
+func (j *job) Public() bool                 { return j.Config().Public }
+func (j *job) HasNewInputs() bool           { return j.hasNewInputs }
+func (j *job) ScheduleRequested() time.Time { return j.scheduleRequested }
 
 func (j *job) Reload() (bool, error) {
 	row := jobsQuery.Where(sq.Eq{"j.id": j.id}).
@@ -228,7 +234,7 @@ func (j *job) UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
 	return nil
@@ -321,7 +327,7 @@ func (j *job) ScheduleBuild(build Build) (bool, error) {
 	}
 
 	if rowsAffected != 1 {
-		return false, nonOneRowAffectedError{rowsAffected}
+		return false, NonOneRowAffectedError{rowsAffected}
 	}
 
 	var scheduled bool
@@ -341,7 +347,7 @@ func (j *job) ScheduleBuild(build Build) (bool, error) {
 		}
 
 		if rowsAffected != 1 {
-			return false, nonOneRowAffectedError{rowsAffected}
+			return false, NonOneRowAffectedError{rowsAffected}
 		}
 
 		scheduled = true
@@ -535,7 +541,7 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
-	err = requestSchedule(tx, j.pipelineID)
+	err = requestSchedule(tx, j.id)
 	if err != nil {
 		return nil, err
 	}
@@ -585,7 +591,7 @@ func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 		return nil, err
 	}
 
-	err = requestSchedule(tx, j.pipelineID)
+	err = requestSchedule(tx, j.id)
 	if err != nil {
 		return nil, err
 	}
@@ -669,6 +675,22 @@ func (j *job) isMaxInFlightReached(tx Tx, buildID int) (bool, error) {
 	}
 
 	return nextMostPendingBuild.ID() != buildID, nil
+}
+
+func (j *job) RequestSchedule() error {
+	tx, err := j.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	err = requestSchedule(tx, j.id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (j *job) getRunningBuildsBySerialGroup(tx Tx) ([]Build, error) {
@@ -780,7 +802,7 @@ func (j *job) updatePausedJob(pause bool) error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
 	return nil
@@ -1019,7 +1041,7 @@ func scanJob(j *job, row scannable) error {
 		nonce      sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs)
+	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequested)
 	if err != nil {
 		return err
 	}
@@ -1064,4 +1086,38 @@ func scanJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) (Jobs, er
 	}
 
 	return jobs, nil
+}
+
+func requestSchedule(tx Tx, jobID int) error {
+	result, err := psql.Update("jobs").
+		Set("schedule_requested", sq.Expr("now()")).
+		Where(sq.Eq{
+			"id": jobID,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected != 1 {
+		return NonOneRowAffectedError{rowsAffected}
+	}
+
+	return nil
+}
+
+func requestScheduleOnDownstreamJobs(tx Tx, jobID int) error {
+	_, err := psql.Update("jobs").
+		Set("schedule_requested", sq.Expr("now()")).
+		Where(sq.Expr("id IN (SELECT DISTINCT job_id FROM job_pipes WHERE passed_job_id = $1)", jobID)).
+		RunWith(tx).
+		Exec()
+
+	return err
 }

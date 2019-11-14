@@ -257,7 +257,7 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 	}
 
 	if rowsAffected > 0 {
-		err = requestScheduleForPipelinesUsingResourceConfigScope(r.conn, resourceConfigScope.ID())
+		err = requestScheduleForJobsUsingResource(r.conn, r.id)
 		if err != nil {
 			return nil, err
 		}
@@ -608,12 +608,12 @@ func (r *resource) PinVersion(rcvID int) (bool, error) {
 		return false, nil
 	}
 
-	err = requestSchedule(tx, r.pipelineID)
+	err = tx.Commit()
 	if err != nil {
 		return false, err
 	}
 
-	err = tx.Commit()
+	err = requestScheduleForJobsUsingResource(r.conn, r.id)
 	if err != nil {
 		return false, err
 	}
@@ -641,15 +641,15 @@ func (r *resource) UnpinVersion() error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
-	err = requestSchedule(tx, r.pipelineID)
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
 
-	err = tx.Commit()
+	err = requestScheduleForJobsUsingResource(r.conn, r.id)
 	if err != nil {
 		return err
 	}
@@ -690,15 +690,15 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
-	err = requestSchedule(tx, r.pipelineID)
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	return requestScheduleForJobsUsingResource(r.conn, r.id)
 }
 
 func (r *resource) NotifyScan() error {
@@ -783,6 +783,50 @@ func scanResource(r *resource, row scannable) error {
 
 	if rcScopeID.Valid {
 		r.resourceConfigScopeID, err = strconv.Atoi(rcScopeID.String)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func requestScheduleForJobsUsingResource(conn Conn, resourceID int) error {
+	rows, err := psql.Select("job_id").
+		From("job_pipes").
+		Where(sq.Eq{
+			"resource_id": resourceID,
+		}).
+		RunWith(conn).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	var jobs []int
+	for rows.Next() {
+		var jid int
+		err = rows.Scan(&jid)
+		if err != nil {
+			return err
+		}
+
+		jobs = append(jobs, jid)
+	}
+
+	// When we update the schedule requested for the jobs that use a resource
+	// config which we found new versions for, postgres can get into a deadlock
+	// when two or more transactions battle for the same updating the same rows.
+	// By running all the schedule requested updates by itself (not in a
+	// transaction), we will prevent that from happening.
+	for _, j := range jobs {
+		_, err := psql.Update("jobs").
+			Set("schedule_requested", sq.Expr("now()")).
+			Where(sq.Eq{
+				"id": j,
+			}).
+			RunWith(conn).
+			Exec()
 		if err != nil {
 			return err
 		}

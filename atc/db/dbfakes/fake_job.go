@@ -3,6 +3,7 @@ package dbfakes
 
 import (
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -271,6 +272,16 @@ type FakeJob struct {
 		result1 bool
 		result2 error
 	}
+	RequestScheduleStub        func() error
+	requestScheduleMutex       sync.RWMutex
+	requestScheduleArgsForCall []struct {
+	}
+	requestScheduleReturns struct {
+		result1 error
+	}
+	requestScheduleReturnsOnCall map[int]struct {
+		result1 error
+	}
 	RerunBuildStub        func(db.Build) (db.Build, error)
 	rerunBuildMutex       sync.RWMutex
 	rerunBuildArgsForCall []struct {
@@ -308,6 +319,16 @@ type FakeJob struct {
 	scheduleBuildReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
+	}
+	ScheduleRequestedStub        func() time.Time
+	scheduleRequestedMutex       sync.RWMutex
+	scheduleRequestedArgsForCall []struct {
+	}
+	scheduleRequestedReturns struct {
+		result1 time.Time
+	}
+	scheduleRequestedReturnsOnCall map[int]struct {
+		result1 time.Time
 	}
 	SetHasNewInputsStub        func(bool) error
 	setHasNewInputsMutex       sync.RWMutex
@@ -1611,6 +1632,58 @@ func (fake *FakeJob) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeJob) RequestSchedule() error {
+	fake.requestScheduleMutex.Lock()
+	ret, specificReturn := fake.requestScheduleReturnsOnCall[len(fake.requestScheduleArgsForCall)]
+	fake.requestScheduleArgsForCall = append(fake.requestScheduleArgsForCall, struct {
+	}{})
+	fake.recordInvocation("RequestSchedule", []interface{}{})
+	fake.requestScheduleMutex.Unlock()
+	if fake.RequestScheduleStub != nil {
+		return fake.RequestScheduleStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.requestScheduleReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) RequestScheduleCallCount() int {
+	fake.requestScheduleMutex.RLock()
+	defer fake.requestScheduleMutex.RUnlock()
+	return len(fake.requestScheduleArgsForCall)
+}
+
+func (fake *FakeJob) RequestScheduleCalls(stub func() error) {
+	fake.requestScheduleMutex.Lock()
+	defer fake.requestScheduleMutex.Unlock()
+	fake.RequestScheduleStub = stub
+}
+
+func (fake *FakeJob) RequestScheduleReturns(result1 error) {
+	fake.requestScheduleMutex.Lock()
+	defer fake.requestScheduleMutex.Unlock()
+	fake.RequestScheduleStub = nil
+	fake.requestScheduleReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeJob) RequestScheduleReturnsOnCall(i int, result1 error) {
+	fake.requestScheduleMutex.Lock()
+	defer fake.requestScheduleMutex.Unlock()
+	fake.RequestScheduleStub = nil
+	if fake.requestScheduleReturnsOnCall == nil {
+		fake.requestScheduleReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.requestScheduleReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeJob) RerunBuild(arg1 db.Build) (db.Build, error) {
 	fake.rerunBuildMutex.Lock()
 	ret, specificReturn := fake.rerunBuildReturnsOnCall[len(fake.rerunBuildArgsForCall)]
@@ -1796,6 +1869,58 @@ func (fake *FakeJob) ScheduleBuildReturnsOnCall(i int, result1 bool, result2 err
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeJob) ScheduleRequested() time.Time {
+	fake.scheduleRequestedMutex.Lock()
+	ret, specificReturn := fake.scheduleRequestedReturnsOnCall[len(fake.scheduleRequestedArgsForCall)]
+	fake.scheduleRequestedArgsForCall = append(fake.scheduleRequestedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ScheduleRequested", []interface{}{})
+	fake.scheduleRequestedMutex.Unlock()
+	if fake.ScheduleRequestedStub != nil {
+		return fake.ScheduleRequestedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.scheduleRequestedReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) ScheduleRequestedCallCount() int {
+	fake.scheduleRequestedMutex.RLock()
+	defer fake.scheduleRequestedMutex.RUnlock()
+	return len(fake.scheduleRequestedArgsForCall)
+}
+
+func (fake *FakeJob) ScheduleRequestedCalls(stub func() time.Time) {
+	fake.scheduleRequestedMutex.Lock()
+	defer fake.scheduleRequestedMutex.Unlock()
+	fake.ScheduleRequestedStub = stub
+}
+
+func (fake *FakeJob) ScheduleRequestedReturns(result1 time.Time) {
+	fake.scheduleRequestedMutex.Lock()
+	defer fake.scheduleRequestedMutex.Unlock()
+	fake.ScheduleRequestedStub = nil
+	fake.scheduleRequestedReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeJob) ScheduleRequestedReturnsOnCall(i int, result1 time.Time) {
+	fake.scheduleRequestedMutex.Lock()
+	defer fake.scheduleRequestedMutex.Unlock()
+	fake.ScheduleRequestedStub = nil
+	if fake.scheduleRequestedReturnsOnCall == nil {
+		fake.scheduleRequestedReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.scheduleRequestedReturnsOnCall[i] = struct {
+		result1 time.Time
+	}{result1}
 }
 
 func (fake *FakeJob) SetHasNewInputs(arg1 bool) error {
@@ -2173,12 +2298,16 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.publicMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
+	fake.requestScheduleMutex.RLock()
+	defer fake.requestScheduleMutex.RUnlock()
 	fake.rerunBuildMutex.RLock()
 	defer fake.rerunBuildMutex.RUnlock()
 	fake.saveNextInputMappingMutex.RLock()
 	defer fake.saveNextInputMappingMutex.RUnlock()
 	fake.scheduleBuildMutex.RLock()
 	defer fake.scheduleBuildMutex.RUnlock()
+	fake.scheduleRequestedMutex.RLock()
+	defer fake.scheduleRequestedMutex.RUnlock()
 	fake.setHasNewInputsMutex.RLock()
 	defer fake.setHasNewInputsMutex.RUnlock()
 	fake.tagsMutex.RLock()

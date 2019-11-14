@@ -104,7 +104,7 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
 	}
 
 	if bumpCache {
-		err = requestScheduleForPipelinesUsingResourceConfigScope(conn, rcsID)
+		err = requestScheduleForJobsUsingResourceConfigScope(conn, rcsID)
 		if err != nil {
 			return err
 		}
@@ -312,10 +312,10 @@ func incrementCheckOrder(tx Tx, rcsID int, version string) error {
 	return err
 }
 
-func requestScheduleForPipelinesUsingResourceConfigScope(conn Conn, rcsID int) error {
-	rows, err := psql.Select("p.id").
-		From("pipelines p").
-		Join("resources r ON r.pipeline_id = p.id").
+func requestScheduleForJobsUsingResourceConfigScope(conn Conn, rcsID int) error {
+	rows, err := psql.Select("j.job_id").
+		From("job_pipes j").
+		Join("resources r ON r.id = j.resource_id").
 		Where(sq.Eq{
 			"r.resource_config_scope_id": rcsID,
 		}).
@@ -325,22 +325,27 @@ func requestScheduleForPipelinesUsingResourceConfigScope(conn Conn, rcsID int) e
 		return err
 	}
 
-	var pipelines []int
+	var jobs []int
 	for rows.Next() {
-		var pid int
-		err = rows.Scan(&pid)
+		var jid int
+		err = rows.Scan(&jid)
 		if err != nil {
 			return err
 		}
 
-		pipelines = append(pipelines, pid)
+		jobs = append(jobs, jid)
 	}
 
-	for _, p := range pipelines {
-		_, err := psql.Update("pipelines").
+	// When we update the schedule requested for the jobs that use a resource
+	// config which we found new versions for, postgres can get into a deadlock
+	// when two or more transactions battle for the same updating the same rows.
+	// By running all the schedule requested updates by itself (not in a
+	// transaction), we will prevent that from happening.
+	for _, j := range jobs {
+		_, err := psql.Update("jobs").
 			Set("schedule_requested", sq.Expr("now()")).
 			Where(sq.Eq{
-				"id": p,
+				"id": j,
 			}).
 			RunWith(conn).
 			Exec()

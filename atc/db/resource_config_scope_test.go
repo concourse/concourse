@@ -37,6 +37,19 @@ var _ = Describe("Resource Config Scope", func() {
 					},
 				},
 			},
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-job",
+					Plan: atc.PlanSequence{
+						{
+							Get: "some-resource",
+						},
+					},
+				},
+				{
+					Name: "some-other-job",
+				},
+			},
 		}, db.ConfigVersion(0), false)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -112,13 +125,15 @@ var _ = Describe("Resource Config Scope", func() {
 			})
 
 			Context("when a new version is added", func() {
-				It("requests schedule on the pipeline", func() {
+				It("requests schedule on the jobs that use the resource", func() {
 					err := resourceScope.SaveVersions(originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
 
-					var requestedSchedule time.Time
-					err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+					job, found, err := pipeline.Job("some-job")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					requestedSchedule := job.ScheduleRequested()
 
 					newVersions := []atc.Version{
 						{"ref": "v0"},
@@ -127,10 +142,31 @@ var _ = Describe("Resource Config Scope", func() {
 					err = resourceScope.SaveVersions(newVersions)
 					Expect(err).ToNot(HaveOccurred())
 
-					var newRequestedSchedule time.Time
-					err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
+					found, err = job.Reload()
 					Expect(err).NotTo(HaveOccurred())
-					Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+					Expect(found).To(BeTrue())
+
+					Expect(job.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+				})
+
+				It("does not request schedule on the jobs that do not use the resource", func() {
+					err := resourceScope.SaveVersions(originalVersionSlice)
+					Expect(err).ToNot(HaveOccurred())
+
+					job, found, err := pipeline.Job("some-other-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					requestedSchedule := job.ScheduleRequested()
+
+					newVersions := []atc.Version{
+						{"ref": "v0"},
+						{"ref": "v3"},
+					}
+					err = resourceScope.SaveVersions(newVersions)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(job.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule))
 				})
 			})
 		})

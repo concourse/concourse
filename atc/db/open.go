@@ -433,10 +433,10 @@ func Rollback(tx Tx) {
 	_ = tx.Rollback()
 }
 
-type nonOneRowAffectedError struct {
+type NonOneRowAffectedError struct {
 	RowsAffected int64
 }
 
-func (err nonOneRowAffectedError) Error() string {
+func (err NonOneRowAffectedError) Error() string {
 	return fmt.Sprintf("expected 1 row to be updated; got %d", err.RowsAffected)
 }
