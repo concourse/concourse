@@ -14,6 +14,10 @@
 
 * @pivotal-bin-ju @taylorsilva @xtreme-sameer-vohra added batching to the NewRelic emitter and logging info for non 2xx responses from NewRelic #4698.
 
+#### <sub><sup><a name="4748" href="#4748">:link:</a></sup></sub> feature
+
+* @andhadley added support for Vault namespaces. #4748
+
 #### <sub><sup><a name="4749" href="#4749">:link:</a></sup></sub> fix
 
 * @evanchaoli fixed a weird behavior with secret redaction wherein a secret containing e.g. `{` on its own line (i.e. formatted JSON) would result in `{` being replaced with `((redacted))` in build logs. Single-character lines will instead be skipped.

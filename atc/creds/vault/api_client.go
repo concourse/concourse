@@ -17,6 +17,7 @@ type APIClient struct {
 	logger lager.Logger
 
 	apiURL     string
+	namespace  string
 	tlsConfig  *vaultapi.TLSConfig
 	authConfig AuthConfig
 
@@ -26,11 +27,12 @@ type APIClient struct {
 }
 
 // NewAPIClient with the associated authorization config and underlying vault client.
-func NewAPIClient(logger lager.Logger, apiURL string, tlsConfig *vaultapi.TLSConfig, authConfig AuthConfig) (*APIClient, error) {
+func NewAPIClient(logger lager.Logger, apiURL string, tlsConfig *vaultapi.TLSConfig, authConfig AuthConfig, namespace string) (*APIClient, error) {
 	ac := &APIClient{
 		logger: logger,
 
 		apiURL:     apiURL,
+		namespace:  namespace,
 		tlsConfig:  tlsConfig,
 		authConfig: authConfig,
 
@@ -185,6 +187,10 @@ func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 	err = client.SetAddress(ac.apiURL)
 	if err != nil {
 		return nil, err
+	}
+
+	if ac.namespace != "" {
+		client.SetNamespace(ac.namespace)
 	}
 
 	return client, nil
