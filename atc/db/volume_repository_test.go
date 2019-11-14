@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("VolumeFactory", func() {
+var _ = Describe("VolumeRepository", func() {
 	var (
 		team2             db.Team
 		usedResourceCache db.UsedResourceCache
@@ -809,6 +809,7 @@ var _ = Describe("VolumeFactory", func() {
 
 		JustBeforeEach(func() {
 			err = volumeRepository.UpdateVolumesMissingSince(defaultWorker.Name(), handles)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("when the reported handles is a subset", func() {

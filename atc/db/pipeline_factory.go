@@ -25,10 +25,17 @@ func NewPipelineFactory(conn Conn, lockFactory lock.LockFactory) PipelineFactory
 }
 
 func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, error) {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
 	rows, err := pipelinesQuery.
 		Where(sq.Eq{"t.name": teamNames}).
 		OrderBy("team_id ASC", "ordering ASC").
-		RunWith(f.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -43,13 +50,18 @@ func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, erro
 		Where(sq.NotEq{"t.name": teamNames}).
 		Where(sq.Eq{"public": true}).
 		OrderBy("team_id ASC", "ordering ASC").
-		RunWith(f.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
 	}
 
 	otherTeamPublicPipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}

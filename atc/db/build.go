@@ -983,6 +983,13 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			AND i.build_id < builds.id
 		)`
 
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer Rollback(tx)
+
 	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", firstOccurrence).
 		From("resource_config_versions versions, build_resource_config_version_inputs inputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
@@ -999,7 +1006,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			AND outputs.resource_id = resources.id
 			AND outputs.build_id = inputs.build_id
 		)`)).
-		RunWith(b.conn).
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, nil, err
@@ -1042,7 +1049,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("outputs.resource_id = resources.id")).
 		Where(sq.Expr("resources.resource_config_scope_id = versions.resource_config_scope_id")).
-		RunWith(b.conn).
+		RunWith(tx).
 		Query()
 
 	if err != nil {
@@ -1072,6 +1079,11 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			Name:    outputName,
 			Version: version,
 		})
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return inputs, outputs, nil
