@@ -2,10 +2,7 @@ package gc
 
 import (
 	"code.cloudfoundry.org/lager"
-	"context"
 	"time"
-
-	"code.cloudfoundry.org/lager/lagerctx"
 
 	"github.com/concourse/concourse/atc/db"
 )
@@ -27,12 +24,7 @@ func NewPipelineCollector(pipelineFactory db.PipelineFactory, ttl time.Duration)
 	}
 }
 
-func (p *pipelineCollector) Run(ctx context.Context) error {
-	logger := lagerctx.FromContext(ctx).Session("pipeline-collector")
-
-	logger.Debug("start")
-	defer logger.Debug("done")
-
+func (p *pipelineCollector) Collect(logger lager.Logger) error {
 	if p.ttl == 0 {
 		logger.Debug("ttl-is-zero")
 		return nil

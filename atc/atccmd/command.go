@@ -1010,7 +1010,7 @@ func (cmd *RunCommand) constructGCMember(
 		time.Minute,
 	)
 
-	collectors := map[string]lockrunner.Task{
+	collectors := map[string]lockrunner.Task {
 		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
 		atc.ComponentCollectorWorkers:           gc.NewWorkerCollector(dbWorkerLifecycle),
 		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory),
@@ -1022,7 +1022,7 @@ func (cmd *RunCommand) constructGCMember(
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, jobRunner, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
 		atc.ComponentCollectorVarSources:        gc.NewCollectorTask(cmd.varSourcePool.(gc.Collector)),
-		atc.ComponentCollectorPipelines:         gc.NewPipelineCollector(dbPipelineFactory, cmd.PipelineTTL),
+		atc.ComponentCollectorPipelines:         gc.NewCollectorTask(gc.NewPipelineCollector(dbPipelineFactory, cmd.PipelineTTL)),
 	}
 
 	for collectorName, collector := range collectors {

@@ -1,7 +1,7 @@
 package gc_test
 
 import (
-	"context"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/gc"
@@ -15,10 +15,12 @@ var _ = Describe("PipelineCollector", func() {
 	var (
 		pipelineCollector   Collector
 		fakePipelineFactory *dbfakes.FakePipelineFactory
+		logger *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
 		fakePipelineFactory = new(dbfakes.FakePipelineFactory)
+		logger = lagertest.NewTestLogger("pipeline-collector-test")
 	})
 
 	JustBeforeEach(func() {
@@ -41,7 +43,7 @@ var _ = Describe("PipelineCollector", func() {
 		})
 
 		It("should be destroyed", func() {
-			err := pipelineCollector.Run(context.TODO())
+			err := pipelineCollector.Collect(logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fakePipeline.DestroyCallCount()).To(Equal(0))
 			Expect(fakePipeline.PauseCallCount()).To(Equal(0))
@@ -61,7 +63,7 @@ var _ = Describe("PipelineCollector", func() {
 		})
 
 		It("should be destroyed", func() {
-			err := pipelineCollector.Run(context.TODO())
+			err := pipelineCollector.Collect(logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fakePipeline.DestroyCallCount()).To(Equal(1))
 			Expect(fakePipeline.PauseCallCount()).To(Equal(0))
@@ -81,7 +83,7 @@ var _ = Describe("PipelineCollector", func() {
 		})
 
 		It("should be destroyed", func() {
-			err := pipelineCollector.Run(context.TODO())
+			err := pipelineCollector.Collect(logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fakePipeline.DestroyCallCount()).To(Equal(0))
 			Expect(fakePipeline.PauseCallCount()).To(Equal(0))
@@ -101,7 +103,7 @@ var _ = Describe("PipelineCollector", func() {
 		})
 
 		It("should be destroyed", func() {
-			err := pipelineCollector.Run(context.TODO())
+			err := pipelineCollector.Collect(logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fakePipeline.DestroyCallCount()).To(Equal(0))
 			Expect(fakePipeline.PauseCallCount()).To(Equal(1))
@@ -128,7 +130,7 @@ var _ = Describe("PipelineCollector", func() {
 		})
 
 		It("should do nothing", func() {
-			err := pipelineCollector.Run(context.TODO())
+			err := pipelineCollector.Collect(logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fakePipeline.DestroyCallCount()).To(Equal(0))
 			Expect(fakePipeline.PauseCallCount()).To(Equal(0))
