@@ -195,7 +195,7 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
 
     The \code{web} nodes can be killed and restarted willy-nilly. No draining
     is necessary; if the \code{web} node was orchestrating a build it will just
-    continue where it left off when it comes back or, or the build will be
+    continue where it left off when it comes back, or the build will be
     picked up by one of the other \code{web} nodes.
 
     To upgrade a \code{web} node, stop its process and start a new one using
