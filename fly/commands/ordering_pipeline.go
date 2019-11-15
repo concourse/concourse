@@ -14,7 +14,7 @@ var ErrMissingPipelineName = errors.New("Need to specify atleast one pipeline na
 
 type OrderPipelinesCommand struct {
 	Alphabetical bool                       `short:"a"  long:"alphabetical" description:"Order all pipelines alphabetically"`
-	Pipelines    []flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of pipeline to order"`
+	Pipelines    []flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"List of pipelines to order. This flag can be specified 1 or multiple times. For example, --pipeline pipeline-1 --pipeline pipeline-2"`
 }
 
 func (command *OrderPipelinesCommand) Validate() ([]string, error) {
