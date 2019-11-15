@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-
 	"github.com/concourse/concourse/worker/workerfakes"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -15,16 +14,16 @@ import (
 	"github.com/concourse/concourse/worker"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Container Sweeper", func() {
 	const (
-	 sweepInterval              = 50 * time.Millisecond
-	 maxInFlight                =  uint16(1)
-	 gardenClientTimeoutRequest = 5 * time.Millisecond
+		sweepInterval              = 50 * time.Millisecond
+		maxInFlight                = uint16(1)
+		gardenClientTimeoutRequest = 5 * time.Millisecond
 	)
 
 	var (
@@ -37,9 +36,8 @@ var _ = Describe("Container Sweeper", func() {
 
 		sweeper *worker.ContainerSweeper
 
-		osSignal  chan os.Signal
-		exited    chan struct{}
-
+		osSignal chan os.Signal
+		exited   chan struct{}
 	)
 
 	BeforeEach(func() {
