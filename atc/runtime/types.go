@@ -31,6 +31,7 @@ type GetRequest struct {
 	Params atc.Params `json:"params,omitempty"`
 }
 
+//go:generate counterfeiter . Artifact
 type Artifact interface {
 	ID() string
 }

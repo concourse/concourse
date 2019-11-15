@@ -48,12 +48,52 @@ func NewStreamableArtifactSource(artifact runtime.Artifact, volume Volume) Strea
 	return &artifactSource{artifact: artifact, volume: volume}
 }
 
-func (source *artifactSource) StreamTo(ctx context.Context, logger lager.Logger, dest ArtifactDestination) error {
-	return streamToHelper(ctx, source.volume, logger, dest)
+// TODO: figure out if we want logging before and after streams, I remove logger from private methods
+func (source *artifactSource) StreamTo(
+	ctx context.Context,
+	logger lager.Logger,
+	destination ArtifactDestination,
+) error {
+	out, err := source.volume.StreamOut(ctx, ".")
+	if err != nil {
+		return err
+	}
+
+	defer out.Close()
+
+	err = destination.StreamIn(ctx, ".", out)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (source *artifactSource) StreamFile(ctx context.Context, logger lager.Logger, path string) (io.ReadCloser, error) {
-	return streamFileHelper(ctx, source.volume, logger, path)
+// TODO: figure out if we want logging before and after streams, I remove logger from private methods
+func (source *artifactSource) StreamFile(
+	ctx context.Context,
+	logger lager.Logger,
+	filepath string,
+) (io.ReadCloser, error) {
+	out, err := source.volume.StreamOut(ctx, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	zstdReader := zstd.NewReader(out)
+	tarReader := tar.NewReader(zstdReader)
+
+	_, err = tarReader.Next()
+	if err != nil {
+		return nil, runtime.FileNotFoundError{Path: filepath}
+	}
+
+	return fileReadMultiCloser{
+		reader: tarReader,
+		closers: []io.Closer{
+			out,
+			zstdReader,
+		},
+	}, nil
 }
 
 func (source *artifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
@@ -70,64 +110,6 @@ func NewCacheArtifactSource(artifact runtime.CacheArtifact) ArtifactSource {
 
 func (source *cacheArtifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
 	return worker.FindVolumeForTaskCache(logger, source.TeamID, source.JobID, source.StepName, source.Path)
-}
-
-func streamToHelper(
-	ctx context.Context,
-	s interface {
-		StreamOut(context.Context, string) (io.ReadCloser, error)
-	},
-	logger lager.Logger,
-	destination ArtifactDestination,
-) error {
-	logger.Debug("start")
-
-	defer logger.Debug("end")
-
-	out, err := s.StreamOut(ctx, ".")
-	if err != nil {
-		logger.Error("failed", err)
-		return err
-	}
-
-	defer out.Close()
-
-	err = destination.StreamIn(ctx, ".", out)
-	if err != nil {
-		logger.Error("failed", err)
-		return err
-	}
-	return nil
-}
-
-func streamFileHelper(
-	ctx context.Context,
-	s interface {
-		StreamOut(context.Context, string) (io.ReadCloser, error)
-	},
-	logger lager.Logger,
-	path string,
-) (io.ReadCloser, error) {
-	out, err := s.StreamOut(ctx, path)
-	if err != nil {
-		return nil, err
-	}
-
-	zstdReader := zstd.NewReader(out)
-	tarReader := tar.NewReader(zstdReader)
-
-	_, err = tarReader.Next()
-	if err != nil {
-		return nil, runtime.FileNotFoundError{Path: path}
-	}
-
-	return fileReadMultiCloser{
-		reader: tarReader,
-		closers: []io.Closer{
-			out,
-			zstdReader,
-		},
-	}, nil
 }
 
 type fileReadMultiCloser struct {
