@@ -28,10 +28,11 @@ type Certs struct {
 }
 
 type GardenBackend struct {
-	UseHoudini bool `long:"use-houdini" description:"Use the insecure Houdini Garden backend."`
+	UseHoudini    bool `long:"use-houdini"    description:"Use the insecure Houdini Garden backend."`
+	UseContainerd bool `long:"use-containerd" description:"Use the containerd backend."`
 
-	GDN          string    `long:"bin"    default:"gdn" description:"Path to 'gdn' executable (or leave as 'gdn' to find it in $PATH)."`
-	GardenConfig flag.File `long:"config"               description:"Path to a config file to use for Garden. You can also specify Garden flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
+	Bin    string    `long:"bin"    description:"Path to a garden backend executable (non-absolute names get resolved from $PATH)."`
+	Config flag.File `long:"config" description:"Path to a config file to use for the Garden backend. Guardian flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
 
 	DNS DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 
@@ -66,12 +67,19 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 		return atc.Worker{}, nil, err
 	}
 
+	trySetConcourseDirInPATH()
+
 	var runner ifrit.Runner
-	if cmd.Garden.UseHoudini {
+
+	switch {
+	case cmd.Garden.UseHoudini:
 		runner, err = cmd.houdiniRunner(logger)
-	} else {
+	case cmd.Garden.UseContainerd:
+		runner = cmd.containerdRunner(logger)
+	default:
 		runner, err = cmd.gdnRunner(logger)
 	}
+
 	if err != nil {
 		return atc.Worker{}, nil, err
 	}
@@ -79,15 +87,20 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 	return worker, runner, nil
 }
 
-func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
-	if binDir := concourseCmd.DiscoverAsset("bin"); binDir != "" {
-		// ensure packaged 'gdn' executable is available in $PATH
-		err := os.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
-		if err != nil {
-			return nil, err
-		}
+func trySetConcourseDirInPATH() {
+	binDir := concourseCmd.DiscoverAsset("bin")
+	if binDir == "" {
+		return
 	}
 
+	err := os.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
+	if err != nil {
+		// programming mistake
+		panic(fmt.Errorf("failed to set PATH environment variable: %w", err))
+	}
+}
+
+func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 	depotDir := filepath.Join(cmd.WorkDir.Path(), "depot")
 
 	// must be readable by other users so unprivileged containers can run their
@@ -101,8 +114,8 @@ func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 
 	gdnFlags := []string{}
 
-	if cmd.Garden.GardenConfig.Path() != "" {
-		gdnFlags = append(gdnFlags, "--config", cmd.Garden.GardenConfig.Path())
+	if cmd.Garden.Config.Path() != "" {
+		gdnFlags = append(gdnFlags, "--config", cmd.Garden.Config.Path())
 	}
 
 	gdnServerFlags := []string{
@@ -148,7 +161,13 @@ func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 	}
 
 	gdnArgs := append(gdnFlags, append([]string{"server"}, gdnServerFlags...)...)
-	gdnCmd := exec.Command(cmd.Garden.GDN, gdnArgs...)
+
+	bin := "gdn"
+	if cmd.Garden.Bin != "" {
+		bin = cmd.Garden.Bin
+	}
+
+	gdnCmd := exec.Command(bin, gdnArgs...)
 	gdnCmd.Stdout = os.Stdout
 	gdnCmd.Stderr = os.Stderr
 	gdnCmd.SysProcAttr = &syscall.SysProcAttr{
