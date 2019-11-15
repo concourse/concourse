@@ -45,7 +45,7 @@ flag is based on the flag name, preceded with \code{CONCOURSE_}. These are
 also shown in \code{--help}.
 
 Various sections in documentation may refer to configuration via env vars
-rather than flags, but they are both equivalent an interchangeable. Env
+rather than flags, but they are both equivalent and interchangeable. Env
 vars are just easier to reference in isolation and are more useful to
 copy-paste.
 
