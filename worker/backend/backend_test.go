@@ -25,19 +25,22 @@ func (s *BackendSuite) SetupTest() {
 
 func (s *BackendSuite) TestPing() {
 	for _, tc := range []struct {
+		desc          string
 		versionReturn error
 		succeeds      bool
 	}{
 		{
-			versionReturn: nil,
+			desc:          "fail from containerd version service",
 			succeeds:      true,
+			versionReturn: nil,
 		},
 		{
-			versionReturn: errors.New("errr"),
+			desc:          "ok from containerd's version service",
 			succeeds:      false,
+			versionReturn: errors.New("errr"),
 		},
 	} {
-		s.T().Run("case", func(t *testing.T) {
+		s.T().Run(tc.desc, func(t *testing.T) {
 			s.client.VersionReturns(tc.versionReturn)
 
 			err := s.backend.Ping()
