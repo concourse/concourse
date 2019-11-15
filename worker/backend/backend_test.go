@@ -2,45 +2,57 @@ package backend_test
 
 import (
 	"errors"
+	"testing"
 
 	"github.com/concourse/concourse/worker/backend"
 	"github.com/concourse/concourse/worker/backend/libcontainerd/libcontainerdfakes"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-var _ = Describe("Backend", func() {
+type BackendSuite struct {
+	suite.Suite
+	*require.Assertions
 
-	Describe("Ping", func() {
+	backend backend.Backend
+	client  *libcontainerdfakes.FakeClient
+}
 
-		var (
-			err    error
-			be     backend.Backend
-			client *libcontainerdfakes.FakeClient
-		)
+func (s *BackendSuite) SetupTest() {
+	s.client = new(libcontainerdfakes.FakeClient)
+	s.backend = backend.New(s.client)
+}
 
-		BeforeEach(func() {
-			client = new(libcontainerdfakes.FakeClient)
-			be = backend.New(client)
+func (s *BackendSuite) TestPing() {
+	for _, tc := range []struct {
+		versionReturn error
+		succeeds      bool
+	}{
+		{
+			versionReturn: nil,
+			succeeds:      true,
+		},
+		{
+			versionReturn: errors.New("errr"),
+			succeeds:      false,
+		},
+	} {
+		s.T().Run("case", func(t *testing.T) {
+			s.client.VersionReturns(tc.versionReturn)
+
+			err := s.backend.Ping()
+			if tc.succeeds {
+				s.NoError(err)
+				return
+			}
+
+			s.Error(err)
 		})
+	}
+}
 
-		JustBeforeEach(func() {
-			err = be.Ping()
-		})
-
-		It("calls containerd's Version", func() {
-			Expect(client.VersionCallCount()).To(Equal(1))
-		})
-
-		Context("failing to call `version`", func() {
-			BeforeEach(func() {
-				client.VersionReturns(errors.New("errrr"))
-			})
-
-			It("errors", func() {
-				Expect(err).To(HaveOccurred())
-			})
-		})
+func TestSuite(t *testing.T) {
+	suite.Run(t, &BackendSuite{
+		Assertions: require.New(t),
 	})
-})
+}
