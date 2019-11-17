@@ -219,6 +219,29 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages[0]).To(ContainSubstring("failed to create credential manager some: invalid dummy credential manager config"))
 			})
 		})
+
+		Context("when duplicate var source names", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources, VarSourceConfig{
+					Name:   "some",
+					Type:   "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{"k2": "v2"},
+					},
+				}, VarSourceConfig{
+					Name:   "some",
+					Type:   "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{"k2": "v2"},
+					},
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("duplicate var_source name: some"))
+			})
+		})
 	})
 
 	Describe("invalid resources", func() {

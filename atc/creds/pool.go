@@ -12,11 +12,12 @@ import (
 //go:generate counterfeiter . VarSourcePool
 
 type VarSourcePool interface {
-	FindOrCreate(lager.Logger, map[string]interface{}, ManagerFactory) (Secrets, error)
+	FindOrCreate(lager.Logger, string, map[string]interface{}, ManagerFactory) (Secrets, error)
 	Size() int
 }
 
 type inPoolManager struct {
+	varSourceName  string
 	manager        Manager
 	secretsFactory SecretsFactory
 	lastUseTime    time.Time
@@ -29,7 +30,7 @@ func (m *inPoolManager) Close(logger lager.Logger) {
 
 func (m *inPoolManager) NewSecrets() Secrets {
 	m.lastUseTime = m.clock.Now()
-	return m.secretsFactory.NewSecrets()
+	return NewNamedSecrets(m.secretsFactory.NewSecrets(), m.varSourceName)
 }
 
 type varSourcePool struct {
@@ -43,13 +44,13 @@ func (pool *varSourcePool) Size() int {
 	return len(pool.pool)
 }
 
-func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]interface{}, factory ManagerFactory) (Secrets, error) {
+func (pool *varSourcePool) FindOrCreate(logger lager.Logger, varSourceName string, config map[string]interface{}, factory ManagerFactory) (Secrets, error) {
 	b, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
 	}
 
-	key := string(b)
+	key := varSourceName + string(b)
 
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
@@ -69,6 +70,7 @@ func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]i
 		}
 
 		pool.pool[key] = &inPoolManager{
+			varSourceName:  varSourceName,
 			clock:          pool.clock,
 			manager:        manager,
 			secretsFactory: secretsFactory,

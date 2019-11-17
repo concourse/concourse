@@ -1153,7 +1153,7 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 		if !ok {
 			return nil, fmt.Errorf("invalid config format")
 		}
-		secrets, err := varSourcePool.FindOrCreate(logger, config, factory)
+		secrets, err := varSourcePool.FindOrCreate(logger, cm.Name, config, factory)
 		if err != nil {
 			return nil, err
 		}

@@ -43,7 +43,7 @@ var _ = Describe("Pipeline", func() {
 			},
 			VarSources: atc.VarSourceConfigs{
 				{
-					Name: "some",
+					Name: "some-var-source",
 					Type: "dummy",
 					Config: map[string]interface{}{
 						"vars": map[string]interface{}{"pk": "pv"},
@@ -2296,10 +2296,16 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		It("should get var from pipeline var source", func() {
-			v, found, err := pvars.Get(vars.VariableDefinition{Name: "pk"})
+			v, found, err := pvars.Get(vars.VariableDefinition{Name: "some-var-source:pk"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(v.(string)).To(Equal("pv"))
+		})
+
+		It("should not get pipeline var 'pk' without specifying var_source name", func() {
+			_, found, err := pvars.Get(vars.VariableDefinition{Name: "pk"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
 		})
 
 		It("should get var from global var source", func() {

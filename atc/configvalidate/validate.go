@@ -695,6 +695,8 @@ func compositeErr(errorMessages []string) error {
 }
 
 func validateVarSources(c Config) error {
+	names := map[string]interface{}{}
+
 	for _, cm := range c.VarSources {
 		factory := creds.ManagerFactories()[cm.Type]
 		if factory == nil {
@@ -708,6 +710,11 @@ func validateVarSources(c Config) error {
 		default:
 			return fmt.Errorf("credential manager type %s is not supported in pipeline yet", cm.Type)
 		}
+
+		if _, ok := names[cm.Name]; ok {
+			return fmt.Errorf("duplicate var_source name: %s", cm.Name)
+		}
+		names[cm.Name] = 0
 
 		manager, err := factory.NewInstance(cm.Config)
 		if err != nil {
