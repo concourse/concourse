@@ -78,7 +78,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 	}
 
 	cont, err := b.client.NewContainer(ctx,
-		gdnSpec.Handle, map[string]string(gdnSpec.Properties), oci,
+		gdnSpec.Handle, gdnSpec.Properties, oci,
 	)
 	if err != nil {
 		err = fmt.Errorf("failed to create a container in containerd: %w", err)
