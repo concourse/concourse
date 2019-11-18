@@ -133,7 +133,7 @@ var _ = Describe("Resource Config Scope", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					requestedSchedule := job.ScheduleRequested()
+					requestedSchedule := job.ScheduleRequestedTime()
 
 					newVersions := []atc.Version{
 						{"ref": "v0"},
@@ -146,7 +146,7 @@ var _ = Describe("Resource Config Scope", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					Expect(job.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+					Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 				})
 
 				It("does not request schedule on the jobs that do not use the resource", func() {
@@ -157,7 +157,7 @@ var _ = Describe("Resource Config Scope", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					requestedSchedule := job.ScheduleRequested()
+					requestedSchedule := job.ScheduleRequestedTime()
 
 					newVersions := []atc.Version{
 						{"ref": "v0"},
@@ -166,7 +166,7 @@ var _ = Describe("Resource Config Scope", func() {
 					err = resourceScope.SaveVersions(newVersions)
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(job.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule))
+					Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 				})
 			})
 		})

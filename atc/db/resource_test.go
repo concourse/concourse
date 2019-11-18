@@ -231,13 +231,13 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				requestedSchedule1 = jobUsingResource.ScheduleRequested()
+				requestedSchedule1 = jobUsingResource.ScheduleRequestedTime()
 
 				jobNotUsingResource, found, err = pipeline.Job("not-using-resource")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				requestedSchedule2 = jobNotUsingResource.ScheduleRequested()
+				requestedSchedule2 = jobNotUsingResource.ScheduleRequestedTime()
 
 				disableErr = resource.DisableVersion(rcv.ID())
 			})
@@ -258,7 +258,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(jobUsingResource.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule1))
+				Expect(jobUsingResource.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule1))
 			})
 
 			It("does not request schedule on jobs that do not use the resource", func() {
@@ -266,7 +266,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(jobNotUsingResource.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule2))
+				Expect(jobNotUsingResource.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule2))
 			})
 
 			Context("when enabling that version", func() {
@@ -291,7 +291,7 @@ var _ = Describe("Resource", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					Expect(jobUsingResource.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule1))
+					Expect(jobUsingResource.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule1))
 				})
 
 				It("does not request schedule on jobs that do not use the resource", func() {
@@ -299,7 +299,7 @@ var _ = Describe("Resource", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					Expect(jobNotUsingResource.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule2))
+					Expect(jobNotUsingResource.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule2))
 				})
 			})
 		})
@@ -750,7 +750,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				requestedSchedule := job.ScheduleRequested()
+				requestedSchedule := job.ScheduleRequestedTime()
 
 				_, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 				Expect(err).NotTo(HaveOccurred())
@@ -759,7 +759,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(job.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 
 			It("does not request schedule on the jobs that do not use the resource", func() {
@@ -767,7 +767,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				requestedSchedule := job.ScheduleRequested()
+				requestedSchedule := job.ScheduleRequestedTime()
 
 				_, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 				Expect(err).NotTo(HaveOccurred())
@@ -776,7 +776,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(job.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 			})
 		})
 	})
@@ -1543,7 +1543,7 @@ var _ = Describe("Resource", func() {
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				requestedSchedule := job.ScheduleRequested()
+				requestedSchedule := job.ScheduleRequestedTime()
 
 				found, err = resource.PinVersion(resID)
 				Expect(found).To(BeTrue())
@@ -1553,7 +1553,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(job.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 
 			It("does not request schedule on jobs that do not use the resource", func() {
@@ -1561,7 +1561,7 @@ var _ = Describe("Resource", func() {
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				requestedSchedule := job.ScheduleRequested()
+				requestedSchedule := job.ScheduleRequestedTime()
 
 				found, err = resource.PinVersion(resID)
 				Expect(found).To(BeTrue())
@@ -1571,7 +1571,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(job.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 			})
 		})
 
@@ -1635,7 +1635,7 @@ var _ = Describe("Resource", func() {
 					Expect(found).To(BeTrue())
 					Expect(err).ToNot(HaveOccurred())
 
-					requestedSchedule := job.ScheduleRequested()
+					requestedSchedule := job.ScheduleRequestedTime()
 
 					err = resource.UnpinVersion()
 					Expect(err).ToNot(HaveOccurred())
@@ -1644,7 +1644,7 @@ var _ = Describe("Resource", func() {
 					Expect(found).To(BeTrue())
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(job.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+					Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 				})
 
 				It("does not request schedule on jobs that do not use the resource", func() {
@@ -1652,12 +1652,12 @@ var _ = Describe("Resource", func() {
 					Expect(found).To(BeTrue())
 					Expect(err).ToNot(HaveOccurred())
 
-					requestedSchedule := job.ScheduleRequested()
+					requestedSchedule := job.ScheduleRequestedTime()
 
 					err = resource.UnpinVersion()
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(job.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule))
+					Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 				})
 			})
 

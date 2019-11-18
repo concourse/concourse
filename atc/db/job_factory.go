@@ -10,6 +10,7 @@ import (
 type JobFactory interface {
 	VisibleJobs([]string) (Dashboard, error)
 	AllActiveJobs() (Dashboard, error)
+	JobsToSchedule() (Jobs, error)
 }
 
 type jobFactory struct {
@@ -100,6 +101,18 @@ func (j *jobFactory) AllActiveJobs() (Dashboard, error) {
 	}
 
 	return dashboard, nil
+}
+
+func (j *jobFactory) JobsToSchedule() (Jobs, error) {
+	rows, err := jobsQuery.
+		Where(sq.Expr("schedule_requested > last_scheduled")).
+		RunWith(j.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	return scanJobs(j.conn, j.lockFactory, rows)
 }
 
 func (j *jobFactory) buildDashboard(tx Tx, jobs Jobs) (Dashboard, error) {

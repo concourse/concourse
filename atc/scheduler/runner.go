@@ -28,16 +28,16 @@ var errPipelineRemoved = errors.New("pipeline removed")
 
 type schedulerRunner struct {
 	logger             lager.Logger
-	pipelineFactory    db.PipelineFactory
+	jobFactory         db.JobFactory
 	scheduler          BuildScheduler
 	guardJobScheduling chan struct{}
 }
 
-func NewRunner(logger lager.Logger, pipelineFactory db.PipelineFactory, scheduler BuildScheduler, maxJobs uint64) Runner {
+func NewRunner(logger lager.Logger, jobFactory db.JobFactory, scheduler BuildScheduler, maxJobs uint64) Runner {
 	newGuardJobScheduling := make(chan struct{}, maxJobs)
 	return &schedulerRunner{
 		logger:             logger,
-		pipelineFactory:    pipelineFactory,
+		jobFactory:         jobFactory,
 		scheduler:          scheduler,
 		guardJobScheduling: newGuardJobScheduling,
 	}
@@ -47,47 +47,57 @@ func (s *schedulerRunner) Run(ctx context.Context) error {
 	s.logger.Info("start")
 	defer s.logger.Info("end")
 
-	pipelines, err := s.pipelineFactory.PipelinesToSchedule()
+	jobs, err := s.jobFactory.JobsToSchedule()
 	if err != nil {
 		s.logger.Error("failed-to-get-pipelines-to-schedule", err)
 		return err
 	}
 
-	for _, pipeline := range pipelines {
-		// Grabs out the requested time that triggered off the pipeline schedule in
-		// order to set the last scheduled to the exact time of this triggering
-		// request
-		requestedTime := pipeline.RequestedTime()
+	pipelineIDToPipeline := make(map[int]db.Pipeline)
+	pipelineIDToJobs := make(map[int]db.Jobs)
+	for _, job := range jobs {
+		pipelineID := job.PipelineID()
 
-		go func(pipeline db.Pipeline, requestedTime time.Time) {
-			err := s.schedulePipeline(pipeline)
+		_, found := pipelineIDToPipeline[pipelineID]
+		if !found {
+			pipeline, err := job.Pipeline()
+			if err != nil {
+				panic("TODO")
+			}
+
+			pipelineIDToPipeline[pipelineID] = pipeline
+		}
+
+		pipelineIDToJobs[pipelineID] = append(pipelineIDToJobs[pipelineID], job)
+	}
+
+	for pipelineID, jobs := range pipelineIDToJobs {
+		pipeline := pipelineIDToPipeline[pipelineID]
+
+		go func(jobsToSchedule db.Jobs) {
+			err := s.schedulePipeline(pipeline, jobsToSchedule)
 			if err != nil {
 				s.logger.Error("failed-to-schedule-pipeline", err, lager.Data{"pipeline": pipeline.Name()})
 				return
 			}
-
-			err = pipeline.UpdateLastScheduled(requestedTime)
-			if err != nil {
-				s.logger.Error("failed-to-update-last-scheduled", err, lager.Data{"pipeline": pipeline.Name()})
-			}
-		}(pipeline, requestedTime)
+		}(jobs)
 	}
 
 	return nil
 }
 
-func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline) error {
+func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline, jobsToSchedule db.Jobs) error {
 	logger := s.logger.Session("pipeline", lager.Data{"pipeline": pipeline.Name()})
-
-	jobs, err := pipeline.Jobs()
-	if err != nil {
-		logger.Error("failed-to-get-jobs", err)
-		return err
-	}
 
 	resources, err := pipeline.Resources()
 	if err != nil {
 		logger.Error("failed-to-get-resources", err)
+		return err
+	}
+
+	jobs, err := pipeline.Jobs()
+	if err != nil {
+		logger.Error("failed-to-get-jobs", err)
 		return err
 	}
 
@@ -97,7 +107,7 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline) error {
 		jobsMap[job.Name()] = job.ID()
 	}
 
-	for _, job := range jobs {
+	for _, job := range jobsToSchedule {
 		schedulingLock, acquired, err := job.AcquireSchedulingLock(logger)
 		if err != nil {
 			logger.Error("failed-to-acquire-scheduling-lock", err)
@@ -110,15 +120,24 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline) error {
 
 		s.guardJobScheduling <- struct{}{}
 		go func(job db.Job) {
+			// Grabs out the requested time that triggered off the job schedule in
+			// order to set the last scheduled to the exact time of this triggering
+			// request
+			requestedTime := job.ScheduleRequestedTime()
+
 			err := s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
 			if err != nil {
-				err = pipeline.RequestSchedule()
+				logger.Error("failed-to-request-schedule-on-job", err, lager.Data{"pipeline": job.PipelineName(), "job": job.Name()})
+			} else {
+				// If scheduling the job fails, the last scheduled value will not be
+				// updated which will result in the job being scheduled again on the next
+				// interval. This allows jobs that failed to schedule to be attempted again.
+				err = job.UpdateLastScheduled(requestedTime)
 				if err != nil {
-					// XXX if requesting schedule fails because of a connection failure,
-					// we have no way of retrying the scheduler
-					logger.Error("failed-to-request-schedule-on-job", err, lager.Data{"pipeline": job.PipelineName(), "job": job.Name()})
+					s.logger.Error("failed-to-update-last-scheduled", err, lager.Data{"pipeline": pipeline.Name()})
 				}
 			}
+
 			<-s.guardJobScheduling
 		}(job)
 	}

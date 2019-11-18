@@ -36,7 +36,7 @@ type Job interface {
 	Config() atc.JobConfig
 	Tags() []string
 	Public() bool
-	ScheduleRequested() time.Time
+	ScheduleRequestedTime() time.Time
 
 	Reload() (bool, error)
 
@@ -48,6 +48,7 @@ type Job interface {
 	RerunBuild(Build) (Build, error)
 
 	RequestSchedule() error
+	UpdateLastScheduled(time.Time) error
 
 	Builds(page Page) ([]Build, Pagination, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
@@ -85,18 +86,18 @@ func (e FirstLoggedBuildIDDecreasedError) Error() string {
 }
 
 type job struct {
-	id                 int
-	name               string
-	paused             bool
-	firstLoggedBuildID int
-	pipelineID         int
-	pipelineName       string
-	teamID             int
-	teamName           string
-	config             atc.JobConfig
-	tags               []string
-	hasNewInputs       bool
-	scheduleRequested  time.Time
+	id                    int
+	name                  string
+	paused                bool
+	firstLoggedBuildID    int
+	pipelineID            int
+	pipelineName          string
+	teamID                int
+	teamName              string
+	config                atc.JobConfig
+	tags                  []string
+	hasNewInputs          bool
+	scheduleRequestedTime time.Time
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -136,19 +137,19 @@ func (jobs Jobs) Configs() atc.JobConfigs {
 	return configs
 }
 
-func (j *job) ID() int                      { return j.id }
-func (j *job) Name() string                 { return j.name }
-func (j *job) Paused() bool                 { return j.paused }
-func (j *job) FirstLoggedBuildID() int      { return j.firstLoggedBuildID }
-func (j *job) PipelineID() int              { return j.pipelineID }
-func (j *job) PipelineName() string         { return j.pipelineName }
-func (j *job) TeamID() int                  { return j.teamID }
-func (j *job) TeamName() string             { return j.teamName }
-func (j *job) Config() atc.JobConfig        { return j.config }
-func (j *job) Tags() []string               { return j.tags }
-func (j *job) Public() bool                 { return j.Config().Public }
-func (j *job) HasNewInputs() bool           { return j.hasNewInputs }
-func (j *job) ScheduleRequested() time.Time { return j.scheduleRequested }
+func (j *job) ID() int                          { return j.id }
+func (j *job) Name() string                     { return j.name }
+func (j *job) Paused() bool                     { return j.paused }
+func (j *job) FirstLoggedBuildID() int          { return j.firstLoggedBuildID }
+func (j *job) PipelineID() int                  { return j.pipelineID }
+func (j *job) PipelineName() string             { return j.pipelineName }
+func (j *job) TeamID() int                      { return j.teamID }
+func (j *job) TeamName() string                 { return j.teamName }
+func (j *job) Config() atc.JobConfig            { return j.config }
+func (j *job) Tags() []string                   { return j.tags }
+func (j *job) Public() bool                     { return j.Config().Public }
+func (j *job) HasNewInputs() bool               { return j.hasNewInputs }
+func (j *job) ScheduleRequestedTime() time.Time { return j.scheduleRequestedTime }
 
 func (j *job) Reload() (bool, error) {
 	row := jobsQuery.Where(sq.Eq{"j.id": j.id}).
@@ -693,6 +694,18 @@ func (j *job) RequestSchedule() error {
 	return tx.Commit()
 }
 
+func (j *job) UpdateLastScheduled(requestedTime time.Time) error {
+	_, err := psql.Update("jobs").
+		Set("last_scheduled", requestedTime).
+		Where(sq.Eq{
+			"id": j.id,
+		}).
+		RunWith(j.conn).
+		Exec()
+
+	return err
+}
+
 func (j *job) getRunningBuildsBySerialGroup(tx Tx) ([]Build, error) {
 	serialGroups := j.config.GetSerialGroups()
 	err := j.updateSerialGroups(tx, serialGroups)
@@ -1041,7 +1054,7 @@ func scanJob(j *job, row scannable) error {
 		nonce      sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequested)
+	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime)
 	if err != nil {
 		return err
 	}

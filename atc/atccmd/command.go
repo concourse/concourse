@@ -801,6 +801,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 
 	componentFactory := db.NewComponentFactory(dbConn)
 
@@ -840,7 +841,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			componentFactory,
 			scheduler.NewRunner(
 				logger.Session("scheduler"),
-				dbPipelineFactory,
+				dbJobFactory,
 				&scheduler.Scheduler{
 					Algorithm: alg,
 					BuildStarter: scheduler.NewBuildStarter(

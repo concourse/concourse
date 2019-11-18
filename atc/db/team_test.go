@@ -1686,8 +1686,8 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			requestedSchedule1 := requestedJob.ScheduleRequested()
-			requestedSchedule2 := otherJob.ScheduleRequested()
+			requestedSchedule1 := requestedJob.ScheduleRequestedTime()
+			requestedSchedule2 := otherJob.ScheduleRequestedTime()
 
 			config.Resources[0].Source = atc.Source{
 				"source-other-config": "some-other-value",
@@ -1704,8 +1704,8 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			Expect(requestedJob.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule1))
-			Expect(otherJob.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule2))
+			Expect(requestedJob.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule1))
+			Expect(otherJob.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule2))
 		})
 
 		It("creates all of the resources from the pipeline in the database", func() {

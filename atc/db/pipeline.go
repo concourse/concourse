@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -51,8 +50,6 @@ type Pipeline interface {
 
 	CreateOneOffBuild() (Build, error)
 	CreateStartedBuild(plan atc.Plan) (Build, error)
-
-	UpdateLastScheduled(time.Time) error
 
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 
@@ -939,15 +936,6 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	}
 
 	return build, nil
-}
-
-func (p *pipeline) UpdateLastScheduled(requestedTime time.Time) error {
-	_, err := p.conn.Exec(`
-		UPDATE pipelines
-		SET last_scheduled = $2
-		WHERE id = $1`, p.id, requestedTime)
-
-	return err
 }
 
 func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {

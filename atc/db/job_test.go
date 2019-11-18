@@ -516,7 +516,7 @@ var _ = Describe("Job", func() {
 
 		Context("creating a build", func() {
 			It("requests schedule on the job", func() {
-				requestedSchedule := job.ScheduleRequested()
+				requestedSchedule := job.ScheduleRequestedTime()
 
 				_, err := job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
@@ -525,7 +525,7 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(job.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 		})
 	})
@@ -562,7 +562,7 @@ var _ = Describe("Job", func() {
 			})
 
 			It("requests schedule on the job", func() {
-				requestedSchedule := job.ScheduleRequested()
+				requestedSchedule := job.ScheduleRequestedTime()
 
 				_, err := job.RerunBuild(buildToRerun)
 				Expect(err).NotTo(HaveOccurred())
@@ -571,7 +571,7 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(job.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 
 			Context("when there is an existing rerun build", func() {
@@ -1944,6 +1944,22 @@ var _ = Describe("Job", func() {
 
 			Expect(job.HasNewInputs()).To(BeFalse())
 		})
+	})
 
+	Describe("UpdateLastScheduled", func() {
+		var requestedTime time.Time
+		BeforeEach(func() {
+			requestedTime = time.Now()
+
+			err := job.UpdateLastScheduled(requestedTime)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("update last scheduled to be the given requested time", func() {
+			var lastScheduled time.Time
+			err := dbConn.QueryRow("SELECT last_scheduled FROM jobs WHERE id = $1", job.ID()).Scan(&lastScheduled)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(lastScheduled).Should(BeTemporally("==", requestedTime))
+		})
 	})
 })

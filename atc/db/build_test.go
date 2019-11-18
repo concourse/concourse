@@ -410,7 +410,7 @@ var _ = Describe("Build", func() {
 				newBuild, err := job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				requestedSchedule := downstreamJob.ScheduleRequested()
+				requestedSchedule := downstreamJob.ScheduleRequestedTime()
 
 				err = newBuild.Finish(db.BuildStatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
@@ -419,7 +419,7 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(downstreamJob.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule))
+				Expect(downstreamJob.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 			It("do not request schedule on jobs that are not directly downstream", func() {
 				noRequestJob, found, err := pipeline.Job("no-request-job")
@@ -429,7 +429,7 @@ var _ = Describe("Build", func() {
 				newBuild, err := job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				requestedSchedule := noRequestJob.ScheduleRequested()
+				requestedSchedule := noRequestJob.ScheduleRequestedTime()
 
 				err = newBuild.Finish(db.BuildStatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
@@ -438,7 +438,7 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(noRequestJob.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule))
+				Expect(noRequestJob.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 			})
 		})
 	})
@@ -715,8 +715,8 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				requestedSchedule1 := requestedJob.ScheduleRequested()
-				requestedSchedule2 := otherJob.ScheduleRequested()
+				requestedSchedule1 := requestedJob.ScheduleRequestedTime()
+				requestedSchedule2 := otherJob.ScheduleRequestedTime()
 
 				err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
 				Expect(err).ToNot(HaveOccurred())
@@ -729,8 +729,8 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(requestedJob.ScheduleRequested()).Should(BeTemporally(">", requestedSchedule1))
-				Expect(otherJob.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule2))
+				Expect(requestedJob.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule1))
+				Expect(otherJob.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule2))
 			})
 		})
 
@@ -811,7 +811,7 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				requestedSchedule1 := requestedJob.ScheduleRequested()
+				requestedSchedule1 := requestedJob.ScheduleRequestedTime()
 
 				err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
 				Expect(err).ToNot(HaveOccurred())
@@ -820,7 +820,7 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(requestedJob.ScheduleRequested()).Should(BeTemporally("==", requestedSchedule1))
+				Expect(requestedJob.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule1))
 			})
 		})
 
