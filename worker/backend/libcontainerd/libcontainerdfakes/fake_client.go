@@ -6,9 +6,25 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/worker/backend/libcontainerd"
+	"github.com/containerd/containerd"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 type FakeClient struct {
+	ContainersStub        func(context.Context, ...string) ([]containerd.Container, error)
+	containersMutex       sync.RWMutex
+	containersArgsForCall []struct {
+		arg1 context.Context
+		arg2 []string
+	}
+	containersReturns struct {
+		result1 []containerd.Container
+		result2 error
+	}
+	containersReturnsOnCall map[int]struct {
+		result1 []containerd.Container
+		result2 error
+	}
 	InitStub        func() error
 	initMutex       sync.RWMutex
 	initArgsForCall []struct {
@@ -17,6 +33,32 @@ type FakeClient struct {
 		result1 error
 	}
 	initReturnsOnCall map[int]struct {
+		result1 error
+	}
+	NewContainerStub        func(context.Context, string, map[string]string, *specs.Spec) (containerd.Container, error)
+	newContainerMutex       sync.RWMutex
+	newContainerArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 map[string]string
+		arg4 *specs.Spec
+	}
+	newContainerReturns struct {
+		result1 containerd.Container
+		result2 error
+	}
+	newContainerReturnsOnCall map[int]struct {
+		result1 containerd.Container
+		result2 error
+	}
+	StopStub        func() error
+	stopMutex       sync.RWMutex
+	stopArgsForCall []struct {
+	}
+	stopReturns struct {
+		result1 error
+	}
+	stopReturnsOnCall map[int]struct {
 		result1 error
 	}
 	VersionStub        func(context.Context) error
@@ -32,6 +74,70 @@ type FakeClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeClient) Containers(arg1 context.Context, arg2 ...string) ([]containerd.Container, error) {
+	fake.containersMutex.Lock()
+	ret, specificReturn := fake.containersReturnsOnCall[len(fake.containersArgsForCall)]
+	fake.containersArgsForCall = append(fake.containersArgsForCall, struct {
+		arg1 context.Context
+		arg2 []string
+	}{arg1, arg2})
+	fake.recordInvocation("Containers", []interface{}{arg1, arg2})
+	fake.containersMutex.Unlock()
+	if fake.ContainersStub != nil {
+		return fake.ContainersStub(arg1, arg2...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.containersReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) ContainersCallCount() int {
+	fake.containersMutex.RLock()
+	defer fake.containersMutex.RUnlock()
+	return len(fake.containersArgsForCall)
+}
+
+func (fake *FakeClient) ContainersCalls(stub func(context.Context, ...string) ([]containerd.Container, error)) {
+	fake.containersMutex.Lock()
+	defer fake.containersMutex.Unlock()
+	fake.ContainersStub = stub
+}
+
+func (fake *FakeClient) ContainersArgsForCall(i int) (context.Context, []string) {
+	fake.containersMutex.RLock()
+	defer fake.containersMutex.RUnlock()
+	argsForCall := fake.containersArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeClient) ContainersReturns(result1 []containerd.Container, result2 error) {
+	fake.containersMutex.Lock()
+	defer fake.containersMutex.Unlock()
+	fake.ContainersStub = nil
+	fake.containersReturns = struct {
+		result1 []containerd.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) ContainersReturnsOnCall(i int, result1 []containerd.Container, result2 error) {
+	fake.containersMutex.Lock()
+	defer fake.containersMutex.Unlock()
+	fake.ContainersStub = nil
+	if fake.containersReturnsOnCall == nil {
+		fake.containersReturnsOnCall = make(map[int]struct {
+			result1 []containerd.Container
+			result2 error
+		})
+	}
+	fake.containersReturnsOnCall[i] = struct {
+		result1 []containerd.Container
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeClient) Init() error {
@@ -82,6 +188,124 @@ func (fake *FakeClient) InitReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.initReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) NewContainer(arg1 context.Context, arg2 string, arg3 map[string]string, arg4 *specs.Spec) (containerd.Container, error) {
+	fake.newContainerMutex.Lock()
+	ret, specificReturn := fake.newContainerReturnsOnCall[len(fake.newContainerArgsForCall)]
+	fake.newContainerArgsForCall = append(fake.newContainerArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 map[string]string
+		arg4 *specs.Spec
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("NewContainer", []interface{}{arg1, arg2, arg3, arg4})
+	fake.newContainerMutex.Unlock()
+	if fake.NewContainerStub != nil {
+		return fake.NewContainerStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.newContainerReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) NewContainerCallCount() int {
+	fake.newContainerMutex.RLock()
+	defer fake.newContainerMutex.RUnlock()
+	return len(fake.newContainerArgsForCall)
+}
+
+func (fake *FakeClient) NewContainerCalls(stub func(context.Context, string, map[string]string, *specs.Spec) (containerd.Container, error)) {
+	fake.newContainerMutex.Lock()
+	defer fake.newContainerMutex.Unlock()
+	fake.NewContainerStub = stub
+}
+
+func (fake *FakeClient) NewContainerArgsForCall(i int) (context.Context, string, map[string]string, *specs.Spec) {
+	fake.newContainerMutex.RLock()
+	defer fake.newContainerMutex.RUnlock()
+	argsForCall := fake.newContainerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeClient) NewContainerReturns(result1 containerd.Container, result2 error) {
+	fake.newContainerMutex.Lock()
+	defer fake.newContainerMutex.Unlock()
+	fake.NewContainerStub = nil
+	fake.newContainerReturns = struct {
+		result1 containerd.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) NewContainerReturnsOnCall(i int, result1 containerd.Container, result2 error) {
+	fake.newContainerMutex.Lock()
+	defer fake.newContainerMutex.Unlock()
+	fake.NewContainerStub = nil
+	if fake.newContainerReturnsOnCall == nil {
+		fake.newContainerReturnsOnCall = make(map[int]struct {
+			result1 containerd.Container
+			result2 error
+		})
+	}
+	fake.newContainerReturnsOnCall[i] = struct {
+		result1 containerd.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) Stop() error {
+	fake.stopMutex.Lock()
+	ret, specificReturn := fake.stopReturnsOnCall[len(fake.stopArgsForCall)]
+	fake.stopArgsForCall = append(fake.stopArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Stop", []interface{}{})
+	fake.stopMutex.Unlock()
+	if fake.StopStub != nil {
+		return fake.StopStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.stopReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) StopCallCount() int {
+	fake.stopMutex.RLock()
+	defer fake.stopMutex.RUnlock()
+	return len(fake.stopArgsForCall)
+}
+
+func (fake *FakeClient) StopCalls(stub func() error) {
+	fake.stopMutex.Lock()
+	defer fake.stopMutex.Unlock()
+	fake.StopStub = stub
+}
+
+func (fake *FakeClient) StopReturns(result1 error) {
+	fake.stopMutex.Lock()
+	defer fake.stopMutex.Unlock()
+	fake.StopStub = nil
+	fake.stopReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeClient) StopReturnsOnCall(i int, result1 error) {
+	fake.stopMutex.Lock()
+	defer fake.stopMutex.Unlock()
+	fake.StopStub = nil
+	if fake.stopReturnsOnCall == nil {
+		fake.stopReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.stopReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -149,8 +373,14 @@ func (fake *FakeClient) VersionReturnsOnCall(i int, result1 error) {
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.containersMutex.RLock()
+	defer fake.containersMutex.RUnlock()
 	fake.initMutex.RLock()
 	defer fake.initMutex.RUnlock()
+	fake.newContainerMutex.RLock()
+	defer fake.newContainerMutex.RUnlock()
+	fake.stopMutex.RLock()
+	defer fake.stopMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
