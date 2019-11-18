@@ -174,6 +174,41 @@ func (s *BackendSuite) TestContainersConversion() {
 	s.Len(containers, 2)
 }
 
+func (s *BackendSuite) TestDestroySetsNamespace() {
+	_ = s.backend.Destroy("some-handle")
+	ctx, _ := s.client.DestroyArgsForCall(0)
+
+	namespace, found := namespaces.Namespace(ctx)
+	s.True(found)
+	s.Equal(testNamespace, namespace)
+}
+
+func (s *BackendSuite) TestDestroyEmptyHandleError() {
+	err := s.backend.Destroy("")
+	s.Equal(err, backend.InputValidationError{})
+	s.Equal(0, s.client.DestroyCallCount())
+}
+
+func (s *BackendSuite) TestDestroyNonEmptyHandle() {
+	err := s.backend.Destroy("some-handle")
+	s.NotEqual(err, backend.InputValidationError{})
+	s.Equal(1, s.client.DestroyCallCount())
+}
+
+func (s *BackendSuite) TestDestroyContainerError() {
+	s.client.DestroyReturns(errors.New("random"))
+
+	err := s.backend.Destroy("some-handle")
+	s.Equal(1, s.client.DestroyCallCount())
+	s.Error(err)
+}
+
+func (s *BackendSuite) TestDestroyContainer() {
+	err := s.backend.Destroy("some-handle")
+	s.Equal(1, s.client.DestroyCallCount())
+	s.NoError(err)
+}
+
 func (s *BackendSuite) TestStart() {
 	s.backend.Start()
 	s.Equal(1, s.client.InitCallCount())

@@ -10,7 +10,7 @@ import (
 	bespec "github.com/concourse/concourse/worker/backend/spec"
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/namespaces"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var _ garden.Backend = (*Backend)(nil)
@@ -18,6 +18,12 @@ var _ garden.Backend = (*Backend)(nil)
 type Backend struct {
 	client    libcontainerd.Client
 	namespace string
+}
+
+type InputValidationError struct{}
+
+func (e InputValidationError) Error() string {
+	return "input validation error"
 }
 
 func New(client libcontainerd.Client, namespace string) Backend {
@@ -106,7 +112,15 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 //
 // Errors:
 // * TODO.
-func (b *Backend) Destroy(handle string) (err error) { return }
+func (b *Backend) Destroy(handle string) (err error) {
+	var ctx = namespaces.WithNamespace(context.Background(), b.namespace)
+
+	if handle == "" {
+		return InputValidationError{}
+	}
+
+	return b.client.Destroy(ctx, handle)
+}
 
 // Containers lists all containers filtered by Properties (which are ANDed together).
 //

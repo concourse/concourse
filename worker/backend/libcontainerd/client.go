@@ -51,6 +51,8 @@ type Client interface {
 	) (
 		containers []containerd.Container, err error,
 	)
+
+	Destroy(ctx context.Context, handle string) error
 }
 
 type client struct {
@@ -107,3 +109,6 @@ func (c *client) Version(ctx context.Context) (err error) {
 	_, err = c.containerd.Version(ctx)
 	return
 }
+ func (c *client) Destroy(ctx context.Context, handle string) (err error) {
+ 	return
+ }
