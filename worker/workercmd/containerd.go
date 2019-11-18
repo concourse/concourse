@@ -18,9 +18,12 @@ import (
 )
 
 func containerdGardenServerRunner(logger lager.Logger, bindAddr, containerdAddr string) ifrit.Runner {
-	const graceTime = 0
+	const (
+		graceTime = 0
+		namespace = "concourse"
+	)
 
-	backend := backend.New(libcontainerd.New(containerdAddr))
+	backend := backend.New(libcontainerd.New(containerdAddr), namespace)
 
 	server := server.New("tcp", bindAddr,
 		graceTime,

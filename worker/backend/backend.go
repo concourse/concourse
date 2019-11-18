@@ -7,21 +7,27 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/backend/libcontainerd"
+	bespec "github.com/concourse/concourse/worker/backend/spec"
+	"github.com/containerd/containerd/cio"
+	"github.com/containerd/containerd/namespaces"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var _ garden.Backend = (*Backend)(nil)
 
 type Backend struct {
-	client libcontainerd.Client
+	client    libcontainerd.Client
+	namespace string
 }
 
-func New(client libcontainerd.Client) Backend {
+func New(client libcontainerd.Client, namespace string) Backend {
 	return Backend{
-		client: client,
+		namespace: namespace,
+		client:    client,
 	}
 }
 
-// Start sets up the connectivity to `containerd`.
+// Start initializes the client.
 //
 func (b *Backend) Start() (err error) {
 	err = b.client.Init()
@@ -33,7 +39,12 @@ func (b *Backend) Start() (err error) {
 	return
 }
 
-func (b *Backend) Stop() {}
+// Stop closes the client's underlying connections and frees any resources
+// associated with it.
+//
+func (b *Backend) Stop() {
+	_ = b.client.Stop()
+}
 
 func (b *Backend) GraceTime(container garden.Container) (duration time.Duration) {
 	return
@@ -41,13 +52,6 @@ func (b *Backend) GraceTime(container garden.Container) (duration time.Duration)
 
 // Pings the garden server in order to check connectivity.
 //
-// The server may, optionally, respond with specific errors indicating health
-// issues.
-//
-// Errors:
-// * garden.UnrecoverableError indicates that the garden server has entered an error state from which it cannot recover
-//
-// TODO - we might use the `version` service here as a proxy to "ping"
 func (b *Backend) Ping() (err error) {
 	err = b.client.Version(context.Background())
 	return
@@ -61,11 +65,32 @@ func (b *Backend) Capacity() (capacity garden.Capacity, err error) { return }
 
 // Create creates a new container.
 //
-// Errors:
-// * When the handle, if specified, is already taken.
-// * When one of the bind_mount paths does not exist.
-// * When resource allocations fail (subnet, user ID, etc).
-func (b *Backend) Create(spec garden.ContainerSpec) (container garden.Container, err error) {
+func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Container, err error) {
+	var (
+		oci *specs.Spec
+		ctx = namespaces.WithNamespace(context.Background(), b.namespace)
+	)
+
+	oci, err = bespec.OciSpec(gdnSpec)
+	if err != nil {
+		err = fmt.Errorf("failed to convert garden spec to oci spec: %w", err)
+		return
+	}
+
+	cont, err := b.client.NewContainer(ctx,
+		gdnSpec.Handle, map[string]string(gdnSpec.Properties), oci,
+	)
+	if err != nil {
+		err = fmt.Errorf("failed to create a container in containerd: %w", err)
+		return
+	}
+
+	_, err = cont.NewTask(ctx, cio.NullIO)
+	if err != nil {
+		err = fmt.Errorf("failed to create a task in container: %w", err)
+		return
+	}
+
 	return
 }
 
@@ -88,6 +113,24 @@ func (b *Backend) Destroy(handle string) (err error) { return }
 // Errors:
 // * None.
 func (b *Backend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
+	var ctx = namespaces.WithNamespace(context.Background(), b.namespace)
+
+	filters, err := propertiesToFilterList(properties)
+	if err != nil {
+		return
+	}
+
+	res, err := b.client.Containers(ctx, filters...)
+	if err != nil {
+		return
+	}
+
+	containers = make([]garden.Container, len(res))
+	for idx := range res {
+		gContainer := NewContainer()
+		containers[idx] = &gContainer
+	}
+
 	return
 }
 
@@ -106,3 +149,23 @@ func (b *Backend) BulkMetrics(handles []string) (metrics map[string]garden.Conta
 // Errors:
 // * Container not found.
 func (b *Backend) Lookup(handle string) (container garden.Container, err error) { return }
+
+// propertiesToFilterList converts a set of garden properties to a list of
+// filters as expected by containerd.
+//
+func propertiesToFilterList(properties garden.Properties) (filters []string, err error) {
+	filters = make([]string, len(properties))
+
+	idx := 0
+	for k, v := range properties {
+		if k == "" || v == "" {
+			err = fmt.Errorf("key or value must not be empty")
+			return
+		}
+
+		filters[idx] = k + "=" + v
+		idx++
+	}
+
+	return
+}
