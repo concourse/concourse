@@ -60,7 +60,7 @@ func (s *schedulerRunner) Run(ctx context.Context) error {
 		requestedTime := pipeline.RequestedTime()
 
 		go func(pipeline db.Pipeline, requestedTime time.Time) {
-			err = s.schedulePipeline(pipeline)
+			err := s.schedulePipeline(pipeline)
 			if err != nil {
 				s.logger.Error("failed-to-schedule-pipeline", err, lager.Data{"pipeline": pipeline.Name()})
 				return
@@ -110,7 +110,7 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline) error {
 
 		s.guardJobScheduling <- struct{}{}
 		go func(job db.Job) {
-			err = s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
+			err := s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
 			if err != nil {
 				err = pipeline.RequestSchedule()
 				if err != nil {
