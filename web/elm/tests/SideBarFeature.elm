@@ -1103,9 +1103,25 @@ fiveSecondsPass =
             )
 
 
-myBrowserFetchesPipelines =
-    Tuple.second
-        >> Common.contains Effects.FetchPipelines
+myBrowserFetchesPipelines ( a, effects ) =
+    let
+        pipelinesDirectly =
+            List.member Effects.FetchPipelines effects
+
+        pipelinesThroughData =
+            List.member Effects.FetchData effects
+    in
+    if pipelinesDirectly || pipelinesThroughData then
+        Expect.pass
+
+    else
+        Expect.fail <|
+            "Expected "
+                ++ Debug.toString effects
+                ++ " to contain "
+                ++ Debug.toString Effects.FetchPipelines
+                ++ " or "
+                ++ Debug.toString Effects.FetchData
 
 
 iHaveAnOpenSideBar =
