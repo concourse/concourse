@@ -211,8 +211,6 @@ type RunCommand struct {
 	ConfigRBAC string `long:"config-rbac" description:"Customize RBAC role-action mapping."`
 }
 
-var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
-
 type Migration struct {
 	Postgres           flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 	EncryptionKey      flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
@@ -231,7 +229,8 @@ func (m *Migration) Execute(args []string) error {
 	if m.MigrateDBToVersion > 0 {
 		return m.migrateDBToVersion()
 	}
-	return HelpError
+	return errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
+
 }
 
 func (cmd *Migration) currentDBVersion() error {
