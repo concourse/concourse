@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/garden"
@@ -22,10 +23,12 @@ type Container interface {
 	gclient.Container
 	runtime.Runner
 
+	// TODO: get rid of this, its not used anywhere
 	Destroy() error
 
 	VolumeMounts() []VolumeMount
 
+	// TODO: get rid of this, its not used anywhere
 	WorkerName() string
 
 	MarkAsHijacked() error
@@ -145,6 +148,9 @@ func (container *gardenWorkerContainer) initializeVolumes(
 }
 
 // todo: this needs to be modified to not be resource specific
+// 		 the stdout of the run() is expected to be of json format
+//       this will break if used with task_step as it does not
+//		 print out json
 func (container *gardenWorkerContainer) RunScript(
 	ctx context.Context,
 	path string,
@@ -235,7 +241,11 @@ func (container *gardenWorkerContainer) RunScript(
 			}
 		}
 
-		return json.Unmarshal(stdout.Bytes(), output)
+		err := json.Unmarshal(stdout.Bytes(), output)
+		if err != nil {
+			return fmt.Errorf("%s\n\nwhen parsing resource response:\n\n%s", err, stdout.String())
+		}
+		return err
 
 	case <-ctx.Done():
 		container.Stop(false)
