@@ -30,6 +30,7 @@ type alias Model =
             , highDensity : Bool
             , query : String
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+            , existingJobs : List Concourse.Job
             }
         )
 

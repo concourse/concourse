@@ -572,7 +572,6 @@ all =
                                     , Concourse.Team 2 "team2"
                                     ]
                               , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
                               }
                             )
                         )
@@ -617,7 +616,6 @@ all =
                                     , Concourse.Team 2 "team2"
                                     ]
                               , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
                               }
                             )
                         )
@@ -887,7 +885,6 @@ all =
                                     , Concourse.Team 2 "team2"
                                     ]
                               , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
                               }
                             )
                         )
@@ -958,7 +955,6 @@ all =
                                     , Concourse.Team 2 "team2"
                                     ]
                               , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
                               }
                             )
                         )
@@ -1002,7 +998,6 @@ all =
                             ( Time.millisToPosix 0
                             , { teams = [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]
                               , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
                               }
                             )
                         )
@@ -1038,7 +1033,6 @@ all =
                                     , Concourse.Team 11 "team11"
                                     ]
                               , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
                               }
                             )
                         )
@@ -1068,7 +1062,6 @@ all =
                                       , groups = []
                                       }
                                     ]
-                              , jobs = []
                               }
                             )
                     )

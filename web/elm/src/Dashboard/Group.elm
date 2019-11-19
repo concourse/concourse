@@ -10,11 +10,9 @@ module Dashboard.Group exposing
     , group
     , groups
     , hdView
-    , jobStatus
     , ordering
     , pipelineDropAreaView
     , pipelineNotSetView
-    , pipelineStatus
     , setDragIndex
     , setDropIndex
     , setTeamName
@@ -22,13 +20,10 @@ module Dashboard.Group exposing
     , shiftPipelines
     , teamName
     , teamNameOptional
-    , transition
     , view
     )
 
 import Concourse
-import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Group.Tag as Tag
 import Dashboard.Models exposing (DragState(..), DropState(..))
@@ -155,120 +150,15 @@ allPipelines data =
     data.pipelines
         |> List.map
             (\p ->
-                let
-                    jobs =
-                        data.jobs
-                            |> List.filter
-                                (\j ->
-                                    (j.teamName == p.teamName)
-                                        && (j.pipelineName == p.name)
-                                )
-                in
                 { id = p.id
                 , name = p.name
                 , teamName = p.teamName
                 , public = p.public
-                , jobs = jobs
-                , status = pipelineStatus p jobs
                 , isToggleLoading = False
                 , isVisibilityLoading = False
+                , paused = p.paused
                 }
             )
-
-
-pipelineStatus : Concourse.Pipeline -> List Concourse.Job -> PipelineStatus.PipelineStatus
-pipelineStatus pipeline jobs =
-    if pipeline.paused then
-        PipelineStatus.PipelineStatusPaused
-
-    else
-        let
-            isRunning =
-                List.any (\job -> job.nextBuild /= Nothing) jobs
-
-            mostImportantJobStatus =
-                jobs
-                    |> List.map jobStatus
-                    |> List.sortWith Concourse.BuildStatus.ordering
-                    |> List.head
-
-            firstNonSuccess =
-                jobs
-                    |> List.filter (jobStatus >> (/=) BuildStatusSucceeded)
-                    |> List.filterMap transition
-                    |> List.sortBy Time.posixToMillis
-                    |> List.head
-
-            lastTransition =
-                jobs
-                    |> List.filterMap transition
-                    |> List.sortBy Time.posixToMillis
-                    |> List.reverse
-                    |> List.head
-
-            transitionTime =
-                case firstNonSuccess of
-                    Just t ->
-                        Just t
-
-                    Nothing ->
-                        lastTransition
-        in
-        case ( mostImportantJobStatus, transitionTime ) of
-            ( _, Nothing ) ->
-                PipelineStatus.PipelineStatusPending isRunning
-
-            ( Nothing, _ ) ->
-                PipelineStatus.PipelineStatusPending isRunning
-
-            ( Just BuildStatusPending, _ ) ->
-                PipelineStatus.PipelineStatusPending isRunning
-
-            ( Just BuildStatusStarted, _ ) ->
-                PipelineStatus.PipelineStatusPending isRunning
-
-            ( Just BuildStatusSucceeded, Just since ) ->
-                if isRunning then
-                    PipelineStatus.PipelineStatusSucceeded PipelineStatus.Running
-
-                else
-                    PipelineStatus.PipelineStatusSucceeded (PipelineStatus.Since since)
-
-            ( Just BuildStatusFailed, Just since ) ->
-                if isRunning then
-                    PipelineStatus.PipelineStatusFailed PipelineStatus.Running
-
-                else
-                    PipelineStatus.PipelineStatusFailed (PipelineStatus.Since since)
-
-            ( Just BuildStatusErrored, Just since ) ->
-                if isRunning then
-                    PipelineStatus.PipelineStatusErrored PipelineStatus.Running
-
-                else
-                    PipelineStatus.PipelineStatusErrored (PipelineStatus.Since since)
-
-            ( Just BuildStatusAborted, Just since ) ->
-                if isRunning then
-                    PipelineStatus.PipelineStatusAborted PipelineStatus.Running
-
-                else
-                    PipelineStatus.PipelineStatusAborted (PipelineStatus.Since since)
-
-
-jobStatus : Concourse.Job -> BuildStatus
-jobStatus job =
-    case job.finishedBuild of
-        Just build ->
-            build.status
-
-        Nothing ->
-            BuildStatusPending
-
-
-transition : Concourse.Job -> Maybe Time.Posix
-transition =
-    .transitionBuild >> Maybe.andThen (.duration >> .finishedAt)
 
 
 shiftPipelines : Int -> Int -> Group -> Group
@@ -351,10 +241,11 @@ view :
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
         , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+        , existingJobs : List Concourse.Job
         }
     -> Group
     -> Html Message
-view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pipelinesWithResourceErrors } g =
+view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } g =
     let
         pipelines =
             if List.isEmpty g.pipelines then
@@ -389,6 +280,12 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pip
                                             pipelinesWithResourceErrors
                                                 |> Dict.get ( pipeline.teamName, pipeline.name )
                                                 |> Maybe.withDefault False
+                                        , existingJobs =
+                                            existingJobs
+                                                |> List.filter
+                                                    (\j ->
+                                                        j.teamName == pipeline.teamName && j.pipelineName == pipeline.name
+                                                    )
                                         , hovered = hovered
                                         , pipelineRunningKeyframes = pipelineRunningKeyframes
                                         , userState = session.userState
@@ -434,11 +331,11 @@ tag { userState } g =
 
 
 hdView :
-    { pipelineRunningKeyframes : String, pipelinesWithResourceErrors : Dict ( String, String ) Bool }
+    { pipelineRunningKeyframes : String, pipelinesWithResourceErrors : Dict ( String, String ) Bool, existingJobs : List Concourse.Job }
     -> { a | userState : UserState }
     -> Group
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors } session g =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } session g =
     let
         header =
             Html.div
@@ -461,6 +358,7 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors } session g =
                                     pipelinesWithResourceErrors
                                         |> Dict.get ( p.teamName, p.name )
                                         |> Maybe.withDefault False
+                                , existingJobs = existingJobs
                                 }
                         )
     in

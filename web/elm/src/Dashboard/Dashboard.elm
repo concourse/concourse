@@ -62,7 +62,6 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Monocle.Compose exposing (optionalWithLens, optionalWithOptional)
 import Monocle.Lens
 import Monocle.Optional
@@ -99,6 +98,7 @@ init flags =
       , highDensity = flags.searchType == Routes.HighDensity
       , query = Routes.extractQuery flags.searchType
       , pipelinesWithResourceErrors = Dict.empty
+      , existingJobs = []
       , isUserMenuExpanded = False
       , dropdown = Hidden
       }
@@ -157,6 +157,11 @@ handleCallback msg ( model, effects ) =
                 , effects
                 )
 
+        AllJobsFetched (Ok allJobsInEntireCluster) ->
+            ( { model | existingJobs = allJobsInEntireCluster }
+            , effects
+            )
+
         AllResourcesFetched (Ok resources) ->
             ( { model
                 | pipelinesWithResourceErrors =
@@ -170,6 +175,14 @@ handleCallback msg ( model, effects ) =
                                     )
                             )
                             model.pipelinesWithResourceErrors
+              }
+            , effects
+            )
+
+        AllResourcesFetched (Err _) ->
+            ( { model
+                | state =
+                    RemoteData.Failure (Turbulence model.turbulencePath)
               }
             , effects
             )
@@ -386,8 +399,7 @@ updateBody msg ( model, effects ) =
                                 g.pipelines
                                     |> List.Extra.find
                                         (.name >> (==) pipelineId.pipelineName)
-                                    |> Maybe.map
-                                        (.status >> (==) PipelineStatusPaused)
+                                    |> Maybe.map .paused
                             )
             in
             case isPaused of
@@ -559,6 +571,7 @@ dashboardView session model =
                             model.pipelineRunningKeyframes
                         , highDensity = model.highDensity
                         , pipelinesWithResourceErrors = model.pipelinesWithResourceErrors
+                        , existingJobs = model.existingJobs
                         }
 
 
@@ -683,12 +696,13 @@ pipelinesView :
         , query : String
         , highDensity : Bool
         , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+        , existingJobs : List Concourse.Job
         }
     -> List (Html Message)
-pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, query, highDensity, pipelinesWithResourceErrors } =
+pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, query, highDensity, pipelinesWithResourceErrors, existingJobs } =
     let
         filteredGroups =
-            groups |> Filter.filterGroups query |> List.sortWith (Group.ordering session)
+            groups |> Filter.filterGroups existingJobs query |> List.sortWith (Group.ordering session)
 
         groupViews =
             if highDensity then
@@ -697,6 +711,7 @@ pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, que
                         (Group.hdView
                             { pipelineRunningKeyframes = pipelineRunningKeyframes
                             , pipelinesWithResourceErrors = pipelinesWithResourceErrors
+                            , existingJobs = existingJobs
                             }
                             session
                         )
@@ -712,6 +727,7 @@ pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, que
                             , hovered = hovered
                             , pipelineRunningKeyframes = pipelineRunningKeyframes
                             , pipelinesWithResourceErrors = pipelinesWithResourceErrors
+                            , existingJobs = existingJobs
                             }
                         )
     in

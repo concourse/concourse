@@ -12,7 +12,7 @@ import Message.Message exposing (DomID(..))
 import Message.TopLevelMessage exposing (TopLevelMessage)
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (class, style)
+import Test.Html.Selector exposing (class, containing, style, text)
 import Time
 import Url
 
@@ -175,10 +175,22 @@ dashboardWithJob : Concourse.Job -> Application.Model
 dashboardWithJob j =
     Common.init "/"
         |> Application.handleCallback
+            (Callback.AllJobsFetched <|
+                Ok
+                    [ j
+                    , { j | pipelineName = "other" }
+                    , { j | teamName = "banana" }
+                    ]
+            )
+        |> Tuple.first
+        |> Application.handleCallback
             (Callback.APIDataFetched <|
                 Ok
                     ( Time.millisToPosix 0
-                    , { teams = [ { id = 0, name = "team" } ]
+                    , { teams =
+                            [ { id = 0, name = "team" }
+                            , { id = 1, name = "banana" }
+                            ]
                       , pipelines =
                             [ { id = 0
                               , name = "pipeline"
@@ -187,8 +199,21 @@ dashboardWithJob j =
                               , teamName = "team"
                               , groups = []
                               }
+                            , { id = 1
+                              , name = "other"
+                              , paused = False
+                              , public = True
+                              , teamName = "team"
+                              , groups = []
+                              }
+                            , { id = 2
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "banana"
+                              , groups = []
+                              }
                             ]
-                      , jobs = [ j ]
                       }
                     )
             )
@@ -198,6 +223,8 @@ dashboardWithJob j =
 findJobPreview : Application.Model -> Query.Single TopLevelMessage
 findJobPreview =
     queryView
+        >> Query.find [ class "dashboard-team-group", containing [ text "team" ] ]
+        >> Query.find [ class "card", containing [ text "pipeline" ] ]
         >> Query.find [ class "parallel-grid" ]
         >> Query.children []
         >> Query.first

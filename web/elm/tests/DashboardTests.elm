@@ -185,6 +185,25 @@ all =
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.RedirectToLogin ]
+        , test "shows turbulence view if the all resources call gives a bad status error" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllResourcesFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 500
+                                        , message = "internal server error"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ text "experiencing turbulence" ]
         , test "title says 'Dashboard - Concourse'" <|
             \_ ->
                 Common.init "/"
@@ -679,6 +698,41 @@ all =
         , test "links to specific builds" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <|
+                            Ok
+                                [ { pipeline =
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        }
+                                  , name = "job"
+                                  , pipelineName = "pipeline"
+                                  , teamName = "team"
+                                  , nextBuild = Nothing
+                                  , finishedBuild =
+                                        Just
+                                            { id = 0
+                                            , name = "1"
+                                            , job =
+                                                Just
+                                                    { teamName = "team"
+                                                    , pipelineName = "pipeline"
+                                                    , jobName = "job"
+                                                    }
+                                            , status = BuildStatusSucceeded
+                                            , duration = { startedAt = Nothing, finishedAt = Nothing }
+                                            , reapTime = Nothing
+                                            }
+                                  , transitionBuild = Nothing
+                                  , paused = False
+                                  , disableManualTrigger = False
+                                  , inputs = []
+                                  , outputs = []
+                                  , groups = []
+                                  }
+                                ]
+                        )
+                    |> Tuple.first
                     |> givenDataUnauthenticated givenPipelineWithJob
                     |> Tuple.first
                     |> Common.queryView
@@ -1028,15 +1082,15 @@ all =
                             else
                                 job
                     in
-                    givenDataUnauthenticated
-                        { teams =
-                            [ { id = 0, name = "team" } ]
-                        , pipelines =
-                            [ onePipeline "team" ]
-                        , jobs =
-                            [ jobFunc status
-                            ]
-                        }
+                    Application.handleCallback
+                        (Callback.AllJobsFetched <| Ok [ jobFunc status ])
+                        >> Tuple.first
+                        >> givenDataUnauthenticated
+                            { teams =
+                                [ { id = 0, name = "team" } ]
+                            , pipelines =
+                                [ onePipeline "team" ]
+                            }
                         >> Tuple.first
                         >> Common.queryView
             in
@@ -1229,7 +1283,6 @@ all =
                                         [ { id = 0, name = "team" } ]
                                     , pipelines =
                                         [ onePipelinePaused "team" ]
-                                    , jobs = []
                                     }
                                 |> Tuple.first
                                 |> Common.queryView
@@ -1324,15 +1377,19 @@ all =
                                 -> Query.Single ApplicationMsgs.TopLevelMessage
                             givenTwoJobs firstStatus secondStatus =
                                 whenOnDashboard { highDensity = False }
+                                    |> Application.handleCallback
+                                        (Callback.AllJobsFetched <|
+                                            Ok
+                                                [ job firstStatus
+                                                , otherJob secondStatus
+                                                ]
+                                        )
+                                    |> Tuple.first
                                     |> givenDataUnauthenticated
                                         { teams =
                                             [ { id = 0, name = "team" } ]
                                         , pipelines =
                                             [ onePipeline "team" ]
-                                        , jobs =
-                                            [ job firstStatus
-                                            , otherJob secondStatus
-                                            ]
                                         }
                                     |> Tuple.first
                                     |> Common.queryView
@@ -1369,10 +1426,11 @@ all =
                     , test "does not crash with a circular pipeline" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
+                                |> Application.handleCallback (Callback.AllJobsFetched <| Ok circularJobs)
+                                |> Tuple.first
                                 |> givenDataUnauthenticated
                                     { teams = [ { id = 0, name = "team" } ]
                                     , pipelines = [ onePipeline "team" ]
-                                    , jobs = circularJobs
                                     }
                                 |> Tuple.first
                                 |> Common.queryView
@@ -1396,7 +1454,6 @@ all =
                                             [ { id = 0, name = "team" } ]
                                         , pipelines =
                                             [ onePipelinePaused "team" ]
-                                        , jobs = []
                                         }
                                     |> Tuple.first
                                     |> Common.queryView
@@ -1491,15 +1548,19 @@ all =
                                     -> Query.Single ApplicationMsgs.TopLevelMessage
                                 givenTwoJobs firstStatus secondStatus =
                                     whenOnDashboard { highDensity = False }
+                                        |> Application.handleCallback
+                                            (Callback.AllJobsFetched <|
+                                                Ok
+                                                    [ job firstStatus
+                                                    , otherJob secondStatus
+                                                    ]
+                                            )
+                                        |> Tuple.first
                                         |> givenDataUnauthenticated
                                             { teams =
                                                 [ { id = 0, name = "team" } ]
                                             , pipelines =
                                                 [ onePipeline "team" ]
-                                            , jobs =
-                                                [ job firstStatus
-                                                , otherJob secondStatus
-                                                ]
                                             }
                                         |> Tuple.first
                                         |> Common.queryView
@@ -1659,8 +1720,8 @@ all =
                         >> Query.count (Expect.equal 2)
                 , describe "resource error triangle" <|
                     let
-                        givenResourceError : () -> Query.Single ApplicationMsgs.TopLevelMessage
-                        givenResourceError _ =
+                        givenResourceFailingToCheck : () -> Query.Single ApplicationMsgs.TopLevelMessage
+                        givenResourceFailingToCheck _ =
                             whenOnDashboard { highDensity = True }
                                 |> Application.handleCallback
                                     (Callback.AllResourcesFetched <|
@@ -1695,7 +1756,6 @@ all =
                                           , groups = []
                                           }
                                         ]
-                                    , jobs = []
                                     }
                                 |> Tuple.first
                                 |> Common.queryView
@@ -1705,12 +1765,12 @@ all =
                                 >> Query.index -1
                     in
                     [ test "exists" <|
-                        givenResourceError
+                        givenResourceFailingToCheck
                             >> card
                             >> Query.children []
                             >> Query.count (Expect.equal 3)
                     , test "is at the top right of card" <|
-                        givenResourceError
+                        givenResourceFailingToCheck
                             >> card
                             >> Expect.all
                                 [ Query.has [ style "position" "relative" ]
@@ -1722,7 +1782,7 @@ all =
                                         ]
                                 ]
                     , test "is an orange 'top right' triangle" <|
-                        givenResourceError
+                        givenResourceFailingToCheck
                             >> card
                             >> resourceErrorTriangle
                             >> Query.has
@@ -1867,7 +1927,6 @@ all =
                                             [ { id = 0, name = "team" } ]
                                         , pipelines =
                                             [ onePipelinePaused "team" ]
-                                        , jobs = []
                                         }
                                     |> Tuple.first
                                     |> Common.queryView
@@ -1985,17 +2044,21 @@ all =
                         , test "when not running, status text shows age" <|
                             \_ ->
                                 Common.init "/"
+                                    |> Application.handleCallback
+                                        (Callback.AllJobsFetched <|
+                                            Ok
+                                                [ jobWithNameTransitionedAt
+                                                    "job"
+                                                    (Just <| Time.millisToPosix 0)
+                                                    BuildStatusSucceeded
+                                                ]
+                                        )
+                                    |> Tuple.first
                                     |> givenDataUnauthenticated
                                         { teams =
                                             [ { id = 0, name = "team" } ]
                                         , pipelines =
                                             [ onePipeline "team" ]
-                                        , jobs =
-                                            [ jobWithNameTransitionedAt
-                                                "job"
-                                                (Just <| Time.millisToPosix 0)
-                                                BuildStatusSucceeded
-                                            ]
                                         }
                                     |> Tuple.first
                                     |> afterSeconds 1
@@ -3563,32 +3626,6 @@ givenPipelineWithJob =
           , groups = []
           }
         ]
-    , jobs =
-        [ { pipeline =
-                { teamName = "team"
-                , pipelineName = "pipeline"
-                }
-          , name = "job"
-          , pipelineName = "pipeline"
-          , teamName = "team"
-          , nextBuild = Nothing
-          , finishedBuild =
-                Just
-                    { id = 0
-                    , name = "1"
-                    , job = Just { teamName = "team", pipelineName = "pipeline", jobName = "job" }
-                    , status = BuildStatusSucceeded
-                    , duration = { startedAt = Nothing, finishedAt = Nothing }
-                    , reapTime = Nothing
-                    }
-          , transitionBuild = Nothing
-          , paused = False
-          , disableManualTrigger = False
-          , inputs = []
-          , outputs = []
-          , groups = []
-          }
-        ]
     }
 
 
@@ -3604,7 +3641,6 @@ oneTeamOnePipelinePaused teamName =
           , groups = []
           }
         ]
-    , jobs = []
     }
 
 
@@ -3620,7 +3656,6 @@ oneTeamOnePipelineNonPublic teamName =
           , groups = []
           }
         ]
-    , jobs = []
     }
 
 
@@ -3670,7 +3705,6 @@ apiData pipelines =
                                 }
                             )
                 )
-    , jobs = []
     }
 
 

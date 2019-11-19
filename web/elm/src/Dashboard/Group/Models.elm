@@ -1,8 +1,5 @@
 module Dashboard.Group.Models exposing (Group, Pipeline)
 
-import Concourse
-import Concourse.PipelineStatus as PipelineStatus
-
 
 type alias Group =
     { pipelines : List Pipeline
@@ -15,8 +12,7 @@ type alias Pipeline =
     , name : String
     , teamName : String
     , public : Bool
-    , jobs : List Concourse.Job
-    , status : PipelineStatus.PipelineStatus
     , isToggleLoading : Bool
     , isVisibilityLoading : Bool
+    , paused : Bool
     }

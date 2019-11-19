@@ -38,6 +38,44 @@ all =
     describe "dashboard search"
         (Common.init "/"
             |> Application.handleCallback
+                (Callback.AllJobsFetched <|
+                    Ok
+                        [ { pipeline =
+                                { teamName = "team1"
+                                , pipelineName = "pipeline"
+                                }
+                          , name = "job"
+                          , pipelineName = "pipeline"
+                          , teamName = "team1"
+                          , nextBuild =
+                                Just
+                                    { id = 1
+                                    , name = "1"
+                                    , job =
+                                        Just
+                                            { teamName = "team1"
+                                            , pipelineName = "pipeline"
+                                            , jobName = "job"
+                                            }
+                                    , status = BuildStatusStarted
+                                    , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                    , reapTime = Nothing
+                                    }
+                          , finishedBuild = Nothing
+                          , transitionBuild = Nothing
+                          , paused = False
+                          , disableManualTrigger = False
+                          , inputs = []
+                          , outputs = []
+                          , groups = []
+                          }
+                        ]
+                )
+            |> Tuple.first
+            |> Application.handleCallback
                 (Callback.APIDataFetched
                     (Ok
                         ( Time.millisToPosix 0
@@ -51,40 +89,6 @@ all =
                                   , paused = False
                                   , public = True
                                   , teamName = "team1"
-                                  , groups = []
-                                  }
-                                ]
-                          , jobs =
-                                [ { pipeline =
-                                        { teamName = "team1"
-                                        , pipelineName = "pipeline"
-                                        }
-                                  , name = "job"
-                                  , pipelineName = "pipeline"
-                                  , teamName = "team1"
-                                  , nextBuild =
-                                        Just
-                                            { id = 1
-                                            , name = "1"
-                                            , job =
-                                                Just
-                                                    { teamName = "team1"
-                                                    , pipelineName = "pipeline"
-                                                    , jobName = "job"
-                                                    }
-                                            , status = BuildStatusStarted
-                                            , duration =
-                                                { startedAt = Nothing
-                                                , finishedAt = Nothing
-                                                }
-                                            , reapTime = Nothing
-                                            }
-                                  , finishedBuild = Nothing
-                                  , transitionBuild = Nothing
-                                  , paused = False
-                                  , disableManualTrigger = False
-                                  , inputs = []
-                                  , outputs = []
                                   , groups = []
                                   }
                                 ]
@@ -185,7 +189,6 @@ all =
                                   , groups = []
                                   }
                                 ]
-                          , jobs = []
                           }
                         )
                     )

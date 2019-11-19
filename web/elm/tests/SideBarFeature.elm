@@ -767,7 +767,6 @@ apiDataLoads =
                               , groups = []
                               }
                             ]
-                      , jobs = []
                       }
                     )
                 )
@@ -805,7 +804,6 @@ thereAreNoPipelines =
                 ( Time.millisToPosix 0
                 , { teams = []
                   , pipelines = []
-                  , jobs = []
                   }
                 )
             )
