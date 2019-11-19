@@ -361,7 +361,8 @@ type credVarsIterator struct {
 func (it *credVarsIterator) YieldCred(name, value string) {
 	for _, lineValue := range strings.Split(value, "\n") {
 		lineValue = strings.TrimSpace(lineValue)
-		if lineValue != "" {
+		// Don't consider a single char as a secret.
+		if len(lineValue) > 1 {
 			it.line = strings.Replace(it.line, lineValue, "((redacted))", -1)
 		}
 	}
