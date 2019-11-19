@@ -1377,7 +1377,7 @@ var _ = Describe("Jobs API", func() {
 						build3.EndTimeReturns(time.Unix(300, 0))
 						build3.RerunOfReturns(2)
 						build3.RerunOfNameReturns("1")
-						build3.RerunNumberReturns(1)
+						build3.RerunNumberReturns(3)
 
 						returnedBuilds = []db.Build{build1, build2, build3}
 						fakeJob.BuildsReturns(returnedBuilds, db.Pagination{}, nil)
@@ -1432,7 +1432,7 @@ var _ = Describe("Jobs API", func() {
 							"id": 2,
 							"name": "1"
 						},
-						"rerun_number": "1"
+						"rerun_number": 3
 					}
 				]`))
 					})
