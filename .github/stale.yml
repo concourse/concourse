@@ -13,6 +13,8 @@ staleLabel: wontfix
 
 exemptProjects: true
 
+exemptMilestones: true
+
 issues:
   markComment: |
     Beep boop! This issue has been idle for long enough that it's time to check in and see if it's still important.

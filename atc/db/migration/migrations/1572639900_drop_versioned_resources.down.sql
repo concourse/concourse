@@ -33,7 +33,7 @@ BEGIN;
   CREATE TABLE build_inputs (
       build_id integer,
       versioned_resource_id integer,
-      name text NOT NULL,
+      name text NOT NULL
   );
 
   CREATE INDEX build_inputs_build_id_idx ON build_inputs USING btree (build_id);
@@ -51,7 +51,7 @@ BEGIN;
   CREATE TABLE build_outputs (
       build_id integer,
       versioned_resource_id integer,
-      explicit boolean DEFAULT false NOT NULL,
+      explicit boolean DEFAULT false NOT NULL
   );
 
   CREATE INDEX build_outputs_build_id_idx ON build_outputs USING btree (build_id);

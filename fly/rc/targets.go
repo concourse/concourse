@@ -185,7 +185,7 @@ func LoadTargets() (*targetDetailsYAML, error) {
 		}
 		err = yaml.Unmarshal(flyTargetsBytes, &flyTargets)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("in the file '%s': %s", flyrc, err)
 		}
 	}
 

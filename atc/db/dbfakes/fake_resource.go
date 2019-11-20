@@ -185,6 +185,20 @@ type FakeResource struct {
 		result1 bool
 		result2 error
 	}
+	PipelineStub        func() (db.Pipeline, bool, error)
+	pipelineMutex       sync.RWMutex
+	pipelineArgsForCall []struct {
+	}
+	pipelineReturns struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}
+	pipelineReturnsOnCall map[int]struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}
 	PipelineIDStub        func() int
 	pipelineIDMutex       sync.RWMutex
 	pipelineIDArgsForCall []struct {
@@ -1329,6 +1343,64 @@ func (fake *FakeResource) PinVersionReturnsOnCall(i int, result1 bool, result2 e
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeResource) Pipeline() (db.Pipeline, bool, error) {
+	fake.pipelineMutex.Lock()
+	ret, specificReturn := fake.pipelineReturnsOnCall[len(fake.pipelineArgsForCall)]
+	fake.pipelineArgsForCall = append(fake.pipelineArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Pipeline", []interface{}{})
+	fake.pipelineMutex.Unlock()
+	if fake.PipelineStub != nil {
+		return fake.PipelineStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.pipelineReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeResource) PipelineCallCount() int {
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
+	return len(fake.pipelineArgsForCall)
+}
+
+func (fake *FakeResource) PipelineCalls(stub func() (db.Pipeline, bool, error)) {
+	fake.pipelineMutex.Lock()
+	defer fake.pipelineMutex.Unlock()
+	fake.PipelineStub = stub
+}
+
+func (fake *FakeResource) PipelineReturns(result1 db.Pipeline, result2 bool, result3 error) {
+	fake.pipelineMutex.Lock()
+	defer fake.pipelineMutex.Unlock()
+	fake.PipelineStub = nil
+	fake.pipelineReturns = struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResource) PipelineReturnsOnCall(i int, result1 db.Pipeline, result2 bool, result3 error) {
+	fake.pipelineMutex.Lock()
+	defer fake.pipelineMutex.Unlock()
+	fake.PipelineStub = nil
+	if fake.pipelineReturnsOnCall == nil {
+		fake.pipelineReturnsOnCall = make(map[int]struct {
+			result1 db.Pipeline
+			result2 bool
+			result3 error
+		})
+	}
+	fake.pipelineReturnsOnCall[i] = struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeResource) PipelineID() int {
@@ -2497,6 +2569,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.pinCommentMutex.RUnlock()
 	fake.pinVersionMutex.RLock()
 	defer fake.pinVersionMutex.RUnlock()
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
 	fake.pipelineIDMutex.RLock()
 	defer fake.pipelineIDMutex.RUnlock()
 	fake.pipelineNameMutex.RLock()

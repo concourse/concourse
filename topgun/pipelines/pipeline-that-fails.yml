@@ -1,0 +1,12 @@
+---
+jobs:
+  - name: simple-job
+    plan:
+      - task: simple-task
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: {repository: busybox}
+          run:
+            path: false

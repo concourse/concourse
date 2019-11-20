@@ -93,6 +93,8 @@ type ATCCommand struct {
 type RunCommand struct {
 	Logger flag.Lager
 
+	varSourcePool creds.VarSourcePool
+
 	BindIP   flag.IP `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16  `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
 
@@ -135,6 +137,8 @@ type RunCommand struct {
 	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
 	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
+
+	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
@@ -208,15 +212,9 @@ type RunCommand struct {
 	} `group:"Authentication"`
 
 	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
+
+	ConfigRBAC string `long:"config-rbac" description:"Customize RBAC role-action mapping."`
 }
-
-//go:generate counterfeiter . Collector
-
-type Collector interface {
-	Run(context.Context) error
-}
-
-var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
 
 type Migration struct {
 	Postgres           flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
@@ -236,7 +234,8 @@ func (m *Migration) Execute(args []string) error {
 	if m.MigrateDBToVersion > 0 {
 		return m.migrateDBToVersion()
 	}
-	return HelpError
+	return errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
+
 }
 
 func (cmd *Migration) currentDBVersion() error {
@@ -456,6 +455,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	cmd.varSourcePool = creds.NewVarSourcePool(5 * time.Minute, clock.NewClock())
+
 	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
@@ -603,6 +604,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbWorkerFactory,
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
+		cmd.GardenRequestTimeout,
 	)
 
 	pool := worker.NewPool(workerProvider)
@@ -615,8 +617,18 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+
 	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
+	customActionRoleMap := accessor.CustomActionRoleMap{}
+	err = accessor.ParseCustomActionRoleMap(cmd.ConfigRBAC, &customActionRoleMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse RBAC config file (%s): %s", cmd.ConfigRBAC, err.Error())
+	}
+	err = accessFactory.CustomizeActionRoleMap(logger, customActionRoleMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to customize RBAC: %s", err.Error())
+	}
 
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
@@ -770,6 +782,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		dbWorkerFactory,
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
+		cmd.GardenRequestTimeout,
 	)
 
 	pool := worker.NewPool(workerProvider)
@@ -799,7 +812,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 
@@ -966,6 +979,7 @@ func (cmd *RunCommand) constructGCMember(
 		dbWorkerFactory,
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
+		cmd.GardenRequestTimeout,
 	)
 
 	jobRunner := gc.NewWorkerJobRunner(
@@ -985,6 +999,7 @@ func (cmd *RunCommand) constructGCMember(
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, jobRunner, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
+		atc.ComponentCollectorVarSources:        gc.NewCollectorTask(cmd.varSourcePool.(gc.Collector)),
 	}
 
 	for collectorName, collector := range collectors {
@@ -1407,6 +1422,9 @@ func (cmd *RunCommand) configureComponentIntervals(componentFactory db.Component
 			}, {
 				Name:     atc.ComponentCollectorWorkers,
 				Interval: cmd.GC.Interval,
+			}, {
+				Name:     atc.ComponentCollectorVarSources,
+				Interval: 60 * time.Second,
 			},
 		})
 }
@@ -1441,6 +1459,7 @@ func (cmd *RunCommand) constructEngine(
 		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
 		secretManager,
+		cmd.varSourcePool,
 		cmd.EnableRedactSecrets,
 	)
 
@@ -1560,6 +1579,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		concourse.Version,
 		concourse.WorkerVersion,
 		secretManager,
+		cmd.varSourcePool,
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
 	)

@@ -11,7 +11,6 @@ type PipelineFactory interface {
 	VisiblePipelines([]string) ([]Pipeline, error)
 	AllPipelines() ([]Pipeline, error)
 	PipelinesToSchedule() ([]Pipeline, error)
-	Pipeline(int) (Pipeline, bool, error)
 }
 
 type pipelineFactory struct {
@@ -94,7 +93,4 @@ func (f *pipelineFactory) PipelinesToSchedule() ([]Pipeline, error) {
 	}
 
 	return scanPipelines(f.conn, f.lockFactory, rows)
-}
-
-func (f *pipelineFactory) Pipeline(pipelineID int) (Pipeline, bool, error) {
 }

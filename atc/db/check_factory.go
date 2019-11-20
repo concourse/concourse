@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -16,11 +17,11 @@ import (
 //go:generate counterfeiter . Checkable
 
 type Checkable interface {
+	PipelineRef
+
 	Name() string
 	TeamID() int
 	TeamName() string
-	PipelineID() int
-	PipelineName() string
 	Type() string
 	Source() atc.Source
 	Tags() atc.Tags
@@ -43,7 +44,7 @@ type CheckFactory interface {
 	Check(int) (Check, bool, error)
 	StartedChecks() ([]Check, error)
 	CreateCheck(int, bool, atc.Plan, CheckMetadata) (Check, bool, error)
-	TryCreateCheck(Checkable, ResourceTypes, atc.Version, bool) (Check, bool, error)
+	TryCreateCheck(lager.Logger, Checkable, ResourceTypes, atc.Version, bool) (Check, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
 	AcquireScanningLock(lager.Logger) (lock.Lock, bool, error)
@@ -55,6 +56,7 @@ type checkFactory struct {
 	lockFactory lock.LockFactory
 
 	secrets             creds.Secrets
+	varSourcePool       creds.VarSourcePool
 	defaultCheckTimeout time.Duration
 }
 
@@ -62,6 +64,7 @@ func NewCheckFactory(
 	conn Conn,
 	lockFactory lock.LockFactory,
 	secrets creds.Secrets,
+	varSourcePool creds.VarSourcePool,
 	defaultCheckTimeout time.Duration,
 ) CheckFactory {
 	return &checkFactory{
@@ -69,6 +72,7 @@ func NewCheckFactory(
 		lockFactory: lockFactory,
 
 		secrets:             secrets,
+		varSourcePool:       varSourcePool,
 		defaultCheckTimeout: defaultCheckTimeout,
 	}
 }
@@ -87,11 +91,7 @@ func (c *checkFactory) AcquireScanningLock(
 }
 
 func (c *checkFactory) Check(id int) (Check, bool, error) {
-	check := &check{
-		conn:        c.conn,
-		lockFactory: c.lockFactory,
-	}
-
+	check := newEmptyCheck(c.conn, c.lockFactory)
 	row := checksQuery.
 		Where(sq.Eq{"c.id": id}).
 		RunWith(c.conn).
@@ -120,8 +120,7 @@ func (c *checkFactory) StartedChecks() ([]Check, error) {
 	var checks []Check
 
 	for rows.Next() {
-		check := &check{conn: c.conn, lockFactory: c.lockFactory}
-
+		check := newEmptyCheck(c.conn, c.lockFactory)
 		err := scanCheck(check, rows)
 		if err != nil {
 			return nil, err
@@ -133,7 +132,7 @@ func (c *checkFactory) StartedChecks() ([]Check, error) {
 	return checks, nil
 }
 
-func (c *checkFactory) TryCreateCheck(checkable Checkable, resourceTypes ResourceTypes, fromVersion atc.Version, manuallyTriggered bool) (Check, bool, error) {
+func (c *checkFactory) TryCreateCheck(logger lager.Logger, checkable Checkable, resourceTypes ResourceTypes, fromVersion atc.Version, manuallyTriggered bool) (Check, bool, error) {
 
 	var err error
 
@@ -152,19 +151,26 @@ func (c *checkFactory) TryCreateCheck(checkable Checkable, resourceTypes Resourc
 		}
 	}
 
-	variables := creds.NewVariables(
-		c.secrets,
-		checkable.TeamName(),
-		checkable.PipelineName(),
-	)
+	pp, found, err := checkable.Pipeline()
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to reload pipeline: %s", err.Error())
+	}
+	if !found {
+		return nil, false, fmt.Errorf("pipeline not found")
+	}
 
-	source, err := creds.NewSource(variables, checkable.Source()).Evaluate()
+	varss, err := pp.Variables(logger, c.secrets, c.varSourcePool)
+	if err != nil {
+		return nil, false, err
+	}
+
+	source, err := creds.NewSource(varss, checkable.Source()).Evaluate()
 	if err != nil {
 		return nil, false, err
 	}
 
 	filteredTypes := resourceTypes.Filter(checkable).Deserialize()
-	versionedResourceTypes, err := creds.NewVersionedResourceTypes(variables, filteredTypes).Evaluate()
+	versionedResourceTypes, err := creds.NewVersionedResourceTypes(varss, filteredTypes).Evaluate()
 	if err != nil {
 		return nil, false, err
 	}
@@ -203,6 +209,7 @@ func (c *checkFactory) TryCreateCheck(checkable Checkable, resourceTypes Resourc
 		TeamID:             checkable.TeamID(),
 		TeamName:           checkable.TeamName(),
 		PipelineName:       checkable.PipelineName(),
+		PipelineID:         checkable.PipelineID(),
 		ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
 		BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
 	}
@@ -298,8 +305,12 @@ func (c *checkFactory) CreateCheck(
 		createTime:            createTime,
 		metadata:              meta,
 
-		conn:        c.conn,
-		lockFactory: c.lockFactory,
+		pipelineRef: pipelineRef{
+			conn:         c.conn,
+			lockFactory:  c.lockFactory,
+			pipelineID:   meta.PipelineID,
+			pipelineName: meta.PipelineName,
+		},
 	}, true, err
 }
 
@@ -318,11 +329,7 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		r := &resource{
-			conn:        c.conn,
-			lockFactory: c.lockFactory,
-		}
-
+		r := newEmptyResource(c.conn, c.lockFactory)
 		err = scanResource(r, rows)
 		if err != nil {
 			return nil, err
@@ -348,11 +355,7 @@ func (c *checkFactory) ResourceTypes() ([]ResourceType, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		r := &resourceType{
-			conn:        c.conn,
-			lockFactory: c.lockFactory,
-		}
-
+		r := newEmptyResourceType(c.conn, c.lockFactory)
 		err = scanResourceType(r, rows)
 		if err != nil {
 			return nil, err

@@ -1,16 +1,18 @@
 package accessor_test
 
 import (
+	"code.cloudfoundry.org/lager"
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"net/http"
-
-	"github.com/concourse/concourse/atc/api/accessor"
-	jwt "github.com/dgrijalva/jwt-go"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
 )
 
 var _ = Describe("AccessorFactory", func() {
@@ -83,6 +85,39 @@ var _ = Describe("AccessorFactory", func() {
 			It("creates valid access object", func() {
 				Expect(access).ToNot(BeNil())
 			})
+		})
+	})
+
+	Describe("CustomizeRolesMapping", func() {
+		var (
+			accessorFactory accessor.AccessFactory
+		)
+
+		BeforeEach(func() {
+			accessorFactory = accessor.NewAccessFactory(&rsa.PublicKey{})
+		})
+
+		JustBeforeEach(func() {
+			customData := accessor.CustomActionRoleMap{
+				"pipeline-operator": []string{atc.HijackContainer, atc.CreatePipelineBuild},
+				"viewer":            []string{atc.GetPipeline},
+			}
+
+			logger := lager.NewLogger("test")
+			err := accessorFactory.CustomizeActionRoleMap(logger, customData)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should correctly customized", func() {
+			Expect(accessorFactory.RoleOfAction(atc.HijackContainer)).To(Equal("pipeline-operator"))
+			Expect(accessorFactory.RoleOfAction(atc.CreatePipelineBuild)).To(Equal("pipeline-operator"))
+			Expect(accessorFactory.RoleOfAction(atc.GetPipeline)).To(Equal("viewer"))
+		})
+
+		It("should keep un-customized actions", func() {
+			Expect(accessorFactory.RoleOfAction(atc.SaveConfig)).To(Equal("member"))
+			Expect(accessorFactory.RoleOfAction(atc.GetConfig)).To(Equal("viewer"))
+			Expect(accessorFactory.RoleOfAction(atc.GetCC)).To(Equal("viewer"))
 		})
 	})
 })

@@ -15,7 +15,7 @@ import (
 
 var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 	var (
-		collector                           Collector
+		collector                           GcCollector
 		resourceConfigCheckSessionLifecycle db.ResourceConfigCheckSessionLifecycle
 		resourceConfigScope                 db.ResourceConfigScope
 		ownerExpiries                       db.ContainerOwnerExpiries

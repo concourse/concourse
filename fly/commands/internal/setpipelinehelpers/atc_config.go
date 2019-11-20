@@ -4,18 +4,17 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-
-	"github.com/concourse/concourse/fly/rc"
-
 	"sigs.k8s.io/yaml"
+
+	"github.com/onsi/gomega/gexec"
+	"github.com/vito/go-interact/interact"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
+	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/onsi/gomega/gexec"
-	"github.com/vito/go-interact/interact"
 )
 
 type ATCConfig struct {
@@ -133,6 +132,16 @@ func diff(existingConfig atc.Config, newConfig atc.Config) bool {
 
 		for _, diff := range groupDiffs {
 			diff.Render(indent, "group")
+		}
+	}
+
+	varSourceDiffs := diffIndices(VarSourceIndex(existingConfig.VarSources), VarSourceIndex(newConfig.VarSources))
+	if len(varSourceDiffs) > 0 {
+		diffExists = true
+		fmt.Println("variable source:")
+
+		for _, diff := range varSourceDiffs {
+			diff.Render(indent, "variable source")
 		}
 	}
 

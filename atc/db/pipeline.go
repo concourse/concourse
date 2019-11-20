@@ -7,6 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/vars"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -34,6 +38,7 @@ type Pipeline interface {
 	TeamID() int
 	TeamName() string
 	Groups() atc.GroupConfigs
+	VarSources() atc.VarSourceConfigs
 	ConfigVersion() ConfigVersion
 	Public() bool
 	Paused() bool
@@ -77,6 +82,8 @@ type Pipeline interface {
 
 	Destroy() error
 	Rename(string) error
+
+	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 }
 
 type pipeline struct {
@@ -85,6 +92,7 @@ type pipeline struct {
 	teamID        int
 	teamName      string
 	groups        atc.GroupConfigs
+	varSources    atc.VarSourceConfigs
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
@@ -100,6 +108,8 @@ var pipelinesQuery = psql.Select(`
 		p.id,
 		p.name,
 		p.groups,
+		p.var_sources,
+		p.nonce,
 		p.version,
 		p.team_id,
 		t.name,
@@ -116,14 +126,16 @@ func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
 	}
 }
 
-func (p *pipeline) ID() int                      { return p.id }
-func (p *pipeline) Name() string                 { return p.name }
-func (p *pipeline) TeamID() int                  { return p.teamID }
-func (p *pipeline) TeamName() string             { return p.teamName }
-func (p *pipeline) Groups() atc.GroupConfigs     { return p.groups }
-func (p *pipeline) ConfigVersion() ConfigVersion { return p.configVersion }
-func (p *pipeline) Public() bool                 { return p.public }
-func (p *pipeline) Paused() bool                 { return p.paused }
+func (p *pipeline) ID() int                  { return p.id }
+func (p *pipeline) Name() string             { return p.name }
+func (p *pipeline) TeamID() int              { return p.teamID }
+func (p *pipeline) TeamName() string         { return p.teamName }
+func (p *pipeline) Groups() atc.GroupConfigs { return p.groups }
+
+func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
+func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
+func (p *pipeline) Public() bool                     { return p.public }
+func (p *pipeline) Paused() bool                     { return p.paused }
 
 // IMPORTANT: This method is broken with the new resource config versions changes
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {
@@ -230,7 +242,7 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 		return nil, err
 	}
 
-	build := &build{conn: p.conn, lockFactory: p.lockFactory}
+	build := newEmptyBuild(p.conn, p.lockFactory)
 	err = scanBuild(build, buildsQuery.
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
@@ -320,7 +332,7 @@ func (p *pipeline) GetBuildsWithVersionAsInput(resourceID, resourceConfigVersion
 
 	builds := []Build{}
 	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory}
+		build := newEmptyBuild(p.conn, p.lockFactory)
 		err = scanBuild(build, rows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -348,7 +360,7 @@ func (p *pipeline) GetBuildsWithVersionAsOutput(resourceID, resourceConfigVersio
 
 	builds := []Build{}
 	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory}
+		build := newEmptyBuild(p.conn, p.lockFactory)
 		err = scanBuild(build, rows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -380,7 +392,7 @@ func (p *pipeline) resource(where map[string]interface{}) (Resource, bool, error
 		RunWith(p.conn).
 		QueryRow()
 
-	resource := &resource{conn: p.conn, lockFactory: p.lockFactory}
+	resource := newEmptyResource(p.conn, p.lockFactory)
 	err := scanResource(resource, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -421,7 +433,7 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	resourceTypes := []ResourceType{}
 
 	for rows.Next() {
-		resourceType := &resourceType{conn: p.conn, lockFactory: p.lockFactory}
+		resourceType := newEmptyResourceType(p.conn, p.lockFactory)
 		err := scanResourceType(resourceType, rows)
 		if err != nil {
 			return nil, err
@@ -453,7 +465,7 @@ func (p *pipeline) resourceType(where map[string]interface{}) (ResourceType, boo
 		RunWith(p.conn).
 		QueryRow()
 
-	resourceType := &resourceType{conn: p.conn, lockFactory: p.lockFactory}
+	resourceType := newEmptyResourceType(p.conn, p.lockFactory)
 	err := scanResourceType(resourceType, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -473,7 +485,7 @@ func (p *pipeline) Job(name string) (Job, bool, error) {
 		"j.pipeline_id": p.id,
 	}).RunWith(p.conn).QueryRow()
 
-	job := &job{conn: p.conn, lockFactory: p.lockFactory}
+	job := newEmptyJob(p.conn, p.lockFactory)
 	err := scanJob(job, row)
 
 	if err != nil {
@@ -861,7 +873,7 @@ func (p *pipeline) CreateOneOffBuild() (Build, error) {
 
 	defer Rollback(tx)
 
-	build := &build{conn: p.conn, lockFactory: p.lockFactory}
+	build := newEmptyBuild(p.conn, p.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":        sq.Expr("nextval('one_off_name')"),
 		"pipeline_id": p.id,
@@ -898,7 +910,7 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		return nil, err
 	}
 
-	build := &build{conn: p.conn, lockFactory: p.lockFactory}
+	build := newEmptyBuild(p.conn, p.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":         sq.Expr("nextval('one_off_name')"),
 		"pipeline_id":  p.id,
@@ -973,7 +985,7 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 	nextBuilds := make(map[string]Build)
 
 	for rows.Next() {
-		build := &build{conn: p.conn, lockFactory: p.lockFactory}
+		build := newEmptyBuild(p.conn, p.lockFactory)
 		err := scanBuild(build, rows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -982,6 +994,43 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 	}
 
 	return nextBuilds, nil
+}
+
+// Variables creates variables for this pipeline. If this pipeline has its own
+// var_sources, a vars.MultiVars containing all pipeline specific var_sources
+// plug the global variables, otherwise just return the global variables.
+func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
+	globalVars := creds.NewVariables(globalSecrets, p.TeamName(), p.Name(), false)
+	varss := []vars.Variables{}
+	for _, cm := range p.varSources {
+		factory := creds.ManagerFactories()[cm.Type]
+		if factory == nil {
+			return nil, fmt.Errorf("unknown credential manager type: %s", cm.Type)
+		}
+
+		// Interpolate variables in pipeline credential manager's config
+		newConfig, err := creds.NewParams(globalVars, atc.Params{"config": cm.Config}).Evaluate()
+		if err != nil {
+			return nil, err
+		}
+
+		config, ok := newConfig["config"].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid config format")
+		}
+		secrets, err := varSourcePool.FindOrCreate(logger, config, factory)
+		if err != nil {
+			return nil, err
+		}
+		varss = append(varss, creds.NewVariables(secrets, p.TeamName(), p.Name(), true))
+	}
+
+	if len(varss) == 0 {
+		return globalVars, nil
+	}
+
+	varss = append(varss, globalVars)
+	return vars.NewMultiVars(varss), nil
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {
@@ -1010,7 +1059,7 @@ func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resourc
 	var resources Resources
 
 	for rows.Next() {
-		newResource := &resource{conn: conn, lockFactory: lockFactory}
+		newResource := newEmptyResource(conn, lockFactory)
 		err := scanResource(newResource, rows)
 		if err != nil {
 			return nil, err

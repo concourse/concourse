@@ -1,6 +1,7 @@
 package db
 
 import (
+	"code.cloudfoundry.org/lager"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -8,11 +9,12 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
-	"github.com/lib/pq"
 )
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
@@ -57,7 +59,7 @@ type Team interface {
 	IsContainerWithinTeam(string, bool) (bool, error)
 
 	FindContainerByHandle(string) (Container, bool, error)
-	FindCheckContainers(string, string, creds.Secrets) ([]Container, map[int]time.Time, error)
+	FindCheckContainers(lager.Logger, string, string, creds.Secrets, creds.VarSourcePool) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
@@ -365,16 +367,28 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
+	varSourcesPayload, err := json.Marshal(config.VarSources)
+	if err != nil {
+		return nil, false, err
+	}
+
+	encryptedVarSourcesPayload, nonce, err := t.conn.EncryptionStrategy().Encrypt(varSourcesPayload)
+	if err != nil {
+		return nil, false, err
+	}
+
 	var pipelineID int
 	if !existingConfig {
 		err = psql.Insert("pipelines").
 			SetMap(map[string]interface{}{
-				"name":     pipelineName,
-				"groups":   groupsPayload,
-				"version":  sq.Expr("nextval('config_version_seq')"),
-				"ordering": sq.Expr("currval('pipelines_id_seq')"),
-				"paused":   initiallyPaused,
-				"team_id":  t.id,
+				"name":        pipelineName,
+				"groups":      groupsPayload,
+				"var_sources": encryptedVarSourcesPayload,
+				"nonce":       nonce,
+				"version":     sq.Expr("nextval('config_version_seq')"),
+				"ordering":    sq.Expr("currval('pipelines_id_seq')"),
+				"paused":      initiallyPaused,
+				"team_id":     t.id,
 			}).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -385,6 +399,8 @@ func (t *team) SavePipeline(
 	} else {
 		err := psql.Update("pipelines").
 			Set("groups", groupsPayload).
+			Set("var_sources", encryptedVarSourcesPayload).
+			Set("nonce", nonce).
 			Set("version", sq.Expr("nextval('config_version_seq')")).
 			Where(sq.Eq{
 				"name":    pipelineName,
@@ -593,7 +609,7 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 
 	defer Rollback(tx)
 
-	build := &build{conn: t.conn, lockFactory: t.lockFactory}
+	build := newEmptyBuild(t.conn, t.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":    sq.Expr("nextval('one_off_name')"),
 		"team_id": t.id,
@@ -629,7 +645,7 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		return nil, err
 	}
 
-	build := &build{conn: t.conn, lockFactory: t.lockFactory}
+	build := newEmptyBuild(t.conn, t.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":         sq.Expr("nextval('one_off_name')"),
 		"team_id":      t.id,
@@ -730,7 +746,7 @@ func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
 	return tx.Commit()
 }
 
-func (t *team) FindCheckContainers(pipelineName string, resourceName string, secretManager creds.Secrets) ([]Container, map[int]time.Time, error) {
+func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) ([]Container, map[int]time.Time, error) {
 	pipeline, found, err := t.Pipeline(pipelineName)
 	if err != nil {
 		return nil, nil, err
@@ -752,7 +768,10 @@ func (t *team) FindCheckContainers(pipelineName string, resourceName string, sec
 		return nil, nil, err
 	}
 
-	variables := creds.NewVariables(secretManager, t.name, pipeline.Name())
+	variables, err := pipeline.Variables(logger, secretManager, varSourcePool)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	versionedResourceTypes := pipelineResourceTypes.Deserialize()
 
@@ -1081,8 +1100,13 @@ func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, Created
 }
 
 func scanPipeline(p *pipeline, scan scannable) error {
-	var groups sql.NullString
-	err := scan.Scan(&p.id, &p.name, &groups, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public)
+	var (
+		groups     sql.NullString
+		varSources sql.NullString
+		nonce      sql.NullString
+		nonceStr   *string
+	)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public)
 	if err != nil {
 		return err
 	}
@@ -1095,6 +1119,24 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		}
 
 		p.groups = pipelineGroups
+	}
+
+	if nonce.Valid {
+		nonceStr = &nonce.String
+	}
+
+	if varSources.Valid {
+		var pipelineVarSources atc.VarSourceConfigs
+		decryptedVarSource, err := p.conn.EncryptionStrategy().Decrypt(varSources.String, nonceStr)
+		if err != nil {
+			return err
+		}
+		err = json.Unmarshal([]byte(decryptedVarSource), &pipelineVarSources)
+		if err != nil {
+			return err
+		}
+
+		p.varSources = pipelineVarSources
 	}
 
 	return nil
