@@ -35,7 +35,7 @@ var _ = Describe("On Abort Step", func() {
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
-		state.ArtifactsReturns(repo)
+		state.ArtifactRepositoryReturns(repo)
 
 		onAbortStep = exec.OnAbort(step, hook)
 
