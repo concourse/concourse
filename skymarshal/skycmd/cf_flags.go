@@ -70,14 +70,17 @@ func (flag *CFFlags) Serialize(redirectURI string) ([]byte, error) {
 
 type CFTeamFlags struct {
 	Users            []string `long:"user" description:"A whitelisted CloudFoundry user" value-name:"USERNAME"`
-	Orgs             []string `long:"org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME"`
-	Spaces           []string `long:"space" description:"(Deprecated) A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME"`
-	SpacesAll        []string `long:"space-with-any-role" description:"A whitelisted CloudFoundry space for users with any role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_any_role"`
-	SpacesDeveloper  []string `long:"space-with-developer-role" description:"A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_developer_role"`
-	SpacesAuditor    []string `long:"space-with-auditor-role" description:"A whitelisted CloudFoundry space for users with the 'auditor' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_auditor_role"`
-	SpacesManager    []string `long:"space-with-manager-role" description:"A whitelisted CloudFoundry space for users with the 'manager' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_manager_role"`
-	SpaceGuids       []string `long:"space-guid" description:"(Deprecated) A whitelisted CloudFoundry space guid" value-name:"SPACE_GUID" mapstructure:"space_guids"`
+	OrgGuids         []string `long:"org-guid" description:"A whitelisted CloudFoundry org guid" value-name:"ORG_GUID" mapstructure:"org_guids"`
+	SpaceGuids       []string `long:"space-guid" description:"A whitelisted CloudFoundry space guid" value-name:"SPACE_GUID" mapstructure:"space_guids"`
+	OrgGuidsLegacy   []string `mapstructure:"orgguids"`
 	SpaceGuidsLegacy []string `mapstructure:"spaceguids"`
+
+	Orgs            []string `long:"insecure-org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME" mapstructure:"insecure_orgs"`
+	Spaces          []string `long:"insecure-space" description:"(Deprecated) A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces"`
+	SpacesAll       []string `long:"insecure-space-with-any-role" description:"A whitelisted CloudFoundry space for users with any role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces_with_any_role"`
+	SpacesDeveloper []string `long:"insecure-space-with-developer-role" description:"A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces_with_developer_role"`
+	SpacesAuditor   []string `long:"insecure-space-with-auditor-role" description:"A whitelisted CloudFoundry space for users with the 'auditor' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces_with_auditor_role"`
+	SpacesManager   []string `long:"insecure-space-with-manager-role" description:"A whitelisted CloudFoundry space for users with the 'manager' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces_with_manager_role"`
 }
 
 func (flag *CFTeamFlags) GetUsers() []string {
@@ -100,7 +103,9 @@ func (flag *CFTeamFlags) GetGroups() []string {
 	for _, space := range flag.SpacesManager {
 		groups = append(groups, fmt.Sprintf("%s:manager", space))
 	}
+	groups = append(groups, flag.OrgGuids...)
 	groups = append(groups, flag.SpaceGuids...)
+	groups = append(groups, flag.OrgGuidsLegacy...)
 	groups = append(groups, flag.SpaceGuidsLegacy...)
 	return groups
 }
