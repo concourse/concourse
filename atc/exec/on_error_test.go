@@ -38,7 +38,7 @@ var _ = Describe("On Error Step", func() {
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
-		state.ArtifactsReturns(repo)
+		state.ArtifactRepositoryReturns(repo)
 
 		onErrorStep = exec.OnError(step, hook)
 
