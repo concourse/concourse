@@ -40,7 +40,7 @@ var _ = Describe("Aggregate", func() {
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
-		state.ArtifactsReturns(repo)
+		state.ArtifactRepositoryReturns(repo)
 	})
 
 	AfterEach(func() {
