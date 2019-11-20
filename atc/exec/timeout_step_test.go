@@ -36,7 +36,7 @@ var _ = Describe("Timeout Step", func() {
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
-		state.ArtifactsReturns(repo)
+		state.ArtifactRepositoryReturns(repo)
 
 		timeoutDuration = "1h"
 	})
