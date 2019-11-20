@@ -35,7 +35,7 @@ var _ = Describe("On Success Step", func() {
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
-		state.ArtifactsReturns(repo)
+		state.ArtifactRepositoryReturns(repo)
 
 		onSuccessStep = exec.OnSuccess(step, hook)
 
