@@ -1366,7 +1366,20 @@ var _ = Describe("Jobs API", func() {
 						build2.StartTimeReturns(time.Unix(101, 0))
 						build2.EndTimeReturns(time.Unix(200, 0))
 
-						returnedBuilds = []db.Build{build1, build2}
+						build3 := new(dbfakes.FakeBuild)
+						build3.IDReturns(3)
+						build3.NameReturns("1.1")
+						build3.JobNameReturns("some-job")
+						build3.PipelineNameReturns("some-pipeline")
+						build3.TeamNameReturns("some-team")
+						build3.StatusReturns(db.BuildStatusSucceeded)
+						build3.StartTimeReturns(time.Unix(102, 0))
+						build3.EndTimeReturns(time.Unix(300, 0))
+						build3.RerunOfReturns(2)
+						build3.RerunOfNameReturns("1")
+						build3.RerunNumberReturns(3)
+
+						returnedBuilds = []db.Build{build1, build2, build3}
 						fakeJob.BuildsReturns(returnedBuilds, db.Pagination{}, nil)
 					})
 
@@ -1404,6 +1417,22 @@ var _ = Describe("Jobs API", func() {
 						"team_name": "some-team",
 						"start_time": 101,
 						"end_time": 200
+					},
+					{
+						"id": 3,
+						"name": "1.1",
+						"job_name": "some-job",
+						"status": "succeeded",
+						"api_url": "/api/v1/builds/3",
+						"pipeline_name": "some-pipeline",
+						"team_name": "some-team",
+						"start_time": 102,
+						"end_time": 300,
+						"rerun_of": {
+							"id": 2,
+							"name": "1"
+						},
+						"rerun_number": 3
 					}
 				]`))
 					})
