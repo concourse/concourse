@@ -206,6 +206,8 @@ var _ = Describe("Pipeline Factory", func() {
 
 				var requestedTime time.Time
 				err = dbConn.QueryRow("SELECT schedule_requested FROM pipelines WHERE id = $1", pipeline1.ID()).Scan(&requestedTime)
+				Expect(err).ToNot(HaveOccurred())
+
 				err = pipeline1.UpdateLastScheduled(requestedTime)
 				Expect(err).ToNot(HaveOccurred())
 			})
