@@ -11,7 +11,6 @@ module Dashboard.Dashboard exposing
 import Application.Models exposing (Session)
 import Concourse
 import Concourse.Cli as Cli
-import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Details as Details
 import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
@@ -112,8 +111,8 @@ init flags =
 
 
 handleCallback : Callback -> ET Model
-handleCallback msg ( model, effects ) =
-    case msg of
+handleCallback callback ( model, effects ) =
+    case callback of
         APIDataFetched (Err _) ->
             ( { model
                 | state =
@@ -185,6 +184,47 @@ handleCallback msg ( model, effects ) =
             ( { model
                 | state =
                     RemoteData.Failure (Turbulence model.turbulencePath)
+              }
+            , effects
+            )
+
+        PipelinesFetched (Ok allPipelinesInEntireCluster) ->
+            let
+                teamNames : List String
+                teamNames =
+                    List.map (\p -> p.teamName) allPipelinesInEntireCluster |> List.Extra.unique
+
+                dashboardPipeline : Concourse.Pipeline -> Pipeline
+                dashboardPipeline cp =
+                    { id = cp.id
+                    , name = cp.name
+                    , teamName = cp.teamName
+                    , public = cp.public
+                    , isToggleLoading = False
+                    , isVisibilityLoading = False
+                    , paused = cp.paused
+                    }
+
+                allDashboardPipelines : List Pipeline
+                allDashboardPipelines =
+                    List.map dashboardPipeline allPipelinesInEntireCluster
+
+                pipelinesOfTeamName : String -> Pipeline -> Bool
+                pipelinesOfTeamName tn pipeline =
+                    pipeline.teamName == tn
+
+                newGroups : List Group
+                newGroups =
+                    List.map
+                        (\tn ->
+                            { teamName = tn
+                            , pipelines = List.filter (pipelinesOfTeamName tn) allDashboardPipelines
+                            }
+                        )
+                        teamNames
+            in
+            ( { model
+                | groups = newGroups
               }
             , effects
             )
@@ -280,7 +320,7 @@ handleDeliveryBody delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchData, FetchAllResources, FetchAllJobs ] )
+            ( model, effects ++ [ FetchData, FetchPipelines, FetchAllResources, FetchAllJobs ] )
 
         _ ->
             ( model, effects )

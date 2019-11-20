@@ -769,7 +769,20 @@ all =
                                 ]
                         )
                     |> Tuple.first
-                    |> givenDataUnauthenticated givenPipelineWithJob
+                    |> givenDataUnauthenticated { teams = [], pipelines = [] }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find
@@ -3560,6 +3573,16 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains Effects.FetchAllJobs
+        , test "auto refreshes pipelines every five seconds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.update
+                        (ApplicationMsgs.DeliveryReceived <|
+                            ClockTicked FiveSeconds <|
+                                Time.millisToPosix 0
+                        )
+                    |> Tuple.second
+                    |> Common.contains Effects.FetchPipelines
         ]
 
 
