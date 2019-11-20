@@ -25,8 +25,8 @@ var _ = Describe("A pipeline that propagates resources", func() {
 		})
 
 		It("propogates the output version over the input version", func() {
-			_ = newMockVersion("some-resource", "first-version")
-			_ = newMockVersion("some-resource", "second-version")
+			fly("check-resource", "-r", inPipeline("some-resource"), "-f", "version:first-version")
+			fly("check-resource", "-r", inPipeline("some-resource"), "-f", "version:second-version")
 
 			watch := fly("trigger-job", "-j", inPipeline("pushing-job"), "-w")
 			Expect(watch).To(gbytes.Say("succeeded"))
