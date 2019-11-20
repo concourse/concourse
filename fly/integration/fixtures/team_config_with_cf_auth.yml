@@ -10,5 +10,4 @@ roles:
   - name: viewer
     cf:
       space_guids: ["some-space-guid"]
-      org_guids: ["some-org-guid"]
       insecure_spaces: ["some-org:some-space"]
