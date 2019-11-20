@@ -31,7 +31,7 @@ var _ = Describe("Try Step", func() {
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
-		state.ArtifactsReturns(repo)
+		state.ArtifactRepositoryReturns(repo)
 
 		step = Try(runStep)
 	})
