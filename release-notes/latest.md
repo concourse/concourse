@@ -19,3 +19,7 @@
 * @evanchaoli fixed a weird behavior with secret redaction wherein a secret containing e.g. `{` on its own line (i.e. formatted JSON) would result in `{` being replaced with `((redacted))` in build logs. Single-character lines will instead be skipped.
 
   As an aside, anyone with a truly single-character credential *may* want to add another character or two.
+
+#### <sub><sup><a name="4804" href="#4804">:link:</a></sup></sub> fix
+
+* @vito bumped the `autocert` dependency so that Let's Encrypt will default to the ACME v2 API. #4804
