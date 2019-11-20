@@ -164,8 +164,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		StderrWriter: step.delegate.Stderr(),
 	}
 
-	//TODO: add a test to validate the correct source and params are passed
-	res := step.resourceFactory.NewResource(source, params, nil)
+	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
 
 	step.delegate.Starting(logger)
 
@@ -179,7 +178,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		imageSpec,
 		processSpec,
-		res,
+		resourceToPut,
 	)
 
 	versionResult := result.VersionResult
@@ -196,6 +195,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context. Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {
 		step.delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
 	}
