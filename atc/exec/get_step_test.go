@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -25,17 +24,15 @@ import (
 
 var _ = Describe("GetStep", func() {
 	var (
-		ctx        context.Context
-		cancel     func()
-		testLogger *lagertest.TestLogger
-		stdoutBuf  *gbytes.Buffer
-		stderrBuf  *gbytes.Buffer
+		ctx       context.Context
+		cancel    func()
+		stdoutBuf *gbytes.Buffer
+		stderrBuf *gbytes.Buffer
 
 		fakeClient   *workerfakes.FakeClient
 		fakeWorker   *workerfakes.FakeWorker
 		fakePool     *workerfakes.FakePool
 		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
-		fakeFetcher  *workerfakes.FakeFetcher
 
 		fakeResourceFactory      *resourcefakes.FakeResourceFactory
 		fakeResource             *resourcefakes.FakeResource
@@ -51,8 +48,8 @@ var _ = Describe("GetStep", func() {
 		artifactRepository *build.Repository
 		fakeState          *execfakes.FakeRunState
 
-		getStep exec.Step
-		stepErr error
+		getStep    exec.Step
+		getStepErr error
 
 		credVarsTracker vars.CredVarsTracker
 
@@ -76,13 +73,11 @@ var _ = Describe("GetStep", func() {
 	)
 
 	BeforeEach(func() {
-		testLogger = lagertest.NewTestLogger("get-action-test")
 		ctx, cancel = context.WithCancel(context.Background())
 
 		fakeClient = new(workerfakes.FakeClient)
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeWorker.NameReturns("some-worker")
-		fakeFetcher = new(workerfakes.FakeFetcher)
 		fakePool = new(workerfakes.FakePool)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
@@ -165,13 +160,12 @@ var _ = Describe("GetStep", func() {
 			fakeClient,
 		)
 
-		stepErr = getStep.Run(ctx, fakeState)
+		getStepErr = getStep.Run(ctx, fakeState)
 	})
 
-	It("calls RunGetStep with the correct ctx, logger", func() {
-		actualCtx, actualLogger, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+	It("calls RunGetStep with the correct ctx", func() {
+		actualCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualCtx).To(Equal(ctx))
-		Expect(actualLogger).To(Equal(testLogger))
 	})
 
 	It("calls RunGetStep with the correct ContainerOwner", func() {
@@ -259,32 +253,34 @@ var _ = Describe("GetStep", func() {
 
 	Context("when Client.RunGetStep returns an err", func() {
 		var disaster error
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			disaster = errors.New("disaster")
 			fakeClient.RunGetStepReturns(worker.GetResult{}, disaster)
 		})
 		It("returns an err", func() {
 			Expect(fakeClient.RunGetStepCallCount()).To(Equal(1))
-			Expect(stepErr).To(HaveOccurred())
-			Expect(stepErr).To(Equal(disaster))
+			Expect(getStepErr).To(HaveOccurred())
+			Expect(getStepErr).To(Equal(disaster))
 		})
 	})
 
 	Context("when Client.RunGetStep returns a Successful GetResult", func() {
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			fakeClient.RunGetStepReturns(
 				worker.GetResult{
 					Status: 0,
 					VersionResult: runtime.VersionResult{
-						Version: atc.Version{"some": "version"},
+						Version:  atc.Version{"some": "version"},
 						Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
 					},
-					GetArtifact: runtime.GetArtifact{VolumeHandle:"some-volume-handle"},
+					GetArtifact: runtime.GetArtifact{VolumeHandle: "some-volume-handle"},
 				}, nil)
 		})
 
 		It("registers the resulting artifact in the RunState.ArtifactRepository", func() {
-			Expect(artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))).To(Equal(runtime.GetArtifact{"some-volume-handle"}))
+			artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
+			Expect(artifact).To(Equal(runtime.GetArtifact{"some-volume-handle"}))
+			Expect(found).To(BeTrue())
 		})
 
 		It("marks the step as succeeded", func() {
@@ -324,15 +320,15 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("does not return an err", func() {
-			Expect(stepErr).ToNot(HaveOccurred())
+			Expect(getStepErr).ToNot(HaveOccurred())
 		})
 	})
 
 	Context("when Client.RunGetStep returns a Failed GetResult", func() {
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			fakeClient.RunGetStepReturns(
 				worker.GetResult{
-					Status: 1,
+					Status:        1,
 					VersionResult: runtime.VersionResult{},
 				}, nil)
 		})
@@ -349,7 +345,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("does not return an err", func() {
-			Expect(stepErr).ToNot(HaveOccurred())
+			Expect(getStepErr).ToNot(HaveOccurred())
 		})
 
 	})
