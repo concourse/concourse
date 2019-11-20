@@ -49,7 +49,18 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	// TODO Don't artifact_input_step shouldn't know about db Volume
 	createdVolume, found, err := buildArtifact.Volume(step.build.TeamID())
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return ArtifactVolumeNotFoundError{buildArtifact.Name()}
+	}
+
+	// TODO artifact_input_step shouldn't be looking up the volume on the worker
+	_, found, err = step.workerClient.FindVolume(logger, createdVolume.TeamID(), createdVolume.Handle())
 	if err != nil {
 		return err
 	}
@@ -61,24 +72,6 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 	art := runtime.TaskArtifact{
 		VolumeHandle: createdVolume.Handle(),
 	}
-
-	//volume, found, err := buildArtifact.Volume(step.build.TeamID())
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if !found {
-	//	return ArtifactVolumeNotFoundError{buildArtifact.ArtifactName()}
-	//}
-	//
-	//workerVolume, found, err := step.workerClient.FindVolume(logger, volume.TeamID(), volume.Handle())
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if !found {
-	//	return ArtifactVolumeNotFoundError{buildArtifact.ArtifactName()}
-	//}
 
 	logger.Info("register-artifact-source", lager.Data{
 		"artifact_id": buildArtifact.ID(),
