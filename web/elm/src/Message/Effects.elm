@@ -132,6 +132,7 @@ type Effect
     | FetchBuildPlanAndResources Concourse.BuildId
     | FetchPipelines
     | FetchAllResources
+    | FetchAllJobs
     | GetCurrentTime
     | GetCurrentTimeZone
     | DoTriggerBuild Concourse.JobIdentifier
@@ -232,6 +233,11 @@ runEffect effect key csrfToken =
             Network.Resource.fetchAllResources
                 |> Task.map (Maybe.withDefault [])
                 |> Task.attempt AllResourcesFetched
+
+        FetchAllJobs ->
+            Network.Job.fetchAllJobs
+                |> Task.map (Maybe.withDefault [])
+                |> Task.attempt AllJobsFetched
 
         FetchClusterInfo ->
             Network.Info.fetch

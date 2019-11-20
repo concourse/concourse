@@ -105,6 +105,8 @@ init flags =
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
       , GetScreenSize
+      , FetchAllResources
+      , FetchAllJobs
       ]
     )
 
@@ -278,7 +280,7 @@ handleDeliveryBody delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchData, FetchAllResources ] )
+            ( model, effects ++ [ FetchData, FetchAllResources, FetchAllJobs ] )
 
         _ ->
             ( model, effects )

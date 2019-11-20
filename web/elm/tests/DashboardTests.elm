@@ -167,6 +167,42 @@ all =
                     }
                     |> Tuple.second
                     |> Common.contains Effects.FetchClusterInfo
+        , test "requests all resources on page load" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.second
+                    |> Common.contains Effects.FetchAllResources
+        , test "requests all jobs on page load" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.second
+                    |> Common.contains Effects.FetchAllJobs
         , test "redirects to login if any data call gives a 401" <|
             \_ ->
                 Common.init "/"
@@ -3514,6 +3550,16 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains Effects.FetchAllResources
+        , test "auto refreshes jobs every five seconds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.update
+                        (ApplicationMsgs.DeliveryReceived <|
+                            ClockTicked FiveSeconds <|
+                                Time.millisToPosix 0
+                        )
+                    |> Tuple.second
+                    |> Common.contains Effects.FetchAllJobs
         ]
 
 
