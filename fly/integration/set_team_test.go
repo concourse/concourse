@@ -161,7 +161,6 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("none"))
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- cf:some-org:some-space"))
-					Eventually(sess.Out).Should(gbytes.Say("- cf:some-org-guid"))
 					Eventually(sess.Out).Should(gbytes.Say("- cf:some-space-guid"))
 
 					Eventually(sess).Should(gexec.Exit(1))
