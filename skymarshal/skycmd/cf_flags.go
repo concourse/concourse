@@ -68,10 +68,13 @@ func (flag *CFFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type CFTeamFlags struct {
-	Users      []string `long:"user" description:"List of whitelisted CloudFoundry users." value-name:"USERNAME"`
-	Orgs       []string `long:"org" description:"List of whitelisted CloudFoundry orgs" value-name:"ORG_NAME"`
-	Spaces     []string `long:"space" description:"List of whitelisted CloudFoundry spaces" value-name:"ORG_NAME:SPACE_NAME"`
-	SpaceGuids []string `long:"space-guid" description:"(Deprecated) List of whitelisted CloudFoundry space guids" value-name:"SPACE_GUID"`
+	Users            []string `long:"user" description:"A whitelisted CloudFoundry user" value-name:"USERNAME"`
+	OrgGuids         []string `long:"org-guid" description:"A whitelisted CloudFoundry org guid" value-name:"ORG_GUID" mapstructure:"org_guids"`
+	SpaceGuids       []string `long:"space-guid" description:"A whitelisted CloudFoundry space guid" value-name:"SPACE_GUID" mapstructure:"space_guids"`
+	OrgGuidsLegacy   []string `mapstructure:"orgguids"`
+	SpaceGuidsLegacy []string `mapstructure:"spaceguids"`
+	Orgs             []string `long:"insecure-org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME" mapstructure:"insecure_orgs"`
+	Spaces           []string `long:"insecure-space" description:"(Deprecated) A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces"`
 }
 
 func (flag *CFTeamFlags) GetUsers() []string {
@@ -82,6 +85,9 @@ func (flag *CFTeamFlags) GetGroups() []string {
 	var groups []string
 	groups = append(groups, flag.Orgs...)
 	groups = append(groups, flag.Spaces...)
+	groups = append(groups, flag.OrgGuids...)
 	groups = append(groups, flag.SpaceGuids...)
+	groups = append(groups, flag.OrgGuidsLegacy...)
+	groups = append(groups, flag.SpaceGuidsLegacy...)
 	return groups
 }
