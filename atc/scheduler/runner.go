@@ -2,7 +2,7 @@ package scheduler
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -23,8 +23,6 @@ type BuildScheduler interface {
 		relatedJobIDs algorithm.NameToIDMap,
 	) error
 }
-
-var errPipelineRemoved = errors.New("pipeline removed")
 
 type schedulerRunner struct {
 	logger             lager.Logger
@@ -49,26 +47,12 @@ func (s *schedulerRunner) Run(ctx context.Context) error {
 
 	jobs, err := s.jobFactory.JobsToSchedule()
 	if err != nil {
-		s.logger.Error("failed-to-get-pipelines-to-schedule", err)
-		return err
+		return fmt.Errorf("find jobs to schedule: %w", err)
 	}
 
-	pipelineIDToPipeline := make(map[int]db.Pipeline)
-	pipelineIDToJobs := make(map[int]db.Jobs)
-	for _, job := range jobs {
-		pipelineID := job.PipelineID()
-
-		_, found := pipelineIDToPipeline[pipelineID]
-		if !found {
-			pipeline, err := job.Pipeline()
-			if err != nil {
-				panic("TODO")
-			}
-
-			pipelineIDToPipeline[pipelineID] = pipeline
-		}
-
-		pipelineIDToJobs[pipelineID] = append(pipelineIDToJobs[pipelineID], job)
+	pipelineIDToPipeline, pipelineIDToJobs, err := s.constructPipelineIDMaps(jobs)
+	if err != nil {
+		return err
 	}
 
 	for pipelineID, jobs := range pipelineIDToJobs {
@@ -91,18 +75,15 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline, jobsToSchedule 
 
 	resources, err := pipeline.Resources()
 	if err != nil {
-		logger.Error("failed-to-get-resources", err)
-		return err
+		return fmt.Errorf("find resources: %w", err)
 	}
 
 	jobs, err := pipeline.Jobs()
 	if err != nil {
-		logger.Error("failed-to-get-jobs", err)
-		return err
+		return fmt.Errorf("find jobs: %w", err)
 	}
 
 	jobsMap := map[string]int{}
-
 	for _, job := range jobs {
 		jobsMap[job.Name()] = job.ID()
 	}
@@ -110,8 +91,7 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline, jobsToSchedule 
 	for _, job := range jobsToSchedule {
 		schedulingLock, acquired, err := job.AcquireSchedulingLock(logger)
 		if err != nil {
-			logger.Error("failed-to-acquire-scheduling-lock", err)
-			return nil
+			return fmt.Errorf("acquire job lock: %w", err)
 		}
 
 		if !acquired {
@@ -127,14 +107,14 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline, jobsToSchedule 
 
 			err := s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
 			if err != nil {
-				logger.Error("failed-to-request-schedule-on-job", err, lager.Data{"pipeline": job.PipelineName(), "job": job.Name()})
+				logger.Error("failed-to-request-schedule-on-job", err, lager.Data{"job": job.Name()})
 			} else {
 				// If scheduling the job fails, the last scheduled value will not be
 				// updated which will result in the job being scheduled again on the next
 				// interval. This allows jobs that failed to schedule to be attempted again.
 				err = job.UpdateLastScheduled(requestedTime)
 				if err != nil {
-					s.logger.Error("failed-to-update-last-scheduled", err, lager.Data{"pipeline": pipeline.Name()})
+					logger.Error("failed-to-update-last-scheduled", err, lager.Data{"job": job.Name()})
 				}
 			}
 
@@ -152,13 +132,12 @@ func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.L
 
 	found, err := currentJob.Reload()
 	if err != nil {
-		logger.Error("failed-to-update-job-config", err)
-		return err
+		return fmt.Errorf("reload job: %w", err)
 	}
 
 	if !found {
-		logger.Error("job-not-found", err)
-		return err
+		logger.Debug("could-not-find-job-to-reload")
+		return nil
 	}
 
 	sLog := logger.Session("scheduling")
@@ -172,8 +151,7 @@ func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.L
 		jobs,
 	)
 	if err != nil {
-		logger.Error("failed-to-schedule", err)
-		return err
+		return fmt.Errorf("schedule job: %w", err)
 	}
 
 	metric.SchedulingJobDuration{
@@ -184,4 +162,32 @@ func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.L
 	}.Emit(sLog)
 
 	return nil
+}
+
+func (s *schedulerRunner) constructPipelineIDMaps(jobs db.Jobs) (map[int]db.Pipeline, map[int]db.Jobs, error) {
+	pipelineIDToPipeline := make(map[int]db.Pipeline)
+	pipelineIDToJobs := make(map[int]db.Jobs)
+
+	for _, job := range jobs {
+		pipelineID := job.PipelineID()
+
+		_, found := pipelineIDToPipeline[pipelineID]
+		if !found {
+			pipeline, found, err := job.Pipeline()
+			if err != nil {
+				return nil, nil, fmt.Errorf("find pipeline for job: %w", err)
+			}
+
+			if !found {
+				s.logger.Info("could-not-find-pipeline-for-job", lager.Data{"job": job.Name()})
+				continue
+			}
+
+			pipelineIDToPipeline[pipelineID] = pipeline
+		}
+
+		pipelineIDToJobs[pipelineID] = append(pipelineIDToJobs[pipelineID], job)
+	}
+
+	return pipelineIDToPipeline, pipelineIDToJobs, nil
 }

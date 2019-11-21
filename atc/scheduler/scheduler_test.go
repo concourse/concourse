@@ -123,7 +123,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("requests schedule on the pipeline", func() {
-						Expect(fakePipeline.RequestScheduleCallCount()).To(Equal(1))
+						Expect(fakeJob.RequestScheduleCallCount()).To(Equal(1))
 					})
 				})
 
@@ -133,7 +133,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("does not request schedule on the pipeline", func() {
-						Expect(fakePipeline.RequestScheduleCallCount()).To(Equal(0))
+						Expect(fakeJob.RequestScheduleCallCount()).To(Equal(0))
 					})
 				})
 

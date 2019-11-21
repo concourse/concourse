@@ -1,6 +1,8 @@
 package scheduler
 
 import (
+	"fmt"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -55,11 +57,10 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 ) error {
 	nextPendingBuilds, err := job.GetPendingBuilds()
 	if err != nil {
-		logger.Error("failed-to-get-all-next-pending-builds", err)
-		return err
+		return fmt.Errorf("get pending builds: %w", err)
 	}
 
-	schedulableBuilds := s.constructBuilds(pipeline, job, resources, relatedJobs, nextPendingBuilds)
+	schedulableBuilds := s.constructBuilds(job, resources, relatedJobs, nextPendingBuilds)
 
 	for _, nextSchedulableBuild := range schedulableBuilds {
 		started, err := s.tryStartNextPendingBuild(logger, pipeline, nextSchedulableBuild, job, resources)
@@ -75,7 +76,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	return nil
 }
 
-func (s *buildStarter) constructBuilds(pipeline db.Pipeline, job db.Job, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
+func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
 	schedulableBuilds := []Build{}
 
 	for _, nextPendingBuild := range builds {
@@ -83,7 +84,6 @@ func (s *buildStarter) constructBuilds(pipeline db.Pipeline, job db.Job, resourc
 			schedulableBuilds = append(schedulableBuilds, &manualTriggerBuild{
 				Build:         nextPendingBuild,
 				algorithm:     s.algorithm,
-				pipeline:      pipeline,
 				job:           job,
 				resources:     resources,
 				relatedJobIDs: relatedJobIDs,
@@ -118,7 +118,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		logger.Debug("cancel-aborted-pending-build")
 		err := nextPendingBuild.Finish(db.BuildStatusAborted)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("finish aborted build: %w", err)
 		}
 
 		return true, nil
@@ -126,21 +126,22 @@ func (s *buildStarter) tryStartNextPendingBuild(
 
 	pipelinePaused, err := pipeline.CheckPaused()
 	if err != nil {
-		logger.Error("failed-to-check-if-pipeline-is-paused", err)
-		return false, err
+		return false, fmt.Errorf("check pipeline paused: %w", err)
 	}
+
 	if pipelinePaused {
+		logger.Debug("pipeline-paused")
 		return false, nil
 	}
 
 	if job.Paused() {
+		logger.Debug("job-paused")
 		return false, nil
 	}
 
 	scheduled, err := job.ScheduleBuild(nextPendingBuild)
 	if err != nil {
-		logger.Error("failed-to-use-inputs", err)
-		return false, err
+		return false, fmt.Errorf("schedule build: %w", err)
 	}
 
 	if !scheduled {
@@ -150,19 +151,18 @@ func (s *buildStarter) tryStartNextPendingBuild(
 
 	buildInputs, found, err := nextPendingBuild.BuildInputs(logger)
 	if err != nil {
-		logger.Error("failed-to-adopt-build-pipes", err)
-		return false, err
+		return false, fmt.Errorf("get build inputs: %w", err)
 	}
 
 	if !found {
+		logger.Debug("build-inputs-not-found")
 		return false, nil
 	}
 
-	dbResourceTypes, err := pipeline.ResourceTypes()
+	resourceTypes, err := pipeline.ResourceTypes()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("find resource types: %w", err)
 	}
-	resourceTypes := dbResourceTypes.Deserialize()
 
 	resourceConfigs := atc.ResourceConfigs{}
 	for _, v := range resources {
@@ -174,7 +174,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		})
 	}
 
-	plan, err := s.factory.Create(job.Config(), resourceConfigs, resourceTypes, buildInputs)
+	plan, err := s.factory.Create(job.Config(), resourceConfigs, resourceTypes.Deserialize(), buildInputs)
 	if err != nil {
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
 		if err = nextPendingBuild.Finish(db.BuildStatusErrored); err != nil {

@@ -88,15 +88,15 @@ func (e FirstLoggedBuildIDDecreasedError) Error() string {
 type job struct {
 	pipelineRef
 
-	id                 int
-	name               string
-	paused             bool
-	firstLoggedBuildID int
-	teamID             int
-	teamName           string
-	config             atc.JobConfig
-	tags               []string
-	hasNewInputs       bool
+	id                    int
+	name                  string
+	paused                bool
+	firstLoggedBuildID    int
+	teamID                int
+	teamName              string
+	config                atc.JobConfig
+	tags                  []string
+	hasNewInputs          bool
 	scheduleRequestedTime time.Time
 }
 
@@ -138,16 +138,16 @@ func (jobs Jobs) Configs() atc.JobConfigs {
 	return configs
 }
 
-func (j *job) ID() int                 { return j.id }
-func (j *job) Name() string            { return j.name }
-func (j *job) Paused() bool            { return j.paused }
-func (j *job) FirstLoggedBuildID() int { return j.firstLoggedBuildID }
-func (j *job) TeamID() int             { return j.teamID }
-func (j *job) TeamName() string        { return j.teamName }
-func (j *job) Config() atc.JobConfig   { return j.config }
-func (j *job) Tags() []string          { return j.tags }
-func (j *job) Public() bool            { return j.Config().Public }
-func (j *job) HasNewInputs() bool      { return j.hasNewInputs }
+func (j *job) ID() int                          { return j.id }
+func (j *job) Name() string                     { return j.name }
+func (j *job) Paused() bool                     { return j.paused }
+func (j *job) FirstLoggedBuildID() int          { return j.firstLoggedBuildID }
+func (j *job) TeamID() int                      { return j.teamID }
+func (j *job) TeamName() string                 { return j.teamName }
+func (j *job) Config() atc.JobConfig            { return j.config }
+func (j *job) Tags() []string                   { return j.tags }
+func (j *job) Public() bool                     { return j.Config().Public }
+func (j *job) HasNewInputs() bool               { return j.hasNewInputs }
 func (j *job) ScheduleRequestedTime() time.Time { return j.scheduleRequestedTime }
 
 func (j *job) Reload() (bool, error) {
@@ -373,8 +373,7 @@ func (j *job) GetFullNextBuildInputs() ([]BuildInput, bool, error) {
 	err = psql.Select("inputs_determined").
 		From("jobs").
 		Where(sq.Eq{
-			"name":        j.name,
-			"pipeline_id": j.pipelineID,
+			"id": j.id,
 		}).
 		RunWith(tx).
 		QueryRow().

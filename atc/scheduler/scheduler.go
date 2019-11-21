@@ -32,7 +32,7 @@ func (s *Scheduler) Schedule(
 	}
 
 	if runAgain {
-		err = pipeline.RequestSchedule()
+		err = job.RequestSchedule()
 		if err != nil {
 			return fmt.Errorf("request schedule: %w", err)
 		}
@@ -67,7 +67,7 @@ func (s *Scheduler) ensurePendingBuildExists(
 	}
 
 	if !inputsDetermined {
-		logger.Info("next-build-inputs-not-determined")
+		logger.Debug("next-build-inputs-not-determined")
 		return nil
 	}
 

@@ -1,6 +1,8 @@
 package scheduler
 
 import (
+	"fmt"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
@@ -9,7 +11,6 @@ import (
 type manualTriggerBuild struct {
 	db.Build
 
-	pipeline      db.Pipeline
 	job           db.Job
 	resources     db.Resources
 	relatedJobIDs algorithm.NameToIDMap
@@ -31,26 +32,26 @@ func (m *manualTriggerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, 
 		}
 
 		if m.IsNewerThanLastCheckOf(resource) {
+			logger.Debug("resource-not-checked-yet")
 			return nil, false, nil
 		}
 	}
 
 	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(m.job, m.resources, m.relatedJobIDs)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("compute inputs: %w", err)
 	}
 
 	if hasNextInputs {
-		err = m.pipeline.RequestSchedule()
+		err = m.job.RequestSchedule()
 		if err != nil {
-			return nil, false, err
+			return nil, false, fmt.Errorf("request schedule: %w", err)
 		}
 	}
 
 	err = m.job.SaveNextInputMapping(inputMapping, resolved)
 	if err != nil {
-		logger.Error("failed-to-save-next-input-mapping", err)
-		return nil, false, err
+		return nil, false, fmt.Errorf("save next input mapping: %w", err)
 	}
 
 	return m.AdoptInputsAndPipes()

@@ -1,7 +1,6 @@
 package atccmd
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -455,7 +454,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	cmd.varSourcePool = creds.NewVarSourcePool(5 * time.Minute, clock.NewClock())
+	cmd.varSourcePool = creds.NewVarSourcePool(5*time.Minute, clock.NewClock())
 
 	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
