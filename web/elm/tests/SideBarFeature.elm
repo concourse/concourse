@@ -751,33 +751,13 @@ apiDataLoads =
                             [ { name = "team", id = 0 }
                             , { name = "other-team", id = 1 }
                             ]
-                      , pipelines =
-                            [ { id = 0
-                              , name = "pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team"
-                              , groups = []
-                              }
-                            , { id = 1
-                              , name = "other-pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team"
-                              , groups = []
-                              }
-                            ]
                       }
                     )
                 )
             )
-
-
-dataRefreshes =
-    apiDataLoads
         >> Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched <|
+            (Callback.AllPipelinesFetched <|
                 Ok
                     [ { id = 0
                       , name = "pipeline"
@@ -797,20 +777,28 @@ dataRefreshes =
             )
 
 
-thereAreNoPipelines =
-    Application.handleCallback
-        (Callback.APIDataFetched
-            (Ok
-                ( Time.millisToPosix 0
-                , { teams = []
-                  , pipelines = []
-                  }
-                )
+dataRefreshes =
+    apiDataLoads
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok
+                    [ { id = 0
+                      , name = "pipeline"
+                      , paused = False
+                      , public = True
+                      , teamName = "team"
+                      , groups = []
+                      }
+                    , { id = 1
+                      , name = "other-pipeline"
+                      , paused = False
+                      , public = True
+                      , teamName = "team"
+                      , groups = []
+                      }
+                    ]
             )
-        )
-        >> Tuple.first
-        >> Application.handleCallback (Callback.PipelinesFetched <| Ok [])
-        >> Tuple.first
 
 
 iSeeNoHamburgerIcon =
@@ -1104,7 +1092,7 @@ fiveSecondsPass =
 myBrowserFetchesPipelines ( a, effects ) =
     let
         pipelinesDirectly =
-            List.member Effects.FetchPipelines effects
+            List.member Effects.FetchAllPipelines effects
 
         pipelinesThroughData =
             List.member Effects.FetchData effects
@@ -1117,7 +1105,7 @@ myBrowserFetchesPipelines ( a, effects ) =
             "Expected "
                 ++ Debug.toString effects
                 ++ " to contain "
-                ++ Debug.toString Effects.FetchPipelines
+                ++ Debug.toString Effects.FetchAllPipelines
                 ++ " or "
                 ++ Debug.toString Effects.FetchData
 
@@ -1309,7 +1297,7 @@ iSeeNoSideBar =
 myBrowserFetchedPipelinesFromMultipleTeams =
     Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched <|
+            (Callback.AllPipelinesFetched <|
                 Ok
                     [ { id = 0
                       , name = "pipeline"
@@ -1346,7 +1334,7 @@ myBrowserFetchedPipelinesFromMultipleTeams =
 myBrowserFetchedPipelines =
     Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched <|
+            (Callback.AllPipelinesFetched <|
                 Ok
                     [ { id = 0
                       , name = "pipeline"
@@ -1383,7 +1371,7 @@ iSeeTheTurbulenceMessage =
 myBrowserFailsToFetchPipelines =
     Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched <|
+            (Callback.AllPipelinesFetched <|
                 Err <|
                     Http.BadStatus
                         { url = "http://example.com"
@@ -1422,7 +1410,7 @@ iSeeABlueBackground =
 
 
 myBrowserFetchedNoPipelines =
-    Tuple.first >> Application.handleCallback (Callback.PipelinesFetched <| Ok [])
+    Tuple.first >> Application.handleCallback (Callback.AllPipelinesFetched <| Ok [])
 
 
 iHaveAnExpandedPipelineGroup =
@@ -1653,7 +1641,7 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
             )
         >> Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched
+            (Callback.AllPipelinesFetched
                 (Ok
                     [ { id = 0
                       , name = "pipeline"

@@ -83,18 +83,22 @@ all =
                                 [ Concourse.Team 1 "team1"
                                 , Concourse.Team 2 "team2"
                                 ]
-                          , pipelines =
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team1"
-                                  , groups = []
-                                  }
-                                ]
                           }
                         )
                     )
+                )
+            |> Tuple.first
+            |> Application.handleCallback
+                (Callback.AllPipelinesFetched <|
+                    Ok
+                        [ { id = 0
+                          , name = "pipeline"
+                          , paused = False
+                          , public = True
+                          , teamName = "team1"
+                          , groups = []
+                          }
+                        ]
                 )
             |> Tuple.first
         )
@@ -180,19 +184,23 @@ all =
                     (Ok
                         ( Time.millisToPosix 0
                         , { teams = [ { name = "team", id = 0 } ]
-                          , pipelines =
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team"
-                                  , groups = []
-                                  }
-                                ]
                           }
                         )
                     )
                 )
+                >> Tuple.first
+                >> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team"
+                              , groups = []
+                              }
+                            ]
+                    )
                 >> Tuple.first
                 >> Application.update
                     (Msgs.Update <|

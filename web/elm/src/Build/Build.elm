@@ -117,7 +117,7 @@ init flags =
           , notFound = False
           , reapTime = Nothing
           }
-        , [ GetCurrentTime, GetCurrentTimeZone, FetchPipelines ]
+        , [ GetCurrentTime, GetCurrentTimeZone, FetchAllPipelines ]
         )
 
 
@@ -314,7 +314,7 @@ handleDelivery session delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ Effects.FetchPipelines ] )
+            ( model, effects ++ [ Effects.FetchAllPipelines ] )
 
         EventsReceived (Ok envelopes) ->
             let

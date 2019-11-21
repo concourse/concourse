@@ -107,7 +107,7 @@ init flags =
     ( model
     , [ FetchPipeline flags.pipelineLocator
       , ResetPipelineFocus
-      , FetchPipelines
+      , FetchAllPipelines
       ]
     )
 
@@ -265,7 +265,7 @@ handleCallback callback ( model, effects ) =
         ClusterInfoFetched (Err _) ->
             ( { model | experiencingTurbulence = True }, effects )
 
-        PipelinesFetched (Err _) ->
+        AllPipelinesFetched (Err _) ->
             ( { model | experiencingTurbulence = True }, effects )
 
         _ ->
@@ -300,7 +300,7 @@ handleDelivery delivery ( model, effects ) =
             ( model
             , effects
                 ++ [ FetchPipeline model.pipelineLocator
-                   , FetchPipelines
+                   , FetchAllPipelines
                    ]
             )
 

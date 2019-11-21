@@ -1,6 +1,5 @@
 module Dashboard.Group exposing
     ( PipelineIndex
-    , allPipelines
     , allTeamNames
     , dragIndex
     , dragIndexOptional
@@ -41,7 +40,6 @@ import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Monocle.Optional
 import Ordering exposing (Ordering)
-import Set
 import Time
 import UserState exposing (UserState(..))
 
@@ -145,22 +143,6 @@ setDropIndex dropIdx dropState =
             NotDropping
 
 
-allPipelines : Concourse.APIData -> List Pipeline
-allPipelines data =
-    data.pipelines
-        |> List.map
-            (\p ->
-                { id = p.id
-                , name = p.name
-                , teamName = p.teamName
-                , public = p.public
-                , isToggleLoading = False
-                , isVisibilityLoading = False
-                , paused = p.paused
-                }
-            )
-
-
 shiftPipelines : Int -> Int -> Group -> Group
 shiftPipelines dragIdx dropIdx g =
     if dragIdx == dropIdx then
@@ -209,10 +191,7 @@ shiftPipelineTo pipeline position pipelines =
 
 allTeamNames : Concourse.APIData -> List String
 allTeamNames apiData =
-    Set.union
-        (Set.fromList (List.map .teamName apiData.pipelines))
-        (Set.fromList (List.map .name apiData.teams))
-        |> Set.toList
+    List.map .name apiData.teams
 
 
 groups : Concourse.APIData -> List Group
@@ -222,12 +201,12 @@ groups apiData =
             allTeamNames apiData
     in
     teamNames
-        |> List.map (group <| allPipelines apiData)
+        |> List.map group
 
 
-group : List Pipeline -> String -> Group
-group pipelines name =
-    { pipelines = List.filter (.teamName >> (==) name) pipelines
+group : String -> Group
+group name =
+    { pipelines = []
     , teamName = name
     }
 

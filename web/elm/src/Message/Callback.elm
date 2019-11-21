@@ -57,7 +57,7 @@ type Callback
     | PlanAndResourcesFetched Int (Fetched ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildAborted (Fetched ())
     | VisibilityChanged VisibilityAction Concourse.PipelineIdentifier (Fetched ())
-    | PipelinesFetched (Fetched (List Concourse.Pipeline))
+    | AllPipelinesFetched (Fetched (List Concourse.Pipeline))
     | GotViewport TooltipPolicy (Result Browser.Dom.Error Browser.Dom.Viewport)
     | GotElement (Result Browser.Dom.Error Browser.Dom.Element)
 

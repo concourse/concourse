@@ -571,10 +571,22 @@ all =
                                     [ Concourse.Team 1 "team1"
                                     , Concourse.Team 2 "team2"
                                     ]
-                              , pipelines = [ onePipeline "team1" ]
                               }
                             )
                         )
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team1"
+                              , groups = []
+                              }
+                            ]
                     )
                 |> Tuple.first
             )
@@ -615,10 +627,22 @@ all =
                                     [ Concourse.Team 1 "team1"
                                     , Concourse.Team 2 "team2"
                                     ]
-                              , pipelines = [ onePipeline "team1" ]
                               }
                             )
                         )
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team1"
+                              , groups = []
+                              }
+                            ]
                     )
                 |> Tuple.first
             )
@@ -884,10 +908,22 @@ all =
                                     [ Concourse.Team 1 "team1"
                                     , Concourse.Team 2 "team2"
                                     ]
-                              , pipelines = [ onePipeline "team1" ]
                               }
                             )
                         )
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team1"
+                              , groups = []
+                              }
+                            ]
                     )
                 |> Tuple.first
             )
@@ -954,10 +990,22 @@ all =
                                     [ Concourse.Team 1 "team1"
                                     , Concourse.Team 2 "team2"
                                     ]
-                              , pipelines = [ onePipeline "team1" ]
                               }
                             )
                         )
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team1"
+                              , groups = []
+                              }
+                            ]
                     )
                 |> Tuple.first
             )
@@ -997,11 +1045,23 @@ all =
                         (Ok
                             ( Time.millisToPosix 0
                             , { teams = [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]
-                              , pipelines = [ onePipeline "team1" ]
                               }
                             )
                         )
                     )
+                    >> Tuple.first
+                    >> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team1"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     >> Tuple.first
                     >> Application.update
                         (ApplicationMsgs.Update Msgs.FocusMsg)
@@ -1032,11 +1092,23 @@ all =
                                     , Concourse.Team 10 "team10"
                                     , Concourse.Team 11 "team11"
                                     ]
-                              , pipelines = [ onePipeline "team1" ]
                               }
                             )
                         )
                     )
+                    >> Tuple.first
+                    >> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team1"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     >> Tuple.first
                     >> Application.update
                         (ApplicationMsgs.Update Msgs.FocusMsg)
@@ -1052,18 +1124,21 @@ all =
                     (Callback.APIDataFetched <|
                         Ok
                             ( Time.millisToPosix 0
-                            , { teams = [ { id = 0, name = "team" } ]
-                              , pipelines =
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
-                              }
+                            , { teams = [ { id = 0, name = "team" } ] }
                             )
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team"
+                              , groups = []
+                              }
+                            ]
                     )
                 |> Tuple.first
             )

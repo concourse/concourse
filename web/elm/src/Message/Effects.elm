@@ -130,7 +130,7 @@ type Effect
     | FetchBuildPrep Float Int
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
-    | FetchPipelines
+    | FetchAllPipelines
     | FetchAllResources
     | FetchAllJobs
     | GetCurrentTime
@@ -258,9 +258,9 @@ runEffect effect key csrfToken =
                 |> Task.map2 (\a b -> ( a, b )) Time.now
                 |> Task.attempt APIDataFetched
 
-        FetchPipelines ->
+        FetchAllPipelines ->
             Network.Pipeline.fetchPipelines
-                |> Task.attempt PipelinesFetched
+                |> Task.attempt AllPipelinesFetched
 
         GetCurrentTime ->
             Task.perform GotCurrentTime Time.now

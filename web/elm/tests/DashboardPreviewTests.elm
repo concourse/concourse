@@ -191,31 +191,35 @@ dashboardWithJob j =
                             [ { id = 0, name = "team" }
                             , { id = 1, name = "banana" }
                             ]
-                      , pipelines =
-                            [ { id = 0
-                              , name = "pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team"
-                              , groups = []
-                              }
-                            , { id = 1
-                              , name = "other"
-                              , paused = False
-                              , public = True
-                              , teamName = "team"
-                              , groups = []
-                              }
-                            , { id = 2
-                              , name = "pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "banana"
-                              , groups = []
-                              }
-                            ]
                       }
                     )
+            )
+        |> Tuple.first
+        |> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok
+                    [ { id = 0
+                      , name = "pipeline"
+                      , paused = False
+                      , public = True
+                      , teamName = "team"
+                      , groups = []
+                      }
+                    , { id = 1
+                      , name = "other"
+                      , paused = False
+                      , public = True
+                      , teamName = "team"
+                      , groups = []
+                      }
+                    , { id = 2
+                      , name = "pipeline"
+                      , paused = False
+                      , public = True
+                      , teamName = "banana"
+                      , groups = []
+                      }
+                    ]
             )
         |> Tuple.first
 

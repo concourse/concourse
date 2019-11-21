@@ -203,6 +203,24 @@ all =
                     }
                     |> Tuple.second
                     |> Common.contains Effects.FetchAllJobs
+        , test "requests all pipelines on page load" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.second
+                    |> Common.contains Effects.FetchAllPipelines
         , test "redirects to login if any data call gives a 401" <|
             \_ ->
                 Common.init "/"
@@ -226,6 +244,25 @@ all =
                 Common.init "/"
                     |> Application.handleCallback
                         (Callback.AllResourcesFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 500
+                                        , message = "internal server error"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ text "experiencing turbulence" ]
+        , test "shows turbulence view if the all jobs call gives a bad status error" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <|
                             Err <|
                                 Http.BadStatus
                                     { url = "http://example.com"
@@ -595,8 +632,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
-                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
@@ -608,8 +658,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
-                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
@@ -621,8 +684,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
-                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
@@ -632,8 +708,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
-                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
@@ -643,8 +732,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
-                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
@@ -657,8 +759,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataAndUser
-                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
@@ -671,8 +786,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
-                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
@@ -688,8 +816,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
-                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
@@ -698,8 +839,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
-                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> afterSeconds 6
                     |> Common.queryView
@@ -722,8 +876,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataAndUser
-                        (oneTeamOnePipelineNonPublic "team")
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [ ( "team", [ "owner" ] ) ])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Application.update
                         (ApplicationMsgs.Update <|
@@ -769,10 +936,10 @@ all =
                                 ]
                         )
                     |> Tuple.first
-                    |> givenDataUnauthenticated { teams = [], pipelines = [] }
+                    |> givenDataUnauthenticated { teams = [] }
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.PipelinesFetched <|
+                        (Callback.AllPipelinesFetched <|
                             Ok
                                 [ { id = 0
                                   , name = "pipeline"
@@ -797,7 +964,7 @@ all =
                         [ attribute <|
                             Attr.href "/teams/team/pipelines/pipeline/jobs/job/builds/1"
                         ]
-        , test "HD view redirects to normal view when there are no pipelines" <|
+        , test "HD view redirects to no pipelines view when there are no pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> Application.handleCallback
@@ -805,46 +972,12 @@ all =
                             Ok
                                 ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ]
-                                )
-                        )
-                    |> Expect.all
-                        [ Tuple.second
-                            >> Expect.equal [ Effects.ModifyUrl "/" ]
-                        , Tuple.first
-                            >> Application.handleCallback
-                                (Callback.APIDataFetched <|
-                                    Ok
-                                        ( Time.millisToPosix 0
-                                        , apiData
-                                            [ ( "team", [ "pipeline" ] ) ]
-                                        )
-                                )
-                            >> Tuple.first
-                            >> Common.queryView
-                            >> Query.find [ class "card-footer" ]
-                            >> Query.children []
-                            >> Query.first
-                            >> Query.children []
-                            >> Query.index -1
-                            >> Query.has [ text "pending" ]
-                        ]
-        , test "HD view redirects to no pipelines view when pipelines disappear" <|
-            \_ ->
-                whenOnDashboard { highDensity = True }
-                    |> Application.handleCallback
-                        (Callback.APIDataFetched <|
-                            Ok
-                                ( Time.millisToPosix 0
-                                , apiData [ ( "team", [ "pipeline" ] ) ]
                                 )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.APIDataFetched <|
-                            Ok
-                                ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ]
-                                )
+                        (Callback.AllPipelinesFetched <|
+                            Ok []
                         )
                     |> Expect.all
                         [ Tuple.second
@@ -852,6 +985,36 @@ all =
                         , Tuple.first
                             >> Common.queryView
                             >> Query.has [ text "welcome to concourse!" ]
+                        ]
+        , test "HD view does not redirect when there are pipelines" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> Application.handleCallback
+                        (Callback.APIDataFetched <|
+                            Ok
+                                ( Time.millisToPosix 0
+                                , apiData [ ( "team", [] ) ]
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
+                    |> Expect.all
+                        [ Tuple.second
+                            >> Expect.notEqual [ Effects.ModifyUrl "/" ]
+                        , Tuple.first
+                            >> Common.queryView
+                            >> Query.hasNot [ text "welcome to concourse!" ]
                         ]
         , test "no search bar when there are no pipelines" <|
             \_ ->
@@ -873,8 +1036,21 @@ all =
                         (Callback.APIDataFetched <|
                             Ok
                                 ( Time.millisToPosix 0
-                                , apiData [ ( "team", [ "pipeline" ] ) ]
+                                , apiData [ ( "team", [] ) ]
                                 )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
                         )
                     |> Tuple.first
                     |> Application.update (ApplicationMsgs.Update Msgs.FocusMsg)
@@ -956,8 +1132,21 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> givenDataAndUser
-                        (apiData [ ( "team", [ "pipeline" ] ) ])
+                        (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-name-wrapper" ]
@@ -970,7 +1159,20 @@ all =
               <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> teamHeaderHasNoPill "team"
@@ -978,8 +1180,21 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
-                            (oneTeamOnePipeline "team")
+                            (apiData [ ( "team", [] ) ])
                             (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> teamHeaderHasPill "team" "OWNER"
@@ -987,8 +1202,21 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
-                            (oneTeamOnePipeline "team")
+                            (apiData [ ( "team", [] ) ])
                             (userWithRoles [ ( "team", [ "member" ] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> teamHeaderHasPill "team" "MEMBER"
@@ -996,8 +1224,21 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
-                            (oneTeamOnePipeline "team")
+                            (apiData [ ( "team", [] ) ])
                             (userWithRoles [ ( "team", [ "pipeline-operator" ] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> teamHeaderHasPill "team" "PIPELINE_OPERATOR"
@@ -1005,8 +1246,21 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
-                            (oneTeamOnePipeline "team")
+                            (apiData [ ( "team", [] ) ])
                             (userWithRoles [ ( "team", [ "viewer" ] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> teamHeaderHasPill "team" "VIEWER"
@@ -1014,8 +1268,21 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
-                            (oneTeamOnePipeline "team")
+                            (apiData [ ( "team", [] ) ])
                             (userWithRoles [])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> teamHeaderHasNoPill "team"
@@ -1023,8 +1290,21 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
-                            (oneTeamOnePipeline "team")
+                            (apiData [ ( "team", [] ) ])
                             (userWithRoles [ ( "team", [ "member", "viewer" ] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> teamHeaderHasPill "team" "MEMBER"
@@ -1033,7 +1313,7 @@ all =
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
                             (apiData
-                                [ ( "owner-team", [ "pipeline" ] )
+                                [ ( "owner-team", [] )
                                 , ( "nonmember-team", [] )
                                 , ( "viewer-team", [] )
                                 , ( "member-team", [] )
@@ -1045,6 +1325,19 @@ all =
                                 , ( "viewer-team", [ "viewer" ] )
                                 , ( "nonmember-team", [] )
                                 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "owner-team"
+                                      , groups = []
+                                      }
+                                    ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1059,7 +1352,20 @@ all =
             , test "team headers lay out contents horizontally, centering vertically" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated (oneTeamOnePipeline "team")
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.findAll teamHeaderSelector
@@ -1073,8 +1379,21 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = True }
                         |> givenDataAndUser
-                            (oneTeamOnePipeline "team")
+                            (apiData [ ( "team", [] ) ])
                             (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ class "dashboard-team-name-wrapper" ]
@@ -1084,8 +1403,21 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
-                            (oneTeamOnePipeline "team")
+                            (apiData [ ( "team", [] ) ])
                             (userWithRoles [ ( "team", [ "owner" ] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find teamHeaderSelector
@@ -1095,8 +1427,21 @@ all =
                 \_ ->
                     whenOnDashboard { highDensity = True }
                         |> givenDataAndUser
-                            (apiData [ ( "team", [ "pipeline" ] ) ])
+                            (apiData [ ( "team", [] ) ])
                             (userWithRoles [])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "page-below-top-bar" ]
@@ -1135,11 +1480,20 @@ all =
                         (Callback.AllJobsFetched <| Ok [ jobFunc status ])
                         >> Tuple.first
                         >> givenDataUnauthenticated
-                            { teams =
-                                [ { id = 0, name = "team" } ]
-                            , pipelines =
-                                [ onePipeline "team" ]
-                            }
+                            { teams = [ { id = 0, name = "team" } ] }
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         >> Tuple.first
                         >> Common.queryView
             in
@@ -1151,8 +1505,21 @@ all =
                             |> givenDataUnauthenticated
                                 (apiData
                                     [ ( "some-team", [] )
-                                    , ( "other-team", [ "pipeline" ] )
+                                    , ( "other-team", [] )
                                     ]
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "other-team"
+                                          , groups = []
+                                          }
+                                        ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -1239,8 +1606,20 @@ all =
             , test "has 'move' cursor" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated
-                            (oneTeamOnePipeline "team")
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find
@@ -1251,8 +1630,20 @@ all =
             , test "has 25px margins" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated
-                            (oneTeamOnePipeline "team")
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find
@@ -1266,7 +1657,20 @@ all =
                     header _ =
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
-                                (oneTeamOnePipeline "team")
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find
@@ -1319,7 +1723,20 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
-                                    (oneTeamOnePipeline "team")
+                                    (apiData [ ( "team", [] ) ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
+                                    )
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> findBanner
@@ -1328,11 +1745,20 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
-                                    { teams =
-                                        [ { id = 0, name = "team" } ]
-                                    , pipelines =
-                                        [ onePipelinePaused "team" ]
-                                    }
+                                    { teams = [ { id = 0, name = "team" } ] }
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = True
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
+                                    )
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> findBanner
@@ -1357,7 +1783,20 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
-                                    (oneTeamOnePipeline "team")
+                                    (apiData [ ( "team", [] ) ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
+                                    )
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> findBanner
@@ -1435,11 +1874,20 @@ all =
                                         )
                                     |> Tuple.first
                                     |> givenDataUnauthenticated
-                                        { teams =
-                                            [ { id = 0, name = "team" } ]
-                                        , pipelines =
-                                            [ onePipeline "team" ]
-                                        }
+                                        { teams = [ { id = 0, name = "team" } ] }
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Common.queryView
                         in
@@ -1478,9 +1926,20 @@ all =
                                 |> Application.handleCallback (Callback.AllJobsFetched <| Ok circularJobs)
                                 |> Tuple.first
                                 |> givenDataUnauthenticated
-                                    { teams = [ { id = 0, name = "team" } ]
-                                    , pipelines = [ onePipeline "team" ]
-                                    }
+                                    { teams = [ { id = 0, name = "team" } ] }
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
+                                    )
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> findBanner
@@ -1490,7 +1949,20 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> givenDataUnauthenticated
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Common.queryView
                                     |> findBanner
@@ -1499,11 +1971,20 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> givenDataUnauthenticated
-                                        { teams =
-                                            [ { id = 0, name = "team" } ]
-                                        , pipelines =
-                                            [ onePipelinePaused "team" ]
-                                        }
+                                        { teams = [ { id = 0, name = "team" } ] }
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = True
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Common.queryView
                                     |> findBanner
@@ -1528,7 +2009,20 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = True }
                                     |> givenDataUnauthenticated
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Common.queryView
                                     |> findBanner
@@ -1606,11 +2100,20 @@ all =
                                             )
                                         |> Tuple.first
                                         |> givenDataUnauthenticated
-                                            { teams =
-                                                [ { id = 0, name = "team" } ]
-                                            , pipelines =
-                                                [ onePipeline "team" ]
-                                            }
+                                            { teams = [ { id = 0, name = "team" } ] }
+                                        |> Tuple.first
+                                        |> Application.handleCallback
+                                            (Callback.AllPipelinesFetched <|
+                                                Ok
+                                                    [ { id = 0
+                                                      , name = "pipeline"
+                                                      , paused = False
+                                                      , public = True
+                                                      , teamName = "team"
+                                                      , groups = []
+                                                      }
+                                                    ]
+                                            )
                                         |> Tuple.first
                                         |> Common.queryView
                             in
@@ -1652,7 +2155,20 @@ all =
                     setup _ =
                         whenOnDashboard { highDensity = True }
                             |> givenDataUnauthenticated
-                                (oneTeamOnePipeline "team")
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
 
@@ -1662,8 +2178,21 @@ all =
                             |> givenDataUnauthenticated
                                 (apiData
                                     [ ( "some-team", [] )
-                                    , ( "other-team", [ "pipeline" ] )
+                                    , ( "other-team", [] )
                                     ]
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "other-team"
+                                          , groups = []
+                                          }
+                                        ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -1796,16 +2325,20 @@ all =
                                           , name = "team"
                                           }
                                         ]
-                                    , pipelines =
-                                        [ { id = 0
-                                          , name = "pipeline"
-                                          , paused = False
-                                          , public = True
-                                          , teamName = "team"
-                                          , groups = []
-                                          }
-                                        ]
                                     }
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
+                                    )
                                 |> Tuple.first
                                 |> Common.queryView
 
@@ -1880,7 +2413,20 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
-                                (oneTeamOnePipeline "team")
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find
@@ -1893,7 +2439,20 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
-                                (oneTeamOnePipeline "team")
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find
@@ -1909,8 +2468,21 @@ all =
                     hasStyle property value =
                         whenOnDashboard { highDensity = False }
                             |> givenDataAndUser
-                                (oneTeamOnePipeline "team")
+                                (apiData [ ( "team", [] ) ])
                                 (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ class "card-footer" ]
@@ -1929,8 +2501,21 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataAndUser
-                                (oneTeamOnePipeline "team")
+                                (apiData [ ( "team", [] ) ])
                                 (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ class "card-footer" ]
@@ -1944,8 +2529,21 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataAndUser
-                                (oneTeamOnePipeline "team")
+                                (apiData [ ( "team", [] ) ])
                                 (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ class "card-footer" ]
@@ -1972,11 +2570,20 @@ all =
                             setup =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated
-                                        { teams =
-                                            [ { id = 0, name = "team" } ]
-                                        , pipelines =
-                                            [ onePipelinePaused "team" ]
-                                        }
+                                        { teams = [ { id = 0, name = "team" } ] }
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = True
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Common.queryView
                         in
@@ -2104,11 +2711,20 @@ all =
                                         )
                                     |> Tuple.first
                                     |> givenDataUnauthenticated
-                                        { teams =
-                                            [ { id = 0, name = "team" } ]
-                                        , pipelines =
-                                            [ onePipeline "team" ]
-                                        }
+                                        { teams = [ { id = 0, name = "team" } ] }
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> afterSeconds 1
                                     |> Common.queryView
@@ -2619,17 +3235,43 @@ all =
                             let
                                 whenAuthorizedPublic =
                                     givenDataAndUser
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles
                                             [ ( "team", [ "owner" ] ) ]
                                         )
+                                        >> Tuple.first
+                                        >> Application.handleCallback
+                                            (Callback.AllPipelinesFetched <|
+                                                Ok
+                                                    [ { id = 0
+                                                      , name = "pipeline"
+                                                      , paused = False
+                                                      , public = True
+                                                      , teamName = "team"
+                                                      , groups = []
+                                                      }
+                                                    ]
+                                            )
 
                                 whenAuthorizedNonPublic =
                                     givenDataAndUser
-                                        (oneTeamOnePipelineNonPublic "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles
                                             [ ( "team", [ "owner" ] ) ]
                                         )
+                                        >> Tuple.first
+                                        >> Application.handleCallback
+                                            (Callback.AllPipelinesFetched <|
+                                                Ok
+                                                    [ { id = 0
+                                                      , name = "pipeline"
+                                                      , paused = False
+                                                      , public = False
+                                                      , teamName = "team"
+                                                      , groups = []
+                                                      }
+                                                    ]
+                                            )
                             in
                             [ describe "on public pipeline" <|
                                 openEyeClickable whenAuthorizedPublic
@@ -2640,17 +3282,43 @@ all =
                             let
                                 whenUnauthorizedPublic =
                                     givenDataAndUser
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles
                                             [ ( "team", [ "viewer" ] ) ]
                                         )
+                                        >> Tuple.first
+                                        >> Application.handleCallback
+                                            (Callback.AllPipelinesFetched <|
+                                                Ok
+                                                    [ { id = 0
+                                                      , name = "pipeline"
+                                                      , paused = False
+                                                      , public = True
+                                                      , teamName = "team"
+                                                      , groups = []
+                                                      }
+                                                    ]
+                                            )
 
                                 whenUnauthorizedNonPublic =
                                     givenDataAndUser
-                                        (oneTeamOnePipelineNonPublic "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles
                                             [ ( "team", [ "viewer" ] ) ]
                                         )
+                                        >> Tuple.first
+                                        >> Application.handleCallback
+                                            (Callback.AllPipelinesFetched <|
+                                                Ok
+                                                    [ { id = 0
+                                                      , name = "pipeline"
+                                                      , paused = False
+                                                      , public = False
+                                                      , teamName = "team"
+                                                      , groups = []
+                                                      }
+                                                    ]
+                                            )
                             in
                             [ describe "on public pipeline" <|
                                 openEyeUnclickable whenUnauthorizedPublic
@@ -2662,7 +3330,20 @@ all =
                             let
                                 whenUnauthenticated =
                                     givenDataUnauthenticated
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
+                                        >> Tuple.first
+                                        >> Application.handleCallback
+                                            (Callback.AllPipelinesFetched <|
+                                                Ok
+                                                    [ { id = 0
+                                                      , name = "pipeline"
+                                                      , paused = False
+                                                      , public = True
+                                                      , teamName = "team"
+                                                      , groups = []
+                                                      }
+                                                    ]
+                                            )
                             in
                             [ describe "on public pipeline" <|
                                 openEyeClickable whenUnauthenticated
@@ -2672,8 +3353,21 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> givenDataAndUser
-                                    (oneTeamOnePipeline "team")
+                                    (apiData [ ( "team", [] ) ])
                                     (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
+                                    )
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> Query.find [ class "card-footer" ]
@@ -2689,8 +3383,21 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataAndUser
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Common.queryView
                                     |> Query.find [ class "card-footer" ]
@@ -2708,8 +3415,21 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataAndUser
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Common.queryView
                                     |> Query.find [ class "card-footer" ]
@@ -2724,8 +3444,21 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataAndUser
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Common.queryView
                                     |> Query.find [ class "card-footer" ]
@@ -2741,8 +3474,21 @@ all =
                             , setup =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataAndUser
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                             , query =
                                 Common.queryView
@@ -2784,8 +3530,21 @@ all =
                             , setup =
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataAndUser
-                                        (oneTeamOnePipelinePaused "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = True
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                             , query =
                                 Common.queryView
@@ -2826,8 +3585,21 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataAndUser
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Common.queryView
                                     |> Query.find [ class "card-footer" ]
@@ -2849,8 +3621,21 @@ all =
                                 in
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataAndUser
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Application.update
                                         (ApplicationMsgs.Update <|
@@ -2868,8 +3653,21 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataAndUser
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Application.update
                                         (ApplicationMsgs.Update <|
@@ -2891,8 +3689,21 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataAndUser
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
                                         (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Application.update
                                         (ApplicationMsgs.Update <|
@@ -2916,7 +3727,20 @@ all =
                             \_ ->
                                 whenOnDashboard { highDensity = False }
                                     |> givenDataUnauthenticated
-                                        (oneTeamOnePipeline "team")
+                                        (apiData [ ( "team", [] ) ])
+                                    |> Tuple.first
+                                    |> Application.handleCallback
+                                        (Callback.AllPipelinesFetched <|
+                                            Ok
+                                                [ { id = 0
+                                                  , name = "pipeline"
+                                                  , paused = False
+                                                  , public = True
+                                                  , teamName = "team"
+                                                  , groups = []
+                                                  }
+                                                ]
+                                        )
                                     |> Tuple.first
                                     |> Application.update
                                         (ApplicationMsgs.Update <|
@@ -2954,14 +3778,40 @@ all =
             [ test "appears by default" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.has [ id "dashboard-info" ]
             , test "is 50px tall, almost black, fixed to the bottom of the viewport and covers entire width" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "dashboard-info" ]
@@ -2977,7 +3827,20 @@ all =
             , test "lays out contents horizontally, maximizing space between children" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "dashboard-info" ]
@@ -2988,7 +3851,20 @@ all =
             , test "two children are legend and concourse-info" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "dashboard-info" ]
@@ -3002,7 +3878,20 @@ all =
                 \_ ->
                     Common.init "/"
                         |> givenDataUnauthenticated
-                            (apiData [ ( "team", [ "pipeline" ] ) ])
+                            (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived <|
@@ -3016,7 +3905,20 @@ all =
                 [ test "lays out contents horizontally" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
@@ -3024,7 +3926,20 @@ all =
                 , test "shows pipeline statuses" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
@@ -3065,7 +3980,20 @@ all =
                 , test "the legend separator is grey" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
@@ -3076,7 +4004,20 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
-                                (apiData [ ( "team", [ "pipeline" ] ) ])
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
@@ -3087,7 +4028,20 @@ all =
                     \_ ->
                         Common.init "/"
                             |> givenDataUnauthenticated
-                                (apiData [ ( "team", [ "pipeline" ] ) ])
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Application.update
                                 (ApplicationMsgs.DeliveryReceived <|
@@ -3104,7 +4058,20 @@ all =
                     \_ ->
                         Common.init "/"
                             |> givenDataUnauthenticated
-                                (apiData [ ( "team", [ "pipeline" ] ) ])
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Application.update
                                 (ApplicationMsgs.DeliveryReceived <|
@@ -3117,7 +4084,20 @@ all =
                 , test "legend items lay out contents horizontally, centered vertically in grey caps" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
@@ -3133,7 +4113,20 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
-                                (apiData [ ( "team", [ "pipeline" ] ) ])
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
@@ -3144,7 +4137,20 @@ all =
                     \_ ->
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
-                                (apiData [ ( "team", [ "pipeline" ] ) ])
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
@@ -3182,7 +4188,20 @@ all =
                     hdToggle =
                         whenOnDashboard { highDensity = False }
                             |> givenDataUnauthenticated
-                                (apiData [ ( "team", [ "pipeline" ] ) ])
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> findHDToggle
@@ -3240,7 +4259,20 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = True }
                                 |> givenDataUnauthenticated
-                                    (apiData [ ( "team", [ "pipeline" ] ) ])
+                                    (apiData [ ( "team", [] ) ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
+                                    )
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> findHDToggle
@@ -3257,7 +4289,20 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = True }
                                 |> givenDataUnauthenticated
-                                    (apiData [ ( "team", [ "pipeline" ] ) ])
+                                    (apiData [ ( "team", [] ) ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
+                                    )
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> findHDToggle
@@ -3266,8 +4311,19 @@ all =
                         \_ ->
                             whenOnDashboard { highDensity = True }
                                 |> givenDataUnauthenticated
-                                    (apiData
-                                        [ ( "team", [ "pipeline" ] ) ]
+                                    (apiData [ ( "team", [] ) ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -3282,7 +4338,20 @@ all =
                 let
                     info =
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                            |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = False
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.find [ id "concourse-info" ]
@@ -3375,8 +4444,19 @@ all =
                         , setup =
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
-                                    (apiData
-                                        [ ( "team", [ "pipeline" ] ) ]
+                                    (apiData [ ( "team", [] ) ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
                                     )
                                 |> Tuple.first
                         , query = Common.queryView >> Query.find [ id "cli-osx" ]
@@ -3410,8 +4490,19 @@ all =
                         , setup =
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
-                                    (apiData
-                                        [ ( "team", [ "pipeline" ] ) ]
+                                    (apiData [ ( "team", [] ) ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
                                     )
                                 |> Tuple.first
                         , query =
@@ -3448,7 +4539,20 @@ all =
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
                                     (apiData
-                                        [ ( "team", [ "pipeline" ] ) ]
+                                        [ ( "team", [] ) ]
+                                    )
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = False
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
                                     )
                                 |> Tuple.first
                         , query =
@@ -3492,7 +4596,20 @@ all =
             , test "hides after 6 seconds" <|
                 \_ ->
                     Common.init "/"
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> afterSeconds 6
                         |> Common.queryView
@@ -3500,7 +4617,20 @@ all =
             , test "reappears on mouse action" <|
                 \_ ->
                     Common.init "/"
-                        |> givenDataUnauthenticated (apiData [ ( "team", [ "pipeline" ] ) ])
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> afterSeconds 6
                         |> Application.update
@@ -3512,7 +4642,20 @@ all =
                 \_ ->
                     Common.init "/"
                         |> givenDataUnauthenticated
-                            (apiData [ ( "team", [ "pipeline" ] ) ])
+                            (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
                         |> Tuple.first
                         |> Application.update
                             (ApplicationMsgs.DeliveryReceived <|
@@ -3582,7 +4725,7 @@ all =
                                 Time.millisToPosix 0
                         )
                     |> Tuple.second
-                    |> Common.contains Effects.FetchPipelines
+                    |> Common.contains Effects.FetchAllPipelines
         ]
 
 
@@ -3683,56 +4826,6 @@ givenClusterInfo version clusterName =
         )
 
 
-givenPipelineWithJob : Concourse.APIData
-givenPipelineWithJob =
-    { teams = []
-    , pipelines =
-        [ { id = 0
-          , name = "pipeline"
-          , paused = False
-          , public = True
-          , teamName = "team"
-          , groups = []
-          }
-        ]
-    }
-
-
-oneTeamOnePipelinePaused : String -> Concourse.APIData
-oneTeamOnePipelinePaused teamName =
-    { teams = [ { id = 0, name = teamName } ]
-    , pipelines =
-        [ { id = 0
-          , name = "pipeline"
-          , paused = True
-          , public = True
-          , teamName = teamName
-          , groups = []
-          }
-        ]
-    }
-
-
-oneTeamOnePipelineNonPublic : String -> Concourse.APIData
-oneTeamOnePipelineNonPublic teamName =
-    { teams = [ { id = 0, name = teamName } ]
-    , pipelines =
-        [ { id = 0
-          , name = "pipeline"
-          , paused = False
-          , public = False
-          , teamName = teamName
-          , groups = []
-          }
-        ]
-    }
-
-
-oneTeamOnePipeline : String -> Concourse.APIData
-oneTeamOnePipeline teamName =
-    apiData [ ( teamName, [ "pipeline" ] ) ]
-
-
 onePipeline : String -> Concourse.Pipeline
 onePipeline teamName =
     { id = 0
@@ -3757,24 +4850,7 @@ onePipelinePaused teamName =
 
 apiData : List ( String, List String ) -> Concourse.APIData
 apiData pipelines =
-    { teams = pipelines |> List.map Tuple.first |> List.indexedMap Concourse.Team
-    , pipelines =
-        pipelines
-            |> List.concatMap
-                (\( teamName, ps ) ->
-                    ps
-                        |> List.indexedMap
-                            (\i p ->
-                                { id = i
-                                , name = p
-                                , paused = False
-                                , public = True
-                                , teamName = teamName
-                                , groups = []
-                                }
-                            )
-                )
-    }
+    { teams = pipelines |> List.map Tuple.first |> List.indexedMap Concourse.Team }
 
 
 running : Concourse.Job -> Concourse.Job

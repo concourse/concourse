@@ -106,6 +106,7 @@ init flags =
       , GetScreenSize
       , FetchAllResources
       , FetchAllJobs
+      , FetchAllPipelines
       ]
     )
 
@@ -145,12 +146,8 @@ handleCallback callback ( model, effects ) =
                             }
             in
             if model.highDensity && noPipelines { groups = groups } then
-                ( { newModel | groups = groups, highDensity = False }
+                ( { newModel | groups = groups }
                 , effects
-                    ++ [ ModifyUrl <|
-                            Routes.toString <|
-                                Routes.dashboardRoute False
-                       ]
                 )
 
             else
@@ -160,6 +157,14 @@ handleCallback callback ( model, effects ) =
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
             ( { model | existingJobs = allJobsInEntireCluster }
+            , effects
+            )
+
+        AllJobsFetched (Err _) ->
+            ( { model
+                | state =
+                    RemoteData.Failure (Turbulence model.turbulencePath)
+              }
             , effects
             )
 
@@ -188,45 +193,39 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        PipelinesFetched (Ok allPipelinesInEntireCluster) ->
-            let
-                teamNames : List String
-                teamNames =
-                    List.map (\p -> p.teamName) allPipelinesInEntireCluster |> List.Extra.unique
-
-                dashboardPipeline : Concourse.Pipeline -> Pipeline
-                dashboardPipeline cp =
-                    { id = cp.id
-                    , name = cp.name
-                    , teamName = cp.teamName
-                    , public = cp.public
-                    , isToggleLoading = False
-                    , isVisibilityLoading = False
-                    , paused = cp.paused
-                    }
-
-                allDashboardPipelines : List Pipeline
-                allDashboardPipelines =
-                    List.map dashboardPipeline allPipelinesInEntireCluster
-
-                pipelinesOfTeamName : String -> Pipeline -> Bool
-                pipelinesOfTeamName tn pipeline =
-                    pipeline.teamName == tn
-
-                newGroups : List Group
-                newGroups =
-                    List.map
-                        (\tn ->
-                            { teamName = tn
-                            , pipelines = List.filter (pipelinesOfTeamName tn) allDashboardPipelines
-                            }
-                        )
-                        teamNames
-            in
+        AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
             ( { model
-                | groups = newGroups
+                | groups =
+                    allPipelinesInEntireCluster
+                        |> List.foldr
+                            (\p ->
+                                Dict.update p.teamName
+                                    (Maybe.withDefault []
+                                        >> List.append
+                                            [ { id = p.id
+                                              , name = p.name
+                                              , teamName = p.teamName
+                                              , public = p.public
+                                              , isToggleLoading = False
+                                              , isVisibilityLoading = False
+                                              , paused = p.paused
+                                              }
+                                            ]
+                                        >> Just
+                                    )
+                            )
+                            (model.groups
+                                |> List.map (\g -> ( g.teamName, [] ))
+                                |> Dict.fromList
+                            )
+                        |> Dict.toList
+                        |> List.map (\( k, v ) -> { teamName = k, pipelines = v })
               }
-            , effects
+            , if List.isEmpty allPipelinesInEntireCluster then
+                effects ++ [ ModifyUrl "/" ]
+
+              else
+                effects
             )
 
         LoggedOut (Ok ()) ->
@@ -320,7 +319,7 @@ handleDeliveryBody delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchData, FetchPipelines, FetchAllResources, FetchAllJobs ] )
+            ( model, effects ++ [ FetchData, FetchAllPipelines, FetchAllResources, FetchAllJobs ] )
 
         _ ->
             ( model, effects )
