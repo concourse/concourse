@@ -74,7 +74,7 @@ type CFTeamFlags struct {
 	OrgGuidsLegacy   []string `mapstructure:"orgguids"`
 	SpaceGuidsLegacy []string `mapstructure:"spaceguids"`
 	Orgs             []string `long:"insecure-org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME" mapstructure:"insecure_orgs"`
-	Spaces           []string `long:"insecure-space" description:"(Deprecated) A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces"`
+	Spaces           []string `long:"insecure-space" description:"A whitelisted CloudFoundry space" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces"`
 }
 
 func (flag *CFTeamFlags) GetUsers() []string {
