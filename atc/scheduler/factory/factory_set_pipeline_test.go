@@ -2,7 +2,6 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/testhelpers"
 
@@ -17,14 +16,13 @@ var _ = Describe("Factory SetPipeline Step", func() {
 		buildFactory        factory.BuildFactory
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
-		fakeJob             *dbfakes.FakeJob
+		input               atc.JobConfig
 	)
 
 	BeforeEach(func() {
 		actualPlanFactory = atc.NewPlanFactory(123)
 		expectedPlanFactory = atc.NewPlanFactory(123)
 		buildFactory = factory.NewBuildFactory(actualPlanFactory)
-		fakeJob = new(dbfakes.FakeJob)
 
 		resourceTypes = atc.VersionedResourceTypes{
 			{
@@ -40,7 +38,7 @@ var _ = Describe("Factory SetPipeline Step", func() {
 
 	Context("when set other pipeline", func() {
 		BeforeEach(func() {
-			fakeJob.ConfigReturns(atc.JobConfig{
+			input = atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						SetPipeline: "some-pipeline",
@@ -49,44 +47,14 @@ var _ = Describe("Factory SetPipeline Step", func() {
 						Vars:        map[string]interface{}{"k1": "v1"},
 					},
 				},
-			})
+			}
 		})
 		It("builds correctly", func() {
-			actual, err := buildFactory.Create(fakeJob, nil, resourceTypes, nil)
+			actual, err := buildFactory.Create(input, nil, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.SetPipelinePlan{
 				Name:     "some-pipeline",
-				File:     "some-file",
-				VarFiles: []string{"vf1", "vf2"},
-				Vars:     map[string]interface{}{"k1": "v1"},
-			})
-
-			Expect(actual).To(testhelpers.MatchPlan(expected))
-		})
-	})
-
-	Context("when set self", func() {
-		BeforeEach(func() {
-			fakeJob.ConfigReturns(atc.JobConfig{
-				Plan: atc.PlanSequence{
-					{
-						SetPipeline: "self",
-						ConfigPath:  "some-file",
-						VarFiles:    []string{"vf1", "vf2"},
-						Vars:        map[string]interface{}{"k1": "v1"},
-					},
-				},
-			})
-
-			fakeJob.PipelineNameReturns("self-pipeline")
-		})
-		It("builds correctly", func() {
-			actual, err := buildFactory.Create(fakeJob, nil, nil, nil)
-			Expect(err).NotTo(HaveOccurred())
-
-			expected := expectedPlanFactory.NewPlan(atc.SetPipelinePlan{
-				Name:     "self-pipeline",
 				File:     "some-file",
 				VarFiles: []string{"vf1", "vf2"},
 				Vars:     map[string]interface{}{"k1": "v1"},

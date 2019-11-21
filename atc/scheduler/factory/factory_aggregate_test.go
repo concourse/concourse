@@ -2,7 +2,6 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,8 +15,6 @@ var _ = Describe("Factory Aggregate", func() {
 		resourceTypes       atc.VersionedResourceTypes
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
-
-		fakeJob *dbfakes.FakeJob
 	)
 
 	BeforeEach(func() {
@@ -44,13 +41,11 @@ var _ = Describe("Factory Aggregate", func() {
 				Version: atc.Version{"some": "version"},
 			},
 		}
-
-		fakeJob = new(dbfakes.FakeJob)
 	})
 
 	Context("when I have one aggregate", func() {
-		BeforeEach(func() {
-			fakeJob.ConfigReturns(atc.JobConfig{
+		It("returns the correct plan", func() {
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
@@ -63,10 +58,7 @@ var _ = Describe("Factory Aggregate", func() {
 						},
 					},
 				},
-			})
-		})
-		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
@@ -84,8 +76,8 @@ var _ = Describe("Factory Aggregate", func() {
 	})
 
 	Context("when I have nested aggregates", func() {
-		BeforeEach(func() {
-			fakeJob.ConfigReturns(atc.JobConfig{
+		It("returns the correct plan", func() {
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
@@ -105,10 +97,7 @@ var _ = Describe("Factory Aggregate", func() {
 						},
 					},
 				},
-			})
-		})
-		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
@@ -132,8 +121,8 @@ var _ = Describe("Factory Aggregate", func() {
 	})
 
 	Context("when I have an aggregate with hooks", func() {
-		BeforeEach(func() {
-			fakeJob.ConfigReturns(atc.JobConfig{
+		It("returns the correct plan", func() {
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
@@ -146,10 +135,7 @@ var _ = Describe("Factory Aggregate", func() {
 						},
 					},
 				},
-			})
-		})
-		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
@@ -169,8 +155,8 @@ var _ = Describe("Factory Aggregate", func() {
 	})
 
 	Context("when I have a hook on an aggregate", func() {
-		BeforeEach(func() {
-			fakeJob.ConfigReturns(atc.JobConfig{
+		It("returns the correct plan", func() {
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
@@ -183,10 +169,7 @@ var _ = Describe("Factory Aggregate", func() {
 						},
 					},
 				},
-			})
-		})
-		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{

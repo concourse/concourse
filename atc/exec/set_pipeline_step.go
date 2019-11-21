@@ -16,8 +16,7 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
-// SetPipelineStep sets a pipeline to current team. If pipeline_name specified
-// is "self", then it will self set the current pipeline. This step takes pipeline
+// SetPipelineStep sets a pipeline to current team. This step takes pipeline
 // configure file and var files from some resource in the pipeline, like git.
 type SetPipelineStep struct {
 	planID      atc.PlanID
