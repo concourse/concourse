@@ -153,12 +153,15 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("- cf:some-admin"))
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- cf:some-org"))
+					Eventually(sess.Out).Should(gbytes.Say("- cf:some-space-guid"))
 
 					Eventually(sess.Out).Should(gbytes.Say("role viewer:"))
 					Eventually(sess.Out).Should(gbytes.Say("users:"))
 					Eventually(sess.Out).Should(gbytes.Say("none"))
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- cf:some-org:some-space"))
+					Eventually(sess.Out).Should(gbytes.Say("- cf:some-org-guid"))
+					Eventually(sess.Out).Should(gbytes.Say("- cf:some-space-guid"))
 
 					Eventually(sess).Should(gexec.Exit(1))
 				})
@@ -486,7 +489,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("Setting cf auth", func() {
 				BeforeEach(func() {
-					cmdParams = []string{"--cf-org", "myorg-1", "--cf-space", "myorg-2:myspace", "--cf-user", "my-username", "--cf-space-guid", "myspace-guid"}
+					cmdParams = []string{"--cf-insecure-org", "myorg-1", "--cf-insecure-space", "myorg-2:myspace", "--cf-user", "my-username", "--cf-space-guid", "myspace-guid"}
 				})
 
 				It("shows the users and groups configured for cf auth", func() {
