@@ -418,15 +418,7 @@ var _ = Describe("Token Issuer", func() {
 							})
 						})
 
-						It("calls generate with expected team claims", func() {
-							AssertIssueToken()
-							claims := fakeGenerator.GenerateArgsForCall(0)
-							Expect(claims["teams"]).To(HaveKeyWithValue("fake-team-1", ContainElement("owner")))
-							Expect(claims["teams"]).NotTo(HaveKey("fake-team-2"))
-							Expect(claims["is_admin"]).To(BeFalse())
-						})
-
-						AssertTokenClaims()
+						AssertNoTeamsTokenIssueError()
 					})
 
 					Context("when a team has group auth configured for an org:team", func() {
