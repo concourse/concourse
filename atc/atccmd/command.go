@@ -1450,7 +1450,9 @@ func (cmd *RunCommand) configureComponentIntervals(componentFactory db.Component
 				Interval: 60 * time.Second,
 			}, {
 				Name:     atc.ComponentCollectorPipelines,
-				Interval: 5 * time.Minute,
+				// Pipeline collector is not a critical GC task, only run it
+				// every 10 GC cycles.
+				Interval: 10 * cmd.GC.Interval,
 			},
 		})
 }
