@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,6 +29,8 @@ var _ = Describe("ArtifactOutputStep", func() {
 		plan             atc.Plan
 		fakeBuild        *dbfakes.FakeBuild
 		fakeWorkerClient *workerfakes.FakeClient
+
+		artifactName string
 	)
 
 	BeforeEach(func() {
@@ -39,7 +42,11 @@ var _ = Describe("ArtifactOutputStep", func() {
 		delegate.StdoutReturns(ioutil.Discard)
 
 		fakeBuild = new(dbfakes.FakeBuild)
+		fakeBuild.TeamIDReturns(4)
+
 		fakeWorkerClient = new(workerfakes.FakeClient)
+
+		artifactName = "some-artifact-name"
 	})
 
 	AfterEach(func() {
@@ -47,7 +54,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 	})
 
 	JustBeforeEach(func() {
-		plan = atc.Plan{ArtifactOutput: &atc.ArtifactOutputPlan{"some-name"}}
+		plan = atc.Plan{ArtifactOutput: &atc.ArtifactOutputPlan{artifactName}}
 
 		step = exec.NewArtifactOutputStep(plan, fakeBuild, fakeWorkerClient, delegate)
 		stepErr = step.Run(ctx, state)
@@ -59,11 +66,11 @@ var _ = Describe("ArtifactOutputStep", func() {
 		})
 	})
 
-	Context("when the source exists", func() {
+	Context("when the artifact exists", func() {
 		Context("when the source is not a worker.Volume", func() {
 			BeforeEach(func() {
-				fakeSource := new(workerfakes.FakeArtifactSource)
-				state.ArtifactRepository().RegisterSource(build.ArtifactName("some-name"), fakeSource)
+				fakeArtifact := new(runtimefakes.FakeArtifact)
+				state.ArtifactRepository().RegisterArtifact(build.ArtifactName(artifactName), fakeArtifact)
 			})
 			It("returns the error", func() {
 				Expect(stepErr).To(HaveOccurred())
@@ -72,13 +79,18 @@ var _ = Describe("ArtifactOutputStep", func() {
 
 		Context("when the source is a worker.Volume", func() {
 			var fakeWorkerVolume *workerfakes.FakeVolume
+			var fakeArtifact *runtimefakes.FakeArtifact
 
 			BeforeEach(func() {
 				fakeWorkerVolume = new(workerfakes.FakeVolume)
-				fakeWorkerVolume.HandleReturns("handle")
+				fakeWorkerVolume.HandleReturns("some-volume-handle")
 
-				source := exec.NewTaskArtifactSource(fakeWorkerVolume)
-				state.ArtifactRepository().RegisterSource(build.ArtifactName("some-name"), source)
+				fakeArtifact = new(runtimefakes.FakeArtifact)
+				fakeArtifact.IDReturns("some-artifact-id")
+
+				fakeWorkerClient.FindVolumeReturns(fakeWorkerVolume, true, nil)
+
+				state.ArtifactRepository().RegisterArtifact(build.ArtifactName(artifactName), fakeArtifact)
 			})
 
 			Context("when initializing the artifact fails", func() {
@@ -99,6 +111,13 @@ var _ = Describe("ArtifactOutputStep", func() {
 
 					fakeWorkerVolume.InitializeArtifactReturns(fakeWorkerArtifact, nil)
 				})
+
+				It("calls workerClient -> FindVolume with the correct arguments", func() {
+					_, actualTeamId, actualBuildArtifactID := fakeWorkerClient.FindVolumeArgsForCall(0)
+					Expect(actualTeamId).To(Equal(4))
+					Expect(actualBuildArtifactID).To(Equal("some-artifact-id"))
+				})
+
 				It("succeeds", func() {
 					Expect(step.Succeeded()).To(BeTrue())
 				})
