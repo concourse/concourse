@@ -49,7 +49,7 @@ var _ = Describe("CheckStep", func() {
 			Max: 1 * time.Hour,
 		})
 
-		repo  *artifact.Repository
+		repo  *build.Repository
 		state *execfakes.FakeRunState
 
 		checkStep *exec.CheckStep
@@ -74,9 +74,9 @@ var _ = Describe("CheckStep", func() {
 
 		fakeDelegate = new(execfakes.FakeCheckDelegate)
 
-		repo = artifact.NewRepository()
+		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
-		state.ArtifactsReturns(repo)
+		state.ArtifactRepositoryReturns(repo)
 
 		interpolatedResourceTypes = atc.VersionedResourceTypes{
 			{
@@ -114,8 +114,8 @@ var _ = Describe("CheckStep", func() {
 			plan.ID,
 			*plan.Check,
 			stepMetadata,
-			containerMetadata,
 			fakeResourceFactory,
+			containerMetadata,
 			fakeStrategy,
 			fakePool,
 			fakeDelegate,
@@ -135,7 +135,7 @@ var _ = Describe("CheckStep", func() {
 			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 
 			fakeResource = new(resourcefakes.FakeResource)
-			fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
+			fakeResourceFactory.NewResourceReturns(fakeResource)
 		})
 
 		It("finds or chooses a worker", func() {
@@ -194,6 +194,13 @@ var _ = Describe("CheckStep", func() {
 			ctx, _, _ := fakeResource.CheckArgsForCall(0)
 			deadline, _ := ctx.Deadline()
 			Expect(deadline).Should(BeTemporally("~", now.Add(10*time.Second), time.Second))
+		})
+
+		It("invokes resourceFactory -> NewResource with the correct arguments", func() {
+			actualSource, actualParams, actualFromVersion := fakeResourceFactory.NewResourceArgsForCall(0)
+			Expect(actualSource).To(Equal(checkPlan.Source))
+			Expect(actualParams).To(BeNil())
+			Expect(actualFromVersion).To(Equal(checkPlan.FromVersion))
 		})
 
 		It("runs the check resource action", func() {
