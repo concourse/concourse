@@ -331,7 +331,7 @@ var _ = Describe("TaskStep", func() {
 				}
 			})
 
-			Context("when all inputs are present in the in source repository", func() {
+			Context("when all inputs are present in the in artifact repository", func() {
 				BeforeEach(func() {
 					repo.RegisterArtifact("remapped-input-src", remappedInputArtifact)
 				})
@@ -663,7 +663,7 @@ var _ = Describe("TaskStep", func() {
 				})
 			})
 
-			Context("when the image artifact is NOT registered in the source repo", func() {
+			Context("when the image artifact is NOT registered in the artifact repo", func() {
 				It("returns a MissingTaskImageSourceError", func() {
 					Expect(stepErr).To(Equal(exec.MissingTaskImageSourceError{"some-image-artifact"}))
 				})
@@ -810,7 +810,7 @@ var _ = Describe("TaskStep", func() {
 					Expect(stepErr).ToNot(HaveOccurred())
 				})
 
-				Describe("the registered sources", func() {
+				Describe("the registered artifacts", func() {
 					var (
 						artifact1 runtime.Artifact
 						artifact2 runtime.Artifact
@@ -879,9 +879,9 @@ var _ = Describe("TaskStep", func() {
 						Expect(found).To(BeTrue())
 					})
 
-					It("does not register the task as a source", func() {
-						sourceMap := repo.AsMap()
-						Expect(sourceMap).To(ConsistOf(artifact1, artifact2, artifact3))
+					It("does not register the task as a artifact", func() {
+						artifactMap := repo.AsMap()
+						Expect(artifactMap).To(ConsistOf(artifact1, artifact2, artifact3))
 					})
 
 					It("passes existing output volumes to the resource", func() {
@@ -1032,9 +1032,9 @@ var _ = Describe("TaskStep", func() {
 				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
 			})
 
-			It("doesn't register a source", func() {
-				sourceMap := repo.AsMap()
-				Expect(sourceMap).To(BeEmpty())
+			It("doesn't register a artifact", func() {
+				artifactMap := repo.AsMap()
+				Expect(artifactMap).To(BeEmpty())
 			})
 		})
 
@@ -1093,18 +1093,18 @@ var _ = Describe("TaskStep", func() {
 				fakeClient.RunTaskStepReturns(taskResult)
 			})
 
-			It("re-registers the outputs as sources", func() {
-				artifactSource1, found := repo.ArtifactFor("some-output")
+			It("re-registers the outputs as artifacts", func() {
+				artifact1, found := repo.ArtifactFor("some-output")
 				Expect(found).To(BeTrue())
 
-				artifactSource2, found := repo.ArtifactFor("some-other-output")
+				artifact2, found := repo.ArtifactFor("some-other-output")
 				Expect(found).To(BeTrue())
 
-				artifactSource3, found := repo.ArtifactFor("some-trailing-slash-output")
+				artifact3, found := repo.ArtifactFor("some-trailing-slash-output")
 				Expect(found).To(BeTrue())
 
-				sourceMap := repo.AsMap()
-				Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
+				artifactMap := repo.AsMap()
+				Expect(artifactMap).To(ConsistOf(artifact1, artifact2, artifact3))
 			})
 		})
 
@@ -1145,12 +1145,12 @@ var _ = Describe("TaskStep", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
 			})
 
-			It("registers the outputs as sources with specific name", func() {
-				artifactSource, found := repo.ArtifactFor("specific-remapped-output")
+			It("registers the outputs as artifacts with specific name", func() {
+				artifact, found := repo.ArtifactFor("specific-remapped-output")
 				Expect(found).To(BeTrue())
 
-				sourceMap := repo.AsMap()
-				Expect(sourceMap).To(ConsistOf(artifactSource))
+				artifactMap := repo.AsMap()
+				Expect(artifactMap).To(ConsistOf(artifact))
 			})
 		})
 
