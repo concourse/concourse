@@ -148,10 +148,10 @@ type Build interface {
 type build struct {
 	pipelineRef
 
-	id        int
-	name      string
-	status    BuildStatus
-	scheduled bool
+	id          int
+	name        string
+	status      BuildStatus
+	scheduled   bool
 	inputsReady bool
 
 	teamID   int
@@ -971,16 +971,16 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
 	if newVersion {
-		err = requestScheduleForJobsUsingResourceConfigScope(b.conn, resourceConfigScope.ID())
+		err = requestScheduleForJobsUsingResourceConfigScope(tx, resourceConfigScope.ID())
 		if err != nil {
 			return err
 		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
 	}
 
 	return nil

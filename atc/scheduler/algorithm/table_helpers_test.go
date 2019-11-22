@@ -655,7 +655,7 @@ func (s setupDB) insertResource(name string) int {
 	_, err = s.psql.Insert("resources").
 		Columns("id", "name", "type", "config", "pipeline_id", "resource_config_id", "resource_config_scope_id").
 		Values(resourceID, name, fmt.Sprintf("%s-type", name), "{}", s.pipelineID, resourceID, resourceID).
-		Suffix("ON CONFLICT DO NOTHING").
+		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET id = EXCLUDED.id, resource_config_id = EXCLUDED.resource_config_id, resource_config_scope_id = EXCLUDED.resource_config_scope_id").
 		Exec()
 	Expect(err).ToNot(HaveOccurred())
 
