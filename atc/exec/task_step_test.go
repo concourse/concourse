@@ -820,22 +820,12 @@ var _ = Describe("TaskStep", func() {
 						fakeMountPath2 string = "some-artifact-root/some-other-output/"
 						fakeMountPath3 string = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
 
-						fakeNewlyCreatedVolume1 *workerfakes.FakeVolume
-						fakeNewlyCreatedVolume2 *workerfakes.FakeVolume
-						fakeNewlyCreatedVolume3 *workerfakes.FakeVolume
-
 						fakeVolume1 *workerfakes.FakeVolume
 						fakeVolume2 *workerfakes.FakeVolume
 						fakeVolume3 *workerfakes.FakeVolume
 					)
 
 					BeforeEach(func() {
-						fakeNewlyCreatedVolume1 = new(workerfakes.FakeVolume)
-						fakeNewlyCreatedVolume1.HandleReturns("some-handle-1-new")
-						fakeNewlyCreatedVolume2 = new(workerfakes.FakeVolume)
-						fakeNewlyCreatedVolume2.HandleReturns("some-handle-2-new")
-						fakeNewlyCreatedVolume3 = new(workerfakes.FakeVolume)
-						fakeNewlyCreatedVolume3.HandleReturns("some-handle-3-new")
 
 						fakeVolume1 = new(workerfakes.FakeVolume)
 						fakeVolume1.HandleReturns("some-handle-1")
@@ -892,84 +882,6 @@ var _ = Describe("TaskStep", func() {
 							"some-trailing-slash-output": "some-artifact-root/some-output-configured-path-with-trailing-slash/",
 						}))
 					})
-					//Describe("streaming a file out", func() {
-					//	Context("when the container can stream out", func() {
-					//		var (
-					//			fileContent = "file-content"
-					//
-					//			tgzBuffer *gbytes.Buffer
-					//		)
-					//
-					//		BeforeEach(func() {
-					//			tgzBuffer = gbytes.NewBuffer()
-					//			fakeVolume1.StreamOutReturns(tgzBuffer, nil)
-					//		})
-					//
-					//		Context("when the file exists", func() {
-					//			BeforeEach(func() {
-					//				zstdWriter := zstd.NewWriter(tgzBuffer)
-					//				defer zstdWriter.Close()
-					//
-					//				tarWriter := tar.NewWriter(zstdWriter)
-					//				defer tarWriter.Close()
-					//
-					//				err := tarWriter.WriteHeader(&tar.Header{
-					//					Name: "some-file",
-					//					Mode: 0644,
-					//					Size: int64(len(fileContent)),
-					//				})
-					//				Expect(err).NotTo(HaveOccurred())
-					//
-					//				_, err = tarWriter.Write([]byte(fileContent))
-					//				Expect(err).NotTo(HaveOccurred())
-					//			})
-					//
-					//			It("streams out the given path", func() {
-					//				//reader, err := artifact1.StreamFile(context.TODO(), logger, "some-path")
-					//				//Expect(err).NotTo(HaveOccurred())
-					//				//
-					//				//Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
-					//
-					//				_, path := fakeVolume1.StreamOutArgsForCall(0)
-					//				Expect(path).To(Equal("some-path"))
-					//			})
-					//
-					//			Describe("closing the stream", func() {
-					//				It("closes the stream from the versioned source", func() {
-					//					//reader, err := artifact1.StreamFile(context.TODO(), logger, "some-path")
-					//					//Expect(err).NotTo(HaveOccurred())
-					//					//
-					//					//Expect(tgzBuffer.Closed()).To(BeFalse())
-					//					//
-					//					//err = reader.Close()
-					//					//Expect(err).NotTo(HaveOccurred())
-					//					//
-					//					//Expect(tgzBuffer.Closed()).To(BeTrue())
-					//				})
-					//			})
-					//		})
-					//
-					//		Context("but the stream is empty", func() {
-					//			It("returns ErrFileNotFound", func() {
-					//				//_, err := artifact1.StreamFile(context.TODO(), logger, "some-path")
-					//				//Expect(err).To(MatchError(runtime.FileNotFoundError{Path: "some-path"}))
-					//			})
-					//		})
-					//	})
-					//
-					//	Context("when the volume cannot stream out", func() {
-					//		disaster := errors.New("nope")
-					//
-					//		BeforeEach(func() {
-					//			fakeVolume1.StreamOutReturns(nil, disaster)
-					//		})
-					//
-					//		It("returns the error", func() {
-					//			//_, err := artifact1.StreamFile(context.TODO(), logger, "some-path")
-					//			//Expect(err).To(Equal(disaster))
-					//		})
-					//	})
-					//})
 				})
 			})
 
