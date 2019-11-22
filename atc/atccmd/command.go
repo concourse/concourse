@@ -14,11 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/concourse"
-	"github.com/concourse/concourse/atc/resource"
-
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api"
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -41,6 +39,7 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/pipelines"
 	"github.com/concourse/concourse/atc/radar"
+	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/syslog"
 	"github.com/concourse/concourse/atc/worker"
@@ -965,14 +964,14 @@ func (cmd *RunCommand) constructGCMember(
 	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(gcConn, lockFactory)
-	fetchSourceFactory := fetcher.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
-	resourceFetcher := fetcher.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
+	fetchSourceFactory := worker.NewFetchSourceFactory(dbResourceCacheFactory)
+	resourceFetcher := worker.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
+		resourceFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		resourceFetcher,
-		resourceFactory,
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(gcConn)
@@ -989,6 +988,7 @@ func (cmd *RunCommand) constructGCMember(
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+		resourceFetcher,
 		image.NewImageFactory(imageResourceFetcherFactory),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,

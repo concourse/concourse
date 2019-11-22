@@ -321,7 +321,9 @@ func (scanner *resourceTypeScanner) check(
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
-	res := resource.NewResource(source, nil, fromVersion)
+
+	resourceFactory := resource.NewResourceFactory()
+	res := resourceFactory.NewResource(source, nil, fromVersion)
 	newVersions, err := res.Check(context.TODO(), processSpec, container)
 	resourceConfigScope.SetCheckError(err)
 	if err != nil {
