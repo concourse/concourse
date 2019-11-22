@@ -170,3 +170,7 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 
 	return NewConjurFactory(log, client, []*template.Template{pipelineSecretTemplate, teamSecretTemplate, secretTemplate}), nil
 }
+
+func (manager Manager) Close(logger lager.Logger) {
+	// TODO - to implement
+}

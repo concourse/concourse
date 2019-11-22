@@ -35,7 +35,7 @@ type SecretLookupPathConjur struct {
 	PipelineName string
 }
 
-func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, template := range c.secretTemplates {
 		c.log.Info(" teamname: " + teamName + "pipeline: " + pipelineName)
