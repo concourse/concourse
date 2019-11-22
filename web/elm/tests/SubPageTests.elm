@@ -5,7 +5,7 @@ import Common
 import Dict exposing (Dict)
 import Expect
 import Http
-import Message.Callback exposing (Callback(..))
+import Message.Callback exposing (Callback(..), Route(..))
 import NotFound.Model
 import Routes
 import SubPage.SubPage exposing (..)
@@ -35,7 +35,16 @@ all =
             in
             [ test "JobNotFound" <|
                 init "/teams/t/pipelines/p/jobs/j"
-                    >> Application.handleCallback (JobFetched notFoundResult)
+                    >> Application.handleCallback
+                        (ApiResponse
+                            (RouteJob
+                                { teamName = "t"
+                                , pipelineName = "p"
+                                , jobName = "j"
+                                }
+                            )
+                            notFoundResult
+                        )
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal

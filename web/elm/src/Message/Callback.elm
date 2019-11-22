@@ -1,6 +1,8 @@
 module Message.Callback exposing
-    ( Callback(..)
+    ( ApiEntity(..)
+    , Callback(..)
     , TooltipPolicy(..)
+    , Route(..)
     )
 
 import Browser.Dom
@@ -22,13 +24,21 @@ type alias Fetched a =
     Result Http.Error a
 
 
+type Route
+    = RouteJob Concourse.JobIdentifier
+
+
+type ApiEntity
+    = Job Concourse.Job
+
+
 type Callback
     = EmptyCallback
+    | ApiResponse Route (Fetched ApiEntity)
     | GotCurrentTime Time.Posix
     | GotCurrentTimeZone Time.Zone
     | BuildTriggered (Fetched Concourse.Build)
     | JobBuildsFetched (Fetched (Paginated Concourse.Build))
-    | JobFetched (Fetched Concourse.Job)
     | JobsFetched (Fetched Json.Encode.Value)
     | PipelineFetched (Fetched Concourse.Pipeline)
     | PipelinesFetched (Fetched (List Concourse.Pipeline))

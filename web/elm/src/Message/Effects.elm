@@ -14,9 +14,18 @@ import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
+import Dashboard.Group.Models
+import Http
+import Json.Decode
 import Json.Encode
 import Maybe exposing (Maybe)
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback
+    exposing
+        ( ApiEntity(..)
+        , Callback(..)
+        , Route(..)
+        , TooltipPolicy(..)
+        )
 import Message.Message
     exposing
         ( DomID(..)
@@ -37,6 +46,7 @@ import Process
 import Routes
 import Task
 import Time
+import Url.Builder
 import Views.Styles
 
 
@@ -107,8 +117,12 @@ stickyHeaderConfig =
     }
 
 
+
+-- | Jobs Concourse.PipelineIdentifier
+
+
 type Effect
-    = FetchJob Concourse.JobIdentifier
+    = ApiCall Route
     | FetchJobs Concourse.PipelineIdentifier
     | FetchJobBuilds Concourse.JobIdentifier (Maybe Page)
     | FetchResource Concourse.ResourceIdentifier
@@ -189,12 +203,56 @@ type ScrollDirection
     | ToId String
 
 
+toUrl : Route -> String
+toUrl route =
+    case route of
+        RouteJob { teamName, pipelineName, jobName } ->
+            Url.Builder.absolute
+                [ "api"
+                , "v1"
+                , "teams"
+                , teamName
+                , "pipelines"
+                , pipelineName
+                , "jobs"
+                , jobName
+                ]
+                []
+
+
+method : Route -> String
+method route =
+    case route of
+        RouteJob _ ->
+            "GET"
+
+
+expect : Route -> Http.Expect ApiEntity
+expect route =
+    case route of
+        RouteJob { teamName, pipelineName } ->
+            Http.expectJson <|
+                Json.Decode.map Job <|
+                    Concourse.decodeJob
+                        { teamName = teamName, pipelineName = pipelineName }
+
+
 runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
 runEffect effect key csrfToken =
     case effect of
-        FetchJob id ->
-            Network.Job.fetchJob id
-                |> Task.attempt JobFetched
+        ApiCall route ->
+            Http.request
+                { method = method route
+                , url = toUrl route
+                , headers =
+                    [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+                , body = Http.emptyBody
+                , expect = expect route
+                , timeout = Nothing
+                , withCredentials = False
+                }
+                |> Http.toTask
+                |> Task.attempt (ApiResponse route)
 
         FetchJobs id ->
             Network.Job.fetchJobsRaw id

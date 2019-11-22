@@ -1698,8 +1698,14 @@ iOpenTheNotFoundPage =
     iOpenTheJobPage
         >> Tuple.first
         >> Application.handleCallback
-            (Callback.JobFetched <|
-                Err <|
+            (Callback.ApiResponse
+                (Callback.RouteJob
+                    { teamName = "other-team"
+                    , pipelineName = "yet-another-pipeline"
+                    , jobName = "job"
+                    }
+                )
+                (Err <|
                     Http.BadStatus
                         { url = "http://example.com"
                         , status =
@@ -1709,6 +1715,7 @@ iOpenTheNotFoundPage =
                         , headers = Dict.empty
                         , body = ""
                         }
+                )
             )
 
 

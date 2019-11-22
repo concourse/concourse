@@ -47,7 +47,7 @@ all =
                     , teamName = "some-team"
                     }
 
-                jobInfo =
+                jobIdentifier =
                     { jobName = "job"
                     , pipelineName = "pipeline"
                     , teamName = "team"
@@ -113,24 +113,27 @@ all =
                 init { disabled, paused } _ =
                     Common.init "/teams/team/pipelines/pipeline/jobs/job"
                         |> Application.handleCallback
-                            (JobFetched <|
-                                Ok
-                                    { name = "job"
-                                    , pipelineName = "pipeline"
-                                    , teamName = "team"
-                                    , pipeline =
-                                        { pipelineName = "pipeline"
+                            (ApiResponse
+                                (Callback.RouteJob jobIdentifier)
+                                (Ok <|
+                                    Callback.Job
+                                        { name = "job"
+                                        , pipelineName = "pipeline"
                                         , teamName = "team"
+                                        , pipeline =
+                                            { pipelineName = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                        , nextBuild = Nothing
+                                        , finishedBuild = Just someBuild
+                                        , transitionBuild = Nothing
+                                        , paused = paused
+                                        , disableManualTrigger = disabled
+                                        , inputs = []
+                                        , outputs = []
+                                        , groups = []
                                         }
-                                    , nextBuild = Nothing
-                                    , finishedBuild = Just someBuild
-                                    , transitionBuild = Nothing
-                                    , paused = paused
-                                    , disableManualTrigger = disabled
-                                    , inputs = []
-                                    , outputs = []
-                                    , groups = []
-                                    }
+                                )
                             )
                         |> Tuple.first
 
@@ -186,6 +189,25 @@ all =
                             }
                             |> Tuple.second
                             |> Common.contains Effects.FetchAllPipelines
+                , test "fetches job" <|
+                    \_ ->
+                        Application.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = ""
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            }
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                            |> Tuple.second
+                            |> Common.contains
+                                (Effects.ApiCall (Callback.RouteJob jobIdentifier))
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
                         Common.init "/teams/team/pipelines/pipeline/jobs/job"
@@ -897,24 +919,6 @@ all =
                             Job.handleCallback
                                 (JobBuildsFetched <| Err Http.NetworkError)
                                 ( defaultModel, [] )
-            , test "JobFetched" <|
-                \_ ->
-                    Expect.equal
-                        { defaultModel
-                            | job = RemoteData.Success someJob
-                        }
-                    <|
-                        Tuple.first <|
-                            Job.handleCallback (JobFetched <| Ok someJob) ( defaultModel, [] )
-            , test "JobFetched error" <|
-                \_ ->
-                    Expect.equal
-                        defaultModel
-                    <|
-                        Tuple.first <|
-                            Job.handleCallback
-                                (JobFetched <| Err Http.NetworkError)
-                                ( defaultModel, [] )
             , test "BuildResourcesFetched" <|
                 \_ ->
                     let
@@ -1019,8 +1023,9 @@ all =
                         )
                     >> Tuple.second
                     >> Expect.all
-                        [ Common.contains (Effects.FetchJobBuilds jobInfo Nothing)
-                        , Common.contains (Effects.FetchJob jobInfo)
+                        [ Common.contains (Effects.FetchJobBuilds jobIdentifier Nothing)
+                        , Common.contains
+                            (Effects.ApiCall <| Callback.RouteJob jobIdentifier)
                         ]
             , test "on one-second timer, updates build timestamps" <|
                 init { disabled = False, paused = False }

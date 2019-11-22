@@ -44,7 +44,7 @@ import Html.Events
 import Http
 import Job.Styles as Styles
 import Login.Login as Login
-import Message.Callback exposing (Callback(..))
+import Message.Callback as Callback exposing (Callback(..), Route(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
@@ -111,7 +111,7 @@ init flags =
             }
     in
     ( model
-    , [ FetchJob flags.jobId
+    , [ ApiCall (RouteJob flags.jobId)
       , FetchJobBuilds flags.jobId flags.paging
       , GetCurrentTime
       , GetCurrentTimeZone
@@ -181,12 +181,12 @@ handleCallback callback ( model, effects ) =
         JobBuildsFetched (Ok builds) ->
             handleJobBuildsFetched builds ( model, effects )
 
-        JobFetched (Ok job) ->
+        ApiResponse (RouteJob _) (Ok (Callback.Job job)) ->
             ( { model | job = RemoteData.Success job }
             , effects
             )
 
-        JobFetched (Err err) ->
+        ApiResponse (RouteJob _) (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
@@ -247,7 +247,7 @@ handleDelivery delivery ( model, effects ) =
             ( model
             , effects
                 ++ [ FetchJobBuilds model.jobIdentifier model.currentPage
-                   , FetchJob model.jobIdentifier
+                   , ApiCall (RouteJob model.jobIdentifier)
                    , FetchAllPipelines
                    ]
             )
