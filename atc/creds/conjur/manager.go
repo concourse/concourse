@@ -130,8 +130,8 @@ func (manager *Manager) Validate() error {
 		return errors.New("must provide conjur account")
 	}
 
-	if manager.ConjurAccount == "" {
-		return errors.New("must provide conjur account")
+	if manager.ConjurAuthnLogin == "" {
+		return errors.New("must provide conjur login")
 	}
 
 	if manager.ConjurAuthnApiKey == "" && manager.ConjurAuthnTokenFile == "" {
