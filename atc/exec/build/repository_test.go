@@ -2,7 +2,8 @@ package build_test
 
 import (
 	. "github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/build/artifactfakes"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
+	
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"io"
@@ -17,58 +18,58 @@ var _ = Describe("ArtifactRepository", func() {
 		repo = NewRepository()
 	})
 
-	It("initially does not contain any sources", func() {
-		source, found := repo.SourceFor("first-source")
-		Expect(source).To(BeNil())
+	It("initially does not contain any artifacts", func() {
+		artifact, found := repo.ArtifactFor("first-artifact")
+		Expect(artifact).To(BeNil())
 		Expect(found).To(BeFalse())
 	})
 
-	Context("when a source is registered", func() {
-		var firstSource *artifactfakes.FakeRegisterableSource
+	Context("when a artifact is registered", func() {
+		var firstArtifact *runtimefakes.FakeArtifact
 
 		BeforeEach(func() {
-			firstSource = new(artifactfakes.FakeRegisterableSource)
-			repo.RegisterSource("first-source", firstSource)
+			firstArtifact = new(runtimefakes.FakeArtifact)
+			repo.RegisterArtifact("first-artifact", firstArtifact)
 		})
 
-		Describe("SourceFor", func() {
-			It("yields the source by the given name", func() {
-				source, found := repo.SourceFor("first-source")
-				Expect(source).To(Equal(firstSource))
+		Describe("ArtifactFor", func() {
+			It("yields the artifact by the given name", func() {
+				artifact, found := repo.ArtifactFor("first-artifact")
+				Expect(artifact).To(Equal(firstArtifact))
 				Expect(found).To(BeTrue())
 			})
 
 			It("yields nothing for unregistered names", func() {
-				source, found := repo.SourceFor("bogus-source")
-				Expect(source).To(BeNil())
+				artifact, found := repo.ArtifactFor("bogus-artifact")
+				Expect(artifact).To(BeNil())
 				Expect(found).To(BeFalse())
 			})
 		})
 
-		Context("when a second source is registered", func() {
-			var secondSource *artifactfakes.FakeRegisterableSource
+		Context("when a second artifact is registered", func() {
+			var artifact *runtimefakes.FakeArtifact
 
 			BeforeEach(func() {
-				secondSource = new(artifactfakes.FakeRegisterableSource)
-				repo.RegisterSource("second-source", secondSource)
+				artifact = new(runtimefakes.FakeArtifact)
+				repo.RegisterArtifact("second-artifact", artifact)
 			})
 
-			Describe("SourceFor", func() {
-				It("yields the first source by the given name", func() {
-					source, found := repo.SourceFor("first-source")
-					Expect(source).To(Equal(firstSource))
+			Describe("ArtifactFor", func() {
+				It("yields the first artifact by the given name", func() {
+					artifact, found := repo.ArtifactFor("first-artifact")
+					Expect(artifact).To(Equal(firstArtifact))
 					Expect(found).To(BeTrue())
 				})
 
-				It("yields the second source by the given name", func() {
-					source, found := repo.SourceFor("second-source")
-					Expect(source).To(Equal(firstSource))
+				It("yields the second artifact by the given name", func() {
+					artifact, found := repo.ArtifactFor("second-artifact")
+					Expect(artifact).To(Equal(firstArtifact))
 					Expect(found).To(BeTrue())
 				})
 
 				It("yields nothing for unregistered names", func() {
-					source, found := repo.SourceFor("bogus-source")
-					Expect(source).To(BeNil())
+					artifact, found := repo.ArtifactFor("bogus-artifact")
+					Expect(artifact).To(BeNil())
 					Expect(found).To(BeFalse())
 				})
 			})
