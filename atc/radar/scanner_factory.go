@@ -1,12 +1,13 @@
 package radar
 
 import (
-	"code.cloudfoundry.org/lager"
 	"time"
 
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -26,7 +27,7 @@ type scannerFactory struct {
 	resourceCheckingInterval     time.Duration
 	externalURL                  string
 	secretManager                creds.Secrets
-	varSourcePool creds.VarSourcePool
+	varSourcePool                creds.VarSourcePool
 	strategy                     worker.ContainerPlacementStrategy
 }
 
@@ -52,7 +53,7 @@ func NewScannerFactory(
 		resourceTypeCheckingInterval: resourceTypeCheckingInterval,
 		externalURL:                  externalURL,
 		secretManager:                secretManager,
-		varSourcePool:varSourcePool,
+		varSourcePool:                varSourcePool,
 		strategy:                     strategy,
 	}
 }
@@ -61,6 +62,7 @@ func (f *scannerFactory) NewResourceScanner(logger lager.Logger, dbPipeline db.P
 	return NewResourceScanner(
 		clock.NewClock(),
 		f.pool,
+		resource.NewResourceFactory(),
 		f.resourceConfigFactory,
 		f.resourceCheckingInterval,
 		dbPipeline,

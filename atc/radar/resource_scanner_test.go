@@ -3,25 +3,25 @@ package radar_test
 import (
 	"context"
 	"errors"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/radar"
+	. "github.com/concourse/concourse/atc/radar"
+	rfakes "github.com/concourse/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
 
-	. "github.com/concourse/concourse/atc/radar"
-	"github.com/concourse/concourse/atc/resource"
-	rfakes "github.com/concourse/concourse/atc/resource/resourcefakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -49,9 +49,8 @@ var _ = Describe("ResourceScanner", func() {
 
 		scanner Scanner
 
-		resourceConfig          atc.ResourceConfig
 		fakeDBResource          *dbfakes.FakeResource
-		fakeResourceConfig      *dbfakes.FakeResourceConfig
+		fakeDBResourceConfig    *dbfakes.FakeResourceConfig
 		fakeResourceConfigScope *dbfakes.FakeResourceConfigScope
 
 		fakeLock *lockfakes.FakeLock
@@ -77,13 +76,6 @@ var _ = Describe("ResourceScanner", func() {
 			"source-params": "some-secret-sauce",
 		}
 
-		resourceConfig = atc.ResourceConfig{
-			Name:   "some-resource",
-			Type:   "git",
-			Source: atc.Source{"uri": "some-secret-sauce"},
-			Tags:   atc.Tags{"some-tag"},
-		}
-
 		interpolatedResourceTypes = atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
@@ -105,12 +97,12 @@ var _ = Describe("ResourceScanner", func() {
 		fakeResourceType = new(dbfakes.FakeResourceType)
 		fakeDBResource = new(dbfakes.FakeResource)
 		fakeDBPipeline = new(dbfakes.FakePipeline)
-		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
-		fakeResourceConfig.IDReturns(123)
-		fakeResourceConfig.OriginBaseResourceTypeReturns(&db.UsedBaseResourceType{ID: 456})
+		fakeDBResourceConfig = new(dbfakes.FakeResourceConfig)
+		fakeDBResourceConfig.IDReturns(123)
+		fakeDBResourceConfig.OriginBaseResourceTypeReturns(&db.UsedBaseResourceType{ID: 456})
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
 		fakeResourceConfigScope.IDReturns(456)
-		fakeResourceConfigScope.ResourceConfigReturns(fakeResourceConfig)
+		fakeResourceConfigScope.ResourceConfigReturns(fakeDBResourceConfig)
 
 		fakeDBPipeline.IDReturns(42)
 		fakeDBPipeline.NameReturns("some-pipeline")
@@ -165,7 +157,7 @@ var _ = Describe("ResourceScanner", func() {
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
+			fakeResourceFactory.NewResourceReturns(fakeResource)
 		})
 
 		JustBeforeEach(func() {
@@ -427,7 +419,7 @@ var _ = Describe("ResourceScanner", func() {
 
 				Context("when there is no current version", func() {
 					It("checks from nil", func() {
-						_, _, version := fakeResource.CheckArgsForCall(0)
+						_, _, version := fakeResourceFactory.NewResourceArgsForCall(0)
 						Expect(version).To(BeNil())
 					})
 				})
@@ -442,19 +434,15 @@ var _ = Describe("ResourceScanner", func() {
 					})
 
 					It("checks from it", func() {
-						_, _, version := fakeResource.CheckArgsForCall(0)
+						_, _, version := fakeResourceFactory.NewResourceArgsForCall(0)
 						Expect(version).To(Equal(atc.Version{"version": "1"}))
 					})
 				})
 
 				Context("when the check returns versions", func() {
-					var checkedFrom chan atc.Version
-
 					var nextVersions []atc.Version
 
 					BeforeEach(func() {
-						checkedFrom = make(chan atc.Version, 100)
-
 						nextVersions = []atc.Version{
 							{"version": "1"},
 							{"version": "2"},
@@ -466,16 +454,16 @@ var _ = Describe("ResourceScanner", func() {
 						}
 
 						check := 0
-						fakeResource.CheckStub = func(ctx context.Context, source atc.Source, from atc.Version) ([]atc.Version, error) {
+						fakeResource.CheckStub = func(ctx context.Context, processSpec runtime.ProcessSpec, runner runtime.Runner) ([]atc.Version, error) {
 							defer GinkgoRecover()
 
-							Expect(source).To(Equal(resourceConfig.Source))
-
-							checkedFrom <- from
+							Expect(processSpec).To(Equal(runtime.ProcessSpec{Path: "/opt/resource/check"}))
+							Expect(runner).To(Equal(fakeContainer))
 							result := checkResults[check]
 							check++
 
 							return result, nil
+
 						}
 					})
 
@@ -515,7 +503,7 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				Context("when checking fails with ErrResourceScriptFailed", func() {
-					scriptFail := resource.ErrResourceScriptFailed{}
+					scriptFail := runtime.ErrResourceScriptFailed{}
 
 					BeforeEach(func() {
 						fakeResource.CheckReturns(nil, scriptFail)
@@ -599,7 +587,7 @@ var _ = Describe("ResourceScanner", func() {
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
+			fakeResourceFactory.NewResourceReturns(fakeResource)
 		})
 
 		JustBeforeEach(func() {
@@ -857,7 +845,7 @@ var _ = Describe("ResourceScanner", func() {
 					})
 
 					It("checks from the pinned version", func() {
-						_, _, version := fakeResource.CheckArgsForCall(0)
+						_, _, version := fakeResourceFactory.NewResourceArgsForCall(0)
 						Expect(version).To(Equal(atc.Version{"version": "1"}))
 					})
 				})
@@ -883,13 +871,20 @@ var _ = Describe("ResourceScanner", func() {
 				Expect(err).To(BeNil())
 			})
 
+			It("invokes resourceFactory.NewResource with the correct arguments", func() {
+				actualSource, actualParams, actualVersion := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(actualSource).To(Equal(atc.Source{"uri": "some-secret-sauce"}))
+				Expect(actualParams).To(BeNil())
+				Expect(actualVersion).To(BeNil())
+			})
+
 			Context("when there is no current version", func() {
 				BeforeEach(func() {
 					fakeResourceConfigScope.LatestVersionReturns(nil, false, nil)
 				})
 
 				It("checks from nil", func() {
-					_, _, version := fakeResource.CheckArgsForCall(0)
+					_, _, version := fakeResourceFactory.NewResourceArgsForCall(0)
 					Expect(version).To(BeNil())
 				})
 			})
@@ -922,7 +917,7 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("checks from it", func() {
-					_, _, version := fakeResource.CheckArgsForCall(0)
+					_, _, version := fakeResourceFactory.NewResourceArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"version": "1"}))
 				})
 
@@ -938,13 +933,9 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			Context("when the check returns versions", func() {
-				var checkedFrom chan atc.Version
-
 				var nextVersions []atc.Version
 
 				BeforeEach(func() {
-					checkedFrom = make(chan atc.Version, 100)
-
 					nextVersions = []atc.Version{
 						{"version": "1"},
 						{"version": "2"},
@@ -956,12 +947,12 @@ var _ = Describe("ResourceScanner", func() {
 					}
 
 					check := 0
-					fakeResource.CheckStub = func(ctx context.Context, source atc.Source, from atc.Version) ([]atc.Version, error) {
+					fakeResource.CheckStub = func(ctx context.Context, processSpec runtime.ProcessSpec, runner runtime.Runner) ([]atc.Version, error) {
 						defer GinkgoRecover()
 
-						Expect(source).To(Equal(resourceConfig.Source))
+						Expect(processSpec).To(Equal(runtime.ProcessSpec{Path: "/opt/resource/check"}))
+						Expect(runner).To(Equal(fakeContainer))
 
-						checkedFrom <- from
 						result := checkResults[check]
 						check++
 
@@ -997,7 +988,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when the check does not return any new versions", func() {
 				BeforeEach(func() {
-					fakeResource.CheckStub = func(ctx context.Context, source atc.Source, from atc.Version) ([]atc.Version, error) {
+					fakeResource.CheckStub = func(ctx context.Context, processSpec runtime.ProcessSpec, runner runtime.Runner) ([]atc.Version, error) {
 						return []atc.Version{}, nil
 					}
 				})
@@ -1027,7 +1018,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			Context("when checking fails with ErrResourceScriptFailed", func() {
-				scriptFail := resource.ErrResourceScriptFailed{}
+				scriptFail := runtime.ErrResourceScriptFailed{}
 
 				BeforeEach(func() {
 					fakeResource.CheckReturns(nil, scriptFail)
@@ -1063,7 +1054,7 @@ var _ = Describe("ResourceScanner", func() {
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 
 			fakeResource = new(rfakes.FakeResource)
-			fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
+			fakeResourceFactory.NewResourceReturns(fakeResource)
 
 			fromVersion = nil
 		})
@@ -1080,7 +1071,7 @@ var _ = Describe("ResourceScanner", func() {
 
 			Context("when fromVersion is nil", func() {
 				It("checks from nil", func() {
-					_, _, version := fakeResource.CheckArgsForCall(0)
+					_, _, version := fakeResourceFactory.NewResourceArgsForCall(0)
 					Expect(version).To(BeNil())
 				})
 			})
@@ -1093,7 +1084,7 @@ var _ = Describe("ResourceScanner", func() {
 				})
 
 				It("checks from it", func() {
-					_, _, version := fakeResource.CheckArgsForCall(0)
+					_, _, version := fakeResourceFactory.NewResourceArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"version": "1"}))
 				})
 
@@ -1111,7 +1102,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			Context("when checking fails with ErrResourceScriptFailed", func() {
-				scriptFail := resource.ErrResourceScriptFailed{}
+				scriptFail := runtime.ErrResourceScriptFailed{}
 
 				BeforeEach(func() {
 					fakeResource.CheckReturns(nil, scriptFail)

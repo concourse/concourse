@@ -24,6 +24,7 @@ var GlobalResourceCheckTimeout time.Duration
 type resourceScanner struct {
 	clock                 clock.Clock
 	pool                  worker.Pool
+	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
@@ -36,6 +37,7 @@ type resourceScanner struct {
 func NewResourceScanner(
 	clock clock.Clock,
 	pool worker.Pool,
+	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
@@ -47,6 +49,7 @@ func NewResourceScanner(
 	return &resourceScanner{
 		clock:                 clock,
 		pool:                  pool,
+		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
@@ -399,8 +402,7 @@ func (scanner *resourceScanner) check(
 		Path: "/opt/resource/check",
 	}
 
-	resourceFactory := resource.NewResourceFactory()
-	res := resourceFactory.NewResource(source, nil, fromVersion)
+	res := scanner.resourceFactory.NewResource(source, nil, fromVersion)
 	newVersions, err := res.Check(ctx, processSpec, container)
 	if err == context.DeadlineExceeded {
 		err = fmt.Errorf("Timed out after %v while checking for new versions - perhaps increase your resource check timeout?", timeout)
