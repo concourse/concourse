@@ -77,6 +77,7 @@ func (f *scannerFactory) NewResourceTypeScanner(logger lager.Logger, dbPipeline 
 	return NewResourceTypeScanner(
 		clock.NewClock(),
 		f.pool,
+		resource.NewResourceFactory(),
 		f.resourceConfigFactory,
 		f.resourceTypeCheckingInterval,
 		dbPipeline,

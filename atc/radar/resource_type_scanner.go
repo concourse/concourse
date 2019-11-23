@@ -6,20 +6,20 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/concourse/concourse/atc/runtime"
-
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 )
 
 type resourceTypeScanner struct {
 	clock                 clock.Clock
 	pool                  worker.Pool
+	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultInterval       time.Duration
 	dbPipeline            db.Pipeline
@@ -32,6 +32,7 @@ type resourceTypeScanner struct {
 func NewResourceTypeScanner(
 	clock clock.Clock,
 	pool worker.Pool,
+	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultInterval time.Duration,
 	dbPipeline db.Pipeline,
@@ -43,6 +44,7 @@ func NewResourceTypeScanner(
 	return &resourceTypeScanner{
 		clock:                 clock,
 		pool:                  pool,
+		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		defaultInterval:       defaultInterval,
 		dbPipeline:            dbPipeline,
@@ -322,8 +324,7 @@ func (scanner *resourceTypeScanner) check(
 		Path: "/opt/resource/check",
 	}
 
-	resourceFactory := resource.NewResourceFactory()
-	res := resourceFactory.NewResource(source, nil, fromVersion)
+	res := scanner.resourceFactory.NewResource(source, nil, fromVersion)
 	newVersions, err := res.Check(context.TODO(), processSpec, container)
 	resourceConfigScope.SetCheckError(err)
 	if err != nil {

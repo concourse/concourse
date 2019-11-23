@@ -41,6 +41,7 @@ func NewScanRunnerFactory(
 	resourceTypeScanner := NewResourceTypeScanner(
 		clock,
 		pool,
+		resource.NewResourceFactory(),
 		resourceConfigFactory,
 		resourceTypeCheckingInterval,
 		dbPipeline,
