@@ -45,7 +45,12 @@ import Http
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback as Callback
+    exposing
+        ( Callback(..)
+        , Route(..)
+        , TooltipPolicy(..)
+        )
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
@@ -277,14 +282,10 @@ handleCallback action ( model, effects ) =
                 _ ->
                     ( model, effects )
 
-        BuildJobDetailsFetched (Ok job) ->
+        ApiResponse (RouteJob _) (Ok (Callback.Job job)) ->
             ( { model | disableManualTrigger = job.disableManualTrigger }
             , effects
             )
-
-        BuildJobDetailsFetched (Err _) ->
-            -- https://github.com/concourse/concourse/issues/3201
-            ( model, effects )
 
         _ ->
             ( model, effects )
@@ -519,7 +520,7 @@ handleBuildFetched build ( model, effects ) =
         fetchJobAndHistory =
             case ( model.job, build.job ) of
                 ( Nothing, Just buildJob ) ->
-                    [ FetchBuildJobDetails buildJob
+                    [ ApiCall (RouteJob buildJob)
                     , FetchBuildHistory buildJob Nothing
                     ]
 
