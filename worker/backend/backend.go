@@ -162,7 +162,20 @@ func (b *Backend) BulkMetrics(handles []string) (metrics map[string]garden.Conta
 //
 // Errors:
 // * Container not found.
-func (b *Backend) Lookup(handle string) (container garden.Container, err error) { return }
+func (b *Backend) Lookup(handle string) (garden.Container, error) {
+	var ctx = namespaces.WithNamespace(context.Background(), b.namespace)
+
+	if handle == "" {
+		return nil, InputValidationError{}
+	}
+
+	_, err := b.client.GetContainer(ctx, handle)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Container{}, nil
+}
 
 // propertiesToFilterList converts a set of garden properties to a list of
 // filters as expected by containerd.

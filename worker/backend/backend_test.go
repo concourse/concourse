@@ -174,6 +174,53 @@ func (s *BackendSuite) TestContainersConversion() {
 	s.Len(containers, 2)
 }
 
+func (s *BackendSuite) TestLookupEmptyHandleError() {
+	_, err := s.backend.Lookup("")
+	s.Equal(err, backend.InputValidationError{})
+}
+
+func (s *BackendSuite) TestLookupCallGetContainerWithHandle() {
+	_, _ = s.backend.Lookup("handle")
+	s.Equal(1, s.client.GetContainerCallCount())
+
+	_, handle := s.client.GetContainerArgsForCall(0)
+	s.Equal("handle", handle)
+}
+
+func (s *BackendSuite) TestLookupCallGetContainerWithNamespace() {
+	_, _ = s.backend.Lookup("handle")
+	s.Equal(1, s.client.GetContainerCallCount())
+
+	ctx, _ := s.client.GetContainerArgsForCall(0)
+	s.NotNil(ctx)
+
+	namespace, found := namespaces.Namespace(ctx)
+	s.True(found)
+	s.Equal(testNamespace, namespace)
+}
+
+func (s *BackendSuite) TestLookupGetContainerError() {
+	s.client.GetContainerReturns(nil, errors.New("containerd-err"))
+
+	_, err := s.backend.Lookup("handle")
+	s.Error(err)
+	s.Equal(err, errors.New("containerd-err"))
+}
+
+func (s *BackendSuite) TestLookupGetContainerFails() {
+	s.client.GetContainerReturns(nil, errors.New("err"))
+	_, err := s.backend.Lookup("non-existent-handle")
+	s.Error(err)
+	s.Equal(err, errors.New("err"))
+}
+
+func (s *BackendSuite) TestLookupGetContainer() {
+	s.client.GetContainerReturns(new(libcontainerdfakes.FakeContainer), nil)
+	container, err := s.backend.Lookup("non-existent-handle")
+	s.NoError(err)
+	s.NotNil(container)
+}
+
 func (s *BackendSuite) TestDestroySetsNamespace() {
 	_ = s.backend.Destroy("some-handle")
 	ctx, _ := s.client.DestroyArgsForCall(0)

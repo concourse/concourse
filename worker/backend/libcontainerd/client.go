@@ -52,6 +52,13 @@ type Client interface {
 		containers []containerd.Container, err error,
 	)
 
+	GetContainer(
+		ctx context.Context,
+		handle string,
+	) (
+		container containerd.Container, err error,
+	)
+
 	Destroy(ctx context.Context, handle string) error
 }
 
@@ -103,6 +110,10 @@ func (c *client) Containers(
 	[]containerd.Container, error,
 ) {
 	return c.containerd.Containers(ctx, labels...)
+}
+
+func (c *client) GetContainer(ctx context.Context, handle string) (containerd.Container, error) {
+	return c.containerd.LoadContainer(ctx, handle)
 }
 
 func (c *client) Version(ctx context.Context) (err error) {

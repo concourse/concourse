@@ -37,6 +37,20 @@ type FakeClient struct {
 	destroyReturnsOnCall map[int]struct {
 		result1 error
 	}
+	GetContainerStub        func(context.Context, string) (containerd.Container, error)
+	getContainerMutex       sync.RWMutex
+	getContainerArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+	}
+	getContainerReturns struct {
+		result1 containerd.Container
+		result2 error
+	}
+	getContainerReturnsOnCall map[int]struct {
+		result1 containerd.Container
+		result2 error
+	}
 	InitStub        func() error
 	initMutex       sync.RWMutex
 	initArgsForCall []struct {
@@ -211,6 +225,70 @@ func (fake *FakeClient) DestroyReturnsOnCall(i int, result1 error) {
 	fake.destroyReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeClient) GetContainer(arg1 context.Context, arg2 string) (containerd.Container, error) {
+	fake.getContainerMutex.Lock()
+	ret, specificReturn := fake.getContainerReturnsOnCall[len(fake.getContainerArgsForCall)]
+	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("GetContainer", []interface{}{arg1, arg2})
+	fake.getContainerMutex.Unlock()
+	if fake.GetContainerStub != nil {
+		return fake.GetContainerStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getContainerReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) GetContainerCallCount() int {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	return len(fake.getContainerArgsForCall)
+}
+
+func (fake *FakeClient) GetContainerCalls(stub func(context.Context, string) (containerd.Container, error)) {
+	fake.getContainerMutex.Lock()
+	defer fake.getContainerMutex.Unlock()
+	fake.GetContainerStub = stub
+}
+
+func (fake *FakeClient) GetContainerArgsForCall(i int) (context.Context, string) {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	argsForCall := fake.getContainerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeClient) GetContainerReturns(result1 containerd.Container, result2 error) {
+	fake.getContainerMutex.Lock()
+	defer fake.getContainerMutex.Unlock()
+	fake.GetContainerStub = nil
+	fake.getContainerReturns = struct {
+		result1 containerd.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) GetContainerReturnsOnCall(i int, result1 containerd.Container, result2 error) {
+	fake.getContainerMutex.Lock()
+	defer fake.getContainerMutex.Unlock()
+	fake.GetContainerStub = nil
+	if fake.getContainerReturnsOnCall == nil {
+		fake.getContainerReturnsOnCall = make(map[int]struct {
+			result1 containerd.Container
+			result2 error
+		})
+	}
+	fake.getContainerReturnsOnCall[i] = struct {
+		result1 containerd.Container
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeClient) Init() error {
@@ -450,6 +528,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.containersMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
 	fake.initMutex.RLock()
 	defer fake.initMutex.RUnlock()
 	fake.newContainerMutex.RLock()
