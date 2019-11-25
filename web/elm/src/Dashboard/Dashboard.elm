@@ -228,6 +228,14 @@ handleCallback callback ( model, effects ) =
                 effects
             )
 
+        AllPipelinesFetched (Err _) ->
+            ( { model
+                | state =
+                    RemoteData.Failure (Turbulence model.turbulencePath)
+              }
+            , effects
+            )
+
         LoggedOut (Ok ()) ->
             ( model
             , effects

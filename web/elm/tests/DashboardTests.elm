@@ -277,6 +277,25 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "experiencing turbulence" ]
+        , test "shows turbulence view if the all pipelines call gives a bad status error" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 500
+                                        , message = "internal server error"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ text "experiencing turbulence" ]
         , test "title says 'Dashboard - Concourse'" <|
             \_ ->
                 Common.init "/"
@@ -2383,7 +2402,7 @@ all =
                         >> card
                         >> Query.has
                             [ style "margin" "0 60px 4px 0" ]
-                , test "card is faded green when pipeline is suceeding" <|
+                , test "card is faded green when pipeline is succeeding" <|
                     \_ ->
                         whenOnDashboard { highDensity = True }
                             |> pipelineWithStatus
