@@ -75,12 +75,13 @@ type CFTeamFlags struct {
 	OrgGuidsLegacy   []string `mapstructure:"orgguids"`
 	SpaceGuidsLegacy []string `mapstructure:"spaceguids"`
 
-	Orgs            []string `long:"insecure-org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME" mapstructure:"insecure_orgs"`
-	Spaces          []string `long:"insecure-space" description:"(Deprecated) A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces"`
-	SpacesAll       []string `long:"insecure-space-with-any-role" description:"A whitelisted CloudFoundry space for users with any role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces_with_any_role"`
-	SpacesDeveloper []string `long:"insecure-space-with-developer-role" description:"A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces_with_developer_role"`
-	SpacesAuditor   []string `long:"insecure-space-with-auditor-role" description:"A whitelisted CloudFoundry space for users with the 'auditor' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces_with_auditor_role"`
-	SpacesManager   []string `long:"insecure-space-with-manager-role" description:"A whitelisted CloudFoundry space for users with the 'manager' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces_with_manager_role"`
+	Orgs   []string `long:"insecure-org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME" mapstructure:"insecure_orgs"`
+	Spaces []string `long:"insecure-space" description:"(Deprecated) A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"insecure_spaces"`
+
+	SpacesAll       []string `long:"space-with-any-role" description:"A whitelisted CloudFoundry space for users with any role" value-name:"SPACE_GUID" mapstructure:"spaces_with_any_role"`
+	SpacesDeveloper []string `long:"space-with-developer-role" description:"A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"SPACE_GUID" mapstructure:"spaces_with_developer_role"`
+	SpacesAuditor   []string `long:"space-with-auditor-role" description:"A whitelisted CloudFoundry space for users with the 'auditor' role" value-name:"SPACE_GUID" mapstructure:"spaces_with_auditor_role"`
+	SpacesManager   []string `long:"space-with-manager-role" description:"A whitelisted CloudFoundry space for users with the 'manager' role" value-name:"SPACE_GUID" mapstructure:"spaces_with_manager_role"`
 }
 
 func (flag *CFTeamFlags) GetUsers() []string {
