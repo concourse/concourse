@@ -58,7 +58,6 @@ In order to have a worker on the local network register with `tsa` you can run t
 ssh -p 2222 $TSA_HOST \
   -i worker_key \
   -o UserKnownHostsFile=host_key.pub \
-  register-worker \
   < worker.json
 ```
 
