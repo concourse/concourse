@@ -97,7 +97,7 @@ ssh -p 2222 $TSA_HOST \
   < worker.json
 ```
 
-Note that in this case you should always have Garden and BaggageClaim listen on `127.0.0.1` so that they're not exposed to the outside world. For this reason there is no `$GARDEN_ADDR` or `$BAGGAGECLAIM_URL` as is the case with `register-worker`.
+Note that in this case you should always have Garden and BaggageClaim listen on `127.0.0.1` so that they're not exposed to the outside world. For this reason there is no `$GARDEN_ADDR` or `$BAGGAGECLAIM_URL`.
 
 The `worker.json` file should contain the following:
 
