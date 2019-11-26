@@ -816,6 +816,13 @@ func (j *job) updatePausedJob(pause bool) error {
 		return NonOneRowAffectedError{rowsAffected}
 	}
 
+	if !pause {
+		err = j.RequestSchedule()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
