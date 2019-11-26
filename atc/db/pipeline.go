@@ -655,19 +655,29 @@ func (p *pipeline) Rename(name string) error {
 }
 
 func (p *pipeline) Move(destinationTeamName string) error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
 	destinationTeamID, err := psql.Select("id").
 		From("teams").
 		Where(sq.Eq{
 			"name": destinationTeamName,
 		}).
-		RunWith(p.conn).Query()
+		RunWith(tx).Exec()
+	if err != nil {
+		return err
+	}
 
 	_, err = psql.Update("pipelines").
 		Set("team_id", destinationTeamID).
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Exec()
 
 	if err != nil {
@@ -679,13 +689,15 @@ func (p *pipeline) Move(destinationTeamName string) error {
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Exec()
 
 	if err != nil {
 		return err
 	}
-	return nil
+
+	err = tx.Commit()
+	return err
 }
 
 func (p *pipeline) Destroy() error {
