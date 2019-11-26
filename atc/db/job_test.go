@@ -123,31 +123,53 @@ var _ = Describe("Job", func() {
 	})
 
 	Describe("Pause and Unpause", func() {
+		var initialRequestedTime time.Time
 		It("starts out as unpaused", func() {
 			Expect(job.Paused()).To(BeFalse())
 		})
 
-		It("can be paused", func() {
-			err := job.Pause()
-			Expect(err).NotTo(HaveOccurred())
+		Context("when pausing job", func() {
+			BeforeEach(func() {
+				initialRequestedTime = job.ScheduleRequestedTime()
 
-			found, err := job.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
+				err := job.Pause()
+				Expect(err).ToNot(HaveOccurred())
 
-			Expect(job.Paused()).To(BeTrue())
+				found, err := job.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("job is succesfully paused", func() {
+				Expect(job.Paused()).To(BeTrue())
+			})
+
+			It("does not request schedule on job", func() {
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", initialRequestedTime))
+			})
 		})
 
-		It("can be unpaused", func() {
-			err := job.Unpause()
-			Expect(err).NotTo(HaveOccurred())
+		Context("when unpausing job", func() {
+			BeforeEach(func() {
+				initialRequestedTime = job.ScheduleRequestedTime()
 
-			found, err := job.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
+				err := job.Unpause()
+				Expect(err).ToNot(HaveOccurred())
 
-			Expect(job.Paused()).To(BeFalse())
+				found, err := job.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("job is successfully unpaused", func() {
+				Expect(job.Paused()).To(BeFalse())
+			})
+
+			It("requests schedule on job", func() {
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime))
+			})
 		})
+
 	})
 
 	Describe("FinishedAndNextBuild", func() {
