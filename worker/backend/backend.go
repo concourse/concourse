@@ -112,7 +112,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 //
 // Errors:
 // * TODO.
-func (b *Backend) Destroy(handle string) (err error) {
+func (b *Backend) Destroy(handle string) error {
 	var ctx = namespaces.WithNamespace(context.Background(), b.namespace)
 
 	if handle == "" {

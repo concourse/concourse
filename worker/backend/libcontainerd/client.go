@@ -120,6 +120,11 @@ func (c *client) Version(ctx context.Context) (err error) {
 	_, err = c.containerd.Version(ctx)
 	return
 }
- func (c *client) Destroy(ctx context.Context, handle string) (err error) {
- 	return
- }
+func (c *client) Destroy(ctx context.Context, handle string) error {
+	container, err := c.GetContainer(ctx, handle)
+	if err != nil {
+		return err
+	}
+
+	return container.Delete(ctx)
+}
