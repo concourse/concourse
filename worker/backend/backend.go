@@ -3,12 +3,15 @@ package backend
 import (
 	"context"
 	"fmt"
+	"syscall"
 	"time"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/backend/libcontainerd"
 	bespec "github.com/concourse/concourse/worker/backend/spec"
+	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -114,12 +117,67 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 // * TODO.
 func (b *Backend) Destroy(handle string) error {
 	var ctx = namespaces.WithNamespace(context.Background(), b.namespace)
+	const maxTaskKillWaitTime = 500 * time.Millisecond // todo: parameterize
 
 	if handle == "" {
 		return InputValidationError{}
 	}
 
+	container, err := b.client.GetContainer(ctx, handle)
+	if err != nil {
+		return err
+	}
+
+	task, err := container.Task(ctx, nil)
+	if err != nil {
+		if !errdefs.IsNotFound(err) {
+			return err
+		}
+
+		return b.client.Destroy(ctx, handle)
+	}
+
+	timeDelimitedContext, _ := context.WithTimeout(ctx, maxTaskKillWaitTime)
+	err = killTasks(timeDelimitedContext, task)
+	if err != nil {
+		return err
+	}
+
 	return b.client.Destroy(ctx, handle)
+}
+
+// killTasks kills a task on time, gracefully if possible, ungracefully if not.
+//
+func killTasks(ctx context.Context, task containerd.Task) error {
+	exitStatus, err := task.Wait(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = task.Kill(ctx, syscall.SIGTERM)
+	if err != nil {
+		return err
+	}
+
+	select {
+	case <-exitStatus: // kill exited successfully.
+		//_, err = task.Delete(ctx)
+		return nil
+	case <-ctx.Done():
+		fmt.Println("took too long")
+		err = task.Kill(ctx, syscall.SIGKILL) // should return GRPC DeadlineExceeded error type, wrapped up
+		if err != nil {
+			return err
+		}
+		_, err = task.Delete(ctx)
+	}
+
+	if err != nil {
+		return err
+	}
+
+
+	return nil
 }
 
 // Containers lists all containers filtered by Properties (which are ANDed together).

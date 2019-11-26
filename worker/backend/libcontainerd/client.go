@@ -10,6 +10,7 @@ import (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Client
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd.Container
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd.Task
 
 // Client represents the minimum interface used to communicate with containerd
 // to manage containers.
