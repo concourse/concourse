@@ -23,3 +23,7 @@
 #### <sub><sup><a name="4804" href="#4804">:link:</a></sup></sub> fix
 
 * @vito bumped the `autocert` dependency so that Let's Encrypt will default to the ACME v2 API. #4804
+
+#### <sub><sup><a name="Registry Image Resource">:link:</a></sup></sub> fix
+
+* Drop hashicorp/go-retryablehttp in favor of an outer retryer to avoid mismatched digests during puts
