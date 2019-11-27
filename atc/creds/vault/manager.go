@@ -19,6 +19,7 @@ type VaultManager struct {
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
 	SharedPath string `long:"shared-path" description:"Path under which to lookup shared credentials."`
 	Namespace  string `long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
+	SkipTeamPath bool `long:"skip-team-path" description:"Skip team/ and team/pipeline/ from lookup path"`
 
 	TLS  TLS
 	Auth AuthConfig
@@ -116,6 +117,7 @@ func (manager *VaultManager) Config(config map[string]interface{}) {
 	manager.PathPrefix = toString(config["path_prefix"])
 	manager.SharedPath = toString(config["shared_path"])
 	manager.Namespace = toString(config["namespace"])
+	manager.SkipTeamPath = toBool(config["skip_team_path"])
 
 	manager.TLS.CACert = toString(config["ca_cert"])
 	manager.TLS.CAPath = toString(config["ca_path"])
@@ -179,7 +181,7 @@ func (manager VaultManager) Health() (*creds.HealthResponse, error) {
 func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
 	if manager.SecretFactory == nil {
 		manager.ReAuther = NewReAuther(logger, manager.Client, manager.Auth.BackendMaxTTL, manager.Auth.RetryInitial, manager.Auth.RetryMax)
-		manager.SecretFactory = NewVaultFactory(manager.Client, manager.ReAuther.LoggedIn(), manager.PathPrefix, manager.SharedPath)
+		manager.SecretFactory = NewVaultFactory(manager.Client, manager.ReAuther.LoggedIn(), manager.PathPrefix, manager.SharedPath, manager.SkipTeamPath)
 	}
 	return manager.SecretFactory, nil
 }
