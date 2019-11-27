@@ -1087,14 +1087,45 @@ func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resourc
 	return resources, nil
 }
 
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
 func requestScheduleForJobsInPipeline(tx Tx, pipelineID int) error {
-	_, err := psql.Update("jobs").
-		Set("schedule_requested", sq.Expr("now()")).
+	rows, err := psql.Select("id").
+		From("jobs").
 		Where(sq.Eq{
 			"pipeline_id": pipelineID,
 		}).
+		OrderBy("id DESC").
 		RunWith(tx).
-		Exec()
+		Query()
+	if err != nil {
+		return err
+	}
 
-	return err
+	var jobIDs []int
+	for rows.Next() {
+		var id int
+		err = rows.Scan(&id)
+		if err != nil {
+			return err
+		}
+
+		jobIDs = append(jobIDs, id)
+	}
+
+	for _, jID := range jobIDs {
+		_, err := psql.Update("jobs").
+			Set("schedule_requested", sq.Expr("now()")).
+			Where(sq.Eq{
+				"id": jID,
+			}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
