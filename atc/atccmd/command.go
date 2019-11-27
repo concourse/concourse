@@ -58,6 +58,7 @@ import (
 	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -75,6 +76,9 @@ import (
 
 	// dynamically registered metric emitters
 	_ "github.com/concourse/concourse/atc/metric/emitter"
+
+	// dynamically registered policy checkers
+	_ "github.com/concourse/concourse/atc/policy/agent"
 
 	// dynamically registered credential managers
 	_ "github.com/concourse/concourse/atc/creds/conjur"
@@ -169,6 +173,10 @@ type RunCommand struct {
 	} `group:"Metrics & Diagnostics"`
 
 	Tracing tracing.Config `group:"Tracing" namespace:"tracing"`
+
+	PolicyCheckers struct {
+		Filter policy.Filter
+	} `group:"Policy Check"`
 
 	Server struct {
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
@@ -333,9 +341,12 @@ func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 }
 
 func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
-	var metricsGroup *flags.Group
-	var credsGroup *flags.Group
-	var authGroup *flags.Group
+	var (
+		metricsGroup      *flags.Group
+		policyChecksGroup *flags.Group
+		credsGroup        *flags.Group
+		authGroup         *flags.Group
+	)
 
 	groups := commandFlags.Groups()
 	for i := 0; i < len(groups); i++ {
@@ -349,11 +360,15 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 			metricsGroup = group
 		}
 
+		if policyChecksGroup == nil && group.ShortDescription == "Policy Check" {
+			policyChecksGroup = group
+		}
+
 		if authGroup == nil && group.ShortDescription == "Authentication" {
 			authGroup = group
 		}
 
-		if metricsGroup != nil && credsGroup != nil && authGroup != nil {
+		if metricsGroup != nil && credsGroup != nil && authGroup != nil && policyChecksGroup != nil {
 			break
 		}
 
@@ -362,6 +377,10 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 
 	if metricsGroup == nil {
 		panic("could not find Metrics & Diagnostics group for registering emitters")
+	}
+
+	if policyChecksGroup == nil {
+		panic("could not find Policy Check group for registering policy checkers")
 	}
 
 	if credsGroup == nil {
@@ -379,6 +398,8 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	cmd.CredentialManagers = managerConfigs
 
 	metric.WireEmitters(metricsGroup)
+
+	policy.WireCheckers(policyChecksGroup)
 
 	skycmd.WireConnectors(authGroup)
 	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
@@ -549,12 +570,17 @@ func (cmd *RunCommand) constructMembers(
 		}()
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager)
+	policyChecker, err := policy.Initialize(logger, cmd.Server.ClusterName, concourse.Version, cmd.PolicyCheckers.Filter)
 	if err != nil {
 		return nil, err
 	}
 
-	backendComponents, err := cmd.backendComponents(logger, backendConn, lockFactory, secretManager)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager, policyChecker)
+	if err != nil {
+		return nil, err
+	}
+
+	backendComponents, err := cmd.backendComponents(logger, backendConn, lockFactory, secretManager, policyChecker)
 	if err != nil {
 		return nil, err
 	}
@@ -615,6 +641,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
+	policyChecker policy.PreChecker,
 ) ([]grouper.Member, error) {
 
 	httpClient, err := cmd.skyHttpClient()
@@ -722,6 +749,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbWall,
 		tokenVerifier,
 		dbConn.Bus(),
+		policyChecker,
 	)
 	if err != nil {
 		return nil, err
@@ -846,7 +874,9 @@ func (cmd *RunCommand) backendComponents(
 	dbConn db.Conn,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
+	policyChecker policy.PreChecker,
 ) ([]RunnableComponent, error) {
+
 	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
 		return nil, fmt.Errorf("syslog Drainer is misconfigured, cannot configure a drainer without a transport")
 	}
@@ -932,6 +962,7 @@ func (cmd *RunCommand) backendComponents(
 		defaultLimits,
 		buildContainerStrategy,
 		lockFactory,
+		policyChecker,
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
@@ -1518,6 +1549,7 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
+	policyChecker policy.PreChecker,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1540,6 +1572,7 @@ func (cmd *RunCommand) constructEngine(
 		secretManager,
 		cmd.varSourcePool,
 		cmd.EnableRedactSecrets,
+		policyChecker,
 	)
 
 	return engine.NewEngine(stepBuilder)
@@ -1703,6 +1736,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbWall db.Wall,
 	tokenVerifier accessor.TokenVerifier,
 	notifications db.NotificationsBus,
+	policyChecker policy.PreChecker,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -1751,6 +1785,7 @@ func (cmd *RunCommand) constructAPIHandler(
 			wrappa.NewConcurrentRequestPolicy(cmd.ConcurrentRequestLimits),
 		),
 		wrappa.NewAPIMetricsWrappa(logger),
+		wrappa.NewPolicyCheckWrappa(logger, policyChecker),
 		wrappa.NewAPIAuthWrappa(
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,

@@ -31,6 +31,10 @@ services:
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
       CONCOURSE_ENABLE_ARCHIVE_PIPELINE: "true"
+      # TODO: remove
+      CONCOURSE_OPA_URL: http://192.168.1.12:8181/v1/data/concourse/allow
+      CONCOURSE_POLICY_CHECK_FILTER_ACTION_WHITE_LIST: ListWorkers,ListContainers
+      CONCOURSE_POLICY_CHECK_FILTER_ACTION_BLACK_LIST: PausePipeline,UnpausePipeline
 
   worker:
     build: .

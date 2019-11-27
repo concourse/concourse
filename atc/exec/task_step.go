@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -66,6 +67,8 @@ type TaskDelegate interface {
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus)
 	Errored(lager.Logger, string)
+
+	PolicyCheck(atc.TaskConfig) (bool, error)
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -208,6 +211,14 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	}
 
 	step.delegate.Initializing(logger)
+
+	pass, err := step.delegate.PolicyCheck(config)
+	if err != nil {
+		return err
+	}
+	if !pass {
+		return errors.New("policy check not pass")
+	}
 
 	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)
 	if err != nil {

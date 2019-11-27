@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -31,8 +32,8 @@ func (delegate *delegateFactory) PutDelegate(build db.Build, planID atc.PlanID, 
 	return NewPutDelegate(build, planID, credVarsTracker, clock.NewClock())
 }
 
-func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.TaskDelegate {
-	return NewTaskDelegate(build, planID, credVarsTracker, clock.NewClock())
+func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, policyChecker policy.PreChecker) exec.TaskDelegate {
+	return NewTaskDelegate(build, planID, credVarsTracker, policyChecker, clock.NewClock())
 }
 
 func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.CheckDelegate {
@@ -232,12 +233,14 @@ func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.
 	}
 }
 
-func NewTaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.TaskDelegate {
+func NewTaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, policyChecker policy.PreChecker, clock clock.Clock) exec.TaskDelegate {
 	return &taskDelegate{
 		BuildStepDelegate: NewBuildStepDelegate(build, planID, credVarsTracker, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
+
+		policyChecker: policyChecker,
 	}
 }
 
@@ -246,6 +249,8 @@ type taskDelegate struct {
 	config      atc.TaskConfig
 	build       db.Build
 	eventOrigin event.Origin
+
+	policyChecker policy.PreChecker
 }
 
 func (d *taskDelegate) SetTaskConfig(config atc.TaskConfig) {
@@ -296,6 +301,10 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
+}
+
+func (d *taskDelegate) PolicyCheck(config atc.TaskConfig) (bool, error) {
+	return d.policyChecker.CheckTask(d.build, config)
 }
 
 func NewCheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.CheckDelegate {
