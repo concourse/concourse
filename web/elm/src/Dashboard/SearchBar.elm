@@ -12,7 +12,7 @@ import Concourse.PipelineStatus
         ( PipelineStatus(..)
         , StatusDetails(..)
         )
-import Dashboard.Group.Models exposing (Group)
+import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Models exposing (Dropdown(..), Model)
 import Dashboard.Styles as Styles
 import EffectTransformer exposing (ET)
@@ -26,6 +26,7 @@ import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 import ScreenSize exposing (ScreenSize)
+import Set
 
 
 searchInputId : String
@@ -230,9 +231,10 @@ view :
             , dropdown : Dropdown
             , groups : List Group
             , highDensity : Bool
+            , pipelines : List Pipeline
         }
     -> Html Message
-view session ({ query, dropdown, groups } as params) =
+view session ({ query, dropdown, pipelines } as params) =
     let
         isDropDownHidden =
             dropdown == Hidden
@@ -241,9 +243,7 @@ view session ({ query, dropdown, groups } as params) =
             session.screenSize == ScreenSize.Mobile
 
         noPipelines =
-            groups
-                |> List.concatMap .pipelines
-                |> List.isEmpty
+            List.isEmpty pipelines
     in
     if noPipelines then
         Html.text ""
@@ -300,6 +300,7 @@ viewDropdownItems :
             | query : String
             , dropdown : Dropdown
             , groups : List Group
+            , pipelines : List Pipeline
         }
     -> List (Html Message)
 viewDropdownItems { screenSize } ({ dropdown } as model) =
@@ -323,8 +324,8 @@ viewDropdownItems { screenSize } ({ dropdown } as model) =
             ]
 
 
-dropdownOptions : { a | query : String, groups : List Group } -> List String
-dropdownOptions { query, groups } =
+dropdownOptions : { a | query : String, groups : List Group, pipelines : List Pipeline } -> List String
+dropdownOptions { query, groups, pipelines } =
     case String.trim query of
         "" ->
             [ "status: ", "team: " ]
@@ -340,9 +341,12 @@ dropdownOptions { query, groups } =
             ]
 
         "team:" ->
-            groups
+            Set.union
+                (groups |> List.map .teamName |> Set.fromList)
+                (pipelines |> List.map .teamName |> Set.fromList)
+                |> Set.toList
                 |> List.take 10
-                |> List.map (\group -> "team: " ++ group.teamName)
+                |> List.map (\teamName -> "team: " ++ teamName)
 
         _ ->
             []

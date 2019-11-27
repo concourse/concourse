@@ -98,6 +98,7 @@ init flags =
       , query = Routes.extractQuery flags.searchType
       , pipelinesWithResourceErrors = Dict.empty
       , existingJobs = []
+      , pipelines = []
       , isUserMenuExpanded = False
       , dropdown = Hidden
       }
@@ -195,31 +196,19 @@ handleCallback callback ( model, effects ) =
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
             ( { model
-                | groups =
+                | pipelines =
                     allPipelinesInEntireCluster
-                        |> List.foldr
+                        |> List.map
                             (\p ->
-                                Dict.update p.teamName
-                                    (Maybe.withDefault []
-                                        >> List.append
-                                            [ { id = p.id
-                                              , name = p.name
-                                              , teamName = p.teamName
-                                              , public = p.public
-                                              , isToggleLoading = False
-                                              , isVisibilityLoading = False
-                                              , paused = p.paused
-                                              }
-                                            ]
-                                        >> Just
-                                    )
+                                { id = p.id
+                                , name = p.name
+                                , teamName = p.teamName
+                                , public = p.public
+                                , isToggleLoading = False
+                                , isVisibilityLoading = False
+                                , paused = p.paused
+                                }
                             )
-                            (model.groups
-                                |> List.map (\g -> ( g.teamName, [] ))
-                                |> Dict.fromList
-                            )
-                        |> Dict.toList
-                        |> List.map (\( k, v ) -> { teamName = k, pipelines = v })
               }
             , if List.isEmpty allPipelinesInEntireCluster then
                 effects ++ [ ModifyUrl "/" ]
@@ -248,7 +237,7 @@ handleCallback callback ( model, effects ) =
             )
 
         PipelineToggled _ (Ok ()) ->
-            ( model, effects ++ [ FetchData ] )
+            ( model, effects ++ [ FetchAllPipelines ] )
 
         VisibilityChanged Hide pipelineId (Ok ()) ->
             ( updatePipeline
@@ -308,7 +297,16 @@ updatePipeline updater pipelineId model =
                         { g | pipelines = newPipelines }
                     )
     in
-    { model | groups = newGroups }
+    { model
+        | groups = newGroups
+        , pipelines =
+            model.pipelines
+                |> List.Extra.updateIf
+                    (\p ->
+                        p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
+                    )
+                    updater
+    }
 
 
 handleDelivery : Delivery -> ET Model
@@ -440,16 +438,10 @@ updateBody msg ( model, effects ) =
         Click (PipelineButton pipelineId) ->
             let
                 isPaused =
-                    model.groups
+                    model.pipelines
                         |> List.Extra.find
-                            (.teamName >> (==) pipelineId.teamName)
-                        |> Maybe.andThen
-                            (\g ->
-                                g.pipelines
-                                    |> List.Extra.find
-                                        (.name >> (==) pipelineId.pipelineName)
-                                    |> Maybe.map .paused
-                            )
+                            (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
+                        |> Maybe.map .paused
             in
             case isPaused of
                 Just ip ->
@@ -467,16 +459,10 @@ updateBody msg ( model, effects ) =
         Click (VisibilityButton pipelineId) ->
             let
                 isPublic =
-                    model.groups
+                    model.pipelines
                         |> List.Extra.find
-                            (.teamName >> (==) pipelineId.teamName)
-                        |> Maybe.andThen
-                            (\g ->
-                                g.pipelines
-                                    |> List.Extra.find
-                                        (.name >> (==) pipelineId.pipelineName)
-                                    |> Maybe.map .public
-                            )
+                            (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
+                        |> Maybe.map .public
             in
             case isPublic of
                 Just public ->
@@ -621,14 +607,15 @@ dashboardView session model =
                         , highDensity = model.highDensity
                         , pipelinesWithResourceErrors = model.pipelinesWithResourceErrors
                         , existingJobs = model.existingJobs
+                        , pipelines = model.pipelines
                         }
 
 
 welcomeCard :
     { a | hovered : HoverState.HoverState, userState : UserState.UserState }
-    -> { b | groups : List Group }
+    -> { b | pipelines : List Pipeline }
     -> Html Message
-welcomeCard session { groups } =
+welcomeCard session { pipelines } =
     let
         cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
         cliIcon hoverable cli =
@@ -650,7 +637,7 @@ welcomeCard session { groups } =
                 )
                 []
     in
-    if noPipelines { groups = groups } then
+    if List.isEmpty pipelines then
         Html.div
             (id "welcome-card" :: Styles.welcomeCard)
             [ Html.div
@@ -746,21 +733,24 @@ pipelinesView :
         , highDensity : Bool
         , pipelinesWithResourceErrors : Dict ( String, String ) Bool
         , existingJobs : List Concourse.Job
+        , pipelines : List Pipeline
         }
     -> List (Html Message)
-pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, query, highDensity, pipelinesWithResourceErrors, existingJobs } =
+pipelinesView session params =
     let
         filteredGroups =
-            groups |> Filter.filterGroups existingJobs query |> List.sortWith (Group.ordering session)
+            Filter.filterGroups params.existingJobs params.query params.groups params.pipelines
+                |> List.sortWith (Group.ordering session)
 
         groupViews =
-            if highDensity then
+            if params.highDensity then
                 filteredGroups
                     |> List.concatMap
                         (Group.hdView
-                            { pipelineRunningKeyframes = pipelineRunningKeyframes
-                            , pipelinesWithResourceErrors = pipelinesWithResourceErrors
-                            , existingJobs = existingJobs
+                            { pipelineRunningKeyframes = params.pipelineRunningKeyframes
+                            , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                            , existingJobs = params.existingJobs
+                            , pipelines = params.pipelines
                             }
                             session
                         )
@@ -770,18 +760,19 @@ pipelinesView session { groups, substate, hovered, pipelineRunningKeyframes, que
                     |> List.map
                         (Group.view
                             session
-                            { dragState = substate.dragState
-                            , dropState = substate.dropState
-                            , now = substate.now
-                            , hovered = hovered
-                            , pipelineRunningKeyframes = pipelineRunningKeyframes
-                            , pipelinesWithResourceErrors = pipelinesWithResourceErrors
-                            , existingJobs = existingJobs
+                            { dragState = params.substate.dragState
+                            , dropState = params.substate.dropState
+                            , now = params.substate.now
+                            , hovered = params.hovered
+                            , pipelineRunningKeyframes = params.pipelineRunningKeyframes
+                            , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                            , existingJobs = params.existingJobs
+                            , pipelines = params.pipelines
                             }
                         )
     in
-    if List.isEmpty groupViews && not (String.isEmpty query) then
-        [ noResultsView query ]
+    if List.isEmpty groupViews && not (String.isEmpty params.query) then
+        [ noResultsView params.query ]
 
     else
         groupViews

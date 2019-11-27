@@ -221,13 +221,17 @@ view :
         , pipelineRunningKeyframes : String
         , pipelinesWithResourceErrors : Dict ( String, String ) Bool
         , existingJobs : List Concourse.Job
+        , pipelines : List Pipeline
         }
     -> Group
     -> Html Message
-view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } g =
+view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs, pipelines } g =
     let
-        pipelines =
-            if List.isEmpty g.pipelines then
+        pipelinesForGroup =
+            pipelines |> List.filter (.teamName >> (==) g.teamName)
+
+        pipelineCards =
+            if List.isEmpty pipelinesForGroup then
                 [ Pipeline.pipelineNotSetView ]
 
             else
@@ -272,9 +276,9 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pip
                                     ]
                                 ]
                         )
-                        g.pipelines
+                        pipelinesForGroup
                     )
-                    [ pipelineDropAreaView dragState dropState g.teamName (List.length g.pipelines) ]
+                    [ pipelineDropAreaView dragState dropState g.teamName (List.length pipelinesForGroup) ]
     in
     Html.div
         [ id g.teamName
@@ -295,7 +299,7 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pip
             )
         , Html.div
             [ class <| .sectionBodyClass Effects.stickyHeaderConfig ]
-            pipelines
+            pipelineCards
         ]
 
 
@@ -310,12 +314,19 @@ tag { userState } g =
 
 
 hdView :
-    { pipelineRunningKeyframes : String, pipelinesWithResourceErrors : Dict ( String, String ) Bool, existingJobs : List Concourse.Job }
+    { pipelineRunningKeyframes : String
+    , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+    , existingJobs : List Concourse.Job
+    , pipelines : List Pipeline
+    }
     -> { a | userState : UserState }
     -> Group
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } session g =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs, pipelines } session g =
     let
+        pipelinesForGroup =
+            pipelines |> List.filter (.teamName >> (==) g.teamName)
+
         header =
             Html.div
                 [ class "dashboard-team-name" ]
@@ -323,11 +334,11 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } s
                 :: (Maybe.Extra.toList <| Maybe.map (Tag.view True) (tag session g))
 
         teamPipelines =
-            if List.isEmpty g.pipelines then
+            if List.isEmpty pipelinesForGroup then
                 [ pipelineNotSetView ]
 
             else
-                g.pipelines
+                pipelinesForGroup
                     |> List.map
                         (\p ->
                             Pipeline.hdPipelineView

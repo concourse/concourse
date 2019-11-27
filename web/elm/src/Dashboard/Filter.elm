@@ -10,6 +10,7 @@ import Concourse.PipelineStatus
         )
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Pipeline as Pipeline
+import Dict
 import Parser
     exposing
         ( (|.)
@@ -38,10 +39,27 @@ type alias Filter =
     }
 
 
-filterGroups : List Concourse.Job -> String -> List Group -> List Group
-filterGroups existingJobs query groups =
-    filters query
-        |> List.foldr (runFilter existingJobs) groups
+filterGroups : List Concourse.Job -> String -> List Group -> List Pipeline -> List Group
+filterGroups existingJobs query groups pipelines =
+    let
+        groupsToFilter =
+            pipelines
+                |> List.foldr
+                    (\p ->
+                        Dict.update p.teamName
+                            (Maybe.withDefault []
+                                >> (::) p
+                                >> Just
+                            )
+                    )
+                    (groups
+                        |> List.map (\g -> ( g.teamName, [] ))
+                        |> Dict.fromList
+                    )
+                |> Dict.toList
+                |> List.map (\( k, v ) -> { teamName = k, pipelines = v })
+    in
+    parseFilters query |> List.foldr (runFilter existingJobs) groupsToFilter
 
 
 runFilter : List Concourse.Job -> Filter -> List Group -> List Group
@@ -85,8 +103,8 @@ pipelineFilter pf existingJobs =
             .name >> Simple.Fuzzy.match term
 
 
-filters : String -> List Filter
-filters =
+parseFilters : String -> List Filter
+parseFilters =
     run
         (loop [] <|
             \revFilters ->

@@ -2081,7 +2081,7 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable =¢
+                        , hoverable =
                             Msgs.PipelineButton
                                 { pipelineName = "pipeline"
                                 , teamName = "team"
@@ -2258,7 +2258,7 @@ all =
                                         }
                                         False
                                     ]
-                    , test "dashboard data is refetched after ok toggle call" <|
+                    , test "all pipelines are refetched after ok toggle call" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> givenDataAndUser
@@ -2295,7 +2295,7 @@ all =
                                         (Ok ())
                                     )
                                 |> Tuple.second
-                                |> Expect.equal [ Effects.FetchData ]
+                                |> Expect.equal [ Effects.FetchAllPipelines ]
                     , test "401 toggle call redirects to login" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }

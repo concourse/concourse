@@ -2,7 +2,7 @@ module Dashboard.Footer exposing (handleDelivery, view)
 
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
-import Dashboard.Group.Models exposing (Group)
+import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
 import HoverState
@@ -32,8 +32,7 @@ handleDelivery delivery ( model, effects ) =
                         ( { model
                             | showHelp =
                                 if
-                                    model.groups
-                                        |> List.concatMap .pipelines
+                                    model.pipelines
                                         |> List.isEmpty
                                 then
                                     False
@@ -126,7 +125,7 @@ infoBar :
     ->
         { b
             | highDensity : Bool
-            , groups : List Group
+            , pipelines : List Pipeline
         }
     -> Html Message
 infoBar session model =
@@ -146,7 +145,7 @@ legend :
     { a | screenSize : ScreenSize.ScreenSize }
     ->
         { b
-            | groups : List Group
+            | pipelines : List Pipeline
             , highDensity : Bool
         }
     -> Html Message
@@ -199,9 +198,9 @@ concourseInfo { hovered, version } =
         ]
 
 
-hideLegend : { a | groups : List Group } -> Bool
-hideLegend { groups } =
-    List.isEmpty (groups |> List.concatMap .pipelines)
+hideLegend : { a | pipelines : List Pipeline } -> Bool
+hideLegend { pipelines } =
+    List.isEmpty pipelines
 
 
 legendItem : PipelineStatus -> Html Message

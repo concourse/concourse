@@ -614,6 +614,46 @@ all =
                         )
                     |> Tuple.first
                     |> showsLoadingState
+        , test "pipeline cards continue to show when teams refresh" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
+                    |> Tuple.first
+                    |> givenDataUnauthenticated { teams = [] }
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ class "card", containing [ text "pipeline" ] ]
+        , test "high-density pipeline cards continue to show when teams refresh" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "a-pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
+                    |> Tuple.first
+                    |> givenDataUnauthenticated { teams = [] }
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ class "card", containing [ text "a-pipeline" ] ]
         , test "links to specific builds" <|
             \_ ->
                 whenOnDashboard { highDensity = False }

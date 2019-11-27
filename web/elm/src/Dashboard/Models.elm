@@ -31,6 +31,7 @@ type alias Model =
             , query : String
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             , existingJobs : List Concourse.Job
+            , pipelines : List Dashboard.Group.Models.Pipeline
             }
         )
 
@@ -67,6 +68,7 @@ type alias FooterModel r =
         , hideFooterCounter : Int
         , showHelp : Bool
         , groups : List Dashboard.Group.Models.Group
+        , pipelines : List Dashboard.Group.Models.Pipeline
         , dropdown : Dropdown
         , highDensity : Bool
     }
