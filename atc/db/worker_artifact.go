@@ -12,7 +12,7 @@ import (
 
 //go:generate counterfeiter . WorkerArtifact
 
-// TODO This should be deprecated
+// TODO-L Can this be consolidated with atc/runtime/types.go -> Artifact OR Alternatively, there shouldn't be a volume reference here
 type WorkerArtifact interface {
 	ID() int
 	Name() string

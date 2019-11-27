@@ -49,7 +49,7 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	// TODO Don't artifact_input_step shouldn't know about db Volume
+	// TODO-Later artifact_input_step shouldn't know about db Volume
 	createdVolume, found, err := buildArtifact.Volume(step.build.TeamID())
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 		return ArtifactVolumeNotFoundError{buildArtifact.Name()}
 	}
 
-	// TODO artifact_input_step shouldn't be looking up the volume on the worker
+	// TODO-Later artifact_input_step shouldn't be looking up the volume on the worker
 	_, found, err = step.workerClient.FindVolume(logger, createdVolume.TeamID(), createdVolume.Handle())
 	if err != nil {
 		return err

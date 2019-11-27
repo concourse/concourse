@@ -51,7 +51,8 @@ type ContainerSpec struct {
 }
 
 //go:generate counterfeiter . FooBarInput
-
+//TODO-Now Change the name. ArtifactDestinationTuple ?
+//TODO-Later Does this really need to be a Interface, could it be a set/slice of artifacts and a separate map of artifactName to destinations ?
 type FooBarInput interface {
 	Artifact() runtime.Artifact
 	DestinationPath() string

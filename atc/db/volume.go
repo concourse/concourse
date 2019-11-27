@@ -140,7 +140,7 @@ func (volume *creatingVolume) Failed() (FailedVolume, error) {
 }
 
 //go:generate counterfeiter . CreatedVolume
-
+// TODO-Later Consider separating CORE & Runtime concerns by breaking this abstraction up.
 type CreatedVolume interface {
 	Handle() string
 	Path() string

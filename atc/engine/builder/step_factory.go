@@ -103,7 +103,7 @@ func (factory *stepFactory) CheckStep(
 	delegate exec.CheckDelegate,
 ) exec.Step {
 	containerMetadata.WorkingDirectory = resource.ResourcesDir("check")
-
+	// TODO-L Placement Strategy should be abstracted out from step factory or step level concern as it is not a CORE concern
 	checkStep := exec.NewCheckStep(
 		plan.ID,
 		*plan.Check,
