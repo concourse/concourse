@@ -312,6 +312,9 @@ func incrementCheckOrder(tx Tx, rcsID int, version string) error {
 	return err
 }
 
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
 func requestScheduleForJobsUsingResourceConfigScope(tx Tx, rcsID int) error {
 	rows, err := psql.Select("DISTINCT j.job_id").
 		From("job_pipes j").

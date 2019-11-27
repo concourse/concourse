@@ -1122,12 +1122,45 @@ func requestSchedule(tx Tx, jobID int) error {
 	return nil
 }
 
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
 func requestScheduleOnDownstreamJobs(tx Tx, jobID int) error {
-	_, err := psql.Update("jobs").
-		Set("schedule_requested", sq.Expr("now()")).
-		Where(sq.Expr("id IN (SELECT DISTINCT job_id FROM job_pipes WHERE passed_job_id = $1)", jobID)).
+	rows, err := psql.Select("DISTINCT job_id").
+		From("job_pipes").
+		Where(sq.Eq{
+			"passed_job_id": jobID,
+		}).
+		OrderBy("job_id DESC").
 		RunWith(tx).
-		Exec()
+		Query()
+	if err != nil {
+		return err
+	}
 
-	return err
+	var jobIDs []int
+	for rows.Next() {
+		var id int
+		err = rows.Scan(&id)
+		if err != nil {
+			return err
+		}
+
+		jobIDs = append(jobIDs, id)
+	}
+
+	for _, jID := range jobIDs {
+		_, err := psql.Update("jobs").
+			Set("schedule_requested", sq.Expr("now()")).
+			Where(sq.Eq{
+				"id": jID,
+			}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

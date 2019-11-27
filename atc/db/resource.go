@@ -791,6 +791,9 @@ func scanResource(r *resource, row scannable) error {
 	return nil
 }
 
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
 func requestScheduleForJobsUsingResource(tx Tx, resourceID int) error {
 	rows, err := psql.Select("DISTINCT job_id").
 		From("job_pipes").
