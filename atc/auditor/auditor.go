@@ -78,9 +78,14 @@ func (a *auditor) ValidateAction(action string) bool {
 }
 
 func (a *auditor) Audit(action string, userName string, r *http.Request) {
-	err := r.ParseForm()
-	if err == nil && a.ValidateAction(action) {
-		a.logger.Info("audit", lager.Data{"action": action, "user": userName, "parameters": r.Form})
+	switch userName {
+	case "", "system":
+		return
+	default:
+		err := r.ParseForm()
+		if err == nil && a.ValidateAction(action) {
+			a.logger.Info("audit", lager.Data{"action": action, "user": userName, "parameters": r.Form})
+		}
 	}
 }
 
