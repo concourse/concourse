@@ -60,7 +60,7 @@ func (s *scanner) Run(ctx context.Context) error {
 		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
 			defer waitGroup.Done()
 
-			err = s.check(resource, resourceTypes)
+			err := s.check(resource, resourceTypes)
 			s.setCheckError(s.logger, resource, err)
 
 		}(resource, resourceTypes)
