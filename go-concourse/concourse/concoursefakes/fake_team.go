@@ -579,6 +579,20 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
+	RequestScheduleJobStub        func(string, string) (bool, error)
+	requestScheduleJobMutex       sync.RWMutex
+	requestScheduleJobArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	requestScheduleJobReturns struct {
+		result1 bool
+		result2 error
+	}
+	requestScheduleJobReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	RerunJobBuildStub        func(string, string, string) (atc.Build, error)
 	rerunJobBuildMutex       sync.RWMutex
 	rerunJobBuildArgsForCall []struct {
@@ -3244,6 +3258,70 @@ func (fake *FakeTeam) RenameTeamReturnsOnCall(i int, result1 bool, result2 error
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) RequestScheduleJob(arg1 string, arg2 string) (bool, error) {
+	fake.requestScheduleJobMutex.Lock()
+	ret, specificReturn := fake.requestScheduleJobReturnsOnCall[len(fake.requestScheduleJobArgsForCall)]
+	fake.requestScheduleJobArgsForCall = append(fake.requestScheduleJobArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("RequestScheduleJob", []interface{}{arg1, arg2})
+	fake.requestScheduleJobMutex.Unlock()
+	if fake.RequestScheduleJobStub != nil {
+		return fake.RequestScheduleJobStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.requestScheduleJobReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) RequestScheduleJobCallCount() int {
+	fake.requestScheduleJobMutex.RLock()
+	defer fake.requestScheduleJobMutex.RUnlock()
+	return len(fake.requestScheduleJobArgsForCall)
+}
+
+func (fake *FakeTeam) RequestScheduleJobCalls(stub func(string, string) (bool, error)) {
+	fake.requestScheduleJobMutex.Lock()
+	defer fake.requestScheduleJobMutex.Unlock()
+	fake.RequestScheduleJobStub = stub
+}
+
+func (fake *FakeTeam) RequestScheduleJobArgsForCall(i int) (string, string) {
+	fake.requestScheduleJobMutex.RLock()
+	defer fake.requestScheduleJobMutex.RUnlock()
+	argsForCall := fake.requestScheduleJobArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeTeam) RequestScheduleJobReturns(result1 bool, result2 error) {
+	fake.requestScheduleJobMutex.Lock()
+	defer fake.requestScheduleJobMutex.Unlock()
+	fake.RequestScheduleJobStub = nil
+	fake.requestScheduleJobReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) RequestScheduleJobReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.requestScheduleJobMutex.Lock()
+	defer fake.requestScheduleJobMutex.Unlock()
+	fake.RequestScheduleJobStub = nil
+	if fake.requestScheduleJobReturnsOnCall == nil {
+		fake.requestScheduleJobReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.requestScheduleJobReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeam) RerunJobBuild(arg1 string, arg2 string, arg3 string) (atc.Build, error) {
 	fake.rerunJobBuildMutex.Lock()
 	ret, specificReturn := fake.rerunJobBuildReturnsOnCall[len(fake.rerunJobBuildArgsForCall)]
@@ -3917,6 +3995,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.renamePipelineMutex.RUnlock()
 	fake.renameTeamMutex.RLock()
 	defer fake.renameTeamMutex.RUnlock()
+	fake.requestScheduleJobMutex.RLock()
+	defer fake.requestScheduleJobMutex.RUnlock()
 	fake.rerunJobBuildMutex.RLock()
 	defer fake.rerunJobBuildMutex.RUnlock()
 	fake.resourceMutex.RLock()

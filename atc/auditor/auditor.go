@@ -105,6 +105,7 @@ var loggingLevels = map[string]string{
 	atc.GetJobBuild:                   "EnableJobAuditLog",
 	atc.PauseJob:                      "EnableJobAuditLog",
 	atc.UnpauseJob:                    "EnableJobAuditLog",
+	atc.RequestScheduleJob:            "EnableJobAuditLog",
 	atc.GetVersionsDB:                 "EnableSystemAuditLog",
 	atc.JobBadge:                      "EnableJobAuditLog",
 	atc.MainJobBadge:                  "EnableJobAuditLog",

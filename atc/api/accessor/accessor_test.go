@@ -553,6 +553,11 @@ var _ = Describe("Accessor", func() {
 		Entry("pipeline-operator :: "+atc.UnpauseJob, atc.UnpauseJob, "pipeline-operator", true),
 		Entry("viewer :: "+atc.UnpauseJob, atc.UnpauseJob, "viewer", false),
 
+		Entry("owner :: "+atc.RequestScheduleJob, atc.RequestScheduleJob, "owner", true),
+		Entry("member :: "+atc.RequestScheduleJob, atc.RequestScheduleJob, "member", true),
+		Entry("pipeline-operator :: "+atc.RequestScheduleJob, atc.RequestScheduleJob, "pipeline-operator", true),
+		Entry("viewer :: "+atc.RequestScheduleJob, atc.RequestScheduleJob, "viewer", false),
+
 		Entry("owner :: "+atc.GetVersionsDB, atc.GetVersionsDB, "owner", true),
 		Entry("member :: "+atc.GetVersionsDB, atc.GetVersionsDB, "member", true),
 		Entry("pipeline-operator :: "+atc.GetVersionsDB, atc.GetVersionsDB, "pipeline-operator", true),
