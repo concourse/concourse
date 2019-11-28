@@ -564,14 +564,12 @@ all =
                 }
                 |> Tuple.first
                 |> Application.handleCallback
-                    (Callback.APIDataFetched
+                    (Callback.AllTeamsFetched
                         (Ok
                             ( Time.millisToPosix 0
-                            , { teams =
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    ]
-                              }
+                            , [ Concourse.Team 1 "team1"
+                              , Concourse.Team 2 "team2"
+                              ]
                             )
                         )
                     )
@@ -620,14 +618,12 @@ all =
         , rspecStyleDescribe "rendering search bar on dashboard page"
             (Common.init "/"
                 |> Application.handleCallback
-                    (Callback.APIDataFetched
+                    (Callback.AllTeamsFetched
                         (Ok
                             ( Time.millisToPosix 0
-                            , { teams =
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    ]
-                              }
+                            , [ Concourse.Team 1 "team1"
+                              , Concourse.Team 2 "team2"
+                              ]
                             )
                         )
                     )
@@ -901,14 +897,12 @@ all =
         , rspecStyleDescribe "when search query is updated"
             (Common.init "/"
                 |> Application.handleCallback
-                    (Callback.APIDataFetched
+                    (Callback.AllTeamsFetched
                         (Ok
                             ( Time.millisToPosix 0
-                            , { teams =
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    ]
-                              }
+                            , [ Concourse.Team 1 "team1"
+                              , Concourse.Team 2 "team2"
+                              ]
                             )
                         )
                     )
@@ -983,14 +977,12 @@ all =
                 }
                 |> Tuple.first
                 |> Application.handleCallback
-                    (Callback.APIDataFetched
+                    (Callback.AllTeamsFetched
                         (Ok
                             ( Time.millisToPosix 0
-                            , { teams =
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    ]
-                              }
+                            , [ Concourse.Team 1 "team1"
+                              , Concourse.Team 2 "team2"
+                              ]
                             )
                         )
                     )
@@ -1041,11 +1033,10 @@ all =
             )
             [ it "when there are teams the dropdown displays them" <|
                 Application.handleCallback
-                    (Callback.APIDataFetched
+                    (Callback.AllTeamsFetched
                         (Ok
                             ( Time.millisToPosix 0
-                            , { teams = [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]
-                              }
+                            , [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]
                             )
                         )
                     )
@@ -1076,23 +1067,21 @@ all =
                         ]
             , it "when there are many teams, the dropdown only displays the first 10" <|
                 Application.handleCallback
-                    (Callback.APIDataFetched
+                    (Callback.AllTeamsFetched
                         (Ok
                             ( Time.millisToPosix 0
-                            , { teams =
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    , Concourse.Team 3 "team3"
-                                    , Concourse.Team 4 "team4"
-                                    , Concourse.Team 5 "team5"
-                                    , Concourse.Team 6 "team6"
-                                    , Concourse.Team 7 "team7"
-                                    , Concourse.Team 8 "team8"
-                                    , Concourse.Team 9 "team9"
-                                    , Concourse.Team 10 "team10"
-                                    , Concourse.Team 11 "team11"
-                                    ]
-                              }
+                            , [ Concourse.Team 1 "team1"
+                              , Concourse.Team 2 "team2"
+                              , Concourse.Team 3 "team3"
+                              , Concourse.Team 4 "team4"
+                              , Concourse.Team 5 "team5"
+                              , Concourse.Team 6 "team6"
+                              , Concourse.Team 7 "team7"
+                              , Concourse.Team 8 "team8"
+                              , Concourse.Team 9 "team9"
+                              , Concourse.Team 10 "team10"
+                              , Concourse.Team 11 "team11"
+                              ]
                             )
                         )
                     )
@@ -1121,10 +1110,10 @@ all =
         , rspecStyleDescribe "dropdown stuff"
             (Common.init "/"
                 |> Application.handleCallback
-                    (Callback.APIDataFetched <|
+                    (Callback.AllTeamsFetched <|
                         Ok
                             ( Time.millisToPosix 0
-                            , { teams = [ { id = 0, name = "team" } ] }
+                            , [ { id = 0, name = "team" } ]
                             )
                     )
                 |> Tuple.first

@@ -76,14 +76,12 @@ all =
                 )
             |> Tuple.first
             |> Application.handleCallback
-                (Callback.APIDataFetched
+                (Callback.AllTeamsFetched
                     (Ok
                         ( Time.millisToPosix 0
-                        , { teams =
-                                [ Concourse.Team 1 "team1"
-                                , Concourse.Team 2 "team2"
-                                ]
-                          }
+                        , [ Concourse.Team 1 "team1"
+                          , Concourse.Team 2 "team2"
+                          ]
                         )
                     )
                 )
@@ -180,11 +178,10 @@ all =
                     ]
         , it "centers 'no results' message when typing a string with no hits" <|
             Application.handleCallback
-                (Callback.APIDataFetched
+                (Callback.AllTeamsFetched
                     (Ok
                         ( Time.millisToPosix 0
-                        , { teams = [ { name = "team", id = 0 } ]
-                          }
+                        , [ { name = "team", id = 0 } ]
                         )
                     )
                 )

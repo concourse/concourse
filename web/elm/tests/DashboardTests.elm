@@ -241,7 +241,7 @@ all =
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.APIDataFetched <|
+                        (Callback.AllTeamsFetched <|
                             Err <|
                                 Http.BadStatus
                                     { url = "http://example.com"
@@ -630,7 +630,7 @@ all =
                                 ]
                         )
                     |> Tuple.first
-                    |> givenDataUnauthenticated { teams = [] }
+                    |> givenDataUnauthenticated []
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ class "card", containing [ text "pipeline" ] ]
@@ -650,7 +650,7 @@ all =
                                 ]
                         )
                     |> Tuple.first
-                    |> givenDataUnauthenticated { teams = [] }
+                    |> givenDataUnauthenticated []
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ class "card", containing [ text "a-pipeline" ] ]
@@ -692,7 +692,7 @@ all =
                                 ]
                         )
                     |> Tuple.first
-                    |> givenDataUnauthenticated { teams = [] }
+                    |> givenDataUnauthenticated []
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
@@ -724,7 +724,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> Application.handleCallback
-                        (Callback.APIDataFetched <|
+                        (Callback.AllTeamsFetched <|
                             Ok
                                 ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ]
@@ -746,7 +746,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = True }
                     |> Application.handleCallback
-                        (Callback.APIDataFetched <|
+                        (Callback.AllTeamsFetched <|
                             Ok
                                 ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ]
@@ -776,7 +776,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
-                        (Callback.APIDataFetched <|
+                        (Callback.AllTeamsFetched <|
                             Ok
                                 ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ]
@@ -789,7 +789,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
-                        (Callback.APIDataFetched <|
+                        (Callback.AllTeamsFetched <|
                             Ok
                                 ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ]
@@ -826,7 +826,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
-                        (Callback.APIDataFetched <|
+                        (Callback.AllTeamsFetched <|
                             Ok
                                 ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ]
@@ -839,7 +839,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
-                        (Callback.APIDataFetched <|
+                        (Callback.AllTeamsFetched <|
                             Ok
                                 ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ]
@@ -852,7 +852,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
-                        (Callback.APIDataFetched <|
+                        (Callback.AllTeamsFetched <|
                             Ok
                                 ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ]
@@ -866,7 +866,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
-                        (Callback.APIDataFetched <|
+                        (Callback.AllTeamsFetched <|
                             Ok
                                 ( Time.millisToPosix 0
                                 , apiData [ ( "team", [] ) ]
@@ -2125,7 +2125,7 @@ all =
                                 Time.millisToPosix 0
                         )
                     |> Tuple.second
-                    |> Common.contains Effects.FetchData
+                    |> Common.contains Effects.FetchAllTeams
         , test "auto refreshes resources every five seconds" <|
             \_ ->
                 Common.init "/"
@@ -2198,13 +2198,13 @@ whenOnDashboard { highDensity } =
 
 
 givenDataAndUser :
-    Concourse.APIData
+    List Concourse.Team
     -> Concourse.User
     -> Application.Model
     -> ( Application.Model, List Effects.Effect )
 givenDataAndUser data user =
     Application.handleCallback
-        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data ))
+        (Callback.AllTeamsFetched <| Ok ( Time.millisToPosix 0, data ))
         >> Tuple.first
         >> Application.handleCallback (Callback.UserFetched <| Ok user)
 
@@ -2222,12 +2222,12 @@ userWithRoles roles =
 
 
 givenDataUnauthenticated :
-    Concourse.APIData
+    List Concourse.Team
     -> Application.Model
     -> ( Application.Model, List Effects.Effect )
 givenDataUnauthenticated data =
     Application.handleCallback
-        (Callback.APIDataFetched <| Ok ( Time.millisToPosix 0, data ))
+        (Callback.AllTeamsFetched <| Ok ( Time.millisToPosix 0, data ))
         >> Tuple.first
         >> Application.handleCallback
             (Callback.UserFetched <|
@@ -2278,9 +2278,9 @@ onePipelinePaused teamName =
     }
 
 
-apiData : List ( String, List String ) -> Concourse.APIData
+apiData : List ( String, List String ) -> List Concourse.Team
 apiData pipelines =
-    { teams = pipelines |> List.map Tuple.first |> List.indexedMap Concourse.Team }
+    pipelines |> List.map Tuple.first |> List.indexedMap Concourse.Team
 
 
 running : Concourse.Job -> Concourse.Job

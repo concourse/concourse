@@ -52,8 +52,7 @@ all =
                 Application.handleCallback
                     (Callback.AllJobsFetched <| Ok [ jobFunc status ])
                     >> Tuple.first
-                    >> givenDataUnauthenticated
-                        { teams = [ { id = 0, name = "team" } ] }
+                    >> givenDataUnauthenticated [ { id = 0, name = "team" } ]
                     >> Tuple.first
                     >> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
@@ -317,8 +316,7 @@ all =
                 , test "is blue when pipeline is paused" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
-                            |> givenDataUnauthenticated
-                                { teams = [ { id = 0, name = "team" } ] }
+                            |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
                             |> Tuple.first
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
@@ -446,8 +444,7 @@ all =
                                             ]
                                     )
                                 |> Tuple.first
-                                |> givenDataUnauthenticated
-                                    { teams = [ { id = 0, name = "team" } ] }
+                                |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
                                 |> Tuple.first
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
@@ -498,8 +495,7 @@ all =
                         whenOnDashboard { highDensity = False }
                             |> Application.handleCallback (Callback.AllJobsFetched <| Ok circularJobs)
                             |> Tuple.first
-                            |> givenDataUnauthenticated
-                                { teams = [ { id = 0, name = "team" } ] }
+                            |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
                             |> Tuple.first
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
@@ -543,8 +539,7 @@ all =
                     , test "is blue when pipeline is paused" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
-                                |> givenDataUnauthenticated
-                                    { teams = [ { id = 0, name = "team" } ] }
+                                |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
                                 |> Tuple.first
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
@@ -672,8 +667,7 @@ all =
                                                 ]
                                         )
                                     |> Tuple.first
-                                    |> givenDataUnauthenticated
-                                        { teams = [ { id = 0, name = "team" } ] }
+                                    |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
                                     |> Tuple.first
                                     |> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
@@ -892,13 +886,7 @@ all =
                                         ]
                                 )
                             |> Tuple.first
-                            |> givenDataUnauthenticated
-                                { teams =
-                                    [ { id = 0
-                                      , name = "team"
-                                      }
-                                    ]
-                                }
+                            |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
                             |> Tuple.first
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
@@ -1143,7 +1131,7 @@ all =
                         setup =
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated
-                                    { teams = [ { id = 0, name = "team" } ] }
+                                    [ { id = 0, name = "team" } ]
                                 |> Tuple.first
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
@@ -1284,7 +1272,7 @@ all =
                                     )
                                 |> Tuple.first
                                 |> givenDataUnauthenticated
-                                    { teams = [ { id = 0, name = "team" } ] }
+                                    [ { id = 0, name = "team" } ]
                                 |> Tuple.first
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|

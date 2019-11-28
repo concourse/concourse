@@ -1,13 +1,10 @@
 module Dashboard.Group exposing
     ( PipelineIndex
-    , allTeamNames
     , dragIndex
     , dragIndexOptional
     , dropIndex
     , dropIndexOptional
     , findGroupOptional
-    , group
-    , groups
     , hdView
     , ordering
     , pipelineDropAreaView
@@ -187,28 +184,6 @@ shiftPipelineTo pipeline position pipelines =
 
             else
                 p :: shiftPipelineTo pipeline (position - 1) ps
-
-
-allTeamNames : Concourse.APIData -> List String
-allTeamNames apiData =
-    List.map .name apiData.teams
-
-
-groups : Concourse.APIData -> List Group
-groups apiData =
-    let
-        teamNames =
-            allTeamNames apiData
-    in
-    teamNames
-        |> List.map group
-
-
-group : String -> Group
-group name =
-    { pipelines = []
-    , teamName = name
-    }
 
 
 view :

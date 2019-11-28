@@ -744,14 +744,12 @@ iVisitTheDashboard _ =
 apiDataLoads =
     Tuple.first
         >> Application.handleCallback
-            (Callback.APIDataFetched
+            (Callback.AllTeamsFetched
                 (Ok
                     ( Time.millisToPosix 0
-                    , { teams =
-                            [ { name = "team", id = 0 }
-                            , { name = "other-team", id = 1 }
-                            ]
-                      }
+                    , [ { name = "team", id = 0 }
+                      , { name = "other-team", id = 1 }
+                      ]
                     )
                 )
             )
@@ -1095,7 +1093,7 @@ myBrowserFetchesPipelines ( a, effects ) =
             List.member Effects.FetchAllPipelines effects
 
         pipelinesThroughData =
-            List.member Effects.FetchData effects
+            List.member Effects.FetchAllTeams effects
     in
     if pipelinesDirectly || pipelinesThroughData then
         Expect.pass
@@ -1107,7 +1105,7 @@ myBrowserFetchesPipelines ( a, effects ) =
                 ++ " to contain "
                 ++ Debug.toString Effects.FetchAllPipelines
                 ++ " or "
-                ++ Debug.toString Effects.FetchData
+                ++ Debug.toString Effects.FetchAllTeams
 
 
 iHaveAnOpenSideBar =

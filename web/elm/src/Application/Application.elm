@@ -155,7 +155,7 @@ handleCallback callback model =
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
-        APIDataFetched (Err err) ->
+        AllTeamsFetched (Err err) ->
             let
                 session =
                     model.session

@@ -39,8 +39,8 @@ type alias Filter =
     }
 
 
-filterGroups : List Concourse.Job -> String -> List Group -> List Pipeline -> List Group
-filterGroups existingJobs query groups pipelines =
+filterGroups : List Concourse.Job -> String -> List Concourse.Team -> List Pipeline -> List Group
+filterGroups existingJobs query teams pipelines =
     let
         groupsToFilter =
             pipelines
@@ -52,8 +52,8 @@ filterGroups existingJobs query groups pipelines =
                                 >> Just
                             )
                     )
-                    (groups
-                        |> List.map (\g -> ( g.teamName, [] ))
+                    (teams
+                        |> List.map (\team -> ( team.name, [] ))
                         |> Dict.fromList
                     )
                 |> Dict.toList

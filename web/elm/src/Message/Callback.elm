@@ -45,7 +45,7 @@ type Callback
     | VersionToggled VersionToggleAction VersionId (Fetched ())
     | Checked (Fetched Concourse.Check)
     | CommentSet (Fetched ())
-    | APIDataFetched (Fetched ( Time.Posix, Concourse.APIData ))
+    | AllTeamsFetched (Fetched ( Time.Posix, List Concourse.Team ))
     | AllJobsFetched (Fetched (List Concourse.Job))
     | AllResourcesFetched (Fetched (List Concourse.Resource))
     | LoggedOut (Fetched ())

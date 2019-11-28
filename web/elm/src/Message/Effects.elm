@@ -28,11 +28,11 @@ import Network.Build
 import Network.BuildPlan
 import Network.BuildPrep
 import Network.BuildResources
-import Network.DashboardAPIData
 import Network.Info
 import Network.Job
 import Network.Pipeline
 import Network.Resource
+import Network.Team
 import Network.User
 import Process
 import Routes
@@ -121,7 +121,7 @@ type Effect
     | FetchClusterInfo
     | FetchInputTo Concourse.VersionedResourceIdentifier
     | FetchOutputOf Concourse.VersionedResourceIdentifier
-    | FetchData
+    | FetchAllTeams
     | FetchUser
     | FetchBuild Float Int
     | FetchJobBuild Concourse.JobBuildIdentifier
@@ -253,10 +253,10 @@ runEffect effect key csrfToken =
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt OutputOfFetched
 
-        FetchData ->
-            Network.DashboardAPIData.remoteData
+        FetchAllTeams ->
+            Network.Team.fetchTeams
                 |> Task.map2 (\a b -> ( a, b )) Time.now
-                |> Task.attempt APIDataFetched
+                |> Task.attempt AllTeamsFetched
 
         FetchAllPipelines ->
             Network.Pipeline.fetchPipelines

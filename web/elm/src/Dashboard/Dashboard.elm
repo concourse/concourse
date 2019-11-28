@@ -99,10 +99,11 @@ init flags =
       , pipelinesWithResourceErrors = Dict.empty
       , existingJobs = []
       , pipelines = []
+      , teams = []
       , isUserMenuExpanded = False
       , dropdown = Hidden
       }
-    , [ FetchData
+    , [ FetchAllTeams
       , PinTeamNames Message.Effects.stickyHeaderConfig
       , GetScreenSize
       , FetchAllResources
@@ -115,7 +116,7 @@ init flags =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
-        APIDataFetched (Err _) ->
+        AllTeamsFetched (Err _) ->
             ( { model
                 | state =
                     RemoteData.Failure (Turbulence model.turbulencePath)
@@ -123,11 +124,8 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        APIDataFetched (Ok ( now, apiData )) ->
+        AllTeamsFetched (Ok ( now, teams )) ->
             let
-                groups =
-                    Group.groups apiData
-
                 newModel =
                     case model.state of
                         RemoteData.Success substate ->
@@ -146,15 +144,19 @@ handleCallback callback ( model, effects ) =
                                         }
                             }
             in
-            if model.highDensity && noPipelines { groups = groups } then
-                ( { newModel | groups = groups }
-                , effects
-                )
-
-            else
-                ( { newModel | groups = groups }
-                , effects
-                )
+            ( { newModel
+                | groups =
+                    List.map
+                        (\team ->
+                            { pipelines = []
+                            , teamName = team.name
+                            }
+                        )
+                        teams
+                , teams = teams
+              }
+            , effects
+            )
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
             ( { model | existingJobs = allJobsInEntireCluster }
@@ -232,7 +234,7 @@ handleCallback callback ( model, effects ) =
                         Routes.toString <|
                             Routes.dashboardRoute <|
                                 model.highDensity
-                   , FetchData
+                   , FetchAllTeams
                    ]
             )
 
@@ -281,25 +283,8 @@ updatePipeline :
     -> Model
     -> Model
 updatePipeline updater pipelineId model =
-    let
-        newGroups =
-            model.groups
-                |> List.Extra.updateIf
-                    (.teamName >> (==) pipelineId.teamName)
-                    (\g ->
-                        let
-                            newPipelines =
-                                g.pipelines
-                                    |> List.Extra.updateIf
-                                        (.name >> (==) pipelineId.pipelineName)
-                                        updater
-                        in
-                        { g | pipelines = newPipelines }
-                    )
-    in
     { model
-        | groups = newGroups
-        , pipelines =
+        | pipelines =
             model.pipelines
                 |> List.Extra.updateIf
                     (\p ->
@@ -325,7 +310,7 @@ handleDeliveryBody delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchData, FetchAllPipelines, FetchAllResources, FetchAllJobs ] )
+            ( model, effects ++ [ FetchAllTeams, FetchAllPipelines, FetchAllResources, FetchAllJobs ] )
 
         _ ->
             ( model, effects )
@@ -598,7 +583,7 @@ dashboardView session model =
                 welcomeCard session model
                     :: pipelinesView
                         session
-                        { groups = model.groups
+                        { teams = model.teams
                         , substate = substate
                         , query = model.query
                         , hovered = session.hovered
@@ -670,11 +655,6 @@ welcomeCard session { pipelines } =
         Html.text ""
 
 
-noPipelines : { a | groups : List Group } -> Bool
-noPipelines { groups } =
-    List.isEmpty (groups |> List.concatMap .pipelines)
-
-
 loginInstruction : UserState.UserState -> List (Html Message)
 loginInstruction userState =
     case userState of
@@ -725,7 +705,7 @@ turbulenceView path =
 pipelinesView :
     { a | userState : UserState.UserState }
     ->
-        { groups : List Group
+        { teams : List Concourse.Team
         , substate : Models.SubState
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
@@ -739,7 +719,7 @@ pipelinesView :
 pipelinesView session params =
     let
         filteredGroups =
-            Filter.filterGroups params.existingJobs params.query params.groups params.pipelines
+            Filter.filterGroups params.existingJobs params.query params.teams params.pipelines
                 |> List.sortWith (Group.ordering session)
 
         groupViews =
