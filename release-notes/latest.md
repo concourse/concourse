@@ -24,6 +24,14 @@
 
 * @vito bumped the `autocert` dependency so that Let's Encrypt will default to the ACME v2 API. #4804
 
-#### <sub><sup><a name="Registry Image Resource">:link:</a></sup></sub> fix
+#### <sub><sup><a name="registry-image-0.8.2" href="#registry-image-0.8.2">:link:</a></sup></sub> fix
 
-* Drop hashicorp/go-retryablehttp in favor of an outer retryer to avoid mismatched digests during puts
+* Bumped the [`registry-image` resource](https://github.com/concourse/registry-image-resource) to [v0.8.2](https://github.com/concourse/registry-image-resource/releases/tag/v0.8.2), which should resolve `DIGEST_INVALID` errors (among others) introduced by faulty retry logic. Additionally, the resource will now retry on `429 Too Many Requests` errors from the registry, with exponential back-off up to 1 hour.
+
+#### <sub><sup><a name="4808" href="#4808">:link:</a></sup></sub> fix
+
+* @evanchaoli fixed a race condition resulting in a crash with LIDAR enabled. #4808
+
+#### <sub><sup><a name="4817" href="#4817">:link:</a></sup></sub> fix
+
+* @evanchaoli fixed a regression introduced with the secret redaction work which resulted in build logs being buffered. #4817
