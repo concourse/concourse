@@ -16,6 +16,7 @@ type CredVarsTrackerIterator interface {
 type CredVarsTracker interface {
 	Variables
 	IterateInterpolatedCreds(iter CredVarsTrackerIterator)
+	Enabled() bool
 }
 
 func NewCredVarsTracker(credVars Variables, on bool) CredVarsTracker {
@@ -80,6 +81,10 @@ func (t credVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) 
 	t.lock.RUnlock()
 }
 
+func (t credVarsTracker) Enabled() bool {
+	return true
+}
+
 // DummyCredVarsTracker do nothing,
 
 type dummyCredVarsTracker struct {
@@ -96,6 +101,10 @@ func (t dummyCredVarsTracker) List() ([]VariableDefinition, error) {
 
 func (t dummyCredVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) {
 	// do nothing
+}
+
+func (t dummyCredVarsTracker) Enabled() bool {
+	return false
 }
 
 // MapCredVarsTrackerIterator implements a simple CredVarsTrackerIterator which just

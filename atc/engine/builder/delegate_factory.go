@@ -2,7 +2,6 @@ package builder
 
 import (
 	"io"
-	"io/ioutil"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -316,8 +315,19 @@ func (d *checkDelegate) SaveVersions(versions []atc.Version) error {
 	return d.check.SaveVersions(versions)
 }
 
-func (*checkDelegate) Stdout() io.Writer                                 { return ioutil.Discard }
-func (*checkDelegate) Stderr() io.Writer                                 { return ioutil.Discard }
+type discardCloser struct {
+}
+
+func (d discardCloser) Write(p []byte) (int, error) {
+	return len(p), nil
+}
+
+func (d discardCloser) Close() error {
+	return nil
+}
+
+func (*checkDelegate) Stdout() io.Writer                                 { return discardCloser{} }
+func (*checkDelegate) Stderr() io.Writer                                 { return discardCloser{} }
 func (*checkDelegate) ImageVersionDetermined(db.UsedResourceCache) error { return nil }
 func (*checkDelegate) Errored(lager.Logger, string)                      { return }
 
@@ -376,30 +386,52 @@ func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
 
 func (delegate *buildStepDelegate) Stdout() io.Writer {
 	if delegate.stdout == nil {
-		delegate.stdout = newDBEventWriterWithSecretRedaction(
-			delegate.build,
-			event.Origin{
-				Source: event.OriginSourceStdout,
-				ID:     event.OriginID(delegate.planID),
-			},
-			delegate.clock,
-			delegate.buildOutputFilter,
-		)
+		if delegate.credVarsTracker.Enabled() {
+			delegate.stdout = newDBEventWriterWithSecretRedaction(
+				delegate.build,
+				event.Origin{
+					Source: event.OriginSourceStdout,
+					ID:     event.OriginID(delegate.planID),
+				},
+				delegate.clock,
+				delegate.buildOutputFilter,
+			)
+		} else {
+			delegate.stdout = newDBEventWriter(
+				delegate.build,
+				event.Origin{
+					Source: event.OriginSourceStdout,
+					ID:     event.OriginID(delegate.planID),
+				},
+				delegate.clock,
+			)
+		}
 	}
 	return delegate.stdout
 }
 
 func (delegate *buildStepDelegate) Stderr() io.Writer {
 	if delegate.stderr == nil {
-		delegate.stderr = newDBEventWriterWithSecretRedaction(
-			delegate.build,
-			event.Origin{
-				Source: event.OriginSourceStderr,
-				ID:     event.OriginID(delegate.planID),
-			},
-			delegate.clock,
-			delegate.buildOutputFilter,
-		)
+		if delegate.credVarsTracker.Enabled() {
+			delegate.stderr = newDBEventWriterWithSecretRedaction(
+				delegate.build,
+				event.Origin{
+					Source: event.OriginSourceStderr,
+					ID:     event.OriginID(delegate.planID),
+				},
+				delegate.clock,
+				delegate.buildOutputFilter,
+			)
+		} else {
+			delegate.stderr = newDBEventWriter(
+				delegate.build,
+				event.Origin{
+					Source: event.OriginSourceStderr,
+					ID:     event.OriginID(delegate.planID),
+				},
+				delegate.clock,
+			)
+		}
 	}
 	return delegate.stderr
 }
@@ -417,22 +449,11 @@ func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) 
 	}
 }
 
-func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock) io.Writer {
+func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock) io.WriteCloser {
 	return &dbEventWriter{
 		build:  build,
 		origin: origin,
 		clock:  clock,
-	}
-}
-
-func newDBEventWriterWithSecretRedaction(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.WriteCloser {
-	return &dbEventWriterWithSecretRedaction{
-		dbEventWriter: dbEventWriter{
-			build:  build,
-			origin: origin,
-			clock:  clock,
-		},
-		filter: filter,
 	}
 }
 
@@ -476,6 +497,21 @@ func (writer *dbEventWriter) saveLog(text string) error {
 		Payload: text,
 		Origin:  writer.origin,
 	})
+}
+
+func (writer *dbEventWriter) Close() error {
+	return nil
+}
+
+func newDBEventWriterWithSecretRedaction(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.Writer {
+	return &dbEventWriterWithSecretRedaction{
+		dbEventWriter: dbEventWriter{
+			build:  build,
+			origin: origin,
+			clock:  clock,
+		},
+		filter: filter,
+	}
 }
 
 type dbEventWriterWithSecretRedaction struct {
