@@ -11,18 +11,12 @@ module Dashboard.Dashboard exposing
 import Application.Models exposing (Session)
 import Concourse
 import Concourse.Cli as Cli
-import Dashboard.Details as Details
+import Dashboard.Drag as Drag
 import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
-import Dashboard.Group.Models exposing (Group, Pipeline)
-import Dashboard.Models as Models
-    exposing
-        ( DashboardError(..)
-        , Dropdown(..)
-        , Model
-        , SubState
-        )
+import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Models as Models exposing (DashboardError(..), DragState(..), DropState(..), Dropdown(..), Model)
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
 import Dashboard.Text as Text
@@ -61,11 +55,7 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import Monocle.Compose exposing (optionalWithLens, optionalWithOptional)
-import Monocle.Lens
-import Monocle.Optional
-import MonocleHelpers exposing (bind, modifyWithEffect)
-import RemoteData
+import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import SideBar.SideBar as SideBar
@@ -78,11 +68,6 @@ type alias Flags =
     , searchType : Routes.SearchType
     , pipelineRunningKeyframes : String
     }
-
-
-substateOptional : Monocle.Optional.Optional Model SubState
-substateOptional =
-    Monocle.Optional.Optional (.state >> RemoteData.toMaybe) (\s m -> { m | state = RemoteData.Success s })
 
 
 init : Flags -> ( Model, List Effect )
@@ -102,6 +87,8 @@ init flags =
       , teams = []
       , isUserMenuExpanded = False
       , dropdown = Hidden
+      , dragState = Models.NotDragging
+      , dropState = Models.NotDropping
       }
     , [ FetchAllTeams
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -139,8 +126,6 @@ handleCallback callback ( model, effects ) =
                                 | state =
                                     RemoteData.Success
                                         { now = now
-                                        , dragState = Models.NotDragging
-                                        , dropState = Models.NotDropping
                                         }
                             }
             in
@@ -200,9 +185,10 @@ handleCallback callback ( model, effects ) =
             ( { model
                 | pipelines =
                     allPipelinesInEntireCluster
-                        |> List.map
-                            (\p ->
+                        |> List.indexedMap
+                            (\idx p ->
                                 { id = p.id
+                                , ordering = idx
                                 , name = p.name
                                 , teamName = p.teamName
                                 , public = p.public
@@ -310,7 +296,16 @@ handleDeliveryBody delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchAllTeams, FetchAllPipelines, FetchAllResources, FetchAllJobs ] )
+            ( model
+            , effects
+                ++ (if model.dragState == NotDragging then
+                        [ FetchAllPipelines ]
+
+                    else
+                        []
+                   )
+                ++ [ FetchAllTeams, FetchAllResources, FetchAllJobs ]
+            )
 
         _ ->
             ( model, effects )
@@ -325,18 +320,10 @@ updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
         DragStart teamName index ->
-            let
-                newModel =
-                    { model | state = RemoteData.map (\s -> { s | dragState = Models.Dragging teamName index }) model.state }
-            in
-            ( newModel, effects )
+            ( { model | dragState = Models.Dragging teamName index }, effects )
 
         DragOver _ index ->
-            let
-                newModel =
-                    { model | state = RemoteData.map (\s -> { s | dropState = Models.Dropping index }) model.state }
-            in
-            ( newModel, effects )
+            ( { model | dropState = Models.Dropping index }, effects )
 
         TooltipHd pipelineName teamName ->
             ( model, effects ++ [ ShowTooltipHd ( pipelineName, teamName ) ] )
@@ -345,80 +332,38 @@ updateBody msg ( model, effects ) =
             ( model, effects ++ [ ShowTooltip ( pipelineName, teamName ) ] )
 
         DragEnd ->
-            let
-                updatePipelines :
-                    ( Group.PipelineIndex, Group.PipelineIndex )
-                    -> Group
-                    -> ( Group, List Effect )
-                updatePipelines ( dragIndex, dropIndex ) group =
+            case model.dragState of
+                Dragging teamName dragIdx ->
                     let
-                        newGroup =
-                            Group.shiftPipelines dragIndex dropIndex group
+                        pipelines =
+                            Drag.drag dragIdx
+                                (case model.dropState of
+                                    Dropping dropIdx ->
+                                        dropIdx
+
+                                    _ ->
+                                        dragIdx
+                                )
+                                model.pipelines
                     in
-                    ( newGroup
-                    , [ SendOrderPipelinesRequest newGroup.teamName newGroup.pipelines ]
+                    ( { model
+                        | pipelines = pipelines
+                        , dragState = NotDragging
+                        , dropState = NotDropping
+                      }
+                    , effects
+                        ++ [ pipelines
+                                |> List.filter (.teamName >> (==) teamName)
+                                |> List.map .name
+                                |> SendOrderPipelinesRequest teamName
+                           ]
                     )
 
-                dragDropOptional : Monocle.Optional.Optional Model ( Models.DragState, Models.DropState )
-                dragDropOptional =
-                    substateOptional
-                        |> optionalWithLens
-                            (Monocle.Lens.tuple
-                                Details.dragStateLens
-                                Details.dropStateLens
-                            )
-
-                dragDropIndexOptional : Monocle.Optional.Optional Model ( Group.PipelineIndex, Group.PipelineIndex )
-                dragDropIndexOptional =
-                    dragDropOptional
-                        |> optionalWithOptional
-                            (Monocle.Optional.zip
-                                Group.dragIndexOptional
-                                Group.dropIndexOptional
-                            )
-
-                groupsLens : Monocle.Lens.Lens Model (List Group)
-                groupsLens =
-                    Monocle.Lens.Lens .groups (\b a -> { a | groups = b })
-
-                groupOptional : Monocle.Optional.Optional Model Group
-                groupOptional =
-                    -- the point of this optional is to find the group whose
-                    -- name matches the name name in the dragstate
-                    (substateOptional
-                        |> optionalWithLens Details.dragStateLens
-                        |> optionalWithOptional Group.teamNameOptional
-                    )
-                        |> bind
-                            (\teamName ->
-                                groupsLens
-                                    |> Monocle.Optional.fromLens
-                                    |> optionalWithOptional
-                                        (Group.findGroupOptional teamName)
-                            )
-
-                bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Group )
-                bigOptional =
-                    Monocle.Optional.tuple
-                        dragDropIndexOptional
-                        groupOptional
-
-                ( newModel, unAccumulatedEffects ) =
-                    model
-                        |> modifyWithEffect bigOptional
-                            (\( t, g ) ->
-                                let
-                                    ( newG, newMsg ) =
-                                        updatePipelines t g
-                                in
-                                ( ( t, newG ), newMsg )
-                            )
-                        |> Tuple.mapFirst (dragDropOptional.set ( Models.NotDragging, Models.NotDropping ))
-            in
-            ( newModel, effects ++ unAccumulatedEffects )
+                _ ->
+                    ( model, effects )
 
         Click LogoutButton ->
-            ( { model | state = RemoteData.NotAsked }, effects )
+            ( { model | teams = [], pipelines = [] }, effects )
 
         Click (PipelineButton pipelineId) ->
             let
@@ -565,16 +510,10 @@ dashboardView :
     -> Html Message
 dashboardView session model =
     case model.state of
-        RemoteData.NotAsked ->
-            Html.text ""
-
-        RemoteData.Loading ->
-            Html.text ""
-
         RemoteData.Failure (Turbulence path) ->
             turbulenceView path
 
-        RemoteData.Success substate ->
+        _ ->
             Html.div
                 (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
                     :: Styles.content model.highDensity
@@ -584,15 +523,18 @@ dashboardView session model =
                     :: pipelinesView
                         session
                         { teams = model.teams
-                        , substate = substate
+                        , substate = model.state
                         , query = model.query
                         , hovered = session.hovered
                         , pipelineRunningKeyframes =
                             model.pipelineRunningKeyframes
                         , highDensity = model.highDensity
-                        , pipelinesWithResourceErrors = model.pipelinesWithResourceErrors
+                        , pipelinesWithResourceErrors =
+                            model.pipelinesWithResourceErrors
                         , existingJobs = model.existingJobs
                         , pipelines = model.pipelines
+                        , dragState = model.dragState
+                        , dropState = model.dropState
                         }
 
 
@@ -706,7 +648,7 @@ pipelinesView :
     { a | userState : UserState.UserState }
     ->
         { teams : List Concourse.Team
-        , substate : Models.SubState
+        , substate : RemoteData DashboardError Models.SubState
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
         , query : String
@@ -714,6 +656,8 @@ pipelinesView :
         , pipelinesWithResourceErrors : Dict ( String, String ) Bool
         , existingJobs : List Concourse.Job
         , pipelines : List Pipeline
+        , dragState : DragState
+        , dropState : DropState
         }
     -> List (Html Message)
 pipelinesView session params =
@@ -723,33 +667,33 @@ pipelinesView session params =
                 |> List.sortWith (Group.ordering session)
 
         groupViews =
-            if params.highDensity then
-                filteredGroups
-                    |> List.concatMap
-                        (Group.hdView
-                            { pipelineRunningKeyframes = params.pipelineRunningKeyframes
-                            , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
-                            , existingJobs = params.existingJobs
-                            , pipelines = params.pipelines
-                            }
-                            session
-                        )
+            filteredGroups
+                |> (if params.highDensity then
+                        List.concatMap
+                            (Group.hdView
+                                { pipelineRunningKeyframes = params.pipelineRunningKeyframes
+                                , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                , existingJobs = params.existingJobs
+                                , pipelines = params.pipelines
+                                }
+                                session
+                            )
 
-            else
-                filteredGroups
-                    |> List.map
-                        (Group.view
-                            session
-                            { dragState = params.substate.dragState
-                            , dropState = params.substate.dropState
-                            , now = params.substate.now
-                            , hovered = params.hovered
-                            , pipelineRunningKeyframes = params.pipelineRunningKeyframes
-                            , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
-                            , existingJobs = params.existingJobs
-                            , pipelines = params.pipelines
-                            }
-                        )
+                    else
+                        List.map
+                            (Group.view
+                                session
+                                { dragState = params.dragState
+                                , dropState = params.dropState
+                                , now = RemoteData.map .now params.substate
+                                , hovered = params.hovered
+                                , pipelineRunningKeyframes = params.pipelineRunningKeyframes
+                                , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                , existingJobs = params.existingJobs
+                                , pipelines = params.pipelines
+                                }
+                            )
+                   )
     in
     if List.isEmpty groupViews && not (String.isEmpty params.query) then
         [ noResultsView params.query ]

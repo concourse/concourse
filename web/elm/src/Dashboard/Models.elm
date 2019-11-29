@@ -31,14 +31,14 @@ type alias Model =
             , query : String
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             , existingJobs : List Concourse.Job
+            , dragState : DragState
+            , dropState : DropState
             }
         )
 
 
 type alias SubState =
     { now : Time.Posix
-    , dragState : DragState
-    , dropState : DropState
     }
 
 

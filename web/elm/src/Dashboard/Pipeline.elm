@@ -10,6 +10,7 @@ import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Models exposing (DashboardError)
 import Dashboard.Styles as Styles
 import Duration
 import HoverState
@@ -17,6 +18,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, href, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Message exposing (DomID(..), Message(..))
+import RemoteData exposing (RemoteData)
 import Routes
 import Time
 import UserState exposing (UserState)
@@ -79,7 +81,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
 
 
 pipelineView :
-    { now : Time.Posix
+    { now : RemoteData DashboardError Time.Posix
     , pipeline : Pipeline
     , hovered : HoverState.HoverState
     , pipelineRunningKeyframes : String
@@ -233,7 +235,7 @@ bodyView hovered existingJobs =
 footerView :
     UserState
     -> Pipeline
-    -> Time.Posix
+    -> RemoteData DashboardError Time.Posix
     -> HoverState.HoverState
     -> List Concourse.Job
     -> Html Message
@@ -374,10 +376,15 @@ statusAgeText status now =
             sinceTransitionText details now
 
 
-transitionView : Time.Posix -> PipelineStatus.PipelineStatus -> Html Message
-transitionView time status =
-    Html.div
-        (class "build-duration"
-            :: Styles.pipelineCardTransitionAge status
-        )
-        [ Html.text <| statusAgeText status time ]
+transitionView : RemoteData DashboardError Time.Posix -> PipelineStatus.PipelineStatus -> Html Message
+transitionView t status =
+    case t of
+        RemoteData.Success time ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text <| statusAgeText status time ]
+
+        _ ->
+            Html.text ""

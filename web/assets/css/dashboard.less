@@ -75,15 +75,10 @@
       position: relative;
       left: (-125px * @scale);
       margin-right: (-250px * @scale);
-      padding: 0 (100px * @scale);
       z-index: -1;
 
       &.active {
         z-index: 2;
-      }
-
-      &.active.over {
-        padding: 0 (397px * @scale);
       }
 
       &.animation {
@@ -108,12 +103,6 @@
   }
 
   .card {
-    &.dragging {
-      width: 0;
-      margin: 0 (25px * @scale);
-      overflow: hidden;
-    }
-
     .card-header {
       position: relative;
 

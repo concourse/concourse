@@ -14,7 +14,6 @@ import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
-import Dashboard.Group.Models
 import Json.Encode
 import Maybe exposing (Maybe)
 import Message.Callback exposing (Callback(..), TooltipPolicy(..))
@@ -154,7 +153,7 @@ type Effect
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
     | ShowTooltip ( String, String )
     | ShowTooltipHd ( String, String )
-    | SendOrderPipelinesRequest String (List Dashboard.Group.Models.Pipeline)
+    | SendOrderPipelinesRequest String (List String)
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames StickyHeaderConfig
@@ -335,8 +334,8 @@ runEffect effect key csrfToken =
         ShowTooltipHd ( teamName, pipelineName ) ->
             tooltipHd ( teamName, pipelineName )
 
-        SendOrderPipelinesRequest teamName pipelines ->
-            Network.Pipeline.order teamName (List.map .name pipelines) csrfToken
+        SendOrderPipelinesRequest teamName pipelineNames ->
+            Network.Pipeline.order teamName pipelineNames csrfToken
                 |> Task.attempt (always EmptyCallback)
 
         SendLogOutRequest ->

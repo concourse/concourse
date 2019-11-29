@@ -1,10 +1,7 @@
 module Dashboard.Group exposing
     ( PipelineIndex
     , dragIndex
-    , dragIndexOptional
     , dropIndex
-    , dropIndexOptional
-    , findGroupOptional
     , hdView
     , ordering
     , pipelineDropAreaView
@@ -15,28 +12,26 @@ module Dashboard.Group exposing
     , shiftPipelineTo
     , shiftPipelines
     , teamName
-    , teamNameOptional
     , view
     )
 
 import Concourse
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Group.Tag as Tag
-import Dashboard.Models exposing (DragState(..), DropState(..))
+import Dashboard.Models exposing (DashboardError, DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
-import Html.Events exposing (on)
+import Html.Events exposing (on, preventDefaultOn)
 import Json.Decode
-import List.Extra
 import Maybe.Extra
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
-import Monocle.Optional
 import Ordering exposing (Ordering)
+import RemoteData exposing (RemoteData)
 import Time
 import UserState exposing (UserState(..))
 
@@ -47,37 +42,8 @@ ordering session =
         |> Ordering.breakTiesWith (Ordering.byField .teamName)
 
 
-findGroupOptional : String -> Monocle.Optional.Optional (List Group) Group
-findGroupOptional name =
-    let
-        predicate =
-            .teamName >> (==) name
-    in
-    Monocle.Optional.Optional (List.Extra.find predicate)
-        (\g gs ->
-            List.Extra.findIndex predicate gs
-                |> Maybe.map (\i -> List.Extra.setAt i g gs)
-                |> Maybe.withDefault gs
-        )
-
-
 type alias PipelineIndex =
     Int
-
-
-teamNameOptional : Monocle.Optional.Optional DragState Concourse.TeamName
-teamNameOptional =
-    Monocle.Optional.Optional teamName setTeamName
-
-
-dragIndexOptional : Monocle.Optional.Optional DragState PipelineIndex
-dragIndexOptional =
-    Monocle.Optional.Optional dragIndex setDragIndex
-
-
-dropIndexOptional : Monocle.Optional.Optional DropState PipelineIndex
-dropIndexOptional =
-    Monocle.Optional.Optional dropIndex setDropIndex
 
 
 teamName : DragState -> Maybe Concourse.TeamName
@@ -191,7 +157,7 @@ view :
     ->
         { dragState : DragState
         , dropState : DropState
-        , now : Time.Posix
+        , now : RemoteData DashboardError Time.Posix
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
         , pipelinesWithResourceErrors : Dict ( String, String ) Bool
@@ -211,26 +177,31 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pip
 
             else
                 List.append
-                    (List.indexedMap
-                        (\i pipeline ->
+                    (List.map
+                        (\pipeline ->
                             Html.div [ class "pipeline-wrapper" ]
-                                [ pipelineDropAreaView dragState dropState g.teamName i
+                                [ pipelineDropAreaView dragState dropState g.teamName pipeline.ordering
                                 , Html.div
-                                    [ classList
-                                        [ ( "card", True )
-                                        , ( "dragging"
-                                          , dragState == Dragging pipeline.teamName i
-                                          )
-                                        ]
-                                    , attribute "data-pipeline-name" pipeline.name
-                                    , attribute
+                                    ([ class "card"
+                                     , attribute "data-pipeline-name" pipeline.name
+                                     , attribute
                                         "ondragstart"
                                         "event.dataTransfer.setData('text/plain', '');"
-                                    , draggable "true"
-                                    , on "dragstart"
-                                        (Json.Decode.succeed (DragStart pipeline.teamName i))
-                                    , on "dragend" (Json.Decode.succeed DragEnd)
-                                    ]
+                                     , draggable "true"
+                                     , on "dragstart"
+                                        (Json.Decode.succeed (DragStart pipeline.teamName pipeline.ordering))
+                                     , on "dragend" (Json.Decode.succeed DragEnd)
+                                     ]
+                                        ++ (if dragState == Dragging pipeline.teamName pipeline.ordering then
+                                                [ style "width" "0"
+                                                , style "margin" "0 12.5px"
+                                                , style "overflow" "hidden"
+                                                ]
+
+                                            else
+                                                []
+                                           )
+                                    )
                                     [ Pipeline.pipelineView
                                         { now = now
                                         , pipeline = pipeline
@@ -253,7 +224,15 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pip
                         )
                         pipelinesForGroup
                     )
-                    [ pipelineDropAreaView dragState dropState g.teamName (List.length pipelinesForGroup) ]
+                    [ pipelineDropAreaView dragState
+                        dropState
+                        g.teamName
+                        (pipelinesForGroup
+                            |> List.map (.ordering >> (+) 1)
+                            |> List.maximum
+                            |> Maybe.withDefault 0
+                        )
+                    ]
     in
     Html.div
         [ id g.teamName
@@ -368,7 +347,23 @@ pipelineDropAreaView dragState dropState name index =
                     ( False, False )
     in
     Html.div
-        [ classList [ ( "drop-area", True ), ( "active", active ), ( "over", over ), ( "animation", dropState /= NotDropping ) ]
+        [ classList
+            [ ( "drop-area", True )
+            , ( "active", active )
+            , ( "animation", dropState /= NotDropping )
+            ]
         , on "dragenter" (Json.Decode.succeed (DragOver name index))
+
+        -- preventDefault is required so that the card will not appear to
+        -- "float" or "snap" back to its original position when dropped.
+        , preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver name index, True ))
+        , style "padding" <|
+            "0 "
+                ++ (if active && over then
+                        "198.5px"
+
+                    else
+                        "50px"
+                   )
         ]
-        [ Html.text "" ]
+        []

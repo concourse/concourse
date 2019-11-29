@@ -117,7 +117,10 @@ init flags =
           , notFound = False
           , reapTime = Nothing
           }
-        , [ GetCurrentTime, GetCurrentTimeZone, FetchAllPipelines ]
+        , [ GetCurrentTime
+          , GetCurrentTimeZone
+          , FetchAllPipelines
+          ]
         )
 
 
