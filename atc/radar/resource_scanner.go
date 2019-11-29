@@ -168,6 +168,8 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceID int, fromVe
 	// Combine pipeline specific var_sources with the global credential manager.
 	varss, err := scanner.dbPipeline.Variables(logger, scanner.secrets, scanner.varSourcePool)
 	if err != nil {
+		logger.Error("failed-to-create-variables", err)
+		scanner.setResourceCheckError(logger, savedResource, err)
 		return 0, err
 	}
 

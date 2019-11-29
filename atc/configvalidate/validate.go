@@ -725,5 +725,10 @@ func validateVarSources(c Config) error {
 			return fmt.Errorf("credential manager %s is invalid: %s", cm.Name, err.Error())
 		}
 	}
+
+	if _, err := c.VarSources.OrderByDependency(); err != nil {
+		return err
+	}
+
 	return nil
 }

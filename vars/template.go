@@ -24,6 +24,10 @@ func NewTemplate(bytes []byte) Template {
 	return Template{bytes: bytes}
 }
 
+func (t Template) ExtraVarNames() []string {
+	return interpolator{}.extractVarNames(string(t.bytes))
+}
+
 func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 	var obj interface{}
 

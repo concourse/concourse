@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sigs.k8s.io/yaml"
 	"strings"
 
+	"sigs.k8s.io/yaml"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/concourse/concourse/vars"
 )
 
 const ConfigVersionHeader = "X-Concourse-Config-Version"
@@ -85,6 +87,89 @@ func (c VarSourceConfigs) Lookup(name string) (VarSourceConfig, bool) {
 	}
 
 	return VarSourceConfig{}, false
+}
+
+type pendingVarSource struct {
+	vs   VarSourceConfig
+	deps []string
+}
+
+func (c VarSourceConfigs) OrderByDependency() (VarSourceConfigs, error) {
+	ordered := VarSourceConfigs{}
+	pending := []pendingVarSource{}
+	added := map[string]interface{}{}
+
+	for _, vs := range c {
+		b, err := yaml.Marshal(vs.Config)
+		if err != nil {
+			return nil, err
+		}
+
+		template := vars.NewTemplate(b)
+		varNames := template.ExtraVarNames()
+
+		dependencies := []string{}
+		for _, varName := range varNames {
+			parts := strings.Split(varName, ":")
+			if len(parts) > 1 {
+				dependencies = append(dependencies, parts[0])
+			}
+		}
+
+		if len(dependencies) == 0 {
+			// If no dependency, add the var source to ordered list.
+			ordered = append(ordered, vs)
+			added[vs.Name] = true
+		} else {
+			// If there are some dependencies, then check if dependencies have
+			// already been added to ordered list, if yes, then add it; otherwise
+			// add it to a pending list.
+			miss := false
+			for _, dep := range dependencies {
+				if added[dep] == nil {
+					miss = true
+					break
+				}
+			}
+			if !miss {
+				ordered = append(ordered, vs)
+				added[vs.Name] = true
+			} else {
+				pending = append(pending, pendingVarSource{vs, dependencies})
+				continue
+			}
+		}
+
+		// Once a var_source is added to ordered list, check if any pending
+		// var_source can be added to ordered list.
+		left := []pendingVarSource{}
+		for _, pendingVs := range pending {
+			miss := false
+			for _, dep := range pendingVs.deps {
+				if added[dep] == nil {
+					miss = true
+					break
+				}
+			}
+			if !miss {
+				ordered = append(ordered, pendingVs.vs)
+				added[pendingVs.vs.Name] = true
+			} else {
+				left = append(left, pendingVs)
+			}
+		}
+		pending = left
+	}
+
+	if len(pending) > 0 {
+		names := []string{}
+		for _, vs := range pending {
+			names = append(names, vs.vs.Name)
+		}
+		return nil, fmt.Errorf("dereference var_sources '%s' error", strings.Join(names, "', '"))
+	}
+
+	return ordered, nil
 }
 
 type ResourceConfig struct {
