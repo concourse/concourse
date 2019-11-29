@@ -49,6 +49,13 @@ var _ = Describe("Pipeline", func() {
 						"vars": map[string]interface{}{"pk": "pv"},
 					},
 				},
+				{
+					Name: "second-var-source",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{"pk": "((some-var-source:pk))"},
+					},
+				},
 			},
 			Jobs: atc.JobConfigs{
 				{
@@ -2306,6 +2313,15 @@ var _ = Describe("Pipeline", func() {
 			_, found, err := pvars.Get(vars.VariableDefinition{Name: "pk"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+
+		// The second var source is configured with vars that needs to be interpolated
+		// from "some-var-source".
+		It("should get pipeline var 'pk' from the second var_source", func() {
+			v, found, err := pvars.Get(vars.VariableDefinition{Name: "second-var-source:pk"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(v.(string)).To(Equal("pv"))
 		})
 
 		It("should get var from global var source", func() {

@@ -1136,7 +1136,7 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 // plug the global variables, otherwise just return the global variables.
 func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
 	globalVars := creds.NewVariables(globalSecrets, p.TeamName(), p.Name(), false)
-	varss := []vars.Variables{}
+	varss := []vars.Variables{globalVars}
 	for _, cm := range p.varSources {
 		factory := creds.ManagerFactories()[cm.Type]
 		if factory == nil {
@@ -1144,7 +1144,7 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 		}
 
 		// Interpolate variables in pipeline credential manager's config
-		newConfig, err := creds.NewParams(globalVars, atc.Params{"config": cm.Config}).Evaluate()
+		newConfig, err := creds.NewParams(vars.NewMultiVars(varss), atc.Params{"config": cm.Config}).Evaluate()
 		if err != nil {
 			return nil, err
 		}
@@ -1160,11 +1160,10 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 		varss = append(varss, creds.NewVariables(secrets, p.TeamName(), p.Name(), true))
 	}
 
-	if len(varss) == 0 {
+	if len(varss) == 1 {
 		return globalVars, nil
 	}
 
-	varss = append(varss, globalVars)
 	return vars.NewMultiVars(varss), nil
 }
 
