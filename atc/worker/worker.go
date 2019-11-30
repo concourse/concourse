@@ -82,10 +82,10 @@ type Worker interface {
 }
 
 type gardenWorker struct {
-	gardenClient    gclient.Client
-	volumeClient    VolumeClient
-	imageFactory    ImageFactory
-	fetcher         Fetcher
+	gardenClient gclient.Client
+	volumeClient VolumeClient
+	imageFactory ImageFactory
+	Fetcher
 	dbWorker        db.Worker
 	buildContainers int
 	helper          workerHelper
@@ -119,7 +119,7 @@ func NewGardenWorker(
 		gardenClient:    gardenClient,
 		volumeClient:    volumeClient,
 		imageFactory:    imageFactory,
-		fetcher:         fetcher,
+		Fetcher:         fetcher,
 		dbWorker:        dbWorker,
 		buildContainers: numBuildContainers,
 		helper:          workerHelper,
@@ -190,34 +190,6 @@ func (worker *gardenWorker) CreateVolume(logger lager.Logger, spec VolumeSpec, t
 
 func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
 	return worker.volumeClient.LookupVolume(logger, handle)
-}
-
-func (worker *gardenWorker) Fetch(
-	ctx context.Context,
-	logger lager.Logger,
-	containerMetadata db.ContainerMetadata,
-	gardenWorker Worker,
-	containerSpec ContainerSpec,
-	processSpec runtime.ProcessSpec,
-	resource resource.Resource,
-	owner db.ContainerOwner,
-	imageFetcherSpec ImageFetcherSpec,
-	resourceCache db.UsedResourceCache,
-	lockName string,
-) (GetResult, Volume, error) {
-	return worker.fetcher.Fetch(
-		ctx,
-		logger,
-		containerMetadata,
-		gardenWorker,
-		containerSpec,
-		processSpec,
-		resource,
-		owner,
-		imageFetcherSpec,
-		resourceCache,
-		lockName,
-	)
 }
 
 func (worker *gardenWorker) FindOrCreateContainer(
