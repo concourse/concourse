@@ -41,6 +41,7 @@ var workersQuery = psql.Select(`
 		w.addr,
 		w.state,
 		w.baggageclaim_url,
+		w.healthcheck_url,
 		w.certs_path,
 		w.http_proxy_url,
 		w.https_proxy_url,
@@ -54,7 +55,7 @@ var workersQuery = psql.Select(`
 		w.team_id,
 		w.start_time,
 		w.expires,
-		w.ephemeral
+		w.ephemeral		
 	`).
 	From("workers w").
 	LeftJoin("teams t ON w.team_id = t.id")
@@ -124,22 +125,23 @@ func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
 
 func scanWorker(worker *worker, row scannable) error {
 	var (
-		version       sql.NullString
-		addStr        sql.NullString
-		state         string
-		bcURLStr      sql.NullString
-		certsPathStr  sql.NullString
-		httpProxyURL  sql.NullString
-		httpsProxyURL sql.NullString
-		noProxy       sql.NullString
-		resourceTypes []byte
-		platform      sql.NullString
-		tags          []byte
-		teamName      sql.NullString
-		teamID        sql.NullInt64
-		startTime     pq.NullTime
-		expiresAt     pq.NullTime
-		ephemeral     sql.NullBool
+		version         sql.NullString
+		addStr          sql.NullString
+		state           string
+		bcURLStr        sql.NullString
+		healthcheckURL  sql.NullString
+		certsPathStr    sql.NullString
+		httpProxyURL    sql.NullString
+		httpsProxyURL   sql.NullString
+		noProxy         sql.NullString
+		resourceTypes   []byte
+		platform        sql.NullString
+		tags            []byte
+		teamName        sql.NullString
+		teamID          sql.NullInt64
+		startTime       pq.NullTime
+		expiresAt       pq.NullTime
+		ephemeral       sql.NullBool
 	)
 
 	err := row.Scan(
@@ -148,6 +150,7 @@ func scanWorker(worker *worker, row scannable) error {
 		&addStr,
 		&state,
 		&bcURLStr,
+		&healthcheckURL,
 		&certsPathStr,
 		&httpProxyURL,
 		&httpsProxyURL,
@@ -177,6 +180,10 @@ func scanWorker(worker *worker, row scannable) error {
 
 	if bcURLStr.Valid {
 		worker.baggageclaimURL = &bcURLStr.String
+	}
+
+	if healthcheckURL.Valid {
+		worker.healthcheckURL = healthcheckURL.String
 	}
 
 	if certsPathStr.Valid {
@@ -402,6 +409,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		tags,
 		atcWorker.Platform,
 		atcWorker.BaggageclaimURL,
+		atcWorker.HealthcheckURL,
 		atcWorker.CertsPath,
 		atcWorker.HTTPProxyURL,
 		atcWorker.HTTPSProxyURL,
@@ -433,6 +441,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"tags",
 			"platform",
 			"baggageclaim_url",
+			"healthcheck_url",
 			"certs_path",
 			"http_proxy_url",
 			"https_proxy_url",
@@ -458,6 +467,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				tags = ?,
 				platform = ?,
 				baggageclaim_url = ?,
+				healthcheck_url = ?,
 				certs_path = ?,
 				http_proxy_url = ?,
 				https_proxy_url = ?,
@@ -496,6 +506,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		state:            workerState,
 		gardenAddr:       &atcWorker.GardenAddr,
 		baggageclaimURL:  &atcWorker.BaggageclaimURL,
+		healthcheckURL:   atcWorker.HealthcheckURL,
 		certsPath:        atcWorker.CertsPath,
 		httpProxyURL:     atcWorker.HTTPProxyURL,
 		httpsProxyURL:    atcWorker.HTTPSProxyURL,

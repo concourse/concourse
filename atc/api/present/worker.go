@@ -26,6 +26,7 @@ func Worker(workerInfo db.Worker) atc.Worker {
 	atcWorker := atc.Worker{
 		GardenAddr:       gardenAddr,
 		BaggageclaimURL:  baggageclaimURL,
+		HealthcheckURL:   workerInfo.HealthcheckURL(),
 		HTTPProxyURL:     workerInfo.HTTPProxyURL(),
 		HTTPSProxyURL:    workerInfo.HTTPSProxyURL(),
 		NoProxy:          workerInfo.NoProxy(),

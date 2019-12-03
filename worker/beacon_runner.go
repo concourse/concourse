@@ -19,6 +19,8 @@ func NewBeaconRunner(
 	connectionDrainTimeout time.Duration,
 	gardenAddr string,
 	baggageclaimAddr string,
+	healthcheckAddr string,
+	healthcheckTimeout time.Duration,
 ) ifrit.Runner {
 	signals := make(chan os.Signal, 2)
 	signal.Notify(signals, drainSignals...)
@@ -38,6 +40,10 @@ func NewBeaconRunner(
 
 		LocalBaggageclaimNetwork: "tcp",
 		LocalBaggageclaimAddr:    baggageclaimAddr,
+
+		LocalHealthcheckNetwork: "tcp",
+		LocalHealthcheckAddr:    healthcheckAddr,
+		HealthcheckTimeout:      healthcheckTimeout,
 	}
 
 	return restart.Restarter{
