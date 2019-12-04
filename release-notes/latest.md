@@ -35,3 +35,7 @@
 #### <sub><sup><a name="4817" href="#4817">:link:</a></sup></sub> fix
 
 * @evanchaoli fixed a regression introduced with the secret redaction work which resulted in build logs being buffered. #4817
+
+#### <sub><sup><a name="4746" href="#4746">:link:</a></sup></sub> fix
+
+* Fixed the problem of when fail_fast for in_parallel is true, a failing step causes the in_parallel to fall into on_error #4746
