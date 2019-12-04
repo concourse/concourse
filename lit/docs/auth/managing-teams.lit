@@ -44,7 +44,7 @@
     \title{Setting User Roles}{setting-roles}
 
     By default, authorization config passed to \code{set-team} configures the
-    \reference{team-member-role}.
+    \reference{team-owner-role}.
 
     More advanced \reference{user-roles}{roles} configuration can be specified
     through the \code{--config} or \code{-c} flag.
