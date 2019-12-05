@@ -34,6 +34,10 @@ func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID,
 	return NewTaskDelegate(build, planID, credVarsTracker, clock.NewClock())
 }
 
+func (delegate *delegateFactory) SetPipelineDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.BuildStepDelegate {
+	return NewBuildStepDelegate(build, planID, credVarsTracker, clock.NewClock())
+}
+
 func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.CheckDelegate {
 	return NewCheckDelegate(check, planID, credVarsTracker, clock.NewClock())
 }
@@ -434,6 +438,56 @@ func (delegate *buildStepDelegate) Stderr() io.Writer {
 		}
 	}
 	return delegate.stderr
+}
+
+func (delegate *buildStepDelegate) Initializing(logger lager.Logger) {
+	err := delegate.build.SaveEvent(event.Initialize{
+		Origin: event.Origin{
+			ID: event.OriginID(delegate.planID),
+		},
+		Time: time.Now().Unix(),
+	})
+	if err != nil {
+		logger.Error("failed-to-save-initialize-event", err)
+		return
+	}
+
+	logger.Info("initializing")
+}
+
+func (delegate *buildStepDelegate) Starting(logger lager.Logger) {
+	err := delegate.build.SaveEvent(event.Start{
+		Origin: event.Origin{
+			ID: event.OriginID(delegate.planID),
+		},
+		Time: time.Now().Unix(),
+	})
+	if err != nil {
+		logger.Error("failed-to-save-start-event", err)
+		return
+	}
+
+	logger.Debug("starting")
+}
+
+func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool) {
+	// PR#4398: close to flush stdout and stderr
+	delegate.Stdout().(io.Closer).Close()
+	delegate.Stderr().(io.Closer).Close()
+
+	err := delegate.build.SaveEvent(event.Finish{
+		Origin: event.Origin{
+			ID: event.OriginID(delegate.planID),
+		},
+		Time:      time.Now().Unix(),
+		Succeeded: succeeded,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-finish-event", err)
+		return
+	}
+
+	logger.Info("finished")
 }
 
 func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) {

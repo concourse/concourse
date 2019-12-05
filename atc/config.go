@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sigs.k8s.io/yaml"
 	"strings"
 
 	"golang.org/x/crypto/ssh"
@@ -17,13 +18,38 @@ type Tags []string
 
 type Config struct {
 	Groups        GroupConfigs     `json:"groups,omitempty"`
+	VarSources    VarSourceConfigs `json:"var_sources,omitempty"`
 	Resources     ResourceConfigs  `json:"resources,omitempty"`
 	ResourceTypes ResourceTypes    `json:"resource_types,omitempty"`
 	Jobs          JobConfigs       `json:"jobs,omitempty"`
-	VarSources    VarSourceConfigs `json:"var_sources,omitempty"`
 }
 
-var TopLevelConfigKeys = []string{"groups", "resources", "resource_types", "jobs", "var_sources"}
+func UnmarshalConfig(payload []byte, config interface{}) error {
+	// a 'skeleton' of Config, specifying only the toplevel fields
+	type skeletonConfig struct {
+		Groups        interface{} `json:"groups,omitempty"`
+		VarSources    interface{} `json:"var_sources,omitempty"`
+		Resources     interface{} `json:"resources,omitempty"`
+		ResourceTypes interface{} `json:"resource_types,omitempty"`
+		Jobs          interface{} `json:"jobs,omitempty"`
+	}
+
+	var stripped skeletonConfig
+	err := yaml.Unmarshal(payload, &stripped)
+	if err != nil {
+		return err
+	}
+
+	strippedPayload, err := yaml.Marshal(stripped)
+	if err != nil {
+		return err
+	}
+
+	return yaml.UnmarshalStrict(
+		strippedPayload,
+		&config,
+	)
+}
 
 type GroupConfig struct {
 	Name      string   `json:"name"`
@@ -309,12 +335,17 @@ type PlanConfig struct {
 	Task string `json:"task,omitempty"`
 	// run task privileged
 	Privileged bool `json:"privileged,omitempty"`
-	// task config path, e.g. foo/build.yml
-	TaskConfigPath string `json:"file,omitempty"`
-	// task variables, if task is specified as external file via TaskConfigPath
-	TaskVars Params `json:"vars,omitempty"`
 	// inlined task config
 	TaskConfig *TaskConfig `json:"config,omitempty"`
+
+	// name of 'set_pipeline'
+	SetPipeline string   `json:"set_pipeline,omitempty"`
+	VarFiles    []string `json:"var_files,omitempty"`
+
+	// config path, e.g. foo/build.yml. Multiple steps might have this field, e.g. Task step and SetPipeline step.
+	ConfigPath string `json:"file,omitempty"`
+	// variables, Multiple steps might have this field, e.g. Task step and SetPipeline step.
+	Vars Params `json:"vars,omitempty"`
 
 	// used by Get and Put for specifying params to the resource
 	// used by Task for passing params to external task config

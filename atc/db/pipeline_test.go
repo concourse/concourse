@@ -77,11 +77,20 @@ var _ = Describe("Pipeline", func() {
 							Trigger: true,
 						},
 						{
-							Task:           "some-task",
-							Privileged:     true,
-							TaskConfigPath: "some/config/path.yml",
+							Task:       "some-task",
+							Privileged: true,
+							ConfigPath: "some/config/path.yml",
 							TaskConfig: &atc.TaskConfig{
 								RootfsURI: "some-image",
+							},
+						},
+						{
+							SetPipeline: "some-pipeline",
+							ConfigPath: "some-file",
+							VarFiles: []string{"var-file1", "var-file2"},
+							Vars: map[string]interface{}{
+								"k1": "v1",
+								"k2": "v2",
 							},
 						},
 					},
@@ -110,26 +119,26 @@ var _ = Describe("Pipeline", func() {
 			},
 			Resources: atc.ResourceConfigs{
 				{
-					Name:   "some-resource",
-					Type:   "some-type",
-					Source: atc.Source{"some": "source"},
-				},
-				{
 					Name:   "some-other-resource",
 					Type:   "some-type",
 					Source: atc.Source{"some": "other-source"},
 				},
+				{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				},
 			},
 			ResourceTypes: atc.ResourceTypes{
-				{
-					Name:   "some-resource-type",
-					Type:   "base-type",
-					Source: atc.Source{"some": "type-soure"},
-				},
 				{
 					Name:   "some-other-resource-type",
 					Type:   "base-type",
 					Source: atc.Source{"some": "other-type-soure"},
+				},
+				{
+					Name:   "some-resource-type",
+					Type:   "base-type",
+					Source: atc.Source{"some": "type-soure"},
 				},
 			},
 		}
@@ -324,9 +333,9 @@ var _ = Describe("Pipeline", func() {
 								Trigger: true,
 							},
 							{
-								Task:           "some-task",
-								Privileged:     true,
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								Privileged: true,
+								ConfigPath: "some/config/path.yml",
 								TaskConfig: &atc.TaskConfig{
 									RootfsURI: "some-image",
 								},
@@ -2271,11 +2280,11 @@ var _ = Describe("Pipeline", func() {
 	Describe("Variables", func() {
 		var (
 			pvars vars.Variables
-			err error
+			err   error
 		)
 		BeforeEach(func() {
 			fakeSecrets = new(credsfakes.FakeSecrets)
-			fakeSecrets.GetStub = func(key string)(interface{}, *time.Time, bool, error) {
+			fakeSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
 				if key == "gk" {
 					return "gv", nil, true, nil
 				}
@@ -2304,6 +2313,12 @@ var _ = Describe("Pipeline", func() {
 			_, found, err := pvars.Get(vars.VariableDefinition{Name: "foo"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+	})
+
+	Context("Config", func() {
+		It("should return config correctly", func() {
+			Expect(pipeline.Config()).To(Equal(pipelineConfig))
 		})
 	})
 })
