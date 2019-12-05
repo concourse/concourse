@@ -18,6 +18,7 @@ type VaultManager struct {
 
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
 	SharedPath string `long:"shared-path" description:"Path under which to lookup shared credentials."`
+	Namespace  string `long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
 
 	TLS  TLS
 	Auth AuthConfig
@@ -60,7 +61,7 @@ func (manager *VaultManager) Init(log lager.Logger) error {
 		ClientKey:  manager.TLS.ClientKey,
 	}
 
-	manager.Client, err = NewAPIClient(log, manager.URL, tlsConfig, manager.Auth)
+	manager.Client, err = NewAPIClient(log, manager.URL, tlsConfig, manager.Auth, manager.Namespace)
 	if err != nil {
 		return err
 	}
@@ -77,6 +78,8 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&map[string]interface{}{
 		"url":                manager.URL,
 		"path_prefix":        manager.PathPrefix,
+		"shared_path":		  manager.SharedPath,
+		"namespace":		  manager.Namespace,
 		"ca_cert":            manager.TLS.CACert,
 		"server_name":        manager.TLS.ServerName,
 		"auth_backend":       manager.Auth.Backend,
@@ -112,6 +115,7 @@ func (manager *VaultManager) Config(config map[string]interface{}) {
 	manager.URL = toString(config["url"])
 	manager.PathPrefix = toString(config["path_prefix"])
 	manager.SharedPath = toString(config["shared_path"])
+	manager.Namespace = toString(config["namespace"])
 
 	manager.TLS.CACert = toString(config["ca_cert"])
 	manager.TLS.CAPath = toString(config["ca_path"])
