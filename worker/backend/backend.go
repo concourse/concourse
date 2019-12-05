@@ -160,11 +160,10 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 	}
 
 	select {
-	case <-exitStatus: // kill exited successfully.
-		//_, err = task.Delete(ctx)
-		return nil
+	case <-exitStatus:
+		_, err = task.Delete(ctx) // todo: we're swallowing exitcodes in both these forks, do we care?
+		return err
 	case <-ctx.Done():
-		fmt.Println("took too long")
 		err = task.Kill(ctx, syscall.SIGKILL) // should return GRPC DeadlineExceeded error type, wrapped up
 		if err != nil {
 			return err
@@ -175,7 +174,6 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 	if err != nil {
 		return err
 	}
-
 
 	return nil
 }

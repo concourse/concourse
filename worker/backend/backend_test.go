@@ -1,18 +1,19 @@
 package backend_test
 
 import (
-	"errors"
-	"github.com/containerd/containerd/errdefs"
-	"syscall"
-	"testing"
-
 	"code.cloudfoundry.org/garden"
+	"context"
+	"errors"
 	"github.com/concourse/concourse/worker/backend"
 	"github.com/concourse/concourse/worker/backend/libcontainerd/libcontainerdfakes"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"syscall"
+	"testing"
+	"time"
 )
 
 type BackendSuite struct {
@@ -227,6 +228,7 @@ func (s *BackendSuite) TestDestroySetsNamespace() {
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 	fakeTask := new(libcontainerdfakes.FakeTask)
 
+	fakeTask.WaitStub = exitBeforeTimeout
 	fakeContainer.TaskReturns(fakeTask, nil)
 	s.client.GetContainerReturns(fakeContainer, nil)
 
@@ -248,9 +250,9 @@ func (s *BackendSuite) TestDestroyNonEmptyHandle() {
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 	fakeTask := new(libcontainerdfakes.FakeTask)
 
+	fakeTask.WaitStub = exitBeforeTimeout
 	s.client.GetContainerReturns(fakeContainer, nil)
 	fakeContainer.TaskReturns(fakeTask, nil)
-
 
 	err := s.backend.Destroy("some-handle")
 	s.NotEqual(err, backend.InputValidationError{})
@@ -341,13 +343,12 @@ func (s *BackendSuite) TestDestroyKillTaskTimeoutError() {
 	s.EqualError(err, "kill-again-error")
 }
 
-func (s *BackendSuite) TestDestroyDeleteTaskError() { // todo: this is still going down the context timeout path
+func (s *BackendSuite) TestDestroyDeleteTaskError() {
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 	fakeTask := new(libcontainerdfakes.FakeTask)
 
+	fakeTask.WaitStub = exitBeforeTimeout
 	fakeContainer.TaskReturns(fakeTask, nil)
-	exitChannel := make(chan containerd.ExitStatus) // this never returns
-	fakeTask.WaitReturns(exitChannel, nil)
 	s.client.GetContainerReturns(fakeContainer, nil)
 
 	fakeTask.KillReturns(nil)
@@ -355,7 +356,7 @@ func (s *BackendSuite) TestDestroyDeleteTaskError() { // todo: this is still goi
 
 	err := s.backend.Destroy("some-handle")
 
-	s.Equal(2, fakeTask.KillCallCount())
+	s.Equal(1, fakeTask.KillCallCount())
 	s.Equal(1, fakeTask.DeleteCallCount())
 
 	ctx, _ := fakeTask.DeleteArgsForCall(0)
@@ -366,31 +367,28 @@ func (s *BackendSuite) TestDestroyDeleteTaskError() { // todo: this is still goi
 	s.EqualError(err, "task-delete-error")
 }
 
-func (s *BackendSuite) TestDestroyDeleteTaskExitsNonzeroError() {
+func (s *BackendSuite) TestDestroyContainerError() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	fakeTask.WaitStub = exitBeforeTimeout
+	fakeContainer.TaskReturns(fakeTask, nil)
+	s.client.GetContainerReturns(fakeContainer, nil)
+	s.client.DestroyReturns(errors.New("destroy-error"))
+
+	err := s.backend.Destroy("some-handle")
+
+	s.Equal(1, fakeTask.KillCallCount()) // did not go down SIGKILL path
+	s.Equal(1, fakeTask.DeleteCallCount())
+	s.Equal(1, s.client.DestroyCallCount())
+	s.EqualError(err, "destroy-error")
 }
 
-//func (s *BackendSuite) TestDestroyContainerError() {
-//	fakeContainer := new(libcontainerdfakes.FakeContainer)
-//	fakeTask := new(libcontainerdfakes.FakeTask)
-//
-//	exitChannel := make(chan containerd.ExitStatus)
-//	fakeTask.WaitReturns(exitChannel, nil)
-//	fakeContainer.TaskReturns(fakeTask, nil)
-//	s.client.GetContainerReturns(fakeContainer, nil)
-//	s.client.DestroyReturns(errors.New("random"))
-//
-//	// TODO: get the exitChannel to return before the timeout
-//	//s.Equal(1, fakeTask.KillCallCount())
-//
-//	s.Equal(1, s.client.DestroyCallCount())
-//	//s.Error(err)
-//}
-
-// TODO: send down successful channel exitStatus path
 func (s *BackendSuite) TestDestroyContainer() {
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 	fakeTask := new(libcontainerdfakes.FakeTask)
 
+	fakeTask.WaitStub = exitBeforeTimeout
 	fakeContainer.TaskReturns(fakeTask, nil)
 	s.client.GetContainerReturns(fakeContainer, nil)
 
@@ -413,4 +411,14 @@ func TestSuite(t *testing.T) {
 	suite.Run(t, &BackendSuite{
 		Assertions: require.New(t),
 	})
+}
+
+func exitBeforeTimeout(ctx context.Context) (<- chan containerd.ExitStatus, error) {
+	c := make(chan containerd.ExitStatus, 1)
+	go func() {
+		es := containerd.NewExitStatus(0, time.Now(), nil)
+		c <- *es
+		close(c)
+	}()
+	return c, nil
 }
