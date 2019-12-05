@@ -117,7 +117,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 // * TODO.
 func (b *Backend) Destroy(handle string) error {
 	var ctx = namespaces.WithNamespace(context.Background(), b.namespace)
-	const maxTaskKillWaitTime = 500 * time.Millisecond // todo: parameterize
+	const maxTaskKillWaitTime = 10 * time.Second
 
 	if handle == "" {
 		return InputValidationError{}

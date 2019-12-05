@@ -53,6 +53,8 @@ type Client interface {
 		containers []containerd.Container, err error,
 	)
 
+	// GetContainer retrieves a created container that matches the specified handle.
+	//
 	GetContainer(
 		ctx context.Context,
 		handle string,
@@ -60,6 +62,10 @@ type Client interface {
 		container containerd.Container, err error,
 	)
 
+	// Destroy stops any running tasks on a container and remove the container.
+	// If a task cannot be stopped gracefully, it will be forcefully stopped after
+	// the grace period (default 10 seconds).
+	//
 	Destroy(ctx context.Context, handle string) error
 }
 
