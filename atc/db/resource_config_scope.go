@@ -321,6 +321,7 @@ func requestScheduleForJobsUsingResourceConfigScope(tx Tx, rcsID int) error {
 		Join("resources r ON r.id = j.resource_id").
 		Where(sq.Eq{
 			"r.resource_config_scope_id": rcsID,
+			"j.passed_job_id":            nil,
 		}).
 		OrderBy("j.job_id DESC").
 		RunWith(tx).
