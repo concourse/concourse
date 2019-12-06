@@ -17,6 +17,9 @@ import (
 	"github.com/tedsuo/rata"
 	"sigs.k8s.io/yaml"
 
+	// load dummy credential manager
+	_ "github.com/concourse/concourse/atc/creds/dummy"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -39,6 +42,16 @@ var _ = Describe("Config API", func() {
 					Name:      "some-group",
 					Jobs:      []string{"some-job"},
 					Resources: []string{"some-resource"},
+				},
+			},
+
+			VarSources: atc.VarSourceConfigs{
+				{
+					Name: "some",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{},
+					},
 				},
 			},
 
@@ -139,6 +152,15 @@ var _ = Describe("Config API", func() {
 								Name:      "some-group",
 								Jobs:      []string{"some-job"},
 								Resources: []string{"some-resource"},
+							},
+						})
+						fakePipeline.VarSourcesReturns(atc.VarSourceConfigs{
+							{
+								Name: "some",
+								Type: "dummy",
+								Config: map[string]interface{}{
+									"vars": map[string]interface{}{},
+								},
 							},
 						})
 						fakeTeam.PipelineReturns(fakePipeline, true, nil)

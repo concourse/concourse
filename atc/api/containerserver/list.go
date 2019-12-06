@@ -21,7 +21,7 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 			"params": params,
 		})
 
-		containerLocator, err := createContainerLocatorFromRequest(team, r, s.secretManager)
+		containerLocator, err := createContainerLocatorFromRequest(team, r, s.secretManager, s.varSourcePool)
 		if err != nil {
 			hLog.Error("failed-to-parse-request", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -32,7 +32,7 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 
 		hLog.Debug("listing-containers")
 
-		containers, checkContainersExpiresAt, err := containerLocator.Locate()
+		containers, checkContainersExpiresAt, err := containerLocator.Locate(hLog)
 		if err != nil {
 			hLog.Error("failed-to-find-containers", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -56,10 +56,10 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 }
 
 type containerLocator interface {
-	Locate() ([]db.Container, map[int]time.Time, error)
+	Locate(lager.Logger) ([]db.Container, map[int]time.Time, error)
 }
 
-func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretManager creds.Secrets) (containerLocator, error) {
+func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) (containerLocator, error) {
 	query := r.URL.Query()
 	delete(query, ":team_name")
 
@@ -75,6 +75,7 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretMana
 			pipelineName:  query.Get("pipeline_name"),
 			resourceName:  query.Get("resource_name"),
 			secretManager: secretManager,
+			varSourcePool: varSourcePool,
 		}, nil
 	}
 
@@ -126,7 +127,7 @@ type allContainersLocator struct {
 	team db.Team
 }
 
-func (l *allContainersLocator) Locate() ([]db.Container, map[int]time.Time, error) {
+func (l *allContainersLocator) Locate(logger lager.Logger) ([]db.Container, map[int]time.Time, error) {
 	containers, err := l.team.Containers()
 	return containers, nil, err
 }
@@ -136,10 +137,11 @@ type checkContainerLocator struct {
 	pipelineName  string
 	resourceName  string
 	secretManager creds.Secrets
+	varSourcePool creds.VarSourcePool
 }
 
-func (l *checkContainerLocator) Locate() ([]db.Container, map[int]time.Time, error) {
-	return l.team.FindCheckContainers(l.pipelineName, l.resourceName, l.secretManager)
+func (l *checkContainerLocator) Locate(logger lager.Logger) ([]db.Container, map[int]time.Time, error) {
+	return l.team.FindCheckContainers(logger, l.pipelineName, l.resourceName, l.secretManager, l.varSourcePool)
 }
 
 type stepContainerLocator struct {
@@ -147,7 +149,7 @@ type stepContainerLocator struct {
 	metadata db.ContainerMetadata
 }
 
-func (l *stepContainerLocator) Locate() ([]db.Container, map[int]time.Time, error) {
+func (l *stepContainerLocator) Locate(logger lager.Logger) ([]db.Container, map[int]time.Time, error) {
 	containers, err := l.team.FindContainersByMetadata(l.metadata)
 	return containers, nil, err
 }

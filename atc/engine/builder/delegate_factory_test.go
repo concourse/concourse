@@ -39,7 +39,7 @@ var _ = Describe("DelegateFactory", func() {
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123456789, 0))
 		credVars := vars.StaticVariables{
 			"source-param": "super-secret-source",
-			"git-key":      "123\n456\n789\n",
+			"git-key":      "{\n123\n456\n789\n}\n",
 		}
 		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 	})
@@ -591,7 +591,7 @@ var _ = Describe("DelegateFactory", func() {
 					var logLines string
 
 					JustBeforeEach(func() {
-						logLines = "ok123ok\nok456ok\nok789ok\n"
+						logLines = "{\nok123ok\nok456ok\nok789ok\n}\n"
 						writer = delegate.Stderr()
 						writtenBytes, writeErr = writer.Write([]byte(logLines))
 						writer.(io.Closer).Close()
@@ -603,7 +603,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "ok((redacted))ok\nok((redacted))ok\nok((redacted))ok\n",
+							Payload: "{\nok((redacted))ok\nok((redacted))ok\nok((redacted))ok\n}\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
 								ID:     "some-plan-id",

@@ -1,6 +1,8 @@
 package scheduler
 
 import (
+	"fmt"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -16,7 +18,7 @@ type BuildStarter interface {
 		job db.Job,
 		resources db.Resources,
 		relatedJobs algorithm.NameToIDMap,
-	) error
+	) (bool, error)
 }
 
 //go:generate counterfeiter . BuildFactory
@@ -28,6 +30,7 @@ type BuildFactory interface {
 type Build interface {
 	db.Build
 
+	PrepareInputs(lager.Logger) bool
 	BuildInputs(lager.Logger) ([]db.BuildInput, bool, error)
 }
 
@@ -52,30 +55,34 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	job db.Job,
 	resources db.Resources,
 	relatedJobs algorithm.NameToIDMap,
-) error {
+) (bool, error) {
 	nextPendingBuilds, err := job.GetPendingBuilds()
 	if err != nil {
-		logger.Error("failed-to-get-all-next-pending-builds", err)
-		return err
+		return false, fmt.Errorf("get pending builds: %w", err)
 	}
 
-	schedulableBuilds := s.constructBuilds(pipeline, job, resources, relatedJobs, nextPendingBuilds)
+	schedulableBuilds := s.constructBuilds(job, resources, relatedJobs, nextPendingBuilds)
 
 	for _, nextSchedulableBuild := range schedulableBuilds {
-		started, err := s.tryStartNextPendingBuild(logger, pipeline, nextSchedulableBuild, job, resources)
+		results, err := s.tryStartNextPendingBuild(logger, pipeline, nextSchedulableBuild, job, resources)
 		if err != nil {
-			return err
+			return false, err
 		}
 
-		if !started {
-			break // stop scheduling next builds after failing to schedule a build
+		if results.needsRetry {
+			return true, nil
+		}
+
+		if !results.started {
+			// stop scheduling next builds after failing to schedule a build
+			return results.needsRetry, nil
 		}
 	}
 
-	return nil
+	return false, nil
 }
 
-func (s *buildStarter) constructBuilds(pipeline db.Pipeline, job db.Job, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
+func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
 	schedulableBuilds := []Build{}
 
 	for _, nextPendingBuild := range builds {
@@ -83,7 +90,6 @@ func (s *buildStarter) constructBuilds(pipeline db.Pipeline, job db.Job, resourc
 			schedulableBuilds = append(schedulableBuilds, &manualTriggerBuild{
 				Build:         nextPendingBuild,
 				algorithm:     s.algorithm,
-				pipeline:      pipeline,
 				job:           job,
 				resources:     resources,
 				relatedJobIDs: relatedJobIDs,
@@ -102,13 +108,18 @@ func (s *buildStarter) constructBuilds(pipeline db.Pipeline, job db.Job, resourc
 	return schedulableBuilds
 }
 
+type startResults struct {
+	started    bool
+	needsRetry bool
+}
+
 func (s *buildStarter) tryStartNextPendingBuild(
 	logger lager.Logger,
 	pipeline db.Pipeline,
 	nextPendingBuild Build,
 	job db.Job,
 	resources db.Resources,
-) (bool, error) {
+) (startResults, error) {
 	logger = logger.Session("try-start-next-pending-build", lager.Data{
 		"build-id":   nextPendingBuild.ID(),
 		"build-name": nextPendingBuild.Name(),
@@ -118,51 +129,81 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		logger.Debug("cancel-aborted-pending-build")
 		err := nextPendingBuild.Finish(db.BuildStatusAborted)
 		if err != nil {
-			return false, err
+			return startResults{}, fmt.Errorf("finish aborted build: %w", err)
 		}
 
-		return true, nil
+		return startResults{
+			started:    true,
+			needsRetry: false,
+		}, nil
 	}
 
 	pipelinePaused, err := pipeline.CheckPaused()
 	if err != nil {
-		logger.Error("failed-to-check-if-pipeline-is-paused", err)
-		return false, err
+		return startResults{}, fmt.Errorf("check pipeline paused: %w", err)
 	}
+
 	if pipelinePaused {
-		return false, nil
+		logger.Debug("pipeline-paused")
+		return startResults{
+			started:    false,
+			needsRetry: false,
+		}, nil
 	}
 
 	if job.Paused() {
-		return false, nil
+		logger.Debug("job-paused")
+		return startResults{
+			started:    false,
+			needsRetry: false,
+		}, nil
 	}
 
 	scheduled, err := job.ScheduleBuild(nextPendingBuild)
 	if err != nil {
-		logger.Error("failed-to-use-inputs", err)
-		return false, err
+		return startResults{}, fmt.Errorf("schedule build: %w", err)
 	}
 
 	if !scheduled {
 		logger.Debug("build-not-scheduled")
-		return false, nil
+		return startResults{
+			started:    false,
+			needsRetry: true,
+		}, nil
+	}
+
+	succeeded := nextPendingBuild.PrepareInputs(logger)
+	if err != nil {
+		return startResults{}, fmt.Errorf("prepare inputs: %w", err)
+	}
+
+	if !succeeded {
+		return startResults{
+			started:    false,
+			needsRetry: true,
+		}, nil
 	}
 
 	buildInputs, found, err := nextPendingBuild.BuildInputs(logger)
 	if err != nil {
-		logger.Error("failed-to-adopt-build-pipes", err)
-		return false, err
+		return startResults{}, fmt.Errorf("get build inputs: %w", err)
 	}
 
 	if !found {
-		return false, nil
+		logger.Debug("build-inputs-not-found")
+
+		// don't retry when build inputs are not found because this is due to the
+		// inputs being unsatisfiable
+		return startResults{
+			started:    false,
+			needsRetry: false,
+		}, nil
 	}
 
-	dbResourceTypes, err := pipeline.ResourceTypes()
+	resourceTypes, err := pipeline.ResourceTypes()
 	if err != nil {
-		return false, err
+		return startResults{}, fmt.Errorf("find resource types: %w", err)
 	}
-	resourceTypes := dbResourceTypes.Deserialize()
 
 	resourceConfigs := atc.ResourceConfigs{}
 	for _, v := range resources {
@@ -174,27 +215,34 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		})
 	}
 
-	plan, err := s.factory.Create(job.Config(), resourceConfigs, resourceTypes, buildInputs)
+	plan, err := s.factory.Create(job.Config(), resourceConfigs, resourceTypes.Deserialize(), buildInputs)
 	if err != nil {
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
 		if err = nextPendingBuild.Finish(db.BuildStatusErrored); err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)
+			return startResults{}, fmt.Errorf("finish build: %w", err)
 		}
-		return false, nil
+
+		return startResults{}, nil
 	}
 
 	started, err := nextPendingBuild.Start(plan)
 	if err != nil {
 		logger.Error("failed-to-mark-build-as-started", err)
-		return false, nil
+		return startResults{}, fmt.Errorf("start build: %w", err)
 	}
 
 	if !started {
 		if err = nextPendingBuild.Finish(db.BuildStatusAborted); err != nil {
 			logger.Error("failed-to-mark-build-as-finished", err)
+			return startResults{}, fmt.Errorf("finish build: %w", err)
 		}
-		return false, nil
+
+		return startResults{}, nil
 	}
 
-	return true, nil
+	return startResults{
+		started:    true,
+		needsRetry: false,
+	}, nil
 }

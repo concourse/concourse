@@ -10,14 +10,17 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
-	"github.com/lib/pq"
 )
 
 const schema = "exec.v2"
+
+var ErrAdoptRerunBuildHasNoInputs = errors.New("inputs not ready for build to rerun")
 
 type BuildInput struct {
 	Name       string
@@ -44,7 +47,34 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
-var buildsQuery = psql.Select("b.id, b.name, b.job_id, b.team_id, b.status, b.manually_triggered, b.scheduled, b.schema, b.private_plan, b.public_plan, b.create_time, b.start_time, b.end_time, b.reap_time, j.name, b.pipeline_id, p.name, t.name, b.nonce, b.drained, b.aborted, b.completed, b.inputs_ready, b.rerun_of, r.name, b.rerun_number").
+var buildsQuery = psql.Select(`
+		b.id,
+		b.name,
+		b.job_id,
+		b.team_id,
+		b.status,
+		b.manually_triggered,
+		b.scheduled,
+		b.schema,
+		b.private_plan,
+		b.public_plan,
+		b.create_time,
+		b.start_time,
+		b.end_time,
+		b.reap_time,
+		j.name,
+		b.pipeline_id,
+		p.name,
+		t.name,
+		b.nonce,
+		b.drained,
+		b.aborted,
+		b.completed,
+		b.inputs_ready,
+		b.rerun_of,
+		r.name,
+		b.rerun_number
+	`).
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
@@ -57,12 +87,12 @@ var minMaxIdQuery = psql.Select("COALESCE(MAX(b.id), 0)", "COALESCE(MIN(b.id), 0
 //go:generate counterfeiter . Build
 
 type Build interface {
+	PipelineRef
+
 	ID() int
 	Name() string
 	JobID() int
 	JobName() string
-	PipelineID() int
-	PipelineName() string
 	TeamID() int
 	TeamName() string
 	Schema() string
@@ -108,8 +138,6 @@ type Build interface {
 	Resources() ([]BuildInput, []BuildOutput, error)
 	SaveImageResourceVersion(UsedResourceCache) error
 
-	Pipeline() (Pipeline, bool, error)
-
 	Delete() (bool, error)
 	MarkAsAborted() error
 	IsAborted() bool
@@ -120,6 +148,8 @@ type Build interface {
 }
 
 type build struct {
+	pipelineRef
+
 	id          int
 	name        string
 	status      BuildStatus
@@ -129,10 +159,8 @@ type build struct {
 	teamID   int
 	teamName string
 
-	pipelineID   int
-	pipelineName string
-	jobID        int
-	jobName      string
+	jobID   int
+	jobName string
 
 	isManuallyTriggered bool
 
@@ -149,11 +177,13 @@ type build struct {
 	endTime    time.Time
 	reapTime   time.Time
 
-	conn        Conn
-	lockFactory lock.LockFactory
-	drained     bool
-	aborted     bool
-	completed   bool
+	drained   bool
+	aborted   bool
+	completed bool
+}
+
+func newEmptyBuild(conn Conn, lockFactory lock.LockFactory) *build {
+	return &build{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
 var ErrBuildDisappeared = errors.New("build disappeared from db")
@@ -173,8 +203,6 @@ func (b *build) ID() int                      { return b.id }
 func (b *build) Name() string                 { return b.name }
 func (b *build) JobID() int                   { return b.jobID }
 func (b *build) JobName() string              { return b.jobName }
-func (b *build) PipelineID() int              { return b.pipelineID }
-func (b *build) PipelineName() string         { return b.pipelineName }
 func (b *build) TeamID() int                  { return b.teamID }
 func (b *build) TeamName() string             { return b.teamName }
 func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
@@ -472,7 +500,7 @@ func (b *build) Finish(status BuildStatus) error {
 	}
 
 	if b.jobID != 0 {
-		err = requestSchedule(tx, b.pipelineID)
+		err = requestScheduleOnDownstreamJobs(tx, b.jobID)
 		if err != nil {
 			return err
 		}
@@ -576,28 +604,6 @@ func (b *build) AbortNotifier() (Notifier, error) {
 
 		return aborted, err
 	})
-}
-
-func (b *build) Pipeline() (Pipeline, bool, error) {
-	if b.pipelineID == 0 {
-		return nil, false, nil
-	}
-
-	row := pipelinesQuery.
-		Where(sq.Eq{"p.id": b.pipelineID}).
-		RunWith(b.conn).
-		QueryRow()
-
-	pipeline := newPipeline(b.conn, b.lockFactory)
-	err := scanPipeline(pipeline, row)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-
-	return pipeline, true, nil
 }
 
 func (b *build) SaveImageResourceVersion(rc UsedResourceCache) error {
@@ -967,17 +973,14 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	err = requestSchedule(tx, b.pipelineID)
-	if err != nil {
-		return err
+	if newVersion {
+		err = requestScheduleForJobsUsingResourceConfigScope(tx, resourceConfigScope.ID())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	err = requestScheduleForPipelinesUsingResourceConfigScope(b.conn, resourceConfigScope.ID())
 	if err != nil {
 		return err
 	}
@@ -1413,7 +1416,34 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		status                                                              string
 	)
 
-	err := row.Scan(&b.id, &b.name, &jobID, &b.teamID, &status, &b.isManuallyTriggered, &b.scheduled, &schema, &privatePlan, &publicPlan, &createTime, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &b.teamName, &nonce, &drained, &aborted, &completed, &b.inputsReady, &rerunOf, &rerunOfName, &rerunNumber)
+	err := row.Scan(
+		&b.id,
+		&b.name,
+		&jobID,
+		&b.teamID,
+		&status,
+		&b.isManuallyTriggered,
+		&b.scheduled,
+		&schema,
+		&privatePlan,
+		&publicPlan,
+		&createTime,
+		&startTime,
+		&endTime,
+		&reapTime,
+		&jobName,
+		&pipelineID,
+		&pipelineName,
+		&b.teamName,
+		&nonce,
+		&drained,
+		&aborted,
+		&completed,
+		&b.inputsReady,
+		&rerunOf,
+		&rerunOfName,
+		&rerunNumber,
+	)
 	if err != nil {
 		return err
 	}

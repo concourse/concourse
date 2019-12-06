@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/concourse/concourse"
-	"github.com/concourse/concourse/atc/atccmd"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/vito/twentythousandtonnesofcrudeoil"
 )
@@ -29,13 +28,18 @@ func main() {
 	twentythousandtonnesofcrudeoil.TheEnvironmentIsPerfectlySafe(parser, "CONCOURSE_")
 
 	_, err := parser.Parse()
+	handleError(parser, err)
+}
+
+func handleError(helpParser *flags.Parser, err error) {
 	if err != nil {
-		if err == atccmd.HelpError {
-			parser.WriteHelp(os.Stdout)
-			os.Exit(1)
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			fmt.Println(err)
+			os.Exit(0)
 		} else {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}
+
+		os.Exit(1)
 	}
 }

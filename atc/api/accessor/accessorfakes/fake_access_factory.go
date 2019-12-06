@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sync"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/accessor"
 )
 
@@ -20,6 +21,29 @@ type FakeAccessFactory struct {
 	}
 	createReturnsOnCall map[int]struct {
 		result1 accessor.Access
+	}
+	CustomizeActionRoleMapStub        func(lager.Logger, accessor.CustomActionRoleMap) error
+	customizeActionRoleMapMutex       sync.RWMutex
+	customizeActionRoleMapArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 accessor.CustomActionRoleMap
+	}
+	customizeActionRoleMapReturns struct {
+		result1 error
+	}
+	customizeActionRoleMapReturnsOnCall map[int]struct {
+		result1 error
+	}
+	RoleOfActionStub        func(string) string
+	roleOfActionMutex       sync.RWMutex
+	roleOfActionArgsForCall []struct {
+		arg1 string
+	}
+	roleOfActionReturns struct {
+		result1 string
+	}
+	roleOfActionReturnsOnCall map[int]struct {
+		result1 string
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -86,11 +110,136 @@ func (fake *FakeAccessFactory) CreateReturnsOnCall(i int, result1 accessor.Acces
 	}{result1}
 }
 
+func (fake *FakeAccessFactory) CustomizeActionRoleMap(arg1 lager.Logger, arg2 accessor.CustomActionRoleMap) error {
+	fake.customizeActionRoleMapMutex.Lock()
+	ret, specificReturn := fake.customizeActionRoleMapReturnsOnCall[len(fake.customizeActionRoleMapArgsForCall)]
+	fake.customizeActionRoleMapArgsForCall = append(fake.customizeActionRoleMapArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 accessor.CustomActionRoleMap
+	}{arg1, arg2})
+	fake.recordInvocation("CustomizeActionRoleMap", []interface{}{arg1, arg2})
+	fake.customizeActionRoleMapMutex.Unlock()
+	if fake.CustomizeActionRoleMapStub != nil {
+		return fake.CustomizeActionRoleMapStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.customizeActionRoleMapReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeAccessFactory) CustomizeActionRoleMapCallCount() int {
+	fake.customizeActionRoleMapMutex.RLock()
+	defer fake.customizeActionRoleMapMutex.RUnlock()
+	return len(fake.customizeActionRoleMapArgsForCall)
+}
+
+func (fake *FakeAccessFactory) CustomizeActionRoleMapCalls(stub func(lager.Logger, accessor.CustomActionRoleMap) error) {
+	fake.customizeActionRoleMapMutex.Lock()
+	defer fake.customizeActionRoleMapMutex.Unlock()
+	fake.CustomizeActionRoleMapStub = stub
+}
+
+func (fake *FakeAccessFactory) CustomizeActionRoleMapArgsForCall(i int) (lager.Logger, accessor.CustomActionRoleMap) {
+	fake.customizeActionRoleMapMutex.RLock()
+	defer fake.customizeActionRoleMapMutex.RUnlock()
+	argsForCall := fake.customizeActionRoleMapArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeAccessFactory) CustomizeActionRoleMapReturns(result1 error) {
+	fake.customizeActionRoleMapMutex.Lock()
+	defer fake.customizeActionRoleMapMutex.Unlock()
+	fake.CustomizeActionRoleMapStub = nil
+	fake.customizeActionRoleMapReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeAccessFactory) CustomizeActionRoleMapReturnsOnCall(i int, result1 error) {
+	fake.customizeActionRoleMapMutex.Lock()
+	defer fake.customizeActionRoleMapMutex.Unlock()
+	fake.CustomizeActionRoleMapStub = nil
+	if fake.customizeActionRoleMapReturnsOnCall == nil {
+		fake.customizeActionRoleMapReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.customizeActionRoleMapReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeAccessFactory) RoleOfAction(arg1 string) string {
+	fake.roleOfActionMutex.Lock()
+	ret, specificReturn := fake.roleOfActionReturnsOnCall[len(fake.roleOfActionArgsForCall)]
+	fake.roleOfActionArgsForCall = append(fake.roleOfActionArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("RoleOfAction", []interface{}{arg1})
+	fake.roleOfActionMutex.Unlock()
+	if fake.RoleOfActionStub != nil {
+		return fake.RoleOfActionStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.roleOfActionReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeAccessFactory) RoleOfActionCallCount() int {
+	fake.roleOfActionMutex.RLock()
+	defer fake.roleOfActionMutex.RUnlock()
+	return len(fake.roleOfActionArgsForCall)
+}
+
+func (fake *FakeAccessFactory) RoleOfActionCalls(stub func(string) string) {
+	fake.roleOfActionMutex.Lock()
+	defer fake.roleOfActionMutex.Unlock()
+	fake.RoleOfActionStub = stub
+}
+
+func (fake *FakeAccessFactory) RoleOfActionArgsForCall(i int) string {
+	fake.roleOfActionMutex.RLock()
+	defer fake.roleOfActionMutex.RUnlock()
+	argsForCall := fake.roleOfActionArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeAccessFactory) RoleOfActionReturns(result1 string) {
+	fake.roleOfActionMutex.Lock()
+	defer fake.roleOfActionMutex.Unlock()
+	fake.RoleOfActionStub = nil
+	fake.roleOfActionReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeAccessFactory) RoleOfActionReturnsOnCall(i int, result1 string) {
+	fake.roleOfActionMutex.Lock()
+	defer fake.roleOfActionMutex.Unlock()
+	fake.RoleOfActionStub = nil
+	if fake.roleOfActionReturnsOnCall == nil {
+		fake.roleOfActionReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.roleOfActionReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeAccessFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
+	fake.customizeActionRoleMapMutex.RLock()
+	defer fake.customizeActionRoleMapMutex.RUnlock()
+	fake.roleOfActionMutex.RLock()
+	defer fake.roleOfActionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

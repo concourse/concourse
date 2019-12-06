@@ -62,7 +62,7 @@ var _ = Describe("Scheduler", func() {
 		JustBeforeEach(func() {
 			var waiter interface{ Wait() }
 
-			scheduleErr = scheduler.Schedule(
+			_, scheduleErr = scheduler.Schedule(
 				lagertest.NewTestLogger("test"),
 				fakePipeline,
 				fakeJob,
@@ -123,7 +123,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("requests schedule on the pipeline", func() {
-						Expect(fakePipeline.RequestScheduleCallCount()).To(Equal(1))
+						Expect(fakeJob.RequestScheduleCallCount()).To(Equal(1))
 					})
 				})
 
@@ -133,7 +133,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("does not request schedule on the pipeline", func() {
-						Expect(fakePipeline.RequestScheduleCallCount()).To(Equal(0))
+						Expect(fakeJob.RequestScheduleCallCount()).To(Equal(0))
 					})
 				})
 
@@ -176,7 +176,7 @@ var _ = Describe("Scheduler", func() {
 
 						Context("when starting pending builds for job fails", func() {
 							BeforeEach(func() {
-								fakeBuildStarter.TryStartPendingBuildsForJobReturns(disaster)
+								fakeBuildStarter.TryStartPendingBuildsForJobReturns(false, disaster)
 							})
 
 							It("returns the error", func() {
@@ -195,7 +195,7 @@ var _ = Describe("Scheduler", func() {
 
 						Context("when starting all pending builds succeeds", func() {
 							BeforeEach(func() {
-								fakeBuildStarter.TryStartPendingBuildsForJobReturns(nil)
+								fakeBuildStarter.TryStartPendingBuildsForJobReturns(false, nil)
 							})
 
 							It("returns no error", func() {
@@ -227,7 +227,7 @@ var _ = Describe("Scheduler", func() {
 					},
 				})
 
-				fakeBuildStarter.TryStartPendingBuildsForJobReturns(nil)
+				fakeBuildStarter.TryStartPendingBuildsForJobReturns(false, nil)
 				fakeJob.SaveNextInputMappingReturns(nil)
 			})
 

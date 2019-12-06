@@ -1,9 +1,13 @@
-package atc_test
+package configvalidate_test
 
 import (
+	"github.com/concourse/concourse/atc/configvalidate"
 	"strings"
 
 	. "github.com/concourse/concourse/atc"
+
+	// load dummy credential manager
+	_ "github.com/concourse/concourse/atc/creds/dummy"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,6 +33,8 @@ var _ = Describe("ValidateConfig", func() {
 					Jobs: []string{"some-empty-job"},
 				},
 			},
+
+			VarSources: VarSourceConfigs{},
 
 			Resources: ResourceConfigs{
 				{
@@ -84,7 +90,7 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		_, errorMessages = config.Validate()
+		_, errorMessages = configvalidate.Validate(config)
 	})
 
 	Context("when the config is valid", func() {
@@ -175,6 +181,38 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorLines).To(HaveLen(2))
 				Expect(errorLines[0]).To(ContainSubstring("invalid groups:"))
 				Expect(errorLines[1]).To(ContainSubstring("group 'some-group' appears 4 times. Duplicate names are not allowed."))
+			})
+		})
+	})
+
+	Describe("invalid var sources", func() {
+		Context("when a var source type is invalid", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources, VarSourceConfig{
+					Name:   "some",
+					Type:   "some",
+					Config: "",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("unknown credential manager type: some"))
+			})
+		})
+
+		Context("when config is invalid", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources, VarSourceConfig{
+					Name:   "some",
+					Type:   "dummy",
+					Config: "",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("failed to create credential manager some: invalid dummy credential manager config"))
 			})
 		})
 	})

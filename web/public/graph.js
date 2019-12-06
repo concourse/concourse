@@ -226,6 +226,13 @@ Graph.prototype.computeRanks = function() {
         // ranks, so always destination nodes as far to the right as possible
         nextNode._cachedRank = Math.max(nextNode._cachedRank, node._cachedRank + 1);
 
+        if (nextNode._cachedRank > 10000) {
+          throw new Error(
+              "Likely infinite loop involving: [" +
+              node.id + "] and [" +
+              nextNode.id + "]");
+        }
+
         nextNodes[nextNode.id] = nextNode;
       }
     }

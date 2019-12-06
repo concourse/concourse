@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
@@ -24,17 +25,18 @@ func (e InputVersionEmptyError) Error() string {
 //go:generate counterfeiter . Job
 
 type Job interface {
+	PipelineRef
+
 	ID() int
 	Name() string
 	Paused() bool
 	FirstLoggedBuildID() int
-	PipelineID() int
-	PipelineName() string
 	TeamID() int
 	TeamName() string
 	Config() atc.JobConfig
 	Tags() []string
 	Public() bool
+	ScheduleRequestedTime() time.Time
 
 	Reload() (bool, error)
 
@@ -44,6 +46,9 @@ type Job interface {
 	ScheduleBuild(Build) (bool, error)
 	CreateBuild() (Build, error)
 	RerunBuild(Build) (Build, error)
+
+	RequestSchedule() error
+	UpdateLastScheduled(time.Time) error
 
 	Builds(page Page) ([]Build, Pagination, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
@@ -65,7 +70,7 @@ type Job interface {
 	HasNewInputs() bool
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs").
+var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -81,20 +86,22 @@ func (e FirstLoggedBuildIDDecreasedError) Error() string {
 }
 
 type job struct {
-	id                 int
-	name               string
-	paused             bool
-	firstLoggedBuildID int
-	pipelineID         int
-	pipelineName       string
-	teamID             int
-	teamName           string
-	config             atc.JobConfig
-	tags               []string
-	hasNewInputs       bool
+	pipelineRef
 
-	conn        Conn
-	lockFactory lock.LockFactory
+	id                    int
+	name                  string
+	paused                bool
+	firstLoggedBuildID    int
+	teamID                int
+	teamName              string
+	config                atc.JobConfig
+	tags                  []string
+	hasNewInputs          bool
+	scheduleRequestedTime time.Time
+}
+
+func newEmptyJob(conn Conn, lockFactory lock.LockFactory) *job {
+	return &job{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
 func (j *job) SetHasNewInputs(hasNewInputs bool) error {
@@ -113,7 +120,7 @@ func (j *job) SetHasNewInputs(hasNewInputs bool) error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
 	return nil
@@ -131,18 +138,17 @@ func (jobs Jobs) Configs() atc.JobConfigs {
 	return configs
 }
 
-func (j *job) ID() int                 { return j.id }
-func (j *job) Name() string            { return j.name }
-func (j *job) Paused() bool            { return j.paused }
-func (j *job) FirstLoggedBuildID() int { return j.firstLoggedBuildID }
-func (j *job) PipelineID() int         { return j.pipelineID }
-func (j *job) PipelineName() string    { return j.pipelineName }
-func (j *job) TeamID() int             { return j.teamID }
-func (j *job) TeamName() string        { return j.teamName }
-func (j *job) Config() atc.JobConfig   { return j.config }
-func (j *job) Tags() []string          { return j.tags }
-func (j *job) Public() bool            { return j.Config().Public }
-func (j *job) HasNewInputs() bool      { return j.hasNewInputs }
+func (j *job) ID() int                          { return j.id }
+func (j *job) Name() string                     { return j.name }
+func (j *job) Paused() bool                     { return j.paused }
+func (j *job) FirstLoggedBuildID() int          { return j.firstLoggedBuildID }
+func (j *job) TeamID() int                      { return j.teamID }
+func (j *job) TeamName() string                 { return j.teamName }
+func (j *job) Config() atc.JobConfig            { return j.config }
+func (j *job) Tags() []string                   { return j.tags }
+func (j *job) Public() bool                     { return j.Config().Public }
+func (j *job) HasNewInputs() bool               { return j.hasNewInputs }
+func (j *job) ScheduleRequestedTime() time.Time { return j.scheduleRequestedTime }
 
 func (j *job) Reload() (bool, error) {
 	row := jobsQuery.Where(sq.Eq{"j.id": j.id}).
@@ -228,7 +234,7 @@ func (j *job) UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
 	return nil
@@ -274,7 +280,7 @@ func (j *job) Build(name string) (Build, bool, error) {
 
 	row := query.RunWith(j.conn).QueryRow()
 
-	build := &build{conn: j.conn, lockFactory: j.lockFactory}
+	build := newEmptyBuild(j.conn, j.lockFactory)
 
 	err := scanBuild(build, row, j.conn.EncryptionStrategy())
 	if err != nil {
@@ -321,7 +327,7 @@ func (j *job) ScheduleBuild(build Build) (bool, error) {
 	}
 
 	if rowsAffected != 1 {
-		return false, nonOneRowAffectedError{rowsAffected}
+		return false, NonOneRowAffectedError{rowsAffected}
 	}
 
 	var scheduled bool
@@ -341,7 +347,7 @@ func (j *job) ScheduleBuild(build Build) (bool, error) {
 		}
 
 		if rowsAffected != 1 {
-			return false, nonOneRowAffectedError{rowsAffected}
+			return false, NonOneRowAffectedError{rowsAffected}
 		}
 
 		scheduled = true
@@ -367,8 +373,7 @@ func (j *job) GetFullNextBuildInputs() ([]BuildInput, bool, error) {
 	err = psql.Select("inputs_determined").
 		From("jobs").
 		Where(sq.Eq{
-			"name":        j.name,
-			"pipeline_id": j.pipelineID,
+			"id": j.id,
 		}).
 		RunWith(tx).
 		QueryRow().
@@ -471,7 +476,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 		"j.pipeline_id": j.pipelineID,
 	}).RunWith(j.conn).QueryRow()
 
-	job := &job{conn: j.conn, lockFactory: j.lockFactory}
+	job := newEmptyJob(j.conn, j.lockFactory)
 	err := scanJob(job, row)
 	if err != nil {
 		return nil, err
@@ -492,7 +497,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		build := &build{conn: j.conn, lockFactory: j.lockFactory}
+		build := newEmptyBuild(j.conn, j.lockFactory)
 		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -517,7 +522,7 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
-	build := &build{conn: j.conn, lockFactory: j.lockFactory}
+	build := newEmptyBuild(j.conn, j.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":               buildName,
 		"job_id":             j.id,
@@ -535,7 +540,7 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
-	err = requestSchedule(tx, j.pipelineID)
+	err = requestSchedule(tx, j.id)
 	if err != nil {
 		return nil, err
 	}
@@ -566,7 +571,7 @@ func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 		return nil, err
 	}
 
-	rerunBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
+	rerunBuild := newEmptyBuild(j.conn, j.lockFactory)
 	err = createBuild(tx, rerunBuild, map[string]interface{}{
 		"name":         rerunBuildName,
 		"job_id":       j.id,
@@ -585,7 +590,7 @@ func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 		return nil, err
 	}
 
-	err = requestSchedule(tx, j.pipelineID)
+	err = requestSchedule(tx, j.id)
 	if err != nil {
 		return nil, err
 	}
@@ -671,6 +676,34 @@ func (j *job) isMaxInFlightReached(tx Tx, buildID int) (bool, error) {
 	return nextMostPendingBuild.ID() != buildID, nil
 }
 
+func (j *job) RequestSchedule() error {
+	tx, err := j.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	err = requestSchedule(tx, j.id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (j *job) UpdateLastScheduled(requestedTime time.Time) error {
+	_, err := psql.Update("jobs").
+		Set("last_scheduled", requestedTime).
+		Where(sq.Eq{
+			"id": j.id,
+		}).
+		RunWith(j.conn).
+		Exec()
+
+	return err
+}
+
 func (j *job) getRunningBuildsBySerialGroup(tx Tx) ([]Build, error) {
 	serialGroups := j.config.GetSerialGroups()
 	err := j.updateSerialGroups(tx, serialGroups)
@@ -696,7 +729,7 @@ func (j *job) getRunningBuildsBySerialGroup(tx Tx) ([]Build, error) {
 	bs := []Build{}
 
 	for rows.Next() {
-		build := &build{conn: j.conn, lockFactory: j.lockFactory}
+		build := newEmptyBuild(j.conn, j.lockFactory)
 		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -728,7 +761,7 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx) (Build, bool, error) {
 		RunWith(tx).
 		QueryRow()
 
-	build := &build{conn: j.conn, lockFactory: j.lockFactory}
+	build := newEmptyBuild(j.conn, j.lockFactory)
 	err = scanBuild(build, row, j.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -780,7 +813,7 @@ func (j *job) updatePausedJob(pause bool) error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
 	return nil
@@ -894,7 +927,7 @@ func (j *job) nextBuild(tx Tx) (Build, error) {
 		RunWith(tx).
 		QueryRow()
 
-	nextBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
+	nextBuild := newEmptyBuild(j.conn, j.lockFactory)
 	err := scanBuild(nextBuild, row, j.conn.EncryptionStrategy())
 	if err == nil {
 		next = nextBuild
@@ -914,7 +947,7 @@ func (j *job) finishedBuild(tx Tx) (Build, error) {
 		RunWith(tx).
 		QueryRow()
 
-	finishedBuild := &build{conn: j.conn, lockFactory: j.lockFactory}
+	finishedBuild := newEmptyBuild(j.conn, j.lockFactory)
 	err := scanBuild(finishedBuild, row, j.conn.EncryptionStrategy())
 	if err == nil {
 		finished = finishedBuild
@@ -1019,7 +1052,7 @@ func scanJob(j *job, row scannable) error {
 		nonce      sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs)
+	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime)
 	if err != nil {
 		return err
 	}
@@ -1053,8 +1086,7 @@ func scanJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) (Jobs, er
 	jobs := Jobs{}
 
 	for rows.Next() {
-		job := &job{conn: conn, lockFactory: lockFactory}
-
+		job := newEmptyJob(conn, lockFactory)
 		err := scanJob(job, rows)
 		if err != nil {
 			return nil, err
@@ -1064,4 +1096,71 @@ func scanJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) (Jobs, er
 	}
 
 	return jobs, nil
+}
+
+func requestSchedule(tx Tx, jobID int) error {
+	result, err := psql.Update("jobs").
+		Set("schedule_requested", sq.Expr("now()")).
+		Where(sq.Eq{
+			"id": jobID,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected != 1 {
+		return NonOneRowAffectedError{rowsAffected}
+	}
+
+	return nil
+}
+
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
+func requestScheduleOnDownstreamJobs(tx Tx, jobID int) error {
+	rows, err := psql.Select("DISTINCT job_id").
+		From("job_pipes").
+		Where(sq.Eq{
+			"passed_job_id": jobID,
+		}).
+		OrderBy("job_id DESC").
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	var jobIDs []int
+	for rows.Next() {
+		var id int
+		err = rows.Scan(&id)
+		if err != nil {
+			return err
+		}
+
+		jobIDs = append(jobIDs, id)
+	}
+
+	for _, jID := range jobIDs {
+		_, err := psql.Update("jobs").
+			Set("schedule_requested", sq.Expr("now()")).
+			Where(sq.Eq{
+				"id": jID,
+			}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

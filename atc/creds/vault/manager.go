@@ -19,9 +19,12 @@ type VaultManager struct {
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
 	SharedPath string `long:"shared-path" description:"Path under which to lookup shared credentials."`
 
-	TLS    TLS
-	Auth   AuthConfig
-	Client *APIClient
+	TLS  TLS
+	Auth AuthConfig
+
+	Client        *APIClient
+	ReAuther      *ReAuther
+	SecretFactory *vaultFactory
 }
 
 type TLS struct {
@@ -84,6 +87,51 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func toString(s interface{}) string {
+	if s == nil {
+		return ""
+	}
+	return s.(string)
+}
+
+func toBool(s interface{}) bool {
+	if s == nil {
+		return false
+	}
+	return s.(bool)
+}
+
+func toDuration(s interface{}, defaultValue time.Duration) time.Duration {
+	if s == nil {
+		return defaultValue
+	}
+	return s.(time.Duration)
+}
+
+func (manager *VaultManager) Config(config map[string]interface{}) {
+	manager.URL = toString(config["url"])
+	manager.PathPrefix = toString(config["path_prefix"])
+	manager.SharedPath = toString(config["shared_path"])
+
+	manager.TLS.CACert = toString(config["ca_cert"])
+	manager.TLS.CAPath = toString(config["ca_path"])
+	manager.TLS.ClientCert = toString(config["client_cert"])
+	manager.TLS.ClientKey = toString(config["client_key"])
+	manager.TLS.ServerName = toString(config["server_name"])
+	manager.TLS.Insecure = toBool(config["insecure_skip_verify"])
+
+	manager.Auth.ClientToken = toString(config["client_token"])
+	manager.Auth.Backend = toString(config["auth_backend"])
+	manager.Auth.BackendMaxTTL = toDuration(config["auth_max_ttl"], 0)
+	manager.Auth.RetryMax = toDuration(config["auth_retry_max"], 5*time.Minute)
+	manager.Auth.RetryInitial = toDuration(config["auth_retry_initial"], 1*time.Second)
+	if config["auth_param"] == nil {
+		manager.Auth.Params = map[string]string{}
+	} else {
+		manager.Auth.Params = config["auth_param"].(map[string]string)
+	}
+}
+
 func (manager VaultManager) IsConfigured() bool {
 	return manager.URL != ""
 }
@@ -92,6 +140,10 @@ func (manager VaultManager) Validate() error {
 	_, err := url.Parse(manager.URL)
 	if err != nil {
 		return fmt.Errorf("invalid URL: %s", err)
+	}
+
+	if manager.PathPrefix == "" {
+		return fmt.Errorf("path prefix must be a non-empty string")
 	}
 
 	if manager.Auth.ClientToken != "" {
@@ -120,7 +172,14 @@ func (manager VaultManager) Health() (*creds.HealthResponse, error) {
 	return health, nil
 }
 
-func (manager VaultManager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
-	ra := NewReAuther(manager.Client, manager.Auth.BackendMaxTTL, manager.Auth.RetryInitial, manager.Auth.RetryMax)
-	return NewVaultFactory(manager.Client, ra.LoggedIn(), manager.PathPrefix, manager.SharedPath), nil
+func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
+	if manager.SecretFactory == nil {
+		manager.ReAuther = NewReAuther(logger, manager.Client, manager.Auth.BackendMaxTTL, manager.Auth.RetryInitial, manager.Auth.RetryMax)
+		manager.SecretFactory = NewVaultFactory(manager.Client, manager.ReAuther.LoggedIn(), manager.PathPrefix, manager.SharedPath)
+	}
+	return manager.SecretFactory, nil
+}
+
+func (manager VaultManager) Close(logger lager.Logger) {
+	manager.ReAuther.Close()
 }

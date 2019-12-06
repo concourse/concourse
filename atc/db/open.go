@@ -128,6 +128,7 @@ var encryptedColumns = []encryptedColumn{
 	{"builds", "private_plan", "id"},
 	{"cert_cache", "cert", "domain"},
 	{"checks", "plan", "id"},
+	{"pipelines", "var_sources", "id"},
 }
 
 func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *encryption.Key) error {
@@ -433,10 +434,10 @@ func Rollback(tx Tx) {
 	_ = tx.Rollback()
 }
 
-type nonOneRowAffectedError struct {
+type NonOneRowAffectedError struct {
 	RowsAffected int64
 }
 
-func (err nonOneRowAffectedError) Error() string {
+func (err NonOneRowAffectedError) Error() string {
 	return fmt.Sprintf("expected 1 row to be updated; got %d", err.RowsAffected)
 }

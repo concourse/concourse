@@ -74,6 +74,6 @@ func (cs *CachedSecrets) Get(secretPath string) (interface{}, *time.Time, bool, 
 	return value, expiration, found, nil
 }
 
-func (cs *CachedSecrets) NewSecretLookupPaths(teamName string, pipelineName string) []SecretLookupPath {
-	return cs.secrets.NewSecretLookupPaths(teamName, pipelineName)
+func (cs *CachedSecrets) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []SecretLookupPath {
+	return cs.secrets.NewSecretLookupPaths(teamName, pipelineName, allowRootPath)
 }

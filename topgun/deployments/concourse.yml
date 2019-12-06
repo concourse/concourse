@@ -2,7 +2,7 @@
 name: ((deployment_name))
 
 releases:
-- name: concourse-((suite))
+- name: concourse((suite))
   version: ((concourse_release_version))
 - name: bpm
   version: ((bpm_release_version))
@@ -20,7 +20,7 @@ instance_groups:
   - release: bpm
     name: bpm
 
-  - release: concourse-((suite))
+  - release: concourse((suite))
     name: web
     properties:
       add_local_users:
@@ -74,7 +74,7 @@ instance_groups:
   vm_type: test
   stemcell: xenial
   jobs:
-  - release: concourse-((suite))
+  - release: concourse((suite))
     name: worker
     properties:
       log_level: debug

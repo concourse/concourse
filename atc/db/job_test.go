@@ -69,6 +69,12 @@ var _ = Describe("Job", func() {
 				{
 					Name: "different-serial-group-job",
 				},
+				{
+					Name: "job-1",
+				},
+				{
+					Name: "job-2",
+				},
 			},
 			Resources: atc.ResourceConfigs{
 				{
@@ -509,18 +515,17 @@ var _ = Describe("Job", func() {
 		})
 
 		Context("creating a build", func() {
-			It("requests schedule on the pipeline", func() {
-				var requestedSchedule time.Time
-				err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+			It("requests schedule on the job", func() {
+				requestedSchedule := job.ScheduleRequestedTime()
+
+				_, err := job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = job.CreateBuild()
+				found, err := job.Reload()
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				var newRequestedSchedule time.Time
-				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 		})
 	})
@@ -556,18 +561,17 @@ var _ = Describe("Job", func() {
 				Expect(build.Status()).To(Equal(rerunBuild.Status()))
 			})
 
-			It("requests schedule on the pipeline", func() {
-				var requestedSchedule time.Time
-				err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+			It("requests schedule on the job", func() {
+				requestedSchedule := job.ScheduleRequestedTime()
+
+				_, err := job.RerunBuild(buildToRerun)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = job.RerunBuild(buildToRerun)
+				found, err := job.Reload()
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				var newRequestedSchedule time.Time
-				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 
 			Context("when there is an existing rerun build", func() {
@@ -668,6 +672,12 @@ var _ = Describe("Job", func() {
 						{
 							Name: "different-serial-group-job",
 						},
+						{
+							Name: "job-1",
+						},
+						{
+							Name: "job-2",
+						},
 					},
 					Resources: atc.ResourceConfigs{
 						{
@@ -740,6 +750,12 @@ var _ = Describe("Job", func() {
 						{
 							Name:         "different-serial-group-job",
 							SerialGroups: []string{"different-serial-group"},
+						},
+						{
+							Name: "job-1",
+						},
+						{
+							Name: "job-2",
 						},
 					},
 					Resources: atc.ResourceConfigs{
@@ -1207,6 +1223,12 @@ var _ = Describe("Job", func() {
 								Trigger:  true,
 							},
 						},
+					},
+					{
+						Name: "job-1",
+					},
+					{
+						Name: "job-2",
 					},
 				},
 				Resources: atc.ResourceConfigs{
@@ -1922,6 +1944,5 @@ var _ = Describe("Job", func() {
 
 			Expect(job.HasNewInputs()).To(BeFalse())
 		})
-
 	})
 })
