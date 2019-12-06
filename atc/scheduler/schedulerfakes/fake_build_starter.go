@@ -11,7 +11,7 @@ import (
 )
 
 type FakeBuildStarter struct {
-	TryStartPendingBuildsForJobStub        func(lager.Logger, db.Pipeline, db.Job, db.Resources, algorithm.NameToIDMap) error
+	TryStartPendingBuildsForJobStub        func(lager.Logger, db.Pipeline, db.Job, db.Resources, algorithm.NameToIDMap) (bool, error)
 	tryStartPendingBuildsForJobMutex       sync.RWMutex
 	tryStartPendingBuildsForJobArgsForCall []struct {
 		arg1 lager.Logger
@@ -21,16 +21,18 @@ type FakeBuildStarter struct {
 		arg5 algorithm.NameToIDMap
 	}
 	tryStartPendingBuildsForJobReturns struct {
-		result1 error
+		result1 bool
+		result2 error
 	}
 	tryStartPendingBuildsForJobReturnsOnCall map[int]struct {
-		result1 error
+		result1 bool
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(arg1 lager.Logger, arg2 db.Pipeline, arg3 db.Job, arg4 db.Resources, arg5 algorithm.NameToIDMap) error {
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(arg1 lager.Logger, arg2 db.Pipeline, arg3 db.Job, arg4 db.Resources, arg5 algorithm.NameToIDMap) (bool, error) {
 	fake.tryStartPendingBuildsForJobMutex.Lock()
 	ret, specificReturn := fake.tryStartPendingBuildsForJobReturnsOnCall[len(fake.tryStartPendingBuildsForJobArgsForCall)]
 	fake.tryStartPendingBuildsForJobArgsForCall = append(fake.tryStartPendingBuildsForJobArgsForCall, struct {
@@ -46,10 +48,10 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(arg1 lager.Logger, arg
 		return fake.TryStartPendingBuildsForJobStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.tryStartPendingBuildsForJobReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCallCount() int {
@@ -58,7 +60,7 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCallCount() int {
 	return len(fake.tryStartPendingBuildsForJobArgsForCall)
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCalls(stub func(lager.Logger, db.Pipeline, db.Job, db.Resources, algorithm.NameToIDMap) error) {
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJobCalls(stub func(lager.Logger, db.Pipeline, db.Job, db.Resources, algorithm.NameToIDMap) (bool, error)) {
 	fake.tryStartPendingBuildsForJobMutex.Lock()
 	defer fake.tryStartPendingBuildsForJobMutex.Unlock()
 	fake.TryStartPendingBuildsForJobStub = stub
@@ -71,27 +73,30 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJobArgsForCall(i int) (lag
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturns(result1 error) {
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturns(result1 bool, result2 error) {
 	fake.tryStartPendingBuildsForJobMutex.Lock()
 	defer fake.tryStartPendingBuildsForJobMutex.Unlock()
 	fake.TryStartPendingBuildsForJobStub = nil
 	fake.tryStartPendingBuildsForJobReturns = struct {
-		result1 error
-	}{result1}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturnsOnCall(i int, result1 error) {
+func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturnsOnCall(i int, result1 bool, result2 error) {
 	fake.tryStartPendingBuildsForJobMutex.Lock()
 	defer fake.tryStartPendingBuildsForJobMutex.Unlock()
 	fake.TryStartPendingBuildsForJobStub = nil
 	if fake.tryStartPendingBuildsForJobReturnsOnCall == nil {
 		fake.tryStartPendingBuildsForJobReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 bool
+			result2 error
 		})
 	}
 	fake.tryStartPendingBuildsForJobReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuildStarter) Invocations() map[string][][]interface{} {

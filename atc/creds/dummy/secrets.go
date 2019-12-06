@@ -15,7 +15,7 @@ type Secrets struct {
 	PipelineName string
 }
 
-func (secrets *Secrets) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+func (secrets *Secrets) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 
 	if len(pipelineName) > 0 {

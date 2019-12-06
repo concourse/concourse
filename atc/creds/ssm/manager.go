@@ -173,3 +173,7 @@ func (manager *SsmManager) NewSecretsFactory(log lager.Logger) (creds.SecretsFac
 
 	return NewSsmFactory(log, session, []*template.Template{pipelineSecretTemplate, teamSecretTemplate}), nil
 }
+
+func (manager *SsmManager) Close(logger lager.Logger) {
+	// TODO - to implement
+}

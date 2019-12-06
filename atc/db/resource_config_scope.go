@@ -98,16 +98,16 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
 		bumpCache = bumpCache || newVersion
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
 	if bumpCache {
-		err = requestScheduleForPipelinesUsingResourceConfigScope(conn, rcsID)
+		err = requestScheduleForJobsUsingResourceConfigScope(tx, rcsID)
 		if err != nil {
 			return err
 		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -312,37 +312,42 @@ func incrementCheckOrder(tx Tx, rcsID int, version string) error {
 	return err
 }
 
-func requestScheduleForPipelinesUsingResourceConfigScope(conn Conn, rcsID int) error {
-	rows, err := psql.Select("p.id").
-		From("pipelines p").
-		Join("resources r ON r.pipeline_id = p.id").
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
+func requestScheduleForJobsUsingResourceConfigScope(tx Tx, rcsID int) error {
+	rows, err := psql.Select("DISTINCT j.job_id").
+		From("job_pipes j").
+		Join("resources r ON r.id = j.resource_id").
 		Where(sq.Eq{
 			"r.resource_config_scope_id": rcsID,
+			"j.passed_job_id":            nil,
 		}).
-		RunWith(conn).
+		OrderBy("j.job_id DESC").
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return err
 	}
 
-	var pipelines []int
+	var jobIDs []int
 	for rows.Next() {
-		var pid int
-		err = rows.Scan(&pid)
+		var id int
+		err = rows.Scan(&id)
 		if err != nil {
 			return err
 		}
 
-		pipelines = append(pipelines, pid)
+		jobIDs = append(jobIDs, id)
 	}
 
-	for _, p := range pipelines {
-		_, err := psql.Update("pipelines").
+	for _, jID := range jobIDs {
+		_, err := psql.Update("jobs").
 			Set("schedule_requested", sq.Expr("now()")).
 			Where(sq.Eq{
-				"id": p,
+				"id": jID,
 			}).
-			RunWith(conn).
+			RunWith(tx).
 			Exec()
 		if err != nil {
 			return err

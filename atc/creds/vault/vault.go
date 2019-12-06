@@ -24,7 +24,7 @@ type Vault struct {
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	if len(pipelineName) > 0 {
 		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, teamName, pipelineName)+"/"))
@@ -32,6 +32,9 @@ func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string) []cred
 	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, teamName)+"/"))
 	if v.SharedPath != "" {
 		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, v.SharedPath)+"/"))
+	}
+	if allowRootPath {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(v.Prefix+"/"))
 	}
 	return lookupPaths
 }

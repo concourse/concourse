@@ -28,11 +28,7 @@ func NewResourceFactory(conn Conn, lockFactory lock.LockFactory) ResourceFactory
 }
 
 func (r *resourceFactory) Resource(resourceID int) (Resource, bool, error) {
-	resource := &resource{
-		conn:        r.conn,
-		lockFactory: r.lockFactory,
-	}
-
+	resource := newEmptyResource(r.conn, r.lockFactory)
 	row := resourcesQuery.
 		Where(sq.Eq{"r.id": resourceID}).
 		RunWith(r.conn).
@@ -84,8 +80,7 @@ func scanResources(resourceRows *sql.Rows, conn Conn, lockFactory lock.LockFacto
 	var resources []Resource
 
 	for resourceRows.Next() {
-		resource := &resource{conn: conn, lockFactory: lockFactory}
-
+		resource := newEmptyResource(conn, lockFactory)
 		err := scanResource(resource, resourceRows)
 		if err != nil {
 			return nil, err

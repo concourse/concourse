@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -58,7 +57,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}
 
 	if parsedEnv.ConcourseChartDir == "" {
-		parsedEnv.ConcourseChartDir = path.Join(parsedEnv.ChartsDir, "stable/concourse")
+		parsedEnv.ConcourseChartDir = parsedEnv.ChartsDir
 	}
 
 	By("Checking if kubectl has a context set")

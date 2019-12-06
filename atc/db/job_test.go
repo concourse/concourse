@@ -69,6 +69,12 @@ var _ = Describe("Job", func() {
 				{
 					Name: "different-serial-group-job",
 				},
+				{
+					Name: "job-1",
+				},
+				{
+					Name: "job-2",
+				},
 			},
 			Resources: atc.ResourceConfigs{
 				{
@@ -509,18 +515,17 @@ var _ = Describe("Job", func() {
 		})
 
 		Context("creating a build", func() {
-			It("requests schedule on the pipeline", func() {
-				var requestedSchedule time.Time
-				err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+			It("requests schedule on the job", func() {
+				requestedSchedule := job.ScheduleRequestedTime()
+
+				_, err := job.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = job.CreateBuild()
+				found, err := job.Reload()
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				var newRequestedSchedule time.Time
-				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 		})
 	})
@@ -547,6 +552,7 @@ var _ = Describe("Job", func() {
 			It("finds the build", func() {
 				Expect(rerunErr).ToNot(HaveOccurred())
 				Expect(rerunBuild.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
+				Expect(rerunBuild.RerunNumber()).To(Equal(1))
 
 				build, found, err := job.Build(rerunBuild.Name())
 				Expect(err).NotTo(HaveOccurred())
@@ -555,45 +561,54 @@ var _ = Describe("Job", func() {
 				Expect(build.Status()).To(Equal(rerunBuild.Status()))
 			})
 
-			It("requests schedule on the pipeline", func() {
-				var requestedSchedule time.Time
-				err := dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&requestedSchedule)
+			It("requests schedule on the job", func() {
+				requestedSchedule := job.ScheduleRequestedTime()
+
+				_, err := job.RerunBuild(buildToRerun)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = job.RerunBuild(buildToRerun)
+				found, err := job.Reload()
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				var newRequestedSchedule time.Time
-				err = dbConn.QueryRow(`SELECT schedule_requested FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&newRequestedSchedule)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(newRequestedSchedule).Should(BeTemporally(">", requestedSchedule))
+				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 
 			Context("when there is an existing rerun build", func() {
+				var rerun1 db.Build
+
 				BeforeEach(func() {
-					rerun1, err := job.RerunBuild(buildToRerun)
+					var err error
+					rerun1, err = job.RerunBuild(buildToRerun)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(rerun1.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
+					Expect(rerun1.RerunNumber()).To(Equal(1))
 				})
 
-				It("increments the name", func() {
+				It("increments the rerun build number", func() {
 					Expect(rerunErr).ToNot(HaveOccurred())
 					Expect(rerunBuild.Name()).To(Equal(fmt.Sprintf("%s.2", firstBuild.Name())))
+					Expect(rerunBuild.RerunNumber()).To(Equal(rerun1.RerunNumber() + 1))
 				})
 			})
 
 			Context("when we try to rerun a rerun build", func() {
+				var rerun1 db.Build
+
 				BeforeEach(func() {
-					rerun1, err := job.RerunBuild(buildToRerun)
+					var err error
+					rerun1, err = job.RerunBuild(buildToRerun)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(rerun1.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
+					Expect(rerun1.RerunNumber()).To(Equal(1))
 
 					buildToRerun = rerun1
 				})
 
-				It("increments the name", func() {
+				It("keeps the name of original build and increments the rerun build number", func() {
 					Expect(rerunErr).ToNot(HaveOccurred())
 					Expect(rerunBuild.Name()).To(Equal(fmt.Sprintf("%s.2", firstBuild.Name())))
+					Expect(rerunBuild.RerunNumber()).To(Equal(rerun1.RerunNumber() + 1))
 				})
 			})
 		})
@@ -656,6 +671,12 @@ var _ = Describe("Job", func() {
 						},
 						{
 							Name: "different-serial-group-job",
+						},
+						{
+							Name: "job-1",
+						},
+						{
+							Name: "job-2",
 						},
 					},
 					Resources: atc.ResourceConfigs{
@@ -729,6 +750,12 @@ var _ = Describe("Job", func() {
 						{
 							Name:         "different-serial-group-job",
 							SerialGroups: []string{"different-serial-group"},
+						},
+						{
+							Name: "job-1",
+						},
+						{
+							Name: "job-2",
 						},
 					},
 					Resources: atc.ResourceConfigs{
@@ -1196,6 +1223,12 @@ var _ = Describe("Job", func() {
 								Trigger:  true,
 							},
 						},
+					},
+					{
+						Name: "job-1",
+					},
+					{
+						Name: "job-2",
 					},
 				},
 				Resources: atc.ResourceConfigs{
@@ -1911,6 +1944,5 @@ var _ = Describe("Job", func() {
 
 			Expect(job.HasNewInputs()).To(BeFalse())
 		})
-
 	})
 })

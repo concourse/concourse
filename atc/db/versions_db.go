@@ -13,14 +13,6 @@ import (
 	gocache "github.com/patrickmn/go-cache"
 )
 
-type JobNotFoundError struct {
-	ID int
-}
-
-func (e JobNotFoundError) Error() string {
-	return fmt.Sprintf("job ID %d is not found", e.ID)
-}
-
 type VersionsDB struct {
 	conn      Conn
 	limitRows int

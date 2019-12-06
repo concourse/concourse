@@ -16,7 +16,6 @@ import Application.Models exposing (Session)
 import Colors
 import Concourse
 import Concourse.Cli as Cli
-import Dict
 import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
@@ -30,7 +29,7 @@ import Html.Attributes
         , style
         )
 import Html.Attributes.Aria exposing (ariaLabel)
-import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import Json.Decode
 import Json.Encode
@@ -46,6 +45,7 @@ import Message.Subscription
         , Subscription(..)
         )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Pipeline.PinMenu.PinMenu as PinMenu
 import Pipeline.Styles as Styles
 import RemoteData exposing (WebData)
 import Routes
@@ -74,6 +74,7 @@ type alias Model =
         , hideLegend : Bool
         , hideLegendCounter : Float
         , isToggleLoading : Bool
+        , pinMenuExpanded : Bool
         }
 
 
@@ -102,6 +103,7 @@ init flags =
             , isToggleLoading = False
             , selectedGroups = flags.selectedGroups
             , isUserMenuExpanded = False
+            , pinMenuExpanded = False
             }
     in
     ( model
@@ -315,7 +317,7 @@ handleDelivery delivery ( model, effects ) =
 
 update : Message -> ET Model
 update msg ( model, effects ) =
-    case msg of
+    (case msg of
         ToggleGroup group ->
             ( model
             , effects
@@ -349,18 +351,8 @@ update msg ( model, effects ) =
 
         _ ->
             ( model, effects )
-
-
-getPinnedResources : Model -> List ( String, Concourse.Version )
-getPinnedResources model =
-    case model.fetchedResources of
-        Nothing ->
-            []
-
-        Just res ->
-            Json.Decode.decodeValue (Json.Decode.list Concourse.decodeResource) res
-                |> Result.withDefault []
-                |> List.filterMap (\r -> Maybe.map (\v -> ( r.name, v )) r.pinnedVersion)
+    )
+        |> PinMenu.update msg
 
 
 subscriptions : List Subscription
@@ -400,12 +392,7 @@ view session model =
                 [ SideBar.hamburgerMenu session
                 , TopBar.concourseLogo
                 , TopBar.breadcrumbs route
-                , viewPinMenu
-                    { pinnedResources = getPinnedResources model
-                    , pipeline = model.pipelineLocator
-                    , isPinMenuExpanded =
-                        HoverState.isHovered PinIcon session.hovered
-                    }
+                , PinMenu.viewPinMenu session model
                 , Html.div
                     (id "top-bar-pause-toggle"
                         :: (Styles.pauseToggle <| isPaused model.pipeline)
@@ -440,89 +427,6 @@ view session model =
                 ]
             ]
         ]
-
-
-viewPinMenu :
-    { pinnedResources : List ( String, Concourse.Version )
-    , pipeline : Concourse.PipelineIdentifier
-    , isPinMenuExpanded : Bool
-    }
-    -> Html Message
-viewPinMenu ({ pinnedResources, isPinMenuExpanded } as params) =
-    Html.div
-        (id "pin-icon" :: Styles.pinIconContainer isPinMenuExpanded)
-        [ if List.length pinnedResources > 0 then
-            Html.div
-                ([ onMouseEnter <| Hover <| Just PinIcon
-                 , onMouseLeave <| Hover Nothing
-                 ]
-                    ++ Styles.pinIcon
-                )
-                (Html.div
-                    (id "pin-badge" :: Styles.pinBadge)
-                    [ Html.div []
-                        [ Html.text <|
-                            String.fromInt <|
-                                List.length pinnedResources
-                        ]
-                    ]
-                    :: viewPinMenuDropdown params
-                )
-
-          else
-            Html.div Styles.pinIcon []
-        ]
-
-
-viewPinMenuDropdown :
-    { pinnedResources : List ( String, Concourse.Version )
-    , pipeline : Concourse.PipelineIdentifier
-    , isPinMenuExpanded : Bool
-    }
-    -> List (Html Message)
-viewPinMenuDropdown { pinnedResources, pipeline, isPinMenuExpanded } =
-    if isPinMenuExpanded then
-        [ Html.ul
-            Styles.pinIconDropdown
-            (pinnedResources
-                |> List.map
-                    (\( resourceName, pinnedVersion ) ->
-                        Html.li
-                            (onClick
-                                (GoToRoute <|
-                                    Routes.Resource
-                                        { id =
-                                            { teamName = pipeline.teamName
-                                            , pipelineName = pipeline.pipelineName
-                                            , resourceName = resourceName
-                                            }
-                                        , page = Nothing
-                                        }
-                                )
-                                :: Styles.pinDropdownCursor
-                            )
-                            [ Html.div
-                                Styles.pinText
-                                [ Html.text resourceName ]
-                            , Html.table []
-                                (pinnedVersion
-                                    |> Dict.toList
-                                    |> List.map
-                                        (\( k, v ) ->
-                                            Html.tr []
-                                                [ Html.td [] [ Html.text k ]
-                                                , Html.td [] [ Html.text v ]
-                                                ]
-                                        )
-                                )
-                            ]
-                    )
-            )
-        , Html.div Styles.pinHoverHighlight []
-        ]
-
-    else
-        []
 
 
 isPaused : WebData Concourse.Pipeline -> Bool

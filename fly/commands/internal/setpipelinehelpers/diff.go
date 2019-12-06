@@ -69,6 +69,21 @@ func (index GroupIndex) FindEquivalentWithOrder(obj interface{}) (interface{}, i
 	return atc.GroupConfigs(index).Lookup(name(obj))
 }
 
+type VarSourceIndex atc.VarSourceConfigs
+
+func (index VarSourceIndex) Slice() []interface{} {
+	slice := make([]interface{}, len(index))
+	for i, object := range index {
+		slice[i] = object
+	}
+
+	return slice
+}
+
+func (index VarSourceIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
+	return atc.VarSourceConfigs(index).Lookup(name(obj))
+}
+
 type JobIndex atc.JobConfigs
 
 func (index JobIndex) Slice() []interface{} {

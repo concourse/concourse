@@ -161,3 +161,7 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 
 	return NewSecretsManagerFactory(log, sess, []*template.Template{pipelineSecretTemplate, teamSecretTemplate}), nil
 }
+
+func (manager Manager) Close(logger lager.Logger) {
+	// TODO - to implement
+}

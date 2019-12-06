@@ -44,5 +44,5 @@
 - type: replace
   path: /instance_groups/name=db/jobs/-
   value:
-    release: concourse-((suite))
+    release: concourse((suite))
     name: bbr-atcdb

@@ -121,6 +121,10 @@ var _ = Describe("Watching", func() {
 		It("Watches the given build id", func() {
 			watch("--build", "3")
 		})
+
+		It("Watches the given direct build URL", func() {
+			watch("--url", atcServer.URL()+"/builds/3")
+		})
 	})
 
 	Context("with a specific job and pipeline", func() {
@@ -176,6 +180,10 @@ var _ = Describe("Watching", func() {
 			It("watches the job's next build", func() {
 				watch("--job", "some-pipeline/some-job")
 			})
+
+			It("watches the job's next build URL", func() {
+				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job")
+			})
 		})
 
 		Context("when the job only has a finished build", func() {
@@ -200,6 +208,10 @@ var _ = Describe("Watching", func() {
 			It("watches the job's finished build", func() {
 				watch("--job", "main/some-job")
 			})
+
+			It("watches the job's finished build URL", func() {
+				watch("--url", atcServer.URL()+"/teams/main/pipelines/main/jobs/some-job")
+			})
 		})
 
 		Context("with a specific build of the job", func() {
@@ -220,6 +232,10 @@ var _ = Describe("Watching", func() {
 
 			It("watches the given build", func() {
 				watch("--job", "main/some-job", "--build", "3")
+			})
+
+			It("watches the given build URL", func() {
+				watch("--url", atcServer.URL()+"/teams/main/pipelines/main/jobs/some-job/builds/3")
 			})
 		})
 	})

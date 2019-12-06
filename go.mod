@@ -17,6 +17,7 @@ require (
 	github.com/Jeffail/gabs v1.1.0 // indirect
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/Microsoft/go-winio v0.4.11 // indirect
+	github.com/Microsoft/hcsshim v0.8.6 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/SAP/go-hdb v0.13.1 // indirect
@@ -43,11 +44,16 @@ require (
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
 	github.com/concourse/baggageclaim v1.6.5
-	github.com/concourse/dex v0.0.0-20191028164029-00bcc75bd8b9
+	github.com/concourse/dex v0.0.0-20191105150807-8bbc2a6df1ea
 	github.com/concourse/flag v1.0.0
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.0.2
-	github.com/containerd/continuity v0.0.0-20180919190352-508d86ade3c2 // indirect
+	github.com/containerd/cgroups v0.0.0-20191108182539-4baafdb2bf45 // indirect
+	github.com/containerd/containerd v1.3.0
+	github.com/containerd/continuity v0.0.0-20190827140505-75bee3e2ccb6 // indirect
+	github.com/containerd/fifo v0.0.0-20190816180239-bda0ff6ed73c // indirect
+	github.com/containerd/ttrpc v0.0.0-20191028202541-4f1b8fe65a5c // indirect
+	github.com/containerd/typeurl v0.0.0-20190911142611-5eb25027c9fd // indirect
 	github.com/coreos/bbolt v1.3.2 // indirect
 	github.com/coreos/etcd v3.3.15+incompatible // indirect
 	github.com/coreos/go-oidc v2.0.0+incompatible
@@ -58,8 +64,9 @@ require (
 	github.com/denisenkom/go-mssqldb v0.0.0-20180901172138-1eb28afdf9b6 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dimchansky/utfbom v1.1.0 // indirect
+	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
-	github.com/docker/go-units v0.3.3 // indirect
+	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/duosecurity/duo_api_golang v0.0.0-20180315112207-d0530c80e49a // indirect
 	github.com/elazarl/go-bindata-assetfs v1.0.0 // indirect
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
@@ -77,6 +84,8 @@ require (
 	github.com/go-test/deep v1.0.1 // indirect
 	github.com/gobuffalo/packr v1.13.7
 	github.com/gocql/gocql v0.0.0-20180920092337-799fb0373110 // indirect
+	github.com/gogo/googleapis v1.3.0 // indirect
+	github.com/gogo/protobuf v1.3.0
 	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
@@ -122,7 +131,7 @@ require (
 	github.com/hashicorp/vault-plugin-secrets-gcpkms v0.0.0-20181212182553-6cd991800a6d // indirect
 	github.com/hashicorp/vault-plugin-secrets-kv v0.0.0-20180825215324-5a464a61f7de // indirect
 	github.com/hashicorp/yamux v0.0.0-20180917205041-7221087c3d28 // indirect
-	github.com/imdario/mergo v0.3.6 // indirect
+	github.com/imdario/mergo v0.3.6
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/influxdata/influxdb1-client v0.0.0-20190118215656-f8cdb5d5f175
 	github.com/jeffchao/backoff v0.0.0-20140404060208-9d7fd7aa17f2 // indirect
@@ -154,6 +163,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
+	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/ory-am/common v0.4.0 // indirect
 	github.com/ory/dockertest v3.3.2+incompatible // indirect
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
@@ -170,7 +180,7 @@ require (
 	github.com/ryanuber/go-glob v0.0.0-20170128012129-256dc444b735 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20180130194729-c4fab1ac1bec // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
-	github.com/sirupsen/logrus v1.4.0
+	github.com/sirupsen/logrus v1.4.2
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/smartystreets/assertions v0.0.0-20190116191733-b6c0e53d7304 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190222223459-a17d461953aa // indirect
@@ -178,7 +188,8 @@ require (
 	github.com/square/certstrap v1.1.1
 	github.com/streadway/amqp v0.0.0-20190225234609-30f8ed68076e // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
-	github.com/stretchr/testify v1.4.0 // indirect
+	github.com/stretchr/testify v1.4.0
+	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/tedsuo/ifrit v0.0.0-20180802180643-bea94bb476cc
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
@@ -218,3 +229,5 @@ require (
 )
 
 go 1.13
+
+replace github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible

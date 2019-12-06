@@ -9,19 +9,20 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . Resource
 
 type Resource interface {
+	PipelineRef
+
 	ID() int
 	Name() string
 	Public() bool
-	PipelineID() int
-	PipelineName() string
 	TeamID() int
 	TeamName() string
 	Type() string
@@ -89,11 +90,11 @@ var resourcesQuery = psql.Select(
 	Where(sq.Eq{"r.active": true})
 
 type resource struct {
+	pipelineRef
+
 	id                    int
 	name                  string
 	public                bool
-	pipelineID            int
-	pipelineName          string
 	teamID                int
 	teamName              string
 	type_                 string
@@ -112,9 +113,10 @@ type resource struct {
 	resourceConfigID      int
 	resourceConfigScopeID int
 	icon                  string
+}
 
-	conn        Conn
-	lockFactory lock.LockFactory
+func newEmptyResource(conn Conn, lockFactory lock.LockFactory) *resource {
+	return &resource{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
 type ResourceNotFoundError struct {
@@ -160,8 +162,6 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 func (r *resource) ID() int                          { return r.id }
 func (r *resource) Name() string                     { return r.name }
 func (r *resource) Public() bool                     { return r.public }
-func (r *resource) PipelineID() int                  { return r.pipelineID }
-func (r *resource) PipelineName() string             { return r.pipelineName }
 func (r *resource) TeamID() int                      { return r.teamID }
 func (r *resource) TeamName() string                 { return r.teamName }
 func (r *resource) Type() string                     { return r.type_ }
@@ -251,16 +251,16 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 		return nil, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
 	if rowsAffected > 0 {
-		err = requestScheduleForPipelinesUsingResourceConfigScope(r.conn, resourceConfigScope.ID())
+		err = requestScheduleForJobsUsingResource(tx, r.id)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
 	return resourceConfigScope, nil
@@ -608,7 +608,7 @@ func (r *resource) PinVersion(rcvID int) (bool, error) {
 		return false, nil
 	}
 
-	err = requestSchedule(tx, r.pipelineID)
+	err = requestScheduleForJobsUsingResource(tx, r.id)
 	if err != nil {
 		return false, err
 	}
@@ -641,10 +641,10 @@ func (r *resource) UnpinVersion() error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
-	err = requestSchedule(tx, r.pipelineID)
+	err = requestScheduleForJobsUsingResource(tx, r.id)
 	if err != nil {
 		return err
 	}
@@ -690,10 +690,10 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
-	err = requestSchedule(tx, r.pipelineID)
+	err = requestScheduleForJobsUsingResource(tx, r.id)
 	if err != nil {
 		return err
 	}
@@ -783,6 +783,49 @@ func scanResource(r *resource, row scannable) error {
 
 	if rcScopeID.Valid {
 		r.resourceConfigScopeID, err = strconv.Atoi(rcScopeID.String)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
+func requestScheduleForJobsUsingResource(tx Tx, resourceID int) error {
+	rows, err := psql.Select("DISTINCT job_id").
+		From("job_pipes").
+		Where(sq.Eq{
+			"resource_id": resourceID,
+		}).
+		OrderBy("job_id DESC").
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	var jobs []int
+	for rows.Next() {
+		var jid int
+		err = rows.Scan(&jid)
+		if err != nil {
+			return err
+		}
+
+		jobs = append(jobs, jid)
+	}
+
+	for _, j := range jobs {
+		_, err := psql.Update("jobs").
+			Set("schedule_requested", sq.Expr("now()")).
+			Where(sq.Eq{
+				"id": j,
+			}).
+			RunWith(tx).
+			Exec()
 		if err != nil {
 			return err
 		}

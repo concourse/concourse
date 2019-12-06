@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -397,32 +396,13 @@ func (self *migrator) acquireLock() (lock.Lock, error) {
 }
 
 func checkTableExist(db *sql.DB, tableName string) (bool, error) {
-	var exists bool
-	err := db.QueryRow("SELECT EXISTS ( SELECT 1 FROM information_schema.tables WHERE table_name=$1)", tableName).Scan(&exists)
+	var existingTable sql.NullString
+	err := db.QueryRow("SELECT to_regclass($1)", tableName).Scan(&existingTable)
 	if err != nil {
 		return false, err
 	}
 
-	if exists {
-		return true, nil
-	}
-
-	// SELECT EXISTS doesn't fail if the user doesn't have permission to look
-	// at the information_schema, so fall back to checking the table directly
-	rows, err := db.Query("SELECT * from " + tableName)
-	if rows != nil {
-		defer rows.Close()
-	}
-
-	if err == nil {
-		return true, nil
-	}
-
-	if strings.Contains(err.Error(), "does not exist") {
-		return false, nil
-	} else {
-		return false, err
-	}
+	return existingTable.Valid, nil
 }
 
 func (self *migrator) migrateFromSchemaMigrations() (int, error) {

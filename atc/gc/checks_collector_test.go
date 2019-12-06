@@ -10,7 +10,7 @@ import (
 )
 
 var _ = Describe("CheckCollector", func() {
-	var collector Collector
+	var collector GcCollector
 	var fakeCheckLifecycle *dbfakes.FakeCheckLifecycle
 
 	BeforeEach(func() {

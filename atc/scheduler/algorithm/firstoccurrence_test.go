@@ -62,6 +62,12 @@ var _ = Describe("Resolve", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		pipeline, _, err := team.SavePipeline("algorithm", atc.Config{
+			Resources: atc.ResourceConfigs{
+				{
+					Name: "r1",
+					Type: "r1-type",
+				},
+			},
 			Jobs: atc.JobConfigs{
 				{
 					Name: "j1",
