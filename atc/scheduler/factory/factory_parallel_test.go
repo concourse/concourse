@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,11 +16,14 @@ var _ = Describe("Factory Parallel", func() {
 		resourceTypes       atc.VersionedResourceTypes
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
+		fakeJob             *dbfakes.FakeJob
 	)
 
 	BeforeEach(func() {
 		actualPlanFactory = atc.NewPlanFactory(123)
 		expectedPlanFactory = atc.NewPlanFactory(123)
+
+		fakeJob = new(dbfakes.FakeJob)
 
 		buildFactory = factory.NewBuildFactory(actualPlanFactory)
 
@@ -44,8 +48,8 @@ var _ = Describe("Factory Parallel", func() {
 	})
 
 	Context("when I have a parallel step", func() {
-		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+		BeforeEach(func() {
+			fakeJob.ConfigReturns(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						InParallel: &atc.InParallelConfig{
@@ -62,7 +66,10 @@ var _ = Describe("Factory Parallel", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			})
+		})
+		It("returns the correct plan", func() {
+			actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.InParallelPlan{

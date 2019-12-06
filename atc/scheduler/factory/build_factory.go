@@ -12,7 +12,7 @@ var ErrResourceNotFound = errors.New("resource not found")
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+	Create(db.Job, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type buildFactory struct {
@@ -26,7 +26,7 @@ func NewBuildFactory(planFactory atc.PlanFactory) BuildFactory {
 }
 
 func (factory *buildFactory) Create(
-	job atc.JobConfig,
+	job db.Job,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
@@ -38,7 +38,7 @@ func (factory *buildFactory) Create(
 
 	return factory.applyHooks(job, constructionParams{
 		plan:          plan,
-		hooks:         job.Hooks(),
+		hooks:         job.Config().Hooks(),
 		resources:     resources,
 		resourceTypes: resourceTypes,
 		inputs:        inputs,
@@ -46,12 +46,12 @@ func (factory *buildFactory) Create(
 }
 
 func (factory *buildFactory) constructPlanFromJob(
-	job atc.JobConfig,
+	job db.Job,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
-	planSequence := job.Plan
+	planSequence := job.Config().Plan
 
 	if len(planSequence) == 1 {
 		return factory.constructPlanFromConfig(
@@ -67,7 +67,7 @@ func (factory *buildFactory) constructPlanFromJob(
 }
 
 func (factory *buildFactory) do(
-	job atc.JobConfig,
+	job db.Job,
 	planSequence atc.PlanSequence,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
@@ -95,7 +95,7 @@ func (factory *buildFactory) do(
 }
 
 func (factory *buildFactory) constructPlanFromConfig(
-	job atc.JobConfig,
+	job db.Job,
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
@@ -134,7 +134,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 }
 
 func (factory *buildFactory) constructUnhookedPlan(
-	job atc.JobConfig,
+	job db.Job,
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.VersionedResourceTypes,
@@ -251,6 +251,9 @@ func (factory *buildFactory) constructUnhookedPlan(
 
 	case planConfig.SetPipeline != "":
 		name := planConfig.SetPipeline
+		if name == "self" {
+			name = job.PipelineName()
+		}
 		plan = factory.planFactory.NewPlan(atc.SetPipelinePlan{
 			Name:     name,
 			File:     planConfig.ConfigPath,
@@ -337,7 +340,7 @@ type constructionParams struct {
 	inputs        []db.BuildInput
 }
 
-func (factory *buildFactory) applyHooks(job atc.JobConfig, cp constructionParams) (atc.Plan, error) {
+func (factory *buildFactory) applyHooks(job db.Job, cp constructionParams) (atc.Plan, error) {
 	var err error
 
 	cp, err = factory.abortIfPresent(job, cp)
@@ -368,7 +371,7 @@ func (factory *buildFactory) applyHooks(job atc.JobConfig, cp constructionParams
 	return cp.plan, nil
 }
 
-func (factory *buildFactory) successIfPresent(job atc.JobConfig, cp constructionParams) (constructionParams, error) {
+func (factory *buildFactory) successIfPresent(job db.Job, cp constructionParams) (constructionParams, error) {
 	if cp.hooks.Success != nil {
 
 		nextPlan, err := factory.constructPlanFromConfig(
@@ -390,7 +393,7 @@ func (factory *buildFactory) successIfPresent(job atc.JobConfig, cp construction
 	return cp, nil
 }
 
-func (factory *buildFactory) failureIfPresent(job atc.JobConfig, cp constructionParams) (constructionParams, error) {
+func (factory *buildFactory) failureIfPresent(job db.Job, cp constructionParams) (constructionParams, error) {
 	if cp.hooks.Failure != nil {
 		nextPlan, err := factory.constructPlanFromConfig(
 			job,
@@ -412,7 +415,7 @@ func (factory *buildFactory) failureIfPresent(job atc.JobConfig, cp construction
 	return cp, nil
 }
 
-func (factory *buildFactory) ensureIfPresent(job atc.JobConfig, cp constructionParams) (constructionParams, error) {
+func (factory *buildFactory) ensureIfPresent(job db.Job, cp constructionParams) (constructionParams, error) {
 	if cp.hooks.Ensure != nil {
 		nextPlan, err := factory.constructPlanFromConfig(
 			job,
@@ -433,7 +436,7 @@ func (factory *buildFactory) ensureIfPresent(job atc.JobConfig, cp constructionP
 	return cp, nil
 }
 
-func (factory *buildFactory) abortIfPresent(job atc.JobConfig, cp constructionParams) (constructionParams, error) {
+func (factory *buildFactory) abortIfPresent(job db.Job, cp constructionParams) (constructionParams, error) {
 	if cp.hooks.Abort != nil {
 		nextPlan, err := factory.constructPlanFromConfig(
 			job,
@@ -455,7 +458,7 @@ func (factory *buildFactory) abortIfPresent(job atc.JobConfig, cp constructionPa
 	return cp, nil
 }
 
-func (factory *buildFactory) errorIfPresent(job atc.JobConfig, cp constructionParams) (constructionParams, error) {
+func (factory *buildFactory) errorIfPresent(job db.Job, cp constructionParams) (constructionParams, error) {
 	if cp.hooks.Error != nil {
 		nextPlan, err := factory.constructPlanFromConfig(
 			job,

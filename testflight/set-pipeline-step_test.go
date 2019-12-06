@@ -100,4 +100,31 @@ jobs:
 			Expect(execS.Out).To(gbytes.Say("hello world"))
 		})
 	})
+
+	Context("set self", func() {
+		BeforeEach(func() {
+			pipelineName = "self-reset"
+
+			err := ioutil.WriteFile(
+				filepath.Join(fixture, pipelineName+".yml"),
+				[]byte(fmt.Sprintf(pipeline_content, "self")),
+				0755,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			fly("set-pipeline", "-n", "-p", pipelineName, "-c", fixture+"/"+pipelineName+".yml")
+			fly("unpause-pipeline", "-p", pipelineName)
+		})
+
+		It("set the other pipeline", func() {
+			By("set-pipeline step should succeed")
+			execS := fly("trigger-job", "-w", "-j", pipelineName+"/sp")
+			Expect(execS.Out).To(gbytes.Say("setting pipeline: self-reset"))
+			Expect(execS.Out).To(gbytes.Say("done"))
+
+			By("should trigger the pipeline job successfully")
+			execS = fly("trigger-job", "-w", "-j", pipelineName+"/normal-job")
+			Expect(execS.Out).To(gbytes.Say("hello world"))
+		})
+	})
 })

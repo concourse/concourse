@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/testhelpers"
 
@@ -17,6 +18,8 @@ var _ = Describe("Factory Do", func() {
 		resourceTypes       atc.VersionedResourceTypes
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
+
+		fakeJob *dbfakes.FakeJob
 	)
 
 	BeforeEach(func() {
@@ -43,11 +46,13 @@ var _ = Describe("Factory Do", func() {
 				Version: atc.Version{"some": "version"},
 			},
 		}
+
+		fakeJob = new(dbfakes.FakeJob)
 	})
 
 	Context("when I have a nested do ", func() {
-		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+		BeforeEach(func() {
+			fakeJob.ConfigReturns(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Do: &atc.PlanSequence{
@@ -67,7 +72,10 @@ var _ = Describe("Factory Do", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			})
+		})
+		It("returns the correct plan", func() {
+			actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
@@ -91,8 +99,8 @@ var _ = Describe("Factory Do", func() {
 	})
 
 	Context("when I have an aggregate inside a do", func() {
-		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+		BeforeEach(func() {
+			fakeJob.ConfigReturns(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Do: &atc.PlanSequence{
@@ -112,7 +120,10 @@ var _ = Describe("Factory Do", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			})
+		})
+		It("returns the correct plan", func() {
+			actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
@@ -136,8 +147,8 @@ var _ = Describe("Factory Do", func() {
 	})
 
 	Context("when i have a do inside an aggregate inside a hook", func() {
-		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+		BeforeEach(func() {
+			fakeJob.ConfigReturns(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task: "starting-task",
@@ -157,7 +168,10 @@ var _ = Describe("Factory Do", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			})
+		})
+		It("returns the correct plan", func() {
+			actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
@@ -184,8 +198,8 @@ var _ = Describe("Factory Do", func() {
 	})
 
 	Context("when I have a do inside an aggregate", func() {
-		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{
+		BeforeEach(func() {
+			fakeJob.ConfigReturns(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
@@ -208,7 +222,10 @@ var _ = Describe("Factory Do", func() {
 						},
 					},
 				},
-			}, resources, resourceTypes, nil)
+			})
+		})
+		It("returns the correct plan", func() {
+			actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{

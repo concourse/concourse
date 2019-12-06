@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
@@ -14,7 +15,7 @@ var _ = Describe("Factory Get", func() {
 
 		resources           atc.ResourceConfigs
 		resourceTypes       atc.VersionedResourceTypes
-		input               atc.JobConfig
+		fakeJob             *dbfakes.FakeJob
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
 		version             atc.Version
@@ -43,22 +44,24 @@ var _ = Describe("Factory Get", func() {
 				Version: atc.Version{"some": "version"},
 			},
 		}
+
+		fakeJob = new(dbfakes.FakeJob)
 	})
 
 	Context("with a get at the top-level", func() {
 		BeforeEach(func() {
-			input = atc.JobConfig{
+			fakeJob.ConfigReturns(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Get:      "some-get",
 						Resource: "some-resource",
 					},
 				},
-			}
+			})
 		})
 
 		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+			actual, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.GetPlan{
@@ -77,18 +80,18 @@ var _ = Describe("Factory Get", func() {
 
 	Context("with a get for a non-existent resource", func() {
 		BeforeEach(func() {
-			input = atc.JobConfig{
+			fakeJob.ConfigReturns(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Get:      "some-get",
 						Resource: "not-a-resource",
 					},
 				},
-			}
+			})
 		})
 
 		It("returns the correct error", func() {
-			_, err := buildFactory.Create(input, resources, resourceTypes, nil)
+			_, err := buildFactory.Create(fakeJob, resources, resourceTypes, nil)
 			Expect(err).To(Equal(factory.ErrResourceNotFound))
 		})
 	})
