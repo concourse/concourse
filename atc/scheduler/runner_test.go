@@ -208,7 +208,7 @@ var _ = Describe("Runner", func() {
 
 								Context("when all jobs scheduling succeeds", func() {
 									BeforeEach(func() {
-										fakeScheduler.ScheduleReturns(nil)
+										fakeScheduler.ScheduleReturns(false, nil)
 									})
 
 									It("updates last schedule", func() {
@@ -223,11 +223,24 @@ var _ = Describe("Runner", func() {
 
 								Context("when job scheduling fails", func() {
 									BeforeEach(func() {
-										fakeScheduler.ScheduleReturnsOnCall(0, errors.New("error"))
-										fakeScheduler.ScheduleReturnsOnCall(1, nil)
+										fakeScheduler.ScheduleReturnsOnCall(0, false, errors.New("error"))
+										fakeScheduler.ScheduleReturnsOnCall(1, false, nil)
 									})
 
 									It("does not update last scheduled", func() {
+										Expect(schedulerErr).ToNot(HaveOccurred())
+										Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
+										Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+									})
+								})
+
+								Context("when there is no error but needs retry", func() {
+									BeforeEach(func() {
+										fakeScheduler.ScheduleReturnsOnCall(0, true, nil)
+										fakeScheduler.ScheduleReturnsOnCall(1, false, nil)
+									})
+
+									It("does not update last scheduled for the job that needs retry", func() {
 										Expect(schedulerErr).ToNot(HaveOccurred())
 										Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 										Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
@@ -373,7 +386,7 @@ var _ = Describe("Runner", func() {
 
 				fakeJobFactory.JobsToScheduleReturns([]db.Job{fakeJob1, fakeJob2, fakeJob3}, nil)
 
-				fakeScheduler.ScheduleReturns(nil)
+				fakeScheduler.ScheduleReturns(false, nil)
 			})
 
 			Context("when both pipelines successfully schedule", func() {

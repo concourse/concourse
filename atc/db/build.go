@@ -20,6 +20,8 @@ import (
 
 const schema = "exec.v2"
 
+var ErrAdoptRerunBuildHasNoInputs = errors.New("inputs not ready for build to rerun")
+
 type BuildInput struct {
 	Name       string
 	Version    atc.Version

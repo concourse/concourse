@@ -25,35 +25,30 @@ func (s *Scheduler) Schedule(
 	job db.Job,
 	resources db.Resources,
 	relatedJobs algorithm.NameToIDMap,
-) error {
+) (bool, error) {
 	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(job, resources, relatedJobs)
 	if err != nil {
-		return fmt.Errorf("compute inputs: %w", err)
+		return false, fmt.Errorf("compute inputs: %w", err)
 	}
 
 	if runAgain {
 		err = job.RequestSchedule()
 		if err != nil {
-			return fmt.Errorf("request schedule: %w", err)
+			return false, fmt.Errorf("request schedule: %w", err)
 		}
 	}
 
 	err = job.SaveNextInputMapping(inputMapping, resolved)
 	if err != nil {
-		return fmt.Errorf("save next input mapping: %w", err)
+		return false, fmt.Errorf("save next input mapping: %w", err)
 	}
 
 	err = s.ensurePendingBuildExists(logger, job, resources)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	err = s.BuildStarter.TryStartPendingBuildsForJob(logger, pipeline, job, resources, relatedJobs)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.BuildStarter.TryStartPendingBuildsForJob(logger, pipeline, job, resources, relatedJobs)
 }
 
 func (s *Scheduler) ensurePendingBuildExists(
@@ -61,12 +56,12 @@ func (s *Scheduler) ensurePendingBuildExists(
 	job db.Job,
 	resources db.Resources,
 ) error {
-	buildInputs, inputsDetermined, err := job.GetFullNextBuildInputs()
+	buildInputs, satisfiableInputs, err := job.GetFullNextBuildInputs()
 	if err != nil {
 		return fmt.Errorf("get next build inputs: %w", err)
 	}
 
-	if !inputsDetermined {
+	if !satisfiableInputs {
 		logger.Debug("next-build-inputs-not-determined")
 		return nil
 	}

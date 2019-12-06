@@ -21,7 +21,7 @@ type BuildScheduler interface {
 		job db.Job,
 		resources db.Resources,
 		relatedJobIDs algorithm.NameToIDMap,
-	) error
+	) (bool, error)
 }
 
 type schedulerRunner struct {
@@ -105,16 +105,15 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline, jobsToSchedule 
 			// request
 			requestedTime := job.ScheduleRequestedTime()
 
-			err := s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
+			needsRetry, err := s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
 			if err != nil {
-				logger.Error("failed-to-request-schedule-on-job", err, lager.Data{"job": job.Name()})
+				logger.Error("failed-to-schedule-job", err, lager.Data{"job": job.Name()})
 			} else {
-				// If scheduling the job fails, the last scheduled value will not be
-				// updated which will result in the job being scheduled again on the next
-				// interval. This allows jobs that failed to schedule to be attempted again.
-				err = job.UpdateLastScheduled(requestedTime)
-				if err != nil {
-					logger.Error("failed-to-update-last-scheduled", err, lager.Data{"job": job.Name()})
+				if !needsRetry {
+					err = job.UpdateLastScheduled(requestedTime)
+					if err != nil {
+						logger.Error("failed-to-update-last-scheduled", err, lager.Data{"job": job.Name()})
+					}
 				}
 			}
 
@@ -125,25 +124,25 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline, jobsToSchedule 
 	return nil
 }
 
-func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, pipeline db.Pipeline, currentJob db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
+func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, pipeline db.Pipeline, currentJob db.Job, resources db.Resources, jobs algorithm.NameToIDMap) (bool, error) {
 	logger = logger.Session("job", lager.Data{"job": currentJob.Name()})
 
 	defer schedulingLock.Release()
 
 	found, err := currentJob.Reload()
 	if err != nil {
-		return fmt.Errorf("reload job: %w", err)
+		return false, fmt.Errorf("reload job: %w", err)
 	}
 
 	if !found {
 		logger.Debug("could-not-find-job-to-reload")
-		return nil
+		return false, nil
 	}
 
 	sLog := logger.Session("scheduling")
 	jStart := time.Now()
 
-	err = s.scheduler.Schedule(
+	needsRetry, err := s.scheduler.Schedule(
 		sLog,
 		pipeline,
 		currentJob,
@@ -151,7 +150,7 @@ func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.L
 		jobs,
 	)
 	if err != nil {
-		return fmt.Errorf("schedule job: %w", err)
+		return false, fmt.Errorf("schedule job: %w", err)
 	}
 
 	metric.SchedulingJobDuration{
@@ -161,7 +160,7 @@ func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.L
 		Duration:     time.Since(jStart),
 	}.Emit(sLog)
 
-	return nil
+	return needsRetry, nil
 }
 
 func (s *schedulerRunner) constructPipelineIDMaps(jobs db.Jobs) (map[int]db.Pipeline, map[int]db.Jobs, error) {

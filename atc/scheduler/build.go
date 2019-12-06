@@ -18,13 +18,13 @@ type manualTriggerBuild struct {
 	algorithm Algorithm
 }
 
-func (m *manualTriggerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
+func (m *manualTriggerBuild) PrepareInputs(logger lager.Logger) bool {
 	for _, input := range m.job.Config().Inputs() {
 		resource, found := m.resources.Lookup(input.Resource)
 
 		if !found {
 			logger.Debug("failed-to-find-resource")
-			return nil, false, nil
+			return false
 		}
 
 		if resource.CurrentPinnedVersion() != nil {
@@ -33,10 +33,14 @@ func (m *manualTriggerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, 
 
 		if m.IsNewerThanLastCheckOf(resource) {
 			logger.Debug("resource-not-checked-yet")
-			return nil, false, nil
+			return false
 		}
 	}
 
+	return true
+}
+
+func (m *manualTriggerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
 	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(m.job, m.resources, m.relatedJobIDs)
 	if err != nil {
 		return nil, false, fmt.Errorf("compute inputs: %w", err)
@@ -54,21 +58,56 @@ func (m *manualTriggerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, 
 		return nil, false, fmt.Errorf("save next input mapping: %w", err)
 	}
 
-	return m.AdoptInputsAndPipes()
+	buildInputs, satisfableInputs, err := m.AdoptInputsAndPipes()
+	if err != nil {
+		return nil, false, fmt.Errorf("adopt inputs and pipes: %w", err)
+	}
+
+	if !satisfableInputs {
+		return nil, false, nil
+	}
+
+	return buildInputs, true, nil
 }
 
 type schedulerBuild struct {
 	db.Build
 }
 
+func (s *schedulerBuild) PrepareInputs(logger lager.Logger) bool {
+	return true
+}
+
 func (s *schedulerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
-	return s.AdoptInputsAndPipes()
+	buildInputs, satisfableInputs, err := s.AdoptInputsAndPipes()
+	if err != nil {
+		return nil, false, fmt.Errorf("adopt inputs and pipes: %w", err)
+	}
+
+	if !satisfableInputs {
+		return nil, false, nil
+	}
+
+	return buildInputs, true, nil
 }
 
 type rerunBuild struct {
 	db.Build
 }
 
+func (r *rerunBuild) PrepareInputs(logger lager.Logger) bool {
+	return true
+}
+
 func (r *rerunBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
-	return r.AdoptRerunInputsAndPipes()
+	buildInputs, inputsReady, err := r.AdoptRerunInputsAndPipes()
+	if err != nil {
+		return nil, false, fmt.Errorf("adopt inputs and pipes: %w", err)
+	}
+
+	if !inputsReady {
+		return nil, false, fmt.Errorf("adopt inputs and pipes: %w", db.ErrAdoptRerunBuildHasNoInputs)
+	}
+
+	return buildInputs, true, nil
 }
