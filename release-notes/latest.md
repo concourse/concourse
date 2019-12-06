@@ -18,6 +18,10 @@
 
 * @andhadley added support for Vault namespaces. #4748
 
+#### <sub><sup><a name="4865" href="#4865">:link:</a></sup></sub> fix
+
+* @kcmannem finally fixed the jagged edges on the progress bar indicators used by the dashboard. #4865
+
 #### <sub><sup><a name="4749" href="#4749">:link:</a></sup></sub> fix
 
 * @evanchaoli fixed a weird behavior with secret redaction wherein a secret containing e.g. `{` on its own line (i.e. formatted JSON) would result in `{` being replaced with `((redacted))` in build logs. Single-character lines will instead be skipped.
