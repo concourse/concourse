@@ -284,7 +284,7 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     }
 
     By default, Concourse will reach out to \link{Let's Encrypt's ACME CA
-    directory}{https://acme-v01.api.letsencrypt.org/directory}. An alernative
+    directory}{https://acme-v02.api.letsencrypt.org/directory}. An alernative
     URL can be configured like so:
 
     \codeblock{bash}{{{
