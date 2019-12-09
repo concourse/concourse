@@ -47,3 +47,7 @@
 #### <sub><sup><a name="4746" href="#4746">:link:</a></sup></sub> fix
 
 * Fixed the problem of when fail_fast for in_parallel is true, a failing step causes the in_parallel to fall into on_error #4746
+
+#### <sub><sup><a name="4816" href="#4816">:link:</a></sup></sub> fix
+
+* @witjem removed superfluous mentions of `register-worker` from TSA. #4816
