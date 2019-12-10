@@ -10,6 +10,8 @@ blog/assets/css/*
 !blog/assets/css/*.gitkeep
 blog/assets/images/*
 !blog/assets/images/.gitkeep
+blog/assets/js/*
+!blog/assets/js/.gitkeep
 
 !discourse/*/*.html
 

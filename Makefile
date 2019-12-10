@@ -1,4 +1,4 @@
-objects = js/search.js css/booklit.css css/blog.css css/pipeline.css discourse/common/common.scss discourse/desktop/desktop.scss discourse/mobile/mobile.scss blog/concourse.zip
+objects = js/search.js css/booklit.css css/blog.css css/prism.css css/pipeline.css discourse/common/common.scss discourse/desktop/desktop.scss discourse/mobile/mobile.scss blog/concourse.zip
 
 all: $(objects)
 
@@ -14,6 +14,9 @@ css/booklit.css: less/booklit.less less/*.less
 	yarn run lessc $< $@
 
 css/blog.css: less/blog.less less/*.less
+	yarn run lessc $< $@
+
+css/prism.css: less/prism.less less/*.less
 	yarn run lessc $< $@
 
 css/pipeline.css: less/pipeline.less
