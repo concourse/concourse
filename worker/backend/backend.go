@@ -21,18 +21,37 @@ var _ garden.Backend = (*Backend)(nil)
 type Backend struct {
 	client    libcontainerd.Client
 	namespace string
+	clientTimeout time.Duration
 }
 
-type InputValidationError struct{}
+type InputValidationError struct{
+	Message string
+}
 
 func (e InputValidationError) Error() string {
-	return "input validation error"
+	return "input validation error: " + e.Message
+}
+type ClientError struct {
+	InnerError error
+}
+
+func (e ClientError) Error() string {
+	return "client error: " + e.InnerError.Error()
 }
 
 func New(client libcontainerd.Client, namespace string) Backend {
 	return Backend{
 		namespace: namespace,
 		client:    client,
+		clientTimeout: 10 * time.Second,
+	}
+}
+
+func NewWithTimeout(client libcontainerd.Client, namespace string, clientTimeout time.Duration) Backend {
+	return Backend{
+		namespace: namespace,
+		client:    client,
+		clientTimeout: clientTimeout,
 	}
 }
 
@@ -41,8 +60,7 @@ func New(client libcontainerd.Client, namespace string) Backend {
 func (b *Backend) Start() (err error) {
 	err = b.client.Init()
 	if err != nil {
-		err = fmt.Errorf("failed to initialize contianerd client: %w", err)
-		return
+		return ClientError{ InnerError: fmt.Errorf("failed to initialize containerd client: %w", err) }
 	}
 
 	return
@@ -63,6 +81,9 @@ func (b *Backend) GraceTime(container garden.Container) (duration time.Duration)
 //
 func (b *Backend) Ping() (err error) {
 	err = b.client.Version(context.Background())
+	if err != nil {
+		return ClientError{ InnerError: err }
+	}
 	return
 }
 
@@ -80,7 +101,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 
 	oci, err = bespec.OciSpec(gdnSpec)
 	if err != nil {
-		err = fmt.Errorf("failed to convert garden spec to oci spec: %w", err)
+		err = ClientError{ InnerError: fmt.Errorf("failed to convert garden spec to oci spec: %w", err) }
 		return
 	}
 
@@ -88,13 +109,13 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 		gdnSpec.Handle, gdnSpec.Properties, oci,
 	)
 	if err != nil {
-		err = fmt.Errorf("failed to create a container in containerd: %w", err)
+		err = ClientError{ InnerError: fmt.Errorf("failed to create a container in containerd: %w", err) }
 		return
 	}
 
 	_, err = cont.NewTask(ctx, cio.NullIO)
 	if err != nil {
-		err = fmt.Errorf("failed to create a task in container: %w", err)
+		err = ClientError{ InnerError: fmt.Errorf("failed to create a task in container: %w", err) }
 		return
 	}
 
@@ -118,30 +139,34 @@ func (b *Backend) Destroy(handle string) error {
 	const maxTaskKillWaitTime = 10 * time.Second
 
 	if handle == "" {
-		return InputValidationError{}
+		return InputValidationError{Message: "handle is empty"}
 	}
 
 	container, err := b.client.GetContainer(ctx, handle)
 	if err != nil {
-		return err
+		return ClientError{ InnerError: err }
 	}
 
 	task, err := container.Task(ctx, nil)
 	if err != nil {
 		if !errdefs.IsNotFound(err) {
-			return err
+			return ClientError { InnerError: err }
 		}
 
 		return b.client.Destroy(ctx, handle)
 	}
 
-	timeDelimitedContext, _ := context.WithTimeout(ctx, maxTaskKillWaitTime)
+	timeDelimitedContext, _ := context.WithTimeout(ctx, b.clientTimeout)
 	err = killTasks(timeDelimitedContext, task)
 	if err != nil {
-		return err
+		return ClientError{ InnerError: err }
 	}
 
-	return b.client.Destroy(ctx, handle)
+	err = b.client.Destroy(ctx, handle)
+	if err != nil {
+		return ClientError{ InnerError: err }
+	}
+	return nil
 }
 
 // killTasks kills a task on time, gracefully if possible, ungracefully if not.
@@ -159,10 +184,10 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 
 	select {
 	case <-exitStatus:
-		_, err = task.Delete(ctx) // todo: we're swallowing exitcodes in both these forks, do we care?
+		_, err = task.Delete(ctx)
 		return err
 	case <-ctx.Done():
-		err = task.Kill(ctx, syscall.SIGKILL) // should return GRPC DeadlineExceeded error type, wrapped up
+		err = task.Kill(ctx, syscall.SIGKILL)
 		if err != nil {
 			return err
 		}
@@ -185,11 +210,13 @@ func (b *Backend) Containers(properties garden.Properties) (containers []garden.
 
 	filters, err := propertiesToFilterList(properties)
 	if err != nil {
+		err = ClientError{ InnerError: err }
 		return
 	}
 
 	res, err := b.client.Containers(ctx, filters...)
 	if err != nil {
+		err = ClientError{ InnerError: err }
 		return
 	}
 
@@ -220,12 +247,12 @@ func (b *Backend) Lookup(handle string) (garden.Container, error) {
 	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 
 	if handle == "" {
-		return nil, InputValidationError{}
+		return nil, InputValidationError{Message: "handle is empty"}
 	}
 
 	_, err := b.client.GetContainer(ctx, handle)
 	if err != nil {
-		return nil, err
+		return nil, ClientError{ InnerError: err }
 	}
 
 	return &Container{}, nil
