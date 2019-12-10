@@ -1,5 +1,7 @@
 roles:
   - name: owner
     local:
-      users: [""]
-
+      users: [some-admin]
+  - name: viewer
+    local:
+      users: []

@@ -134,7 +134,7 @@ func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 		}
 
 		if len(users) == 0 && len(groups) == 0 {
-			return nil, ErrAuthNotConfiguredFromFile
+			continue
 		}
 
 		auth[roleName] = map[string][]string{
