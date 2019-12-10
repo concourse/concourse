@@ -560,17 +560,13 @@ func (client *client) RunPutStep(
 func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSpec) error {
 	var inputs []InputSource
 
-	for _, foobar := range spec.InputFooBars {
-		artifact := foobar.Artifact()
+	for path, artifact := range spec.ArtifactByPath {
 
 		if cache, ok := artifact.(*runtime.CacheArtifact); ok {
 			// task caches may not have a volume, it will be discovered on
 			// the worker later. We do not stream task caches
-			artifactSrc := NewCacheArtifactSource(*cache)
-			inputs = append(inputs, inputSource{
-				artifactSrc,
-				foobar.DestinationPath(),
-			})
+			source := NewCacheArtifactSource(*cache)
+			inputs = append(inputs, inputSource{ source, path})
 		} else {
 			artifactVolume, found, err := client.FindVolume(logger, spec.TeamID, artifact.ID())
 			if err != nil {
@@ -581,10 +577,7 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 			}
 
 			source := NewStreamableArtifactSource(artifact, artifactVolume)
-			inputs = append(inputs, inputSource{
-				source,
-				foobar.DestinationPath(),
-			})
+			inputs = append(inputs, inputSource{ source, path})
 		}
 	}
 

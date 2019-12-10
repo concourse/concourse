@@ -279,10 +279,11 @@ func (step *TaskStep) imageSpec(logger lager.Logger, repository *build.Repositor
 	return imageSpec, nil
 }
 
-func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) ([]worker.FooBarInput, error) {
-	inputs := []worker.FooBarInput{}
+func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) (map[string]runtime.Artifact, error) {
+	inputs := map[string]runtime.Artifact{}
 
 	var missingRequiredInputs []string
+
 	for _, input := range config.Inputs {
 		inputName := input.Name
 		if sourceName, ok := step.plan.InputMapping[inputName]; ok {
@@ -296,12 +297,13 @@ func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Rep
 			}
 			continue
 		}
-
-		inputs = append(inputs, &taskInput{
+		ti := taskInput{
 			config:        input,
 			artifact:      art,
 			artifactsRoot: metadata.WorkingDirectory,
-		})
+		}
+
+		inputs[ti.Path()] = ti.Artifact()
 	}
 
 	if len(missingRequiredInputs) > 0 {
@@ -315,11 +317,12 @@ func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Rep
 			StepName: step.plan.Name,
 			Path:     cacheConfig.Path,
 		}
-		inputs = append(inputs, &taskCacheInput{
+		ti := taskCacheInput{
 			artifact:      cacheArt,
 			artifactsRoot: metadata.WorkingDirectory,
 			cachePath:     cacheConfig.Path,
-		})
+		}
+		inputs[ti.Path()] = ti.Artifact()
 	}
 
 	return inputs, nil
@@ -342,11 +345,10 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 		Env:       config.Params.Env(),
 		Type:      metadata.Type,
 
-		InputFooBars: []worker.FooBarInput{},
 		Outputs:      worker.OutputPaths{},
 	}
 
-	containerSpec.InputFooBars, err = step.containerInputs(logger, repository, config, metadata)
+	containerSpec.ArtifactByPath, err = step.containerInputs(logger, repository, config, metadata)
 	if err != nil {
 		return worker.ContainerSpec{}, err
 	}
@@ -434,7 +436,7 @@ type taskInput struct {
 
 func (s taskInput) Artifact() runtime.Artifact { return s.artifact }
 
-func (s taskInput) DestinationPath() string {
+func (s taskInput) Path() string {
 	subdir := s.config.Path
 	if s.config.Path == "" {
 		subdir = s.config.Name
@@ -460,6 +462,6 @@ type taskCacheInput struct {
 
 func (s taskCacheInput) Artifact() runtime.Artifact { return s.artifact }
 
-func (s taskCacheInput) DestinationPath() string {
+func (s taskCacheInput) Path() string {
 	return filepath.Join(s.artifactsRoot, s.cachePath)
 }

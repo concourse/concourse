@@ -189,32 +189,20 @@ var _ = Describe("PutStep", func() {
 
 			It("calls RunPutStep with all inputs", func() {
 				_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
-				Expect(actualContainerSpec.InputFooBars).To(HaveLen(3))
-				Expect([]runtime.Artifact{
-					actualContainerSpec.InputFooBars[0].Artifact(),
-					actualContainerSpec.InputFooBars[1].Artifact(),
-					actualContainerSpec.InputFooBars[2].Artifact(),
-				}).To(ConsistOf(
-					fakeArtifact,
-					fakeOtherArtifact,
-					fakeMountedArtifact,
-				))
+				Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 			})
 		})
 
 		Context("when inputs are left blank", func() {
 			It("calls RunPutStep with all inputs", func() {
 				_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
-				Expect(actualContainerSpec.InputFooBars).To(HaveLen(3))
-				Expect([]runtime.Artifact{
-					actualContainerSpec.InputFooBars[0].Artifact(),
-					actualContainerSpec.InputFooBars[1].Artifact(),
-					actualContainerSpec.InputFooBars[2].Artifact(),
-				}).To(ConsistOf(
-					fakeArtifact,
-					fakeOtherArtifact,
-					fakeMountedArtifact,
-				))
+				Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 			})
 		})
 
@@ -227,14 +215,9 @@ var _ = Describe("PutStep", func() {
 
 			It("calls RunPutStep with specified inputs", func() {
 				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
-				Expect(containerSpec.InputFooBars).To(HaveLen(2))
-				Expect([]runtime.Artifact{
-					containerSpec.InputFooBars[0].Artifact(),
-					containerSpec.InputFooBars[1].Artifact(),
-				}).To(ConsistOf(
-					fakeArtifact,
-					fakeOtherArtifact,
-				))
+				Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
+				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 			})
 		})
 	})
@@ -252,25 +235,11 @@ var _ = Describe("PutStep", func() {
 		Expect(actualContainerSpec.TeamID).To(Equal(123))
 		Expect(actualContainerSpec.Env).To(Equal(stepMetadata.Env()))
 		Expect(actualContainerSpec.Dir).To(Equal("/tmp/build/put"))
-		Expect(actualContainerSpec.InputFooBars).To(HaveLen(3))
-		Expect([]runtime.Artifact{
-			actualContainerSpec.InputFooBars[0].Artifact(),
-			actualContainerSpec.InputFooBars[1].Artifact(),
-			actualContainerSpec.InputFooBars[2].Artifact(),
-		}).To(ConsistOf(
-			fakeArtifact,
-			fakeOtherArtifact,
-			fakeMountedArtifact,
-		))
-		Expect([]string{
-			actualContainerSpec.InputFooBars[0].DestinationPath(),
-			actualContainerSpec.InputFooBars[1].DestinationPath(),
-			actualContainerSpec.InputFooBars[2].DestinationPath(),
-		}).To(ConsistOf(
-			"/tmp/build/put/some-other-source",
-			"/tmp/build/put/some-mounted-source",
-			"/tmp/build/put/some-source",
-		))
+
+		Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
+		Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+		Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
+		Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 
 		Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
 			TeamID:        123,

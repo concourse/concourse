@@ -209,7 +209,8 @@ var _ = Describe("TaskStep", func() {
 						Type:    "task",
 						Dir:     "some-artifact-root",
 						Env:     []string{"SOME=params"},
-						InputFooBars:  []worker.FooBarInput{},
+
+						ArtifactByPath: map[string]runtime.Artifact{},
 						Outputs: worker.OutputPaths{},
 					}))
 
@@ -286,18 +287,10 @@ var _ = Describe("TaskStep", func() {
 
 				It("configures the inputs for the containerSpec correctly", func() {
 					Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
-					_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-					Expect(containerSpec.InputFooBars).To(HaveLen(2))
-					for _, input := range containerSpec.InputFooBars {
-						switch input.DestinationPath() {
-						case "some-artifact-root/some-input-configured-path":
-							Expect(input.Artifact()).To(Equal(inputArtifact))
-						case "some-artifact-root/some-other-input":
-							Expect(input.Artifact()).To(Equal(otherInputArtifact))
-						default:
-							panic("unknown input: " + input.DestinationPath())
-						}
-					}
+					_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(2))
+					Expect(actualContainerSpec.ArtifactByPath["some-artifact-root/some-input-configured-path"]).To(Equal(inputArtifact))
+					Expect(actualContainerSpec.ArtifactByPath["some-artifact-root/some-other-input"]).To(Equal(otherInputArtifact))
 				})
 			})
 
@@ -338,10 +331,9 @@ var _ = Describe("TaskStep", func() {
 
 				It("uses remapped input", func() {
 					Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
-					_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-					Expect(containerSpec.InputFooBars).To(HaveLen(1))
-					Expect(containerSpec.InputFooBars[0].Artifact()).To(Equal(remappedInputArtifact))
-					Expect(containerSpec.InputFooBars[0].DestinationPath()).To(Equal("some-artifact-root/remapped-input"))
+					_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(1))
+					Expect(actualContainerSpec.ArtifactByPath["some-artifact-root/remapped-input"]).To(Equal(remappedInputArtifact))
 					Expect(stepErr).ToNot(HaveOccurred())
 				})
 			})
@@ -385,12 +377,10 @@ var _ = Describe("TaskStep", func() {
 				It("runs successfully without the optional input", func() {
 					Expect(stepErr).ToNot(HaveOccurred())
 					Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
-					_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-					Expect(containerSpec.InputFooBars).To(HaveLen(2))
-					Expect(containerSpec.InputFooBars[0].Artifact()).To(Equal(optionalInput2Artifact))
-					Expect(containerSpec.InputFooBars[0].DestinationPath()).To(Equal("some-artifact-root/optional-input-2"))
-					Expect(containerSpec.InputFooBars[1].Artifact()).To(Equal(requiredInputArtifact))
-					Expect(containerSpec.InputFooBars[1].DestinationPath()).To(Equal("some-artifact-root/required-input"))
+					_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(2))
+					Expect(actualContainerSpec.ArtifactByPath["some-artifact-root/required-input"]).To(Equal(optionalInputArtifact))
+					Expect(actualContainerSpec.ArtifactByPath["some-artifact-root/optional-input-2"]).To(Equal(optionalInput2Artifact))
 				})
 			})
 
@@ -447,14 +437,9 @@ var _ = Describe("TaskStep", func() {
 
 			It("creates the containerSpec with the caches in the inputs", func() {
 				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-				Expect(containerSpec.InputFooBars).To(HaveLen(2))
-				Expect([]string{
-					containerSpec.InputFooBars[0].DestinationPath(),
-					containerSpec.InputFooBars[1].DestinationPath(),
-				}).To(ConsistOf(
-					"some-artifact-root/some-path-1",
-					"some-artifact-root/some-path-2",
-				))
+				Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
+				Expect(containerSpec.ArtifactByPath["some-artifact-root/some-path-1"]).ToNot(BeNil())
+				Expect(containerSpec.ArtifactByPath["some-artifact-root/some-path-2"]).ToNot(BeNil())
 			})
 
 			Context("when task belongs to a job", func() {

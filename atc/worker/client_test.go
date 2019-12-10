@@ -430,7 +430,7 @@ var _ = Describe("Client", func() {
 				},
 				Dir:          "some-artifact-root",
 				Env:          []string{"SECURE=secret-task-param"},
-				InputFooBars: nil,
+				ArtifactByPath: map[string]runtime.Artifact{},
 				Inputs:       inputSources,
 				Outputs:      worker.OutputPaths{},
 			}

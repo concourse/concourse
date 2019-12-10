@@ -7,7 +7,6 @@ import (
 
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
 )
 
 type PutInputNotFoundError struct {
@@ -19,7 +18,7 @@ func (e PutInputNotFoundError) Error() string {
 }
 
 type PutInputs interface {
-	FindAll(*build.Repository) ([]worker.FooBarInput, error)
+	FindAll(*build.Repository) (map[string]runtime.Artifact, error)
 }
 
 type allInputs struct{}
@@ -28,14 +27,16 @@ func NewAllInputs() PutInputs {
 	return &allInputs{}
 }
 
-func (i allInputs) FindAll(artifacts *build.Repository) ([]worker.FooBarInput, error) {
-	inputs := []worker.FooBarInput{}
+func (i allInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Artifact, error) {
+	inputs := map[string]runtime.Artifact{}
 
 	for name, artifact := range artifacts.AsMap() {
-		inputs = append(inputs, &putFooBarInput{
+		pi := putInput{
 			name:     name,
 			artifact: artifact,
-		})
+		}
+
+		inputs[pi.DestinationPath()] = pi.Artifact()
 	}
 
 	return inputs, nil
@@ -51,36 +52,35 @@ func NewSpecificInputs(inputs []string) PutInputs {
 	}
 }
 
-func (i specificInputs) FindAll(artifacts *build.Repository) ([]worker.FooBarInput, error) {
+func (i specificInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Artifact, error) {
 	artifactsMap := artifacts.AsMap()
 
-	inputs := []worker.FooBarInput{}
+	inputs := map[string]runtime.Artifact{}
+
 	for _, i := range i.inputs {
 		artifact, found := artifactsMap[build.ArtifactName(i)]
 		if !found {
 			return nil, PutInputNotFoundError{Input: i}
 		}
 
-		inputs = append(inputs, &putFooBarInput{
+		pi := putInput{
 			name:     build.ArtifactName(i),
 			artifact: artifact,
-		})
+		}
+
+		inputs[pi.DestinationPath()] = pi.Artifact()
 	}
 
 	return inputs, nil
 }
 
-type putFooBarInput struct {
+type putInput struct {
 	name     build.ArtifactName
 	artifact runtime.Artifact
 }
 
-func (s putFooBarInput) Artifact() runtime.Artifact { return s.artifact }
+func (input putInput) Artifact() runtime.Artifact { return input.artifact }
 
-func (s putFooBarInput) DestinationPath() string {
-	return resource.ResourcesDir("put/" + string(s.name))
+func (input putInput) DestinationPath() string {
+	return resource.ResourcesDir("put/" + string(input.name))
 }
-
-//func (source PutResourceSource) StreamTo(ctx context.Context, logger lager.Logger, dest worker.ArtifactDestination) error {
-//	return source.StreamableArtifactSource.StreamTo(ctx, logger, dest)
-//}

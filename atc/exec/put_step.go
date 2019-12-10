@@ -136,7 +136,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 
 		Env: step.metadata.Env(),
 
-		InputFooBars: containerInputs,
+		ArtifactByPath: containerInputs,
 	}
 
 	workerSpec := worker.WorkerSpec{
