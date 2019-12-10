@@ -63,7 +63,7 @@ func (command *EnableResourceVersionCommand) Execute([]string) error {
 
 			fmt.Printf("enabled '%s/%s' with version %s\n", command.Resource.PipelineName, command.Resource.ResourceName, string(versionBytes))
 		} else {
-			displayhelpers.Failf("could not enabled '%s/%s', make sure the resource version exists\n", command.Resource.PipelineName, command.Resource.ResourceName)
+			displayhelpers.Failf("could not enable '%s/%s', make sure the resource version exists\n", command.Resource.PipelineName, command.Resource.ResourceName)
 		}
 	}
 
