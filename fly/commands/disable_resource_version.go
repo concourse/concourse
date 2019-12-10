@@ -11,12 +11,12 @@ import (
 	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
-type EnableResourceVersionCommand struct {
+type DisableResourceVersionCommand struct {
 	Resource flaghelpers.ResourceFlag `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" description:"Name of the resource"`
-	Version  *atc.Version             `short:"v" long:"version" required:"true" value-name:"KEY:VALUE" description:"Version of the resource to enable. The given key value pair(s) has to be an exact match but not all fields are needed. In the case of multiple resource versions matched, it will enable the latest one."`
+	Version  *atc.Version             `short:"v" long:"version" required:"true" value-name:"KEY:VALUE" description:"Version of the resource to disable. The given key value pair(s) has to be an exact match but not all fields are needed. In the case of multiple resource versions matched, it will disable the latest one."`
 }
 
-func (command *EnableResourceVersionCommand) Execute([]string) error {
+func (command *DisableResourceVersionCommand) Execute([]string) error {
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -46,21 +46,24 @@ func (command *EnableResourceVersionCommand) Execute([]string) error {
 		}
 
 		latestResourceVer := versions[0]
-		enable, err := team.EnableResourceVersion(command.Resource.PipelineName, command.Resource.ResourceName, latestResourceVer.ID)
+		disabled := !latestResourceVer.Enabled
 
-		if err != nil {
-			return err
+		if !disabled {
+			disabled, err = team.DisableResourceVersion(command.Resource.PipelineName, command.Resource.ResourceName, latestResourceVer.ID)
+			if err != nil {
+				return err
+			}
 		}
 
-		if enable {
+		if disabled {
 			versionBytes, err := json.Marshal(latestResourceVer.Version)
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("enable '%s/%s' with version %s\n", command.Resource.PipelineName, command.Resource.ResourceName, string(versionBytes))
+			fmt.Printf("disabled '%s/%s' with version %s\n", command.Resource.PipelineName, command.Resource.ResourceName, string(versionBytes))
 		} else {
-			displayhelpers.Failf("could not enable '%s/%s', make sure the resource version exists\n", command.Resource.PipelineName, command.Resource.ResourceName)
+			displayhelpers.Failf("could not disable '%s/%s', make sure the resource version exists\n", command.Resource.PipelineName, command.Resource.ResourceName)
 		}
 	}
 
