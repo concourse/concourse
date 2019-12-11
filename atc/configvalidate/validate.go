@@ -41,9 +41,9 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
 
-	credentialManagersErr := validateVarSources(c)
-	if credentialManagersErr != nil {
-		errorMessages = append(errorMessages, formatErr("variable sources", credentialManagersErr))
+	varSourcesErr := validateVarSources(c)
+	if varSourcesErr != nil {
+		errorMessages = append(errorMessages, formatErr("variable sources", varSourcesErr))
 	}
 
 	jobWarnings, jobsErr := validateJobs(c)

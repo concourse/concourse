@@ -222,24 +222,93 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when duplicate var source names", func() {
 			BeforeEach(func() {
-				config.VarSources = append(config.VarSources, VarSourceConfig{
-					Name:   "some",
-					Type:   "dummy",
-					Config: map[string]interface{}{
-						"vars": map[string]interface{}{"k2": "v2"},
+				config.VarSources = append(config.VarSources,
+					VarSourceConfig{
+						Name: "some",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k2": "v2"},
+						},
 					},
-				}, VarSourceConfig{
-					Name:   "some",
-					Type:   "dummy",
-					Config: map[string]interface{}{
-						"vars": map[string]interface{}{"k2": "v2"},
+					VarSourceConfig{
+						Name: "some",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k2": "v2"},
+						},
 					},
-				})
+				)
 			})
 
 			It("returns an error", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("duplicate var_source name: some"))
+			})
+		})
+
+		Context("when var source's dependency cannot be resolved", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources,
+					VarSourceConfig{
+						Name: "s1",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "v"},
+						},
+					},
+					VarSourceConfig{
+						Name: "s2",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "((s1:k))"},
+						},
+					},
+					VarSourceConfig{
+						Name: "s3",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "((none:k))"},
+						},
+					},
+				)
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("could not resolve inter-dependent var sources: s3"))
+			})
+		})
+
+		Context("when var source names are circular", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources,
+					VarSourceConfig{
+						Name: "s1",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "((s3:v))"},
+						},
+					},
+					VarSourceConfig{
+						Name: "s2",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "((s1:k))"},
+						},
+					},
+					VarSourceConfig{
+						Name: "s3",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "((s2:k))"},
+						},
+					},
+				)
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("could not resolve inter-dependent var sources: s1, s2, s3"))
 			})
 		})
 	})
@@ -1287,10 +1356,10 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a set_pipeline step has no file configured", func(){
+			Context("when a set_pipeline step has no file configured", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
-						SetPipeline:      "other-pipeline",
+						SetPipeline: "other-pipeline",
 					})
 
 					config.Jobs = append(config.Jobs, job)

@@ -1138,7 +1138,10 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 // plug the global variables, otherwise just return the global variables.
 func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
 	globalVars := creds.NewVariables(globalSecrets, p.TeamName(), p.Name(), false)
-	varss := []vars.Variables{globalVars}
+	namedVarsMap := map[string]vars.Variables{}
+	// It's safe to construct NewNamedVariables with namedVars here, because
+	// a map is passed by reference.
+	allVars := vars.NewMultiVars([]vars.Variables{globalVars, vars.NewNamedVariables(namedVarsMap)})
 
 	orderedVarSources, err := p.varSources.OrderByDependency()
 	if err != nil {
@@ -1152,7 +1155,7 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 		}
 
 		// Interpolate variables in pipeline credential manager's config
-		newConfig, err := creds.NewParams(vars.NewMultiVars(varss), atc.Params{"config": cm.Config}).Evaluate()
+		newConfig, err := creds.NewParams(allVars, atc.Params{"config": cm.Config}).Evaluate()
 		if err != nil {
 			return nil, errors.Wrapf(err, "evaluate var_source '%s' error", cm.Name)
 		}
@@ -1161,18 +1164,20 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 		if !ok {
 			return nil, fmt.Errorf("var_source '%s' invalid config", cm.Name)
 		}
-		secrets, err := varSourcePool.FindOrCreate(logger, cm.Name, config, factory)
+		secrets, err := varSourcePool.FindOrCreate(logger, config, factory)
 		if err != nil {
 			return nil, errors.Wrapf(err, "create var_source '%s' error", cm.Name)
 		}
-		varss = append(varss, creds.NewVariables(secrets, p.TeamName(), p.Name(), true))
+		namedVarsMap[cm.Name] = creds.NewVariables(secrets, p.TeamName(), p.Name(), true)
 	}
 
-	if len(varss) == 1 {
+	// If there is no var_source from the pipeline, then just return the global
+	// vars.
+	if len(namedVarsMap) == 1 {
 		return globalVars, nil
 	}
 
-	return vars.NewMultiVars(varss), nil
+	return allVars, nil
 }
 
 func bumpCacheIndex(tx Tx, pipelineID int) error {

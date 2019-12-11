@@ -166,7 +166,7 @@ func (c VarSourceConfigs) OrderByDependency() (VarSourceConfigs, error) {
 		for _, vs := range pending {
 			names = append(names, vs.vs.Name)
 		}
-		return nil, fmt.Errorf("dereference var_sources '%s' error", strings.Join(names, "', '"))
+		return nil, fmt.Errorf("could not resolve inter-dependent var sources: %s", strings.Join(names, ", "))
 	}
 
 	return ordered, nil

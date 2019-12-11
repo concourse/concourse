@@ -129,7 +129,7 @@ var _ = Describe("Config", func() {
 			})
 			It("should raise error", func() {
 				Expect(orderError).To(HaveOccurred())
-				Expect(orderError.Error()).To(Equal("dereference var_sources 'vs5', 'vs3' error"))
+				Expect(orderError.Error()).To(Equal("could not resolve inter-dependent var sources: vs5, vs3"))
 			})
 		})
 
@@ -139,7 +139,7 @@ var _ = Describe("Config", func() {
 			})
 			It("should raise error", func() {
 				Expect(orderError).To(HaveOccurred())
-				Expect(orderError.Error()).To(Equal("dereference var_sources 'vs1', 'vs5', 'vs3' error"))
+				Expect(orderError.Error()).To(Equal("could not resolve inter-dependent var sources: vs1, vs5, vs3"))
 			})
 		})
 	})

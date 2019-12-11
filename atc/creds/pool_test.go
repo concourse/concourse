@@ -51,7 +51,7 @@ var _ = Context("pool", func() {
 			)
 
 			JustBeforeEach(func() {
-				secrets, err = varSourcePool.FindOrCreate(logger, "", config1, factory)
+				secrets, err = varSourcePool.FindOrCreate(logger, config1, factory)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -79,9 +79,9 @@ var _ = Context("pool", func() {
 				err                error
 			)
 			JustBeforeEach(func() {
-				secrets1, err = varSourcePool.FindOrCreate(logger, "", config1, factory)
+				secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
 				Expect(err).ToNot(HaveOccurred())
-				secrets2, err = varSourcePool.FindOrCreate(logger, "", config2, factory)
+				secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -120,17 +120,17 @@ var _ = Context("pool", func() {
 				err                error
 			)
 			JustBeforeEach(func() {
-				secrets1, err = varSourcePool.FindOrCreate(logger, "", config1, factory)
+				secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
 				Expect(err).ToNot(HaveOccurred())
-				secrets1, err = varSourcePool.FindOrCreate(logger, "", config1, factory)
+				secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
 				Expect(err).ToNot(HaveOccurred())
-				secrets1, err = varSourcePool.FindOrCreate(logger, "", config1, factory)
+				secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
 				Expect(err).ToNot(HaveOccurred())
-				secrets2, err = varSourcePool.FindOrCreate(logger, "", config2, factory)
+				secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
 				Expect(err).ToNot(HaveOccurred())
-				secrets2, err = varSourcePool.FindOrCreate(logger, "", config2, factory)
+				secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
 				Expect(err).ToNot(HaveOccurred())
-				secrets2, err = varSourcePool.FindOrCreate(logger, "", config2, factory)
+				secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -162,31 +162,6 @@ var _ = Context("pool", func() {
 				Expect(varSourcePool.Size()).To(Equal(2))
 			})
 		})
-
-		Context("add named config", func() {
-			var (
-				secrets creds.Secrets
-				err     error
-			)
-
-			JustBeforeEach(func() {
-				secrets, err = varSourcePool.FindOrCreate(logger, "foo", config1, factory)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("should get foo:k1", func() {
-				v, _, found, err := secrets.Get("foo:k1")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(v.(string)).To(Equal("v1"))
-			})
-
-			It("should not get k1", func() {
-				_, _, found, err := secrets.Get("k1")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeFalse())
-			})
-		})
 	})
 
 	Context("Collect", func() {
@@ -196,12 +171,12 @@ var _ = Context("pool", func() {
 			varSourcePool = creds.NewVarSourcePool(7*time.Second, fakeClock)
 		})
 		It("should clean up once ttl expires", func() {
-			_, err = varSourcePool.FindOrCreate(logger, "", config1, factory)
+			_, err = varSourcePool.FindOrCreate(logger, config1, factory)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(1))
 
 			fakeClock.IncrementBySeconds(4)
-			_, err = varSourcePool.FindOrCreate(logger, "foo", config2, factory)
+			_, err = varSourcePool.FindOrCreate(logger, config2, factory)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(2))
 
