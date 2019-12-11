@@ -8,10 +8,10 @@ considered an \bold{experimental} feature, until its associated
 Configures a Concourse pipeline.
 
 \right-side{Examples}{
-  \example{Self-reconfiguring pipeline}{
-    This is a reasonable way to get Concourse to mimic the default behaviour of
-    some other CI systems, where the automation configuration is automatically
-    read from a source code repository and updated on every commit.
+  \example{One pipeline reconfiguring another}{
+    This is a way to ensure a pipeline stays up to date with its definition in
+    a source code repository, eliminating the need to manually run
+    \reference{fly-set-pipeline}.
 
     \codeblock{yaml}{{
     resources:
@@ -23,30 +23,15 @@ Configures a Concourse pipeline.
       plan:
       - get: booklit
         trigger: true
-      - set_pipeline: set-booklit-pipeline
-        name: booklit
+      - set_pipeline: booklit
         file: booklit/ci/pipeline.yml
-    - name: unit-tests
-      plan:
-      - get: booklit
-        passed: [reconfigure]
-        trigger: true
-      - task: run-tests
-        file: booklit/ci/test.yml
     }}
   }
 }
 
-
 \define-attribute{set_pipeline: string}{
-  \italic{Required.} A freeform name for the action of configuring the pipeline.
-  This field gets used in the step header on the build page in the web UI as a
-  "title" for the step.
-}{set-pipeline-step-set-pipeline}
-
-\define-attribute{name: string}{
   \italic{Required.} The name of the pipeline to configure.
-}{set-pipeline-step-name}
+}{set-pipeline-step-set-pipeline}
 
 \define-attribute{file: string}{
   \italic{Required.} The path to the pipeline's configuration file.
