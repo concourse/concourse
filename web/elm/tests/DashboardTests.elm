@@ -867,9 +867,7 @@ all =
                     |> Query.find [ class "dashboard-team-name-wrapper" ]
                     |> Query.has [ style "letter-spacing" ".2em" ]
         , describe "clicking on team name"
-            [ test
-                "filters by team when there are pipelines"
-              <|
+            [ test "filters by team when there are pipelines" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
@@ -878,7 +876,7 @@ all =
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find (teamHeaderSelector ++ [ containing [ text "teamA" ] ])
-                        |> Query.find [ class "dashboard-team-name"]
+                        |> Query.find [ class "dashboard-team-name" ]
                         |> Event.simulate Event.click
                         |> Event.expect
                             (ApplicationMsgs.Update <|
@@ -894,7 +892,7 @@ all =
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find (teamHeaderSelector ++ [ containing [ text "teamA" ] ])
-                        |> Query.find [ class "dashboard-team-name"]
+                        |> Query.find [ class "dashboard-team-name" ]
                         |> Event.simulate Event.click
                         |> Event.toResult
                         |> Expect.err

@@ -415,10 +415,12 @@ view { dragState, dropState, now, hovered, pipelineRunningKeyframes, userState }
             (Html.div
                 (if List.isEmpty g.pipelines then
                     [ class "dashboard-team-name" ]
-                else
+
+                 else
                     [ class "dashboard-team-name"
                     , onClick (FilterMsg ("team:" ++ g.teamName))
-                    , style "cursor" "pointer" ]
+                    , style "cursor" "pointer"
+                    ]
                 )
                 [ Html.text g.teamName ]
                 :: (Maybe.Extra.toList <|
