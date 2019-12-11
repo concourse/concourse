@@ -2,16 +2,11 @@ roles:
   - name: member
     cf:
       users: ["some-member"]
-      space_developers: ["some-org:some-space"]
+  - name: viewer
+    cf:
+      spaces: ["some-org:some-space"]
   - name: owner
     cf:
       users: ["some-admin"]
       orgs: ["some-org"]
-      spaceguids: ["some-guid"]
-      space_managers: ["some-org:some-space"]
-  - name: viewer
-    cf:
-      spaces: ["some-org:some-space"]
-      spaces_all: ["some-org:some-other-space"]
-      space_guids: ["some-guid"]
-      space_auditors: ["some-org:some-space"]
+
