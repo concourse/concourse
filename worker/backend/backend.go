@@ -136,12 +136,12 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 // Errors:
 // * TODO.
 func (b *Backend) Destroy(handle string) error {
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
-	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
-
 	if handle == "" {
 		return InputValidationError{Message: "handle is empty"}
 	}
+
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	container, err := b.client.GetContainer(ctxWithTimeout, handle)
 	if err != nil {
@@ -153,13 +153,11 @@ func (b *Backend) Destroy(handle string) error {
 		if !errdefs.IsNotFound(err) {
 			return ClientError { InnerError: err }
 		}
-
-		return b.client.Destroy(ctxWithTimeout, handle)
-	}
-
-	err = killTasks(ctxWithTimeout, task)
-	if err != nil {
-		return ClientError{ InnerError: err }
+	} else {
+		err = killTasks(ctxWithTimeout, task)
+		if err != nil {
+			return ClientError{ InnerError: err }
+		}
 	}
 
 	err = b.client.Destroy(ctxWithTimeout, handle)
@@ -183,19 +181,23 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 	}
 
 	select {
-	case <-exitStatus:
-		_, err = task.Delete(ctx)
-		return err
+	case status := <-exitStatus:
+		if status.Error() != nil {
+			return status.Error()
+		}
 	case <-ctx.Done():
 		err = task.Kill(ctx, syscall.SIGKILL)
 		if err != nil {
 			return err
 		}
-		_, err = task.Delete(ctx)
 	}
 
+	result, err := task.Delete(ctx)
 	if err != nil {
 		return err
+	}
+	if result != nil && result.Error() != nil {
+		return result.Error()
 	}
 
 	return nil
@@ -256,7 +258,8 @@ func (b *Backend) Lookup(handle string) (garden.Container, error) {
 	if err != nil {
 		return nil, ClientError{ InnerError: err }
 	}
-
+	// a gap between garden.Container and containerd.Container still exists.
+	// It is going to be solved when we finish the code in backend/container.go
 	return &Container{}, nil
 }
 
