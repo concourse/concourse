@@ -184,47 +184,5 @@ var _ = Describe("Vault", func() {
 				})
 			})
 		})
-
-		Context("skipTeamPath", func() {
-			BeforeEach(func() {
-
-				msr = &MockSecretReader{&[]MockSecret{
-					{
-						path: "/concourse/team/foo",
-						secret: &vaultapi.Secret{
-							Data: map[string]interface{}{"value": "team-bar"},
-						},
-					},
-					{
-						path: "/concourse/team/pipeline/foo",
-						secret: &vaultapi.Secret{
-							Data: map[string]interface{}{"value": "pipeline-bar"},
-						},
-					},
-					{
-						path: "/concourse/shared/foo",
-						secret: &vaultapi.Secret{
-							Data: map[string]interface{}{"value": "shared-bar"},
-						},
-					},
-				}}
-
-				v = &vault.Vault{
-					SecretReader: msr,
-					Prefix:       "/concourse",
-					SharedPath:   "shared",
-					SkipTeamPath: true,
-				}
-
-				variables = creds.NewVariables(v, "team", "pipeline", false)
-			})
-
-			It("should get secret from shared", func() {
-				value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
-				Expect(value).To(BeEquivalentTo("shared-bar"))
-				Expect(found).To(BeTrue())
-				Expect(err).To(BeNil())
-			})
-		})
 	})
 })
