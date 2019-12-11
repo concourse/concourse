@@ -98,6 +98,7 @@ func (b *Backend) Capacity() (capacity garden.Capacity, err error) { return }
 func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Container, err error) {
 	var oci *specs.Spec
 	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	oci, err = bespec.OciSpec(gdnSpec)
 	if err != nil {
@@ -105,7 +106,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 		return
 	}
 
-	cont, err := b.client.NewContainer(ctx,
+	cont, err := b.client.NewContainer(ctxWithTimeout,
 		gdnSpec.Handle, gdnSpec.Properties, oci,
 	)
 	if err != nil {
@@ -113,7 +114,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 		return
 	}
 
-	_, err = cont.NewTask(ctx, cio.NullIO)
+	_, err = cont.NewTask(ctxWithTimeout, cio.NullIO)
 	if err != nil {
 		err = ClientError{ InnerError: fmt.Errorf("failed to create a task in container: %w", err) }
 		return
@@ -136,33 +137,32 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 // * TODO.
 func (b *Backend) Destroy(handle string) error {
 	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
-	const maxTaskKillWaitTime = 10 * time.Second
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	if handle == "" {
 		return InputValidationError{Message: "handle is empty"}
 	}
 
-	container, err := b.client.GetContainer(ctx, handle)
+	container, err := b.client.GetContainer(ctxWithTimeout, handle)
 	if err != nil {
 		return ClientError{ InnerError: err }
 	}
 
-	task, err := container.Task(ctx, nil)
+	task, err := container.Task(ctxWithTimeout, nil)
 	if err != nil {
 		if !errdefs.IsNotFound(err) {
 			return ClientError { InnerError: err }
 		}
 
-		return b.client.Destroy(ctx, handle)
+		return b.client.Destroy(ctxWithTimeout, handle)
 	}
 
-	timeDelimitedContext, _ := context.WithTimeout(ctx, b.clientTimeout)
-	err = killTasks(timeDelimitedContext, task)
+	err = killTasks(ctxWithTimeout, task)
 	if err != nil {
 		return ClientError{ InnerError: err }
 	}
 
-	err = b.client.Destroy(ctx, handle)
+	err = b.client.Destroy(ctxWithTimeout, handle)
 	if err != nil {
 		return ClientError{ InnerError: err }
 	}
@@ -207,6 +207,7 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 // * None.
 func (b *Backend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
 	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	filters, err := propertiesToFilterList(properties)
 	if err != nil {
@@ -214,7 +215,7 @@ func (b *Backend) Containers(properties garden.Properties) (containers []garden.
 		return
 	}
 
-	res, err := b.client.Containers(ctx, filters...)
+	res, err := b.client.Containers(ctxWithTimeout, filters...)
 	if err != nil {
 		err = ClientError{ InnerError: err }
 		return
@@ -245,12 +246,13 @@ func (b *Backend) BulkMetrics(handles []string) (metrics map[string]garden.Conta
 // * Container not found.
 func (b *Backend) Lookup(handle string) (garden.Container, error) {
 	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	if handle == "" {
 		return nil, InputValidationError{Message: "handle is empty"}
 	}
 
-	_, err := b.client.GetContainer(ctx, handle)
+	_, err := b.client.GetContainer(ctxWithTimeout, handle)
 	if err != nil {
 		return nil, ClientError{ InnerError: err }
 	}
