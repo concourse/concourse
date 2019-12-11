@@ -454,12 +454,12 @@ var _ = Describe("ATC Handler Jobs", func() {
 		})
 	})
 
-	Describe("RequestScheduleJob", func() {
+	Describe("ScheduleJob", func() {
 		var (
 			expectedStatus int
 			pipelineName   = "banana"
 			jobName        = "disjob"
-			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/jobs/%s/request_schedule", pipelineName, jobName)
+			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/jobs/%s/schedule_job", pipelineName, jobName)
 		)
 
 		JustBeforeEach(func() {
@@ -476,9 +476,9 @@ var _ = Describe("ATC Handler Jobs", func() {
 				expectedStatus = http.StatusOK
 			})
 
-			It("calls the request schedule job and returns no error", func() {
+			It("calls the schedule job and returns no error", func() {
 				Expect(func() {
-					requested, err := team.RequestScheduleJob(pipelineName, jobName)
+					requested, err := team.ScheduleJob(pipelineName, jobName)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(requested).To(BeTrue())
 				}).To(Change(func() int {
@@ -487,14 +487,14 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 		})
 
-		Context("when the request schedule job call fails", func() {
+		Context("when the schedule job call fails", func() {
 			BeforeEach(func() {
 				expectedStatus = http.StatusInternalServerError
 			})
 
-			It("calls the request schedule job and returns an error", func() {
+			It("calls the schedule job and returns an error", func() {
 				Expect(func() {
-					requested, err := team.RequestScheduleJob(pipelineName, jobName)
+					requested, err := team.ScheduleJob(pipelineName, jobName)
 					Expect(err).To(HaveOccurred())
 					Expect(requested).To(BeFalse())
 				}).To(Change(func() int {
@@ -508,9 +508,9 @@ var _ = Describe("ATC Handler Jobs", func() {
 				expectedStatus = http.StatusNotFound
 			})
 
-			It("calls the request schedule job and returns an error", func() {
+			It("calls the schedule job and returns an error", func() {
 				Expect(func() {
-					requested, err := team.RequestScheduleJob(pipelineName, jobName)
+					requested, err := team.ScheduleJob(pipelineName, jobName)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(requested).To(BeFalse())
 				}).To(Change(func() int {

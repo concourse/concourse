@@ -7,9 +7,9 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (s *Server) RequestScheduleJob(pipeline db.Pipeline) http.Handler {
+func (s *Server) ScheduleJob(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := s.logger.Session("request-schedule-job")
+		logger := s.logger.Session("schedule-job")
 		jobName := rata.Param(r, "job_name")
 
 		job, found, err := pipeline.Job(jobName)
@@ -26,7 +26,7 @@ func (s *Server) RequestScheduleJob(pipeline db.Pipeline) http.Handler {
 
 		err = job.RequestSchedule()
 		if err != nil {
-			logger.Error("failed-to-request-schedule-job", err)
+			logger.Error("failed-to-schedule-job", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

@@ -127,7 +127,7 @@ func (team *team) UnpauseJob(pipelineName string, jobName string) (bool, error) 
 	}
 }
 
-func (team *team) RequestScheduleJob(pipelineName string, jobName string) (bool, error) {
+func (team *team) ScheduleJob(pipelineName string, jobName string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
@@ -135,7 +135,7 @@ func (team *team) RequestScheduleJob(pipelineName string, jobName string) (bool,
 	}
 
 	err := team.connection.Send(internal.Request{
-		RequestName: atc.RequestScheduleJob,
+		RequestName: atc.ScheduleJob,
 		Params:      params,
 	}, &internal.Response{})
 

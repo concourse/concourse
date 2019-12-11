@@ -38,10 +38,10 @@ type FlyCommand struct {
 	Containers ContainersCommand `command:"containers" alias:"cs" description:"Print the active containers"`
 	Hijack     HijackCommand     `command:"hijack"     alias:"intercept" alias:"i" description:"Execute a command in a container"`
 
-	Jobs               JobsCommand               `command:"jobs"      alias:"js" description:"List the jobs in the pipelines"`
-	PauseJob           PauseJobCommand           `command:"pause-job" alias:"pj" description:"Pause a job"`
-	UnpauseJob         UnpauseJobCommand         `command:"unpause-job" alias:"uj" description:"Unpause a job"`
-	RequestScheduleJob RequestScheduleJobCommand `command:"request-schedule-job" alias:"rsj" description:"Request schedule for a job"`
+	Jobs        JobsCommand        `command:"jobs"      alias:"js" description:"List the jobs in the pipelines"`
+	PauseJob    PauseJobCommand    `command:"pause-job" alias:"pj" description:"Pause a job"`
+	UnpauseJob  UnpauseJobCommand  `command:"unpause-job" alias:"uj" description:"Unpause a job"`
+	ScheduleJob ScheduleJobCommand `command:"schedule-job" alias:"sj" description:"Schedule a job"`
 
 	Pipelines        PipelinesCommand        `command:"pipelines"           alias:"ps"   description:"List the configured pipelines"`
 	DestroyPipeline  DestroyPipelineCommand  `command:"destroy-pipeline"    alias:"dp"   description:"Destroy a pipeline"`
