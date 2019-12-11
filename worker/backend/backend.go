@@ -75,10 +75,8 @@ func (b *Backend) Capacity() (capacity garden.Capacity, err error) { return }
 // Create creates a new container.
 //
 func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Container, err error) {
-	var (
-		oci *specs.Spec
-		ctx = namespaces.WithNamespace(context.Background(), b.namespace)
-	)
+	var oci *specs.Spec
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 
 	oci, err = bespec.OciSpec(gdnSpec)
 	if err != nil {
@@ -116,7 +114,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 // Errors:
 // * TODO.
 func (b *Backend) Destroy(handle string) error {
-	var ctx = namespaces.WithNamespace(context.Background(), b.namespace)
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 	const maxTaskKillWaitTime = 10 * time.Second
 
 	if handle == "" {
@@ -183,7 +181,7 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 // Errors:
 // * None.
 func (b *Backend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
-	var ctx = namespaces.WithNamespace(context.Background(), b.namespace)
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 
 	filters, err := propertiesToFilterList(properties)
 	if err != nil {
@@ -219,7 +217,7 @@ func (b *Backend) BulkMetrics(handles []string) (metrics map[string]garden.Conta
 // Errors:
 // * Container not found.
 func (b *Backend) Lookup(handle string) (garden.Container, error) {
-	var ctx = namespaces.WithNamespace(context.Background(), b.namespace)
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 
 	if handle == "" {
 		return nil, InputValidationError{}
