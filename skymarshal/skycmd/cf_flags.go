@@ -72,10 +72,10 @@ type CFTeamFlags struct {
 	Users            []string `long:"user" description:"A whitelisted CloudFoundry user" value-name:"USERNAME"`
 	Orgs             []string `long:"org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME"`
 	Spaces           []string `long:"space" description:"(Deprecated) A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME"`
-	SpacesAll        []string `long:"space-with-any-role" description:"A whitelisted CloudFoundry space for users with any role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_any_role"`
-	SpacesDeveloper  []string `long:"space-with-developer-role" description:"A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_developer_role"`
-	SpacesAuditor    []string `long:"space-with-auditor-role" description:"A whitelisted CloudFoundry space for users with the 'auditor' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_auditor_role"`
-	SpacesManager    []string `long:"space-with-manager-role" description:"A whitelisted CloudFoundry space for users with the 'manager' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_manager_role"`
+	SpacesAll        []string `long:"space-all" description:"A whitelisted CloudFoundry space for users with any role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_all"`
+	SpaceDevelopers  []string `long:"space-developer" description:"A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"space_developers"`
+	SpaceAuditors    []string `long:"space-auditor" description:"A whitelisted CloudFoundry space for users with the 'auditor' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"space_auditors"`
+	SpaceManagers    []string `long:"space-manager" description:"A whitelisted CloudFoundry space for users with the 'manager' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"space_managers"`
 	SpaceGuids       []string `long:"space-guid" description:"(Deprecated) A whitelisted CloudFoundry space guid" value-name:"SPACE_GUID" mapstructure:"space_guids"`
 	SpaceGuidsLegacy []string `mapstructure:"spaceguids"`
 }
@@ -91,13 +91,13 @@ func (flag *CFTeamFlags) GetGroups() []string {
 	for _, space := range flag.Spaces {
 		groups = append(groups, fmt.Sprintf("%s:developer", space))
 	}
-	for _, space := range flag.SpacesDeveloper {
+	for _, space := range flag.SpaceDevelopers {
 		groups = append(groups, fmt.Sprintf("%s:developer", space))
 	}
-	for _, space := range flag.SpacesAuditor {
+	for _, space := range flag.SpaceAuditors {
 		groups = append(groups, fmt.Sprintf("%s:auditor", space))
 	}
-	for _, space := range flag.SpacesManager {
+	for _, space := range flag.SpaceManagers {
 		groups = append(groups, fmt.Sprintf("%s:manager", space))
 	}
 	groups = append(groups, flag.SpaceGuids...)
