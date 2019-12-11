@@ -135,9 +135,9 @@ func (cache *ResourceCacheDescriptor) findWithResourceConfig(tx Tx, resourceConf
 		From("resource_caches").
 		Where(sq.Eq{
 			"resource_config_id": resourceConfig.ID(),
-			"version":            cache.version(),
 			"params_hash":        paramsHash(cache.Params),
 		}).
+		Where(sq.Expr("version_md5 = md5(?)", cache.version())).
 		Suffix("FOR SHARE").
 		RunWith(tx).
 		QueryRow().
