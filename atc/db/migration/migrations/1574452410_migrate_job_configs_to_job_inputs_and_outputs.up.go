@@ -91,36 +91,14 @@ func (self *migrations) Up_1574452410() error {
 		for _, jobConfig := range jobConfigs {
 			for _, plan := range jobConfig.Plan {
 				if plan.Get != "" {
-					if len(plan.Passed) != 0 {
-						for _, passedJob := range plan.Passed {
-							var resourceID int
-							if plan.Resource != "" {
-								resourceID = resourceNameToID[plan.Resource]
-							} else {
-								resourceID = resourceNameToID[plan.Get]
-							}
-
-							_, err := tx.Exec(`
-								INSERT INTO job_pipes (job_id, resource_id, passed_job_id)
-								VALUES ($1, $2, $3)`, jobNameToID[jobConfig.Name], resourceID, jobNameToID[passedJob])
-							if err != nil {
-								return err
-							}
-						}
-					} else {
-						var resourceID int
-						if plan.Resource != "" {
-							resourceID = resourceNameToID[plan.Resource]
-						} else {
-							resourceID = resourceNameToID[plan.Get]
-						}
-
-						_, err := tx.Exec(`
-								INSERT INTO job_pipes (job_id, resource_id)
-								VALUES ($1, $2)`, jobNameToID[jobConfig.Name], resourceID)
-						if err != nil {
-							return err
-						}
+					err = insertJobInput(tx, plan, jobConfig.Name, resourceNameToID, jobNameToID)
+					if err != nil {
+						return err
+					}
+				} else if plan.Put != "" {
+					err = insertJobOutput(tx, plan, jobConfig.Name, resourceNameToID, jobNameToID)
+					if err != nil {
+						return err
 					}
 				}
 			}
@@ -130,3 +108,50 @@ func (self *migrations) Up_1574452410() error {
 	return tx.Commit()
 }
 
+func insertJobInput(tx *sql.Tx, plan atc.PlanConfig, jobName string, resourceNameToID map[string]int, jobNameToID map[string]int) error {
+	if len(plan.Passed) != 0 {
+		for _, passedJob := range plan.Passed {
+			var resourceID int
+			if plan.Resource != "" {
+				resourceID = resourceNameToID[plan.Resource]
+			} else {
+				resourceID = resourceNameToID[plan.Get]
+			}
+
+			_, err := tx.Exec("INSERT INTO job_inputs COLUMNS (job_id, resource_id, passed_job_id) VALUES ($1, $2, $3)", jobNameToID[jobName], resourceID, jobNameToID[passedJob])
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		var resourceID int
+		if plan.Resource != "" {
+			resourceID = resourceNameToID[plan.Resource]
+		} else {
+			resourceID = resourceNameToID[plan.Get]
+		}
+
+		_, err := tx.Exec("INSERT INTO job_inputs COLUMNS (job_id, resource_id) VALUES ($1, $2)", jobNameToID[jobName], resourceID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func insertJobOutput(tx *sql.Tx, plan atc.PlanConfig, jobName string, resourceNameToID map[string]int, jobNameToID map[string]int) error {
+	var resourceID int
+	if plan.Resource != "" {
+		resourceID = resourceNameToID[plan.Resource]
+	} else {
+		resourceID = resourceNameToID[plan.Get]
+	}
+
+	_, err := tx.Exec("INSERT INTO job_outputs COLUMNS (job_id, resource_id) VALUES ($1, $2)", jobNameToID[jobName], resourceID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

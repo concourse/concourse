@@ -2593,11 +2593,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			jobs, err := pipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			jobConfigs, err := jobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
 				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
-				Jobs:          jobs.Configs(),
+				Jobs:          jobConfigs,
 			}, config)
 
 			otherPipeline, found, err := team.Pipeline(otherPipelineName)
@@ -2611,11 +2613,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			otherJobs, err := otherPipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			otherJobConfigs, err := otherJobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
 				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
-				Jobs:          otherJobs.Configs(),
+				Jobs:          otherJobConfigs,
 			}, otherConfig)
 
 		})
@@ -2638,11 +2642,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			jobs, err := pipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			jobConfigs, err := jobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
 				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
-				Jobs:          jobs.Configs(),
+				Jobs:          jobConfigs,
 			}, config)
 
 			otherResourceTypes, err := otherPipeline.ResourceTypes()
@@ -2651,11 +2657,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			otherJobs, err := otherPipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			otherJobConfigs, err := otherJobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
 				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
-				Jobs:          otherJobs.Configs(),
+				Jobs:          otherJobConfigs,
 			}, otherConfig)
 
 			By("returning the saved groups")
@@ -2723,11 +2731,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			jobs, err = pipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			jobConfigs, err = jobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
 				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
-				Jobs:          jobs.Configs(),
+				Jobs:          jobConfigs,
 			}, updatedConfig)
 
 			otherResourceTypes, err = otherPipeline.ResourceTypes()
@@ -2736,11 +2746,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			otherJobs, err = otherPipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			otherJobConfigs, err = jobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
 				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
-				Jobs:          otherJobs.Configs(),
+				Jobs:          otherJobConfigs,
 			}, updatedConfig)
 
 			By("returning the saved groups")
@@ -2817,7 +2829,7 @@ var _ = Describe("Team", func() {
 	Describe("FindCheckContainers", func() {
 		var (
 			fakeSecretManager *credsfakes.FakeSecrets
-			logger lager.Logger
+			logger            lager.Logger
 		)
 
 		expiries := db.ContainerOwnerExpiries{

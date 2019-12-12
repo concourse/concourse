@@ -317,7 +317,7 @@ func incrementCheckOrder(tx Tx, rcsID int, version string) error {
 // order for the updates, which can lead to deadlocking.
 func requestScheduleForJobsUsingResourceConfigScope(tx Tx, rcsID int) error {
 	rows, err := psql.Select("DISTINCT j.job_id").
-		From("job_pipes j").
+		From("job_inputs j").
 		Join("resources r ON r.id = j.resource_id").
 		Where(sq.Eq{
 			"r.resource_config_scope_id": rcsID,

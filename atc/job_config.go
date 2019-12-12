@@ -51,18 +51,6 @@ func (config JobConfig) MaxInFlight() int {
 	return 0
 }
 
-func (config JobConfig) GetSerialGroups() []string {
-	if len(config.SerialGroups) > 0 {
-		return config.SerialGroups
-	}
-
-	if config.Serial || config.RawMaxInFlight > 0 {
-		return []string{config.Name}
-	}
-
-	return []string{}
-}
-
 func (config JobConfig) Plans() []PlanConfig {
 	plan := collectPlans(PlanConfig{
 		Do:      &config.Plan,

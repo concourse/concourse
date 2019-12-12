@@ -23,7 +23,53 @@ var _ = Describe("Job Factory", func() {
 
 			publicPipeline, _, err = otherTeam.SavePipeline("public-pipeline", atc.Config{
 				Jobs: atc.JobConfigs{
-					{Name: "public-pipeline-job"},
+					{
+						Name: "public-pipeline-job-1",
+						Plan: atc.PlanSequence{
+							{
+								Get: "some-resource",
+							},
+							{
+								Get: "some-other-resource",
+							},
+						},
+					},
+					{
+						Name: "public-pipeline-job-2",
+						Plan: atc.PlanSequence{
+							{
+								Get:    "some-resource",
+								Passed: []string{"public-pipeline-job-1"},
+							},
+							{
+								Get:    "some-other-resource",
+								Passed: []string{"public-pipeline-job-1"},
+							},
+							{
+								Get:      "resource",
+								Resource: "some-resource",
+							},
+						},
+					},
+					{
+						Name: "public-pipeline-job-3",
+						Plan: atc.PlanSequence{
+							{
+								Get:    "some-resource",
+								Passed: []string{"public-pipeline-job-1", "public-pipeline-job-2"},
+							},
+						},
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+					},
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+					},
 				},
 			}, db.ConfigVersion(0), false)
 			Expect(err).ToNot(HaveOccurred())
@@ -31,7 +77,20 @@ var _ = Describe("Job Factory", func() {
 
 			_, _, err = otherTeam.SavePipeline("private-pipeline", atc.Config{
 				Jobs: atc.JobConfigs{
-					{Name: "private-pipeline-job"},
+					{
+						Name: "private-pipeline-job",
+						Plan: atc.PlanSequence{
+							{
+								Get: "some-resource",
+							},
+						},
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+					},
 				},
 			}, db.ConfigVersion(0), false)
 			Expect(err).ToNot(HaveOccurred())
@@ -42,9 +101,46 @@ var _ = Describe("Job Factory", func() {
 				visibleJobs, err := jobFactory.VisibleJobs([]string{"default-team"})
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(len(visibleJobs)).To(Equal(2))
-				Expect(visibleJobs[0].Job.Name()).To(Equal("some-job"))
-				Expect(visibleJobs[1].Job.Name()).To(Equal("public-pipeline-job"))
+				Expect(len(visibleJobs)).To(Equal(4))
+				Expect(visibleJobs[0].Name).To(Equal("some-job"))
+				Expect(visibleJobs[1].Name).To(Equal("public-pipeline-job-1"))
+				Expect(visibleJobs[2].Name).To(Equal("public-pipeline-job-2"))
+				Expect(visibleJobs[3].Name).To(Equal("public-pipeline-job-3"))
+
+				Expect(visibleJobs[0].Inputs).To(BeNil())
+				Expect(visibleJobs[1].Inputs).To(ConsistOf(
+					db.JobInput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+					},
+					db.JobInput{
+						Name:     "some-other-resource",
+						Resource: "some-other-resource",
+					},
+				))
+				Expect(visibleJobs[2].Inputs).To(ConsistOf(
+					db.JobInput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+						Passed:   []string{"public-pipeline-job-1"},
+					},
+					db.JobInput{
+						Name:     "some-other-resource",
+						Resource: "some-other-resource",
+						Passed:   []string{"public-pipeline-job-1"},
+					},
+					db.JobInput{
+						Name:     "resource",
+						Resource: "some-resource",
+					},
+				))
+				Expect(visibleJobs[3].Inputs).To(ConsistOf(
+					db.JobInput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+						Passed:   []string{"public-pipeline-job-1", "public-pipeline-job-2"},
+					},
+				))
 			})
 
 			It("returns next build, latest completed build, and transition build for each job", func() {
@@ -57,6 +153,10 @@ var _ = Describe("Job Factory", func() {
 
 				err = transitionBuild.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
+
+				found, err = transitionBuild.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				finishedBuild, err := job.CreateBuild()
 				Expect(err).ToNot(HaveOccurred())
@@ -74,22 +174,88 @@ var _ = Describe("Job Factory", func() {
 				visibleJobs, err := jobFactory.VisibleJobs([]string{"default-team"})
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(visibleJobs[0].Job.Name()).To(Equal("some-job"))
-				Expect(visibleJobs[0].NextBuild.ID()).To(Equal(nextBuild.ID()))
-				Expect(visibleJobs[0].FinishedBuild.ID()).To(Equal(finishedBuild.ID()))
-				Expect(visibleJobs[0].TransitionBuild.ID()).To(Equal(transitionBuild.ID()))
+				Expect(visibleJobs[0].Name).To(Equal("some-job"))
+				Expect(visibleJobs[0].NextBuild.ID).To(Equal(nextBuild.ID()))
+				Expect(visibleJobs[0].NextBuild.Name).To(Equal(nextBuild.Name()))
+				Expect(visibleJobs[0].NextBuild.JobName).To(Equal(nextBuild.JobName()))
+				Expect(visibleJobs[0].NextBuild.PipelineName).To(Equal(nextBuild.PipelineName()))
+				Expect(visibleJobs[0].NextBuild.TeamName).To(Equal(nextBuild.TeamName()))
+				Expect(visibleJobs[0].NextBuild.Status).To(Equal(nextBuild.Status()))
+				Expect(visibleJobs[0].NextBuild.StartTime).To(Equal(nextBuild.StartTime()))
+				Expect(visibleJobs[0].NextBuild.EndTime).To(Equal(nextBuild.EndTime()))
+
+				Expect(visibleJobs[0].FinishedBuild.ID).To(Equal(finishedBuild.ID()))
+				Expect(visibleJobs[0].FinishedBuild.Name).To(Equal(finishedBuild.Name()))
+				Expect(visibleJobs[0].FinishedBuild.JobName).To(Equal(finishedBuild.JobName()))
+				Expect(visibleJobs[0].FinishedBuild.PipelineName).To(Equal(finishedBuild.PipelineName()))
+				Expect(visibleJobs[0].FinishedBuild.TeamName).To(Equal(finishedBuild.TeamName()))
+				Expect(visibleJobs[0].FinishedBuild.Status).To(Equal(finishedBuild.Status()))
+				Expect(visibleJobs[0].FinishedBuild.StartTime).To(Equal(finishedBuild.StartTime()))
+				Expect(visibleJobs[0].FinishedBuild.EndTime).To(Equal(finishedBuild.EndTime()))
+
+				Expect(visibleJobs[0].TransitionBuild.ID).To(Equal(transitionBuild.ID()))
+				Expect(visibleJobs[0].TransitionBuild.Name).To(Equal(transitionBuild.Name()))
+				Expect(visibleJobs[0].TransitionBuild.JobName).To(Equal(transitionBuild.JobName()))
+				Expect(visibleJobs[0].TransitionBuild.PipelineName).To(Equal(transitionBuild.PipelineName()))
+				Expect(visibleJobs[0].TransitionBuild.TeamName).To(Equal(transitionBuild.TeamName()))
+				Expect(visibleJobs[0].TransitionBuild.Status).To(Equal(transitionBuild.Status()))
+				Expect(visibleJobs[0].TransitionBuild.StartTime).To(Equal(transitionBuild.StartTime()))
+				Expect(visibleJobs[0].TransitionBuild.EndTime).To(Equal(transitionBuild.EndTime()))
 			})
 		})
 
-		Describe("AllActiveJobsForDashboard", func() {
+		Describe("AllActiveJobs", func() {
 			It("return all private and public pipelines", func() {
 				allJobs, err := jobFactory.AllActiveJobs()
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(len(allJobs)).To(Equal(3))
-				Expect(allJobs[0].Job.Name()).To(Equal("some-job"))
-				Expect(allJobs[1].Job.Name()).To(Equal("public-pipeline-job"))
-				Expect(allJobs[2].Job.Name()).To(Equal("private-pipeline-job"))
+				Expect(len(allJobs)).To(Equal(5))
+				Expect(allJobs[0].Name).To(Equal("some-job"))
+				Expect(allJobs[1].Name).To(Equal("public-pipeline-job-1"))
+				Expect(allJobs[2].Name).To(Equal("public-pipeline-job-2"))
+				Expect(allJobs[3].Name).To(Equal("public-pipeline-job-3"))
+				Expect(allJobs[4].Name).To(Equal("private-pipeline-job"))
+
+				Expect(allJobs[0].Inputs).To(BeNil())
+				Expect(allJobs[1].Inputs).To(ConsistOf(
+					db.JobInput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+					},
+					db.JobInput{
+						Name:     "some-other-resource",
+						Resource: "some-other-resource",
+					},
+				))
+				Expect(allJobs[2].Inputs).To(ConsistOf(
+					db.JobInput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+						Passed:   []string{"public-pipeline-job-1"},
+					},
+					db.JobInput{
+						Name:     "some-other-resource",
+						Resource: "some-other-resource",
+						Passed:   []string{"public-pipeline-job-1"},
+					},
+					db.JobInput{
+						Name:     "resource",
+						Resource: "some-resource",
+					},
+				))
+				Expect(allJobs[3].Inputs).To(ConsistOf(
+					db.JobInput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+						Passed:   []string{"public-pipeline-job-1", "public-pipeline-job-2"},
+					},
+				))
+				Expect(allJobs[4].Inputs).To(ConsistOf(
+					db.JobInput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+					},
+				))
 			})
 		})
 	})

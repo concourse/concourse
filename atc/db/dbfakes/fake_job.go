@@ -86,15 +86,17 @@ type FakeJob struct {
 		result1 int64
 		result2 error
 	}
-	ConfigStub        func() atc.JobConfig
+	ConfigStub        func() (atc.JobConfig, error)
 	configMutex       sync.RWMutex
 	configArgsForCall []struct {
 	}
 	configReturns struct {
 		result1 atc.JobConfig
+		result2 error
 	}
 	configReturnsOnCall map[int]struct {
 		result1 atc.JobConfig
+		result2 error
 	}
 	CreateBuildStub        func() (db.Build, error)
 	createBuildMutex       sync.RWMutex
@@ -749,7 +751,7 @@ func (fake *FakeJob) ClearTaskCacheReturnsOnCall(i int, result1 int64, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeJob) Config() atc.JobConfig {
+func (fake *FakeJob) Config() (atc.JobConfig, error) {
 	fake.configMutex.Lock()
 	ret, specificReturn := fake.configReturnsOnCall[len(fake.configArgsForCall)]
 	fake.configArgsForCall = append(fake.configArgsForCall, struct {
@@ -760,10 +762,10 @@ func (fake *FakeJob) Config() atc.JobConfig {
 		return fake.ConfigStub()
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.configReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeJob) ConfigCallCount() int {
@@ -772,33 +774,36 @@ func (fake *FakeJob) ConfigCallCount() int {
 	return len(fake.configArgsForCall)
 }
 
-func (fake *FakeJob) ConfigCalls(stub func() atc.JobConfig) {
+func (fake *FakeJob) ConfigCalls(stub func() (atc.JobConfig, error)) {
 	fake.configMutex.Lock()
 	defer fake.configMutex.Unlock()
 	fake.ConfigStub = stub
 }
 
-func (fake *FakeJob) ConfigReturns(result1 atc.JobConfig) {
+func (fake *FakeJob) ConfigReturns(result1 atc.JobConfig, result2 error) {
 	fake.configMutex.Lock()
 	defer fake.configMutex.Unlock()
 	fake.ConfigStub = nil
 	fake.configReturns = struct {
 		result1 atc.JobConfig
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeJob) ConfigReturnsOnCall(i int, result1 atc.JobConfig) {
+func (fake *FakeJob) ConfigReturnsOnCall(i int, result1 atc.JobConfig, result2 error) {
 	fake.configMutex.Lock()
 	defer fake.configMutex.Unlock()
 	fake.ConfigStub = nil
 	if fake.configReturnsOnCall == nil {
 		fake.configReturnsOnCall = make(map[int]struct {
 			result1 atc.JobConfig
+			result2 error
 		})
 	}
 	fake.configReturnsOnCall[i] = struct {
 		result1 atc.JobConfig
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeJob) CreateBuild() (db.Build, error) {

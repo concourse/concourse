@@ -517,8 +517,6 @@ func (p *pipeline) Jobs() (Jobs, error) {
 }
 
 func (p *pipeline) Dashboard() (Dashboard, error) {
-	dashboard := Dashboard{}
-
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -526,29 +524,9 @@ func (p *pipeline) Dashboard() (Dashboard, error) {
 
 	defer Rollback(tx)
 
-	rows, err := jobsQuery.
-		Where(sq.Eq{
-			"pipeline_id": p.id,
-			"active":      true,
-		}).
-		OrderBy("j.id ASC").
-		RunWith(tx).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	jobs, err := scanJobs(p.conn, p.lockFactory, rows)
-	if err != nil {
-		return nil, err
-	}
-
-	nextBuilds, err := p.getBuildsFrom(tx, "next_build_id")
-	if err != nil {
-		return nil, err
-	}
-
-	finishedBuilds, err := p.getBuildsFrom(tx, "latest_completed_build_id")
+	dashboard, err := buildDashboard(tx, sq.Eq{
+		"pipeline_id": p.id,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -556,22 +534,6 @@ func (p *pipeline) Dashboard() (Dashboard, error) {
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
-	}
-
-	for _, job := range jobs {
-		dashboardJob := DashboardJob{
-			Job: job,
-		}
-
-		if nextBuild, found := nextBuilds[job.Name()]; found {
-			dashboardJob.NextBuild = nextBuild
-		}
-
-		if finishedBuild, found := finishedBuilds[job.Name()]; found {
-			dashboardJob.FinishedBuild = finishedBuild
-		}
-
-		dashboard = append(dashboard, dashboardJob)
 	}
 
 	return dashboard, nil

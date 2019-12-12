@@ -60,7 +60,7 @@ var _ = Describe("Migrate existing job configs into job pipes", func() {
 
 			db = postgresRunner.OpenDBAtVersion(postMigrationVersion)
 
-			rows, err := db.Query(`SELECT job_id, resource_id, passed_job_id FROM job_pipes`)
+			rows, err := db.Query(`SELECT job_id, resource_id, passed_job_id FROM job_inputs`)
 			Expect(err).NotTo(HaveOccurred())
 
 			type jobPipe struct {
@@ -168,7 +168,7 @@ var _ = Describe("Migrate existing job configs into job pipes", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = db.Exec(`
-				INSERT INTO job_pipes(job_id, resource_id, passed_job_id) VALUES
+				INSERT INTO job_inputs(job_id, resource_id, passed_job_id) VALUES
 				(1, 1, NULL),
 				(2, 1, 1),
 				(2, 2, NULL),
@@ -184,7 +184,7 @@ var _ = Describe("Migrate existing job configs into job pipes", func() {
 			db = postgresRunner.OpenDBAtVersion(preMigrationVersion)
 
 			var rowNumber int
-			err = db.QueryRow(`SELECT COUNT(*) FROM job_pipes`).Scan(&rowNumber)
+			err = db.QueryRow(`SELECT COUNT(*) FROM job_inputs`).Scan(&rowNumber)
 			Expect(err).NotTo(HaveOccurred())
 
 			_ = db.Close()

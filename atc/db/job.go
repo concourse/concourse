@@ -33,10 +33,11 @@ type Job interface {
 	FirstLoggedBuildID() int
 	TeamID() int
 	TeamName() string
-	Config() atc.JobConfig
 	Tags() []string
 	Public() bool
 	ScheduleRequestedTime() time.Time
+
+	Config() (atc.JobConfig, error)
 
 	Reload() (bool, error)
 
@@ -70,7 +71,7 @@ type Job interface {
 	HasNewInputs() bool
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested").
+var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.public", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested", "j.max_in_flight").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -91,13 +92,18 @@ type job struct {
 	id                    int
 	name                  string
 	paused                bool
+	public                bool
 	firstLoggedBuildID    int
 	teamID                int
 	teamName              string
-	config                atc.JobConfig
 	tags                  []string
 	hasNewInputs          bool
 	scheduleRequestedTime time.Time
+	maxInFlight           int
+
+	config    *atc.JobConfig
+	rawConfig []byte
+	nonce     string
 }
 
 func newEmptyJob(conn Conn, lockFactory lock.LockFactory) *job {
@@ -128,27 +134,53 @@ func (j *job) SetHasNewInputs(hasNewInputs bool) error {
 
 type Jobs []Job
 
-func (jobs Jobs) Configs() atc.JobConfigs {
+func (jobs Jobs) Configs() (atc.JobConfigs, error) {
 	var configs atc.JobConfigs
 
 	for _, j := range jobs {
-		configs = append(configs, j.Config())
+		config, err := j.Config()
+		if err != nil {
+			return nil, err
+		}
+
+		configs = append(configs, config)
 	}
 
-	return configs
+	return configs, nil
 }
 
 func (j *job) ID() int                          { return j.id }
 func (j *job) Name() string                     { return j.name }
 func (j *job) Paused() bool                     { return j.paused }
+func (j *job) Public() bool                     { return j.public }
 func (j *job) FirstLoggedBuildID() int          { return j.firstLoggedBuildID }
 func (j *job) TeamID() int                      { return j.teamID }
 func (j *job) TeamName() string                 { return j.teamName }
-func (j *job) Config() atc.JobConfig            { return j.config }
 func (j *job) Tags() []string                   { return j.tags }
-func (j *job) Public() bool                     { return j.Config().Public }
 func (j *job) HasNewInputs() bool               { return j.hasNewInputs }
 func (j *job) ScheduleRequestedTime() time.Time { return j.scheduleRequestedTime }
+
+func (j *job) Config() (atc.JobConfig, error) {
+	if j.config != nil {
+		return *j.config, nil
+	}
+
+	es := j.conn.EncryptionStrategy()
+
+	decryptedConfig, err := es.Decrypt(string(j.rawConfig), &j.nonce)
+	if err != nil {
+		return atc.JobConfig{}, err
+	}
+
+	var config atc.JobConfig
+	err = json.Unmarshal(decryptedConfig, &config)
+	if err != nil {
+		return atc.JobConfig{}, err
+	}
+
+	j.config = &config
+	return config, nil
+}
 
 func (j *job) Reload() (bool, error) {
 	row := jobsQuery.Where(sq.Eq{"j.id": j.id}).
@@ -310,6 +342,7 @@ func (j *job) ScheduleBuild(build Build) (bool, error) {
 		return false, err
 	}
 
+	// XXX Do we need this??
 	result, err := psql.Update("jobs").
 		Set("max_in_flight_reached", reached).
 		Where(sq.Eq{
@@ -649,22 +682,25 @@ func (j *job) AcquireSchedulingLock(logger lager.Logger) (lock.Lock, bool, error
 }
 
 func (j *job) isMaxInFlightReached(tx Tx, buildID int) (bool, error) {
-	maxInFlight := j.config.MaxInFlight()
-
-	if maxInFlight == 0 {
+	if j.maxInFlight == 0 {
 		return false, nil
 	}
 
-	builds, err := j.getRunningBuildsBySerialGroup(tx)
+	serialGroups, err := j.getSerialGroups(tx)
 	if err != nil {
 		return false, err
 	}
 
-	if len(builds) >= maxInFlight {
+	builds, err := j.getRunningBuildsBySerialGroup(tx, serialGroups)
+	if err != nil {
+		return false, err
+	}
+
+	if len(builds) >= j.maxInFlight {
 		return true, nil
 	}
 
-	nextMostPendingBuild, found, err := j.getNextPendingBuildBySerialGroup(tx)
+	nextMostPendingBuild, found, err := j.getNextPendingBuildBySerialGroup(tx, serialGroups)
 	if err != nil {
 		return false, err
 	}
@@ -674,6 +710,32 @@ func (j *job) isMaxInFlightReached(tx Tx, buildID int) (bool, error) {
 	}
 
 	return nextMostPendingBuild.ID() != buildID, nil
+}
+
+func (j *job) getSerialGroups(tx Tx) ([]string, error) {
+	rows, err := psql.Select("serial_group").
+		From("jobs_serial_groups").
+		Where(sq.Eq{
+			"job_id": j.id,
+		}).
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	var serialGroups []string
+	for rows.Next() {
+		var serialGroup string
+		err = rows.Scan(&serialGroup)
+		if err != nil {
+			return nil, err
+		}
+
+		serialGroups = append(serialGroups, serialGroup)
+	}
+
+	return serialGroups, nil
 }
 
 func (j *job) RequestSchedule() error {
@@ -704,13 +766,7 @@ func (j *job) UpdateLastScheduled(requestedTime time.Time) error {
 	return err
 }
 
-func (j *job) getRunningBuildsBySerialGroup(tx Tx) ([]Build, error) {
-	serialGroups := j.config.GetSerialGroups()
-	err := j.updateSerialGroups(tx, serialGroups)
-	if err != nil {
-		return nil, err
-	}
-
+func (j *job) getRunningBuildsBySerialGroup(tx Tx, serialGroups []string) ([]Build, error) {
 	rows, err := buildsQuery.Options(`DISTINCT ON (b.id)`).
 		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
 		Where(sq.Eq{
@@ -741,13 +797,7 @@ func (j *job) getRunningBuildsBySerialGroup(tx Tx) ([]Build, error) {
 	return bs, nil
 }
 
-func (j *job) getNextPendingBuildBySerialGroup(tx Tx) (Build, bool, error) {
-	serialGroups := j.config.GetSerialGroups()
-	err := j.updateSerialGroups(tx, serialGroups)
-	if err != nil {
-		return nil, false, err
-	}
-
+func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Build, bool, error) {
 	row := buildsQuery.Options(`DISTINCT ON (b.id)`).
 		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
 		Where(sq.Eq{
@@ -762,7 +812,7 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx) (Build, bool, error) {
 		QueryRow()
 
 	build := newEmptyBuild(j.conn, j.lockFactory)
-	err = scanBuild(build, row, j.conn.EncryptionStrategy())
+	err := scanBuild(build, row, j.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -771,30 +821,6 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx) (Build, bool, error) {
 	}
 
 	return build, true, nil
-}
-
-func (j *job) updateSerialGroups(tx Tx, serialGroups []string) error {
-	_, err := psql.Delete("jobs_serial_groups").
-		Where(sq.Eq{
-			"job_id": j.id,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	for _, serialGroup := range serialGroups {
-		_, err = psql.Insert("jobs_serial_groups (job_id, serial_group)").
-			Values(j.id, serialGroup).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (j *job) updatePausedJob(pause bool) error {
@@ -1048,34 +1074,17 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 
 func scanJob(j *job, row scannable) error {
 	var (
-		configBlob []byte
-		nonce      sql.NullString
+		nonce sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &configBlob, &j.paused, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime)
+	err := row.Scan(&j.id, &j.name, &j.rawConfig, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight)
 	if err != nil {
 		return err
 	}
 
-	es := j.conn.EncryptionStrategy()
-
-	var noncense *string
 	if nonce.Valid {
-		noncense = &nonce.String
+		j.nonce = nonce.String
 	}
-
-	decryptedConfig, err := es.Decrypt(string(configBlob), noncense)
-	if err != nil {
-		return err
-	}
-
-	var config atc.JobConfig
-	err = json.Unmarshal(decryptedConfig, &config)
-	if err != nil {
-		return err
-	}
-
-	j.config = config
 
 	return nil
 }
@@ -1127,7 +1136,7 @@ func requestSchedule(tx Tx, jobID int) error {
 // order for the updates, which can lead to deadlocking.
 func requestScheduleOnDownstreamJobs(tx Tx, jobID int) error {
 	rows, err := psql.Select("DISTINCT job_id").
-		From("job_pipes").
+		From("job_inputs").
 		Where(sq.Eq{
 			"passed_job_id": jobID,
 		}).

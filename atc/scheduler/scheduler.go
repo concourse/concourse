@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
@@ -26,6 +27,11 @@ func (s *Scheduler) Schedule(
 	resources db.Resources,
 	relatedJobs algorithm.NameToIDMap,
 ) (bool, error) {
+	config, err := job.Config()
+	if err != nil {
+		return false, fmt.Errorf("job config: %w", err)
+	}
+
 	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(job, resources, relatedJobs)
 	if err != nil {
 		return false, fmt.Errorf("compute inputs: %w", err)
@@ -43,17 +49,18 @@ func (s *Scheduler) Schedule(
 		return false, fmt.Errorf("save next input mapping: %w", err)
 	}
 
-	err = s.ensurePendingBuildExists(logger, job, resources)
+	err = s.ensurePendingBuildExists(logger, job, config, resources)
 	if err != nil {
 		return false, err
 	}
 
-	return s.BuildStarter.TryStartPendingBuildsForJob(logger, pipeline, job, resources, relatedJobs)
+	return s.BuildStarter.TryStartPendingBuildsForJob(logger, pipeline, job, decryptedConfig, resources, relatedJobs)
 }
 
 func (s *Scheduler) ensurePendingBuildExists(
 	logger lager.Logger,
 	job db.Job,
+	decryptedConfig atc.JobConfig,
 	resources db.Resources,
 ) error {
 	buildInputs, satisfiableInputs, err := job.GetFullNextBuildInputs()
@@ -72,7 +79,7 @@ func (s *Scheduler) ensurePendingBuildExists(
 	}
 
 	var hasNewInputs bool
-	for _, inputConfig := range job.Config().Inputs() {
+	for _, inputConfig := range decryptedConfig.Inputs() {
 		inputSource, ok := inputMapping[inputConfig.Name]
 
 		//trigger: true, and the version has not been used

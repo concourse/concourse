@@ -53,6 +53,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	logger lager.Logger,
 	pipeline db.Pipeline,
 	job db.Job,
+	decryptedConfig atc.JobConfigs,
 	resources db.Resources,
 	relatedJobs algorithm.NameToIDMap,
 ) (bool, error) {
@@ -118,6 +119,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	pipeline db.Pipeline,
 	nextPendingBuild Build,
 	job db.Job,
+	decryptedConfig atc.JobConfig,
 	resources db.Resources,
 ) (startResults, error) {
 	logger = logger.Session("try-start-next-pending-build", lager.Data{
@@ -215,7 +217,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		})
 	}
 
-	plan, err := s.factory.Create(job.Config(), resourceConfigs, resourceTypes.Deserialize(), buildInputs)
+	plan, err := s.factory.Create(decryptedConfig, resourceConfigs, resourceTypes.Deserialize(), buildInputs)
 	if err != nil {
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
 		if err = nextPendingBuild.Finish(db.BuildStatusErrored); err != nil {
