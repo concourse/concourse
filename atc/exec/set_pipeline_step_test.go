@@ -3,8 +3,12 @@ package exec_test
 import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
+
 	"context"
 	"errors"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/onsi/gomega/gbytes"
 	"io"
 
@@ -14,8 +18,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
-	"github.com/concourse/concourse/atc/exec/artifact/artifactfakes"
+	// "github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/vars"
 )
@@ -79,10 +82,12 @@ jobs:
 		fakeTeam        *dbfakes.FakeTeam
 		fakePipeline    *dbfakes.FakePipeline
 
+		fakeWorkerClient *workerfakes.FakeClient
+
 		spPlan             *atc.SetPipelinePlan
-		artifactRepository *artifact.Repository
+		artifactRepository *build.Repository
 		state              *execfakes.FakeRunState
-		fakeSource         *artifactfakes.FakeRegisterableSource
+		fakeSource         *buildfakes.FakeRegisterableArtifact
 
 		spStep  exec.Step
 		stepErr error
@@ -111,12 +116,12 @@ jobs:
 		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
 		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 
-		artifactRepository = artifact.NewRepository()
+		artifactRepository = build.NewRepository()
 		state = new(execfakes.FakeRunState)
-		state.ArtifactsReturns(artifactRepository)
+		state.ArtifactRepositoryReturns(artifactRepository)
 
-		fakeSource = new(artifactfakes.FakeRegisterableSource)
-		artifactRepository.RegisterSource("some-resource", fakeSource)
+		fakeSource = new(buildfakes.FakeRegisterableArtifact)
+		artifactRepository.RegisterArtifact("some-resource", fakeSource)
 
 		stdout = gbytes.NewBuffer()
 		stderr = gbytes.NewBuffer()
@@ -133,6 +138,8 @@ jobs:
 		fakeTeam.NameReturns("some-team")
 		fakePipeline.NameReturns("some-pipeline")
 		fakeTeamFactory.GetByIDReturns(fakeTeam)
+
+		fakeWorkerClient = new(workerfakes.FakeClient)
 
 		spPlan = &atc.SetPipelinePlan{
 			Name: "some-pipeline",
@@ -156,6 +163,7 @@ jobs:
 			stepMetadata,
 			fakeDelegate,
 			fakeTeamFactory,
+			fakeWorkerClient,
 		)
 
 		stepErr = spStep.Run(ctx, state)
@@ -177,7 +185,8 @@ jobs:
 	Context("when file is configured", func() {
 		Context("pipeline file not exist", func() {
 			BeforeEach(func() {
-				fakeSource.StreamFileReturns(nil, errors.New("file not found"))
+				fakeWorkerClient.StreamFileFromArtifactReturns(nil, errors.New("file not found"))
+				// fakeSource.StreamFileReturns(nil, errors.New("file not found"))
 			})
 
 			It("should fail with error of file not configured", func() {
@@ -188,7 +197,7 @@ jobs:
 
 		Context("when pipeline file exists but bad syntax", func() {
 			BeforeEach(func() {
-				fakeSource.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
 			})
 
 			It("should not return error", func() {
@@ -209,7 +218,7 @@ jobs:
 
 		Context("when pipeline file is good", func() {
 			BeforeEach(func() {
-				fakeSource.StreamFileReturns(&fakeReadCloser{str: pipelineContent}, nil)
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: pipelineContent}, nil)
 			})
 
 			Context("when get pipeline fails", func() {

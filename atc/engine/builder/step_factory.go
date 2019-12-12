@@ -153,6 +153,7 @@ func (factory *stepFactory) SetPipelineStep(
 		stepMetadata,
 		delegate,
 		factory.teamFactory,
+		factory.client,
 	)
 
 	return exec.LogError(spStep, delegate)

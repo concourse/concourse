@@ -31,7 +31,7 @@ type PutDelegate interface {
 	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
 	Errored(lager.Logger, string)
 
-	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, VersionInfo)
+	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
 }
 
 // PutStep produces a resource version using preconfigured params and any data

@@ -1,12 +1,7 @@
 package build
 
 import (
-	"code.cloudfoundry.org/lager"
-	"context"
-	"github.com/concourse/baggageclaim"
-	"strings"
 	"sync"
-	"io"
 
 	"github.com/concourse/concourse/atc/runtime"
 )
@@ -74,36 +69,36 @@ func (repo *Repository) AsMap() map[ArtifactName]runtime.Artifact {
 	return result
 }
 
-func (repo *Repository) StreamFile(ctx context.Context, logger lager.Logger, path string) (io.ReadCloser, error) {
-	segs := strings.SplitN(path, "/", 2)
-	if len(segs) != 2 {
-		return nil, UnspecifiedArtifactSourceError{
-			Path: path,
-		}
-	}
-
-	sourceName := Name(segs[0])
-	filePath := segs[1]
-
-	source, found := repo.SourceFor(sourceName)
-	if !found {
-		return nil, UnknownArtifactSourceError{
-			Name: sourceName,
-			Path: path,
-		}
-	}
-
-	stream, err := source.StreamFile(ctx, logger, filePath)
-	if err != nil {
-		if err == baggageclaim.ErrFileNotFound {
-			return nil, FileNotFoundError{
-				Name:     sourceName,
-				FilePath: filePath,
-			}
-		}
-
-		return nil, err
-	}
-
-	return stream, nil
-}
+// func (repo *Repository) StreamFile(ctx context.Context, logger lager.Logger, path string) (io.ReadCloser, error) {
+// 	segs := strings.SplitN(path, "/", 2)
+// 	if len(segs) != 2 {
+// 		return nil, UnspecifiedArtifactSourceError{
+// 			Path: path,
+// 		}
+// 	}
+//
+// 	sourceName := Name(segs[0])
+// 	filePath := segs[1]
+//
+// 	source, found := repo.SourceFor(sourceName)
+// 	if !found {
+// 		return nil, UnknownArtifactSourceError{
+// 			Name: sourceName,
+// 			Path: path,
+// 		}
+// 	}
+//
+// 	stream, err := source.StreamFile(ctx, logger, filePath)
+// 	if err != nil {
+// 		if err == baggageclaim.ErrFileNotFound {
+// 			return nil, FileNotFoundError{
+// 				Name:     sourceName,
+// 				FilePath: filePath,
+// 			}
+// 		}
+//
+// 		return nil, err
+// 	}
+//
+// 	return stream, nil
+// }
