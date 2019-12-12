@@ -3,14 +3,17 @@ package backend
 import (
 	"context"
 	"fmt"
+	"syscall"
 	"time"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/backend/libcontainerd"
 	bespec "github.com/concourse/concourse/worker/backend/spec"
+	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var _ garden.Backend = (*Backend)(nil)
@@ -18,6 +21,12 @@ var _ garden.Backend = (*Backend)(nil)
 type Backend struct {
 	client    libcontainerd.Client
 	namespace string
+}
+
+type InputValidationError struct{}
+
+func (e InputValidationError) Error() string {
+	return "input validation error"
 }
 
 func New(client libcontainerd.Client, namespace string) Backend {
@@ -66,10 +75,8 @@ func (b *Backend) Capacity() (capacity garden.Capacity, err error) { return }
 // Create creates a new container.
 //
 func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Container, err error) {
-	var (
-		oci *specs.Spec
-		ctx = namespaces.WithNamespace(context.Background(), b.namespace)
-	)
+	var oci *specs.Spec
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 
 	oci, err = bespec.OciSpec(gdnSpec)
 	if err != nil {
@@ -106,14 +113,75 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 //
 // Errors:
 // * TODO.
-func (b *Backend) Destroy(handle string) (err error) { return }
+func (b *Backend) Destroy(handle string) error {
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+	const maxTaskKillWaitTime = 10 * time.Second
+
+	if handle == "" {
+		return InputValidationError{}
+	}
+
+	container, err := b.client.GetContainer(ctx, handle)
+	if err != nil {
+		return err
+	}
+
+	task, err := container.Task(ctx, nil)
+	if err != nil {
+		if !errdefs.IsNotFound(err) {
+			return err
+		}
+
+		return b.client.Destroy(ctx, handle)
+	}
+
+	timeDelimitedContext, _ := context.WithTimeout(ctx, maxTaskKillWaitTime)
+	err = killTasks(timeDelimitedContext, task)
+	if err != nil {
+		return err
+	}
+
+	return b.client.Destroy(ctx, handle)
+}
+
+// killTasks kills a task on time, gracefully if possible, ungracefully if not.
+//
+func killTasks(ctx context.Context, task containerd.Task) error {
+	exitStatus, err := task.Wait(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = task.Kill(ctx, syscall.SIGTERM)
+	if err != nil {
+		return err
+	}
+
+	select {
+	case <-exitStatus:
+		_, err = task.Delete(ctx) // todo: we're swallowing exitcodes in both these forks, do we care?
+		return err
+	case <-ctx.Done():
+		err = task.Kill(ctx, syscall.SIGKILL) // should return GRPC DeadlineExceeded error type, wrapped up
+		if err != nil {
+			return err
+		}
+		_, err = task.Delete(ctx)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // Containers lists all containers filtered by Properties (which are ANDed together).
 //
 // Errors:
 // * None.
 func (b *Backend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
-	var ctx = namespaces.WithNamespace(context.Background(), b.namespace)
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 
 	filters, err := propertiesToFilterList(properties)
 	if err != nil {
@@ -148,7 +216,20 @@ func (b *Backend) BulkMetrics(handles []string) (metrics map[string]garden.Conta
 //
 // Errors:
 // * Container not found.
-func (b *Backend) Lookup(handle string) (container garden.Container, err error) { return }
+func (b *Backend) Lookup(handle string) (garden.Container, error) {
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+
+	if handle == "" {
+		return nil, InputValidationError{}
+	}
+
+	_, err := b.client.GetContainer(ctx, handle)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Container{}, nil
+}
 
 // propertiesToFilterList converts a set of garden properties to a list of
 // filters as expected by containerd.
