@@ -73,6 +73,10 @@ func (b *Backend) Stop() {
 	_ = b.client.Stop()
 }
 
+// GraceTime is the maximum duration that a container can stick around for,
+// after there no references to a container in the client using Garden; in our case,
+// this means when the ATC DB has no record of that container anymore.
+//
 func (b *Backend) GraceTime(container garden.Container) (duration time.Duration) {
 	return
 }
@@ -134,7 +138,11 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 // TODO: list the resources that can be acquired during the lifetime of a container.
 //
 // Errors:
-// * TODO.
+// * Container handle does not exist
+// * Container task was not successfully spun down prior to container deletion.
+//   Reasons include task not found, termination signal failed, or task deletion failed.
+// * Destroy request to client failed
+//
 func (b *Backend) Destroy(handle string) error {
 	if handle == "" {
 		return InputValidationError{Message: "handle is empty"}
@@ -206,7 +214,7 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 // Containers lists all containers filtered by Properties (which are ANDed together).
 //
 // Errors:
-// * None.
+// * Problems communicating with containerd client
 func (b *Backend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
 	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)

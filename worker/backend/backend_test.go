@@ -279,6 +279,9 @@ func (s *BackendSuite) TestDestroyGetTaskError() {
 }
 
 func (s *BackendSuite) TestDestroyGetTaskErrorNotFound() {
+	// If a container is created without a task, it means that creation
+	// did not complete successfully. These containers should be
+	// deletable without error, for garbage collection.
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 	fakeContainer.TaskReturns(nil, errdefs.ErrNotFound)
 	s.client.GetContainerReturns(fakeContainer, nil)
