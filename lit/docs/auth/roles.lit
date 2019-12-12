@@ -310,6 +310,8 @@ and viewers cannot.
   - OrderPipelines
   }}}
 
-  Please avoid specifying the same action under multiple roles in this file -
-  it can have unpredictable results.
+  You do not need to specify a role for every possible action; if an action does
+  not appear in the file, then the default role (as described in the sections
+  above) will be assigned to that action. Also, please avoid specifying the same
+  action under multiple roles in this file - it can have unpredictable results.
 }
