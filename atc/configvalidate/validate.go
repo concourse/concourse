@@ -41,9 +41,9 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
 
-	credentialManagersErr := validateVarSources(c)
-	if credentialManagersErr != nil {
-		errorMessages = append(errorMessages, formatErr("variable sources", credentialManagersErr))
+	varSourcesErr := validateVarSources(c)
+	if varSourcesErr != nil {
+		errorMessages = append(errorMessages, formatErr("variable sources", varSourcesErr))
 	}
 
 	jobWarnings, jobsErr := validateJobs(c)
@@ -695,6 +695,8 @@ func compositeErr(errorMessages []string) error {
 }
 
 func validateVarSources(c Config) error {
+	names := map[string]interface{}{}
+
 	for _, cm := range c.VarSources {
 		factory := creds.ManagerFactories()[cm.Type]
 		if factory == nil {
@@ -709,6 +711,11 @@ func validateVarSources(c Config) error {
 			return fmt.Errorf("credential manager type %s is not supported in pipeline yet", cm.Type)
 		}
 
+		if _, ok := names[cm.Name]; ok {
+			return fmt.Errorf("duplicate var_source name: %s", cm.Name)
+		}
+		names[cm.Name] = 0
+
 		manager, err := factory.NewInstance(cm.Config)
 		if err != nil {
 			return fmt.Errorf("failed to create credential manager %s: %s", cm.Name, err.Error())
@@ -718,5 +725,10 @@ func validateVarSources(c Config) error {
 			return fmt.Errorf("credential manager %s is invalid: %s", cm.Name, err.Error())
 		}
 	}
+
+	if _, err := c.VarSources.OrderByDependency(); err != nil {
+		return err
+	}
+
 	return nil
 }
