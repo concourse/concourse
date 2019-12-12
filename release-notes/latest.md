@@ -1,3 +1,25 @@
+#### <sub><sup><a name="4708" href="#4708">:link:</a></sup></sub> feature
+
+* The first step (heh) along our [road to v10](https://blog.concourse-ci.org/core-roadmap-towards-v10/) has been taken!
+
+  @evanchaoli implemented the [`set_pipeline` step](https://concourse-ci.org/set-pipeline-step.html) described by [RFC #31](https://github.com/concourse/rfcs/pull/31). The RFC is still technically in progress so the step is 'experimental' for now.
+
+  The `set_pipeline` step allows a build to configure a pipeline within the build's team. This is the first "core" step type added since the concept of "build plans" was introduced, joining `get`, `put`, and `task`. Exciting!
+
+  The key goal of the v10 roadmap is to support multi-branch and PR workflows, which require something more dynamic than `fly set-pipeline`. The theory is that by making pipelines more first-class - allowing them to be configured and automated by Concourse itself - we can support these more dynamic use cases by leveraging existing concepts instead of adding complexity to existing ones.
+
+  As a refresher, here's where this piece fits in our roadmap for multi-branch/PR workflows:
+
+  * With [RFC #33: archiving pipelines](https://github.com/concourse/rfcs/pull/33), any pipelines set by a `set_pipeline` step will be subject to automatic archival once a new build of the same job completes that no longer sets the pipeline. This way pipelines that are removed from the build plan will automatically go away, while preserving their build history.
+
+  * With [RFC #34: instanced pipelines](https://github.com/concourse/rfcs/pull/34), pipelines sharing a common template can be configured with a common name, using `((vars))` to identify the instance. For example, you could have many instances of a `branches` pipeline, with `((branch_name))` as the "instance" var. Building on the previous point, instances which are no longer set by the build will be automatically archived.
+  
+  * With [RFC #29: spatial resources](https://github.com/concourse/rfcs/pull/29), the `set_pipeline` step can be automated to configure a pipeline instance corresponding to each "space" of a resource - i.e. all branches or pull requests in a repo. This RFC needs a bit of TLC (it hasn't been updated to be [prototype-based](https://blog.concourse-ci.org/reinventing-resource-types/)), but the basic idea is there.
+  
+  With all three of these RFCs delivered, we will have complete automation of pipelines for branches and pull requests! For more detail on the whole approach, check out the original [v10 blog post](https://blog.concourse-ci.org/core-roadmap-towards-v10/).
+  
+  Looking further ahead on the roadmap, [RFC #32: projects](https://github.com/concourse/rfcs/pull/32) proposes introduce a more explicit GitOps-style approach to configuration automation. In this context the `set_pipeline` step may feel a lot more natural. Until then, the `set_pipeline` step can be used as a simpler alternative to the [`concourse-pipeline` resource](https://github.com/concourse/concourse-pipeline-resource), with the key difference being that the `set_pipeline` step doesn't need any auth config.
+
 #### <sub><sup><a name="4688" href="#4688">:link:</a></sup></sub> feature
 
 * The pin menu on the pipeline page now matches the sidebar, and the dropdown toggles on clicking the pin icon #4688.
