@@ -1138,10 +1138,10 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 // plug the global variables, otherwise just return the global variables.
 func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
 	globalVars := creds.NewVariables(globalSecrets, p.TeamName(), p.Name(), false)
-	namedVarsMap := map[string]vars.Variables{}
-	// It's safe to construct NewNamedVariables with namedVars here, because
+	namedVarsMap := vars.NamedVariables{}
+	// It's safe to add NamedVariables to allVars via an array here, because
 	// a map is passed by reference.
-	allVars := vars.NewMultiVars([]vars.Variables{globalVars, vars.NewNamedVariables(namedVarsMap)})
+	allVars := vars.NewMultiVars([]vars.Variables{globalVars, namedVarsMap})
 
 	orderedVarSources, err := p.varSources.OrderByDependency()
 	if err != nil {
@@ -1173,7 +1173,7 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 
 	// If there is no var_source from the pipeline, then just return the global
 	// vars.
-	if len(namedVarsMap) == 1 {
+	if len(namedVarsMap) == 0 {
 		return globalVars, nil
 	}
 

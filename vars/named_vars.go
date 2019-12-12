@@ -5,13 +5,7 @@ import (
 	"strings"
 )
 
-type NamedVariables struct {
-	varss map[string]Variables
-}
-
-func NewNamedVariables(varss map[string]Variables) NamedVariables {
-	return NamedVariables{varss}
-}
+type NamedVariables map[string]Variables
 
 // Get checks var_source if presents, then forward var to underlying secret manager.
 // A `varDef.Name` with a var_source looks like "myvault:foo", where "myvault" is
@@ -19,7 +13,6 @@ func NewNamedVariables(varss map[string]Variables) NamedVariables {
 // to the underlying secret manager.
 func (m NamedVariables) Get(varDef VariableDefinition) (interface{}, bool, error) {
 	var sourceName, varName string
-
 	parts := strings.Split(varDef.Name, ":")
 	if len(parts) == 1 {
 		// No source name, then no need to query named vars.
@@ -31,7 +24,7 @@ func (m NamedVariables) Get(varDef VariableDefinition) (interface{}, bool, error
 		return nil, false, fmt.Errorf("invalid var: %s", varDef.Name)
 	}
 
-	if vars, ok := m.varss[sourceName]; ok {
+	if vars, ok := m[sourceName]; ok {
 		return vars.Get(VariableDefinition{Name: varName})
 	}
 
@@ -41,7 +34,7 @@ func (m NamedVariables) Get(varDef VariableDefinition) (interface{}, bool, error
 func (m NamedVariables) List() ([]VariableDefinition, error) {
 	var allDefs []VariableDefinition
 
-	for _, vars := range m.varss {
+	for _, vars := range m {
 		defs, err := vars.List()
 		if err != nil {
 			return nil, err

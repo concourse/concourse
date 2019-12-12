@@ -49,13 +49,6 @@ var _ = Describe("Pipeline", func() {
 						"vars": map[string]interface{}{"pk": "pv"},
 					},
 				},
-				{
-					Name: "second-var-source",
-					Type: "dummy",
-					Config: map[string]interface{}{
-						"vars": map[string]interface{}{"pk": "((some-var-source:pk))"},
-					},
-				},
 			},
 			Jobs: atc.JobConfigs{
 				{
@@ -93,8 +86,8 @@ var _ = Describe("Pipeline", func() {
 						},
 						{
 							SetPipeline: "some-pipeline",
-							ConfigPath: "some-file",
-							VarFiles: []string{"var-file1", "var-file2"},
+							ConfigPath:  "some-file",
+							VarFiles:    []string{"var-file1", "var-file2"},
 							Vars: map[string]interface{}{
 								"k1": "v1",
 								"k2": "v2",
@@ -2289,7 +2282,7 @@ var _ = Describe("Pipeline", func() {
 			pvars vars.Variables
 			err   error
 		)
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			fakeSecrets = new(credsfakes.FakeSecrets)
 			fakeSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
 				if key == "gk" {
@@ -2315,15 +2308,6 @@ var _ = Describe("Pipeline", func() {
 			Expect(found).To(BeFalse())
 		})
 
-		// The second var source is configured with vars that needs to be interpolated
-		// from "some-var-source".
-		It("should get pipeline var 'pk' from the second var_source", func() {
-			v, found, err := pvars.Get(vars.VariableDefinition{Name: "second-var-source:pk"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(v.(string)).To(Equal("pv"))
-		})
-
 		It("should get var from global var source", func() {
 			v, found, err := pvars.Get(vars.VariableDefinition{Name: "gk"})
 			Expect(err).NotTo(HaveOccurred())
@@ -2335,6 +2319,32 @@ var _ = Describe("Pipeline", func() {
 			_, found, err := pvars.Get(vars.VariableDefinition{Name: "foo"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+
+		Context("with the second var_source", func() {
+			BeforeEach(func() {
+				pipelineConfig.VarSources = append(pipelineConfig.VarSources, atc.VarSourceConfig{
+					Name: "second-var-source",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{"pk": "((some-var-source:pk))"},
+					},
+				})
+
+				var created bool
+				pipeline, created, err = team.SavePipeline("fake-pipeline", pipelineConfig, pipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeFalse())
+			})
+
+			// The second var source is configured with vars that needs to be interpolated
+			// from "some-var-source".
+			It("should get pipeline var 'pk' from the second var_source", func() {
+				v, found, err := pvars.Get(vars.VariableDefinition{Name: "second-var-source:pk"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(v.(string)).To(Equal("pv"))
+			})
 		})
 	})
 
