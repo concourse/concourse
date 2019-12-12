@@ -180,6 +180,11 @@ and viewers cannot.
 \section{
   \title{Action Matrix}{action-matrix}
 
+  In this table, an action is marked as \italic{customizable} if it is
+  possible to change its permissions by providing the \code{--config-rbac} flag,
+  documented below. Assigning an action to a role that is not customizable will
+  have no effect on its permissions.
+
   \better-table{
     \table-row{Action                       }{\code{fly} commands affected                                      }{UI actions affected                    }{can be performed unauthenticated?}{customizable}
     \table-row{GetBuild                     }{n/a                                                               }{view one-off build page                }{✓                                }{✓           }
