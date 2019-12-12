@@ -2,10 +2,29 @@
 
 \use-plugin{concourse-docs}
 
-Concourse comes with five roles: Concourse Admin, Team Owner, Team Member,
-Pipeline Operator, Team Viewer. These roles are strictly ordered, so that any
-permissions a Team Viewer has are automatically granted to Pipeline Operators
-and so on.
+Concourse comes with five roles:
+
+\ordered-list{
+  Concourse Admin
+}{
+  Team Owner
+}{
+  Team Member
+}{
+  Pipeline Operator
+}{
+  Team Viewer
+}
+
+These roles are strictly ordered, so that each role always has all the
+permissions of any other role lower on the list. This means that a Team Viewer
+can always do anything a Pipeline Operator can, and so on.
+
+In this document we say an action is \italic{assigned} to a role if that role is
+capable of performing the action, but any less-privileged role is not. For
+example, the \code{SaveConfig} action is \italic{assigned} to the \code{member}
+role, so owners and members can set a pipeline config, but pipeline operators
+and viewers cannot.
 
 \section{
   \title{Concourse Admin}{concourse-admin}
