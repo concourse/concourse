@@ -73,3 +73,7 @@
 #### <sub><sup><a name="4816" href="#4816">:link:</a></sup></sub> fix
 
 * @witjem removed superfluous mentions of `register-worker` from TSA. #4816
+
+#### <sub><sup><a name="4587" href="#4587">:link:</a></sup></sub> fix
+
+* @pivotal-bin-ju fixed x509 issue when the super admin login without CACert after the first sucessful login. #4587
