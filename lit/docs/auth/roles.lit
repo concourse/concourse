@@ -279,16 +279,18 @@ and viewers cannot.
   \title{Configuring RBAC}{configuring-rbac}
   \warn{Configuring RBAC is \bold{experimental}, and this may change in the future.}
 
-  It is possible to modify the set of permitted actions for a given role, by
-  using this \code{--config-rbac} on the \code{concourse web} command with a
-  path to a \code{.yml} file.
+  It is possible to promote or demote the roles to which actions are assigned by
+  passing the \code{--config-rbac} to the \code{concourse web} command with a
+  path to a \code{.yml} file, like the following:
 
-  The format of this file is a YAML map where the keys are role names. For each
-  role, the value should be a list of actions. On startup, Concourse will assign
-  each role to its associated list of actions. However, you do not need to
-  specify a role for every possible action; if an action does not appear in the
-  file, then the default role (as described in the sections above) will be
-  assigned to that action.
+  \codeblock{bash}{{{
+  concourse web --config-rbac=/path/to/rbac/config.yml
+  }}}
+
+  This file should be a YAML map where the keys are role names (\code{owner},
+  \code{member}, \code{pipeline-operator}, and \code{viewer} are valid). For
+  each role, the value should be a list of actions. On startup, Concourse will
+  assign each role to its associated list of actions.
 
   For example, in the default configuration only pipeline-operators and above
   can abort builds. To restrict aborting builds to only members and above, you
