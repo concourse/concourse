@@ -114,7 +114,8 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 	}
 
 	metric.CheckEnqueue{
-		CheckName: checkable.Name(),
+		CheckName:             checkable.Name(),
+		ResourceConfigScopeID: checkable.ResourceConfigScopeID(),
 	}.Emit(s.logger)
 
 	return nil

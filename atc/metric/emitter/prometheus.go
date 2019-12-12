@@ -352,7 +352,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Name:      "check_enqueue",
 			Help:      "Counts the number of checks enqueued",
 		},
-		[]string{"name"},
+		[]string{"scope_id", "name"},
 	)
 	prometheus.MustRegister(checkEnqueueVec)
 
@@ -831,13 +831,19 @@ func (emitter *PrometheusEmitter) checkQueueSizeMetric(logger lager.Logger, even
 }
 
 func (emitter *PrometheusEmitter) checkEnqueueMetric(logger lager.Logger, event metric.Event) {
+	scopeID, exists := event.Attributes["scope_id"]
+	if !exists {
+		logger.Error("failed-to-find-resource-config-scope-id-in-event", fmt.Errorf("expected scope_id to exist in event.Attributes"))
+		return
+	}
+
 	checkName, exists := event.Attributes["check_name"]
 	if !exists {
 		logger.Error("failed-to-find-check-name-in-event", fmt.Errorf("expected check_name to exist in event.Attributes"))
 		return
 	}
 
-	emitter.checkEnqueueVec.WithLabelValues(checkName).Inc()
+	emitter.checkEnqueueVec.WithLabelValues(scopeID, checkName).Inc()
 }
 
 func (emitter *PrometheusEmitter) checkMetric(logger lager.Logger, event metric.Event) {

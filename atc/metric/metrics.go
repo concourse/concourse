@@ -555,17 +555,19 @@ func (event CheckFinished) Emit(logger lager.Logger) {
 }
 
 type CheckEnqueue struct {
-	CheckName string
+	CheckName             string
+	ResourceConfigScopeID int
 }
 
 func (event CheckEnqueue) Emit(logger lager.Logger) {
 	emit(
 		logger.Session("check-enqueued"),
 		Event{
-			Name:  "check enqueue",
+			Name:  "check enqueued",
 			Value: 1,
 			State: EventStateOK,
 			Attributes: map[string]string{
+				"scope_id":   strconv.Itoa(event.ResourceConfigScopeID),
 				"check_name": event.CheckName,
 			},
 		},

@@ -180,8 +180,8 @@ var _ = BeforeEach(func() {
 
 	var found bool
 	defaultResourceType, found, err = defaultPipeline.ResourceType("some-type")
-	Expect(found).To(BeTrue())
 	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
 
 	defaultResource, found, err = defaultPipeline.Resource("some-resource")
 	Expect(err).NotTo(HaveOccurred())

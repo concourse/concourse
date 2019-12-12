@@ -21,6 +21,7 @@ type Checkable interface {
 
 	Name() string
 	TeamID() int
+	ResourceConfigScopeID() int
 	TeamName() string
 	Type() string
 	Source() atc.Source
