@@ -18,7 +18,7 @@ var _ = Describe("NamedVariables", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("return no value and not found if var source name doesn's exist", func() {
+		It("return no value, not found and an error if var source name doesn't exist", func() {
 			vars1 := StaticVariables{"key1": "val"}
 			vars2 := StaticVariables{"key2": "val"}
 			vars := NamedVariables{"s1": vars1, "s2": vars2}
@@ -26,7 +26,8 @@ var _ = Describe("NamedVariables", func() {
 			val, found, err := vars.Get(VariableDefinition{Name: "s3:key1"})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(Equal(errors.New("unknown var source: s3")))
 		})
 
 		It("return no value and not found if var source name is not specified", func() {

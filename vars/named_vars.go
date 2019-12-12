@@ -28,7 +28,7 @@ func (m NamedVariables) Get(varDef VariableDefinition) (interface{}, bool, error
 		return vars.Get(VariableDefinition{Name: varName})
 	}
 
-	return nil, false, nil
+	return nil, false, fmt.Errorf("unknown var source: %s", sourceName)
 }
 
 func (m NamedVariables) List() ([]VariableDefinition, error) {
