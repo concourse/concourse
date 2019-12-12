@@ -36,7 +36,8 @@ and viewers cannot.
   \reference{fly-set-team}, \reference{fly-destroy-team},
   \reference{fly-rename-team}, etc.
 
-  Admins also have permission to perform any of the actions below on any team.
+  Admins always have permission to perform any action on any team. You cannot
+  assign actions to the admin role using the \code{--config-rbac} flag.
 }
 
 \section{
