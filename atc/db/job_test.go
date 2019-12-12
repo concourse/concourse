@@ -614,7 +614,7 @@ var _ = Describe("Job", func() {
 		})
 	})
 
-	Describe("ScheduleBuild", func() {
+	FDescribe("ScheduleBuild", func() {
 		var (
 			schedulingBuild            db.Build
 			scheduleFound, reloadFound bool
@@ -886,7 +886,7 @@ var _ = Describe("Job", func() {
 
 					saveMaxInFlightPipeline()
 
-					It("returns max in flight reached so it does not schedule", func() {
+					FIt("returns max in flight reached so it does not schedule", func() {
 						Expect(schedulingErr).ToNot(HaveOccurred())
 						Expect(scheduleFound).To(BeFalse())
 						Expect(reloadFound).To(BeTrue())

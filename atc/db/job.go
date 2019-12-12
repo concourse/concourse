@@ -103,7 +103,7 @@ type job struct {
 
 	config    *atc.JobConfig
 	rawConfig []byte
-	nonce     string
+	nonce     *string
 }
 
 func newEmptyJob(conn Conn, lockFactory lock.LockFactory) *job {
@@ -167,7 +167,7 @@ func (j *job) Config() (atc.JobConfig, error) {
 
 	es := j.conn.EncryptionStrategy()
 
-	decryptedConfig, err := es.Decrypt(string(j.rawConfig), &j.nonce)
+	decryptedConfig, err := es.Decrypt(string(j.rawConfig), j.nonce)
 	if err != nil {
 		return atc.JobConfig{}, err
 	}
@@ -1083,7 +1083,7 @@ func scanJob(j *job, row scannable) error {
 	}
 
 	if nonce.Valid {
-		j.nonce = nonce.String
+		j.nonce = &nonce.String
 	}
 
 	return nil

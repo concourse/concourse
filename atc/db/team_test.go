@@ -1,12 +1,13 @@
 package db_test
 
 import (
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	"database/sql"
 	"fmt"
 	"strconv"
 	"time"
+
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -2359,8 +2360,8 @@ var _ = Describe("Team", func() {
 			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, true)
 			Expect(err).ToNot(HaveOccurred())
 
-			rows, err := psql.Select("job_id", "resource_id", "passed_job_id").
-				From("job_pipes").
+			rows, err := psql.Select("name", "job_id", "resource_id", "passed_job_id").
+				From("job_inputs").
 				Where(sq.Expr(`job_id in (
 					SELECT j.id
 					FROM jobs j
@@ -2371,6 +2372,7 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			type jobPipe struct {
+				name        string
 				jobID       int
 				resourceID  int
 				passedJobID int
@@ -2380,7 +2382,7 @@ var _ = Describe("Team", func() {
 			for rows.Next() {
 				var jp jobPipe
 				var passedJob sql.NullInt64
-				err = rows.Scan(&jp.jobID, &jp.resourceID, &passedJob)
+				err = rows.Scan(&jp.name, &jp.jobID, &jp.resourceID, &passedJob)
 				Expect(err).ToNot(HaveOccurred())
 
 				if passedJob.Valid {
@@ -2408,19 +2410,23 @@ var _ = Describe("Team", func() {
 
 			Expect(jobPipes).To(ConsistOf(
 				jobPipe{
+					name:       "some-resource",
 					jobID:      job1.ID(),
 					resourceID: someResource.ID(),
 				},
 				jobPipe{
+					name:       "some-resource",
 					jobID:      job2.ID(),
 					resourceID: someResource.ID(),
 				},
 				jobPipe{
+					name:        "some-input",
 					jobID:       someJob.ID(),
 					resourceID:  someResource.ID(),
 					passedJobID: job1.ID(),
 				},
 				jobPipe{
+					name:        "some-input",
 					jobID:       someJob.ID(),
 					resourceID:  someResource.ID(),
 					passedJobID: job2.ID(),
@@ -2497,8 +2503,8 @@ var _ = Describe("Team", func() {
 			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
 			Expect(err).ToNot(HaveOccurred())
 
-			rows, err = psql.Select("job_id", "resource_id", "passed_job_id").
-				From("job_pipes").
+			rows, err = psql.Select("name", "job_id", "resource_id", "passed_job_id").
+				From("job_inputs").
 				Where(sq.Expr(`job_id in (
 					SELECT j.id
 					FROM jobs j
@@ -2512,7 +2518,7 @@ var _ = Describe("Team", func() {
 			for rows.Next() {
 				var jp jobPipe
 				var passedJob sql.NullInt64
-				err = rows.Scan(&jp.jobID, &jp.resourceID, &passedJob)
+				err = rows.Scan(&jp.name, &jp.jobID, &jp.resourceID, &passedJob)
 				Expect(err).ToNot(HaveOccurred())
 
 				if passedJob.Valid {
@@ -2524,10 +2530,12 @@ var _ = Describe("Team", func() {
 
 			Expect(newJobPipes).To(ConsistOf(
 				jobPipe{
+					name:       "some-resource",
 					jobID:      job2.ID(),
 					resourceID: someResource.ID(),
 				},
 				jobPipe{
+					name:        "some-input",
 					jobID:       someJob.ID(),
 					resourceID:  someResource.ID(),
 					passedJobID: job2.ID(),
