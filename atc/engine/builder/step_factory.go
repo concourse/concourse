@@ -158,6 +158,22 @@ func (factory *stepFactory) SetPipelineStep(
 	return exec.LogError(spStep, delegate)
 }
 
+func (factory *stepFactory) VarStep(
+	plan atc.Plan,
+	stepMetadata exec.StepMetadata,
+	delegate exec.BuildStepDelegate,
+) exec.Step {
+	varStep := exec.NewVarStep(
+		plan.ID,
+		*plan.Var,
+		stepMetadata,
+		delegate,
+		factory.client,
+	)
+
+	return exec.LogError(varStep, delegate)
+}
+
 func (factory *stepFactory) ArtifactInputStep(
 	plan atc.Plan,
 	build db.Build,

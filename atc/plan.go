@@ -12,6 +12,7 @@ type Plan struct {
 	Check       *CheckPlan       `json:"check,omitempty"`
 	Task        *TaskPlan        `json:"task,omitempty"`
 	SetPipeline *SetPipelinePlan `json:"set_pipeline,omitempty"`
+	Var         *VarPlan         `json:"var,omitempty"`
 	OnAbort     *OnAbortPlan     `json:"on_abort,omitempty"`
 	OnError     *OnErrorPlan     `json:"on_error,omitempty"`
 	Ensure      *EnsurePlan      `json:"ensure,omitempty"`
@@ -143,6 +144,11 @@ type SetPipelinePlan struct {
 	File     string                 `json:"file"`
 	Vars     map[string]interface{} `json:"vars,omitempty"`
 	VarFiles []string               `json:"var_files,omitempty"`
+}
+
+type VarPlan struct {
+	Name string `json:"name"`
+	File string `json:"file"`
 }
 
 type RetryPlan []Plan

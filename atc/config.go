@@ -477,6 +477,9 @@ type PlanConfig struct {
 	Attempts int `json:"attempts,omitempty"`
 
 	Version *VersionConfig `json:"version,omitempty"`
+
+	// name of 'var' step
+	Var string `json:"var,omitempty"`
 }
 
 func (config PlanConfig) Name() string {

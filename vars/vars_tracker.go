@@ -17,22 +17,24 @@ type CredVarsTracker interface {
 	Variables
 	IterateInterpolatedCreds(iter CredVarsTrackerIterator)
 	Enabled() bool
+
+	AddVar(Variables)
 }
 
 func NewCredVarsTracker(credVars Variables, on bool) CredVarsTracker {
-	if on {
-		return &credVarsTracker{
-			credVars:          credVars,
-			interpolatedCreds: map[string]string{},
-			lock:              sync.RWMutex{},
-		}
-	} else {
-		return dummyCredVarsTracker{credVars: credVars}
+	return &credVarsTracker{
+		credVars:          credVars,
+		enabled:           on,
+		interpolatedCreds: map[string]string{},
+		lock:              sync.RWMutex{},
 	}
 }
 
 type credVarsTracker struct {
-	credVars          Variables
+	credVars Variables
+
+	enabled bool
+
 	interpolatedCreds map[string]string
 
 	// Considering in-parallel steps, a lock is need.
@@ -41,7 +43,7 @@ type credVarsTracker struct {
 
 func (t *credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
 	val, found, err := t.credVars.Get(varDef)
-	if found {
+	if t.enabled && found {
 		t.lock.Lock()
 		t.track(varDef.Name, val)
 		t.lock.Unlock()
@@ -82,29 +84,11 @@ func (t *credVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator)
 }
 
 func (t *credVarsTracker) Enabled() bool {
-	return true
+	return t.enabled
 }
 
-// DummyCredVarsTracker do nothing,
-
-type dummyCredVarsTracker struct {
-	credVars Variables
-}
-
-func (t dummyCredVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	return t.credVars.Get(varDef)
-}
-
-func (t dummyCredVarsTracker) List() ([]VariableDefinition, error) {
-	return t.credVars.List()
-}
-
-func (t dummyCredVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) {
-	// do nothing
-}
-
-func (t dummyCredVarsTracker) Enabled() bool {
-	return false
+func (t *credVarsTracker) AddVar(v Variables) {
+	t.credVars = NewMultiVars([]Variables{v, t.credVars})
 }
 
 // MapCredVarsTrackerIterator implements a simple CredVarsTrackerIterator which just

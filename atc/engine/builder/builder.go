@@ -24,6 +24,7 @@ type StepFactory interface {
 	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step
 	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.CheckDelegate) exec.Step
 	SetPipelineStep(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
+	VarStep(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
 	ArtifactInputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 	ArtifactOutputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 }
@@ -35,6 +36,7 @@ type DelegateFactory interface {
 	PutDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.PutDelegate
 	TaskDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.TaskDelegate
 	SetPipelineDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate
+	VarDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate
 	CheckDelegate(db.Check, atc.PlanID, vars.CredVarsTracker) exec.CheckDelegate
 	BuildStepDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate
 }
@@ -177,6 +179,10 @@ func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, credVarsTra
 
 	if plan.SetPipeline != nil {
 		return builder.buildSetPipelineStep(build, plan, credVarsTracker)
+	}
+
+	if plan.Var != nil {
+		return builder.buildVarStep(build, plan, credVarsTracker)
 	}
 
 	if plan.Get != nil {
@@ -411,6 +417,20 @@ func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan, 
 		plan,
 		stepMetadata,
 		builder.delegateFactory.SetPipelineDelegate(build, plan.ID, credVarsTracker),
+	)
+}
+
+func (builder *stepBuilder) buildVarStep(build db.Build, plan atc.Plan, credVarsTracker vars.CredVarsTracker) exec.Step {
+
+	stepMetadata := builder.stepMetadata(
+		build,
+		builder.externalURL,
+	)
+
+	return builder.stepFactory.VarStep(
+		plan,
+		stepMetadata,
+		builder.delegateFactory.VarDelegate(build, plan.ID, credVarsTracker),
 	)
 }
 

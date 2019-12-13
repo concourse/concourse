@@ -271,6 +271,13 @@ func (factory *buildFactory) constructUnhookedPlan(
 			VarFiles: planConfig.VarFiles,
 		})
 
+	case planConfig.Var != "":
+		name := planConfig.Var
+		plan = factory.planFactory.NewPlan(atc.VarPlan{
+			Name: name,
+			File: planConfig.ConfigPath,
+		})
+
 	case planConfig.Try != nil:
 		nextStep, err := factory.constructPlanFromConfig(
 			job,

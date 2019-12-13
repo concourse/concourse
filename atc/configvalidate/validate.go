@@ -398,6 +398,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		foundTypes.Find("try")
 	}
 
+	if plan.Var != "" {
+		foundTypes.Find("var")
+	}
+
 	if valid, message := foundTypes.IsValid(); !valid {
 		return []ConfigWarning{}, []string{message}
 	}
@@ -579,6 +583,13 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 
 		if plan.ConfigPath == "" {
 			errorMessages = append(errorMessages, identifier+" does not specify any pipeline configuration")
+		}
+
+	case plan.Var != "":
+		identifier = fmt.Sprintf("%s.var.%s", identifier, plan.Var)
+
+		if plan.ConfigPath == "" {
+			errorMessages = append(errorMessages, identifier+" does not specify any file")
 		}
 
 	case plan.Try != nil:
