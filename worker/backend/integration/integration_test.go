@@ -41,7 +41,7 @@ func (s *BackendSuite) TestPing() {
 	s.NoError(s.backend.Ping())
 }
 
-func (s *BackendSuite) TestContainerCreation() {
+func (s *BackendSuite) TestContainerCreateAndDestroy() {
 	handle := mustCreateHandle()
 	rootfs, err := filepath.Abs("testdata/rootfs")
 	s.NoError(err)
@@ -53,12 +53,17 @@ func (s *BackendSuite) TestContainerCreation() {
 	})
 	s.NoError(err)
 
-	defer s.backend.Destroy(handle)
-
 	containers, err := s.backend.Containers(nil)
 	s.NoError(err)
 
 	s.Len(containers, 1)
+
+	err = s.backend.Destroy(handle)
+	s.NoError(err)
+
+	containers, err = s.backend.Containers(nil)
+	s.NoError(err)
+	s.Len(containers, 0)
 }
 
 func TestSuite(t *testing.T) {
