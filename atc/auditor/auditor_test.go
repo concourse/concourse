@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/auditor"
 
 	. "github.com/onsi/ginkgo"
@@ -64,6 +65,26 @@ var _ = Describe("Audit", func() {
 		EnableTeamAuditLog = false
 		EnableWorkerAuditLog = false
 		EnableVolumeAuditLog = false
+	})
+	Context("when audit is called", func() {
+		BeforeEach(func() {
+			EnableBuildAuditLog = true
+			EnableContainerAuditLog = true
+			EnableJobAuditLog = true
+			EnablePipelineAuditLog = true
+			EnableResourceAuditLog = true
+			EnableSystemAuditLog = true
+			EnableTeamAuditLog = true
+			EnableWorkerAuditLog = true
+			EnableVolumeAuditLog = true
+		})
+		It("all routes are handled and does not panic", func() {
+			for _, route := range atc.Routes {
+				aud.Audit(route.Name, userName, req)
+			}
+			logs := logger.Logs()
+			Expect(len(logs)).ToNot(Equal(0))
+		})
 	})
 
 	Describe("EnableBuildAuditLog", func() {

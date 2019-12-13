@@ -115,7 +115,8 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.EnableResourceVersion,
 		atc.DisableResourceVersion,
 		atc.PinResourceVersion,
-		atc.GetResourceCausality:
+		atc.GetResourceCausality,
+		atc.GetCheck:
 		return a.EnableResourceAuditLog
 	case
 		atc.SaveConfig,
@@ -127,13 +128,15 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.GetLogLevel,
 		atc.DownloadCLI,
 		atc.GetInfo,
-		atc.GetInfoCreds:
+		atc.GetInfoCreds,
+		atc.ListActiveUsersSince:
 		return a.EnableSystemAuditLog
 	case atc.ListTeams,
 		atc.SetTeam,
 		atc.RenameTeam,
 		atc.DestroyTeam,
-		atc.ListTeamBuilds:
+		atc.ListTeamBuilds,
+		atc.GetTeam:
 		return a.EnableTeamAuditLog
 	case atc.RegisterWorker,
 		atc.LandWorker,
