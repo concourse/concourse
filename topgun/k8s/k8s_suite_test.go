@@ -36,13 +36,14 @@ type environment struct {
 	ConcourseImageTag    string `env:"CONCOURSE_IMAGE_TAG"`
 	FlyPath              string `env:"FLY_PATH"`
 	K8sEngine            string `env:"K8S_ENGINE" envDefault:"GKE"`
+	InCluster            bool   `env:"IN_CLUSTER" envDefault:"false"`
 }
 
 var (
-	Environment environment
-	fly         Fly
-	namespace   string
-	releaseName string
+	Environment            environment
+	endpointFactory        EndpointFactory
+	fly                    FlyCli
+	releaseName, namespace string
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -74,7 +75,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
-	SetDefaultEventuallyTimeout(30 * time.Second)
+	SetDefaultEventuallyTimeout(90 * time.Second)
 	SetDefaultConsistentlyDuration(30 * time.Second)
 
 	tmp, err := ioutil.TempDir("", "topgun-tmp")
@@ -84,6 +85,11 @@ var _ = BeforeEach(func() {
 		Bin:    Environment.FlyPath,
 		Target: "concourse-topgun-k8s-" + strconv.Itoa(GinkgoParallelNode()),
 		Home:   filepath.Join(tmp, "fly-home-"+strconv.Itoa(GinkgoParallelNode())),
+	}
+
+	endpointFactory = PortForwardingEndpointFactory{}
+	if Environment.InCluster {
+		endpointFactory = AddressEndpointFactory{}
 	}
 
 	err = os.Mkdir(fly.Home, 0755)
@@ -96,23 +102,148 @@ func setReleaseNameAndNamespace(description string) {
 	namespace = releaseName
 }
 
+// pod corresponds to the Json object that represents a Kuberneted pod from the
+// apiserver perspective.
+//
 type pod struct {
 	Status struct {
+		Conditions []struct {
+			Type   string `json:"type"`
+			Status string `json:"status"`
+		} `json:"conditions"`
 		ContainerStatuses []struct {
 			Name  string `json:"name"`
 			Ready bool   `json:"ready"`
 		} `json:"containerStatuses"`
-		Phase  string `json:"phase"`
-		HostIp string `json:"hostIP"`
-		Ip     string `json:"podIP"`
+		Ip string `json:"podIP"`
 	} `json:"status"`
 	Metadata struct {
 		Name string `json:"name"`
 	} `json:"metadata"`
 }
 
-type podListResponse struct {
-	Items []pod `json:"items"`
+// Endpoint represents a service that can be reached from a given address.
+//
+type Endpoint interface {
+	Address() (addr string)
+	Close() (err error)
+}
+
+// EndpointFactory represents those entities able to generate Endpoints for
+// both services and pods.
+//
+type EndpointFactory interface {
+	NewServiceEndpoint(namespace, service, port string) (endpoint Endpoint)
+	NewPodEndpoint(namespace, pod, port string) (endpoint Endpoint)
+}
+
+// PortForwardingEndpoint is a service that can be reached through a local
+// address, having connections port forwarded to entities in a cluster.
+//
+type PortForwardingEndpoint struct {
+	session *gexec.Session
+	address string
+}
+
+func (p PortForwardingEndpoint) Address() string {
+	return p.address
+}
+
+func (p PortForwardingEndpoint) Close() error {
+	p.session.Interrupt()
+	return nil
+}
+
+// AddressEndpoint represents a direct address without any underlying session.
+//
+type AddressEndpoint struct {
+	address string
+}
+
+func (p AddressEndpoint) Address() string {
+	return p.address
+}
+
+func (p AddressEndpoint) Close() error {
+	return nil
+}
+
+// PortForwardingFactory deals with creating endpoints that reach the targets
+// through port-forwarding.
+//
+type PortForwardingEndpointFactory struct{}
+
+func (f PortForwardingEndpointFactory) NewServiceEndpoint(namespace, service, port string) Endpoint {
+	session, address := portForward(namespace, "service/"+service, port)
+
+	return PortForwardingEndpoint{
+		session: session,
+		address: address,
+	}
+}
+
+func (f PortForwardingEndpointFactory) NewPodEndpoint(namespace, pod, port string) Endpoint {
+	session, address := portForward(namespace, "pod/"+pod, port)
+
+	return PortForwardingEndpoint{
+		session: session,
+		address: address,
+	}
+}
+
+// AddressFactory deals with creating endpoints that reach the targets
+// through port-forwarding.
+//
+type AddressEndpointFactory struct{}
+
+func (f AddressEndpointFactory) NewServiceEndpoint(namespace, service, port string) Endpoint {
+	address := serviceAddress(namespace, service)
+
+	return AddressEndpoint{
+		address: address + ":" + port,
+	}
+}
+
+func (f AddressEndpointFactory) NewPodEndpoint(namespace, pod, port string) Endpoint {
+	address := podAddress(namespace, pod)
+
+	return AddressEndpoint{
+		address: address + ":" + port,
+	}
+}
+
+func podAddress(namespace, pod string) (address string) {
+	pods := getPods(namespace, "--field-selector=metadata.name="+pod)
+	Expect(pods).To(HaveLen(1))
+
+	return pods[0].Status.Ip
+}
+
+// serviceAddress retrieves the ClusterIP address of a service on a given
+// namespace.
+//
+func serviceAddress(namespace, serviceName string) (address string) {
+	return serviceName + "." + namespace
+}
+
+// portForward establishes a port-forwarding session against a given kubernetes
+// resource, for a particular port.
+//
+func portForward(namespace, resource, port string) (*gexec.Session, string) {
+	sess := Start(nil,
+		"kubectl", "port-forward",
+		"--namespace="+namespace,
+		resource,
+		":"+port,
+	)
+
+	Eventually(sess.Out).Should(gbytes.Say("Forwarding"))
+
+	address := regexp.MustCompile(`127\.0\.0\.1:[0-9]+`).
+		FindStringSubmatch(string(sess.Out.Contents()))
+	Expect(address).NotTo(BeEmpty())
+
+	return sess, address[0]
 }
 
 func helmDeploy(releaseName, namespace, chartDir string, args ...string) *gexec.Session {
@@ -120,7 +251,6 @@ func helmDeploy(releaseName, namespace, chartDir string, args ...string) *gexec.
 		"upgrade",
 		"--install",
 		"--force",
-		"--wait",
 		"--namespace", namespace,
 	}
 
@@ -134,12 +264,13 @@ func helmDeploy(releaseName, namespace, chartDir string, args ...string) *gexec.
 
 func helmInstallArgs(args ...string) []string {
 	helmArgs := []string{
-		"--set=web.livenessProbe.failureThreshold=3",
-		"--set=web.livenessProbe.initialDelaySeconds=3",
-		"--set=web.livenessProbe.periodSeconds=3",
-		"--set=web.livenessProbe.timeoutSeconds=3",
 		"--set=concourse.web.kubernetes.keepNamespaces=false",
+		"--set=concourse.worker.bindIp=0.0.0.0",
 		"--set=postgresql.persistence.enabled=false",
+		"--set=web.resources.requests.cpu=500m",
+		"--set=worker.readinessProbe.httpGet.path=/",
+		"--set=worker.readinessProbe.httpGet.port=worker-hc",
+		"--set=worker.resources.requests.cpu=500m",
 		"--set=image=" + Environment.ConcourseImageName}
 
 	if Environment.ConcourseImageTag != "" {
@@ -178,7 +309,10 @@ func helmDestroy(releaseName string) {
 
 func getPods(namespace string, flags ...string) []pod {
 	var (
-		pods podListResponse
+		pods struct {
+			Items []pod `json:"items"`
+		}
+
 		args = append([]string{"get", "pods",
 			"--namespace=" + namespace,
 			"--output=json",
@@ -195,16 +329,15 @@ func getPods(namespace string, flags ...string) []pod {
 }
 
 func isPodReady(p pod) bool {
-	total := len(p.Status.ContainerStatuses)
-	actual := 0
-
-	for _, containerStatus := range p.Status.ContainerStatuses {
-		if containerStatus.Ready {
-			actual++
+	for _, condition := range p.Status.Conditions {
+		if condition.Type != "ContainersReady" {
+			continue
 		}
+
+		return condition.Status == "True"
 	}
 
-	return total == actual
+	return false
 }
 
 func waitAllPodsInNamespaceToBeReady(namespace string) {
@@ -224,7 +357,7 @@ func waitAllPodsInNamespaceToBeReady(namespace string) {
 		}
 
 		return podsReady == len(expectedPods)
-	}, 5*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
+	}, 15*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
 }
 
 func deletePods(namespace string, flags ...string) []string {
@@ -246,22 +379,6 @@ func deletePods(namespace string, flags ...string) []string {
 	return podNames
 }
 
-func startPortForwardingWithProtocol(namespace, resource, port, protocol string) (*gexec.Session, string) {
-	session := Start(nil, "kubectl", "port-forward", "--namespace="+namespace, resource, ":"+port)
-	Eventually(session.Out).Should(gbytes.Say("Forwarding"))
-
-	address := regexp.MustCompile(`127\.0\.0\.1:[0-9]+`).
-		FindStringSubmatch(string(session.Out.Contents()))
-
-	Expect(address).NotTo(BeEmpty())
-
-	return session, protocol + "://" + address[0]
-}
-
-func startPortForwarding(namespace, resource, port string) (*gexec.Session, string) {
-	return startPortForwardingWithProtocol(namespace, resource, port, "http")
-}
-
 func getRunningWorkers(workers []Worker) (running []Worker) {
 	for _, w := range workers {
 		if w.State == "running" {
@@ -271,13 +388,28 @@ func getRunningWorkers(workers []Worker) (running []Worker) {
 	return
 }
 
-func cleanup(releaseName, namespace string, proxySession *gexec.Session) {
+func waitAndLogin(namespace, service string) Endpoint {
+	waitAllPodsInNamespaceToBeReady(namespace)
+
+	atc := endpointFactory.NewServiceEndpoint(
+		namespace,
+		service,
+		"8080",
+	)
+
+	fly.Login("test", "test", "http://"+atc.Address())
+
+	Eventually(func() []Worker {
+		return getRunningWorkers(fly.GetWorkers())
+	}, 2*time.Minute, 10*time.Second).
+		ShouldNot(HaveLen(0))
+
+	return atc
+}
+
+func cleanup(releaseName, namespace string) {
 	helmDestroy(releaseName)
 	Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
-
-	if proxySession != nil {
-		Wait(proxySession.Interrupt())
-	}
 }
 
 func onPks(f func()) {
