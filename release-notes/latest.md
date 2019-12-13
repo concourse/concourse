@@ -74,6 +74,12 @@
 
 * @witjem removed superfluous mentions of `register-worker` from TSA. #4816
 
+#### <sub><sup><a name="4869" href="#4869">:link:</a></sup></sub> fix
+
+* @vito bumped the default value for the Let's Encrypt ACME URL to point to their v2 API instead of v1. This should have been in v5.7.2, but we had no automated testing for Let's Encrypt integration so there wasn't really a mental cue to check for this sort of thing.
+
+  We're adding Let's Encrypt to our smoke tests now to catch API deprecations more quickly, and a unit test has been added to ensure that the default value for the ACME URL flag matches the default value for the client. #4869
+
 #### <sub><sup><a name="4587" href="#4587">:link:</a></sup></sub> fix
 
 * @pivotal-bin-ju fixed x509 issue when the super admin login without CACert after the first sucessful login. #4587
