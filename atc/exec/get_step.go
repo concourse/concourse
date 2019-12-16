@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"context"
 	"fmt"
+	"github.com/concourse/concourse/vars"
 	"io"
 
 	"github.com/hashicorp/go-multierror"
@@ -39,11 +40,18 @@ func (e ErrResourceNotFound) Error() string {
 //go:generate counterfeiter . GetDelegate
 
 type GetDelegate interface {
-	BuildStepDelegate
+	ImageVersionDetermined(db.UsedResourceCache) error
+
+	Stdout() io.Writer
+	Stderr() io.Writer
+
+	Variables() vars.CredVarsTracker
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, VersionInfo)
+	Errored(lager.Logger, string)
+
 	UpdateVersion(lager.Logger, atc.GetPlan, VersionInfo)
 }
 

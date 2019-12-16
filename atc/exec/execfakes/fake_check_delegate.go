@@ -19,6 +19,12 @@ type FakeCheckDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
+	FinishedStub        func(lager.Logger, bool)
+	finishedMutex       sync.RWMutex
+	finishedArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 bool
+	}
 	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
@@ -30,6 +36,11 @@ type FakeCheckDelegate struct {
 	imageVersionDeterminedReturnsOnCall map[int]struct {
 		result1 error
 	}
+	InitializingStub        func(lager.Logger)
+	initializingMutex       sync.RWMutex
+	initializingArgsForCall []struct {
+		arg1 lager.Logger
+	}
 	SaveVersionsStub        func([]atc.Version) error
 	saveVersionsMutex       sync.RWMutex
 	saveVersionsArgsForCall []struct {
@@ -40,6 +51,11 @@ type FakeCheckDelegate struct {
 	}
 	saveVersionsReturnsOnCall map[int]struct {
 		result1 error
+	}
+	StartingStub        func(lager.Logger)
+	startingMutex       sync.RWMutex
+	startingArgsForCall []struct {
+		arg1 lager.Logger
 	}
 	StderrStub        func() io.Writer
 	stderrMutex       sync.RWMutex
@@ -107,6 +123,38 @@ func (fake *FakeCheckDelegate) ErroredArgsForCall(i int) (lager.Logger, string) 
 	return argsForCall.arg1, argsForCall.arg2
 }
 
+func (fake *FakeCheckDelegate) Finished(arg1 lager.Logger, arg2 bool) {
+	fake.finishedMutex.Lock()
+	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 bool
+	}{arg1, arg2})
+	fake.recordInvocation("Finished", []interface{}{arg1, arg2})
+	fake.finishedMutex.Unlock()
+	if fake.FinishedStub != nil {
+		fake.FinishedStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeCheckDelegate) FinishedCallCount() int {
+	fake.finishedMutex.RLock()
+	defer fake.finishedMutex.RUnlock()
+	return len(fake.finishedArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) FinishedCalls(stub func(lager.Logger, bool)) {
+	fake.finishedMutex.Lock()
+	defer fake.finishedMutex.Unlock()
+	fake.FinishedStub = stub
+}
+
+func (fake *FakeCheckDelegate) FinishedArgsForCall(i int) (lager.Logger, bool) {
+	fake.finishedMutex.RLock()
+	defer fake.finishedMutex.RUnlock()
+	argsForCall := fake.finishedArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
 func (fake *FakeCheckDelegate) ImageVersionDetermined(arg1 db.UsedResourceCache) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	ret, specificReturn := fake.imageVersionDeterminedReturnsOnCall[len(fake.imageVersionDeterminedArgsForCall)]
@@ -165,6 +213,37 @@ func (fake *FakeCheckDelegate) ImageVersionDeterminedReturnsOnCall(i int, result
 	fake.imageVersionDeterminedReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeCheckDelegate) Initializing(arg1 lager.Logger) {
+	fake.initializingMutex.Lock()
+	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("Initializing", []interface{}{arg1})
+	fake.initializingMutex.Unlock()
+	if fake.InitializingStub != nil {
+		fake.InitializingStub(arg1)
+	}
+}
+
+func (fake *FakeCheckDelegate) InitializingCallCount() int {
+	fake.initializingMutex.RLock()
+	defer fake.initializingMutex.RUnlock()
+	return len(fake.initializingArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) InitializingCalls(stub func(lager.Logger)) {
+	fake.initializingMutex.Lock()
+	defer fake.initializingMutex.Unlock()
+	fake.InitializingStub = stub
+}
+
+func (fake *FakeCheckDelegate) InitializingArgsForCall(i int) lager.Logger {
+	fake.initializingMutex.RLock()
+	defer fake.initializingMutex.RUnlock()
+	argsForCall := fake.initializingArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeCheckDelegate) SaveVersions(arg1 []atc.Version) error {
@@ -230,6 +309,37 @@ func (fake *FakeCheckDelegate) SaveVersionsReturnsOnCall(i int, result1 error) {
 	fake.saveVersionsReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeCheckDelegate) Starting(arg1 lager.Logger) {
+	fake.startingMutex.Lock()
+	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.recordInvocation("Starting", []interface{}{arg1})
+	fake.startingMutex.Unlock()
+	if fake.StartingStub != nil {
+		fake.StartingStub(arg1)
+	}
+}
+
+func (fake *FakeCheckDelegate) StartingCallCount() int {
+	fake.startingMutex.RLock()
+	defer fake.startingMutex.RUnlock()
+	return len(fake.startingArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) StartingCalls(stub func(lager.Logger)) {
+	fake.startingMutex.Lock()
+	defer fake.startingMutex.Unlock()
+	fake.StartingStub = stub
+}
+
+func (fake *FakeCheckDelegate) StartingArgsForCall(i int) lager.Logger {
+	fake.startingMutex.RLock()
+	defer fake.startingMutex.RUnlock()
+	argsForCall := fake.startingArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeCheckDelegate) Stderr() io.Writer {
@@ -393,10 +503,16 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
+	fake.finishedMutex.RLock()
+	defer fake.finishedMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
+	fake.initializingMutex.RLock()
+	defer fake.initializingMutex.RUnlock()
 	fake.saveVersionsMutex.RLock()
 	defer fake.saveVersionsMutex.RUnlock()
+	fake.startingMutex.RLock()
+	defer fake.startingMutex.RUnlock()
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()

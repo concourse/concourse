@@ -99,7 +99,7 @@ type RunCommand struct {
 
 	LetsEncrypt struct {
 		Enable  bool     `long:"enable-lets-encrypt"   description:"Automatically configure TLS certificates via Let's Encrypt/ACME."`
-		ACMEURL flag.URL `long:"lets-encrypt-acme-url" description:"URL of the ACME CA directory endpoint." default:"https://acme-v01.api.letsencrypt.org/directory"`
+		ACMEURL flag.URL `long:"lets-encrypt-acme-url" description:"URL of the ACME CA directory endpoint." default:"https://acme-v02.api.letsencrypt.org/directory"`
 	} `group:"Let's Encrypt Configuration"`
 
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
@@ -452,7 +452,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	cmd.varSourcePool = creds.NewVarSourcePool(5 * time.Minute, clock.NewClock())
+	cmd.varSourcePool = creds.NewVarSourcePool(5*time.Minute, clock.NewClock())
 
 	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
@@ -800,6 +800,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		pool,
 		workerClient,
 		resourceFetcher,
+		teamFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		secretManager,
@@ -1453,6 +1454,7 @@ func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
 	workerClient worker.Client,
 	resourceFetcher fetcher.Fetcher,
+	teamFactory db.TeamFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	secretManager creds.Secrets,
@@ -1466,6 +1468,7 @@ func (cmd *RunCommand) constructEngine(
 		workerPool,
 		workerClient,
 		resourceFetcher,
+		teamFactory,
 		resourceCacheFactory,
 		resourceConfigFactory,
 		defaultLimits,

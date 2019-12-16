@@ -2,7 +2,6 @@ package builder
 
 import (
 	"io"
-	"io/ioutil"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -33,6 +32,10 @@ func (delegate *delegateFactory) PutDelegate(build db.Build, planID atc.PlanID, 
 
 func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.TaskDelegate {
 	return NewTaskDelegate(build, planID, credVarsTracker, clock.NewClock())
+}
+
+func (delegate *delegateFactory) SetPipelineDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.BuildStepDelegate {
+	return NewBuildStepDelegate(build, planID, credVarsTracker, clock.NewClock())
 }
 
 func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.CheckDelegate {
@@ -316,8 +319,19 @@ func (d *checkDelegate) SaveVersions(versions []atc.Version) error {
 	return d.check.SaveVersions(versions)
 }
 
-func (*checkDelegate) Stdout() io.Writer                                 { return ioutil.Discard }
-func (*checkDelegate) Stderr() io.Writer                                 { return ioutil.Discard }
+type discardCloser struct {
+}
+
+func (d discardCloser) Write(p []byte) (int, error) {
+	return len(p), nil
+}
+
+func (d discardCloser) Close() error {
+	return nil
+}
+
+func (*checkDelegate) Stdout() io.Writer                                 { return discardCloser{} }
+func (*checkDelegate) Stderr() io.Writer                                 { return discardCloser{} }
 func (*checkDelegate) ImageVersionDetermined(db.UsedResourceCache) error { return nil }
 func (*checkDelegate) Errored(lager.Logger, string)                      { return }
 
@@ -376,32 +390,104 @@ func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
 
 func (delegate *buildStepDelegate) Stdout() io.Writer {
 	if delegate.stdout == nil {
-		delegate.stdout = newDBEventWriterWithSecretRedaction(
-			delegate.build,
-			event.Origin{
-				Source: event.OriginSourceStdout,
-				ID:     event.OriginID(delegate.planID),
-			},
-			delegate.clock,
-			delegate.buildOutputFilter,
-		)
+		if delegate.credVarsTracker.Enabled() {
+			delegate.stdout = newDBEventWriterWithSecretRedaction(
+				delegate.build,
+				event.Origin{
+					Source: event.OriginSourceStdout,
+					ID:     event.OriginID(delegate.planID),
+				},
+				delegate.clock,
+				delegate.buildOutputFilter,
+			)
+		} else {
+			delegate.stdout = newDBEventWriter(
+				delegate.build,
+				event.Origin{
+					Source: event.OriginSourceStdout,
+					ID:     event.OriginID(delegate.planID),
+				},
+				delegate.clock,
+			)
+		}
 	}
 	return delegate.stdout
 }
 
 func (delegate *buildStepDelegate) Stderr() io.Writer {
 	if delegate.stderr == nil {
-		delegate.stderr = newDBEventWriterWithSecretRedaction(
-			delegate.build,
-			event.Origin{
-				Source: event.OriginSourceStderr,
-				ID:     event.OriginID(delegate.planID),
-			},
-			delegate.clock,
-			delegate.buildOutputFilter,
-		)
+		if delegate.credVarsTracker.Enabled() {
+			delegate.stderr = newDBEventWriterWithSecretRedaction(
+				delegate.build,
+				event.Origin{
+					Source: event.OriginSourceStderr,
+					ID:     event.OriginID(delegate.planID),
+				},
+				delegate.clock,
+				delegate.buildOutputFilter,
+			)
+		} else {
+			delegate.stderr = newDBEventWriter(
+				delegate.build,
+				event.Origin{
+					Source: event.OriginSourceStderr,
+					ID:     event.OriginID(delegate.planID),
+				},
+				delegate.clock,
+			)
+		}
 	}
 	return delegate.stderr
+}
+
+func (delegate *buildStepDelegate) Initializing(logger lager.Logger) {
+	err := delegate.build.SaveEvent(event.Initialize{
+		Origin: event.Origin{
+			ID: event.OriginID(delegate.planID),
+		},
+		Time: time.Now().Unix(),
+	})
+	if err != nil {
+		logger.Error("failed-to-save-initialize-event", err)
+		return
+	}
+
+	logger.Info("initializing")
+}
+
+func (delegate *buildStepDelegate) Starting(logger lager.Logger) {
+	err := delegate.build.SaveEvent(event.Start{
+		Origin: event.Origin{
+			ID: event.OriginID(delegate.planID),
+		},
+		Time: time.Now().Unix(),
+	})
+	if err != nil {
+		logger.Error("failed-to-save-start-event", err)
+		return
+	}
+
+	logger.Debug("starting")
+}
+
+func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool) {
+	// PR#4398: close to flush stdout and stderr
+	delegate.Stdout().(io.Closer).Close()
+	delegate.Stderr().(io.Closer).Close()
+
+	err := delegate.build.SaveEvent(event.Finish{
+		Origin: event.Origin{
+			ID: event.OriginID(delegate.planID),
+		},
+		Time:      time.Now().Unix(),
+		Succeeded: succeeded,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-finish-event", err)
+		return
+	}
+
+	logger.Info("finished")
 }
 
 func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) {
@@ -417,22 +503,11 @@ func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) 
 	}
 }
 
-func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock) io.Writer {
+func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock) io.WriteCloser {
 	return &dbEventWriter{
 		build:  build,
 		origin: origin,
 		clock:  clock,
-	}
-}
-
-func newDBEventWriterWithSecretRedaction(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.WriteCloser {
-	return &dbEventWriterWithSecretRedaction{
-		dbEventWriter: dbEventWriter{
-			build:  build,
-			origin: origin,
-			clock:  clock,
-		},
-		filter: filter,
 	}
 }
 
@@ -476,6 +551,21 @@ func (writer *dbEventWriter) saveLog(text string) error {
 		Payload: text,
 		Origin:  writer.origin,
 	})
+}
+
+func (writer *dbEventWriter) Close() error {
+	return nil
+}
+
+func newDBEventWriterWithSecretRedaction(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.Writer {
+	return &dbEventWriterWithSecretRedaction{
+		dbEventWriter: dbEventWriter{
+			build:  build,
+			origin: origin,
+			clock:  clock,
+		},
+		filter: filter,
+	}
 }
 
 type dbEventWriterWithSecretRedaction struct {

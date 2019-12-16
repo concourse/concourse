@@ -1,8 +1,7 @@
 package tsa
 
 const (
-	ForwardWorker  = "forward-worker"
-	RegisterWorker = "register-worker"
+	ForwardWorker = "forward-worker"
 
 	LandWorker   = "land-worker"
 	RetireWorker = "retire-worker"

@@ -617,7 +617,7 @@ func (event WorkersState) Emit(logger lager.Logger) {
 	for _, workerState := range event.WorkerStateByName {
 		_, exists := perStateCounter[workerState]
 		if !exists {
-			perStateCounter[workerState] = 1
+			perStateCounter[workerState] = 0
 			continue
 		}
 

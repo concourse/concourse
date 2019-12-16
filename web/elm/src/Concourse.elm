@@ -319,6 +319,7 @@ type alias StepName =
 
 type BuildStep
     = BuildStepTask StepName
+    | BuildStepSetPipeline StepName
     | BuildStepArtifactInput StepName
     | BuildStepGet StepName (Maybe Version)
     | BuildStepArtifactOutput StepName
@@ -389,6 +390,8 @@ decodeBuildPlan_ =
                     lazy (\_ -> decodeBuildStepRetry)
                 , Json.Decode.field "timeout" <|
                     lazy (\_ -> decodeBuildStepTimeout)
+                , Json.Decode.field "set_pipeline" <|
+                    lazy (\_ -> decodeBuildSetPipeline)
                 ]
             )
 
@@ -503,6 +506,12 @@ decodeBuildStepTimeout : Json.Decode.Decoder BuildStep
 decodeBuildStepTimeout =
     Json.Decode.succeed BuildStepTimeout
         |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+
+
+decodeBuildSetPipeline : Json.Decode.Decoder BuildStep
+decodeBuildSetPipeline =
+    Json.Decode.succeed BuildStepSetPipeline
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
 
