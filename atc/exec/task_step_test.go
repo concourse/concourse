@@ -20,7 +20,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-
 )
 
 var _ = Describe("TaskStep", func() {
@@ -206,12 +205,12 @@ var _ = Describe("TaskStep", func() {
 							ImageURL:   "some-image",
 							Privileged: false,
 						},
-						Type:    "task",
-						Dir:     "some-artifact-root",
-						Env:     []string{"SOME=params"},
+						Type: "task",
+						Dir:  "some-artifact-root",
+						Env:  []string{"SOME=params"},
 
 						ArtifactByPath: map[string]runtime.Artifact{},
-						Outputs: worker.OutputPaths{},
+						Outputs:        worker.OutputPaths{},
 					}))
 
 				})

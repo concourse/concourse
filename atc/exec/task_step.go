@@ -3,10 +3,10 @@ package exec
 import (
 	"context"
 	"fmt"
+	"io"
 	"path"
 	"path/filepath"
 	"strings"
-	"io"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -346,7 +346,7 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 		Env:       config.Params.Env(),
 		Type:      metadata.Type,
 
-		Outputs:      worker.OutputPaths{},
+		Outputs: worker.OutputPaths{},
 	}
 
 	containerSpec.ArtifactByPath, err = step.containerInputs(logger, repository, config, metadata)

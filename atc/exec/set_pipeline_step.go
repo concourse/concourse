@@ -14,11 +14,11 @@ import (
 
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/configvalidate"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/configvalidate"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -30,7 +30,7 @@ type SetPipelineStep struct {
 	metadata    StepMetadata
 	delegate    BuildStepDelegate
 	teamFactory db.TeamFactory
-	client worker.Client
+	client      worker.Client
 	succeeded   bool
 }
 
@@ -48,7 +48,7 @@ func NewSetPipelineStep(
 		metadata:    metadata,
 		delegate:    delegate,
 		teamFactory: teamFactory,
-		client: client,
+		client:      client,
 	}
 }
 
