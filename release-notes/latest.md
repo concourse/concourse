@@ -83,3 +83,11 @@
 #### <sub><sup><a name="4587" href="#4587">:link:</a></sup></sub> fix
 
 * @pivotal-bin-ju fixed x509 issue when the super admin login without CACert after the first sucessful login. #4587
+
+#### <sub><sup><a name="4693" href="#4693">:link:</a></sup></sub> fix
+
+* @AndrewCopeland and @cyberark-bizdev added support for Conjur as a credential manager. #4693
+
+#### <sub><sup><a name="4684" href="4684">:link:</a></sup></sub> feature
+
+* @anianz added support for Microsoft login via [dex](https://github.com/dexidp/dex/blob/master/Documentation/connectors/microsoft.md)
