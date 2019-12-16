@@ -116,8 +116,10 @@ github.com/concourse/baggageclaim v1.4.0 h1:pNohKpBWgr9RWvDoEpsi+IhPJ67ZaKt0/o/W
 github.com/concourse/baggageclaim v1.4.0/go.mod h1:JXDes0u8KKR4DDDATN1uLTMxNrQlTJcU0FeAtHqSkSg=
 github.com/concourse/dex v0.0.0-20190227205709-0d3a1049c2d9 h1:nOfFldnpftQS6nzLM2p7wvAChsGQ+76VNUwD1xxIics=
 github.com/concourse/dex v0.0.0-20190227205709-0d3a1049c2d9/go.mod h1:jq+kdbXyj+bEdch50oYfPCNK4ZCRKAd/R0wlZuAG+Gc=
-github.com/concourse/dex v0.0.0-20191119220255-bcdd275f4da6 h1:19EYY7x5+pJWiio03BP+02VgG7Ht7rEIznN2HkLuNZ0=
-github.com/concourse/dex v0.0.0-20191119220255-bcdd275f4da6/go.mod h1:jq+kdbXyj+bEdch50oYfPCNK4ZCRKAd/R0wlZuAG+Gc=
+github.com/concourse/dex v0.0.0-20190417202333-2202f4ef4172 h1:lYBXqY+XJmyMD3uthg734qIxdHU+lAF8mnVk72gdFCA=
+github.com/concourse/dex v0.0.0-20190417202333-2202f4ef4172/go.mod h1:jq+kdbXyj+bEdch50oYfPCNK4ZCRKAd/R0wlZuAG+Gc=
+github.com/concourse/dex v0.0.0-20191107173655-3f960dc92531 h1:B1RKVHPqX5HIwsHc4F2+1xVUX3HPkHfpZaJL3DIidJ4=
+github.com/concourse/dex v0.0.0-20191107173655-3f960dc92531/go.mod h1:jq+kdbXyj+bEdch50oYfPCNK4ZCRKAd/R0wlZuAG+Gc=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/flag v1.0.0 h1:XG+A/Y+8kNdNDUC9T+SQ55dZ1+xYQN6LNVBg3cGJ080=
 github.com/concourse/flag v1.0.0/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
