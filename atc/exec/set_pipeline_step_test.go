@@ -23,7 +23,7 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
-var _ = Describe("GetStep", func() {
+var _ = Describe("SetPipelineStep", func() {
 
 	const badPipelineContentWithInvalidSyntax = `
 ---
@@ -186,7 +186,6 @@ jobs:
 		Context("pipeline file not exist", func() {
 			BeforeEach(func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(nil, errors.New("file not found"))
-				// fakeSource.StreamFileReturns(nil, errors.New("file not found"))
 			})
 
 			It("should fail with error of file not configured", func() {
