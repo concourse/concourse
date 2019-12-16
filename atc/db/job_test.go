@@ -614,7 +614,7 @@ var _ = Describe("Job", func() {
 		})
 	})
 
-	FDescribe("ScheduleBuild", func() {
+	Describe("ScheduleBuild", func() {
 		var (
 			schedulingBuild            db.Build
 			scheduleFound, reloadFound bool
@@ -886,7 +886,7 @@ var _ = Describe("Job", func() {
 
 					saveMaxInFlightPipeline()
 
-					FIt("returns max in flight reached so it does not schedule", func() {
+					It("returns max in flight reached so it does not schedule", func() {
 						Expect(schedulingErr).ToNot(HaveOccurred())
 						Expect(scheduleFound).To(BeFalse())
 						Expect(reloadFound).To(BeTrue())
@@ -1943,6 +1943,200 @@ var _ = Describe("Job", func() {
 			Expect(found).To(BeTrue())
 
 			Expect(job.HasNewInputs()).To(BeFalse())
+		})
+	})
+
+	Describe("Inputs", func() {
+		var inputsJob db.Job
+
+		BeforeEach(func() {
+			inputsPipeline, _, err := team.SavePipeline("inputs-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						Plan: atc.PlanSequence{
+							{
+								Put: "some-resource",
+							},
+							{
+								Get:      "some-input",
+								Resource: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+								Passed:  []string{"job-1", "job-2"},
+								Trigger: true,
+								Version: &atc.VersionConfig{Every: true},
+							},
+							{
+								Task:           "some-task",
+								Privileged:     true,
+								TaskConfigPath: "some/config/path.yml",
+								TaskConfig: &atc.TaskConfig{
+									RootfsURI: "some-image",
+								},
+							},
+							{
+								Get: "some-resource",
+							},
+							{
+								Get:      "some-other-input",
+								Resource: "some-resource",
+								Version:  &atc.VersionConfig{Latest: true},
+							},
+							{
+								Get:     "some-other-resource",
+								Trigger: true,
+								Version: &atc.VersionConfig{Pinned: atc.Version{"pinned": "version"}},
+							},
+						},
+					},
+					{
+						Name: "some-other-job",
+						Plan: atc.PlanSequence{
+							{
+								Get:      "other-job-resource",
+								Resource: "some-resource",
+							},
+						},
+					},
+					{
+						Name: "job-1",
+					},
+					{
+						Name: "job-2",
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+					},
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+					},
+				},
+			}, db.ConfigVersion(0), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			inputsJob, found, err = inputsPipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		It("returns inputs for the job", func() {
+			inputs, err := inputsJob.Inputs()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(inputs).To(Equal([]atc.JobInput{
+				{
+					Name:     "some-input",
+					Resource: "some-resource",
+					Passed:   []string{"job-1", "job-2"},
+					Trigger:  true,
+					Version:  &atc.VersionConfig{Every: true},
+				},
+				{
+					Name:     "some-other-input",
+					Resource: "some-resource",
+					Version:  &atc.VersionConfig{Latest: true},
+				},
+				{
+					Name:     "some-other-resource",
+					Resource: "some-other-resource",
+					Trigger:  true,
+					Version:  &atc.VersionConfig{Pinned: atc.Version{"pinned": "version"}},
+				},
+				{
+					Name:     "some-resource",
+					Resource: "some-resource",
+				},
+			}))
+		})
+	})
+
+	Describe("Outputs", func() {
+		var outputsJob db.Job
+
+		BeforeEach(func() {
+			outputsPipeline, _, err := team.SavePipeline("outputs-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						Plan: atc.PlanSequence{
+							{
+								Put: "some-other-resource",
+							},
+							{
+								Task:           "some-task",
+								Privileged:     true,
+								TaskConfigPath: "some/config/path.yml",
+								TaskConfig: &atc.TaskConfig{
+									RootfsURI: "some-image",
+								},
+							},
+							{
+								Get: "some-resource",
+							},
+							{
+								Put:      "some-output",
+								Resource: "some-resource",
+							},
+							{
+								Put:      "some-other-output",
+								Resource: "some-resource",
+							},
+						},
+					},
+					{
+						Name: "some-other-job",
+						Plan: atc.PlanSequence{
+							{
+								Put:      "other-job-resource",
+								Resource: "some-resource",
+							},
+						},
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+					},
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+					},
+				},
+			}, db.ConfigVersion(0), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			outputsJob, found, err = outputsPipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		It("returns outputs for the job", func() {
+			outputs, err := outputsJob.Outputs()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(outputs).To(Equal([]atc.JobOutput{
+				{
+					Name:     "some-other-output",
+					Resource: "some-resource",
+				},
+				{
+					Name:     "some-other-resource",
+					Resource: "some-other-resource",
+				},
+				{
+					Name:     "some-output",
+					Resource: "some-resource",
+				},
+			}))
 		})
 	})
 })

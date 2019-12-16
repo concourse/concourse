@@ -72,7 +72,7 @@ type Pipeline interface {
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
-	Dashboard() (Dashboard, error)
+	Dashboard() (atc.Dashboard, error)
 
 	Expose() error
 	Hide() error
@@ -516,7 +516,7 @@ func (p *pipeline) Jobs() (Jobs, error) {
 	return jobs, err
 }
 
-func (p *pipeline) Dashboard() (Dashboard, error) {
+func (p *pipeline) Dashboard() (atc.Dashboard, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err

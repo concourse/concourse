@@ -4,13 +4,12 @@ import (
 	"strconv"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
 
 func DashboardJob(
 	teamName string,
-	job db.DashboardJob,
+	job atc.DashboardJob,
 ) atc.Job {
 	var presentedNextBuild, presentedFinishedBuild, presentedTransitionBuild *atc.Build
 
@@ -30,11 +29,12 @@ func DashboardJob(
 	}
 
 	sanitizedInputs := []atc.JobInput{}
-	for _, input := range job.Inputs() {
+	for _, input := range job.Inputs {
 		sanitizedInputs = append(sanitizedInputs, atc.JobInput{
 			Name:     input.Name,
 			Resource: input.Resource,
 			Passed:   input.Passed,
+			Trigger:  input.Trigger,
 		})
 	}
 
@@ -57,7 +57,7 @@ func DashboardJob(
 	}
 }
 
-func DashboardBuild(build db.DashboardBuild) atc.Build {
+func DashboardBuild(build atc.DashboardBuild) atc.Build {
 	apiURL, err := atc.Routes.CreatePathForRoute(atc.GetBuild, rata.Params{
 		"build_id":  strconv.Itoa(build.ID),
 		"team_name": build.TeamName,

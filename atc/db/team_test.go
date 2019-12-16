@@ -1887,11 +1887,17 @@ var _ = Describe("Team", func() {
 					Name: "job-2",
 				},
 			}
+			config.Resources = atc.ResourceConfigs{
+				{
+					Name: "some-resource",
+					Type: "some-type",
+				},
+			}
 
 			savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
 			Expect(err).ToNot(HaveOccurred())
 
-			_, found, err := savedPipeline.Resource("some-resource")
+			_, found, err := savedPipeline.Resource("some-other-resource")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})

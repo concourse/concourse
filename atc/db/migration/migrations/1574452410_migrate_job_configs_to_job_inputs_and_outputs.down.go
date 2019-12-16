@@ -13,5 +13,10 @@ func (self *migrations) Down_1574452410() error {
 		return err
 	}
 
+	_, err = tx.Exec("TRUNCATE TABLE job_outputs")
+	if err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }

@@ -108,39 +108,39 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[3].Name).To(Equal("public-pipeline-job-3"))
 
 				Expect(visibleJobs[0].Inputs).To(BeNil())
-				Expect(visibleJobs[1].Inputs).To(ConsistOf(
-					db.JobInput{
-						Name:     "some-resource",
-						Resource: "some-resource",
-					},
-					db.JobInput{
+				Expect(visibleJobs[1].Inputs).To(Equal([]atc.DashboardJobInput{
+					atc.DashboardJobInput{
 						Name:     "some-other-resource",
 						Resource: "some-other-resource",
 					},
-				))
-				Expect(visibleJobs[2].Inputs).To(ConsistOf(
-					db.JobInput{
+					atc.DashboardJobInput{
 						Name:     "some-resource",
 						Resource: "some-resource",
-						Passed:   []string{"public-pipeline-job-1"},
 					},
-					db.JobInput{
-						Name:     "some-other-resource",
-						Resource: "some-other-resource",
-						Passed:   []string{"public-pipeline-job-1"},
-					},
-					db.JobInput{
+				}))
+				Expect(visibleJobs[2].Inputs).To(Equal([]atc.DashboardJobInput{
+					atc.DashboardJobInput{
 						Name:     "resource",
 						Resource: "some-resource",
 					},
-				))
-				Expect(visibleJobs[3].Inputs).To(ConsistOf(
-					db.JobInput{
+					atc.DashboardJobInput{
+						Name:     "some-other-resource",
+						Resource: "some-other-resource",
+						Passed:   []string{"public-pipeline-job-1"},
+					},
+					atc.DashboardJobInput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+						Passed:   []string{"public-pipeline-job-1"},
+					},
+				}))
+				Expect(visibleJobs[3].Inputs).To(Equal([]atc.DashboardJobInput{
+					atc.DashboardJobInput{
 						Name:     "some-resource",
 						Resource: "some-resource",
 						Passed:   []string{"public-pipeline-job-1", "public-pipeline-job-2"},
 					},
-				))
+				}))
 			})
 
 			It("returns next build, latest completed build, and transition build for each job", func() {
@@ -180,7 +180,7 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[0].NextBuild.JobName).To(Equal(nextBuild.JobName()))
 				Expect(visibleJobs[0].NextBuild.PipelineName).To(Equal(nextBuild.PipelineName()))
 				Expect(visibleJobs[0].NextBuild.TeamName).To(Equal(nextBuild.TeamName()))
-				Expect(visibleJobs[0].NextBuild.Status).To(Equal(nextBuild.Status()))
+				Expect(visibleJobs[0].NextBuild.Status).To(Equal(string(nextBuild.Status())))
 				Expect(visibleJobs[0].NextBuild.StartTime).To(Equal(nextBuild.StartTime()))
 				Expect(visibleJobs[0].NextBuild.EndTime).To(Equal(nextBuild.EndTime()))
 
@@ -189,7 +189,7 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[0].FinishedBuild.JobName).To(Equal(finishedBuild.JobName()))
 				Expect(visibleJobs[0].FinishedBuild.PipelineName).To(Equal(finishedBuild.PipelineName()))
 				Expect(visibleJobs[0].FinishedBuild.TeamName).To(Equal(finishedBuild.TeamName()))
-				Expect(visibleJobs[0].FinishedBuild.Status).To(Equal(finishedBuild.Status()))
+				Expect(visibleJobs[0].FinishedBuild.Status).To(Equal(string(finishedBuild.Status())))
 				Expect(visibleJobs[0].FinishedBuild.StartTime).To(Equal(finishedBuild.StartTime()))
 				Expect(visibleJobs[0].FinishedBuild.EndTime).To(Equal(finishedBuild.EndTime()))
 
@@ -198,7 +198,7 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[0].TransitionBuild.JobName).To(Equal(transitionBuild.JobName()))
 				Expect(visibleJobs[0].TransitionBuild.PipelineName).To(Equal(transitionBuild.PipelineName()))
 				Expect(visibleJobs[0].TransitionBuild.TeamName).To(Equal(transitionBuild.TeamName()))
-				Expect(visibleJobs[0].TransitionBuild.Status).To(Equal(transitionBuild.Status()))
+				Expect(visibleJobs[0].TransitionBuild.Status).To(Equal(string(transitionBuild.Status())))
 				Expect(visibleJobs[0].TransitionBuild.StartTime).To(Equal(transitionBuild.StartTime()))
 				Expect(visibleJobs[0].TransitionBuild.EndTime).To(Equal(transitionBuild.EndTime()))
 			})
@@ -217,45 +217,45 @@ var _ = Describe("Job Factory", func() {
 				Expect(allJobs[4].Name).To(Equal("private-pipeline-job"))
 
 				Expect(allJobs[0].Inputs).To(BeNil())
-				Expect(allJobs[1].Inputs).To(ConsistOf(
-					db.JobInput{
-						Name:     "some-resource",
-						Resource: "some-resource",
-					},
-					db.JobInput{
+				Expect(allJobs[1].Inputs).To(Equal([]atc.DashboardJobInput{
+					atc.DashboardJobInput{
 						Name:     "some-other-resource",
 						Resource: "some-other-resource",
 					},
-				))
-				Expect(allJobs[2].Inputs).To(ConsistOf(
-					db.JobInput{
+					atc.DashboardJobInput{
 						Name:     "some-resource",
 						Resource: "some-resource",
-						Passed:   []string{"public-pipeline-job-1"},
 					},
-					db.JobInput{
-						Name:     "some-other-resource",
-						Resource: "some-other-resource",
-						Passed:   []string{"public-pipeline-job-1"},
-					},
-					db.JobInput{
+				}))
+				Expect(allJobs[2].Inputs).To(Equal([]atc.DashboardJobInput{
+					atc.DashboardJobInput{
 						Name:     "resource",
 						Resource: "some-resource",
 					},
-				))
-				Expect(allJobs[3].Inputs).To(ConsistOf(
-					db.JobInput{
+					atc.DashboardJobInput{
+						Name:     "some-other-resource",
+						Resource: "some-other-resource",
+						Passed:   []string{"public-pipeline-job-1"},
+					},
+					atc.DashboardJobInput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+						Passed:   []string{"public-pipeline-job-1"},
+					},
+				}))
+				Expect(allJobs[3].Inputs).To(Equal([]atc.DashboardJobInput{
+					atc.DashboardJobInput{
 						Name:     "some-resource",
 						Resource: "some-resource",
 						Passed:   []string{"public-pipeline-job-1", "public-pipeline-job-2"},
 					},
-				))
-				Expect(allJobs[4].Inputs).To(ConsistOf(
-					db.JobInput{
+				}))
+				Expect(allJobs[4].Inputs).To(Equal([]atc.DashboardJobInput{
+					atc.DashboardJobInput{
 						Name:     "some-resource",
 						Resource: "some-resource",
 					},
-				))
+				}))
 			})
 		})
 	})

@@ -16,6 +16,7 @@ type BuildStarter interface {
 		logger lager.Logger,
 		pipeline db.Pipeline,
 		job db.Job,
+		inputs []atc.JobInput,
 		resources db.Resources,
 		relatedJobs algorithm.NameToIDMap,
 	) (bool, error)
@@ -53,7 +54,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	logger lager.Logger,
 	pipeline db.Pipeline,
 	job db.Job,
-	decryptedConfig atc.JobConfigs,
+	jobInputs []atc.JobInput,
 	resources db.Resources,
 	relatedJobs algorithm.NameToIDMap,
 ) (bool, error) {
@@ -62,7 +63,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 		return false, fmt.Errorf("get pending builds: %w", err)
 	}
 
-	schedulableBuilds := s.constructBuilds(job, resources, relatedJobs, nextPendingBuilds)
+	schedulableBuilds := s.constructBuilds(job, jobInputs, resources, relatedJobs, nextPendingBuilds)
 
 	for _, nextSchedulableBuild := range schedulableBuilds {
 		results, err := s.tryStartNextPendingBuild(logger, pipeline, nextSchedulableBuild, job, resources)
@@ -83,7 +84,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	return false, nil
 }
 
-func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
+func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
 	schedulableBuilds := []Build{}
 
 	for _, nextPendingBuild := range builds {
@@ -92,6 +93,7 @@ func (s *buildStarter) constructBuilds(job db.Job, resources db.Resources, relat
 				Build:         nextPendingBuild,
 				algorithm:     s.algorithm,
 				job:           job,
+				jobInputs:     jobInputs,
 				resources:     resources,
 				relatedJobIDs: relatedJobIDs,
 			})
@@ -119,7 +121,6 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	pipeline db.Pipeline,
 	nextPendingBuild Build,
 	job db.Job,
-	decryptedConfig atc.JobConfig,
 	resources db.Resources,
 ) (startResults, error) {
 	logger = logger.Session("try-start-next-pending-build", lager.Data{
@@ -217,7 +218,12 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		})
 	}
 
-	plan, err := s.factory.Create(decryptedConfig, resourceConfigs, resourceTypes.Deserialize(), buildInputs)
+	config, err := job.Config()
+	if err != nil {
+		return startResults{}, fmt.Errorf("config: %w", err)
+	}
+
+	plan, err := s.factory.Create(config, resourceConfigs, resourceTypes.Deserialize(), buildInputs)
 	if err != nil {
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
 		if err = nextPendingBuild.Finish(db.BuildStatusErrored); err != nil {

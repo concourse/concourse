@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
@@ -36,8 +37,12 @@ type Job interface {
 	Tags() []string
 	Public() bool
 	ScheduleRequestedTime() time.Time
+	MaxInFlight() int
+	DisableManualTrigger() bool
 
 	Config() (atc.JobConfig, error)
+	Inputs() ([]atc.JobInput, error)
+	Outputs() ([]atc.JobOutput, error)
 
 	Reload() (bool, error)
 
@@ -71,7 +76,7 @@ type Job interface {
 	HasNewInputs() bool
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.public", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested", "j.max_in_flight").
+var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.public", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested", "j.max_in_flight", "j.disable_manual_trigger").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -100,6 +105,7 @@ type job struct {
 	hasNewInputs          bool
 	scheduleRequestedTime time.Time
 	maxInFlight           int
+	disableManualTrigger  bool
 
 	config    *atc.JobConfig
 	rawConfig []byte
@@ -159,6 +165,8 @@ func (j *job) TeamName() string                 { return j.teamName }
 func (j *job) Tags() []string                   { return j.tags }
 func (j *job) HasNewInputs() bool               { return j.hasNewInputs }
 func (j *job) ScheduleRequestedTime() time.Time { return j.scheduleRequestedTime }
+func (j *job) MaxInFlight() int                 { return j.maxInFlight }
+func (j *job) DisableManualTrigger() bool       { return j.disableManualTrigger }
 
 func (j *job) Config() (atc.JobConfig, error) {
 	if j.config != nil {
@@ -180,6 +188,101 @@ func (j *job) Config() (atc.JobConfig, error) {
 
 	j.config = &config
 	return config, nil
+}
+
+func (j *job) Inputs() ([]atc.JobInput, error) {
+	rows, err := psql.Select("ji.name", "r.name", "p.name", "ji.trigger", "ji.version").
+		From("job_inputs ji").
+		Join("resources r ON r.id = ji.resource_id").
+		LeftJoin("jobs p ON p.id = ji.passed_job_id").
+		Where(sq.Eq{
+			"ji.job_id": j.id,
+		}).
+		OrderBy("ji.passed_job_id").
+		RunWith(j.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	inputs := make(map[string]atc.JobInput)
+	for rows.Next() {
+		var passed, versionString sql.NullString
+		var inputName, resourceName string
+		var trigger bool
+
+		err = rows.Scan(&inputName, &resourceName, &passed, &trigger, &versionString)
+		if err != nil {
+			return nil, err
+		}
+
+		var version *atc.VersionConfig
+		if versionString.Valid {
+			version = &atc.VersionConfig{}
+			err = version.UnmarshalJSON([]byte(versionString.String))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		input, found := inputs[inputName]
+		if !found {
+			input = atc.JobInput{
+				Name:     inputName,
+				Resource: resourceName,
+				Trigger:  trigger,
+				Version:  version,
+			}
+		}
+
+		if passed.Valid {
+			input.Passed = append(input.Passed, passed.String)
+		}
+
+		inputs[inputName] = input
+	}
+
+	var finalInputs []atc.JobInput
+	for _, input := range inputs {
+		finalInputs = append(finalInputs, input)
+	}
+
+	sort.Slice(finalInputs, func(p, q int) bool {
+		return finalInputs[p].Name < finalInputs[q].Name
+	})
+
+	return finalInputs, nil
+}
+
+func (j *job) Outputs() ([]atc.JobOutput, error) {
+	rows, err := psql.Select("jo.name", "r.name").
+		From("job_outputs jo").
+		Join("resources r ON r.id = jo.resource_id").
+		Where(sq.Eq{
+			"jo.job_id": j.id,
+		}).
+		RunWith(j.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	var outputs []atc.JobOutput
+	for rows.Next() {
+		var output atc.JobOutput
+		err = rows.Scan(&output.Name, &output.Resource)
+		if err != nil {
+			return nil, err
+		}
+
+		outputs = append(outputs, output)
+	}
+
+	sort.Slice(outputs, func(p, q int) bool {
+		return outputs[p].Name < outputs[q].Name
+	})
+
+	return outputs, nil
 }
 
 func (j *job) Reload() (bool, error) {
@@ -1077,7 +1180,7 @@ func scanJob(j *job, row scannable) error {
 		nonce sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &j.rawConfig, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight)
+	err := row.Scan(&j.id, &j.name, &j.rawConfig, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
 	if err != nil {
 		return err
 	}

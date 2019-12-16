@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
-	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
@@ -15,7 +14,7 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 
 	acc := accessor.GetAccessor(r)
 
-	var dashboard db.Dashboard
+	var dashboard atc.Dashboard
 	var err error
 
 	if acc.IsAdmin() {

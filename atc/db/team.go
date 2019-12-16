@@ -951,7 +951,7 @@ func (t *team) saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string
 	err = psql.Insert("jobs").
 		Columns("name", "pipeline_id", "config", "public", "max_in_flight", "interruptible", "active", "nonce", "tags").
 		Values(job.Name, pipelineID, encryptedPayload, job.Public, job.MaxInFlight(), job.Interruptible, true, nonce, pq.Array(groups)).
-		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, interruptible = EXCLUDED.interruptible, active = EXCLUDED.active, nonce = EXCLUDED.nonce, tags = EXCLUDED.tags").
+		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, public = EXCLUDED.public, max_in_flight = EXCLUDED.max_in_flight, interruptible = EXCLUDED.interruptible, active = EXCLUDED.active, nonce = EXCLUDED.nonce, tags = EXCLUDED.tags").
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -1312,10 +1312,27 @@ func (t *team) insertJobPipes(tx Tx, jobConfigs atc.JobConfigs, resourceNameToID
 		return err
 	}
 
+	_, err = psql.Delete("job_outputs").
+		Where(sq.Expr(`job_id in (
+        SELECT j.id
+        FROM jobs j
+        WHERE j.pipeline_id = $1
+      )`, pipelineID)).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
 	for _, jobConfig := range jobConfigs {
 		for _, plan := range jobConfig.Plan {
 			if plan.Get != "" {
 				err = insertJobInput(tx, plan, jobConfig.Name, resourceNameToID, jobNameToID)
+				if err != nil {
+					return err
+				}
+			} else if plan.Put != "" {
+				err = insertJobOutput(tx, plan, jobConfig.Name, resourceNameToID, jobNameToID)
 				if err != nil {
 					return err
 				}
@@ -1336,9 +1353,19 @@ func insertJobInput(tx Tx, plan atc.PlanConfig, jobName string, resourceNameToID
 				resourceID = resourceNameToID[plan.Get]
 			}
 
+			var version sql.NullString
+			if plan.Version != nil {
+				versionJSON, err := plan.Version.MarshalJSON()
+				if err != nil {
+					return err
+				}
+
+				version = sql.NullString{Valid: true, String: string(versionJSON)}
+			}
+
 			_, err := psql.Insert("job_inputs").
-				Columns("name", "job_id", "resource_id", "passed_job_id").
-				Values(plan.Get, jobNameToID[jobName], resourceID, jobNameToID[passedJob]).
+				Columns("name", "job_id", "resource_id", "passed_job_id", "trigger", "version").
+				Values(plan.Get, jobNameToID[jobName], resourceID, jobNameToID[passedJob], plan.Trigger, version).
 				RunWith(tx).
 				Exec()
 			if err != nil {
@@ -1353,14 +1380,44 @@ func insertJobInput(tx Tx, plan atc.PlanConfig, jobName string, resourceNameToID
 			resourceID = resourceNameToID[plan.Get]
 		}
 
+		var version sql.NullString
+		if plan.Version != nil {
+			versionJSON, err := plan.Version.MarshalJSON()
+			if err != nil {
+				return err
+			}
+
+			version = sql.NullString{Valid: true, String: string(versionJSON)}
+		}
+
 		_, err := psql.Insert("job_inputs").
-			Columns("name", "job_id", "resource_id").
-			Values(plan.Get, jobNameToID[jobName], resourceID).
+			Columns("name", "job_id", "resource_id", "trigger", "version").
+			Values(plan.Get, jobNameToID[jobName], resourceID, plan.Trigger, version).
 			RunWith(tx).
 			Exec()
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func insertJobOutput(tx Tx, plan atc.PlanConfig, jobName string, resourceNameToID map[string]int, jobNameToID map[string]int) error {
+	var resourceID int
+	if plan.Resource != "" {
+		resourceID = resourceNameToID[plan.Resource]
+	} else {
+		resourceID = resourceNameToID[plan.Put]
+	}
+
+	_, err := psql.Insert("job_outputs").
+		Columns("name", "job_id", "resource_id").
+		Values(plan.Put, jobNameToID[jobName], resourceID).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
 	}
 
 	return nil

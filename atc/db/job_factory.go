@@ -2,8 +2,10 @@ package db
 
 import (
 	"database/sql"
+	"sort"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
@@ -11,8 +13,8 @@ import (
 //go:generate counterfeiter . JobFactory
 
 type JobFactory interface {
-	VisibleJobs([]string) (Dashboard, error)
-	AllActiveJobs() (Dashboard, error)
+	VisibleJobs([]string) (atc.Dashboard, error)
+	AllActiveJobs() (atc.Dashboard, error)
 	JobsToSchedule() (Jobs, error)
 }
 
@@ -28,7 +30,7 @@ func NewJobFactory(conn Conn, lockFactory lock.LockFactory) JobFactory {
 	}
 }
 
-func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
+func (j *jobFactory) VisibleJobs(teamNames []string) (atc.Dashboard, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -52,7 +54,7 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (Dashboard, error) {
 	return dashboard, nil
 }
 
-func (j *jobFactory) AllActiveJobs() (Dashboard, error) {
+func (j *jobFactory) AllActiveJobs() (atc.Dashboard, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -85,7 +87,7 @@ func (j *jobFactory) JobsToSchedule() (Jobs, error) {
 	return scanJobs(j.conn, j.lockFactory, rows)
 }
 
-func buildDashboard(tx Tx, pred interface{}) (Dashboard, error) {
+func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 	rows, err := psql.Select("j.id", "j.name", "p.name", "j.paused", "j.has_new_inputs", "j.tags", "tm.name",
 		"l.id", "l.name", "l.status", "l.start_time", "l.end_time",
 		"n.id", "n.name", "n.status", "n.start_time", "n.end_time",
@@ -116,14 +118,14 @@ func buildDashboard(tx Tx, pred interface{}) (Dashboard, error) {
 		endTime   pq.NullTime
 	}
 
-	var dashboard Dashboard
+	var dashboard atc.Dashboard
 	for rows.Next() {
 		var (
 			teamName string
 			f, n, t  nullableBuild
 		)
 
-		j := DashboardJob{}
+		j := atc.DashboardJob{}
 		err = rows.Scan(&j.ID, &j.Name, &j.PipelineName, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &teamName,
 			&f.id, &f.name, &f.status, &f.startTime, &f.endTime,
 			&n.id, &n.name, &n.status, &n.startTime, &n.endTime,
@@ -133,39 +135,39 @@ func buildDashboard(tx Tx, pred interface{}) (Dashboard, error) {
 		}
 
 		if f.id.Valid {
-			j.FinishedBuild = &DashboardBuild{
+			j.FinishedBuild = &atc.DashboardBuild{
 				ID:           int(f.id.Int64),
 				Name:         f.name.String,
 				JobName:      j.Name,
 				PipelineName: j.PipelineName,
 				TeamName:     teamName,
-				Status:       BuildStatus(f.status.String),
+				Status:       f.status.String,
 				StartTime:    f.startTime.Time,
 				EndTime:      f.endTime.Time,
 			}
 		}
 
 		if n.id.Valid {
-			j.NextBuild = &DashboardBuild{
+			j.NextBuild = &atc.DashboardBuild{
 				ID:           int(n.id.Int64),
 				Name:         n.name.String,
 				JobName:      j.Name,
 				PipelineName: j.PipelineName,
 				TeamName:     teamName,
-				Status:       BuildStatus(n.status.String),
+				Status:       n.status.String,
 				StartTime:    n.startTime.Time,
 				EndTime:      n.endTime.Time,
 			}
 		}
 
 		if t.id.Valid {
-			j.TransitionBuild = &DashboardBuild{
+			j.TransitionBuild = &atc.DashboardBuild{
 				ID:           int(t.id.Int64),
 				Name:         t.name.String,
 				JobName:      j.Name,
 				PipelineName: j.PipelineName,
 				TeamName:     teamName,
-				Status:       BuildStatus(t.status.String),
+				Status:       t.status.String,
 				StartTime:    t.startTime.Time,
 				EndTime:      t.endTime.Time,
 			}
@@ -174,7 +176,7 @@ func buildDashboard(tx Tx, pred interface{}) (Dashboard, error) {
 		dashboard = append(dashboard, j)
 	}
 
-	rows, err = psql.Select("j.id", "i.name", "r.name", "jp.name").
+	rows, err = psql.Select("j.id", "i.name", "r.name", "jp.name", "i.trigger").
 		From("job_inputs i").
 		Join("jobs j ON j.id = i.job_id").
 		Join("pipelines p ON p.id = j.pipeline_id").
@@ -185,34 +187,37 @@ func buildDashboard(tx Tx, pred interface{}) (Dashboard, error) {
 			"j.active": true,
 		}).
 		Where(pred).
+		OrderBy("i.passed_job_id").
 		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
 	}
 
-	jobInputs := map[int]map[string]JobInput{}
+	jobInputs := make(map[int]map[string]atc.DashboardJobInput)
 	for rows.Next() {
 		var passed sql.NullString
 		var inputName, resourceName string
 		var jobID int
+		var trigger bool
 
-		err = rows.Scan(&jobID, &inputName, &resourceName, &passed)
+		err = rows.Scan(&jobID, &inputName, &resourceName, &passed, &trigger)
 		if err != nil {
 			return nil, err
 		}
 
 		inputs, found := jobInputs[jobID]
 		if !found {
-			inputs = map[string]JobInput{}
+			inputs = map[string]atc.DashboardJobInput{}
 			jobInputs[jobID] = inputs
 		}
 
 		input, found := inputs[inputName]
 		if !found {
-			input = JobInput{
+			input = atc.DashboardJobInput{
 				Name:     inputName,
 				Resource: resourceName,
+				Trigger:  trigger,
 			}
 		}
 
@@ -223,22 +228,28 @@ func buildDashboard(tx Tx, pred interface{}) (Dashboard, error) {
 		inputs[inputName] = input
 	}
 
-	var finalDashboard Dashboard
+	var finalDashboard atc.Dashboard
 	for _, job := range dashboard {
 		for _, input := range jobInputs[job.ID] {
 			if len(input.Passed) != 0 {
-				job.Inputs = append(job.Inputs, JobInput{
+				job.Inputs = append(job.Inputs, atc.DashboardJobInput{
 					Name:     input.Name,
 					Resource: input.Resource,
 					Passed:   input.Passed,
+					Trigger:  input.Trigger,
 				})
 			} else {
-				job.Inputs = append(job.Inputs, JobInput{
+				job.Inputs = append(job.Inputs, atc.DashboardJobInput{
 					Name:     input.Name,
 					Resource: input.Resource,
+					Trigger:  input.Trigger,
 				})
 			}
 		}
+
+		sort.Slice(job.Inputs, func(p, q int) bool {
+			return job.Inputs[p].Name < job.Inputs[q].Name
+		})
 
 		finalDashboard = append(finalDashboard, job)
 	}

@@ -136,8 +136,8 @@ func (config JobConfig) OutputPlans() []PlanConfig {
 	return outputs
 }
 
-func (config JobConfig) Inputs() []JobInput {
-	var inputs []JobInput
+func (config JobConfig) Inputs() []JobInputParams {
+	var inputs []JobInputParams
 
 	for _, plan := range config.Plans() {
 		if plan.Get != "" {
@@ -148,14 +148,16 @@ func (config JobConfig) Inputs() []JobInput {
 				resource = plan.Resource
 			}
 
-			inputs = append(inputs, JobInput{
-				Name:     get,
-				Resource: resource,
-				Passed:   plan.Passed,
-				Version:  plan.Version,
-				Trigger:  plan.Trigger,
-				Params:   plan.Params,
-				Tags:     plan.Tags,
+			inputs = append(inputs, JobInputParams{
+				JobInput: JobInput{
+					Name:     get,
+					Resource: resource,
+					Passed:   plan.Passed,
+					Version:  plan.Version,
+					Trigger:  plan.Trigger,
+				},
+				Params: plan.Params,
+				Tags:   plan.Tags,
 			})
 		}
 	}

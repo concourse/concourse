@@ -1,6 +1,8 @@
-package db
+package atc
 
 import "time"
+
+type Dashboard []DashboardJob
 
 type DashboardJob struct {
 	ID           int
@@ -14,12 +16,10 @@ type DashboardJob struct {
 	NextBuild       *DashboardBuild
 	TransitionBuild *DashboardBuild
 
-	Inputs []JobInput
+	Inputs []DashboardJobInput
 
 	Groups []string
 }
-
-type Dashboard []DashboardJob
 
 type DashboardBuild struct {
 	ID           int
@@ -27,14 +27,15 @@ type DashboardBuild struct {
 	JobName      string
 	PipelineName string
 	TeamName     string
-	Status       BuildStatus
+	Status       string
 
 	StartTime time.Time
 	EndTime   time.Time
 }
 
-type JobInput struct {
+type DashboardJobInput struct {
 	Name     string
 	Resource string
 	Passed   []string
+	Trigger  bool
 }

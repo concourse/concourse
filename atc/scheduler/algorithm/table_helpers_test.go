@@ -408,6 +408,7 @@ func (example Example) Run() {
 		}
 	}
 
+	var jobInputs []atc.JobInput
 	inputs := atc.PlanSequence{}
 	for _, input := range inputConfigs {
 		var version *atc.VersionConfig
@@ -426,6 +427,13 @@ func (example Example) Run() {
 
 		inputs = append(inputs, atc.PlanConfig{
 			Get:      input.Name,
+			Resource: setup.resourceIDs.Name(input.ResourceID),
+			Passed:   passed,
+			Version:  version,
+		})
+
+		jobInputs = append(jobInputs, atc.JobInput{
+			Name:     input.Name,
 			Resource: setup.resourceIDs.Name(input.ResourceID),
 			Passed:   passed,
 			Version:  version,
@@ -467,7 +475,7 @@ func (example Example) Run() {
 	Expect(found).To(BeTrue())
 
 	algorithm := a.New(versionsDB)
-	resolved, ok, hasNext, resolvedErr := algorithm.Compute(job, dbResources, a.NameToIDMap(setup.jobIDs))
+	resolved, ok, hasNext, resolvedErr := algorithm.Compute(job, jobInputs, dbResources, a.NameToIDMap(setup.jobIDs))
 	if example.Error != nil {
 		Expect(resolvedErr).To(Equal(example.Error))
 	} else {

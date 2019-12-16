@@ -15,7 +15,7 @@ func (self *migrations) Up_1574452410() error {
 
 	defer tx.Rollback()
 
-	rows, err := tx.Query("SELECT pipeline_id, config, nonce FROM jobs")
+	rows, err := tx.Query("SELECT pipeline_id, config, nonce FROM jobs WHERE active = true")
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,17 @@ func (self *migrations) Up_1574452410() error {
 					if err != nil {
 						return err
 					}
+				} else if plan.Put != "" {
+					err = insertJobOutput(tx, plan, jobConfig.Name, resourceNameToID, jobNameToID)
+					if err != nil {
+						return err
+					}
 				}
+			}
+
+			err = updateJob(tx, jobConfig, jobNameToID)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -113,7 +123,17 @@ func insertJobInput(tx *sql.Tx, plan atc.PlanConfig, jobName string, resourceNam
 				resourceID = resourceNameToID[plan.Get]
 			}
 
-			_, err := tx.Exec("INSERT INTO job_inputs COLUMNS (job_id, resource_id, passed_job_id) VALUES ($1, $2, $3)", jobNameToID[jobName], resourceID, jobNameToID[passedJob])
+			var version sql.NullString
+			if plan.Version != nil {
+				versionJSON, err := plan.Version.MarshalJSON()
+				if err != nil {
+					return err
+				}
+
+				version = sql.NullString{Valid: true, String: string(versionJSON)}
+			}
+
+			_, err := tx.Exec("INSERT INTO job_inputs (name, job_id, resource_id, passed_job_id, trigger, version) VALUES ($1, $2, $3, $4, $5, $6)", plan.Get, jobNameToID[jobName], resourceID, jobNameToID[passedJob], plan.Trigger, version)
 			if err != nil {
 				return err
 			}
@@ -126,10 +146,45 @@ func insertJobInput(tx *sql.Tx, plan atc.PlanConfig, jobName string, resourceNam
 			resourceID = resourceNameToID[plan.Get]
 		}
 
-		_, err := tx.Exec("INSERT INTO job_inputs COLUMNS (job_id, resource_id) VALUES ($1, $2)", jobNameToID[jobName], resourceID)
+		var version sql.NullString
+		if plan.Version != nil {
+			versionJSON, err := plan.Version.MarshalJSON()
+			if err != nil {
+				return err
+			}
+
+			version = sql.NullString{Valid: true, String: string(versionJSON)}
+		}
+
+		_, err := tx.Exec("INSERT INTO job_inputs (name, job_id, resource_id, trigger, version) VALUES ($1, $2, $3, $4, $5)", plan.Get, jobNameToID[jobName], resourceID, plan.Trigger, version)
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func insertJobOutput(tx *sql.Tx, plan atc.PlanConfig, jobName string, resourceNameToID map[string]int, jobNameToID map[string]int) error {
+	var resourceID int
+	if plan.Resource != "" {
+		resourceID = resourceNameToID[plan.Resource]
+	} else {
+		resourceID = resourceNameToID[plan.Put]
+	}
+
+	_, err := tx.Exec("INSERT INTO job_outputs (name, job_id, resource_id) VALUES ($1, $2, $3)", plan.Put, jobNameToID[jobName], resourceID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateJob(tx *sql.Tx, jobConfig atc.JobConfig, jobNameToID map[string]int) error {
+	_, err := tx.Exec("UPDATE jobs SET public = $1, max_in_flight = $2, disable_manual_trigger = $3 WHERE id = $4", jobConfig.Public, jobConfig.MaxInFlight(), jobConfig.DisableManualTrigger, jobNameToID[jobConfig.Name])
+	if err != nil {
+		return err
 	}
 
 	return nil

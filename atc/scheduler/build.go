@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
@@ -12,6 +13,7 @@ type manualTriggerBuild struct {
 	db.Build
 
 	job           db.Job
+	jobInputs     []atc.JobInput
 	resources     db.Resources
 	relatedJobIDs algorithm.NameToIDMap
 
@@ -19,7 +21,7 @@ type manualTriggerBuild struct {
 }
 
 func (m *manualTriggerBuild) PrepareInputs(logger lager.Logger) bool {
-	for _, input := range m.job.Config().Inputs() {
+	for _, input := range m.jobInputs {
 		resource, found := m.resources.Lookup(input.Resource)
 
 		if !found {
@@ -41,7 +43,7 @@ func (m *manualTriggerBuild) PrepareInputs(logger lager.Logger) bool {
 }
 
 func (m *manualTriggerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
-	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(m.job, m.resources, m.relatedJobIDs)
+	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(m.job, m.jobInputs, m.resources, m.relatedJobIDs)
 	if err != nil {
 		return nil, false, fmt.Errorf("compute inputs: %w", err)
 	}

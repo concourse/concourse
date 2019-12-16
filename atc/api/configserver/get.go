@@ -49,6 +49,13 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	jobConfigs, err := jobs.Configs()
+	if err != nil {
+		logger.Error("failed-to-get-job-configs", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	resources, err := pipeline.Resources()
 	if err != nil {
 		logger.Error("failed-to-get-resources", err)
@@ -68,7 +75,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 		VarSources:    pipeline.VarSources(),
 		Resources:     resources.Configs(),
 		ResourceTypes: resourceTypes.Configs(),
-		Jobs:          jobs.Configs(),
+		Jobs:          jobConfigs,
 	}
 
 	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", pipeline.ConfigVersion()))
