@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/pkg/errors"
 )
 
@@ -111,6 +112,11 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 	if !created {
 		s.logger.Debug("check-already-exists")
 	}
+
+	metric.CheckEnqueue{
+		CheckName:             checkable.Name(),
+		ResourceConfigScopeID: checkable.ResourceConfigScopeID(),
+	}.Emit(s.logger)
 
 	return nil
 }
