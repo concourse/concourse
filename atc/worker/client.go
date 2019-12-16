@@ -183,6 +183,7 @@ func (client *client) RunTaskStep(
 			return TaskResult{Status: -1, Err: err}
 		}
 	}
+
 	chosenWorker, err := client.chooseTaskWorker(
 		ctx,
 		logger,
@@ -500,8 +501,7 @@ func (client *client) RunPutStep(
 	err := client.wireInputsAndCaches(logger, &containerSpec)
 	if err != nil {
 
-		// why do we return -1 as status, are we sure a proc can't exit with -1 naturely
-		// TODO Does it make sense to return -1 here ? Probably NOT
+		// TODO (runtime) Does it make sense to return -1 here?
 		return PutResult{Status: -1, VersionResult: runtime.VersionResult{}, Err: err}
 	}
 
@@ -530,8 +530,6 @@ func (client *client) RunPutStep(
 		return PutResult{Status: -1, VersionResult: runtime.VersionResult{}, Err: err}
 	}
 
-	// todo: should we flow on exitStatus as well, its more indicative that container
-	// has already exited
 	// container already exited
 	exitStatusProp, err := container.Property(taskExitStatusPropertyName)
 	if err == nil {
@@ -539,7 +537,7 @@ func (client *client) RunPutStep(
 
 		status, err := strconv.Atoi(exitStatusProp)
 		if err != nil {
-			//TODO This is more confusing. We should differentiate failure vs. error very explicitly
+			// TODO (runtime) This is more confusing. We should differentiate failure vs. error very explicitly
 			return PutResult{-1, runtime.VersionResult{}, err}
 		}
 		return PutResult{Status: status, VersionResult: runtime.VersionResult{}, Err: nil}
@@ -556,7 +554,7 @@ func (client *client) RunPutStep(
 	return PutResult{0, vr, nil}
 }
 
-// todo: don't modify spec inside here, Specs don't change after you write them
+// TODO (runtime) don't modify spec inside here, Specs don't change after you write them
 func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSpec) error {
 	var inputs []InputSource
 
