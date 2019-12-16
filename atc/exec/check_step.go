@@ -142,10 +142,10 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 	deadline, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	//TODO: Check if we need to add anything else to this processSpec
 	processSpec := runtime.ProcessSpec{
 		Path: "/opt/resource/check",
 	}
+
 	checkable := step.resourceFactory.NewResource(source, nil, step.plan.FromVersion)
 	versions, err := checkable.Check(deadline, processSpec, container)
 	if err != nil {

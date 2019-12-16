@@ -195,7 +195,8 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context. Hence, if it was used outside the pipeline context, we don't want to save the output.
+	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
+	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {
 		step.delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
 	}
