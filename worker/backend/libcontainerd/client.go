@@ -62,9 +62,9 @@ type Client interface {
 		container containerd.Container, err error,
 	)
 
-	// Destroy stops any running tasks on a container and remove the container.
+	// Destroy stops any running tasks on a container and removes the container.
 	// If a task cannot be stopped gracefully, it will be forcefully stopped after
-	// the grace period (default 10 seconds).
+	// a timeout period (default 10 seconds).
 	//
 	Destroy(ctx context.Context, handle string) error
 }

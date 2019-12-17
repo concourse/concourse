@@ -21,18 +21,37 @@ var _ garden.Backend = (*Backend)(nil)
 type Backend struct {
 	client    libcontainerd.Client
 	namespace string
+	clientTimeout time.Duration
 }
 
-type InputValidationError struct{}
+type InputValidationError struct{
+	Message string
+}
 
 func (e InputValidationError) Error() string {
-	return "input validation error"
+	return "input validation error: " + e.Message
+}
+type ClientError struct {
+	InnerError error
+}
+
+func (e ClientError) Error() string {
+	return "client error: " + e.InnerError.Error()
 }
 
 func New(client libcontainerd.Client, namespace string) Backend {
 	return Backend{
 		namespace: namespace,
 		client:    client,
+		clientTimeout: 10 * time.Second,
+	}
+}
+
+func NewWithTimeout(client libcontainerd.Client, namespace string, clientTimeout time.Duration) Backend {
+	return Backend{
+		namespace: namespace,
+		client:    client,
+		clientTimeout: clientTimeout,
 	}
 }
 
@@ -41,8 +60,7 @@ func New(client libcontainerd.Client, namespace string) Backend {
 func (b *Backend) Start() (err error) {
 	err = b.client.Init()
 	if err != nil {
-		err = fmt.Errorf("failed to initialize contianerd client: %w", err)
-		return
+		return ClientError{ InnerError: fmt.Errorf("failed to initialize containerd client: %w", err) }
 	}
 
 	return
@@ -55,6 +73,10 @@ func (b *Backend) Stop() {
 	_ = b.client.Stop()
 }
 
+// GraceTime is the maximum duration that a container can stick around for,
+// after there no references to a container in the client using Garden; in our case,
+// this means when the ATC DB has no record of that container anymore.
+//
 func (b *Backend) GraceTime(container garden.Container) (duration time.Duration) {
 	return
 }
@@ -63,6 +85,9 @@ func (b *Backend) GraceTime(container garden.Container) (duration time.Duration)
 //
 func (b *Backend) Ping() (err error) {
 	err = b.client.Version(context.Background())
+	if err != nil {
+		return ClientError{ InnerError: err }
+	}
 	return
 }
 
@@ -77,24 +102,25 @@ func (b *Backend) Capacity() (capacity garden.Capacity, err error) { return }
 func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Container, err error) {
 	var oci *specs.Spec
 	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	oci, err = bespec.OciSpec(gdnSpec)
 	if err != nil {
-		err = fmt.Errorf("failed to convert garden spec to oci spec: %w", err)
+		err = ClientError{ InnerError: fmt.Errorf("failed to convert garden spec to oci spec: %w", err) }
 		return
 	}
 
-	cont, err := b.client.NewContainer(ctx,
+	cont, err := b.client.NewContainer(ctxWithTimeout,
 		gdnSpec.Handle, gdnSpec.Properties, oci,
 	)
 	if err != nil {
-		err = fmt.Errorf("failed to create a container in containerd: %w", err)
+		err = ClientError{ InnerError: fmt.Errorf("failed to create a container in containerd: %w", err) }
 		return
 	}
 
-	_, err = cont.NewTask(ctx, cio.NullIO)
+	_, err = cont.NewTask(ctxWithTimeout, cio.NullIO)
 	if err != nil {
-		err = fmt.Errorf("failed to create a task in container: %w", err)
+		err = ClientError{ InnerError: fmt.Errorf("failed to create a task in container: %w", err) }
 		return
 	}
 
@@ -112,36 +138,41 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 // TODO: list the resources that can be acquired during the lifetime of a container.
 //
 // Errors:
-// * TODO.
+// * Container handle does not exist
+// * Container task was not successfully spun down prior to container deletion.
+//   Reasons include task not found, termination signal failed, or task deletion failed.
+// * Destroy request to client failed
+//
 func (b *Backend) Destroy(handle string) error {
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
-	const maxTaskKillWaitTime = 10 * time.Second
-
 	if handle == "" {
-		return InputValidationError{}
+		return InputValidationError{Message: "handle is empty"}
 	}
 
-	container, err := b.client.GetContainer(ctx, handle)
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
+
+	container, err := b.client.GetContainer(ctxWithTimeout, handle)
 	if err != nil {
-		return err
+		return ClientError{ InnerError: err }
 	}
 
-	task, err := container.Task(ctx, nil)
+	task, err := container.Task(ctxWithTimeout, nil)
 	if err != nil {
 		if !errdefs.IsNotFound(err) {
-			return err
+			return ClientError { InnerError: err }
 		}
-
-		return b.client.Destroy(ctx, handle)
+	} else {
+		err = killTasks(ctxWithTimeout, task)
+		if err != nil {
+			return ClientError{ InnerError: err }
+		}
 	}
 
-	timeDelimitedContext, _ := context.WithTimeout(ctx, maxTaskKillWaitTime)
-	err = killTasks(timeDelimitedContext, task)
+	err = b.client.Destroy(ctxWithTimeout, handle)
 	if err != nil {
-		return err
+		return ClientError{ InnerError: err }
 	}
-
-	return b.client.Destroy(ctx, handle)
+	return nil
 }
 
 // killTasks kills a task on time, gracefully if possible, ungracefully if not.
@@ -158,19 +189,23 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 	}
 
 	select {
-	case <-exitStatus:
-		_, err = task.Delete(ctx) // todo: we're swallowing exitcodes in both these forks, do we care?
-		return err
+	case status := <-exitStatus:
+		if status.Error() != nil {
+			return status.Error()
+		}
 	case <-ctx.Done():
-		err = task.Kill(ctx, syscall.SIGKILL) // should return GRPC DeadlineExceeded error type, wrapped up
+		err = task.Kill(ctx, syscall.SIGKILL)
 		if err != nil {
 			return err
 		}
-		_, err = task.Delete(ctx)
 	}
 
+	result, err := task.Delete(ctx)
 	if err != nil {
 		return err
+	}
+	if result != nil && result.Error() != nil {
+		return result.Error()
 	}
 
 	return nil
@@ -179,17 +214,20 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 // Containers lists all containers filtered by Properties (which are ANDed together).
 //
 // Errors:
-// * None.
+// * Problems communicating with containerd client
 func (b *Backend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
 	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	filters, err := propertiesToFilterList(properties)
 	if err != nil {
+		err = ClientError{ InnerError: err }
 		return
 	}
 
-	res, err := b.client.Containers(ctx, filters...)
+	res, err := b.client.Containers(ctxWithTimeout, filters...)
 	if err != nil {
+		err = ClientError{ InnerError: err }
 		return
 	}
 
@@ -218,16 +256,18 @@ func (b *Backend) BulkMetrics(handles []string) (metrics map[string]garden.Conta
 // * Container not found.
 func (b *Backend) Lookup(handle string) (garden.Container, error) {
 	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	if handle == "" {
-		return nil, InputValidationError{}
+		return nil, InputValidationError{Message: "handle is empty"}
 	}
 
-	_, err := b.client.GetContainer(ctx, handle)
+	_, err := b.client.GetContainer(ctxWithTimeout, handle)
 	if err != nil {
-		return nil, err
+		return nil, ClientError{ InnerError: err }
 	}
-
+	// a gap between garden.Container and containerd.Container still exists.
+	// It is going to be solved when we finish the code in backend/container.go
 	return &Container{}, nil
 }
 

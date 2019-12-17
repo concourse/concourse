@@ -7,7 +7,7 @@ These integration tests require a real containerd daemon and runc binary to be p
 From the project root, build the Dockerfile:
 
 ```bash
-docker build -t concourse/containerd-test -f Dockerfile.containerd .
+docker build -t concourse/containerd-test .
 ```
 
 Run the container in privileged mode, with volume mounting for faster feedback loops:

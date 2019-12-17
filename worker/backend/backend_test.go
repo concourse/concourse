@@ -45,7 +45,7 @@ func (s *BackendSuite) TestPing() {
 		{
 			desc:          "ok from containerd's version service",
 			succeeds:      false,
-			versionReturn: errors.New("errr"),
+			versionReturn: errors.New("error returning version"),
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
@@ -57,7 +57,7 @@ func (s *BackendSuite) TestPing() {
 				return
 			}
 
-			s.Error(err)
+			s.EqualError(err, "client error: error returning version")
 		})
 	}
 }
@@ -179,7 +179,7 @@ func (s *BackendSuite) TestContainersConversion() {
 
 func (s *BackendSuite) TestLookupEmptyHandleError() {
 	_, err := s.backend.Lookup("")
-	s.Equal(err, backend.InputValidationError{})
+	s.Equal("input validation error: handle is empty", err.Error())
 }
 
 func (s *BackendSuite) TestLookupCallGetContainerWithHandle() {
@@ -207,22 +207,25 @@ func (s *BackendSuite) TestLookupGetContainerError() {
 
 	_, err := s.backend.Lookup("handle")
 	s.Error(err)
-	s.Equal(err, errors.New("containerd-err"))
+	s.EqualError(err, "client error: containerd-err")
 }
 
 func (s *BackendSuite) TestLookupGetContainerFails() {
 	s.client.GetContainerReturns(nil, errors.New("err"))
 	_, err := s.backend.Lookup("non-existent-handle")
 	s.Error(err)
-	s.Equal(err, errors.New("err"))
+	s.EqualError(err, "client error: err")
 }
 
-func (s *BackendSuite) TestLookupGetContainer() {
-	s.client.GetContainerReturns(new(libcontainerdfakes.FakeContainer), nil)
-	container, err := s.backend.Lookup("non-existent-handle")
-	s.NoError(err)
-	s.NotNil(container)
-}
+// TODO: un-comment this test when Container implementation is completed
+//func (s *BackendSuite) TestLookupGetContainer() {
+//	fakeContainer := new(libcontainerdfakes.FakeContainer)
+//	s.client.GetContainerReturns(fakeContainer, nil)
+//
+//	lookedUpContainer, err := s.backend.Lookup("fake-container")
+//	s.NoError(err)
+//	s.Equal(fakeContainer, lookedUpContainer)
+//}
 
 func (s *BackendSuite) TestDestroySetsNamespace() {
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
@@ -242,7 +245,7 @@ func (s *BackendSuite) TestDestroySetsNamespace() {
 
 func (s *BackendSuite) TestDestroyEmptyHandleError() {
 	err := s.backend.Destroy("")
-	s.Equal(err, backend.InputValidationError{})
+	s.EqualError(err, "input validation error: handle is empty")
 	s.Equal(0, s.client.DestroyCallCount())
 }
 
@@ -263,7 +266,7 @@ func (s *BackendSuite) TestDestroyLookupError() {
 	s.client.GetContainerReturns(nil, errors.New("lookup-failed"))
 
 	err := s.backend.Destroy("some-handle")
-	s.Equal(err, errors.New("lookup-failed"))
+	s.EqualError(err, "client error: lookup-failed")
 }
 
 func (s *BackendSuite) TestDestroyGetTaskError() {
@@ -272,10 +275,13 @@ func (s *BackendSuite) TestDestroyGetTaskError() {
 	s.client.GetContainerReturns(fakeContainer, nil)
 
 	err := s.backend.Destroy("some-handle")
-	s.Equal(err, errors.New("task-error"))
+	s.EqualError(err, "client error: task-error")
 }
 
 func (s *BackendSuite) TestDestroyGetTaskErrorNotFound() {
+	// If a container is created without a task, it means that creation
+	// did not complete successfully. These containers should be
+	// deletable without error, for garbage collection.
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 	fakeContainer.TaskReturns(nil, errdefs.ErrNotFound)
 	s.client.GetContainerReturns(fakeContainer, nil)
@@ -295,7 +301,7 @@ func (s *BackendSuite) TestDestroyTaskKillError() {
 	s.client.GetContainerReturns(fakeContainer, nil)
 
 	err := s.backend.Destroy("some-handle")
-	s.EqualError(err, "kill-error")
+	s.EqualError(err, "client error: kill-error")
 
 	s.Equal(1, fakeTask.KillCallCount())
 	ctx, signal, _ := fakeTask.KillArgsForCall(0)
@@ -306,7 +312,7 @@ func (s *BackendSuite) TestDestroyTaskKillError() {
 	s.Equal(testNamespace, namespace)
 }
 
-func (s *BackendSuite) TestDestroyWaitError() {
+func (s *BackendSuite) TestDestroyTaskWaitError() {
 	fakeTask := new(libcontainerdfakes.FakeTask)
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 
@@ -315,7 +321,7 @@ func (s *BackendSuite) TestDestroyWaitError() {
 	s.client.GetContainerReturns(fakeContainer, nil)
 
 	err := s.backend.Destroy("some-handle")
-	s.EqualError(err, "wait-error")
+	s.EqualError(err, "client error: wait-error")
 
 	s.Equal(1, fakeTask.WaitCallCount())
 
@@ -325,7 +331,36 @@ func (s *BackendSuite) TestDestroyWaitError() {
 	s.Equal(testNamespace, namespace)
 }
 
+func (s *BackendSuite) TestDestroyKillTaskSIGTERMFailedError() {
+	// in this test case, the exit status is returned before the timeout but with an error,
+	// indicating an edge case where SIGTERM did not successfully stop the process but isn't hanging.
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	fakeTask.WaitStub = func(ctx context.Context) (<- chan containerd.ExitStatus, error) {
+		c := make(chan containerd.ExitStatus, 1)
+		go func() {
+			es := containerd.NewExitStatus(0, time.Now(), errors.New("sigterm error"))
+			c <- *es
+			close(c)
+		}()
+		return c, nil
+	}
+
+	fakeContainer.TaskReturns(fakeTask, nil)
+	s.client.GetContainerReturns(fakeContainer, nil)
+
+	fakeTask.DeleteReturns(nil, nil)
+
+	err := s.backend.Destroy("some-handle")
+
+	s.Equal(1, fakeTask.KillCallCount())
+	s.EqualError(err, "client error: sigterm error")
+}
+
 func (s *BackendSuite) TestDestroyKillTaskTimeoutError() {
+	// so we don't have to wait 10 seconds for the default timeout
+	s.backend = backend.NewWithTimeout(s.client, testNamespace, 10 * time.Millisecond)
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 	fakeTask := new(libcontainerdfakes.FakeTask)
 
@@ -340,7 +375,12 @@ func (s *BackendSuite) TestDestroyKillTaskTimeoutError() {
 	err := s.backend.Destroy("some-handle")
 
 	s.Equal(2, fakeTask.KillCallCount())
-	s.EqualError(err, "kill-again-error")
+	_, firstSignal, _ := fakeTask.KillArgsForCall(0)
+	_, secondSignal, _ := fakeTask.KillArgsForCall(1)
+	s.Equal(firstSignal, syscall.SIGTERM)
+	s.Equal(secondSignal, syscall.SIGKILL)
+
+	s.EqualError(err, "client error: kill-again-error")
 }
 
 func (s *BackendSuite) TestDestroyDeleteTaskError() {
@@ -364,7 +404,32 @@ func (s *BackendSuite) TestDestroyDeleteTaskError() {
 	s.True(found)
 	s.Equal(testNamespace, namespace)
 
-	s.EqualError(err, "task-delete-error")
+	s.EqualError(err, "client error: task-delete-error")
+}
+
+func (s *BackendSuite) TestDestroyDeleteTaskFailedStatusError() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	fakeTask.WaitStub = exitBeforeTimeout
+	fakeContainer.TaskReturns(fakeTask, nil)
+	s.client.GetContainerReturns(fakeContainer, nil)
+
+	fakeTask.KillReturns(nil)
+	deleteStatus := containerd.NewExitStatus(1, time.Now(), errors.New("delete failed"))
+	fakeTask.DeleteReturns(deleteStatus, nil)
+
+	err := s.backend.Destroy("some-handle")
+
+	s.Equal(1, fakeTask.KillCallCount())
+	s.Equal(1, fakeTask.DeleteCallCount())
+
+	ctx, _ := fakeTask.DeleteArgsForCall(0)
+	namespace, found := namespaces.Namespace(ctx)
+	s.True(found)
+	s.Equal(testNamespace, namespace)
+
+	s.EqualError(err, "client error: delete failed")
 }
 
 func (s *BackendSuite) TestDestroyContainerError() {
@@ -381,7 +446,7 @@ func (s *BackendSuite) TestDestroyContainerError() {
 	s.Equal(1, fakeTask.KillCallCount()) // did not go down SIGKILL path
 	s.Equal(1, fakeTask.DeleteCallCount())
 	s.Equal(1, s.client.DestroyCallCount())
-	s.EqualError(err, "destroy-error")
+	s.EqualError(err, "client error: destroy-error")
 }
 
 func (s *BackendSuite) TestDestroyContainer() {
@@ -398,8 +463,15 @@ func (s *BackendSuite) TestDestroyContainer() {
 }
 
 func (s *BackendSuite) TestStart() {
-	s.backend.Start()
+	err := s.backend.Start()
+	s.NoError(err)
 	s.Equal(1, s.client.InitCallCount())
+}
+
+func (s *BackendSuite) TestStartInitError() {
+	s.client.InitReturns(errors.New("init failed"))
+	err := s.backend.Start()
+	s.EqualError(err, "client error: failed to initialize containerd client: init failed")
 }
 
 func (s *BackendSuite) TestStop() {
