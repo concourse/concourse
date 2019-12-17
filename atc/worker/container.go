@@ -147,10 +147,10 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	return nil
 }
 
-// todo: this needs to be modified to not be resource specific
-// 		 the stdout of the run() is expected to be of json format
-//       this will break if used with task_step as it does not
-//		 print out json
+// TODO (runtime/#4910): this needs to be modified to not be resource specific
+// 		the stdout of the run() is expected to be of json format
+//      this will break if used with task_step as it does not
+//		print out json
 func (container *gardenWorkerContainer) RunScript(
 	ctx context.Context,
 	path string,

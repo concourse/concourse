@@ -49,7 +49,8 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) error {
 		return ArtifactNotFoundError{outputName}
 	}
 
-	// TODO-Later Step shouldn't know about volumes
+	// TODO (Runtime/#3607): step shouldn't know about volumes,
+	//  	use the artifactRepo and artifact interface
 	volume, found, err := step.workerClient.FindVolume(logger, step.build.TeamID(), buildArtifact.ID())
 	if err != nil {
 		return err
