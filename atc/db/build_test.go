@@ -377,6 +377,112 @@ var _ = Describe("Build", func() {
 			Expect(build.Status()).To(Equal(db.BuildStatusSucceeded))
 		})
 
+		Context("rerunning a build", func() {
+			var (
+				pdBuild, pdBuild2, rrBuild db.Build
+				err                        error
+				latestCompletedBuildCol    = "latest_completed_build_id"
+				nextBuildCol               = "next_build_id"
+				transitionBuildCol         = "transition_build_id"
+			)
+
+			Context("when there is a pending build that is not a rerun", func() {
+				BeforeEach(func() {
+					pdBuild, err = job.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Context("when rerunning the latest completed build", func() {
+					BeforeEach(func() {
+						rrBuild, err = job.RerunBuild(build)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					Context("when the rerun finishes and status changed", func() {
+						BeforeEach(func() {
+							err = rrBuild.Finish(db.BuildStatusFailed)
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("updates job latest finished build id", func() {
+							Expect(getJobBuildID(latestCompletedBuildCol, job.ID())).To(Equal(rrBuild.ID()))
+						})
+
+						It("updates job next build id to the pending build", func() {
+							Expect(getJobBuildID(nextBuildCol, job.ID())).To(Equal(pdBuild.ID()))
+						})
+
+						It("updates transition build id to the rerun build", func() {
+							Expect(getJobBuildID(transitionBuildCol, job.ID())).To(Equal(rrBuild.ID()))
+						})
+					})
+
+					Context("when there is another pending build that is not a rerun and the first pending build finishes", func() {
+						BeforeEach(func() {
+							pdBuild2, err = job.CreateBuild()
+							Expect(err).NotTo(HaveOccurred())
+
+							err = pdBuild.Finish(db.BuildStatusSucceeded)
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("updates job next build id to be the next non rerun pending build", func() {
+							Expect(getJobBuildID(nextBuildCol, job.ID())).To(Equal(pdBuild2.ID()))
+						})
+
+						It("updates job latest finished build id", func() {
+							Expect(getJobBuildID(latestCompletedBuildCol, job.ID())).To(Equal(pdBuild.ID()))
+						})
+					})
+				})
+
+				Context("when rerunning the pending build and the pending build finished", func() {
+					BeforeEach(func() {
+						rrBuild, err = job.RerunBuild(pdBuild)
+						Expect(err).NotTo(HaveOccurred())
+
+						err = pdBuild.Finish(db.BuildStatusSucceeded)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("updates job next build id to the rerun build", func() {
+						Expect(getJobBuildID(nextBuildCol, job.ID())).To(Equal(rrBuild.ID()))
+					})
+
+					It("updates job latest finished build id", func() {
+						Expect(getJobBuildID(latestCompletedBuildCol, job.ID())).To(Equal(pdBuild.ID()))
+					})
+				})
+
+				Context("when pending build finished and rerunning a non latest build and it finishes", func() {
+					BeforeEach(func() {
+						err = pdBuild.Finish(db.BuildStatusErrored)
+						Expect(err).NotTo(HaveOccurred())
+
+						rrBuild, err = job.RerunBuild(build)
+						Expect(err).NotTo(HaveOccurred())
+
+						err = rrBuild.Finish(db.BuildStatusSucceeded)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("updates job next build id to nul", func() {
+						_, nextBuild, err := job.FinishedAndNextBuild()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(nextBuild).To(BeNil())
+					})
+
+					It("does not updates job latest finished build id", func() {
+						Expect(getJobBuildID(latestCompletedBuildCol, job.ID())).To(Equal(pdBuild.ID()))
+					})
+
+					It("does not updates transition build id", func() {
+						Expect(getJobBuildID(transitionBuildCol, job.ID())).To(Equal(pdBuild.ID()))
+					})
+				})
+			})
+		})
+
 		It("clears out the private plan", func() {
 			found, err := build.Reload()
 			Expect(err).NotTo(HaveOccurred())
@@ -2232,4 +2338,18 @@ func convertToMD5(version atc.Version) string {
 	hasher := md5.New()
 	hasher.Write([]byte(versionJSON))
 	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func getJobBuildID(col string, jobID int) int {
+	var result int
+
+	err := psql.Select(col).
+		From("jobs").
+		Where(sq.Eq{"id": jobID}).
+		RunWith(dbConn).
+		QueryRow().
+		Scan(&result)
+	Expect(err).ToNot(HaveOccurred())
+
+	return result
 }

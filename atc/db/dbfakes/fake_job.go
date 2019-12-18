@@ -200,6 +200,16 @@ type FakeJob struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
+	LatestCompletedBuildIDStub        func() int
+	latestCompletedBuildIDMutex       sync.RWMutex
+	latestCompletedBuildIDArgsForCall []struct {
+	}
+	latestCompletedBuildIDReturns struct {
+		result1 int
+	}
+	latestCompletedBuildIDReturnsOnCall map[int]struct {
+		result1 int
+	}
 	NameStub        func() string
 	nameMutex       sync.RWMutex
 	nameArgsForCall []struct {
@@ -1286,6 +1296,58 @@ func (fake *FakeJob) IDReturnsOnCall(i int, result1 int) {
 		})
 	}
 	fake.iDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeJob) LatestCompletedBuildID() int {
+	fake.latestCompletedBuildIDMutex.Lock()
+	ret, specificReturn := fake.latestCompletedBuildIDReturnsOnCall[len(fake.latestCompletedBuildIDArgsForCall)]
+	fake.latestCompletedBuildIDArgsForCall = append(fake.latestCompletedBuildIDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("LatestCompletedBuildID", []interface{}{})
+	fake.latestCompletedBuildIDMutex.Unlock()
+	if fake.LatestCompletedBuildIDStub != nil {
+		return fake.LatestCompletedBuildIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.latestCompletedBuildIDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) LatestCompletedBuildIDCallCount() int {
+	fake.latestCompletedBuildIDMutex.RLock()
+	defer fake.latestCompletedBuildIDMutex.RUnlock()
+	return len(fake.latestCompletedBuildIDArgsForCall)
+}
+
+func (fake *FakeJob) LatestCompletedBuildIDCalls(stub func() int) {
+	fake.latestCompletedBuildIDMutex.Lock()
+	defer fake.latestCompletedBuildIDMutex.Unlock()
+	fake.LatestCompletedBuildIDStub = stub
+}
+
+func (fake *FakeJob) LatestCompletedBuildIDReturns(result1 int) {
+	fake.latestCompletedBuildIDMutex.Lock()
+	defer fake.latestCompletedBuildIDMutex.Unlock()
+	fake.LatestCompletedBuildIDStub = nil
+	fake.latestCompletedBuildIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeJob) LatestCompletedBuildIDReturnsOnCall(i int, result1 int) {
+	fake.latestCompletedBuildIDMutex.Lock()
+	defer fake.latestCompletedBuildIDMutex.Unlock()
+	fake.LatestCompletedBuildIDStub = nil
+	if fake.latestCompletedBuildIDReturnsOnCall == nil {
+		fake.latestCompletedBuildIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.latestCompletedBuildIDReturnsOnCall[i] = struct {
 		result1 int
 	}{result1}
 }
@@ -2427,6 +2489,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.hasNewInputsMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.latestCompletedBuildIDMutex.RLock()
+	defer fake.latestCompletedBuildIDMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
 	fake.pauseMutex.RLock()
