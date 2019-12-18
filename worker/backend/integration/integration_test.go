@@ -66,6 +66,40 @@ func (s *BackendSuite) TestContainerCreateAndDestroy() {
 	s.Len(containers, 0)
 }
 
+func (s *BackendSuite) TestStopContainer() {
+	handle := mustCreateHandle()
+	rootfs, err := filepath.Abs("testdata/rootfs")
+	s.NoError(err)
+
+	_, err = s.backend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	containers, err := s.backend.Containers(nil)
+	s.NoError(err)
+
+	s.Len(containers, 1)
+
+	for _, container := range containers {
+		err := container.Stop(false)
+		s.NoError(err)
+		err = container.Stop(true)
+		s.NoError(err)
+	}
+
+	s.Len(containers, 1)
+
+	err = s.backend.Destroy(handle)
+	s.NoError(err)
+
+	containers, err = s.backend.Containers(nil)
+	s.NoError(err)
+	s.Len(containers, 0)
+}
+
 func TestSuite(t *testing.T) {
 	suite.Run(t, &BackendSuite{
 		Assertions: require.New(t),

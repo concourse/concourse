@@ -1,21 +1,28 @@
 package backend
 
 import (
+	"context"
 	"io"
+	"syscall"
 	"time"
 
 	"code.cloudfoundry.org/garden"
+	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/errdefs"
 )
 
-type Container struct{}
+type Container struct {
+	ctx                 context.Context
+	containerdContainer containerd.Container
+}
 
-func NewContainer() Container {
-	return Container{}
+func NewContainer(ctx context.Context, container containerd.Container) garden.Container {
+	return &Container{ctx, container}
 }
 
 var _ garden.Container = (*Container)(nil)
 
-func (c *Container) Handle() (handle string) { return }
+func (c *Container) Handle() string { return c.containerdContainer.ID() }
 
 // Stop stops a container.
 //
@@ -31,7 +38,36 @@ func (c *Container) Handle() (handle string) { return }
 //
 // Errors:
 // * None.
-func (c *Container) Stop(kill bool) (err error) { return }
+func (c *Container) Stop(kill bool) error {
+	task, err := c.containerdContainer.Task(c.ctx, nil)
+	if err != nil {
+		if errdefs.IsNotFound(err) {
+			return nil
+		} else {
+			return err
+		}
+	}
+	signal := syscall.SIGTERM
+	if kill {
+		signal = syscall.SIGKILL
+	}
+
+	err = task.Kill(c.ctx, signal)
+	if err != nil {
+		return err
+	}
+
+	result, err := task.Delete(c.ctx)
+	if err != nil {
+		return err
+	}
+
+	if result != nil && result.Error() != nil && !errdefs.IsNotFound(result.Error()) {
+		return result.Error()
+	}
+
+	return nil
+}
 
 // Returns information about a container.
 func (c *Container) Info() (info garden.ContainerInfo, err error) { return }

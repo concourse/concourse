@@ -479,7 +479,7 @@ func (s *BackendSuite) TestStop() {
 	s.Equal(1, s.client.StopCallCount())
 }
 
-func TestSuite(t *testing.T) {
+func TestSuiteBackend(t *testing.T) {
 	suite.Run(t, &BackendSuite{
 		Assertions: require.New(t),
 	})
