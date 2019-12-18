@@ -5,6 +5,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/artifact/artifactfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"io"
 )
 
 var _ = Describe("ArtifactRepository", func() {
@@ -72,5 +73,71 @@ var _ = Describe("ArtifactRepository", func() {
 				})
 			})
 		})
+
+		Context("StreamFile", func() {
+			var (
+				source *artifactfakes.FakeRegisterableSource
+				path   string
+				fakeReader io.ReadCloser
+				reader io.ReadCloser
+				err error
+			)
+
+			BeforeEach(func() {
+				fakeReader = fakeReadCloser{}
+				source = new(artifactfakes.FakeRegisterableSource)
+				source.StreamFileReturns(fakeReader, nil)
+				repo.RegisterSource("third-source", source)
+			})
+
+			JustBeforeEach(func() {
+				reader, err = repo.StreamFile(nil, nil, path)
+			})
+
+			Context("with correct path", func() {
+				BeforeEach(func(){
+					path = "third-source/a.txt"
+				})
+
+				It("should no error occurred", func() {
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("should stream correct file content", func(){
+					Expect(reader).To(Equal(fakeReader))
+				})
+			})
+
+			Context("with bad path", func(){
+				BeforeEach(func(){
+					path = "foo"
+				})
+				It("should no error occurred", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(Equal(UnspecifiedArtifactSourceError{Path: "foo"}))
+				})
+			})
+
+			Context("with bad source", func(){
+				BeforeEach(func(){
+					path = "foo/bar"
+				})
+				It("should no error occurred", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(Equal(UnknownArtifactSourceError{Name: "foo", Path: "foo/bar"}))
+				})
+			})
+		})
 	})
 })
+
+type fakeReadCloser struct {
+}
+
+func (r fakeReadCloser) Read(p []byte) (int, error) {
+	return 1, nil
+}
+
+func (r fakeReadCloser) Close() error {
+	return nil
+}

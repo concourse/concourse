@@ -4,11 +4,8 @@ import (
 	"context"
 	"io"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
-	"github.com/concourse/concourse/vars"
 )
 
 //go:generate counterfeiter . Step
@@ -35,17 +32,6 @@ type Step interface {
 //go:generate counterfeiter . BuildStepDelegate
 
 type BuildOutputFilter func(text string) string
-
-type BuildStepDelegate interface {
-	ImageVersionDetermined(db.UsedResourceCache) error
-
-	Stdout() io.Writer
-	Stderr() io.Writer
-
-	Variables() vars.CredVarsTracker
-
-	Errored(lager.Logger, string)
-}
 
 //go:generate counterfeiter . RunState
 

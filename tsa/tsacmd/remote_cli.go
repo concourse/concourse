@@ -138,46 +138,6 @@ func (r forwardWorkerRequest) expectedForwards() int {
 	return expected
 }
 
-type registerWorkerRequest struct {
-	server *server
-}
-
-func (req registerWorkerRequest) Handle(ctx context.Context, state ConnState, channel ssh.Channel) error {
-	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
-	if err != nil {
-		return err
-	}
-
-	if err := checkTeam(state, worker); err != nil {
-		return err
-	}
-
-	heartbeater := tsa.NewHeartbeater(
-		clock.NewClock(),
-		req.server.heartbeatInterval,
-		req.server.cprInterval,
-		gclient.New(
-			gconn.NewWithDialerAndLogger(
-				keepaliveDialerFactory("tcp", worker.GardenAddr),
-				lagerctx.WithSession(ctx, "garden-connection"),
-			),
-		),
-		bclient.NewWithHTTPClient(worker.BaggageclaimURL, &http.Client{
-			Transport: &http.Transport{
-				DisableKeepAlives:     true,
-				ResponseHeaderTimeout: 1 * time.Minute,
-			},
-		}),
-		req.server.atcEndpointPicker,
-		req.server.tokenGenerator,
-		worker,
-		tsa.NewEventWriter(channel),
-	)
-
-	return heartbeater.Heartbeat(ctx)
-}
-
 type landWorkerRequest struct {
 	server *server
 }

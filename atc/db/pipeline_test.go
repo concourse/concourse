@@ -42,7 +42,7 @@ var _ = Describe("Pipeline", func() {
 			},
 			VarSources: atc.VarSourceConfigs{
 				{
-					Name: "some",
+					Name: "some-var-source",
 					Type: "dummy",
 					Config: map[string]interface{}{
 						"vars": map[string]interface{}{"pk": "pv"},
@@ -76,11 +76,20 @@ var _ = Describe("Pipeline", func() {
 							Trigger: true,
 						},
 						{
-							Task:           "some-task",
-							Privileged:     true,
-							TaskConfigPath: "some/config/path.yml",
+							Task:       "some-task",
+							Privileged: true,
+							ConfigPath: "some/config/path.yml",
 							TaskConfig: &atc.TaskConfig{
 								RootfsURI: "some-image",
+							},
+						},
+						{
+							SetPipeline: "some-pipeline",
+							ConfigPath:  "some-file",
+							VarFiles:    []string{"var-file1", "var-file2"},
+							Vars: map[string]interface{}{
+								"k1": "v1",
+								"k2": "v2",
 							},
 						},
 					},
@@ -115,26 +124,26 @@ var _ = Describe("Pipeline", func() {
 			},
 			Resources: atc.ResourceConfigs{
 				{
-					Name:   "some-resource",
-					Type:   "some-type",
-					Source: atc.Source{"some": "source"},
-				},
-				{
 					Name:   "some-other-resource",
 					Type:   "some-type",
 					Source: atc.Source{"some": "other-source"},
 				},
+				{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				},
 			},
 			ResourceTypes: atc.ResourceTypes{
-				{
-					Name:   "some-resource-type",
-					Type:   "base-type",
-					Source: atc.Source{"some": "type-soure"},
-				},
 				{
 					Name:   "some-other-resource-type",
 					Type:   "base-type",
 					Source: atc.Source{"some": "other-type-soure"},
+				},
+				{
+					Name:   "some-resource-type",
+					Type:   "base-type",
+					Source: atc.Source{"some": "type-soure"},
 				},
 			},
 		}
@@ -328,9 +337,9 @@ var _ = Describe("Pipeline", func() {
 								Trigger: true,
 							},
 							{
-								Task:           "some-task",
-								Privileged:     true,
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								Privileged: true,
+								ConfigPath: "some/config/path.yml",
 								TaskConfig: &atc.TaskConfig{
 									RootfsURI: "some-image",
 								},
@@ -1803,7 +1812,7 @@ var _ = Describe("Pipeline", func() {
 			pvars vars.Variables
 			err   error
 		)
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			fakeSecrets = new(credsfakes.FakeSecrets)
 			fakeSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
 				if key == "gk" {
@@ -1817,10 +1826,16 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		It("should get var from pipeline var source", func() {
-			v, found, err := pvars.Get(vars.VariableDefinition{Name: "pk"})
+			v, found, err := pvars.Get(vars.VariableDefinition{Name: "some-var-source:pk"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(v.(string)).To(Equal("pv"))
+		})
+
+		It("should not get pipeline var 'pk' without specifying var_source name", func() {
+			_, found, err := pvars.Get(vars.VariableDefinition{Name: "pk"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
 		})
 
 		It("should get var from global var source", func() {
@@ -1834,6 +1849,38 @@ var _ = Describe("Pipeline", func() {
 			_, found, err := pvars.Get(vars.VariableDefinition{Name: "foo"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+
+		Context("with the second var_source", func() {
+			BeforeEach(func() {
+				pipelineConfig.VarSources = append(pipelineConfig.VarSources, atc.VarSourceConfig{
+					Name: "second-var-source",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{"pk": "((some-var-source:pk))"},
+					},
+				})
+
+				var created bool
+				pipeline, created, err = team.SavePipeline("fake-pipeline", pipelineConfig, pipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeFalse())
+			})
+
+			// The second var source is configured with vars that needs to be interpolated
+			// from "some-var-source".
+			It("should get pipeline var 'pk' from the second var_source", func() {
+				v, found, err := pvars.Get(vars.VariableDefinition{Name: "second-var-source:pk"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(v.(string)).To(Equal("pv"))
+			})
+		})
+	})
+
+	Context("Config", func() {
+		It("should return config correctly", func() {
+			Expect(pipeline.Config()).To(Equal(pipelineConfig))
 		})
 	})
 })

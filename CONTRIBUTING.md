@@ -256,7 +256,8 @@ To generate a migration:
 1. Build the CLI:
 
 ```sh
-$ go build atc/db/migration/cli -o mig
+$ cd atc/db/migration
+$ go build -o mig ./cli
 ```
 2. Run the `generate` command. It takes the migration name, file type (SQL or Go)
 and optionally, the directory in which to put the migration files (by default,

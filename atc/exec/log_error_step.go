@@ -10,13 +10,18 @@ import (
 const AbortedLogMessage = "interrupted"
 const TimeoutLogMessage = "timeout exceeded"
 
+
+type LogErrorStepDelegate interface {
+	Errored(lager.Logger, string)
+}
+
 type LogErrorStep struct {
 	Step
 
-	delegate BuildStepDelegate
+	delegate LogErrorStepDelegate
 }
 
-func LogError(step Step, delegate BuildStepDelegate) Step {
+func LogError(step Step, delegate LogErrorStepDelegate) Step {
 	return LogErrorStep{
 		Step: step,
 

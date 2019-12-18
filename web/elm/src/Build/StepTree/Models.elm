@@ -39,6 +39,7 @@ type alias StepTreeModel =
 
 type StepTree
     = Task Step
+    | SetPipeline Step
     | ArtifactInput Step
     | Get Step
     | ArtifactOutput Step
@@ -123,6 +124,9 @@ type BuildEvent
     | InitializeTask Origin Time.Posix
     | StartTask Origin Time.Posix
     | FinishTask Origin Int Time.Posix
+    | Initialize Origin Time.Posix
+    | Start Origin Time.Posix
+    | Finish Origin Time.Posix Bool
     | InitializeGet Origin Time.Posix
     | StartGet Origin Time.Posix
     | FinishGet Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
@@ -179,6 +183,9 @@ map f tree =
 
         Put step ->
             Put (f step)
+
+        SetPipeline step ->
+            SetPipeline (f step)
 
         _ ->
             tree
@@ -327,6 +334,9 @@ finishTree root =
 
         Put step ->
             Put (finishStep step)
+
+        SetPipeline step ->
+            SetPipeline (finishStep step)
 
         Aggregate trees ->
             Aggregate (Array.map finishTree trees)

@@ -360,6 +360,9 @@ func (c *engineCheck) Run(logger lager.Logger) {
 		return
 	}
 
+	c.trackStarted(logger)
+	defer c.trackFinished(logger)
+
 	step, err := c.builder.CheckStep(logger, c.check)
 	if err != nil {
 		logger.Error("failed-to-create-check-step", err)
@@ -403,4 +406,22 @@ func (c *engineCheck) runState() exec.RunState {
 func (c *engineCheck) clearRunState() {
 	id := fmt.Sprintf("check:%v", c.check.ID())
 	c.trackedStates.Delete(id)
+}
+
+func (c *engineCheck) trackStarted(logger lager.Logger) {
+	metric.CheckStarted{
+		CheckName:             c.check.Plan().Check.Name,
+		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
+		CheckStatus:           c.check.Status(),
+		CheckPendingDuration:  c.check.StartTime().Sub(c.check.CreateTime()),
+	}.Emit(logger)
+}
+
+func (c *engineCheck) trackFinished(logger lager.Logger) {
+	metric.CheckFinished{
+		CheckName:             c.check.Plan().Check.Name,
+		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
+		CheckStatus:           c.check.Status(),
+		CheckDuration:         c.check.EndTime().Sub(c.check.StartTime()),
+	}.Emit(logger)
 }

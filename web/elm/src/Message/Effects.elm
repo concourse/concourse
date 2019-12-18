@@ -122,11 +122,11 @@ type Effect
     | FetchOutputOf Concourse.VersionedResourceIdentifier
     | FetchData
     | FetchUser
-    | FetchBuild Float Int Int
-    | FetchJobBuild Int Concourse.JobBuildIdentifier
+    | FetchBuild Float Int
+    | FetchJobBuild Concourse.JobBuildIdentifier
     | FetchBuildJobDetails Concourse.JobIdentifier
     | FetchBuildHistory Concourse.JobIdentifier (Maybe Page)
-    | FetchBuildPrep Float Int Int
+    | FetchBuildPrep Float Int
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
     | FetchPipelines
@@ -335,15 +335,13 @@ runEffect effect key csrfToken =
         PinTeamNames shc ->
             pinTeamNames shc
 
-        FetchBuild delay browsingIndex buildId ->
+        FetchBuild delay buildId ->
             Process.sleep delay
                 |> Task.andThen (always <| Network.Build.fetch buildId)
-                |> Task.map (\b -> ( browsingIndex, b ))
                 |> Task.attempt BuildFetched
 
-        FetchJobBuild browsingIndex jbi ->
+        FetchJobBuild jbi ->
             Network.Build.fetchJobBuild jbi
-                |> Task.map (\b -> ( browsingIndex, b ))
                 |> Task.attempt BuildFetched
 
         FetchBuildJobDetails buildJob ->
@@ -354,10 +352,9 @@ runEffect effect key csrfToken =
             Network.Build.fetchJobBuilds job page
                 |> Task.attempt BuildHistoryFetched
 
-        FetchBuildPrep delay browsingIndex buildId ->
+        FetchBuildPrep delay buildId ->
             Process.sleep delay
                 |> Task.andThen (always <| Network.BuildPrep.fetch buildId)
-                |> Task.map (\b -> ( browsingIndex, b ))
                 |> Task.attempt BuildPrepFetched
 
         FetchBuildPlanAndResources buildId ->

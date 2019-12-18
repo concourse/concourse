@@ -109,10 +109,10 @@ func OciSpecBindMounts(bindMounts []garden.BindMount) (mounts []specs.Mount, err
 	return
 }
 
-// defaultGardenOciSpec repreeseents a default set of properties necessary in
+// defaultGardenOciSpec represents a default set of properties necessary in
 // order to satisfy the garden interface.
 //
-// ps.: this spec is NOT complet - it must be merged with more properties to
+// ps.: this spec is NOT completed - it must be merged with more properties to
 // form a properly working container.
 //
 func defaultGardenOciSpec(privileged bool) *specs.Spec {

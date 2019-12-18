@@ -490,10 +490,6 @@ func (server *server) parseRequest(cli string) (request, string, error) {
 
 	var req request
 	switch command {
-	case tsa.RegisterWorker:
-		req = registerWorkerRequest{
-			server: server,
-		}
 	case tsa.ForwardWorker:
 		var fs = flag.NewFlagSet(command, flag.ContinueOnError)
 

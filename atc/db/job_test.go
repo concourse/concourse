@@ -47,9 +47,9 @@ var _ = Describe("Job", func() {
 							Trigger: true,
 						},
 						{
-							Task:           "some-task",
-							Privileged:     true,
-							TaskConfigPath: "some/config/path.yml",
+							Task:       "some-task",
+							Privileged: true,
+							ConfigPath: "some/config/path.yml",
 							TaskConfig: &atc.TaskConfig{
 								RootfsURI: "some-image",
 							},
@@ -650,9 +650,9 @@ var _ = Describe("Job", func() {
 									Trigger: true,
 								},
 								{
-									Task:           "some-task",
-									Privileged:     true,
-									TaskConfigPath: "some/config/path.yml",
+									Task:       "some-task",
+									Privileged: true,
+									ConfigPath: "some/config/path.yml",
 									TaskConfig: &atc.TaskConfig{
 										RootfsURI: "some-image",
 									},
@@ -727,9 +727,9 @@ var _ = Describe("Job", func() {
 									Trigger: true,
 								},
 								{
-									Task:           "some-task",
-									Privileged:     true,
-									TaskConfigPath: "some/config/path.yml",
+									Task:       "some-task",
+									Privileged: true,
+									ConfigPath: "some/config/path.yml",
 									TaskConfig: &atc.TaskConfig{
 										RootfsURI: "some-image",
 									},
@@ -1969,9 +1969,9 @@ var _ = Describe("Job", func() {
 								Version: &atc.VersionConfig{Every: true},
 							},
 							{
-								Task:           "some-task",
-								Privileged:     true,
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								Privileged: true,
+								ConfigPath: "some/config/path.yml",
 								TaskConfig: &atc.TaskConfig{
 									RootfsURI: "some-image",
 								},
@@ -2070,9 +2070,9 @@ var _ = Describe("Job", func() {
 								Put: "some-other-resource",
 							},
 							{
-								Task:           "some-task",
-								Privileged:     true,
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								Privileged: true,
+								ConfigPath: "some/config/path.yml",
 								TaskConfig: &atc.TaskConfig{
 									RootfsURI: "some-image",
 								},

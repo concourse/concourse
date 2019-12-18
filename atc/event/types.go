@@ -36,6 +36,15 @@ const (
 	// finished putting something
 	EventTypeFinishPut atc.EventType = "finish-put"
 
+	// initialize step
+	EventTypeInitialize atc.EventType = "initialize"
+
+	// started step
+	EventTypeStart atc.EventType = "start"
+
+	// finished step
+	EventTypeFinish atc.EventType = "finish"
+
 	// error occurred
 	EventTypeError atc.EventType = "error"
 )

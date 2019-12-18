@@ -21,6 +21,7 @@ type Checkable interface {
 
 	Name() string
 	TeamID() int
+	ResourceConfigScopeID() int
 	TeamName() string
 	Type() string
 	Source() atc.Source
@@ -107,6 +108,7 @@ func (c *checkFactory) Check(id int) (Check, bool, error) {
 
 	return check, true, nil
 }
+
 func (c *checkFactory) StartedChecks() ([]Check, error) {
 	rows, err := checksQuery.
 		Where(sq.Eq{"status": CheckStatusStarted}).
