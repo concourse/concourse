@@ -19,18 +19,19 @@ import (
 var _ garden.Backend = (*Backend)(nil)
 
 type Backend struct {
-	client    libcontainerd.Client
-	namespace string
+	client        libcontainerd.Client
+	namespace     string
 	clientTimeout time.Duration
 }
 
-type InputValidationError struct{
+type InputValidationError struct {
 	Message string
 }
 
 func (e InputValidationError) Error() string {
 	return "input validation error: " + e.Message
 }
+
 type ClientError struct {
 	InnerError error
 }
@@ -41,16 +42,16 @@ func (e ClientError) Error() string {
 
 func New(client libcontainerd.Client, namespace string) Backend {
 	return Backend{
-		namespace: namespace,
-		client:    client,
+		namespace:     namespace,
+		client:        client,
 		clientTimeout: 10 * time.Second,
 	}
 }
 
 func NewWithTimeout(client libcontainerd.Client, namespace string, clientTimeout time.Duration) Backend {
 	return Backend{
-		namespace: namespace,
-		client:    client,
+		namespace:     namespace,
+		client:        client,
 		clientTimeout: clientTimeout,
 	}
 }
@@ -60,7 +61,7 @@ func NewWithTimeout(client libcontainerd.Client, namespace string, clientTimeout
 func (b *Backend) Start() (err error) {
 	err = b.client.Init()
 	if err != nil {
-		return ClientError{ InnerError: fmt.Errorf("failed to initialize containerd client: %w", err) }
+		return ClientError{InnerError: fmt.Errorf("failed to initialize containerd client: %w", err)}
 	}
 
 	return
@@ -86,7 +87,7 @@ func (b *Backend) GraceTime(container garden.Container) (duration time.Duration)
 func (b *Backend) Ping() (err error) {
 	err = b.client.Version(context.Background())
 	if err != nil {
-		return ClientError{ InnerError: err }
+		return ClientError{InnerError: err}
 	}
 	return
 }
@@ -106,7 +107,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 
 	oci, err = bespec.OciSpec(gdnSpec)
 	if err != nil {
-		err = ClientError{ InnerError: fmt.Errorf("failed to convert garden spec to oci spec: %w", err) }
+		err = ClientError{InnerError: fmt.Errorf("failed to convert garden spec to oci spec: %w", err)}
 		return
 	}
 
@@ -115,19 +116,18 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 	)
 
 	if err != nil {
-		err = ClientError{ InnerError: fmt.Errorf("failed to create a container in containerd: %w", err) }
+		err = ClientError{InnerError: fmt.Errorf("failed to create a container in containerd: %w", err)}
 		return
 	}
 
 	_, err = cont.NewTask(ctxWithTimeout, cio.NullIO)
 	if err != nil {
-		err = ClientError{ InnerError: fmt.Errorf("failed to create a task in container: %w", err) }
+		err = ClientError{InnerError: fmt.Errorf("failed to create a task in container: %w", err)}
 		return
 	}
 
-	container = &Container{
-		handle: cont.ID(),
-	}
+	container = NewContainer(ctxWithTimeout, cont)
+
 	return
 }
 
@@ -157,24 +157,24 @@ func (b *Backend) Destroy(handle string) error {
 
 	container, err := b.client.GetContainer(ctxWithTimeout, handle)
 	if err != nil {
-		return ClientError{ InnerError: err }
+		return ClientError{InnerError: err}
 	}
 
 	task, err := container.Task(ctxWithTimeout, nil)
 	if err != nil {
 		if !errdefs.IsNotFound(err) {
-			return ClientError { InnerError: err }
+			return ClientError{InnerError: err}
 		}
 	} else {
 		err = killTasks(ctxWithTimeout, task)
 		if err != nil {
-			return ClientError{ InnerError: err }
+			return ClientError{InnerError: err}
 		}
 	}
 
 	err = b.client.Destroy(ctxWithTimeout, handle)
 	if err != nil {
-		return ClientError{ InnerError: err }
+		return ClientError{InnerError: err}
 	}
 	return nil
 }
@@ -225,22 +225,20 @@ func (b *Backend) Containers(properties garden.Properties) (containers []garden.
 
 	filters, err := propertiesToFilterList(properties)
 	if err != nil {
-		err = ClientError{ InnerError: err }
+		err = ClientError{InnerError: err}
 		return
 	}
 
 	res, err := b.client.Containers(ctxWithTimeout, filters...)
 	if err != nil {
-		err = ClientError{ InnerError: err }
+		err = ClientError{InnerError: err}
 		return
 	}
 
 	containers = make([]garden.Container, len(res))
 	for i, containerdContainer := range res {
-		gContainer := Container{
-			handle: containerdContainer.ID(),
-		}
-		containers[i] = &gContainer
+		gContainer := NewContainer(ctxWithTimeout, containerdContainer)
+		containers[i] = gContainer
 	}
 
 	return
@@ -270,10 +268,10 @@ func (b *Backend) Lookup(handle string) (garden.Container, error) {
 
 	containerdContainer, err := b.client.GetContainer(ctxWithTimeout, handle)
 	if err != nil {
-		return nil, ClientError{ InnerError: err }
+		return nil, ClientError{InnerError: err}
 	}
 
-	return &Container{handle: containerdContainer.ID()}, nil
+	return NewContainer(ctxWithTimeout, containerdContainer), nil
 }
 
 // propertiesToFilterList converts a set of garden properties to a list of
