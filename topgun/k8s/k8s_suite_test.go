@@ -42,7 +42,7 @@ type environment struct {
 var (
 	Environment            environment
 	endpointFactory        EndpointFactory
-	fly                    FlyCli
+	fly                    Fly
 	releaseName, namespace string
 )
 
