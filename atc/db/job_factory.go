@@ -121,12 +121,11 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 	var dashboard atc.Dashboard
 	for rows.Next() {
 		var (
-			teamName string
-			f, n, t  nullableBuild
+			f, n, t nullableBuild
 		)
 
 		j := atc.DashboardJob{}
-		err = rows.Scan(&j.ID, &j.Name, &j.PipelineName, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &teamName,
+		err = rows.Scan(&j.ID, &j.Name, &j.PipelineName, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &j.TeamName,
 			&f.id, &f.name, &f.status, &f.startTime, &f.endTime,
 			&n.id, &n.name, &n.status, &n.startTime, &n.endTime,
 			&t.id, &t.name, &t.status, &t.startTime, &t.endTime)
@@ -140,7 +139,7 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 				Name:         f.name.String,
 				JobName:      j.Name,
 				PipelineName: j.PipelineName,
-				TeamName:     teamName,
+				TeamName:     j.TeamName,
 				Status:       f.status.String,
 				StartTime:    f.startTime.Time,
 				EndTime:      f.endTime.Time,
@@ -153,7 +152,7 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 				Name:         n.name.String,
 				JobName:      j.Name,
 				PipelineName: j.PipelineName,
-				TeamName:     teamName,
+				TeamName:     j.TeamName,
 				Status:       n.status.String,
 				StartTime:    n.startTime.Time,
 				EndTime:      n.endTime.Time,
@@ -166,7 +165,7 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 				Name:         t.name.String,
 				JobName:      j.Name,
 				PipelineName: j.PipelineName,
-				TeamName:     teamName,
+				TeamName:     j.TeamName,
 				Status:       t.status.String,
 				StartTime:    t.startTime.Time,
 				EndTime:      t.endTime.Time,
