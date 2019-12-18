@@ -175,7 +175,7 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 		dashboard = append(dashboard, j)
 	}
 
-	rows, err = psql.Select("j.id", "i.name", "r.name", "jp.name", "i.trigger").
+	rows, err = psql.Select("j.id", "i.name", "r.name", "array_agg(jp.name)", "i.trigger").
 		From("job_inputs i").
 		Join("jobs j ON j.id = i.job_id").
 		Join("pipelines p ON p.id = j.pipeline_id").
@@ -186,64 +186,45 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 			"j.active": true,
 		}).
 		Where(pred).
-		OrderBy("i.passed_job_id").
+		GroupBy("i.name, j.id, r.name, i.trigger").
+		OrderBy("j.id").
 		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
 	}
 
-	jobInputs := make(map[int]map[string]atc.DashboardJobInput)
+	jobInputs := make(map[int][]atc.DashboardJobInput)
 	for rows.Next() {
-		var passed sql.NullString
+		var passedString []sql.NullString
 		var inputName, resourceName string
 		var jobID int
 		var trigger bool
 
-		err = rows.Scan(&jobID, &inputName, &resourceName, &passed, &trigger)
+		err = rows.Scan(&jobID, &inputName, &resourceName, pq.Array(&passedString), &trigger)
 		if err != nil {
 			return nil, err
 		}
 
-		inputs, found := jobInputs[jobID]
-		if !found {
-			inputs = map[string]atc.DashboardJobInput{}
-			jobInputs[jobID] = inputs
-		}
-
-		input, found := inputs[inputName]
-		if !found {
-			input = atc.DashboardJobInput{
-				Name:     inputName,
-				Resource: resourceName,
-				Trigger:  trigger,
+		var passed []string
+		for _, s := range passedString {
+			if s.Valid {
+				passed = append(passed, s.String)
 			}
 		}
 
-		if passed.Valid {
-			input.Passed = append(input.Passed, passed.String)
-		}
-
-		inputs[inputName] = input
+		jobInputs[jobID] = append(jobInputs[jobID], atc.DashboardJobInput{
+			Name:     inputName,
+			Resource: resourceName,
+			Trigger:  trigger,
+			Passed:   passed,
+		})
 	}
 
 	var finalDashboard atc.Dashboard
 	for _, job := range dashboard {
 		for _, input := range jobInputs[job.ID] {
-			if len(input.Passed) != 0 {
-				job.Inputs = append(job.Inputs, atc.DashboardJobInput{
-					Name:     input.Name,
-					Resource: input.Resource,
-					Passed:   input.Passed,
-					Trigger:  input.Trigger,
-				})
-			} else {
-				job.Inputs = append(job.Inputs, atc.DashboardJobInput{
-					Name:     input.Name,
-					Resource: input.Resource,
-					Trigger:  input.Trigger,
-				})
-			}
+			job.Inputs = append(job.Inputs, input)
 		}
 
 		sort.Slice(job.Inputs, func(p, q int) bool {

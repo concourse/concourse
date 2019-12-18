@@ -21,8 +21,6 @@ func (r *pinnedResolver) InputConfigs() InputConfigs {
 	return InputConfigs{r.inputConfig}
 }
 
-// Handles the three different configurations of a resource without passed
-// constraints: pinned, every and latest
 func (r *pinnedResolver) Resolve(depth int) (map[string]*versionCandidate, db.ResolutionFailure, error) {
 	version, found, err := r.vdb.FindVersionOfResource(r.inputConfig.ResourceID, r.inputConfig.PinnedVersion)
 	if err != nil {

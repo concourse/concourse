@@ -191,27 +191,29 @@ func (j *job) Config() (atc.JobConfig, error) {
 }
 
 func (j *job) Inputs() ([]atc.JobInput, error) {
-	rows, err := psql.Select("ji.name", "r.name", "p.name", "ji.trigger", "ji.version").
+	rows, err := psql.Select("ji.name", "r.name", "array_agg(p.name)", "ji.trigger", "ji.version").
 		From("job_inputs ji").
 		Join("resources r ON r.id = ji.resource_id").
 		LeftJoin("jobs p ON p.id = ji.passed_job_id").
 		Where(sq.Eq{
 			"ji.job_id": j.id,
 		}).
-		OrderBy("ji.passed_job_id").
+		GroupBy("ji.name, ji.job_id, r.name, ji.trigger, ji.version").
+		OrderBy("ji.job_id").
 		RunWith(j.conn).
 		Query()
 	if err != nil {
 		return nil, err
 	}
 
-	inputs := make(map[string]atc.JobInput)
+	var inputs []atc.JobInput
 	for rows.Next() {
-		var passed, versionString sql.NullString
+		var passedString []sql.NullString
+		var versionString sql.NullString
 		var inputName, resourceName string
 		var trigger bool
 
-		err = rows.Scan(&inputName, &resourceName, &passed, &trigger, &versionString)
+		err = rows.Scan(&inputName, &resourceName, pq.Array(&passedString), &trigger, &versionString)
 		if err != nil {
 			return nil, err
 		}
@@ -225,33 +227,27 @@ func (j *job) Inputs() ([]atc.JobInput, error) {
 			}
 		}
 
-		input, found := inputs[inputName]
-		if !found {
-			input = atc.JobInput{
-				Name:     inputName,
-				Resource: resourceName,
-				Trigger:  trigger,
-				Version:  version,
+		var passed []string
+		for _, s := range passedString {
+			if s.Valid {
+				passed = append(passed, s.String)
 			}
 		}
 
-		if passed.Valid {
-			input.Passed = append(input.Passed, passed.String)
-		}
-
-		inputs[inputName] = input
+		inputs = append(inputs, atc.JobInput{
+			Name:     inputName,
+			Resource: resourceName,
+			Trigger:  trigger,
+			Version:  version,
+			Passed:   passed,
+		})
 	}
 
-	var finalInputs []atc.JobInput
-	for _, input := range inputs {
-		finalInputs = append(finalInputs, input)
-	}
-
-	sort.Slice(finalInputs, func(p, q int) bool {
-		return finalInputs[p].Name < finalInputs[q].Name
+	sort.Slice(inputs, func(p, q int) bool {
+		return inputs[p].Name < inputs[q].Name
 	})
 
-	return finalInputs, nil
+	return inputs, nil
 }
 
 func (j *job) Outputs() ([]atc.JobOutput, error) {
