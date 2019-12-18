@@ -3,7 +3,6 @@ package k8s_test
 import (
 	"github.com/onsi/gomega/gbytes"
 
-	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -52,7 +51,7 @@ func containerLimitsWork(selectorFlags ...string) {
 			atc := waitAndLogin(namespace, releaseName+"-web")
 			defer atc.Close()
 
-			buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
+			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
 			<-buildSession.Exited
 
 			Expect(buildSession.ExitCode()).To(Equal(0))
@@ -79,7 +78,7 @@ func containerLimitsFail(selectorFlags ...string) {
 			atc := waitAndLogin(namespace, releaseName+"-web")
 			defer atc.Close()
 
-			buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
+			buildSession := fly.Start("execute", "-c", "../tasks/tiny.yml")
 			<-buildSession.Exited
 			Expect(buildSession.ExitCode()).To(Equal(2))
 			Expect(buildSession).To(gbytes.Say(
