@@ -50,6 +50,7 @@ the "big picture" as the mental model sets in.
 \include-section{./docs/install.lit}
 \include-section{./docs/auth.lit}
 \include-section{./docs/fly.lit}
+\include-section{./docs/config.lit}
 \include-section{./docs/pipelines.lit}
 \include-section{./docs/resources.lit}
 \include-section{./docs/resource-types.lit}
