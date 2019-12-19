@@ -29,18 +29,19 @@ type DB struct {
 }
 
 type DBRow struct {
-	Job            string
-	BuildID        int
-	Resource       string
-	Version        string
-	CheckOrder     int
-	VersionID      int
-	Disabled       bool
-	FromBuildID    int
-	ToBuildID      int
-	Pinned         bool
-	RerunOfBuildID int
-	BuildStatus    string
+	Job                   string
+	BuildID               int
+	Resource              string
+	Version               string
+	CheckOrder            int
+	VersionID             int
+	Disabled              bool
+	FromBuildID           int
+	ToBuildID             int
+	Pinned                bool
+	RerunOfBuildID        int
+	BuildStatus           string
+	NoResourceConfigScope bool
 }
 
 type Example struct {
@@ -54,10 +55,11 @@ type Example struct {
 type Inputs []Input
 
 type Input struct {
-	Name     string
-	Resource string
-	Passed   []string
-	Version  Version
+	Name                  string
+	Resource              string
+	Passed                []string
+	Version               Version
+	NoResourceConfigScope bool
 }
 
 type Version struct {
@@ -156,7 +158,7 @@ func (example Example) Run() {
 		for name, id := range legacyDB.ResourceIDs {
 			setup.resourceIDs[name] = id
 
-			setup.insertResource(name)
+			setup.insertResource(name, false)
 			resources[name] = atc.ResourceConfig{
 				Name: name,
 				Type: "some-base-type",
@@ -376,7 +378,7 @@ func (example Example) Run() {
 	}
 
 	for _, input := range example.Inputs {
-		setup.insertResource(input.Resource)
+		setup.insertResource(input.Resource, input.NoResourceConfigScope)
 
 		resources[input.Resource] = atc.ResourceConfig{
 			Name: input.Resource,
@@ -640,7 +642,7 @@ func (s setupDB) insertJob(jobName string) int {
 	return id
 }
 
-func (s setupDB) insertResource(name string) int {
+func (s setupDB) insertResource(name string, noRCS bool) int {
 	resourceID := s.resourceIDs.ID(name)
 
 	j, err := json.Marshal(atc.Source{name: "source"})
@@ -660,9 +662,14 @@ func (s setupDB) insertResource(name string) int {
 		Exec()
 	Expect(err).ToNot(HaveOccurred())
 
+	var rcsID sql.NullInt64
+	if !noRCS {
+		rcsID = sql.NullInt64{Int64: int64(resourceID), Valid: true}
+	}
+
 	_, err = s.psql.Insert("resources").
 		Columns("id", "name", "type", "config", "pipeline_id", "resource_config_id", "resource_config_scope_id").
-		Values(resourceID, name, fmt.Sprintf("%s-type", name), "{}", s.pipelineID, resourceID, resourceID).
+		Values(resourceID, name, fmt.Sprintf("%s-type", name), "{}", s.pipelineID, resourceID, rcsID).
 		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET id = EXCLUDED.id, resource_config_id = EXCLUDED.resource_config_id, resource_config_scope_id = EXCLUDED.resource_config_scope_id").
 		Exec()
 	Expect(err).ToNot(HaveOccurred())
@@ -673,7 +680,7 @@ func (s setupDB) insertResource(name string) int {
 func (s setupDB) insertRowVersion(resources map[string]atc.ResourceConfig, row DBRow) {
 	versionID := s.versionIDs.ID(row.Version)
 
-	resourceID := s.insertResource(row.Resource)
+	resourceID := s.insertResource(row.Resource, row.NoResourceConfigScope)
 	resources[row.Resource] = atc.ResourceConfig{
 		Name: row.Resource,
 		Type: "some-base-type",

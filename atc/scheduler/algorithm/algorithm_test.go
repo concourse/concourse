@@ -2993,4 +2993,26 @@ var _ = DescribeTable("Input resolving",
 			},
 		},
 	}),
+
+	Entry("when the resource does not have it's resource config scope set, it should error", Example{
+		DB: DB{
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1, NoResourceConfigScope: true},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:                  "resource-x",
+				Resource:              "resource-x",
+				NoResourceConfigScope: true,
+			},
+		},
+
+		Result: Result{
+			OK:      false,
+			HasNext: false,
+			Errors:  map[string]string{"resource-x": "latest version of resource not found"},
+		},
+	}),
 )

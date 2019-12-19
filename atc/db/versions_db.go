@@ -556,7 +556,7 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 }
 
 func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (ResourceVersion, bool, error) {
-	var scopeID int
+	var scopeID sql.NullInt64
 	err := psql.Select("resource_config_scope_id").
 		From("resources").
 		Where(sq.Eq{"id": resourceID}).
@@ -568,6 +568,10 @@ func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (Resou
 			return "", false, nil
 		}
 		return "", false, err
+	}
+
+	if !scopeID.Valid {
+		return "", false, nil
 	}
 
 	var version ResourceVersion

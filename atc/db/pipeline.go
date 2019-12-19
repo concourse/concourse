@@ -587,15 +587,31 @@ func (p *pipeline) Pause() error {
 }
 
 func (p *pipeline) Unpause() error {
-	_, err := psql.Update("pipelines").
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	_, err = psql.Update("pipelines").
 		Set("paused", false).
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Exec()
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	err = requestScheduleForJobsInPipeline(tx, p.id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (p *pipeline) Hide() error {
@@ -1076,4 +1092,47 @@ func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resourc
 	}
 
 	return resources, nil
+}
+
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
+func requestScheduleForJobsInPipeline(tx Tx, pipelineID int) error {
+	rows, err := psql.Select("id").
+		From("jobs").
+		Where(sq.Eq{
+			"pipeline_id": pipelineID,
+		}).
+		OrderBy("id DESC").
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	var jobIDs []int
+	for rows.Next() {
+		var id int
+		err = rows.Scan(&id)
+		if err != nil {
+			return err
+		}
+
+		jobIDs = append(jobIDs, id)
+	}
+
+	for _, jID := range jobIDs {
+		_, err := psql.Update("jobs").
+			Set("schedule_requested", sq.Expr("now()")).
+			Where(sq.Eq{
+				"id": jID,
+			}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
