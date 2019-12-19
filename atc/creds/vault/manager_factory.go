@@ -2,6 +2,7 @@ package vault
 
 import (
 	"fmt"
+
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/jessevdk/go-flags"
 )
@@ -34,7 +35,12 @@ func (factory *vaultManagerFactory) NewInstance(config interface{}) (creds.Manag
 		return nil, fmt.Errorf("invalid vault config format")
 	} else {
 		manager := &VaultManager{}
-		manager.Config(c)
+
+		err := manager.Config(c)
+		if err != nil {
+			return nil, err
+		}
+
 		return manager, nil
 	}
 }

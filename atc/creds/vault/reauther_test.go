@@ -1,10 +1,11 @@
 package vault
 
 import (
-	"code.cloudfoundry.org/lager/lagertest"
 	"fmt"
 	"testing"
 	"time"
+
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/cenkalti/backoff"
 )

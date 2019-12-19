@@ -10,58 +10,54 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/creds"
-	vaultapi "github.com/hashicorp/vault/api"
+	"github.com/mitchellh/mapstructure"
 )
 
 type VaultManager struct {
-	URL string `long:"url" description:"Vault server address used to access secrets."`
+	URL string `mapstructure:"url" long:"url" description:"Vault server address used to access secrets."`
 
-	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
-	SharedPath string `long:"shared-path" description:"Path under which to lookup shared credentials."`
-	Namespace  string `long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
+	PathPrefix string `mapstructure:"path_prefix" long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	SharedPath string `mapstructure:"shared_path" long:"shared-path" description:"Path under which to lookup shared credentials."`
+	Namespace  string `mapstructure:"namespace" long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
 
-	TLS  TLS
-	Auth AuthConfig
+	TLS TLSConfig  `mapstructure:",squash"`
+	Auth AuthConfig `mapstructure:",squash"`
 
 	Client        *APIClient
 	ReAuther      *ReAuther
 	SecretFactory *vaultFactory
 }
 
-type TLS struct {
-	CACert     string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
+type TLSConfig struct {
+	CACert     string `mapstructure:"ca_cert"`
+	CACertFile string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
 	CAPath     string `long:"ca-path"              description:"Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert."`
-	ClientCert string `long:"client-cert"          description:"Path to the client certificate for Vault authorization."`
-	ClientKey  string `long:"client-key"           description:"Path to the client private key for Vault authorization."`
-	ServerName string `long:"server-name"          description:"If set, is used to set the SNI host when connecting via TLS."`
-	Insecure   bool   `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
+
+	ClientCert     string `mapstructure:"client_cert"`
+	ClientCertFile string `long:"client-cert"          description:"Path to the client certificate for Vault authorization."`
+
+	ClientKey     string `mapstructure:"client_key"`
+	ClientKeyFile string `long:"client-key"           description:"Path to the client private key for Vault authorization."`
+
+	ServerName string `mapstructure:"server_name" long:"server-name"          description:"If set, is used to set the SNI host when connecting via TLS."`
+	Insecure   bool   `mapstructure:"insecure_skip_verify" long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
 }
 
 type AuthConfig struct {
-	ClientToken string `long:"client-token" description:"Client token for accessing secrets within the Vault server."`
+	ClientToken string `mapstructure:"client_token" long:"client-token" description:"Client token for accessing secrets within the Vault server."`
 
-	Backend       string        `long:"auth-backend"               description:"Auth backend to use for logging in to Vault."`
-	BackendMaxTTL time.Duration `long:"auth-backend-max-ttl"       description:"Time after which to force a re-login. If not set, the token will just be continuously renewed."`
-	RetryMax      time.Duration `long:"retry-max"     default:"5m" description:"The maximum time between retries when logging in or re-authing a secret."`
-	RetryInitial  time.Duration `long:"retry-initial" default:"1s" description:"The initial time between retries when logging in or re-authing a secret."`
+	Backend       string        `mapstructure:"auth_backend" long:"auth-backend"               description:"Auth backend to use for logging in to Vault."`
+	BackendMaxTTL time.Duration `mapstructure:"auth_backend_max_ttl" long:"auth-backend-max-ttl"       description:"Time after which to force a re-login. If not set, the token will just be continuously renewed."`
+	RetryMax      time.Duration `mapstructure:"auth_retry_max" long:"retry-max"     default:"5m" description:"The maximum time between retries when logging in or re-authing a secret."`
+	RetryInitial  time.Duration `mapstructure:"auth_retry_initial" long:"retry-initial" default:"1s" description:"The initial time between retries when logging in or re-authing a secret."`
 
-	Params map[string]string `long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME:VALUE"`
+	Params map[string]string `mapstructure:"auth_params" long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME:VALUE"`
 }
 
 func (manager *VaultManager) Init(log lager.Logger) error {
 	var err error
 
-	tlsConfig := &vaultapi.TLSConfig{
-		CACert:        manager.TLS.CACert,
-		CAPath:        manager.TLS.CAPath,
-		TLSServerName: manager.TLS.ServerName,
-		Insecure:      manager.TLS.Insecure,
-
-		ClientCert: manager.TLS.ClientCert,
-		ClientKey:  manager.TLS.ClientKey,
-	}
-
-	manager.Client, err = NewAPIClient(log, manager.URL, tlsConfig, manager.Auth, manager.Namespace)
+	manager.Client, err = NewAPIClient(log, manager.URL, manager.TLS, manager.Auth, manager.Namespace)
 	if err != nil {
 		return err
 	}
@@ -90,50 +86,27 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func toString(s interface{}) string {
-	if s == nil {
-		return ""
+func (manager *VaultManager) Config(config map[string]interface{}) error {
+	// apply defaults
+	manager.PathPrefix = "/concourse"
+	manager.Auth.RetryMax = 5 * time.Minute
+	manager.Auth.RetryInitial = time.Second
+
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook:  mapstructure.StringToTimeDurationHookFunc(),
+		ErrorUnused: true,
+		Result:      &manager,
+	})
+	if err != nil {
+		return err
 	}
-	return s.(string)
-}
 
-func toBool(s interface{}) bool {
-	if s == nil {
-		return false
+	err = decoder.Decode(config)
+	if err != nil {
+		return err
 	}
-	return s.(bool)
-}
 
-func toDuration(s interface{}, defaultValue time.Duration) time.Duration {
-	if s == nil {
-		return defaultValue
-	}
-	return s.(time.Duration)
-}
-
-func (manager *VaultManager) Config(config map[string]interface{}) {
-	manager.URL = toString(config["url"])
-	manager.PathPrefix = toString(config["path_prefix"])
-	manager.SharedPath = toString(config["shared_path"])
-	manager.Namespace = toString(config["namespace"])
-
-	manager.TLS.CACert = toString(config["ca_cert"])
-	manager.TLS.CAPath = toString(config["ca_path"])
-	manager.TLS.ClientCert = toString(config["client_cert"])
-	manager.TLS.ClientKey = toString(config["client_key"])
-	manager.TLS.ServerName = toString(config["server_name"])
-	manager.TLS.Insecure = toBool(config["insecure_skip_verify"])
-
-	manager.Auth.ClientToken = toString(config["client_token"])
-	manager.Auth.Backend = toString(config["auth_backend"])
-	manager.Auth.BackendMaxTTL = toDuration(config["auth_max_ttl"], 0)
-	manager.Auth.RetryMax = toDuration(config["auth_retry_max"], 5*time.Minute)
-	manager.Auth.RetryInitial = toDuration(config["auth_retry_initial"], 1*time.Second)
-	if config["auth_params"] == nil {
-		manager.Auth.Params = map[string]string{}
-	} else {
-		manager.Auth.Params = config["auth_params"].(map[string]string)
-	}
+	return nil
 }
 
 func (manager VaultManager) IsConfigured() bool {
@@ -178,9 +151,22 @@ func (manager VaultManager) Health() (*creds.HealthResponse, error) {
 
 func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
 	if manager.SecretFactory == nil {
-		manager.ReAuther = NewReAuther(logger, manager.Client, manager.Auth.BackendMaxTTL, manager.Auth.RetryInitial, manager.Auth.RetryMax)
-		manager.SecretFactory = NewVaultFactory(manager.Client, manager.ReAuther.LoggedIn(), manager.PathPrefix, manager.SharedPath)
+		manager.ReAuther = NewReAuther(
+			logger,
+			manager.Client,
+			manager.Auth.BackendMaxTTL,
+			manager.Auth.RetryInitial,
+			manager.Auth.RetryMax,
+		)
+
+		manager.SecretFactory = NewVaultFactory(
+			manager.Client,
+			manager.ReAuther.LoggedIn(),
+			manager.PathPrefix,
+			manager.SharedPath,
+		)
 	}
+
 	return manager.SecretFactory, nil
 }
 
