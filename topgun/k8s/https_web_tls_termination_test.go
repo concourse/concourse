@@ -93,7 +93,7 @@ var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 
 			It("fly login fails when NOT using the correct CA", func() {
 				sess := fly.Start("login", "-u", "test", "-p", "test",
-					"--ca-cert", "k8s/certs/wrong-ca.crt",
+					"--ca-cert", "certs/wrong-ca.crt",
 					"-c", "https://"+atc.Address(),
 				)
 				<-sess.Exited
