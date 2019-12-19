@@ -12,6 +12,8 @@ import (
 	"github.com/concourse/concourse/vars"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/pkg/errors"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
@@ -40,6 +42,7 @@ type Pipeline interface {
 	Groups() atc.GroupConfigs
 	VarSources() atc.VarSourceConfigs
 	ConfigVersion() ConfigVersion
+	Config() (atc.Config, error)
 	Public() bool
 	Paused() bool
 
@@ -215,6 +218,33 @@ func (p *pipeline) Reload() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (p *pipeline) Config() (atc.Config, error) {
+	jobs, err := p.Jobs()
+	if err != nil {
+		return atc.Config{}, fmt.Errorf("failed to get jobs: %s", err)
+	}
+
+	resources, err := p.Resources()
+	if err != nil {
+		return atc.Config{}, fmt.Errorf("failed to get resources: %s", err)
+	}
+
+	resourceTypes, err := p.ResourceTypes()
+	if err != nil {
+		return atc.Config{}, fmt.Errorf("failed to get resources-types: %s", err)
+	}
+
+	config := atc.Config{
+		Groups:        p.Groups(),
+		VarSources:    p.VarSources(),
+		Resources:     resources.Configs(),
+		ResourceTypes: resourceTypes.Configs(),
+		Jobs:          jobs.Configs(),
+	}
+
+	return config, nil
 }
 
 func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
@@ -1017,36 +1047,46 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 // plug the global variables, otherwise just return the global variables.
 func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
 	globalVars := creds.NewVariables(globalSecrets, p.TeamName(), p.Name(), false)
-	varss := []vars.Variables{}
-	for _, cm := range p.varSources {
+	namedVarsMap := vars.NamedVariables{}
+	// It's safe to add NamedVariables to allVars via an array here, because
+	// a map is passed by reference.
+	allVars := vars.NewMultiVars([]vars.Variables{globalVars, namedVarsMap})
+
+	orderedVarSources, err := p.varSources.OrderByDependency()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, cm := range orderedVarSources {
 		factory := creds.ManagerFactories()[cm.Type]
 		if factory == nil {
 			return nil, fmt.Errorf("unknown credential manager type: %s", cm.Type)
 		}
 
 		// Interpolate variables in pipeline credential manager's config
-		newConfig, err := creds.NewParams(globalVars, atc.Params{"config": cm.Config}).Evaluate()
+		newConfig, err := creds.NewParams(allVars, atc.Params{"config": cm.Config}).Evaluate()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "evaluate var_source '%s' error", cm.Name)
 		}
 
 		config, ok := newConfig["config"].(map[string]interface{})
 		if !ok {
-			return nil, fmt.Errorf("invalid config format")
+			return nil, fmt.Errorf("var_source '%s' invalid config", cm.Name)
 		}
 		secrets, err := varSourcePool.FindOrCreate(logger, config, factory)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "create var_source '%s' error", cm.Name)
 		}
-		varss = append(varss, creds.NewVariables(secrets, p.TeamName(), p.Name(), true))
+		namedVarsMap[cm.Name] = creds.NewVariables(secrets, p.TeamName(), p.Name(), true)
 	}
 
-	if len(varss) == 0 {
+	// If there is no var_source from the pipeline, then just return the global
+	// vars.
+	if len(namedVarsMap) == 0 {
 		return globalVars, nil
 	}
 
-	varss = append(varss, globalVars)
-	return vars.NewMultiVars(varss), nil
+	return allVars, nil
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {

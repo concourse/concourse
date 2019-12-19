@@ -10,6 +10,7 @@ import (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Client
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd.Container
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/containerd.Task
 
 // Client represents the minimum interface used to communicate with containerd
 // to manage containers.
@@ -51,6 +52,21 @@ type Client interface {
 	) (
 		containers []containerd.Container, err error,
 	)
+
+	// GetContainer retrieves a created container that matches the specified handle.
+	//
+	GetContainer(
+		ctx context.Context,
+		handle string,
+	) (
+		container containerd.Container, err error,
+	)
+
+	// Destroy stops any running tasks on a container and removes the container.
+	// If a task cannot be stopped gracefully, it will be forcefully stopped after
+	// a timeout period (default 10 seconds).
+	//
+	Destroy(ctx context.Context, handle string) error
 }
 
 type client struct {
@@ -103,7 +119,19 @@ func (c *client) Containers(
 	return c.containerd.Containers(ctx, labels...)
 }
 
+func (c *client) GetContainer(ctx context.Context, handle string) (containerd.Container, error) {
+	return c.containerd.LoadContainer(ctx, handle)
+}
+
 func (c *client) Version(ctx context.Context) (err error) {
 	_, err = c.containerd.Version(ctx)
 	return
+}
+func (c *client) Destroy(ctx context.Context, handle string) error {
+	container, err := c.GetContainer(ctx, handle)
+	if err != nil {
+		return err
+	}
+
+	return container.Delete(ctx)
 }

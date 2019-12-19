@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -69,7 +70,7 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 	var errorMessages []string
 	for i := 0; i < executedSteps; i++ {
 		err := <-errs
-		if err != nil && err != context.Canceled {
+		if err != nil && !errors.Is(err, context.Canceled) {
 			// The Run context being cancelled only means that one or more steps failed, not
 			// in_parallel itself. If we return context.Canceled error messages the step will
 			// be marked as errored instead of failed, and therefore they should be ignored.

@@ -26,6 +26,7 @@ type (
 		Url                string
 		apikey             string
 		prefix             string
+		checks             *stats
 		containers         *stats
 		volumes            *stats
 		BatchSize          int
@@ -86,6 +87,9 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	case "build started",
 		"build finished",
 		"resource checked",
+		"check enqueue",
+		"check queue size",
+		"check started",
 		"check finished",
 		"worker containers",
 		"worker volumes",
@@ -101,6 +105,8 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	// periodic list, so we should have a coherent view). We do this because
 	// new relic has a hard limit on the total number of metrics in a 24h
 	// period, so batching similar data where possible makes sense.
+	case "checks deleted":
+		emitter.checks.deleted = event.Value
 	case "containers deleted":
 		emitter.containers.deleted = event.Value
 	case "containers created":

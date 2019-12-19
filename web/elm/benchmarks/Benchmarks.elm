@@ -62,7 +62,6 @@ type alias Model =
         , history : List Concourse.Build
         , nextPage : Maybe Page
         , currentBuild : WebData CurrentBuild
-        , browsingIndex : Int
         , autoScroll : Bool
         , previousKeyPress : Maybe Keyboard.KeyEvent
         , shiftDown : Bool
@@ -726,7 +725,6 @@ sampleOldModel =
                     , highlight = Routes.HighlightNothing
                     }
             }
-    , browsingIndex = 0
     , autoScroll = True
     , previousKeyPress = Nothing
     , shiftDown = False
@@ -774,7 +772,6 @@ sampleModel =
             , eventStreamUrlPath = Nothing
             , highlight = Routes.HighlightNothing
             }
-    , browsingIndex = 0
     , autoScroll = True
     , previousKeyPress = Nothing
     , previousTriggerBuildByKey = False

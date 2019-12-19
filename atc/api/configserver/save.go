@@ -8,16 +8,14 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/hashicorp/go-multierror"
-	"github.com/tedsuo/rata"
-	"sigs.k8s.io/yaml"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/vars"
+	"github.com/hashicorp/go-multierror"
+	"github.com/tedsuo/rata"
 )
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
@@ -49,35 +47,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ignoredUnknownTopLevels := map[string]interface{}{}
-
-		// do a naive unmarshal first so we can ignore unknown top-level keys
-		err = yaml.UnmarshalStrict(body, &ignoredUnknownTopLevels)
-		if err != nil {
-			s.handleBadRequest(w, "malformed config")
-			return
-		}
-
-		for k := range ignoredUnknownTopLevels {
-			unknown := true
-			for _, topLevelKey := range atc.TopLevelConfigKeys {
-				if topLevelKey == k {
-					unknown = false
-					break
-				}
-			}
-			if unknown {
-				delete(ignoredUnknownTopLevels, k)
-			}
-		}
-
-		configWithoutUnknownTopLevels, err := yaml.Marshal(ignoredUnknownTopLevels)
-		if err != nil {
-			s.handleBadRequest(w, fmt.Sprintf("yaml re-marshal failed: %s", err))
-			return
-		}
-
-		err = yaml.UnmarshalStrict(configWithoutUnknownTopLevels, &config, yaml.DisallowUnknownFields)
+		err = atc.UnmarshalConfig(body, &config)
 		if err != nil {
 			session.Error("malformed-request-payload", err, lager.Data{
 				"content-type": r.Header.Get("Content-Type"),
@@ -183,7 +153,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 				errs = multierror.Append(errs, err)
 			}
 
-			if plan.TaskConfigPath != "" {
+			if plan.ConfigPath != "" {
 				// external task - we can't really validate much right now, because task yaml will be
 				// retrieved in runtime during job execution. but we can validate vars and params which will be
 				// passed to this task
@@ -192,7 +162,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 					errs = multierror.Append(errs, err)
 				}
 
-				err = creds.NewTaskVarsValidator(credMgrVars, plan.TaskVars).Validate()
+				err = creds.NewTaskVarsValidator(credMgrVars, plan.Vars).Validate()
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}

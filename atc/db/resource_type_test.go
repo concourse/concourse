@@ -365,6 +365,10 @@ var _ = Describe("ResourceType", func() {
 			Expect(resourceTypeScope.ResourceConfig()).ToNot(BeNil())
 		})
 
+		It("returns the resource config scope id", func() {
+			Expect(resourceType.ResourceConfigScopeID()).To(Equal(resourceTypeScope.ID()))
+		})
+
 		Context("when the resource type has proper versions", func() {
 			BeforeEach(func() {
 				err := resourceTypeScope.SaveVersions([]atc.Version{

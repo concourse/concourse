@@ -302,6 +302,30 @@ var _ = Describe("DelegateFactory", func() {
 			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
 		})
 
+		Describe("Initializing", func() {
+			JustBeforeEach(func() {
+				delegate.Initializing(logger)
+			})
+
+			It("saves an event", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				event := fakeBuild.SaveEventArgsForCall(0)
+				Expect(event.EventType()).To(Equal(atc.EventType("initialize")))
+			})
+		})
+
+		Describe("Finished", func() {
+			JustBeforeEach(func() {
+				delegate.Finished(logger, true)
+			})
+
+			It("saves an event", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				event := fakeBuild.SaveEventArgsForCall(0)
+				Expect(event.EventType()).To(Equal(atc.EventType("finish")))
+			})
+		})
+
 		Describe("ImageVersionDetermined", func() {
 			var fakeResourceCache *dbfakes.FakeUsedResourceCache
 
@@ -470,6 +494,100 @@ var _ = Describe("DelegateFactory", func() {
 					Expect(len(logs)).To(Equal(1))
 					Expect(logs[0].Message).To(Equal("test.failed-to-save-error-event"))
 					Expect(logs[0].Data).To(Equal(lager.Data{"error": "nope"}))
+				})
+			})
+		})
+
+		Describe("No line buffer without secrets redaction", func() {
+			BeforeEach(func() {
+				credVars := vars.StaticVariables{}
+				credVarsTracker = vars.NewCredVarsTracker(credVars, false)
+				delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+			})
+
+			Context("Stdout", func() {
+				It("should not buffer lines", func() {
+					writer := delegate.Stdout()
+					writtenBytes, writeErr := writer.Write([]byte("1\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("1\r")))
+					writtenBytes, writeErr = writer.Write([]byte("2\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("2\r")))
+					writtenBytes, writeErr = writer.Write([]byte("3\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("3\r")))
+					writeErr = writer.(io.Closer).Close()
+					Expect(writeErr).To(BeNil())
+
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(3))
+					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "1\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStdout,
+							ID:     "some-plan-id",
+						},
+					}))
+					Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "2\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStdout,
+							ID:     "some-plan-id",
+						},
+					}))
+					Expect(fakeBuild.SaveEventArgsForCall(2)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "3\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStdout,
+							ID:     "some-plan-id",
+						},
+					}))
+				})
+			})
+
+			Context("Stderr", func() {
+				It("should not buffer lines", func() {
+					writer := delegate.Stderr()
+					writtenBytes, writeErr := writer.Write([]byte("1\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("1\r")))
+					writtenBytes, writeErr = writer.Write([]byte("2\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("2\r")))
+					writtenBytes, writeErr = writer.Write([]byte("3\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("3\r")))
+					writeErr = writer.(io.Closer).Close()
+					Expect(writeErr).To(BeNil())
+
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(3))
+					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "1\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStderr,
+							ID:     "some-plan-id",
+						},
+					}))
+					Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "2\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStderr,
+							ID:     "some-plan-id",
+						},
+					}))
+					Expect(fakeBuild.SaveEventArgsForCall(2)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "3\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStderr,
+							ID:     "some-plan-id",
+						},
+					}))
 				})
 			})
 		})

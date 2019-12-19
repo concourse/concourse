@@ -1634,15 +1634,13 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
         >> Application.handleCallback
             (Callback.BuildFetched
                 (Ok
-                    ( 1
-                    , { id = 1
-                      , name = "1"
-                      , job = Nothing
-                      , status = BuildStatusStarted
-                      , duration = { startedAt = Nothing, finishedAt = Nothing }
-                      , reapTime = Nothing
-                      }
-                    )
+                    { id = 1
+                    , name = "1"
+                    , job = Nothing
+                    , status = BuildStatusStarted
+                    , duration = { startedAt = Nothing, finishedAt = Nothing }
+                    , reapTime = Nothing
+                    }
                 )
             )
         >> Tuple.first

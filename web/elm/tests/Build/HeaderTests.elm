@@ -113,7 +113,7 @@ all =
                 in
                 ( model, [] )
                     |> Header.handleCallback
-                        (Callback.BuildFetched <| Ok ( 0, build ))
+                        (Callback.BuildFetched <| Ok build)
                     |> Header.handleCallback
                         (Callback.BuildHistoryFetched <|
                             Ok
@@ -146,7 +146,7 @@ all =
                 in
                 ( model, [] )
                     |> Header.handleCallback
-                        (Callback.BuildFetched <| Ok ( 0, build ))
+                        (Callback.BuildFetched <| Ok build)
                     |> Header.handleDelivery
                         (Subscription.EventsReceived <|
                             Ok
@@ -194,5 +194,4 @@ model =
     , fetchingHistory = False
     , nextPage = Nothing
     , previousTriggerBuildByKey = False -- TODO WTF variable name
-    , browsingIndex = 0
     }

@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
@@ -377,6 +378,11 @@ var _ = Describe("Engine", func() {
 
 			BeforeEach(func() {
 				logger = lagertest.NewTestLogger("test")
+				fakeCheck.PlanReturns(atc.Plan{
+					Check: &atc.CheckPlan{
+						Name: "some-name",
+					},
+				})
 			})
 
 			JustBeforeEach(func() {

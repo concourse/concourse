@@ -67,6 +67,7 @@ import (
 	_ "github.com/concourse/concourse/atc/metric/emitter"
 
 	// dynamically registered credential managers
+	_ "github.com/concourse/concourse/atc/creds/conjur"
 	_ "github.com/concourse/concourse/atc/creds/credhub"
 	_ "github.com/concourse/concourse/atc/creds/dummy"
 	_ "github.com/concourse/concourse/atc/creds/kubernetes"
@@ -103,7 +104,7 @@ type RunCommand struct {
 
 	LetsEncrypt struct {
 		Enable  bool     `long:"enable-lets-encrypt"   description:"Automatically configure TLS certificates via Let's Encrypt/ACME."`
-		ACMEURL flag.URL `long:"lets-encrypt-acme-url" description:"URL of the ACME CA directory endpoint." default:"https://acme-v01.api.letsencrypt.org/directory"`
+		ACMEURL flag.URL `long:"lets-encrypt-acme-url" description:"URL of the ACME CA directory endpoint." default:"https://acme-v02.api.letsencrypt.org/directory"`
 	} `group:"Let's Encrypt Configuration"`
 
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
@@ -801,6 +802,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		pool,
 		workerClient,
 		resourceFetcher,
+		teamFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		secretManager,
@@ -1432,6 +1434,7 @@ func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
 	workerClient worker.Client,
 	resourceFetcher fetcher.Fetcher,
+	teamFactory db.TeamFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	secretManager creds.Secrets,
@@ -1445,6 +1448,7 @@ func (cmd *RunCommand) constructEngine(
 		workerPool,
 		workerClient,
 		resourceFetcher,
+		teamFactory,
 		resourceCacheFactory,
 		resourceConfigFactory,
 		defaultLimits,
