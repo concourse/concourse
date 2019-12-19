@@ -78,8 +78,8 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&map[string]interface{}{
 		"url":                manager.URL,
 		"path_prefix":        manager.PathPrefix,
-		"shared_path":		  manager.SharedPath,
-		"namespace":		  manager.Namespace,
+		"shared_path":        manager.SharedPath,
+		"namespace":          manager.Namespace,
 		"ca_cert":            manager.TLS.CACert,
 		"server_name":        manager.TLS.ServerName,
 		"auth_backend":       manager.Auth.Backend,
@@ -129,10 +129,10 @@ func (manager *VaultManager) Config(config map[string]interface{}) {
 	manager.Auth.BackendMaxTTL = toDuration(config["auth_max_ttl"], 0)
 	manager.Auth.RetryMax = toDuration(config["auth_retry_max"], 5*time.Minute)
 	manager.Auth.RetryInitial = toDuration(config["auth_retry_initial"], 1*time.Second)
-	if config["auth_param"] == nil {
+	if config["auth_params"] == nil {
 		manager.Auth.Params = map[string]string{}
 	} else {
-		manager.Auth.Params = config["auth_param"].(map[string]string)
+		manager.Auth.Params = config["auth_params"].(map[string]string)
 	}
 }
 
