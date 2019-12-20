@@ -184,7 +184,7 @@ stepHeaderLabel headerType =
                 Colors.started
 
             _ ->
-                Colors.errorFaded
+                Colors.pending
     , style "line-height" "28px"
     , style "padding" "0 6px"
     ]

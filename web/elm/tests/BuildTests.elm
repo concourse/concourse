@@ -3470,7 +3470,7 @@ all =
 
 
 getStepLabel =
-    [ style "color" Colors.errorFaded
+    [ style "color" Colors.pending
     , style "line-height" "28px"
     , style "padding" "0 6px"
     , containing [ text "get:" ]
@@ -3486,7 +3486,7 @@ firstOccurrenceGetStepLabel =
 
 
 putStepLabel =
-    [ style "color" Colors.errorFaded
+    [ style "color" Colors.pending
     , style "line-height" "28px"
     , style "padding" "0 6px"
     , containing [ text "put:" ]
@@ -3494,14 +3494,14 @@ putStepLabel =
 
 
 taskStepLabel =
-    [ style "color" Colors.errorFaded
+    [ style "color" Colors.pending
     , style "line-height" "28px"
     , style "padding" "0 6px"
     , containing [ text "task:" ]
     ]
 
 setPipelineStepLabel =
-    [ style "color" Colors.errorFaded
+    [ style "color" Colors.pending
     , style "line-height" "28px"
     , style "padding" "0 6px"
     , containing [ text "set_pipeline:" ]
