@@ -191,7 +191,7 @@ and viewers cannot.
     \table-row{GetBuild                     }{n/a                                                               }{view one-off build page                }{✓                                }{✓           }
     \table-row{BuildResources               }{n/a                                                               }{view build page                        }{✓                                }{✓           }
     \table-row{GetBuildPreparation          }{n/a                                                               }{view build page                        }{✓                                }{✓           }
-    \table-row{BuildEvents                  }{n/a                                                               }{view build page                        }{✓                                }{✓           }
+    \table-row{BuildEvents                  }{\reference{fly-watch},\reference{fly-execute}                     }{view build page                        }{✓                                }{✓           }
     \table-row{GetBuildPlan                 }{n/a                                                               }{view build page                        }{✓                                }{✓           }
     \table-row{ListBuildArtifacts           }{n/a                                                               }{n/a                                    }{✓                                }{✓           }
     \table-row{AbortBuild                   }{\reference{fly-abort-build}                                       }{abort button on build page             }{✘                                }{✓           }
