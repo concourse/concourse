@@ -17,8 +17,8 @@ Concourse comes with five roles:
 }
 
 These roles are strictly ordered, so that each role always has all the
-permissions of any other role lower on the list. This means that a Team Viewer
-can always do anything a Pipeline Operator can, and so on.
+permissions of any other role lower on the list. This means that a Pipeline
+Operator can always do anything a Team Viewer can, and so on.
 
 In this document we say an action is \italic{assigned} to a role if that role is
 capable of performing the action, but any less-privileged role is not. For
