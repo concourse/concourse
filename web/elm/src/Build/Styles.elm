@@ -14,7 +14,7 @@ module Build.Styles exposing
     , retryTab
     , retryTabList
     , stepHeader
-    , stepHeaderIcon
+    , stepHeaderLabel
     , stepStatusIcon
     , triggerButton
     , triggerTooltip
@@ -176,36 +176,17 @@ stepHeader state =
     ]
 
 
-stepHeaderIcon : StepHeaderType -> List (Html.Attribute msg)
-stepHeaderIcon icon =
-    let
-        image =
-            case icon of
-                StepHeaderGet False ->
-                    "arrow-downward"
+stepHeaderLabel : StepHeaderType -> List (Html.Attribute msg)
+stepHeaderLabel headerType =
+    [ style "color" <|
+        case headerType of
+            StepHeaderGet True ->
+                Colors.started
 
-                StepHeaderGet True ->
-                    "arrow-downward-yellow"
-
-                StepHeaderPut ->
-                    "arrow-upward"
-
-                StepHeaderTask ->
-                    "terminal"
-
-                StepHeaderSetPipeline ->
-                    "breadcrumb-pipeline"
-    in
-    [ style "height" "28px"
-    , style "width" "28px"
-    , style "background-image" <|
-        "url(/public/images/ic-"
-            ++ image
-            ++ ".svg)"
-    , style "background-repeat" "no-repeat"
-    , style "background-position" "50% 50%"
-    , style "background-size" "14px 14px"
-    , style "position" "relative"
+            _ ->
+                Colors.errorFaded
+    , style "line-height" "28px"
+    , style "padding" "0 6px"
     ]
 
 

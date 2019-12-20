@@ -33,10 +33,10 @@ handleCallback callback ( model, effects ) =
 
         GotElement (Ok { element, viewport }) ->
             case model.hovered of
-                HoverState.TooltipPending (Message.FirstOccurrenceIcon stepID) ->
+                HoverState.TooltipPending (Message.FirstOccurrenceGetStepLabel stepID) ->
                     ( { model
                         | hovered =
-                            HoverState.Tooltip (Message.FirstOccurrenceIcon stepID) <|
+                            HoverState.Tooltip (Message.FirstOccurrenceGetStepLabel stepID) <|
                                 Bottom
                                     (viewport.height - element.y)
                                     element.x
@@ -65,7 +65,7 @@ handleCallback callback ( model, effects ) =
 view : Model m -> Html msg
 view { hovered } =
     case hovered of
-        HoverState.Tooltip (Message.FirstOccurrenceIcon _) (Bottom b l w) ->
+        HoverState.Tooltip (Message.FirstOccurrenceGetStepLabel _) (Bottom b l w) ->
             Html.div []
                 [ Html.div
                     (Build.Styles.firstOccurrenceTooltip b l)
