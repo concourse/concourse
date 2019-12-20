@@ -110,6 +110,19 @@ func (s *BackendSuite) TestCreateContainerNewTaskFailure() {
 	s.Equal(1, fakeContainer.NewTaskCallCount())
 }
 
+func (s *BackendSuite) TestCreateContainerSetsHandle() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.IDReturns("handle")
+	fakeContainer.NewTaskReturns(nil, nil)
+
+	s.client.NewContainerReturns(fakeContainer, nil)
+	cont, err := s.backend.Create(minimumValidGdnSpec)
+	s.NoError(err)
+
+	s.Equal("handle", cont.Handle())
+
+}
+
 func (s *BackendSuite) TestContainersWithContainerdFailure() {
 	s.client.ContainersReturns(nil, errors.New("err"))
 
@@ -183,6 +196,10 @@ func (s *BackendSuite) TestLookupEmptyHandleError() {
 }
 
 func (s *BackendSuite) TestLookupCallGetContainerWithHandle() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.IDReturns("handle")
+	s.client.GetContainerReturns(fakeContainer, nil)
+
 	_, _ = s.backend.Lookup("handle")
 	s.Equal(1, s.client.GetContainerCallCount())
 
@@ -191,6 +208,10 @@ func (s *BackendSuite) TestLookupCallGetContainerWithHandle() {
 }
 
 func (s *BackendSuite) TestLookupCallGetContainerWithNamespace() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.IDReturns("handle")
+	s.client.GetContainerReturns(fakeContainer, nil)
+
 	_, _ = s.backend.Lookup("handle")
 	s.Equal(1, s.client.GetContainerCallCount())
 
@@ -203,6 +224,10 @@ func (s *BackendSuite) TestLookupCallGetContainerWithNamespace() {
 }
 
 func (s *BackendSuite) TestLookupGetContainerError() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.IDReturns("handle")
+	s.client.GetContainerReturns(fakeContainer, nil)
+
 	s.client.GetContainerReturns(nil, errors.New("containerd-err"))
 
 	_, err := s.backend.Lookup("handle")
@@ -217,15 +242,22 @@ func (s *BackendSuite) TestLookupGetContainerFails() {
 	s.EqualError(err, "client error: err")
 }
 
-// TODO: un-comment this test when Container implementation is completed
-//func (s *BackendSuite) TestLookupGetContainer() {
-//	fakeContainer := new(libcontainerdfakes.FakeContainer)
-//	s.client.GetContainerReturns(fakeContainer, nil)
-//
-//	lookedUpContainer, err := s.backend.Lookup("fake-container")
-//	s.NoError(err)
-//	s.Equal(fakeContainer, lookedUpContainer)
-//}
+func (s *BackendSuite) TestLookupGetNoContainerReturned() {
+	s.client.GetContainerReturns(nil, errors.New("not found"))
+	container, err := s.backend.Lookup("non-existent-handle")
+	s.Error(err)
+	s.Nil(container)
+}
+
+func (s *BackendSuite) TestLookupGetContainer() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.IDReturns("handle")
+	s.client.GetContainerReturns(fakeContainer, nil)
+	container, err := s.backend.Lookup("handle")
+	s.NoError(err)
+	s.NotNil(container)
+	s.Equal("handle", container.Handle())
+}
 
 func (s *BackendSuite) TestDestroySetsNamespace() {
 	fakeContainer := new(libcontainerdfakes.FakeContainer)

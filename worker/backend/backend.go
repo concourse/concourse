@@ -113,6 +113,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 	cont, err := b.client.NewContainer(ctxWithTimeout,
 		gdnSpec.Handle, gdnSpec.Properties, oci,
 	)
+
 	if err != nil {
 		err = ClientError{ InnerError: fmt.Errorf("failed to create a container in containerd: %w", err) }
 		return
@@ -124,6 +125,9 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 		return
 	}
 
+	container = &Container{
+		handle: cont.ID(),
+	}
 	return
 }
 
@@ -232,9 +236,11 @@ func (b *Backend) Containers(properties garden.Properties) (containers []garden.
 	}
 
 	containers = make([]garden.Container, len(res))
-	for idx := range res {
-		gContainer := NewContainer()
-		containers[idx] = &gContainer
+	for i, containerdContainer := range res {
+		gContainer := Container{
+			handle: containerdContainer.ID(),
+		}
+		containers[i] = &gContainer
 	}
 
 	return
@@ -262,13 +268,12 @@ func (b *Backend) Lookup(handle string) (garden.Container, error) {
 		return nil, InputValidationError{Message: "handle is empty"}
 	}
 
-	_, err := b.client.GetContainer(ctxWithTimeout, handle)
+	containerdContainer, err := b.client.GetContainer(ctxWithTimeout, handle)
 	if err != nil {
 		return nil, ClientError{ InnerError: err }
 	}
-	// a gap between garden.Container and containerd.Container still exists.
-	// It is going to be solved when we finish the code in backend/container.go
-	return &Container{}, nil
+
+	return &Container{handle: containerdContainer.ID()}, nil
 }
 
 // propertiesToFilterList converts a set of garden properties to a list of
