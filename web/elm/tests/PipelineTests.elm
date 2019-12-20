@@ -288,6 +288,91 @@ all =
                     }
                     |> Tuple.second
                     |> Common.contains Effects.GetScreenSize
+        , test "fetches jobs after fetching pipeline" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "teams/team/pipelines/pipeline"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PipelineFetched
+                            (Ok
+                                { id = 0
+                                , name = "pipeline"
+                                , paused = True
+                                , public = True
+                                , teamName = "team"
+                                , groups = []
+                                }
+                            )
+                        )
+                    |> Tuple.second
+                    |> Common.contains
+                        (Effects.ApiCall <|
+                            Callback.RouteJobs
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                }
+                        )
+        , test "renders pipeline jobs after fetching jobs and resources" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = ""
+                    , csrfToken = csrfToken
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "teams/team/pipelines/pipeline"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PipelineFetched
+                            (Ok
+                                { id = 0
+                                , name = "pipeline"
+                                , paused = True
+                                , public = True
+                                , teamName = "team"
+                                , groups = []
+                                }
+                            )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.ResourcesFetched <| Ok <| Json.Encode.object [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.ApiResponse
+                            (Callback.RouteJobs
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                }
+                            )
+                            (Ok <| Callback.Jobs <| Json.Encode.list identity [])
+                        )
+                    |> Tuple.second
+                    |> Common.contains
+                        (Effects.RenderPipeline
+                            (Json.Encode.list identity [])
+                            (Json.Encode.object [])
+                        )
         , test "subscribes to screen resizes" <|
             \_ ->
                 Common.init "/teams/team/pipelines/pipelineName"

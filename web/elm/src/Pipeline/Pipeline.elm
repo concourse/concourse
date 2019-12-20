@@ -35,7 +35,7 @@ import Json.Decode
 import Json.Encode
 import Keyboard
 import Login.Login as Login
-import Message.Callback exposing (Callback(..))
+import Message.Callback exposing (ApiEntity(..), Callback(..), Route(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription
@@ -171,8 +171,8 @@ handleCallback callback ( model, effects ) =
         PipelineFetched (Ok pipeline) ->
             ( { model | pipeline = RemoteData.Success pipeline }
             , effects
-                ++ [ FetchJobs model.pipelineLocator
-                   , FetchResources model.pipelineLocator
+                ++ [ FetchResources model.pipelineLocator
+                   , ApiCall <| RouteJobs model.pipelineLocator
                    ]
             )
 
@@ -209,7 +209,7 @@ handleCallback callback ( model, effects ) =
         PipelineToggled _ (Err _) ->
             ( { model | isToggleLoading = False }, effects )
 
-        JobsFetched (Ok fetchedJobs) ->
+        ApiResponse (RouteJobs _) (Ok (Jobs fetchedJobs)) ->
             renderIfNeeded
                 ( { model
                     | fetchedJobs = Just fetchedJobs
@@ -218,7 +218,7 @@ handleCallback callback ( model, effects ) =
                 , effects
                 )
 
-        JobsFetched (Err err) ->
+        ApiResponse (RouteJobs _) (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     ( model, effects ++ redirectToLoginIfUnauthenticated status )
