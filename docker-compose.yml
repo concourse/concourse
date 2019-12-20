@@ -32,6 +32,7 @@ services:
       CONCOURSE_CLUSTER_NAME: dev
       CONCOURSE_CLIENT_SECRET: Y29uY291cnNlLXdlYgo=
       CONCOURSE_TSA_CLIENT_SECRET: Y29uY291cnNlLXdvcmtlcgo=
+      CONCOURSE_ENABLE_GLOBAL_RESOURCES: 'true'
 
   worker:
     build: .
