@@ -186,7 +186,7 @@ stepHeaderLabel headerType =
             _ ->
                 Colors.pending
     , style "line-height" "28px"
-    , style "padding" "0 6px"
+    , style "padding-left" "6px"
     ]
 
 
