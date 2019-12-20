@@ -26,7 +26,6 @@ type alias Model r =
         , fetchingHistory : Bool
         , nextPage : Maybe Page
         , previousTriggerBuildByKey : Bool
-        , browsingIndex : Int
     }
 
 

@@ -158,7 +158,22 @@ handleEvent event ( model, effects ) =
             )
 
         FinishTask origin exitStatus time ->
-            ( updateStep origin.id (finishStep exitStatus (Just time)) model
+            ( updateStep origin.id (finishStep (exitStatus == 0) (Just time)) model
+            , effects
+            )
+
+        Initialize origin time ->
+            ( updateStep origin.id (setInitialize time) model
+            , effects
+            )
+
+        Start origin time ->
+            ( updateStep origin.id (setStart time) model
+            , effects
+            )
+
+        Finish origin time succeeded ->
+            ( updateStep origin.id (finishStep succeeded (Just time)) model
             , effects
             )
 
@@ -173,7 +188,7 @@ handleEvent event ( model, effects ) =
             )
 
         FinishGet origin exitStatus version metadata time ->
-            ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
+            ( updateStep origin.id (finishStep (exitStatus == 0) time << setResourceInfo version metadata) model
             , effects
             )
 
@@ -188,7 +203,7 @@ handleEvent event ( model, effects ) =
             )
 
         FinishPut origin exitStatus version metadata time ->
-            ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
+            ( updateStep origin.id (finishStep (exitStatus == 0) time << setResourceInfo version metadata) model
             , effects
             )
 
@@ -277,11 +292,11 @@ setInitialize time tree =
     setStepInitialize time (setStepState StepStateRunning tree)
 
 
-finishStep : Int -> Maybe Time.Posix -> StepTree -> StepTree
-finishStep exitStatus mtime tree =
+finishStep : Bool -> Maybe Time.Posix -> StepTree -> StepTree
+finishStep succeeded mtime tree =
     let
         stepState =
-            if exitStatus == 0 then
+            if succeeded then
                 StepStateSucceeded
 
             else

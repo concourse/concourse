@@ -53,9 +53,9 @@ func (h *Hijacker) Hijack(teamName, handle string, spec atc.HijackProcessSpec, p
 		TLSClientConfig: h.tlsConfig,
 		Proxy:           http.ProxyFromEnvironment,
 	}
-	conn, _, err := dialer.Dial(url, header)
+	conn, response, err := dialer.Dial(url, header)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("%s %w", response.Status, err)
 	}
 
 	defer conn.Close()

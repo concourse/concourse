@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -43,6 +44,7 @@ type ResourceType interface {
 	CheckError() error
 	UniqueVersionHistory() bool
 	CurrentPinnedVersion() atc.Version
+	ResourceConfigScopeID() int
 
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckSetupError(error) error
@@ -132,6 +134,7 @@ var resourceTypesQuery = psql.Select(
 	"p.name",
 	"t.id",
 	"t.name",
+	"ro.id",
 	"ro.check_error",
 	"ro.last_check_start_time",
 	"ro.last_check_end_time",
@@ -153,22 +156,23 @@ var resourceTypesQuery = psql.Select(
 type resourceType struct {
 	pipelineRef
 
-	id                   int
-	teamID               int
-	teamName             string
-	name                 string
-	type_                string
-	privileged           bool
-	source               atc.Source
-	params               atc.Params
-	tags                 atc.Tags
-	version              atc.Version
-	checkEvery           string
-	lastCheckStartTime   time.Time
-	lastCheckEndTime     time.Time
-	checkSetupError      error
-	checkError           error
-	uniqueVersionHistory bool
+	id                    int
+	teamID                int
+	resourceConfigScopeID int
+	teamName              string
+	name                  string
+	type_                 string
+	privileged            bool
+	source                atc.Source
+	params                atc.Params
+	tags                  atc.Tags
+	version               atc.Version
+	checkEvery            string
+	lastCheckStartTime    time.Time
+	lastCheckEndTime      time.Time
+	checkSetupError       error
+	checkError            error
+	uniqueVersionHistory  bool
 }
 
 func (t *resourceType) ID() int                       { return t.id }
@@ -187,6 +191,7 @@ func (t *resourceType) Tags() atc.Tags                { return t.tags }
 func (t *resourceType) CheckSetupError() error        { return t.checkSetupError }
 func (t *resourceType) CheckError() error             { return t.checkError }
 func (t *resourceType) UniqueVersionHistory() bool    { return t.uniqueVersionHistory }
+func (t *resourceType) ResourceConfigScopeID() int    { return t.resourceConfigScopeID }
 
 func (t *resourceType) Version() atc.Version              { return t.version }
 func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
@@ -274,12 +279,12 @@ func (t *resourceType) SetCheckSetupError(cause error) error {
 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
-		configJSON                            []byte
-		checkErr, rcsCheckErr, version, nonce sql.NullString
-		lastCheckStartTime, lastCheckEndTime  pq.NullTime
+		configJSON                                   []byte
+		checkErr, rcsCheckErr, rcsID, version, nonce sql.NullString
+		lastCheckStartTime, lastCheckEndTime         pq.NullTime
 	)
 
-	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &checkErr, &t.pipelineName, &t.teamID, &t.teamName, &rcsCheckErr, &lastCheckStartTime, &lastCheckEndTime)
+	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &checkErr, &t.pipelineName, &t.teamID, &t.teamName, &rcsID, &rcsCheckErr, &lastCheckStartTime, &lastCheckEndTime)
 	if err != nil {
 		return err
 	}
@@ -321,6 +326,13 @@ func scanResourceType(t *resourceType, row scannable) error {
 
 	if checkErr.Valid {
 		t.checkSetupError = errors.New(checkErr.String)
+	}
+
+	if rcsID.Valid {
+		t.resourceConfigScopeID, err = strconv.Atoi(rcsID.String)
+		if err != nil {
+			return err
+		}
 	}
 
 	if rcsCheckErr.Valid {

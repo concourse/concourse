@@ -35,6 +35,7 @@ var _ = Describe("VaultManager", func() {
 			Expect(err).To(BeNil())
 			Expect(manager.SharedPath).To(Equal(""))
 			Expect(manager.PathPrefix).To(Equal("/concourse"))
+			Expect(manager.Namespace).To(Equal(""))
 		})
 
 		It("passes on default parameters", func() {

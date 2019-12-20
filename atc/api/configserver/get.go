@@ -42,33 +42,11 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobs, err := pipeline.Jobs()
-	if err != nil {
-		logger.Error("failed-to-get-jobs", err)
+	config, err := pipeline.Config()
+	if err !=  nil {
+		logger.Error("failed-to-get-pipeline-config", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-
-	resources, err := pipeline.Resources()
-	if err != nil {
-		logger.Error("failed-to-get-resources", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	resourceTypes, err := pipeline.ResourceTypes()
-	if err != nil {
-		logger.Error("failed-to-get-resourceTypes", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	config := atc.Config{
-		Groups:        pipeline.Groups(),
-		VarSources:    pipeline.VarSources(),
-		Resources:     resources.Configs(),
-		ResourceTypes: resourceTypes.Configs(),
-		Jobs:          jobs.Configs(),
 	}
 
 	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", pipeline.ConfigVersion()))

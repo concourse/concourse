@@ -16,11 +16,12 @@ type CredVarsTrackerIterator interface {
 type CredVarsTracker interface {
 	Variables
 	IterateInterpolatedCreds(iter CredVarsTrackerIterator)
+	Enabled() bool
 }
 
 func NewCredVarsTracker(credVars Variables, on bool) CredVarsTracker {
 	if on {
-		return credVarsTracker{
+		return &credVarsTracker{
 			credVars:          credVars,
 			interpolatedCreds: map[string]string{},
 			lock:              sync.RWMutex{},
@@ -38,7 +39,7 @@ type credVarsTracker struct {
 	lock sync.RWMutex
 }
 
-func (t credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
+func (t *credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
 	val, found, err := t.credVars.Get(varDef)
 	if found {
 		t.lock.Lock()
@@ -49,7 +50,7 @@ func (t credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, erro
 	return val, found, err
 }
 
-func (t credVarsTracker) track(name string, val interface{}) {
+func (t *credVarsTracker) track(name string, val interface{}) {
 	switch v := val.(type) {
 	case map[interface{}]interface{}:
 		for kk, vv := range v {
@@ -68,16 +69,20 @@ func (t credVarsTracker) track(name string, val interface{}) {
 	}
 }
 
-func (t credVarsTracker) List() ([]VariableDefinition, error) {
+func (t *credVarsTracker) List() ([]VariableDefinition, error) {
 	return t.credVars.List()
 }
 
-func (t credVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) {
+func (t *credVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) {
 	t.lock.RLock()
 	for k, v := range t.interpolatedCreds {
 		iter.YieldCred(k, v)
 	}
 	t.lock.RUnlock()
+}
+
+func (t *credVarsTracker) Enabled() bool {
+	return true
 }
 
 // DummyCredVarsTracker do nothing,
@@ -96,6 +101,10 @@ func (t dummyCredVarsTracker) List() ([]VariableDefinition, error) {
 
 func (t dummyCredVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) {
 	// do nothing
+}
+
+func (t dummyCredVarsTracker) Enabled() bool {
+	return false
 }
 
 // MapCredVarsTrackerIterator implements a simple CredVarsTrackerIterator which just

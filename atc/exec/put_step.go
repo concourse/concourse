@@ -2,6 +2,8 @@ package exec
 
 import (
 	"context"
+	"github.com/concourse/concourse/vars"
+	"io"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -15,11 +17,18 @@ import (
 //go:generate counterfeiter . PutDelegate
 
 type PutDelegate interface {
-	BuildStepDelegate
+	ImageVersionDetermined(db.UsedResourceCache) error
+
+	Stdout() io.Writer
+	Stderr() io.Writer
+
+	Variables() vars.CredVarsTracker
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, VersionInfo)
+	Errored(lager.Logger, string)
+
 	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, VersionInfo)
 }
 

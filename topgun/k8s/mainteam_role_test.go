@@ -43,29 +43,14 @@ var _ = Describe("Main team role config", func() {
 		BeforeEach(func() {
 			helmDeployTestFlags = []string{
 				`--set=worker.enabled=false`,
-				`--set=web.additionalVolumes[0].name=team-role-config`,
-				`--set=web.additionalVolumes[0].configMap.name=team-role-config`,
-				`--set=web.additionalVolumeMounts[0].name=team-role-config`,
-				`--set=web.additionalVolumeMounts[0].mountPath=/foo`,
-				`--set=concourse.web.auth.mainTeam.config=/foo/team-role-config.yml`,
-				`--set=secrets.localUsers=test-viewer:test-viewer`,
-			}
-
-			configMapCreationArgs := []string{
-				"create",
-				"configmap",
-				"team-role-config",
-				"--namespace=" + namespace,
-				`--from-literal=team-role-config.yml=
+				`--set=concourse.web.auth.mainTeam.config=
 roles:
  - name: viewer
    local:
      users: [ "test-viewer" ]
- `,
+`,
+				`--set=secrets.localUsers=test-viewer:test-viewer`,
 			}
-
-			Run(nil, "kubectl", configMapCreationArgs...)
-
 		})
 
 		It("returns the correct user role", func() {

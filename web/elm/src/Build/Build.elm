@@ -106,7 +106,6 @@ init flags =
           , duration = { startedAt = Nothing, finishedAt = Nothing }
           , status = BuildStatusPending
           , output = Empty
-          , browsingIndex = 0
           , autoScroll = True
           , previousKeyPress = Nothing
           , previousTriggerBuildByKey = False
@@ -147,35 +146,22 @@ subscriptions model =
 
 changeToBuild : Flags -> ET Model
 changeToBuild { highlight, pageType } ( model, effects ) =
-    if model.browsingIndex > 0 && pageType == model.page then
-        ( { model | highlight = highlight }, effects )
+    ( { model
+        | prep = Nothing
+        , output = Empty
+        , autoScroll = True
+        , page = pageType
+        , highlight = highlight
+      }
+    , case pageType of
+        OneOffBuildPage buildId ->
+            effects
+                ++ [ CloseBuildEventStream, FetchBuild 0 buildId ]
 
-    else
-        let
-            newIndex =
-                model.browsingIndex + 1
-        in
-        ( { model
-            | browsingIndex = newIndex
-            , prep = Nothing
-            , output = Empty
-            , autoScroll = True
-            , page = pageType
-            , highlight = highlight
-          }
-        , case pageType of
-            OneOffBuildPage buildId ->
-                effects
-                    ++ [ CloseBuildEventStream
-                       , FetchBuild 0 newIndex buildId
-                       ]
-
-            JobBuildPage jbi ->
-                effects
-                    ++ [ CloseBuildEventStream
-                       , FetchJobBuild newIndex jbi
-                       ]
-        )
+        JobBuildPage jbi ->
+            effects
+                ++ [ CloseBuildEventStream, FetchJobBuild jbi ]
+    )
 
 
 extractTitle : Model -> String
@@ -211,8 +197,8 @@ getUpdateMessage model =
 handleCallback : Callback -> ET Model
 handleCallback action ( model, effects ) =
     (case action of
-        BuildFetched (Ok ( browsingIndex, build )) ->
-            handleBuildFetched browsingIndex build ( model, effects )
+        BuildFetched (Ok build) ->
+            handleBuildFetched build ( model, effects )
 
         BuildFetched (Err err) ->
             case err of
@@ -237,8 +223,8 @@ handleCallback action ( model, effects ) =
         BuildAborted (Ok ()) ->
             ( model, effects )
 
-        BuildPrepFetched (Ok ( browsingIndex, buildPrep )) ->
-            handleBuildPrepFetched browsingIndex buildPrep ( model, effects )
+        BuildPrepFetched (Ok buildPrep) ->
+            handleBuildPrepFetched buildPrep ( model, effects )
 
         BuildPrepFetched (Err err) ->
             case err of
@@ -574,74 +560,66 @@ handleKeyPressed keyEvent ( model, effects ) =
                 ( newModel, effects )
 
 
-handleBuildFetched : Int -> Concourse.Build -> ET Model
-handleBuildFetched browsingIndex build ( model, effects ) =
-    if browsingIndex == model.browsingIndex then
-        let
-            output =
-                case model.build of
-                    RemoteData.Success _ ->
-                        model.output
+handleBuildFetched : Concourse.Build -> ET Model
+handleBuildFetched build ( model, effects ) =
+    let
+        output =
+            case model.build of
+                RemoteData.Success _ ->
+                    model.output
 
-                    _ ->
-                        Empty
+                _ ->
+                    Empty
 
-            withBuild =
-                { model
-                    | build = RemoteData.Success build
-                    , duration = build.duration
-                    , status = build.status
-                    , output = output
-                }
+        withBuild =
+            { model
+                | build = RemoteData.Success build
+                , duration = build.duration
+                , status = build.status
+                , output = output
+            }
 
-            fetchJobAndHistory =
-                case ( currentJob model, build.job ) of
-                    ( Nothing, Just buildJob ) ->
-                        [ FetchBuildJobDetails buildJob
-                        , FetchBuildHistory buildJob Nothing
-                        ]
+        fetchJobAndHistory =
+            case ( currentJob model, build.job ) of
+                ( Nothing, Just buildJob ) ->
+                    [ FetchBuildJobDetails buildJob
+                    , FetchBuildHistory buildJob Nothing
+                    ]
 
-                    _ ->
-                        []
+                _ ->
+                    []
 
-            ( newModel, cmd ) =
-                if build.status == BuildStatusPending then
-                    ( withBuild, effects ++ pollUntilStarted browsingIndex build.id )
+        ( newModel, cmd ) =
+            if build.status == BuildStatusPending then
+                ( withBuild, effects ++ pollUntilStarted build.id )
 
-                else if build.reapTime == Nothing then
-                    case model.prep of
-                        Nothing ->
-                            initBuildOutput build ( withBuild, effects )
+            else if build.reapTime == Nothing then
+                case model.prep of
+                    Nothing ->
+                        initBuildOutput build ( withBuild, effects )
 
-                        Just _ ->
-                            let
-                                ( newNewModel, newEffects ) =
-                                    initBuildOutput build ( withBuild, effects )
-                            in
-                            ( newNewModel
-                            , newEffects
-                                ++ [ FetchBuildPrep
-                                        1000
-                                        browsingIndex
-                                        build.id
-                                   ]
-                            )
+                    Just _ ->
+                        let
+                            ( newNewModel, newEffects ) =
+                                initBuildOutput build ( withBuild, effects )
+                        in
+                        ( newNewModel
+                        , newEffects
+                            ++ [ FetchBuildPrep 1000 build.id ]
+                        )
 
-                else
-                    ( withBuild, effects )
-        in
-        ( newModel
-        , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status), Focus bodyId ]
-        )
-
-    else
-        ( model, effects )
+            else
+                ( withBuild, effects )
+    in
+    ( newModel
+    , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status), Focus bodyId ]
+    )
 
 
-pollUntilStarted : Int -> Int -> List Effect
-pollUntilStarted browsingIndex buildId =
-    [ FetchBuild 1000 browsingIndex buildId
-    , FetchBuildPrep 1000 browsingIndex buildId
+pollUntilStarted : Int -> List Effect
+pollUntilStarted buildId =
+    [ FetchBuild 1000 buildId
+    , FetchBuildPrep 1000 buildId
     ]
 
 
@@ -656,15 +634,11 @@ initBuildOutput build ( model, effects ) =
     )
 
 
-handleBuildPrepFetched : Int -> Concourse.BuildPrep -> ET Model
-handleBuildPrepFetched browsingIndex buildPrep ( model, effects ) =
-    if browsingIndex == model.browsingIndex then
-        ( { model | prep = Just buildPrep }
-        , effects
-        )
-
-    else
-        ( model, effects )
+handleBuildPrepFetched : Concourse.BuildPrep -> ET Model
+handleBuildPrepFetched buildPrep ( model, effects ) =
+    ( { model | prep = Just buildPrep }
+    , effects
+    )
 
 
 documentTitle : Model -> String

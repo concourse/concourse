@@ -21,7 +21,6 @@ type alias Model =
     Login.Model
         (Build.Header.Models.Model
             { build : RemoteData.WebData Concourse.Build
-            , browsingIndex : Int
             , autoScroll : Bool
             , previousKeyPress : Maybe Keyboard.KeyEvent
             , shiftDown : Bool
@@ -52,3 +51,4 @@ type StepHeaderType
     = StepHeaderPut
     | StepHeaderGet Bool
     | StepHeaderTask
+    | StepHeaderSetPipeline
