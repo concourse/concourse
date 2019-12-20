@@ -176,7 +176,7 @@ var _ = Describe("Pipelines API", func() {
 					RetryInitial:  2,
 				}
 
-				tls := vault.TLS{
+				tls := vault.TLSConfig{
 					CACert:     "",
 					ServerName: "server-name",
 				}
