@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
-
+// TODO-Later Move this to a testflight test as there is no relevant IaaS state
 var _ = Describe("Container scope", func() {
 	Context("when the container is scoped to a team", func() {
 		BeforeEach(func() {
