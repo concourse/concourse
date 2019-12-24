@@ -84,7 +84,10 @@ var _ = Describe("ATC Shutting down", func() {
 				matches := buildRegex.FindSubmatch(buildSession.Out.Contents())
 				buildID = string(matches[1])
 
-				Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
+				//For the initializing block
+				Eventually(buildSession).Should(gbytes.Say("echo 'waiting for /tmp/stop-waiting to exist'"))
+				//For the output from the running step
+				Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting to exist"))
 			})
 
 			Context("when the web node tracking the build shuts down", func() {
@@ -100,14 +103,16 @@ var _ = Describe("ATC Shutting down", func() {
 					time.Sleep(10 * time.Second)
 
 					By("hijacking the build to tell it to finish")
-					hijackSession := Fly.Start(
-						"hijack",
-						"-b", buildID,
-						"-s", "one-off",
-						"touch", "/tmp/stop-waiting",
-					)
-					<-hijackSession.Exited
-					Expect(hijackSession.ExitCode()).To(Equal(0))
+					Eventually(func()int {
+						hijackSession := Fly.Start(
+							"hijack",
+							"-b", buildID,
+							"-s", "one-off", "--",
+							"touch", "/tmp/stop-waiting",
+						)
+						<-hijackSession.Exited
+						return hijackSession.ExitCode()
+					}).Should(Equal(0))
 
 					By("waiting for the build to exit")
 					Eventually(watchSession, 1*time.Minute).Should(gbytes.Say("done"))

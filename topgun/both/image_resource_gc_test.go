@@ -46,7 +46,10 @@ var _ = Describe("A build using an image_resource", func() {
 
 			By("triggering a build that waits")
 			watchSession := Fly.Start("trigger-job", "-w", "-j", "test/some-job")
-			Eventually(watchSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
+			//For the initializing block
+			Eventually(watchSession).Should(gbytes.Say("echo 'waiting for /tmp/stop-waiting to exist'"))
+			//For the output from the running step
+			Eventually(watchSession).Should(gbytes.Say("waiting for /tmp/stop-waiting to exist"))
 
 			By("getting the resource cache volumes")
 			volumes := FlyTable("volumes")

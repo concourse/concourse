@@ -45,7 +45,10 @@ var _ = Describe("Hijacked containers", func() {
 		By("triggering the build")
 		Fly.Run("unpause-pipeline", "-p", "hijacked-containers-test")
 		buildSession := Fly.Start("trigger-job", "-w", "-j", "hijacked-containers-test/simple-job")
-		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
+		//For the initializing block
+		Eventually(buildSession).Should(gbytes.Say("echo 'waiting for /tmp/stop-waiting to exist'"))
+		//For the output from the running step
+		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting to exist"))
 
 		By("hijacking into the build container")
 		hijackSession := Fly.Start(
@@ -57,25 +60,37 @@ var _ = Describe("Hijacked containers", func() {
 		)
 
 		By("finishing the build")
-		<-Fly.Start(
-			"hijack",
-			"-j", "hijacked-containers-test/simple-job",
-			"-b", "1",
-			"-s", "simple-task",
-			"touch", "/tmp/stop-waiting",
-		).Exited
+		Eventually(func()int {
+			hS := Fly.Start(
+				"hijack",
+				"-j", "hijacked-containers-test/simple-job",
+				"-s", "simple-task",
+				"touch", "/tmp/stop-waiting",
+			)
+			<-hS.Exited
+			return hS.ExitCode()
+		}).Should(Equal(0))
+
 		<-buildSession.Exited
 
 		By("triggering a new build")
 		buildSession = Fly.Start("trigger-job", "-w", "-j", "hijacked-containers-test/simple-job")
-		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
-		<-Fly.Start(
-			"hijack",
-			"-j", "hijacked-containers-test/simple-job",
-			"-b", "2",
-			"-s", "simple-task",
-			"touch", "/tmp/stop-waiting",
-		).Exited
+		//For the initializing block
+		Eventually(buildSession).Should(gbytes.Say("echo 'waiting for /tmp/stop-waiting to exist'"))
+		//For the output from the running step
+		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting to exist"))
+
+		Eventually(func()int {
+			hS := Fly.Start(
+				"hijack",
+				"-j", "hijacked-containers-test/simple-job",
+				"-b", "2",
+				"-s", "simple-task",
+				"touch", "/tmp/stop-waiting",
+			)
+			<-hS.Exited
+			return hS.ExitCode()
+		}).Should(Equal(0))
 		<-buildSession.Exited
 
 		By("verifying the hijacked container exists via fly and Garden")
@@ -91,7 +106,10 @@ var _ = Describe("Hijacked containers", func() {
 	It("does not delete hijacked one-off build containers from the database, and sets a 5 minute TTL on the container in garden", func() {
 		By("triggering a one-off build")
 		buildSession := Fly.Start("execute", "-c", "tasks/wait.yml")
-		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
+		//For the initializing block
+		Eventually(buildSession).Should(gbytes.Say("echo 'waiting for /tmp/stop-waiting to exist'"))
+		//For the output from the running step
+		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting to exist"))
 
 		By("hijacking into the build container")
 		hijackSession := Fly.Start(
@@ -102,11 +120,15 @@ var _ = Describe("Hijacked containers", func() {
 		)
 
 		By("waiting for build to finish")
-		<-Fly.Start(
-			"hijack",
-			"-b", "1",
-			"touch", "/tmp/stop-waiting",
-		).Exited
+		Eventually(func()int {
+			hS := Fly.Start(
+				"hijack",
+				"-b", "1",
+				"touch", "/tmp/stop-waiting",
+			)
+			<-hS.Exited
+			return hS.ExitCode()
+		}).Should(Equal(0))
 		<-buildSession.Exited
 
 		By("verifying the hijacked container exists via fly and Garden")

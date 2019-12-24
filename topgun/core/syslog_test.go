@@ -30,11 +30,10 @@ var _ = Describe("An ATC with syslog draining set", func() {
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(0))
 
-		Bosh("scp", "web/0:/var/vcap/store/syslog_storer/syslog.log", "/tmp/syslog.log")
-		found, err := checkContent("/tmp/syslog.log", "shhhh")
-
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
+		Eventually(func()(bool, error){
+			Bosh("scp", "web/0:/var/vcap/store/syslog_storer/syslog.log", "/tmp/syslog.log")
+			return checkContent("/tmp/syslog.log", "shhhh")
+		}).Should(BeTrue())
 	})
 })
 
