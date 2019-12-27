@@ -20,9 +20,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/tsa"
-	jwt "github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -63,12 +61,12 @@ var (
 	gardenServer       *gserver.GardenServer
 	baggageclaimServer *ghttp.Server
 	atcServer          *ghttp.Server
+	authServer         *ghttp.Server
 
 	hostKeyFile    string
 	hostPubKey     ssh.PublicKey
 	hostPubKeyFile string
 
-	accessFactory      accessor.AccessFactory
 	authorizedKeysFile string
 
 	globalKey           *rsa.PrivateKey
@@ -109,6 +107,16 @@ var _ = BeforeEach(func() {
 	baggageclaimServer = ghttp.NewServer()
 
 	atcServer = ghttp.NewServer()
+	authServer = ghttp.NewServer()
+
+	authServer.AppendHandlers(ghttp.CombineHandlers(
+		ghttp.VerifyRequest("POST", "/token"),
+		ghttp.RespondWithJSONEncoded(200, map[string]string{
+			"token_type":   "bearer",
+			"access_token": "access-token",
+			"id_token":     "id-token",
+		}),
+	))
 
 	hostKeyFile, hostPubKeyFile, _, hostPubKey = generateSSHKeypair()
 
@@ -136,16 +144,6 @@ var _ = BeforeEach(func() {
 	forwardHost, err = localip.LocalIP()
 	Expect(err).NotTo(HaveOccurred())
 
-	sessionSigningPrivateKeyFile, _, _, _ := generateSSHKeypair()
-
-	rsaKeyBlob, err := ioutil.ReadFile(string(sessionSigningPrivateKeyFile))
-	Expect(err).NotTo(HaveOccurred())
-
-	signingKey, err := jwt.ParseRSAPrivateKeyFromPEM(rsaKeyBlob)
-	Expect(err).NotTo(HaveOccurred())
-
-	accessFactory = accessor.NewAccessFactory(&signingKey.PublicKey)
-
 	tsaCommand := exec.Command(
 		tsaPath,
 		"--bind-port", strconv.Itoa(tsaPort),
@@ -155,7 +153,9 @@ var _ = BeforeEach(func() {
 		"--authorized-keys", authorizedKeysFile,
 		"--team-authorized-keys", "some-team:"+teamPubKeyFile,
 		"--team-authorized-keys", "some-other-team:"+otherTeamPubKeyFile,
-		"--session-signing-key", sessionSigningPrivateKeyFile,
+		"--client-id", "some-client",
+		"--client-secret", "some-client-secret",
+		"--token-url", authServer.URL()+"/token",
 		"--atc-url", atcServer.URL(),
 		"--heartbeat-interval", heartbeatInterval.String(),
 	)
@@ -189,6 +189,7 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	atcServer.Close()
+	authServer.Close()
 	gardenServer.Stop()
 	baggageclaimServer.Close()
 	ginkgomon.Interrupt(tsaProcess)

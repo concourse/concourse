@@ -23,8 +23,8 @@ const (
 )
 
 type Sweeper struct {
-	ATCEndpoint    *rata.RequestGenerator
-	TokenGenerator TokenGenerator
+	ATCEndpoint *rata.RequestGenerator
+	HTTPClient  *http.Client
 }
 
 func (l *Sweeper) Sweep(ctx context.Context, worker atc.Worker, resourceAction string) ([]byte, error) {
@@ -61,17 +61,7 @@ func (l *Sweeper) Sweep(ctx context.Context, worker atc.Worker, resourceAction s
 		"worker_name": []string{worker.Name},
 	}.Encode()
 
-	var jwtToken string
-	jwtToken, err = l.TokenGenerator.GenerateSystemToken()
-
-	if err != nil {
-		logger.Error("failed-to-generate-token", err)
-		return containerBytes, err
-	}
-
-	request.Header.Add("Authorization", "Bearer "+jwtToken)
-
-	response, err := http.DefaultClient.Do(request)
+	response, err := l.HTTPClient.Do(request)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed-to-%s", resourceAction), err)
 		return containerBytes, err

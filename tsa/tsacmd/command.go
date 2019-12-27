@@ -2,6 +2,7 @@ package tsacmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
@@ -20,6 +22,8 @@ import (
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
 type TSACommand struct {
@@ -39,7 +43,10 @@ type TSACommand struct {
 
 	ATCURLs []flag.URL `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
 
-	SessionSigningKey *flag.PrivateKey `long:"session-signing-key" required:"true" description:"Path to private key to use when signing tokens in reqests to the ATC during registration."`
+	ClientID     string   `long:"client-id" required:"true" description:"Client used to fetch a token from the auth server"`
+	ClientSecret string   `long:"client-secret" required:"true" description:"Client used to fetch a token from the auth server"`
+	TokenURL     flag.URL `long:"token-url" required:"true" description:"Token endpoint of the auth server"`
+	Scopes       []string `long:"scope" description:"Scopes to request from the auth server"`
 
 	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
 
@@ -110,21 +117,27 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 
 	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 
-	if cmd.SessionSigningKey == nil {
-		return nil, fmt.Errorf("missing session signing key")
+	authConfig := clientcredentials.Config{
+		ClientID:     cmd.ClientID,
+		ClientSecret: cmd.ClientSecret,
+		TokenURL:     cmd.TokenURL.URL.String(),
+		Scopes:       cmd.Scopes,
 	}
 
-	tokenGenerator := tsa.NewTokenGenerator(cmd.SessionSigningKey.PrivateKey)
+	ctx := context.Background()
+
+	tokenSource := authConfig.TokenSource(ctx)
+	idTokenSource := token.NewTokenSource(tokenSource)
+	httpClient := oauth2.NewClient(ctx, idTokenSource)
 
 	server := &server{
 		logger:            logger,
 		heartbeatInterval: cmd.HeartbeatInterval,
 		cprInterval:       1 * time.Second,
 		atcEndpointPicker: atcEndpointPicker,
-		tokenGenerator:    tokenGenerator,
 		forwardHost:       cmd.PeerAddress,
 		config:            config,
-		httpClient:        http.DefaultClient,
+		httpClient:        httpClient,
 		sessionTeam:       sessionAuthTeam,
 	}
 

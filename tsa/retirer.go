@@ -15,8 +15,8 @@ import (
 )
 
 type Retirer struct {
-	ATCEndpoint    *rata.RequestGenerator
-	TokenGenerator TokenGenerator
+	ATCEndpoint *rata.RequestGenerator
+	HTTPClient  *http.Client
 }
 
 func (l *Retirer) Retire(ctx context.Context, worker atc.Worker) error {
@@ -33,20 +33,7 @@ func (l *Retirer) Retire(ctx context.Context, worker atc.Worker) error {
 		return err
 	}
 
-	var jwtToken string
-	if worker.Team != "" {
-		jwtToken, err = l.TokenGenerator.GenerateTeamToken(worker.Team)
-	} else {
-		jwtToken, err = l.TokenGenerator.GenerateSystemToken()
-	}
-	if err != nil {
-		logger.Error("failed-to-generate-token", err)
-		return err
-	}
-
-	request.Header.Add("Authorization", "Bearer "+jwtToken)
-
-	response, err := http.DefaultClient.Do(request)
+	response, err := l.HTTPClient.Do(request)
 	if err != nil {
 		logger.Error("failed-to-retire", err)
 		return err
