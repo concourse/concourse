@@ -2,6 +2,7 @@ module FlySuccess.Styles exposing
     ( body
     , button
     , card
+    , input
     , paragraph
     , title
     )
@@ -48,6 +49,26 @@ body =
 paragraph : List (Html.Attribute msg)
 paragraph =
     [ style "margin" "5px 0"
+    ]
+
+
+input : List (Html.Attribute msg)
+input =
+    [ style "border" <|
+        "1px solid "
+            ++ Colors.text
+    , style "display" "flex"
+    , style "justify-content" "center"
+    , style "align-items" "center"
+    , style "margin" "15px 0"
+    , style "padding" "10px 10px"
+    , style "width" "192px"
+    , style "text-align" "center"
+    , style "background-color" Colors.flySuccessCard
+    , style "color" Colors.text
+    , style "white-space" "nowrap"
+    , style "overflow" "hidden"
+    , style "text-overflow" "ellipsis"
     ]
 
 

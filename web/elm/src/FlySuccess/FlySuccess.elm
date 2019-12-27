@@ -14,7 +14,7 @@ import FlySuccess.Models as Models exposing (ButtonState(..), Model, hover)
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, href, id, style)
+import Html.Attributes exposing (attribute, class, href, id, style, value)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
@@ -184,13 +184,26 @@ body model =
             [ p1, p2 ]
 
         Models.NetworkTrouble ->
-            [ p1, copyTokenButton model, p2 ]
+            [ p1, tokenTextBox model.authToken, copyTokenButton model, p2 ]
 
         Models.BlockedByBrowser ->
-            [ p1, sendTokenButton model, p2, copyTokenButton model ]
+            [ p1, tokenTextBox model.authToken, sendTokenButton model, p2, copyTokenButton model ]
 
         Models.NoFlyPort ->
-            [ p1, copyTokenButton model, p2 ]
+            [ p1, tokenTextBox model.authToken, copyTokenButton model, p2 ]
+
+
+tokenTextBox : String -> Html Message
+tokenTextBox token =
+    Html.label []
+        [ Html.text Text.copyTokenInput
+        , Html.input
+            ([ value token
+             ]
+                ++ Styles.input
+            )
+            []
+        ]
 
 
 paragraph : { identifier : String, lines : Text.Paragraph } -> Html Message
