@@ -166,8 +166,6 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 
 	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
 
-	step.delegate.Starting(logger)
-
 	result := step.workerClient.RunPutStep(
 		ctx,
 		logger,
@@ -178,6 +176,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		imageSpec,
 		processSpec,
+		step.delegate,
 		resourceToPut,
 	)
 

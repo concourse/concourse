@@ -188,7 +188,7 @@ var _ = Describe("PutStep", func() {
 			})
 
 			It("calls RunPutStep with all inputs", func() {
-				_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				_, _, _, actualContainerSpec, _, _, _, _,  _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 				Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
 				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
@@ -198,7 +198,7 @@ var _ = Describe("PutStep", func() {
 
 		Context("when inputs are left blank", func() {
 			It("calls RunPutStep with all inputs", func() {
-				_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 				Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
 				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
@@ -214,7 +214,7 @@ var _ = Describe("PutStep", func() {
 			})
 
 			It("calls RunPutStep with specified inputs", func() {
-				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 				Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
 				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
@@ -224,7 +224,7 @@ var _ = Describe("PutStep", func() {
 
 	It("calls workerClient -> RunPutStep with the appropriate arguments", func() {
 		Expect(fakeClient.RunPutStepCallCount()).To(Equal(1))
-		actualContext, _, actualOwner, actualContainerSpec, actualWorkerSpec, actualStrategy, actualContainerMetadata, actualImageFetcherSpec, actualProcessSpec, actualResource := fakeClient.RunPutStepArgsForCall(0)
+		actualContext, _, actualOwner, actualContainerSpec, actualWorkerSpec, actualStrategy, actualContainerMetadata, actualImageFetcherSpec, actualProcessSpec, actualEventDelegate, actualResource := fakeClient.RunPutStepArgsForCall(0)
 
 		Expect(actualContext).To(Equal(ctx))
 		Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
@@ -260,6 +260,7 @@ var _ = Describe("PutStep", func() {
 				StdoutWriter: stdoutBuf,
 				StderrWriter: stderrBuf,
 			}))
+		Expect(actualEventDelegate).To(Equal(fakeDelegate))
 		Expect(actualResource).To(Equal(fakeResource))
 	})
 
@@ -289,7 +290,7 @@ var _ = Describe("PutStep", func() {
 			Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
 			Expect(actualParams).To(Equal(atc.Params{"some-param": "some-value"}))
 
-			_, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunPutStepArgsForCall(0)
+			_, _, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunPutStepArgsForCall(0)
 			Expect(actualResource).To(Equal(fakeResource))
 		})
 

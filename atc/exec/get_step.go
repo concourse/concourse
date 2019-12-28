@@ -172,9 +172,6 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 
 	containerOwner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	// TODO: Starting should be emitted just before the get script is executed rather than at this point
-	step.delegate.Starting(logger)
-
 	getResult, err := step.workerClient.RunGetStep(
 		ctx,
 		logger,
@@ -185,6 +182,7 @@ func (step *GetStep) Run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		imageSpec,
 		processSpec,
+		step.delegate,
 		resourceCache,
 		resourceToGet,
 	)

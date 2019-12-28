@@ -47,6 +47,7 @@ type Client interface {
 		db.ContainerMetadata,
 		ImageFetcherSpec,
 		runtime.ProcessSpec,
+		runtime.StartingEventDelegate,
 		lock.LockFactory,
 	) TaskResult
 
@@ -60,6 +61,7 @@ type Client interface {
 		db.ContainerMetadata,
 		ImageFetcherSpec,
 		runtime.ProcessSpec,
+		runtime.StartingEventDelegate,
 		resource.Resource,
 	) PutResult
 
@@ -73,6 +75,7 @@ type Client interface {
 		db.ContainerMetadata,
 		ImageFetcherSpec,
 		runtime.ProcessSpec,
+		runtime.StartingEventDelegate,
 		db.UsedResourceCache,
 		resource.Resource,
 	) (GetResult, error)
@@ -170,6 +173,7 @@ func (client *client) RunTaskStep(
 	metadata db.ContainerMetadata,
 	imageFetcherSpec ImageFetcherSpec,
 	processSpec runtime.ProcessSpec,
+	eventDelegate runtime.StartingEventDelegate,
 	lockFactory lock.LockFactory,
 ) TaskResult {
 	err := client.wireInputsAndCaches(logger, &containerSpec)
@@ -246,6 +250,7 @@ func (client *client) RunTaskStep(
 	if err == nil {
 		logger.Info("already-running")
 	} else {
+		eventDelegate.Starting(logger)
 		logger.Info("spawning")
 
 		process, err = container.Run(
@@ -323,9 +328,11 @@ func (client *client) RunGetStep(
 	containerMetadata db.ContainerMetadata,
 	imageFetcherSpec ImageFetcherSpec,
 	processSpec runtime.ProcessSpec,
+	eventDelegate runtime.StartingEventDelegate,
 	resourceCache db.UsedResourceCache,
 	resource resource.Resource,
 ) (GetResult, error) {
+
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
 		logger,
@@ -344,6 +351,9 @@ func (client *client) RunGetStep(
 	}
 
 	lockName := lockName(sign, chosenWorker.Name())
+
+	// TODO: this needs to be emitted right before executing the `in` script
+	eventDelegate.Starting(logger)
 
 	getResult, _, err := chosenWorker.Fetch(
 		ctx,
@@ -494,6 +504,7 @@ func (client *client) RunPutStep(
 	metadata db.ContainerMetadata,
 	imageFetcherSpec ImageFetcherSpec,
 	spec runtime.ProcessSpec,
+	eventDelegate runtime.StartingEventDelegate,
 	resource resource.Resource,
 ) PutResult {
 
@@ -542,6 +553,8 @@ func (client *client) RunPutStep(
 		}
 		return PutResult{Status: status, VersionResult: runtime.VersionResult{}, Err: nil}
 	}
+
+	eventDelegate.Starting(logger)
 
 	vr, err = resource.Put(ctx, spec, container)
 	if err != nil {

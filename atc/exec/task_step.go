@@ -59,8 +59,10 @@ type TaskDelegate interface {
 
 	Variables() vars.CredVarsTracker
 
-	Initializing(lager.Logger, atc.TaskConfig)
-	Starting(lager.Logger, atc.TaskConfig)
+	SetTaskConfig(config atc.TaskConfig)
+
+	Initializing(lager.Logger)
+	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus)
 	Errored(lager.Logger, string)
 }
@@ -127,7 +129,6 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	})
 
 	variables := step.delegate.Variables()
-
 	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return err
@@ -163,6 +164,8 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	config, err := taskConfigSource.FetchConfig(ctx, logger, repository)
 
+	step.delegate.SetTaskConfig(config)
+
 	for _, warning := range taskConfigSource.Warnings() {
 		fmt.Fprintln(step.delegate.Stderr(), "[WARNING]", warning)
 	}
@@ -178,7 +181,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		config.Limits.Memory = step.defaultLimits.Memory
 	}
 
-	step.delegate.Initializing(logger, config)
+	step.delegate.Initializing(logger)
 
 	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)
 	if err != nil {
@@ -205,8 +208,6 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	step.delegate.Starting(logger, config)
-
 	result := step.workerClient.RunTaskStep(
 		ctx,
 		logger,
@@ -217,6 +218,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		imageSpec,
 		processSpec,
+		step.delegate,
 		step.lockFactory,
 	)
 

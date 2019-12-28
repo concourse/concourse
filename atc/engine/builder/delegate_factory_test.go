@@ -1,8 +1,8 @@
 package builder_test
 
 import (
+	"encoding/json"
 	"errors"
-	"github.com/concourse/concourse/atc/runtime"
 	"io"
 	"time"
 
@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -222,17 +223,25 @@ var _ = Describe("DelegateFactory", func() {
 	Describe("TaskDelegate", func() {
 		var (
 			delegate   exec.TaskDelegate
-			config     atc.TaskConfig
 			exitStatus exec.ExitStatus
+			someConfig atc.TaskConfig
 		)
 
 		BeforeEach(func() {
 			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+			someConfig = atc.TaskConfig{
+				Platform:"some-platform",
+				Run: atc.TaskRunConfig{
+					Path:"some-foo-path",
+					Dir: "some-bar-dir",
+				},
+			}
+			delegate.SetTaskConfig(someConfig)
 		})
 
 		Describe("Initializing", func() {
 			JustBeforeEach(func() {
-				delegate.Initializing(logger, config)
+				delegate.Initializing(logger)
 			})
 
 			It("saves an event", func() {
@@ -240,17 +249,31 @@ var _ = Describe("DelegateFactory", func() {
 				event := fakeBuild.SaveEventArgsForCall(0)
 				Expect(event.EventType()).To(Equal(atc.EventType("initialize-task")))
 			})
+
+			It("calls SaveEvent with the taskConfig", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				event := fakeBuild.SaveEventArgsForCall(0)
+				b := `{"time":.*,"origin":{"id":"some-plan-id"},"config":{"platform":"some-platform","image":"","run":{"path":"some-foo-path","args":null,"dir":"some-bar-dir"},"inputs":null}}`
+				Expect(json.Marshal(event)).To(MatchRegexp(b))
+			})
 		})
 
 		Describe("Starting", func() {
 			JustBeforeEach(func() {
-				delegate.Starting(logger, config)
+				delegate.Starting(logger)
 			})
 
 			It("saves an event", func() {
 				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 				event := fakeBuild.SaveEventArgsForCall(0)
 				Expect(event.EventType()).To(Equal(atc.EventType("start-task")))
+			})
+
+			It("calls SaveEvent with the taskConfig", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				event := fakeBuild.SaveEventArgsForCall(0)
+				b := `{"time":.*,"origin":{"id":"some-plan-id"},"config":{"platform":"some-platform","image":"","run":{"path":"some-foo-path","args":null,"dir":"some-bar-dir"},"inputs":null}}`
+				Expect(json.Marshal(event)).To(MatchRegexp(b))
 			})
 		})
 

@@ -227,6 +227,7 @@ var _ = Describe("Client", func() {
 			fakeChosenWorker      *workerfakes.FakeWorker
 			fakeStrategy          *workerfakes.FakeContainerPlacementStrategy
 			fakeDelegate          *workerfakes.FakeImageFetchingDelegate
+			fakeEventDelegate     *runtimefakes.FakeStartingEventDelegate
 			fakeResourceTypes     atc.VersionedResourceTypes
 			fakeContainer         *workerfakes.FakeContainer
 			fakeProcessSpec       runtime.ProcessSpec
@@ -248,6 +249,7 @@ var _ = Describe("Client", func() {
 			workerSpec = worker.WorkerSpec{}
 			fakeChosenWorker = new(workerfakes.FakeWorker)
 			fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
+			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
 			fakeResourceTypes = atc.VersionedResourceTypes{}
 			imageSpec = worker.ImageFetcherSpec{
 				Delegate:      fakeDelegate,
@@ -285,6 +287,7 @@ var _ = Describe("Client", func() {
 				metadata,
 				imageSpec,
 				fakeProcessSpec,
+				fakeEventDelegate,
 				fakeUsedResourceCache,
 				fakeResource,
 			)
@@ -305,6 +308,10 @@ var _ = Describe("Client", func() {
 		Context("worker is chosen", func() {
 			BeforeEach(func() {
 				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
+			})
+
+			It("invokes the Starting Event on the delegate", func() {
+				Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
 			})
 
 			It("calls Fetch on the worker", func() {
@@ -393,8 +400,10 @@ var _ = Describe("Client", func() {
 			fakeImageFetcherSpec worker.ImageFetcherSpec
 			fakeTaskProcessSpec  runtime.ProcessSpec
 			fakeContainer        *workerfakes.FakeContainer
-			ctx                  context.Context
-			cancel               func()
+			fakeEventDelegate    *runtimefakes.FakeStartingEventDelegate
+
+			ctx    context.Context
+			cancel func()
 		)
 
 		BeforeEach(func() {
@@ -428,11 +437,11 @@ var _ = Describe("Client", func() {
 					CPU:    &cpu,
 					Memory: &memory,
 				},
-				Dir:          "some-artifact-root",
-				Env:          []string{"SECURE=secret-task-param"},
+				Dir:            "some-artifact-root",
+				Env:            []string{"SECURE=secret-task-param"},
 				ArtifactByPath: map[string]runtime.Artifact{},
-				Inputs:       inputSources,
-				Outputs:      worker.OutputPaths{},
+				Inputs:         inputSources,
+				Outputs:        worker.OutputPaths{},
 			}
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 			fakeMetadata = db.ContainerMetadata{
@@ -467,6 +476,8 @@ var _ = Describe("Client", func() {
 				return nil
 			}
 
+			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
+
 			fakeLockFactory = new(lockfakes.FakeLockFactory)
 			fakeLock = new(lockfakes.FakeLock)
 			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
@@ -486,6 +497,7 @@ var _ = Describe("Client", func() {
 				fakeMetadata,
 				fakeImageFetcherSpec,
 				fakeTaskProcessSpec,
+				fakeEventDelegate,
 				fakeLockFactory,
 			)
 			status = taskResult.Status
@@ -876,6 +888,10 @@ var _ = Describe("Client", func() {
 					Expect(actualProcessIO.Stderr).To(Equal(stderrBuf))
 				})
 
+				It("invokes the Starting Event on the delegate", func() {
+					Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
+				})
+
 				Context("when the process is interrupted", func() {
 					var stopped chan struct{}
 					BeforeEach(func() {
@@ -1142,6 +1158,7 @@ var _ = Describe("Client", func() {
 			fakeChosenWorker  *workerfakes.FakeWorker
 			fakeStrategy      *workerfakes.FakeContainerPlacementStrategy
 			fakeDelegate      *workerfakes.FakeImageFetchingDelegate
+			fakeEventDelegate *runtimefakes.FakeStartingEventDelegate
 			fakeResourceTypes atc.VersionedResourceTypes
 			fakeContainer     *workerfakes.FakeContainer
 			fakeProcessSpec   runtime.ProcessSpec
@@ -1162,6 +1179,7 @@ var _ = Describe("Client", func() {
 			workerSpec = worker.WorkerSpec{}
 			fakeChosenWorker = new(workerfakes.FakeWorker)
 			fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
+			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
 			fakeResourceTypes = atc.VersionedResourceTypes{}
 			imageSpec = worker.ImageFetcherSpec{
 				Delegate:      fakeDelegate,
@@ -1198,6 +1216,7 @@ var _ = Describe("Client", func() {
 				metadata,
 				imageSpec,
 				fakeProcessSpec,
+				fakeEventDelegate,
 				fakeResource,
 			)
 			versionResult = result.VersionResult
@@ -1268,6 +1287,10 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 				fakeContainer.PropertyReturns("0", fmt.Errorf("property not found"))
+			})
+
+			It("invokes the Starting Event on the delegate", func() {
+				Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
 			})
 
 			It("calls resource.Put with the correct ctx, processSpec and container", func() {

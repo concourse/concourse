@@ -247,16 +247,20 @@ func NewTaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.Cre
 
 type taskDelegate struct {
 	exec.BuildStepDelegate
-
+	config atc.TaskConfig
 	build       db.Build
 	eventOrigin event.Origin
 }
 
-func (d *taskDelegate) Initializing(logger lager.Logger, taskConfig atc.TaskConfig) {
+func(d *taskDelegate) SetTaskConfig(config atc.TaskConfig){
+	d.config = config
+}
+
+func (d *taskDelegate) Initializing(logger lager.Logger) {
 	err := d.build.SaveEvent(event.InitializeTask{
 		Origin:     d.eventOrigin,
 		Time:       time.Now().Unix(),
-		TaskConfig: event.ShadowTaskConfig(taskConfig),
+		TaskConfig: event.ShadowTaskConfig(d.config),
 	})
 	if err != nil {
 		logger.Error("failed-to-save-initialize-task-event", err)
@@ -266,11 +270,11 @@ func (d *taskDelegate) Initializing(logger lager.Logger, taskConfig atc.TaskConf
 	logger.Info("initializing")
 }
 
-func (d *taskDelegate) Starting(logger lager.Logger, taskConfig atc.TaskConfig) {
+func (d *taskDelegate) Starting(logger lager.Logger) {
 	err := d.build.SaveEvent(event.StartTask{
 		Origin:     d.eventOrigin,
 		Time:       time.Now().Unix(),
-		TaskConfig: event.ShadowTaskConfig(taskConfig),
+		TaskConfig: event.ShadowTaskConfig(d.config),
 	})
 	if err != nil {
 		logger.Error("failed-to-save-initialize-task-event", err)
