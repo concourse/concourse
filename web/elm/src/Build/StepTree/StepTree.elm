@@ -522,7 +522,7 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
             )
             [ Html.div
                 [ style "display" "flex" ]
-                [ viewStepHeaderIcon headerType id
+                [ viewStepHeaderLabel headerType id
                 , Html.h3 [] [ Html.text name ]
                 ]
             , Html.div
@@ -798,24 +798,37 @@ viewStepState state stepID tooltip =
                 tooltip
 
 
-viewStepHeaderIcon : StepHeaderType -> StepID -> Html Message
-viewStepHeaderIcon headerType stepID =
+viewStepHeaderLabel : StepHeaderType -> StepID -> Html Message
+viewStepHeaderLabel headerType stepID =
     let
         eventHandlers =
             if headerType == StepHeaderGet True then
                 [ onMouseLeave <| Hover Nothing
-                , onMouseEnter <| Hover <| Just <| FirstOccurrenceIcon stepID
+                , onMouseEnter <| Hover <| Just <| FirstOccurrenceGetStepLabel stepID
                 ]
 
             else
                 []
     in
     Html.div
-        (id (toHtmlID <| FirstOccurrenceIcon stepID)
-            :: Styles.stepHeaderIcon headerType
+        (id (toHtmlID <| FirstOccurrenceGetStepLabel stepID)
+            :: Styles.stepHeaderLabel headerType
             ++ eventHandlers
         )
-        []
+        [ Html.text <|
+            case headerType of
+                StepHeaderGet _ ->
+                    "get:"
+
+                StepHeaderPut ->
+                    "put:"
+
+                StepHeaderTask ->
+                    "task:"
+
+                StepHeaderSetPipeline ->
+                    "set_pipeline:"
+        ]
 
 
 viewDurationTooltip : Maybe Time.Posix -> Maybe Time.Posix -> Maybe Time.Posix -> Bool -> List (Html Message)

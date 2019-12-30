@@ -51,7 +51,7 @@ type DomID
     | CheckButton Bool
     | SaveCommentButton
     | AbortBuildButton
-    | FirstOccurrenceIcon StepID
+    | FirstOccurrenceGetStepLabel StepID
     | StepState StepID
     | PinIcon
     | PinMenuDropDown String
