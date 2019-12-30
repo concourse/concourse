@@ -578,7 +578,10 @@ viewHistoryItem currentBuild build =
         ([ classList [ ( "current", build.id == currentBuild.id ) ]
          , id <| String.fromInt build.id
          ]
-            ++ Build.Styles.historyItem build.status
+            ++ Build.Styles.historyItem
+                currentBuild.status
+                (build.id == currentBuild.id)
+                build.status
         )
         [ Html.a
             [ onLeftClick <| Click <| BuildTab build.id build.name
