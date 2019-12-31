@@ -41,7 +41,7 @@ type FlyCommand struct {
 	Jobs        JobsCommand        `command:"jobs"      alias:"js" description:"List the jobs in the pipelines"`
 	PauseJob    PauseJobCommand    `command:"pause-job" alias:"pj" description:"Pause a job"`
 	UnpauseJob  UnpauseJobCommand  `command:"unpause-job" alias:"uj" description:"Unpause a job"`
-	ScheduleJob ScheduleJobCommand `command:"schedule-job" alias:"sj" description:"Schedule a job"`
+	ScheduleJob ScheduleJobCommand `command:"schedule-job" alias:"sj" description:"Request the scheduler to run for a job. Introduced as a recovery command for the v6.0 scheduler."`
 
 	Pipelines        PipelinesCommand        `command:"pipelines"           alias:"ps"   description:"List the configured pipelines"`
 	DestroyPipeline  DestroyPipelineCommand  `command:"destroy-pipeline"    alias:"dp"   description:"Destroy a pipeline"`

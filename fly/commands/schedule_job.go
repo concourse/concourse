@@ -31,7 +31,7 @@ func (command *ScheduleJobCommand) Execute(args []string) error {
 		return fmt.Errorf("%s/%s not found\n", command.Job.PipelineName, command.Job.JobName)
 	}
 
-	fmt.Printf("schedule '%s'\n", command.Job.JobName)
+	fmt.Printf("scheduled '%s'\n", command.Job.JobName)
 
 	return nil
 }
