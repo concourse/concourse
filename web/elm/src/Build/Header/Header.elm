@@ -18,7 +18,6 @@ import Duration exposing (Duration)
 import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
-import Keyboard
 import List.Extra
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
@@ -246,17 +245,6 @@ view session model =
 handleDelivery : Delivery -> ET (Model r)
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        KeyDown keyEvent ->
-            handleKeyPressed keyEvent ( model, effects )
-
-        KeyUp keyEvent ->
-            case keyEvent.code of
-                Keyboard.T ->
-                    ( { model | previousTriggerBuildByKey = False }, effects )
-
-                _ ->
-                    ( model, effects )
-
         ElementVisible ( id, True ) ->
             let
                 lastBuildVisible =
@@ -365,118 +353,6 @@ handleDelivery delivery ( model, effects ) =
 
         _ ->
             ( model, effects )
-
-
-handleKeyPressed : Keyboard.KeyEvent -> ET (Model r)
-handleKeyPressed keyEvent ( model, effects ) =
-    if Keyboard.hasControlModifier keyEvent then
-        ( model, effects )
-
-    else
-        case ( keyEvent.code, keyEvent.shiftKey ) of
-            ( Keyboard.H, False ) ->
-                case nextHistoryItem model.history (historyItem model) of
-                    Just item ->
-                        ( model
-                        , effects
-                            ++ [ NavigateTo <|
-                                    Routes.toString <|
-                                        Routes.buildRoute
-                                            item.id
-                                            item.name
-                                            model.job
-                               ]
-                        )
-
-                    Nothing ->
-                        ( model, effects )
-
-            ( Keyboard.L, False ) ->
-                case prevHistoryItem model.history (historyItem model) of
-                    Just item ->
-                        ( model
-                        , effects
-                            ++ [ NavigateTo <|
-                                    Routes.toString <|
-                                        Routes.buildRoute
-                                            item.id
-                                            item.name
-                                            model.job
-                               ]
-                        )
-
-                    Nothing ->
-                        ( model, effects )
-
-            ( Keyboard.T, True ) ->
-                if not model.previousTriggerBuildByKey then
-                    (model.job
-                        |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
-                        |> Maybe.withDefault identity
-                    )
-                        ( { model | previousTriggerBuildByKey = True }, effects )
-
-                else
-                    ( model, effects )
-
-            ( Keyboard.R, True ) ->
-                ( model
-                , effects
-                    ++ (if Concourse.BuildStatus.isRunning model.status then
-                            []
-
-                        else
-                            model.job
-                                |> Maybe.map
-                                    (\j ->
-                                        RerunJobBuild
-                                            { teamName = j.teamName
-                                            , pipelineName = j.pipelineName
-                                            , jobName = j.jobName
-                                            , buildName = model.name
-                                            }
-                                    )
-                                |> Maybe.Extra.toList
-                       )
-                )
-
-            ( Keyboard.A, True ) ->
-                if Just (historyItem model) == List.head model.history then
-                    ( model, DoAbortBuild model.id :: effects )
-
-                else
-                    ( model, effects )
-
-            _ ->
-                ( model, effects )
-
-
-prevHistoryItem : List HistoryItem -> HistoryItem -> Maybe HistoryItem
-prevHistoryItem builds b =
-    case builds of
-        first :: second :: rest ->
-            if first == b then
-                Just second
-
-            else
-                prevHistoryItem (second :: rest) b
-
-        _ ->
-            Nothing
-
-
-nextHistoryItem : List HistoryItem -> HistoryItem -> Maybe HistoryItem
-nextHistoryItem builds b =
-    case builds of
-        first :: second :: rest ->
-            if second == b then
-                Just first
-
-            else
-                nextHistoryItem (second :: rest) b
-
-        _ ->
-            Nothing
 
 
 update : Message -> ET (Model r)

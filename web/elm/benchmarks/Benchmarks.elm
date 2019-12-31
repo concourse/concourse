@@ -65,7 +65,7 @@ type alias Model =
         , autoScroll : Bool
         , previousKeyPress : Maybe Keyboard.KeyEvent
         , shiftDown : Bool
-        , previousTriggerBuildByKey : Bool
+        , isTriggerBuildKeyDown : Bool
         , showHelp : Bool
         , highlight : Highlight
         , hoveredCounter : Int
@@ -731,7 +731,7 @@ sampleOldModel =
     , autoScroll = True
     , previousKeyPress = Nothing
     , shiftDown = False
-    , previousTriggerBuildByKey = False
+    , isTriggerBuildKeyDown = False
     , showHelp = False
     , highlight = Routes.HighlightNothing
     , hoveredCounter = 0
@@ -777,7 +777,7 @@ sampleModel =
             }
     , autoScroll = True
     , previousKeyPress = Nothing
-    , previousTriggerBuildByKey = False
+    , isTriggerBuildKeyDown = False
     , showHelp = False
     , highlight = Routes.HighlightNothing
     , authorized = True

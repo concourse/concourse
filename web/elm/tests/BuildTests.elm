@@ -1035,7 +1035,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, theBuild ))
+                        (Callback.BuildFetched <| Ok theBuild)
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
@@ -1080,7 +1080,7 @@ all =
             \_ ->
                 initFromApplication
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok ( 1, startedBuild ))
+                        (Callback.BuildFetched <| Ok startedBuild)
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|

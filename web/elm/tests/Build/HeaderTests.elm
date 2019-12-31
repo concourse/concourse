@@ -278,7 +278,6 @@ model =
     , now = Nothing
     , fetchingHistory = False
     , nextPage = Nothing
-    , previousTriggerBuildByKey = False -- TODO WTF variable name
     }
 
 
