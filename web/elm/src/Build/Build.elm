@@ -19,6 +19,7 @@ import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
 import Build.Models exposing (Model, toMaybe)
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
+import Build.Shortcuts as Shortcuts
 import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
@@ -42,7 +43,6 @@ import Html.Attributes
         )
 import Html.Lazy
 import Http
-import Keyboard
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra
@@ -108,7 +108,7 @@ init flags =
           , output = Empty
           , autoScroll = True
           , previousKeyPress = Nothing
-          , previousTriggerBuildByKey = False
+          , isTriggerBuildKeyDown = False
           , showHelp = False
           , highlight = flags.highlight
           , authorized = True
@@ -298,9 +298,6 @@ handleCallback action ( model, effects ) =
 handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
 handleDelivery session delivery ( model, effects ) =
     (case delivery of
-        KeyDown keyEvent ->
-            handleKeyPressed keyEvent ( model, effects )
-
         ClockTicked OneSecond time ->
             ( { model | now = Just time }
             , effects
@@ -390,6 +387,7 @@ handleDelivery session delivery ( model, effects ) =
         _ ->
             ( model, effects )
     )
+        |> Shortcuts.handleDelivery delivery
         |> Header.handleDelivery delivery
 
 
@@ -516,48 +514,6 @@ updateOutput updater ( model, effects ) =
 
         _ ->
             ( model, effects )
-
-
-handleKeyPressed : Keyboard.KeyEvent -> ET Model
-handleKeyPressed keyEvent ( model, effects ) =
-    let
-        newModel =
-            case ( model.previousKeyPress, keyEvent.shiftKey, keyEvent.code ) of
-                ( Nothing, False, Keyboard.G ) ->
-                    { model | previousKeyPress = Just keyEvent }
-
-                _ ->
-                    { model | previousKeyPress = Nothing }
-    in
-    if Keyboard.hasControlModifier keyEvent then
-        ( newModel, effects )
-
-    else
-        case ( keyEvent.code, keyEvent.shiftKey ) of
-            ( Keyboard.J, False ) ->
-                ( newModel, [ Scroll Down bodyId ] )
-
-            ( Keyboard.K, False ) ->
-                ( newModel, [ Scroll Up bodyId ] )
-
-            ( Keyboard.G, True ) ->
-                ( { newModel | autoScroll = True }, [ Scroll ToBottom bodyId ] )
-
-            ( Keyboard.G, False ) ->
-                if
-                    (model.previousKeyPress |> Maybe.map .code)
-                        == Just Keyboard.G
-                then
-                    ( { newModel | autoScroll = False }, [ Scroll ToTop bodyId ] )
-
-                else
-                    ( newModel, effects )
-
-            ( Keyboard.Slash, True ) ->
-                ( { newModel | showHelp = not newModel.showHelp }, effects )
-
-            _ ->
-                ( newModel, effects )
 
 
 handleBuildFetched : Concourse.Build -> ET Model
@@ -769,7 +725,7 @@ body session { prep, build, output, authorized, showHelp } =
                 session.timeZone
                 (projectOntoBuildPage session.hovered)
                 output
-            , keyboardHelp showHelp
+            , Shortcuts.keyboardHelp showHelp
             ]
                 ++ tombstone session.timeZone build
 
@@ -809,73 +765,6 @@ projectOntoBuildPage hovered =
 
         _ ->
             HoverState.NoHover
-
-
-keyboardHelp : Bool -> Html Message
-keyboardHelp showHelp =
-    Html.div
-        [ classList
-            [ ( "keyboard-help", True )
-            , ( "hidden", not showHelp )
-            ]
-        ]
-        [ Html.div
-            [ class "help-title" ]
-            [ Html.text "keyboard shortcuts" ]
-        , Html.div
-            [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span [ class "key" ] [ Html.text "h" ]
-                , Html.span [ class "key" ] [ Html.text "l" ]
-                ]
-            , Html.text "previous/next build"
-            ]
-        , Html.div
-            [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span [ class "key" ] [ Html.text "j" ]
-                , Html.span [ class "key" ] [ Html.text "k" ]
-                ]
-            , Html.text "scroll down/up"
-            ]
-        , Html.div
-            [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span [ class "key" ] [ Html.text "T" ] ]
-            , Html.text "trigger a new build"
-            ]
-        , Html.div
-            [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span [ class "key" ] [ Html.text "A" ] ]
-            , Html.text "abort build"
-            ]
-        , Html.div
-            [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span [ class "key" ] [ Html.text "gg" ] ]
-            , Html.text "scroll to the top"
-            ]
-        , Html.div
-            [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span [ class "key" ] [ Html.text "G" ] ]
-            , Html.text "scroll to the bottom"
-            ]
-        , Html.div
-            [ class "help-line" ]
-            [ Html.div
-                [ class "keys" ]
-                [ Html.span [ class "key" ] [ Html.text "?" ] ]
-            , Html.text "hide/show help"
-            ]
-        ]
 
 
 tombstone : Time.Zone -> Concourse.Build -> List (Html Message)

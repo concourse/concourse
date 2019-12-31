@@ -65,7 +65,7 @@ type alias Model =
         , autoScroll : Bool
         , previousKeyPress : Maybe Keyboard.KeyEvent
         , shiftDown : Bool
-        , previousTriggerBuildByKey : Bool
+        , isTriggerBuildKeyDown : Bool
         , showHelp : Bool
         , highlight : Highlight
         , hoveredCounter : Int
@@ -284,7 +284,7 @@ viewBuildHeader session model build =
                         ]
                             ++ (if buttonDisabled && buttonHovered then
                                     [ Html.div
-                                        Build.Styles.triggerTooltip
+                                        (Build.Styles.buttonTooltip 240)
                                         [ Html.text <|
                                             "manual triggering disabled "
                                                 ++ "in job config"
@@ -578,7 +578,10 @@ viewHistoryItem currentBuild build =
         ([ classList [ ( "current", build.id == currentBuild.id ) ]
          , id <| String.fromInt build.id
          ]
-            ++ Build.Styles.historyItem build.status
+            ++ Build.Styles.historyItem
+                currentBuild.status
+                (build.id == currentBuild.id)
+                build.status
         )
         [ Html.a
             [ onLeftClick <| Click <| BuildTab build.id build.name
@@ -728,7 +731,7 @@ sampleOldModel =
     , autoScroll = True
     , previousKeyPress = Nothing
     , shiftDown = False
-    , previousTriggerBuildByKey = False
+    , isTriggerBuildKeyDown = False
     , showHelp = False
     , highlight = Routes.HighlightNothing
     , hoveredCounter = 0
@@ -774,7 +777,7 @@ sampleModel =
             }
     , autoScroll = True
     , previousKeyPress = Nothing
-    , previousTriggerBuildByKey = False
+    , isTriggerBuildKeyDown = False
     , showHelp = False
     , highlight = Routes.HighlightNothing
     , authorized = True

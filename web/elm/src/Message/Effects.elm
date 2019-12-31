@@ -133,6 +133,7 @@ type Effect
     | GetCurrentTime
     | GetCurrentTimeZone
     | DoTriggerBuild Concourse.JobIdentifier
+    | RerunJobBuild Concourse.JobBuildIdentifier
     | DoAbortBuild Int
     | PauseJob Concourse.JobIdentifier
     | UnpauseJob Concourse.JobIdentifier
@@ -257,6 +258,10 @@ runEffect effect key csrfToken =
 
         DoTriggerBuild id ->
             Network.Job.triggerBuild id csrfToken
+                |> Task.attempt BuildTriggered
+
+        RerunJobBuild id ->
+            Network.Job.rerunJobBuild id csrfToken
                 |> Task.attempt BuildTriggered
 
         PauseJob id ->

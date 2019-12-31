@@ -5,7 +5,7 @@ module Colors exposing
     , background
     , bottomBarText
     , buildStatusColor
-    , buildTooltipBackground
+    , buildTooltipText
     , card
     , cliIconHover
     , comment
@@ -230,8 +230,8 @@ groupsBarBackground =
     "#2b2a2a"
 
 
-buildTooltipBackground : String
-buildTooltipBackground =
+buildTooltipText : String
+buildTooltipText =
     "#ecf0f1"
 
 

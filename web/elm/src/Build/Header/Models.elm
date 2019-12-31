@@ -25,7 +25,6 @@ type alias Model r =
         , now : Maybe Time.Posix
         , fetchingHistory : Bool
         , nextPage : Maybe Page
-        , previousTriggerBuildByKey : Bool
     }
 
 
