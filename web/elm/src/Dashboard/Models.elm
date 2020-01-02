@@ -24,6 +24,10 @@ type alias Model =
             , existingJobs : List Concourse.Job
             , dragState : DragState
             , dropState : DropState
+            , isJobsRequestFinished : Bool
+            , isTeamsRequestFinished : Bool
+            , isPipelinesRequestFinished : Bool
+            , isResourcesRequestFinished : Bool
             }
         )
 

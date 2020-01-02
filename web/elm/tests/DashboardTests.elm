@@ -2100,46 +2100,61 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnKeyUp
-        , test "auto refreshes data every five seconds" <|
+        , test "auto refreshes jobs on five-second tick after previous request finishes" <|
             \_ ->
                 Common.init "/"
-                    |> Application.update
-                        (ApplicationMsgs.DeliveryReceived <|
-                            ClockTicked FiveSeconds <|
-                                Time.millisToPosix 0
-                        )
-                    |> Tuple.second
-                    |> Common.contains Effects.FetchAllTeams
-        , test "auto refreshes resources every five seconds" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.update
-                        (ApplicationMsgs.DeliveryReceived <|
-                            ClockTicked FiveSeconds <|
-                                Time.millisToPosix 0
-                        )
-                    |> Tuple.second
-                    |> Common.contains Effects.FetchAllResources
-        , test "auto refreshes jobs every five seconds" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.update
-                        (ApplicationMsgs.DeliveryReceived <|
-                            ClockTicked FiveSeconds <|
-                                Time.millisToPosix 0
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Ok [])
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <|
+                            Time.millisToPosix 0
                         )
                     |> Tuple.second
                     |> Common.contains Effects.FetchAllJobs
-        , test "auto refreshes pipelines every five seconds" <|
+        , test "auto refreshes jobs on next five-second tick after dropping" <|
             \_ ->
                 Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Ok [])
+                    |> Tuple.first
                     |> Application.update
-                        (ApplicationMsgs.DeliveryReceived <|
-                            ClockTicked FiveSeconds <|
-                                Time.millisToPosix 0
+                        (ApplicationMsgs.Update <| Msgs.DragStart "team" 0)
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <|
+                            Time.millisToPosix 0
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (ApplicationMsgs.Update <| Msgs.DragEnd)
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <|
+                            Time.millisToPosix 0
                         )
                     |> Tuple.second
-                    |> Common.contains Effects.FetchAllPipelines
+                    |> Common.contains Effects.FetchAllJobs
+        , test "don't fetch any jobs until the first request finishes" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <| Time.millisToPosix 0)
+                    |> Tuple.second
+                    |> Common.notContains Effects.FetchAllJobs
+        , test "don't fetch all jobs until the last request finishes" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Ok [])
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <| Time.millisToPosix 0)
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <| Time.millisToPosix 0)
+                    |> Tuple.second
+                    |> Common.notContains Effects.FetchAllJobs
         ]
 
 

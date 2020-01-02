@@ -17,6 +17,7 @@ import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models as Models exposing (DragState(..), DropState(..), Dropdown(..), Model)
+import Dashboard.RequestBuffer as RequestBuffer exposing (Buffer(..))
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
 import Dashboard.Text as Text
@@ -81,6 +82,10 @@ init searchType =
       , dropdown = Hidden
       , dragState = Models.NotDragging
       , dropState = Models.NotDropping
+      , isJobsRequestFinished = False
+      , isTeamsRequestFinished = False
+      , isResourcesRequestFinished = False
+      , isPipelinesRequestFinished = False
       }
     , [ FetchAllTeams
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -92,9 +97,66 @@ init searchType =
     )
 
 
+buffers : List (Buffer Model)
+buffers =
+    [ Buffer FetchAllTeams
+        (\c ->
+            case c of
+                AllTeamsFetched _ ->
+                    True
+
+                _ ->
+                    False
+        )
+        (.dragState >> (/=) NotDragging)
+        { get = \m -> m.isTeamsRequestFinished
+        , set = \f m -> { m | isTeamsRequestFinished = f }
+        }
+    , Buffer FetchAllResources
+        (\c ->
+            case c of
+                AllResourcesFetched _ ->
+                    True
+
+                _ ->
+                    False
+        )
+        (.dragState >> (/=) NotDragging)
+        { get = \m -> m.isResourcesRequestFinished
+        , set = \f m -> { m | isResourcesRequestFinished = f }
+        }
+    , Buffer FetchAllJobs
+        (\c ->
+            case c of
+                AllJobsFetched _ ->
+                    True
+
+                _ ->
+                    False
+        )
+        (.dragState >> (/=) NotDragging)
+        { get = \m -> m.isJobsRequestFinished
+        , set = \f m -> { m | isJobsRequestFinished = f }
+        }
+    , Buffer FetchAllPipelines
+        (\c ->
+            case c of
+                AllPipelinesFetched _ ->
+                    True
+
+                _ ->
+                    False
+        )
+        (.dragState >> (/=) NotDragging)
+        { get = \m -> m.isPipelinesRequestFinished
+        , set = \f m -> { m | isPipelinesRequestFinished = f }
+        }
+    ]
+
+
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
-    case callback of
+    (case callback of
         AllTeamsFetched (Err _) ->
             ( { model | showTurbulence = True }, effects )
 
@@ -214,6 +276,8 @@ handleCallback callback ( model, effects ) =
 
         _ ->
             ( model, effects )
+    )
+        |> RequestBuffer.handleCallback callback buffers
 
 
 updatePipeline :
@@ -237,6 +301,7 @@ handleDelivery : Delivery -> ET Model
 handleDelivery delivery =
     SearchBar.handleDelivery delivery
         >> Footer.handleDelivery delivery
+        >> RequestBuffer.handleDelivery delivery buffers
         >> handleDeliveryBody delivery
 
 
@@ -245,18 +310,6 @@ handleDeliveryBody delivery ( model, effects ) =
     case delivery of
         ClockTicked OneSecond time ->
             ( { model | now = Just time }, effects )
-
-        ClockTicked FiveSeconds _ ->
-            ( model
-            , effects
-                ++ (if model.dragState == NotDragging then
-                        [ FetchAllPipelines ]
-
-                    else
-                        []
-                   )
-                ++ [ FetchAllTeams, FetchAllResources, FetchAllJobs ]
-            )
 
         _ ->
             ( model, effects )

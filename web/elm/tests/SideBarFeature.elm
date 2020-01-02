@@ -461,8 +461,9 @@ hasSideBar iAmLookingAtThePage =
         , test "subscribes to 5-second tick" <|
             given iAmLookingAtThePage
                 >> then_ myBrowserNotifiesEveryFiveSeconds
-        , test "fetches pipelines every 5 seconds" <|
+        , test "fetches pipelines every five seconds" <|
             given iAmLookingAtThePage
+                >> given myBrowserFetchedPipelines
                 >> when fiveSecondsPass
                 >> then_ myBrowserFetchesPipelines
         , test "sidebar has two pipeline groups" <|
