@@ -33,19 +33,14 @@ func NewContainer(context ContainerdContext, container containerd.Container) gar
 
 var _ garden.Container = (*Container)(nil)
 
+// Handle returns a container's ID. This is the handle provided to the backend when it created the container.
+//
 func (c *Container) Handle() string { return c.containerdContainer.ID() }
 
 // Stop stops a container.
 //
-// If kill is false, garden stops a container by sending the processes running inside it the SIGTERM signal.
-// It then waits for the processes to terminate before returning a response.
-// If one or more processes do not terminate within 10 seconds,
-// garden sends these processes the SIGKILL signal, killing them ungracefully.
-//
-// If kill is true, garden stops a container by sending the processing running inside it a SIGKILL signal.
-//
-// It is possible to copy files in to and out of a stopped container.
-// It is only when a container is destroyed that its filesystem is cleaned up.
+// If kill is false, the backend stops a container by sending the processes running inside it the SIGTERM signal.
+// If kill is true, the processing is ungracefully terminated with a SIGKILL signal.
 //
 // Errors:
 // * None.
