@@ -217,8 +217,11 @@ var _ = Describe("FetchSource", func() {
 		})
 
 		Context("when there is no initialized volume", func() {
+			var atcMetadata []atc.MetadataField
 			BeforeEach(func() {
+				atcMetadata =[]atc.MetadataField{{"foo", "bar"}}
 				fakeWorker.FindVolumeForResourceCacheReturns(nil, false, nil)
+				fakeResource.GetReturns(runtime.VersionResult{Metadata: atcMetadata }, nil)
 			})
 
 			It("creates container with volume and worker", func() {
@@ -258,8 +261,9 @@ var _ = Describe("FetchSource", func() {
 
 			It("updates resource cache metadata", func() {
 				Expect(fakeResourceCacheFactory.UpdateResourceCacheMetadataCallCount()).To(Equal(1))
-				passedResourceCache, _ := fakeResourceCacheFactory.UpdateResourceCacheMetadataArgsForCall(0)
+				passedResourceCache, versionResultMetadata := fakeResourceCacheFactory.UpdateResourceCacheMetadataArgsForCall(0)
 				Expect(passedResourceCache).To(Equal(fakeUsedResourceCache))
+				Expect(versionResultMetadata).To(Equal(atcMetadata))
 			})
 
 			Context("when getting resource fails with other error", func() {

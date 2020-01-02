@@ -55,7 +55,6 @@ var _ = Describe("Fetcher", func() {
 
 		fakeVolume = new(workerfakes.FakeVolume)
 		fakeVolume.HandleReturns("some-handle")
-		//TODO: stub out get()
 		fakeResource = new(resourcefakes.FakeResource)
 		fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
 
