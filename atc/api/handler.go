@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/concourse/concourse/atc/api/wallserver"
 	"net/http"
 	"path/filepath"
 
@@ -53,6 +54,7 @@ func NewHandler(
 	dbCheckFactory db.CheckFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
+	dbWall db.Wall,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
@@ -95,9 +97,10 @@ func NewHandler(
 	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, containerRepository, destroyer)
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
-	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
+	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers, dbWall)
 	artifactServer := artifactserver.NewServer(logger, workerClient)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
+	wallServer := wallserver.NewServer(dbWall, logger)
 
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
@@ -204,6 +207,12 @@ func NewHandler(
 
 		atc.CreateArtifact: teamHandlerFactory.HandlerFor(artifactServer.CreateArtifact),
 		atc.GetArtifact:    teamHandlerFactory.HandlerFor(artifactServer.GetArtifact),
+
+		atc.GetWall: http.HandlerFunc(wallServer.GetWall),
+		atc.SetWall: http.HandlerFunc(wallServer.SetWall),
+		atc.ClearWall: http.HandlerFunc(wallServer.ClearWall),
+		atc.GetExpiration: http.HandlerFunc(wallServer.GetExpiration),
+		atc.SetExpiration: http.HandlerFunc(wallServer.SetExpiration),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))
