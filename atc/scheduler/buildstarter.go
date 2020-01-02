@@ -217,6 +217,8 @@ func (s *buildStarter) tryStartNextPendingBuild(
 
 	plan, err := s.factory.Create(job.Config(), resourceConfigs, resourceTypes.Deserialize(), buildInputs)
 	if err != nil {
+		logger.Error("failed-to-create-build-plan", err)
+
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
 		if err = nextPendingBuild.Finish(db.BuildStatusErrored); err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)

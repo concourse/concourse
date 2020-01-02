@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
@@ -17,7 +18,6 @@ var _ = Describe("Factory Get", func() {
 		input               atc.JobConfig
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
-		version             atc.Version
 	)
 
 	BeforeEach(func() {
@@ -58,7 +58,14 @@ var _ = Describe("Factory Get", func() {
 		})
 
 		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+			buildInputs := []db.BuildInput{
+				{
+					Name:    "some-get",
+					Version: atc.Version{"ref": "v1"},
+				},
+			}
+
+			actual, err := buildFactory.Create(input, resources, resourceTypes, buildInputs)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.GetPlan{
@@ -68,7 +75,7 @@ var _ = Describe("Factory Get", func() {
 				Source: atc.Source{
 					"uri": "git://some-resource",
 				},
-				Version:                &version,
+				Version:                &atc.Version{"ref": "v1"},
 				VersionedResourceTypes: resourceTypes,
 			})
 			Expect(actual).To(testhelpers.MatchPlan(expected))
@@ -90,6 +97,24 @@ var _ = Describe("Factory Get", func() {
 		It("returns the correct error", func() {
 			_, err := buildFactory.Create(input, resources, resourceTypes, nil)
 			Expect(err).To(Equal(factory.ErrResourceNotFound))
+		})
+	})
+
+	Context("with a get for an input with a non-existant version", func() {
+		BeforeEach(func() {
+			input = atc.JobConfig{
+				Plan: atc.PlanSequence{
+					{
+						Get:      "some-get",
+						Resource: "some-resource",
+					},
+				},
+			}
+		})
+
+		It("returns the correct error", func() {
+			_, err := buildFactory.Create(input, resources, resourceTypes, nil)
+			Expect(err).To(Equal(factory.VersionNotFoundError{"some-get"}))
 		})
 	})
 })
