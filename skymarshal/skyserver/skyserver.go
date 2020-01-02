@@ -127,20 +127,20 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 
 	if errMsg, errDesc := r.FormValue("error"), r.FormValue("error_description"); errMsg != "" {
 		logger.Error("failed-with-callback-error", errors.New(errMsg+" : "+errDesc))
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 
 	stateToken := s.config.TokenMiddleware.GetStateToken(r)
 	if stateToken == "" {
 		logger.Error("failed-with-invalid-state-token", errors.New("state token is empty"))
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "invalid state token", http.StatusBadRequest)
 		return
 	}
 
 	if stateToken != r.FormValue("state") {
 		logger.Error("failed-with-unexpected-state-token", errors.New("state token does not match"))
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "unexpected state token", http.StatusBadRequest)
 		return
 	}
 
@@ -156,7 +156,7 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, string(e.Body), e.Response.StatusCode)
 			return
 		default:
-			w.WriteHeader(http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
@@ -164,7 +164,7 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 	dexToken, err = token.UseIDToken(dexToken)
 	if err != nil {
 		logger.Error("failed-to-convert-id-token", err)
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
