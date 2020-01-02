@@ -31,7 +31,6 @@ var _ = Describe("GetStep", func() {
 
 		fakeClient   *workerfakes.FakeClient
 		fakeWorker   *workerfakes.FakeWorker
-		fakePool     *workerfakes.FakePool
 		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
 
 		fakeResourceFactory      *resourcefakes.FakeResourceFactory
@@ -78,7 +77,6 @@ var _ = Describe("GetStep", func() {
 		fakeClient = new(workerfakes.FakeClient)
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeWorker.NameReturns("some-worker")
-		fakePool = new(workerfakes.FakePool)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -155,7 +153,6 @@ var _ = Describe("GetStep", func() {
 			fakeResourceFactory,
 			fakeResourceCacheFactory,
 			fakeStrategy,
-			fakePool,
 			fakeDelegate,
 			fakeClient,
 		)

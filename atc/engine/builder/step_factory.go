@@ -65,7 +65,6 @@ func (factory *stepFactory) GetStep(
 		factory.resourceFactory,
 		factory.resourceCacheFactory,
 		factory.strategy,
-		factory.pool,
 		delegate,
 		factory.client,
 	)
@@ -103,7 +102,7 @@ func (factory *stepFactory) CheckStep(
 	delegate exec.CheckDelegate,
 ) exec.Step {
 	containerMetadata.WorkingDirectory = resource.ResourcesDir("check")
-	// TODO-L Placement Strategy should be abstracted out from step factory or step level concern as it is not a CORE concern
+	// TODO (runtime/#4957): Placement Strategy should be abstracted out from step factory or step level concern
 	checkStep := exec.NewCheckStep(
 		plan.ID,
 		*plan.Check,

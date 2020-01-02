@@ -62,7 +62,6 @@ type GetStep struct {
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
-	workerPool           worker.Pool
 	delegate             GetDelegate
 	succeeded            bool
 }
@@ -75,7 +74,6 @@ func NewGetStep(
 	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
-	workerPool worker.Pool,
 	delegate GetDelegate,
 	client worker.Client,
 ) Step {
@@ -87,7 +85,6 @@ func NewGetStep(
 		resourceFactory:      resourceFactory,
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
-		workerPool:           workerPool,
 		delegate:             delegate,
 		workerClient:         client,
 	}
