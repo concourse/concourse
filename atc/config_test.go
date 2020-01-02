@@ -44,7 +44,7 @@ var _ = Describe("Config", func() {
 	Describe("VarSourceConfigs.OrderByDependency", func() {
 		var (
 			varSources VarSourceConfigs
-			ordered VarSourceConfigs
+			ordered    VarSourceConfigs
 			orderError error
 		)
 
@@ -91,12 +91,12 @@ var _ = Describe("Config", func() {
 			},
 		}
 
-		JustBeforeEach(func(){
+		JustBeforeEach(func() {
 			ordered, orderError = varSources.OrderByDependency()
 		})
 
 		Context("var_sources with ideal order", func() {
-			BeforeEach(func(){
+			BeforeEach(func() {
 				varSources = VarSourceConfigs{vs1, vs2, vs3, vs4, vs5}
 			})
 			It("should keep the original order", func() {
@@ -110,7 +110,7 @@ var _ = Describe("Config", func() {
 		})
 
 		Context("var_sources with random order", func() {
-			BeforeEach(func(){
+			BeforeEach(func() {
 				varSources = VarSourceConfigs{vs4, vs2, vs5, vs1, vs3}
 			})
 			It("should order properly", func() {
@@ -124,7 +124,7 @@ var _ = Describe("Config", func() {
 		})
 
 		Context("var_sources with unresolved dependency", func() {
-			BeforeEach(func(){
+			BeforeEach(func() {
 				varSources = VarSourceConfigs{vs4, vs2, vs5, vs3}
 			})
 			It("should raise error", func() {
@@ -134,7 +134,7 @@ var _ = Describe("Config", func() {
 		})
 
 		Context("var_sources with cyclic dependencies", func() {
-			BeforeEach(func(){
+			BeforeEach(func() {
 				varSources = VarSourceConfigs{vs1_5, vs4, vs2, vs5, vs3}
 			})
 			It("should raise error", func() {

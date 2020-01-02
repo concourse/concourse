@@ -219,9 +219,9 @@ var _ = Describe("FetchSource", func() {
 		Context("when there is no initialized volume", func() {
 			var atcMetadata []atc.MetadataField
 			BeforeEach(func() {
-				atcMetadata =[]atc.MetadataField{{"foo", "bar"}}
+				atcMetadata = []atc.MetadataField{{"foo", "bar"}}
 				fakeWorker.FindVolumeForResourceCacheReturns(nil, false, nil)
-				fakeResource.GetReturns(runtime.VersionResult{Metadata: atcMetadata }, nil)
+				fakeResource.GetReturns(runtime.VersionResult{Metadata: atcMetadata}, nil)
 			})
 
 			It("creates container with volume and worker", func() {

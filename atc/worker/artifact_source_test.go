@@ -3,9 +3,9 @@ package worker_test
 import (
 	"archive/tar"
 	"context"
+	"errors"
 	"io"
 	"io/ioutil"
-	"errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -44,7 +44,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 	Context("StreamTo", func() {
 		var (
 			streamToErr error
-			outStream *gbytes.Buffer
+			outStream   *gbytes.Buffer
 		)
 
 		BeforeEach(func() {
@@ -98,7 +98,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 
 	Context("StreamFile", func() {
 		var (
-			streamFileErr error
+			streamFileErr    error
 			streamFileReader io.ReadCloser
 		)
 
@@ -167,7 +167,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 
 			Context("when the file is not found in the tar archive", func() {
 				var (
-					tgzBuffer   *gbytes.Buffer
+					tgzBuffer *gbytes.Buffer
 				)
 				BeforeEach(func() {
 					tgzBuffer = gbytes.NewBuffer()
@@ -181,13 +181,12 @@ var _ = Describe("StreamableArtifactSource", func() {
 		})
 	})
 
-
 	Context("ExistsOn", func() {
 		var (
-			fakeWorker *workerfakes.FakeWorker
+			fakeWorker   *workerfakes.FakeWorker
 			actualVolume worker.Volume
-			actualFound bool
-			actualErr error
+			actualFound  bool
+			actualErr    error
 		)
 
 		BeforeEach(func() {
@@ -205,7 +204,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 			Expect(actualArtifactID).To(Equal(fakeArtifact.ID()))
 		})
 
-		It("returns the response of Worker.LookupVolume", func(){
+		It("returns the response of Worker.LookupVolume", func() {
 			Expect(actualVolume).To(Equal(fakeVolume))
 			Expect(actualFound).To(BeTrue())
 			Expect(actualErr).To(Equal(disaster))
@@ -218,17 +217,16 @@ var _ = Describe("StreamableArtifactSource", func() {
 var _ = Describe("CacheArtifactSource", func() {
 	Context("ExistsOn", func() {
 		var (
-			fakeWorker *workerfakes.FakeWorker
-			actualVolume worker.Volume
-			actualFound bool
-			actualErr error
-			disaster error
-			fakeVolume      *workerfakes.FakeVolume
+			fakeWorker          *workerfakes.FakeWorker
+			actualVolume        worker.Volume
+			actualFound         bool
+			actualErr           error
+			disaster            error
+			fakeVolume          *workerfakes.FakeVolume
 			cacheArtifactSource worker.ArtifactSource
-			cacheArtifact runtime.CacheArtifact
-			testLogger     lager.Logger
+			cacheArtifact       runtime.CacheArtifact
+			testLogger          lager.Logger
 		)
-
 
 		BeforeEach(func() {
 			fakeWorker = new(workerfakes.FakeWorker)
@@ -240,10 +238,10 @@ var _ = Describe("CacheArtifactSource", func() {
 			testLogger = lager.NewLogger("cacheArtifactSource")
 
 			cacheArtifact = runtime.CacheArtifact{
-				TeamID: 5,
-				JobID: 18,
+				TeamID:   5,
+				JobID:    18,
 				StepName: "some-step-name",
-				Path : "some/path/foo",
+				Path:     "some/path/foo",
 			}
 			cacheArtifactSource = worker.NewCacheArtifactSource(cacheArtifact)
 
@@ -261,7 +259,7 @@ var _ = Describe("CacheArtifactSource", func() {
 			Expect(actualPath).To(Equal(cacheArtifact.Path))
 		})
 
-		It("returns the response of Worker.FindVolumeForTaskCache", func(){
+		It("returns the response of Worker.FindVolumeForTaskCache", func() {
 			Expect(actualVolume).To(Equal(fakeVolume))
 			Expect(actualFound).To(BeTrue())
 			Expect(actualErr).To(Equal(disaster))
@@ -269,4 +267,3 @@ var _ = Describe("CacheArtifactSource", func() {
 		})
 	})
 })
-

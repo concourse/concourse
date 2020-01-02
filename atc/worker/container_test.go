@@ -22,49 +22,46 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
-
 var _ = Describe("RunScript", func() {
 	var (
-
 		testLogger lager.Logger
 
 		fakeGardenContainerScriptStdout string
 		fakeGardenContainerScriptStderr string
 		scriptExitStatus                int
 
-		runErr         error
-		attachErr      error
-		runScriptErr	error
+		runErr       error
+		attachErr    error
+		runScriptErr error
 
 		scriptProcess *gardenfakes.FakeProcess
 
 		stderrBuf *gbytes.Buffer
 
-		fakeGClientContainer *gclientfakes.FakeContainer
-		fakeGClient *gclientfakes.FakeClient
-		fakeVolumeClient *workerfakes.FakeVolumeClient
-		fakeDBVolumeRepository	*dbfakes.FakeVolumeRepository
-		fakeImageFactory *workerfakes.FakeImageFactory
-		fakeFetcher *workerfakes.FakeFetcher
-		fakeDBTeamFactory *dbfakes.FakeTeamFactory
-		fakeDBWorker *dbfakes.FakeWorker
-		fakeCreatedContainer *dbfakes.FakeCreatedContainer
+		fakeGClientContainer   *gclientfakes.FakeContainer
+		fakeGClient            *gclientfakes.FakeClient
+		fakeVolumeClient       *workerfakes.FakeVolumeClient
+		fakeDBVolumeRepository *dbfakes.FakeVolumeRepository
+		fakeImageFactory       *workerfakes.FakeImageFactory
+		fakeFetcher            *workerfakes.FakeFetcher
+		fakeDBTeamFactory      *dbfakes.FakeTeamFactory
+		fakeDBWorker           *dbfakes.FakeWorker
+		fakeCreatedContainer   *dbfakes.FakeCreatedContainer
 
-		gardenWorker worker.Worker
+		gardenWorker    worker.Worker
 		workerContainer worker.Container
-		fakeDelegate *workerfakes.FakeImageFetchingDelegate
-		fakeOwner *dbfakes.FakeContainerOwner
+		fakeDelegate    *workerfakes.FakeImageFetchingDelegate
+		fakeOwner       *dbfakes.FakeContainerOwner
 
-
-		runScriptCtx  context.Context
+		runScriptCtx    context.Context
 		runScriptCancel func()
 
-		runScriptBinPath string
-		runScriptArgs    []string
-		runScriptInput   []byte
-		runScriptOutput  map[string]string
+		runScriptBinPath        string
+		runScriptArgs           []string
+		runScriptInput          []byte
+		runScriptOutput         map[string]string
 		runScriptLogDestination io.Writer
-		runScriptRecoverable bool
+		runScriptRecoverable    bool
 	)
 
 	BeforeEach(func() {
@@ -122,10 +119,10 @@ var _ = Describe("RunScript", func() {
 			atc.VersionedResourceTypes{},
 		)
 
-	    runScriptCtx, runScriptCancel = context.WithCancel(context.Background())
+		runScriptCtx, runScriptCancel = context.WithCancel(context.Background())
 
 		runScriptBinPath = "some-bin-path"
-		runScriptArgs = []string{ "arg-1", "some-arg2"}
+		runScriptArgs = []string{"arg-1", "some-arg2"}
 		runScriptInput = []byte(`{
 				"source": {"some":"source"},
 				"params": {"some":"params"},
@@ -194,7 +191,7 @@ var _ = Describe("RunScript", func() {
 				Expect(fakeGClientContainer.AttachCallCount()).To(BeZero())
 			})
 
-			It("can be accessed on the RunScript Output", func(){
+			It("can be accessed on the RunScript Output", func() {
 				Expect(runScriptOutput).To(HaveKeyWithValue("some-foo-key", "some-foo-value"))
 			})
 		})
@@ -231,8 +228,8 @@ var _ = Describe("RunScript", func() {
 					fakeGardenContainerScriptStdout = `{"some-key":"with-some-value"}`
 				})
 
-				It("can be accessed on the RunScript Output", func(){
-					Expect(runScriptOutput).To(HaveKeyWithValue("some-key","with-some-value"))
+				It("can be accessed on the RunScript Output", func() {
+					Expect(runScriptOutput).To(HaveKeyWithValue("some-key", "with-some-value"))
 
 				})
 
@@ -474,4 +471,3 @@ var _ = Describe("RunScript", func() {
 		})
 	})
 })
-

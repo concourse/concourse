@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/onsi/gomega/gbytes"
 

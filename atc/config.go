@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"sigs.k8s.io/yaml"
 	"golang.org/x/crypto/ssh"
+	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/vars"
 )

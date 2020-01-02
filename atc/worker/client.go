@@ -577,7 +577,7 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 			// task caches may not have a volume, it will be discovered on
 			// the worker later. We do not stream task caches
 			source := NewCacheArtifactSource(*cache)
-			inputs = append(inputs, inputSource{ source, path})
+			inputs = append(inputs, inputSource{source, path})
 		} else {
 			artifactVolume, found, err := client.FindVolume(logger, spec.TeamID, artifact.ID())
 			if err != nil {
@@ -588,7 +588,7 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 			}
 
 			source := NewStreamableArtifactSource(artifact, artifactVolume)
-			inputs = append(inputs, inputSource{ source, path})
+			inputs = append(inputs, inputSource{source, path})
 		}
 	}
 
