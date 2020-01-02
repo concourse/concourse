@@ -69,7 +69,8 @@ pipeline config file to be configured multiple times with different parameters
 \section{
   \title{Providing \code{((vars))} with \code{fly}}{static-vars}
 
-  Various commands in the \reference{fly-cli} support three flags for providing values for \code{((vars))}:
+  Various commands in the \reference{fly-cli} support the following three flags
+  for providing values for \code{((vars))}:
 
   \list{
     \code{-v} or \code{--var} \code{NAME=VALUE} sets the string \code{VALUE} as
@@ -82,5 +83,74 @@ pipeline config file to be configured multiple times with different parameters
     document containing mapping var names to values, and sets them all.
   }
 
-  TODO: show examples
+  When used in combination with \code{-l}, the \code{-y} and
+  \code{-v} flags take precedence. This way a vars file may be
+  re-used, overriding individual values by hand.
+
+  For example, with a pipeline template like so:
+
+  \codeblock{yaml}{{{
+  resources:
+  - name: booklit
+    type: booklit
+    source:
+      uri: https://github.com/vito/booklit
+      branch: ((branch))
+      private_key: ((private_key))
+
+  jobs:
+  - name: unit
+    plan:
+    - get: booklit
+      trigger: ((trigger))
+    - task: unit
+      file: booklit/ci/unit.yml
+  }}}
+
+  And let's say I've put the \code{private_key} var in a file called
+  \code{vars.yml}, since it's quite large and hard to pass through flags:
+
+  \codeblock{yaml}{{{
+  private_key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    # ... snipped ...
+    -----END RSA PRIVATE KEY-----
+  }}}
+
+  The \reference{fly-validate-pipeline} command may be used to test
+  how interpolation is applied, by passing the \code{--output} flag.
+
+  \codeblock{sh}{{{
+  $ fly validate-pipeline \
+    -c pipeline.yml \
+    -l vars.yml \
+    -y trigger=true \
+    -v branch=master \
+    --output
+  }}}
+
+  The above incantation should print the following:
+
+  \codeblock{yaml}{{{
+    jobs:
+    - name: unit
+      plan:
+      - get: booklit
+        trigger: true
+      - file: booklit/ci/unit.yml
+        task: unit
+    resources:
+    - name: booklit
+      type: booklit
+      source:
+        branch: master
+        private_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          # ... snipped ...
+          -----END RSA PRIVATE KEY-----
+        uri: https://github.com/vito/booklit
+  }}}
+
+  Note that we had to use \code{-y} so that the \code{trigger: true}
+  ends up with a boolean value instead of the string \code{"true"}.
 }
