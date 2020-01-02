@@ -54,7 +54,7 @@ triggerTooltip =
     , style "right" "100%"
     , style "top" "15px"
     , style "width" "300px"
-    , style "color" Colors.buildTooltipBackground
+    , style "color" Colors.buildTooltipText
     , style "font-size" "12px"
     , style "font-family" "Inconsolata,monospace"
     , style "padding" "10px"

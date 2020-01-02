@@ -166,119 +166,41 @@ var _ = Describe("Config API", func() {
 						fakeTeam.PipelineReturns(fakePipeline, true, nil)
 					})
 
-					Context("when the jobs are found", func() {
-						var fakeJob *dbfakes.FakeJob
+					Context("when the pipeline config is found", func() {
 						BeforeEach(func() {
-							fakeJob = new(dbfakes.FakeJob)
-							fakeJob.ConfigReturns(atc.JobConfig{
-								Name:   "some-job",
-								Public: true,
-								Serial: true,
-								Plan: atc.PlanSequence{
-									{
-										Get:      "some-input",
-										Resource: "some-resource",
-										Params:   atc.Params{"some-param": "some-value"},
-									},
-									{
-										Task:       "some-task",
-										Privileged: true,
-										TaskConfig: &atc.TaskConfig{
-											Platform:  "linux",
-											RootfsURI: "some-image",
-											Run: atc.TaskRunConfig{
-												Path: "/path/to/run",
-											},
-										},
-									},
-									{
-										Put:      "some-output",
-										Resource: "some-resource",
-										Params:   atc.Params{"some-param": "some-value"},
-									},
-								},
-							})
-
-							fakePipeline.JobsReturns(db.Jobs{fakeJob}, nil)
+							fakePipeline.ConfigReturns(pipelineConfig, nil)
 						})
 
-						Context("when the resources are found", func() {
-							var fakeResource *dbfakes.FakeResource
-							BeforeEach(func() {
-								fakeResource = new(dbfakes.FakeResource)
-								fakeResource.NameReturns("some-resource")
-								fakeResource.TypeReturns("some-type")
-								fakeResource.SourceReturns(atc.Source{
-									"source-config": "some-value",
-								})
-
-								fakePipeline.ResourcesReturns(db.Resources{fakeResource}, nil)
-							})
-
-							Context("when the resource types are found", func() {
-								var fakeResourceType *dbfakes.FakeResourceType
-								BeforeEach(func() {
-									fakeResourceType = new(dbfakes.FakeResourceType)
-									fakeResourceType.NameReturns("custom-resource")
-									fakeResourceType.TypeReturns("custom-type")
-									fakeResourceType.SourceReturns(atc.Source{"custom": "source"})
-									fakeResourceType.TagsReturns(atc.Tags{"some-tag"})
-
-									fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeResourceType}, nil)
-								})
-
-								It("returns 200", func() {
-									Expect(response.StatusCode).To(Equal(http.StatusOK))
-								})
-
-								It("returns Content-Type 'application/json'", func() {
-									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-								})
-
-								It("returns the config version as X-Concourse-Config-Version", func() {
-									Expect(response.Header.Get(atc.ConfigVersionHeader)).To(Equal("1"))
-								})
-
-								It("returns the config", func() {
-									var actualConfigResponse atc.ConfigResponse
-									err := json.NewDecoder(response.Body).Decode(&actualConfigResponse)
-									Expect(err).NotTo(HaveOccurred())
-
-									Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{
-										Config: pipelineConfig,
-									}))
-								})
-							})
-
-							Context("when finding the resource types fails", func() {
-								BeforeEach(func() {
-									fakePipeline.ResourceTypesReturns(nil, errors.New("failed"))
-								})
-
-								It("returns 500", func() {
-									Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-								})
-							})
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
-						Context("when finding the resources fails", func() {
+						It("returns Content-Type 'application/json'", func() {
+							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						})
+
+						It("returns the config version as X-Concourse-Config-Version", func() {
+							Expect(response.Header.Get(atc.ConfigVersionHeader)).To(Equal("1"))
+						})
+
+						It("returns the config", func() {
+							var actualConfigResponse atc.ConfigResponse
+							err := json.NewDecoder(response.Body).Decode(&actualConfigResponse)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{
+								Config: pipelineConfig,
+							}))
+						})
+
+						Context("when finding the config fails", func() {
 							BeforeEach(func() {
-								fakePipeline.ResourcesReturns(nil, errors.New("failed"))
+								fakePipeline.ConfigReturns(atc.Config{}, errors.New("fail"))
 							})
 
 							It("returns 500", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 							})
-						})
-					})
-
-					Context("when finding the jobs fails", func() {
-						BeforeEach(func() {
-							fakePipeline.JobsReturns(nil, errors.New("failed"))
-						})
-
-						It("returns 500", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
 					})
 				})
@@ -387,7 +309,7 @@ var _ = Describe("Config API", func() {
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
-										"malformed config"
+										"malformed config: error converting YAML to JSON: yaml: line 1: did not find expected node content"
 									]
 								}`))
 						})
@@ -415,7 +337,7 @@ var _ = Describe("Config API", func() {
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
-										"malformed config"
+										"malformed config: error converting YAML to JSON: yaml: line 1: did not find expected node content"
 									]
 								}`))
 						})
@@ -1063,7 +985,7 @@ jobs:
 					})
 
 					It("returns an error in the response body", func() {
-						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring("pubic"))
+						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring(`malformed config: error unmarshaling JSON: while decoding JSON: json: unknown field \"pubic\"`))
 					})
 
 					It("does not save it", func() {

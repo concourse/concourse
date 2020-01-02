@@ -2,29 +2,31 @@
 package dbfakes
 
 import (
-	"sync"
-	"time"
+	sync "sync"
+	time "time"
 
-	"github.com/concourse/concourse/atc/db"
+	db "github.com/concourse/concourse/atc/db"
 )
 
 type FakeCheckLifecycle struct {
-	RemoveExpiredChecksStub        func(time.Duration) error
+	RemoveExpiredChecksStub        func(time.Duration) (int, error)
 	removeExpiredChecksMutex       sync.RWMutex
 	removeExpiredChecksArgsForCall []struct {
 		arg1 time.Duration
 	}
 	removeExpiredChecksReturns struct {
-		result1 error
+		result1 int
+		result2 error
 	}
 	removeExpiredChecksReturnsOnCall map[int]struct {
-		result1 error
+		result1 int
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCheckLifecycle) RemoveExpiredChecks(arg1 time.Duration) error {
+func (fake *FakeCheckLifecycle) RemoveExpiredChecks(arg1 time.Duration) (int, error) {
 	fake.removeExpiredChecksMutex.Lock()
 	ret, specificReturn := fake.removeExpiredChecksReturnsOnCall[len(fake.removeExpiredChecksArgsForCall)]
 	fake.removeExpiredChecksArgsForCall = append(fake.removeExpiredChecksArgsForCall, struct {
@@ -36,10 +38,10 @@ func (fake *FakeCheckLifecycle) RemoveExpiredChecks(arg1 time.Duration) error {
 		return fake.RemoveExpiredChecksStub(arg1)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.removeExpiredChecksReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeCheckLifecycle) RemoveExpiredChecksCallCount() int {
@@ -48,7 +50,7 @@ func (fake *FakeCheckLifecycle) RemoveExpiredChecksCallCount() int {
 	return len(fake.removeExpiredChecksArgsForCall)
 }
 
-func (fake *FakeCheckLifecycle) RemoveExpiredChecksCalls(stub func(time.Duration) error) {
+func (fake *FakeCheckLifecycle) RemoveExpiredChecksCalls(stub func(time.Duration) (int, error)) {
 	fake.removeExpiredChecksMutex.Lock()
 	defer fake.removeExpiredChecksMutex.Unlock()
 	fake.RemoveExpiredChecksStub = stub
@@ -61,27 +63,30 @@ func (fake *FakeCheckLifecycle) RemoveExpiredChecksArgsForCall(i int) time.Durat
 	return argsForCall.arg1
 }
 
-func (fake *FakeCheckLifecycle) RemoveExpiredChecksReturns(result1 error) {
+func (fake *FakeCheckLifecycle) RemoveExpiredChecksReturns(result1 int, result2 error) {
 	fake.removeExpiredChecksMutex.Lock()
 	defer fake.removeExpiredChecksMutex.Unlock()
 	fake.RemoveExpiredChecksStub = nil
 	fake.removeExpiredChecksReturns = struct {
-		result1 error
-	}{result1}
+		result1 int
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeCheckLifecycle) RemoveExpiredChecksReturnsOnCall(i int, result1 error) {
+func (fake *FakeCheckLifecycle) RemoveExpiredChecksReturnsOnCall(i int, result1 int, result2 error) {
 	fake.removeExpiredChecksMutex.Lock()
 	defer fake.removeExpiredChecksMutex.Unlock()
 	fake.RemoveExpiredChecksStub = nil
 	if fake.removeExpiredChecksReturnsOnCall == nil {
 		fake.removeExpiredChecksReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 int
+			result2 error
 		})
 	}
 	fake.removeExpiredChecksReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 int
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeCheckLifecycle) Invocations() map[string][][]interface{} {

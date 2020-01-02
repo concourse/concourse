@@ -12,6 +12,8 @@ import (
 	"github.com/concourse/concourse/vars"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/pkg/errors"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
@@ -40,6 +42,7 @@ type Pipeline interface {
 	Groups() atc.GroupConfigs
 	VarSources() atc.VarSourceConfigs
 	ConfigVersion() ConfigVersion
+	Config() (atc.Config, error)
 	Public() bool
 	Paused() bool
 
@@ -215,6 +218,33 @@ func (p *pipeline) Reload() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (p *pipeline) Config() (atc.Config, error) {
+	jobs, err := p.Jobs()
+	if err != nil {
+		return atc.Config{}, fmt.Errorf("failed to get jobs: %s", err)
+	}
+
+	resources, err := p.Resources()
+	if err != nil {
+		return atc.Config{}, fmt.Errorf("failed to get resources: %s", err)
+	}
+
+	resourceTypes, err := p.ResourceTypes()
+	if err != nil {
+		return atc.Config{}, fmt.Errorf("failed to get resources-types: %s", err)
+	}
+
+	config := atc.Config{
+		Groups:        p.Groups(),
+		VarSources:    p.VarSources(),
+		Resources:     resources.Configs(),
+		ResourceTypes: resourceTypes.Configs(),
+		Jobs:          jobs.Configs(),
+	}
+
+	return config, nil
 }
 
 func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
@@ -590,15 +620,31 @@ func (p *pipeline) Pause() error {
 }
 
 func (p *pipeline) Unpause() error {
-	_, err := psql.Update("pipelines").
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	_, err = psql.Update("pipelines").
 		Set("paused", false).
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Exec()
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	err = requestScheduleForJobsInPipeline(tx, p.id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (p *pipeline) Hide() error {
@@ -950,25 +996,6 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	return build, nil
 }
 
-func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {
-	_, err := tx.Exec(`
-		WITH max_checkorder AS (
-			SELECT max(check_order) co
-			FROM versioned_resources
-			WHERE resource_id = $1
-			AND type = $2
-		)
-
-		UPDATE versioned_resources
-		SET check_order = mc.co + 1
-		FROM max_checkorder mc
-		WHERE resource_id = $1
-		AND type = $2
-		AND version = $3
-		AND check_order <= mc.co;`, resourceID, resourceType, version)
-	return err
-}
-
 func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 	rows, err := buildsQuery.
 		Where(sq.Eq{
@@ -1001,36 +1028,46 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 // plug the global variables, otherwise just return the global variables.
 func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
 	globalVars := creds.NewVariables(globalSecrets, p.TeamName(), p.Name(), false)
-	varss := []vars.Variables{}
-	for _, cm := range p.varSources {
+	namedVarsMap := vars.NamedVariables{}
+	// It's safe to add NamedVariables to allVars via an array here, because
+	// a map is passed by reference.
+	allVars := vars.NewMultiVars([]vars.Variables{globalVars, namedVarsMap})
+
+	orderedVarSources, err := p.varSources.OrderByDependency()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, cm := range orderedVarSources {
 		factory := creds.ManagerFactories()[cm.Type]
 		if factory == nil {
 			return nil, fmt.Errorf("unknown credential manager type: %s", cm.Type)
 		}
 
 		// Interpolate variables in pipeline credential manager's config
-		newConfig, err := creds.NewParams(globalVars, atc.Params{"config": cm.Config}).Evaluate()
+		newConfig, err := creds.NewParams(allVars, atc.Params{"config": cm.Config}).Evaluate()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "evaluate var_source '%s' error", cm.Name)
 		}
 
 		config, ok := newConfig["config"].(map[string]interface{})
 		if !ok {
-			return nil, fmt.Errorf("invalid config format")
+			return nil, fmt.Errorf("var_source '%s' invalid config", cm.Name)
 		}
 		secrets, err := varSourcePool.FindOrCreate(logger, config, factory)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "create var_source '%s' error", cm.Name)
 		}
-		varss = append(varss, creds.NewVariables(secrets, p.TeamName(), p.Name(), true))
+		namedVarsMap[cm.Name] = creds.NewVariables(secrets, p.TeamName(), p.Name(), true)
 	}
 
-	if len(varss) == 0 {
+	// If there is no var_source from the pipeline, then just return the global
+	// vars.
+	if len(namedVarsMap) == 0 {
 		return globalVars, nil
 	}
 
-	varss = append(varss, globalVars)
-	return vars.NewMultiVars(varss), nil
+	return allVars, nil
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {
@@ -1069,4 +1106,47 @@ func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resourc
 	}
 
 	return resources, nil
+}
+
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
+func requestScheduleForJobsInPipeline(tx Tx, pipelineID int) error {
+	rows, err := psql.Select("id").
+		From("jobs").
+		Where(sq.Eq{
+			"pipeline_id": pipelineID,
+		}).
+		OrderBy("id DESC").
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	var jobIDs []int
+	for rows.Next() {
+		var id int
+		err = rows.Scan(&id)
+		if err != nil {
+			return err
+		}
+
+		jobIDs = append(jobIDs, id)
+	}
+
+	for _, jID := range jobIDs {
+		_, err := psql.Update("jobs").
+			Set("schedule_requested", sq.Expr("now()")).
+			Where(sq.Eq{
+				"id": jID,
+			}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

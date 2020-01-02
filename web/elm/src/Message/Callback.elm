@@ -49,8 +49,8 @@ type Callback
     | LoggedOut (Fetched ())
     | ScreenResized Browser.Dom.Viewport
     | BuildJobDetailsFetched (Fetched Concourse.Job)
-    | BuildFetched (Fetched ( Int, Concourse.Build ))
-    | BuildPrepFetched (Fetched ( Int, Concourse.BuildPrep ))
+    | BuildFetched (Fetched Concourse.Build)
+    | BuildPrepFetched (Fetched Concourse.BuildPrep)
     | BuildHistoryFetched (Fetched (Paginated Concourse.Build))
     | PlanAndResourcesFetched Int (Fetched ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildAborted (Fetched ())

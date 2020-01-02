@@ -275,12 +275,14 @@ striped { pipelineRunningKeyframes, thickColor, thinColor } =
 withStripes : String -> String -> String
 withStripes thickColor thinColor =
     "repeating-linear-gradient(-115deg,"
+        ++ thinColor
+        ++ " 0px,"
         ++ thickColor
-        ++ " 0,"
+        ++ " 1px,"
         ++ thickColor
         ++ " 10px,"
         ++ thinColor
-        ++ " 0,"
+        ++ " 11px,"
         ++ thinColor
         ++ " 16px)"
 

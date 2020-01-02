@@ -50,38 +50,6 @@ The variables here should be set to:
 | `$SIGNING_KEY`  | RSA key used to sign the tokens used when communicating to the ATC.                                                  |
 | `$ATC_URL`      | ATC URL reachable by the TSA (e.g. `https://ci.concourse-ci.org`).                                                   |
 
-### registering workers
-
-In order to have a worker on the local network register with `tsa` you can run the following command:
-
-```bash
-ssh -p 2222 $TSA_HOST \
-  -i worker_key \
-  -o UserKnownHostsFile=host_key.pub \
-  register-worker \
-  < worker.json
-```
-
-The `worker.json` file should contain the following:
-
-```json
-{
-    "platform": "linux",
-    "tags": [],
-    "addr": "$GARDEN_ADDR",
-    "baggageclaim_url": "$BAGGAGECLAIM_URL"
-}
-```
-
-The variables here should be set to:
-
-| Variable             | Description                                                             |
-|----------------------|-------------------------------------------------------------------------|
-| `$TSA_HOST`          | The hostname or IP where the TSA server can be reached.                 |
-| `$GARDEN_ADDR`       | The address (host and port) of the Garden to advertise.                 |
-| `$BAGGAGECLAIM_URL`  | The API URL (scheme, host,  and port) of the BaggageClaim to advertise. |
-
-
 ### forwarding workers
 
 In order to have a worker on a remote network register with `tsa` and have its traffic forwarded you can run the following command:
@@ -98,7 +66,7 @@ ssh -p 2222 $TSA_HOST \
   < worker.json
 ```
 
-Note that in this case you should always have Garden and BaggageClaim listen on `127.0.0.1` so that they're not exposed to the outside world. For this reason there is no `$GARDEN_ADDR` or `$BAGGAGECLAIM_URL` as is the case with `register-worker`.
+Note that in this case you should always have Garden and BaggageClaim listen on `127.0.0.1` so that they're not exposed to the outside world. For this reason there is no `$GARDEN_ADDR` or `$BAGGAGECLAIM_URL`.
 
 The `worker.json` file should contain the following:
 

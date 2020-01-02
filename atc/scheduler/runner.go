@@ -125,7 +125,9 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline, jobsToSchedule 
 }
 
 func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, pipeline db.Pipeline, currentJob db.Job, resources db.Resources, jobs algorithm.NameToIDMap) (bool, error) {
-	logger = logger.Session("job", lager.Data{"job": currentJob.Name()})
+	logger = logger.Session("schedule-job", lager.Data{"job": currentJob.Name()})
+
+	logger.Debug("schedule")
 
 	defer schedulingLock.Release()
 
@@ -139,11 +141,10 @@ func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.L
 		return false, nil
 	}
 
-	sLog := logger.Session("scheduling")
 	jStart := time.Now()
 
 	needsRetry, err := s.scheduler.Schedule(
-		sLog,
+		logger,
 		pipeline,
 		currentJob,
 		resources,
@@ -158,7 +159,7 @@ func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.L
 		JobName:      currentJob.Name(),
 		JobID:        currentJob.ID(),
 		Duration:     time.Since(jStart),
-	}.Emit(sLog)
+	}.Emit(logger)
 
 	return needsRetry, nil
 }

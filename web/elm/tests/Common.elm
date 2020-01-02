@@ -73,12 +73,14 @@ isColorWithStripes { thick, thin } =
     Query.has
         [ style "background-image" <|
             "repeating-linear-gradient(-115deg,"
+                ++ thin
+                ++ " 0px,"
                 ++ thick
-                ++ " 0,"
+                ++ " 1px,"
                 ++ thick
                 ++ " 10px,"
                 ++ thin
-                ++ " 0,"
+                ++ " 11px,"
                 ++ thin
                 ++ " 16px)"
         , style "background-size" "106px 114px"
@@ -150,23 +152,21 @@ myBrowserFetchedTheBuild =
         >> Application.handleCallback
             (Callback.BuildFetched <|
                 Ok
-                    ( 1
-                    , { id = 1
-                      , name = "1"
-                      , job =
-                            Just
-                                { teamName = "other-team"
-                                , pipelineName = "yet-another-pipeline"
-                                , jobName = "job"
-                                }
-                      , status = BuildStatusStarted
-                      , duration =
-                            { startedAt = Nothing
-                            , finishedAt = Nothing
+                    { id = 1
+                    , name = "1"
+                    , job =
+                        Just
+                            { teamName = "other-team"
+                            , pipelineName = "yet-another-pipeline"
+                            , jobName = "job"
                             }
-                      , reapTime = Nothing
-                      }
-                    )
+                    , status = BuildStatusStarted
+                    , duration =
+                        { startedAt = Nothing
+                        , finishedAt = Nothing
+                        }
+                    , reapTime = Nothing
+                    }
             )
 
 

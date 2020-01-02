@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -177,39 +178,57 @@ var _ = Describe("Parallel", func() {
 	})
 
 	Context("when steps fail", func() {
-		disasterA := errors.New("nope A")
-		disasterB := errors.New("nope B")
+		Context("with normal error", func() {
+			disasterA := errors.New("nope A")
+			disasterB := errors.New("nope B")
 
-		BeforeEach(func() {
-			fakeStepA.RunReturns(disasterA)
-			fakeStepB.RunReturns(disasterB)
+			BeforeEach(func() {
+				fakeStepA.RunReturns(disasterA)
+				fakeStepB.RunReturns(disasterB)
+			})
+
+			Context("and fail fast is false", func() {
+				BeforeEach(func() {
+					step = InParallel(fakeSteps, 1, false)
+				})
+				It("lets all steps finish before exiting", func() {
+					Expect(fakeStepA.RunCallCount()).To(Equal(1))
+					Expect(fakeStepB.RunCallCount()).To(Equal(1))
+				})
+				It("exits with an error including the original message", func() {
+					Expect(stepErr.Error()).To(ContainSubstring("nope A"))
+					Expect(stepErr.Error()).To(ContainSubstring("nope B"))
+				})
+			})
+
+			Context("and fail fast is true", func() {
+				BeforeEach(func() {
+					step = InParallel(fakeSteps, 1, true)
+				})
+				It("it cancels remaining steps", func() {
+					Expect(fakeStepA.RunCallCount()).To(Equal(1))
+					Expect(fakeStepB.RunCallCount()).To(Equal(0))
+				})
+				It("exits with an error including the message from the failed steps", func() {
+					Expect(stepErr.Error()).To(ContainSubstring("nope A"))
+					Expect(stepErr.Error()).NotTo(ContainSubstring("nope B"))
+				})
+			})
 		})
 
-		Context("and fail fast is false", func() {
-			BeforeEach(func() {
-				step = InParallel(fakeSteps, 1, false)
-			})
-			It("lets all steps finish before exiting", func() {
-				Expect(fakeStepA.RunCallCount()).To(Equal(1))
-				Expect(fakeStepB.RunCallCount()).To(Equal(1))
-			})
-			It("exits with an error including the original message", func() {
-				Expect(stepErr.Error()).To(ContainSubstring("nope A"))
-				Expect(stepErr.Error()).To(ContainSubstring("nope B"))
-			})
-		})
+		Context("with context canceled error", func() {
+			// error might be wrapped. For example we pass context from in_parallel step
+			// -> task step -> ... -> baggageclaim StreamOut() -> http request. When context
+			// got canceled in in_parallel step, the http client sending the request will
+			// wrap the context.Canceled error into Url.Error
+			disasterB := fmt.Errorf("some thing failed by %w", context.Canceled)
 
-		Context("and fail fast is true", func() {
 			BeforeEach(func() {
-				step = InParallel(fakeSteps, 1, true)
+				fakeStepB.RunReturns(disasterB)
 			})
-			It("it cancels remaining steps", func() {
-				Expect(fakeStepA.RunCallCount()).To(Equal(1))
-				Expect(fakeStepB.RunCallCount()).To(Equal(0))
-			})
-			It("exits with an error including the message from the failed steps", func() {
-				Expect(stepErr.Error()).To(ContainSubstring("nope A"))
-				Expect(stepErr.Error()).NotTo(ContainSubstring("nope B"))
+
+			It("exits with no error", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
 			})
 		})
 	})

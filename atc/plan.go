@@ -4,21 +4,22 @@ type Plan struct {
 	ID       PlanID `json:"id"`
 	Attempts []int  `json:"attempts,omitempty"`
 
-	Aggregate  *AggregatePlan  `json:"aggregate,omitempty"`
-	InParallel *InParallelPlan `json:"in_parallel,omitempty"`
-	Do         *DoPlan         `json:"do,omitempty"`
-	Get        *GetPlan        `json:"get,omitempty"`
-	Put        *PutPlan        `json:"put,omitempty"`
-	Check      *CheckPlan      `json:"check,omitempty"`
-	Task       *TaskPlan       `json:"task,omitempty"`
-	OnAbort    *OnAbortPlan    `json:"on_abort,omitempty"`
-	OnError    *OnErrorPlan    `json:"on_error,omitempty"`
-	Ensure     *EnsurePlan     `json:"ensure,omitempty"`
-	OnSuccess  *OnSuccessPlan  `json:"on_success,omitempty"`
-	OnFailure  *OnFailurePlan  `json:"on_failure,omitempty"`
-	Try        *TryPlan        `json:"try,omitempty"`
-	Timeout    *TimeoutPlan    `json:"timeout,omitempty"`
-	Retry      *RetryPlan      `json:"retry,omitempty"`
+	Aggregate   *AggregatePlan   `json:"aggregate,omitempty"`
+	InParallel  *InParallelPlan  `json:"in_parallel,omitempty"`
+	Do          *DoPlan          `json:"do,omitempty"`
+	Get         *GetPlan         `json:"get,omitempty"`
+	Put         *PutPlan         `json:"put,omitempty"`
+	Check       *CheckPlan       `json:"check,omitempty"`
+	Task        *TaskPlan        `json:"task,omitempty"`
+	SetPipeline *SetPipelinePlan `json:"set_pipeline,omitempty"`
+	OnAbort     *OnAbortPlan     `json:"on_abort,omitempty"`
+	OnError     *OnErrorPlan     `json:"on_error,omitempty"`
+	Ensure      *EnsurePlan      `json:"ensure,omitempty"`
+	OnSuccess   *OnSuccessPlan   `json:"on_success,omitempty"`
+	OnFailure   *OnFailurePlan   `json:"on_failure,omitempty"`
+	Try         *TryPlan         `json:"try,omitempty"`
+	Timeout     *TimeoutPlan     `json:"timeout,omitempty"`
+	Retry       *RetryPlan       `json:"retry,omitempty"`
 
 	// used for 'fly execute'
 	ArtifactInput  *ArtifactInputPlan  `json:"artifact_input,omitempty"`
@@ -135,6 +136,13 @@ type TaskPlan struct {
 	ImageArtifactName string            `json:"image,omitempty"`
 
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+}
+
+type SetPipelinePlan struct {
+	Name     string                 `json:"name"`
+	File     string                 `json:"file"`
+	Vars     map[string]interface{} `json:"vars,omitempty"`
+	VarFiles []string               `json:"var_files,omitempty"`
 }
 
 type RetryPlan []Plan

@@ -137,7 +137,7 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	if payload != nil {
 		if isAdmin(payload) {
-			err = command.adminCheckTeamExists(target.URL(), tokenType, tokenValue, caCert)
+			err = command.adminCheckTeamExists(target.URL(), tokenType, tokenValue, target.CACert())
 		} else {
 			err = checkTokenTeams(payload, command.TeamName)
 		}

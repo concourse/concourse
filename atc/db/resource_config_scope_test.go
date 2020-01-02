@@ -47,6 +47,15 @@ var _ = Describe("Resource Config Scope", func() {
 					},
 				},
 				{
+					Name: "downstream-job",
+					Plan: atc.PlanSequence{
+						{
+							Get:    "some-resource",
+							Passed: []string{"some-job"},
+						},
+					},
+				},
+				{
 					Name: "some-other-job",
 				},
 			},
@@ -149,6 +158,30 @@ var _ = Describe("Resource Config Scope", func() {
 					Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 				})
 
+				It("does not request schedule on the jobs that use the resource but through passed constraints", func() {
+					err := resourceScope.SaveVersions(originalVersionSlice)
+					Expect(err).ToNot(HaveOccurred())
+
+					job, found, err := pipeline.Job("downstream-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					requestedSchedule := job.ScheduleRequestedTime()
+
+					newVersions := []atc.Version{
+						{"ref": "v0"},
+						{"ref": "v3"},
+					}
+					err = resourceScope.SaveVersions(newVersions)
+					Expect(err).ToNot(HaveOccurred())
+
+					found, err = job.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
+				})
+
 				It("does not request schedule on the jobs that do not use the resource", func() {
 					err := resourceScope.SaveVersions(originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
@@ -165,6 +198,10 @@ var _ = Describe("Resource Config Scope", func() {
 					}
 					err = resourceScope.SaveVersions(newVersions)
 					Expect(err).ToNot(HaveOccurred())
+
+					found, err = job.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 
 					Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 				})
