@@ -79,6 +79,19 @@ type FakeStepFactory struct {
 	putStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
+	SetPipelineStepStub        func(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
+	setPipelineStepMutex       sync.RWMutex
+	setPipelineStepArgsForCall []struct {
+		arg1 atc.Plan
+		arg2 exec.StepMetadata
+		arg3 exec.BuildStepDelegate
+	}
+	setPipelineStepReturns struct {
+		result1 exec.Step
+	}
+	setPipelineStepReturnsOnCall map[int]struct {
+		result1 exec.Step
+	}
 	TaskStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step
 	taskStepMutex       sync.RWMutex
 	taskStepArgsForCall []struct {
@@ -410,6 +423,68 @@ func (fake *FakeStepFactory) PutStepReturnsOnCall(i int, result1 exec.Step) {
 	}{result1}
 }
 
+func (fake *FakeStepFactory) SetPipelineStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 exec.BuildStepDelegate) exec.Step {
+	fake.setPipelineStepMutex.Lock()
+	ret, specificReturn := fake.setPipelineStepReturnsOnCall[len(fake.setPipelineStepArgsForCall)]
+	fake.setPipelineStepArgsForCall = append(fake.setPipelineStepArgsForCall, struct {
+		arg1 atc.Plan
+		arg2 exec.StepMetadata
+		arg3 exec.BuildStepDelegate
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SetPipelineStep", []interface{}{arg1, arg2, arg3})
+	fake.setPipelineStepMutex.Unlock()
+	if fake.SetPipelineStepStub != nil {
+		return fake.SetPipelineStepStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.setPipelineStepReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeStepFactory) SetPipelineStepCallCount() int {
+	fake.setPipelineStepMutex.RLock()
+	defer fake.setPipelineStepMutex.RUnlock()
+	return len(fake.setPipelineStepArgsForCall)
+}
+
+func (fake *FakeStepFactory) SetPipelineStepCalls(stub func(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step) {
+	fake.setPipelineStepMutex.Lock()
+	defer fake.setPipelineStepMutex.Unlock()
+	fake.SetPipelineStepStub = stub
+}
+
+func (fake *FakeStepFactory) SetPipelineStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) {
+	fake.setPipelineStepMutex.RLock()
+	defer fake.setPipelineStepMutex.RUnlock()
+	argsForCall := fake.setPipelineStepArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeStepFactory) SetPipelineStepReturns(result1 exec.Step) {
+	fake.setPipelineStepMutex.Lock()
+	defer fake.setPipelineStepMutex.Unlock()
+	fake.SetPipelineStepStub = nil
+	fake.setPipelineStepReturns = struct {
+		result1 exec.Step
+	}{result1}
+}
+
+func (fake *FakeStepFactory) SetPipelineStepReturnsOnCall(i int, result1 exec.Step) {
+	fake.setPipelineStepMutex.Lock()
+	defer fake.setPipelineStepMutex.Unlock()
+	fake.SetPipelineStepStub = nil
+	if fake.setPipelineStepReturnsOnCall == nil {
+		fake.setPipelineStepReturnsOnCall = make(map[int]struct {
+			result1 exec.Step
+		})
+	}
+	fake.setPipelineStepReturnsOnCall[i] = struct {
+		result1 exec.Step
+	}{result1}
+}
+
 func (fake *FakeStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 exec.TaskDelegate) exec.Step {
 	fake.taskStepMutex.Lock()
 	ret, specificReturn := fake.taskStepReturnsOnCall[len(fake.taskStepArgsForCall)]
@@ -486,6 +561,8 @@ func (fake *FakeStepFactory) Invocations() map[string][][]interface{} {
 	defer fake.getStepMutex.RUnlock()
 	fake.putStepMutex.RLock()
 	defer fake.putStepMutex.RUnlock()
+	fake.setPipelineStepMutex.RLock()
+	defer fake.setPipelineStepMutex.RUnlock()
 	fake.taskStepMutex.RLock()
 	defer fake.taskStepMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

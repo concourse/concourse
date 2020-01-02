@@ -256,7 +256,8 @@ To generate a migration:
 1. Build the CLI:
 
 ```sh
-$ go build atc/db/migration/cli -o mig
+$ cd atc/db/migration
+$ go build -o mig ./cli
 ```
 2. Run the `generate` command. It takes the migration name, file type (SQL or Go)
 and optionally, the directory in which to put the migration files (by default,
@@ -407,8 +408,11 @@ $ ginkgo -r --nodes=4 testflight
 Run `yarn test` from the `web/wats` directory. They use puppeteer to run
 a headless Chromium. A handy fact is that in most cases if a test fails,
 a screenshot taken at the moment of the failure will be at
-`web/wats/failure.png`.
-
+`web/wats/failure.png`. There is a known
+[issue](https://github.com/concourse/concourse/issues/3890) with running these
+tests in parallel (which is the default setting). The issue stems from an
+upstream dependency, so until it is fixed you can run `yarn test --serial` to
+avoid it.
 
 ### Running Kubernetes tests
 

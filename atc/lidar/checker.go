@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 func NewChecker(
@@ -40,6 +41,10 @@ func (c *checker) Run(ctx context.Context) error {
 		c.logger.Error("failed-to-fetch-resource-checks", err)
 		return err
 	}
+
+	metric.CheckQueueSize{
+		Checks: len(checks),
+	}.Emit(c.logger)
 
 	for _, ck := range checks {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {

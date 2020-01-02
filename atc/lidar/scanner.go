@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/pkg/errors"
 )
 
@@ -60,7 +61,7 @@ func (s *scanner) Run(ctx context.Context) error {
 		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
 			defer waitGroup.Done()
 
-			err = s.check(resource, resourceTypes)
+			err := s.check(resource, resourceTypes)
 			s.setCheckError(s.logger, resource, err)
 
 		}(resource, resourceTypes)
@@ -111,6 +112,11 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 	if !created {
 		s.logger.Debug("check-already-exists")
 	}
+
+	metric.CheckEnqueue{
+		CheckName:             checkable.Name(),
+		ResourceConfigScopeID: checkable.ResourceConfigScopeID(),
+	}.Emit(s.logger)
 
 	return nil
 }

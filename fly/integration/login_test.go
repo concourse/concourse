@@ -799,5 +799,60 @@ var _ = Describe("login Command", func() {
 				Expect(sess.Out.Contents()).To(ContainSubstring("target saved"))
 			})
 		})
+
+		Context("when the CACert is provided", func() {
+			var caCertFilePath string
+			var loginSecuredATCServer *ghttp.Server
+			BeforeEach(func(){
+				loginSecuredATCServer = ghttp.NewUnstartedServer()
+				cert, err := tls.X509KeyPair([]byte(serverCert), []byte(serverKey))
+				Expect(err).NotTo(HaveOccurred())
+
+				loginSecuredATCServer.HTTPTestServer.TLS = &tls.Config{
+					Certificates: []tls.Certificate{cert},
+				}
+				loginSecuredATCServer.HTTPTestServer.StartTLS()
+
+				loginSecuredATCServer.AppendHandlers(
+					infoHandler(),
+					adminTokenHandler(),
+					teamHandler(teams),
+				)
+
+				caCertFile, err := ioutil.TempFile("", "fly-login-test")
+				Expect(err).NotTo(HaveOccurred())
+				caCertFilePath = caCertFile.Name()
+
+				err = ioutil.WriteFile(caCertFilePath, []byte(serverCert), os.ModePerm)
+				Expect(err).NotTo(HaveOccurred())
+				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginSecuredATCServer.URL(), "-n", "main", "--ca-cert", caCertFilePath, "-u", "user", "-p", "pass")
+
+				sess, err := gexec.Start(setupFlyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+			})
+
+			AfterEach(func() {
+				os.RemoveAll(caCertFilePath)
+				loginSecuredATCServer.Close()
+			})
+
+			Context("when ca cert is not provided this time", func() {
+				It("is using saved ca cert", func() {
+					loginSecuredATCServer.AppendHandlers(
+						infoHandler(),
+						adminTokenHandler(),
+						teamHandler(teams),
+					)
+					flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-n", "main", "-u", "user", "-p", "pass")
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+				})
+			})
+		})
 	})
 })

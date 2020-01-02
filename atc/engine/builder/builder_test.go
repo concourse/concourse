@@ -535,6 +535,23 @@ var _ = Describe("Builder", func() {
 						})
 					})
 
+					Context("that contains a set_pipeline step", func() {
+						BeforeEach(func() {
+							expectedPlan = planFactory.NewPlan(atc.SetPipelinePlan{
+								Name:     "some-pipeline",
+								File:     "some-input/pipeline.yml",
+								VarFiles: []string{"foo", "bar"},
+								Vars:     map[string]interface{}{"baz": "qux"},
+							})
+						})
+
+						It("constructs set_pipeline correctly", func() {
+							plan, stepMetadata, _ := fakeStepFactory.SetPipelineStepArgsForCall(0)
+							Expect(plan).To(Equal(expectedPlan))
+							Expect(stepMetadata).To(Equal(expectedMetadata))
+						})
+					})
+
 					Context("that contains outputs", func() {
 						var (
 							putPlan          atc.Plan

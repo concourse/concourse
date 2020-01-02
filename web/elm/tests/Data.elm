@@ -1,5 +1,7 @@
 module Data exposing
     ( check
+    , jobBuild
+    , jobId
     , pipelineName
     , resource
     , resourceName
@@ -9,6 +11,7 @@ module Data exposing
     )
 
 import Concourse
+import Concourse.BuildStatus as BuildStatus
 import Dict exposing (Dict)
 import Time
 
@@ -84,3 +87,36 @@ versionedResource v id =
 version : String -> Dict String String
 version v =
     Dict.fromList [ ( "version", v ) ]
+
+
+jobId : Concourse.JobIdentifier
+jobId =
+    { teamName = "t"
+    , pipelineName = "p"
+    , jobName = "j"
+    }
+
+
+jobBuild : BuildStatus.BuildStatus -> Concourse.Build
+jobBuild status =
+    { id = 1
+    , name = "1"
+    , job = Just jobId
+    , status = status
+    , duration =
+        { startedAt =
+            case status of
+                BuildStatus.BuildStatusPending ->
+                    Nothing
+
+                _ ->
+                    Just <| Time.millisToPosix 0
+        , finishedAt =
+            if BuildStatus.isRunning status then
+                Nothing
+
+            else
+                Just <| Time.millisToPosix 0
+        }
+    , reapTime = Nothing
+    }

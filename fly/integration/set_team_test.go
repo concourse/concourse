@@ -42,10 +42,25 @@ var _ = Describe("Fly CLI", func() {
 						cmdParams = []string{"-c", "fixtures/team_config_no_auth_for_role.yml"}
 					})
 
-					It("returns an error", func() {
+					It("discard role with missing auth", func() {
 						sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 						Expect(err).ToNot(HaveOccurred())
-						Eventually(sess.Err).Should(gbytes.Say("You have not provided a list of users and groups for one of the roles in your config yaml."))
+
+						Eventually(sess.Out).Should(gbytes.Say("setting team: venture"))
+
+						Eventually(sess.Out).Should(gbytes.Say("role member:"))
+						Eventually(sess.Out).Should(gbytes.Say("users:"))
+						Eventually(sess.Out).Should(gbytes.Say("- local:some-user"))
+						Eventually(sess.Out).Should(gbytes.Say("groups:"))
+						Eventually(sess.Out).Should(gbytes.Say("none"))
+						Eventually(sess.Out).Should(gbytes.Say("role owner:"))
+						Eventually(sess.Out).Should(gbytes.Say("users:"))
+						Eventually(sess.Out).Should(gbytes.Say("- local:some-admin"))
+						Eventually(sess.Out).Should(gbytes.Say("groups:"))
+						Eventually(sess.Out).Should(gbytes.Say("none"))
+
+						Eventually(sess.Out).ShouldNot(gbytes.Say("role viewer:"))
+
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})
@@ -55,10 +70,19 @@ var _ = Describe("Fly CLI", func() {
 						cmdParams = []string{"-c", "fixtures/team_config_empty_users.yml"}
 					})
 
-					It("returns an error", func() {
+					It("discard role with no user and group", func() {
 						sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 						Expect(err).ToNot(HaveOccurred())
-						Eventually(sess.Err).Should(gbytes.Say("You have not provided a list of users and groups for one of the roles in your config yaml."))
+						Eventually(sess.Out).Should(gbytes.Say("setting team: venture"))
+
+						Eventually(sess.Out).Should(gbytes.Say("role owner:"))
+						Eventually(sess.Out).Should(gbytes.Say("users:"))
+						Eventually(sess.Out).Should(gbytes.Say("- local:some-admin"))
+						Eventually(sess.Out).Should(gbytes.Say("groups:"))
+						Eventually(sess.Out).Should(gbytes.Say("none"))
+
+						Eventually(sess.Out).ShouldNot(gbytes.Say("role viewer:"))
+
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})

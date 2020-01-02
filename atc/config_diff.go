@@ -1,4 +1,4 @@
-package setpipelinehelpers
+package atc
 
 import (
 	"bytes"
@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/aryann/difflib"
-	"github.com/concourse/concourse/atc"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gexec"
 	"sigs.k8s.io/yaml"
@@ -54,7 +53,7 @@ func (diff Diff) Render(to io.Writer, label string) {
 	}
 }
 
-type GroupIndex atc.GroupConfigs
+type GroupIndex GroupConfigs
 
 func (index GroupIndex) Slice() []interface{} {
 	slice := make([]interface{}, len(index))
@@ -66,10 +65,10 @@ func (index GroupIndex) Slice() []interface{} {
 }
 
 func (index GroupIndex) FindEquivalentWithOrder(obj interface{}) (interface{}, int, bool) {
-	return atc.GroupConfigs(index).Lookup(name(obj))
+	return GroupConfigs(index).Lookup(name(obj))
 }
 
-type VarSourceIndex atc.VarSourceConfigs
+type VarSourceIndex VarSourceConfigs
 
 func (index VarSourceIndex) Slice() []interface{} {
 	slice := make([]interface{}, len(index))
@@ -81,10 +80,10 @@ func (index VarSourceIndex) Slice() []interface{} {
 }
 
 func (index VarSourceIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
-	return atc.VarSourceConfigs(index).Lookup(name(obj))
+	return VarSourceConfigs(index).Lookup(name(obj))
 }
 
-type JobIndex atc.JobConfigs
+type JobIndex JobConfigs
 
 func (index JobIndex) Slice() []interface{} {
 	slice := make([]interface{}, len(index))
@@ -96,10 +95,10 @@ func (index JobIndex) Slice() []interface{} {
 }
 
 func (index JobIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
-	return atc.JobConfigs(index).Lookup(name(obj))
+	return JobConfigs(index).Lookup(name(obj))
 }
 
-type ResourceIndex atc.ResourceConfigs
+type ResourceIndex ResourceConfigs
 
 func (index ResourceIndex) Slice() []interface{} {
 	slice := make([]interface{}, len(index))
@@ -111,10 +110,10 @@ func (index ResourceIndex) Slice() []interface{} {
 }
 
 func (index ResourceIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
-	return atc.ResourceConfigs(index).Lookup(name(obj))
+	return ResourceConfigs(index).Lookup(name(obj))
 }
 
-type ResourceTypeIndex atc.ResourceTypes
+type ResourceTypeIndex ResourceTypes
 
 func (index ResourceTypeIndex) Slice() []interface{} {
 	slice := make([]interface{}, len(index))
@@ -126,7 +125,7 @@ func (index ResourceTypeIndex) Slice() []interface{} {
 }
 
 func (index ResourceTypeIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
-	return atc.ResourceTypes(index).Lookup(name(obj))
+	return ResourceTypes(index).Lookup(name(obj))
 }
 
 func groupDiffIndices(oldIndex GroupIndex, newIndex GroupIndex) Diffs {
@@ -236,4 +235,61 @@ func practicallyDifferent(a, b interface{}) bool {
 	marshalledB, _ := yaml.Marshal(b)
 
 	return !bytes.Equal(marshalledA, marshalledB)
+}
+
+func (c Config) Diff(out io.Writer, newConfig Config) bool {
+	var diffExists bool
+
+	indent := gexec.NewPrefixedWriter("  ", out)
+
+	groupDiffs := groupDiffIndices(GroupIndex(c.Groups), GroupIndex(newConfig.Groups))
+	if len(groupDiffs) > 0 {
+		diffExists = true
+		fmt.Fprintln(out, "groups:")
+
+		for _, diff := range groupDiffs {
+			diff.Render(indent, "group")
+		}
+	}
+
+	varSourceDiffs := diffIndices(VarSourceIndex(c.VarSources), VarSourceIndex(newConfig.VarSources))
+	if len(varSourceDiffs) > 0 {
+		diffExists = true
+		fmt.Println("variable source:")
+
+		for _, diff := range varSourceDiffs {
+			diff.Render(indent, "variable source")
+		}
+	}
+
+	resourceDiffs := diffIndices(ResourceIndex(c.Resources), ResourceIndex(newConfig.Resources))
+	if len(resourceDiffs) > 0 {
+		diffExists = true
+		fmt.Fprintln(out, "resources:")
+
+		for _, diff := range resourceDiffs {
+			diff.Render(indent, "resource")
+		}
+	}
+
+	resourceTypeDiffs := diffIndices(ResourceTypeIndex(c.ResourceTypes), ResourceTypeIndex(newConfig.ResourceTypes))
+	if len(resourceTypeDiffs) > 0 {
+		diffExists = true
+		fmt.Fprintln(out, "resource types:")
+
+		for _, diff := range resourceTypeDiffs {
+			diff.Render(indent, "resource type")
+		}
+	}
+
+	jobDiffs := diffIndices(JobIndex(c.Jobs), JobIndex(newConfig.Jobs))
+	if len(jobDiffs) > 0 {
+		diffExists = true
+		fmt.Fprintln(out, "jobs:")
+
+		for _, diff := range jobDiffs {
+			diff.Render(indent, "job")
+		}
+	}
+	return diffExists
 }

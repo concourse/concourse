@@ -7,15 +7,17 @@ import (
 	"code.cloudfoundry.org/garden"
 )
 
-type Container struct{}
-
-func NewContainer() Container {
-	return Container{}
+type Container struct{
+	handle string
 }
+
+// func NewContainer() Container {
+// 	return Container{}
+// }
 
 var _ garden.Container = (*Container)(nil)
 
-func (c *Container) Handle() (handle string) { return }
+func (c *Container) Handle() (handle string) { return c.handle }
 
 // Stop stops a container.
 //

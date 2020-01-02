@@ -41,9 +41,9 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
 
-	credentialManagersErr := validateVarSources(c)
-	if credentialManagersErr != nil {
-		errorMessages = append(errorMessages, formatErr("variable sources", credentialManagersErr))
+	varSourcesErr := validateVarSources(c)
+	if varSourcesErr != nil {
+		errorMessages = append(errorMessages, formatErr("variable sources", varSourcesErr))
 	}
 
 	jobWarnings, jobsErr := validateJobs(c)
@@ -378,6 +378,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		foundTypes.Find("task")
 	}
 
+	if plan.SetPipeline != "" {
+		foundTypes.Find("set_pipeline")
+	}
+
 	if plan.Do != nil {
 		foundTypes.Find("do")
 	}
@@ -541,7 +545,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 	case plan.Task != "":
 		identifier = fmt.Sprintf("%s.task.%s", identifier, plan.Task)
 
-		if plan.TaskConfig == nil && plan.TaskConfigPath == "" {
+		if plan.TaskConfig == nil && plan.ConfigPath == "" {
 			errorMessages = append(errorMessages, identifier+" does not specify any task configuration")
 		}
 
@@ -552,7 +556,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 			})
 		}
 
-		if plan.TaskConfig != nil && plan.TaskConfigPath != "" {
+		if plan.TaskConfig != nil && plan.ConfigPath != "" {
 			errorMessages = append(errorMessages, identifier+" specifies both `file` and `config` in a task step")
 		}
 
@@ -569,6 +573,13 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 			[]string{"resource", "passed", "trigger"},
 			plan, identifier)...,
 		)
+
+	case plan.SetPipeline != "":
+		identifier = fmt.Sprintf("%s.set_pipeline.%s", identifier, plan.SetPipeline)
+
+		if plan.ConfigPath == "" {
+			errorMessages = append(errorMessages, identifier+" does not specify any pipeline configuration")
+		}
 
 	case plan.Try != nil:
 		subIdentifier := fmt.Sprintf("%s.try", identifier)
@@ -655,7 +666,7 @@ func validateInapplicableFields(inapplicableFields []string, plan PlanConfig, id
 				foundInapplicableFields = append(foundInapplicableFields, field)
 			}
 		case "file":
-			if plan.TaskConfigPath != "" {
+			if plan.ConfigPath != "" {
 				foundInapplicableFields = append(foundInapplicableFields, field)
 			}
 		}
@@ -684,6 +695,8 @@ func compositeErr(errorMessages []string) error {
 }
 
 func validateVarSources(c Config) error {
+	names := map[string]interface{}{}
+
 	for _, cm := range c.VarSources {
 		factory := creds.ManagerFactories()[cm.Type]
 		if factory == nil {
@@ -698,6 +711,11 @@ func validateVarSources(c Config) error {
 			return fmt.Errorf("credential manager type %s is not supported in pipeline yet", cm.Type)
 		}
 
+		if _, ok := names[cm.Name]; ok {
+			return fmt.Errorf("duplicate var_source name: %s", cm.Name)
+		}
+		names[cm.Name] = 0
+
 		manager, err := factory.NewInstance(cm.Config)
 		if err != nil {
 			return fmt.Errorf("failed to create credential manager %s: %s", cm.Name, err.Error())
@@ -707,5 +725,10 @@ func validateVarSources(c Config) error {
 			return fmt.Errorf("credential manager %s is invalid: %s", cm.Name, err.Error())
 		}
 	}
+
+	if _, err := c.VarSources.OrderByDependency(); err != nil {
+		return err
+	}
+
 	return nil
 }

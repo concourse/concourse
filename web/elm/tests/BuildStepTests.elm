@@ -214,6 +214,13 @@ all =
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeATimestamp
             ]
+        , describe "set-pipeline step"
+            [ test "should show pipeline name" <|
+                given iVisitABuildWithASetPipelineStep
+                    >> given theSetPipelineStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeThePipelineName
+            ]
         ]
 
 
@@ -236,6 +243,12 @@ iVisitABuildWithAGetStep =
         >> theGetStepReturnsMetadata
 
 
+iVisitABuildWithASetPipelineStep =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsASetPipelineStep
+
+
 theGetStepIsExpanded =
     Tuple.first
         >> Application.update (Update <| Message.Click <| StepHeader "getStepId")
@@ -244,6 +257,11 @@ theGetStepIsExpanded =
 theTaskStepIsExpanded =
     Tuple.first
         >> Application.update (Update <| Message.Click <| StepHeader taskStepId)
+
+
+theSetPipelineStepIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeader setPipelineStepId)
 
 
 thePlanContainsARetryStep =
@@ -292,6 +310,25 @@ thePlanContainsATaskStep =
 
 taskStepId =
     "taskStepId"
+
+
+thePlanContainsASetPipelineStep =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = setPipelineStepId
+                      , step = Concourse.BuildStepSetPipeline "pipeline-name"
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+
+setPipelineStepId =
+    "setPipelineStep"
 
 
 thePlanContainsAGetStep =
@@ -473,6 +510,10 @@ iSeeItIsTransparent =
 
 iSeeATimestamp =
     Query.has [ text "00:00:01" ]
+
+
+iSeeThePipelineName =
+    Query.has [ text "pipeline-name" ]
 
 
 iAmLookingAtTheSecondTab =

@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 type checkCollector struct {
@@ -26,5 +27,13 @@ func (c *checkCollector) Run(ctx context.Context) error {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	return c.checkLifecycle.RemoveExpiredChecks(c.recyclePeriod)
+	deleted, err := c.checkLifecycle.RemoveExpiredChecks(c.recyclePeriod)
+	if err != nil {
+		logger.Error("failed-to-remove-expired-checks", err)
+		return err
+	}
+
+	metric.ChecksDeleted.IncDelta(deleted)
+
+	return nil
 }

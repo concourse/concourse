@@ -70,15 +70,19 @@ var _ = Describe("ValidateConfig", func() {
 							},
 						},
 						{
-							Task:           "some-task",
-							Privileged:     true,
-							TaskConfigPath: "some/config/path.yml",
+							Task:       "some-task",
+							Privileged: true,
+							ConfigPath: "some/config/path.yml",
 						},
 						{
 							Put: "some-resource",
 							Params: Params{
 								"some-param": "some-value",
 							},
+						},
+						{
+							SetPipeline: "some-pipeline",
+							ConfigPath:  "some-file",
 						},
 					},
 				},
@@ -213,6 +217,98 @@ var _ = Describe("ValidateConfig", func() {
 			It("returns an error", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("failed to create credential manager some: invalid dummy credential manager config"))
+			})
+		})
+
+		Context("when duplicate var source names", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources,
+					VarSourceConfig{
+						Name: "some",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k2": "v2"},
+						},
+					},
+					VarSourceConfig{
+						Name: "some",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k2": "v2"},
+						},
+					},
+				)
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("duplicate var_source name: some"))
+			})
+		})
+
+		Context("when var source's dependency cannot be resolved", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources,
+					VarSourceConfig{
+						Name: "s1",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "v"},
+						},
+					},
+					VarSourceConfig{
+						Name: "s2",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "((s1:k))"},
+						},
+					},
+					VarSourceConfig{
+						Name: "s3",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "((none:k))"},
+						},
+					},
+				)
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("could not resolve inter-dependent var sources: s3"))
+			})
+		})
+
+		Context("when var source names are circular", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources,
+					VarSourceConfig{
+						Name: "s1",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "((s3:v))"},
+						},
+					},
+					VarSourceConfig{
+						Name: "s2",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "((s1:k))"},
+						},
+					},
+					VarSourceConfig{
+						Name: "s3",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"k": "((s2:k))"},
+						},
+					},
+				)
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("could not resolve inter-dependent var sources: s1, s2, s3"))
 			})
 		})
 	})
@@ -392,36 +488,36 @@ var _ = Describe("ValidateConfig", func() {
 								},
 							},
 							{
-								Task:           "some-task",
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								ConfigPath: "some/config/path.yml",
 								Abort: &PlanConfig{
 									Get: "abort",
 								},
 							},
 							{
-								Task:           "some-task",
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								ConfigPath: "some/config/path.yml",
 								Error: &PlanConfig{
 									Get: "error",
 								},
 							},
 							{
-								Task:           "some-task",
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								ConfigPath: "some/config/path.yml",
 								Failure: &PlanConfig{
 									Get: "failure",
 								},
 							},
 							{
-								Task:           "some-task",
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								ConfigPath: "some/config/path.yml",
 								Ensure: &PlanConfig{
 									Get: "ensure",
 								},
 							},
 							{
-								Task:           "some-task",
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								ConfigPath: "some/config/path.yml",
 								Success: &PlanConfig{
 									Get: "success",
 								},
@@ -432,8 +528,8 @@ var _ = Describe("ValidateConfig", func() {
 								},
 							},
 							{
-								Task:           "some-task",
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								ConfigPath: "some/config/path.yml",
 							},
 						},
 					},
@@ -444,8 +540,8 @@ var _ = Describe("ValidateConfig", func() {
 								Get: "another-job",
 							},
 							{
-								Task:           "some-task",
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								ConfigPath: "some/config/path.yml",
 							},
 						},
 					},
@@ -729,9 +825,9 @@ var _ = Describe("ValidateConfig", func() {
 			Context("when a get plan has task-only fields specified", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
-						Get:            "lol",
-						Privileged:     true,
-						TaskConfigPath: "task.yml",
+						Get:        "lol",
+						Privileged: true,
+						ConfigPath: "task.yml",
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -783,8 +879,8 @@ var _ = Describe("ValidateConfig", func() {
 			Context("when a task plan has config path and config specified", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
-						Task:           "lol",
-						TaskConfigPath: "task.yml",
+						Task:       "lol",
+						ConfigPath: "task.yml",
 						TaskConfig: &TaskConfig{
 							Params: TaskEnv{
 								"param1": "value1",
@@ -827,11 +923,11 @@ var _ = Describe("ValidateConfig", func() {
 			Context("when a put plan has invalid fields specified", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
-						Put:            "lol",
-						Passed:         []string{"get", "only"},
-						Trigger:        true,
-						Privileged:     true,
-						TaskConfigPath: "btaskyml",
+						Put:        "lol",
+						Passed:     []string{"get", "only"},
+						Trigger:    true,
+						Privileged: true,
+						ConfigPath: "btaskyml",
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -985,7 +1081,7 @@ var _ = Describe("ValidateConfig", func() {
 						Success: &PlanConfig{
 							Put: "some-resource",
 						},
-						TaskConfigPath: "job-one-config-path",
+						ConfigPath: "job-one-config-path",
 					})
 
 					job2.Plan = append(job2.Plan, PlanConfig{
@@ -1018,7 +1114,7 @@ var _ = Describe("ValidateConfig", func() {
 						Success: &PlanConfig{
 							Get: "some-resource",
 						},
-						TaskConfigPath: "job-one-config-path",
+						ConfigPath: "job-one-config-path",
 					})
 
 					job2.Plan = append(job2.Plan, PlanConfig{
@@ -1050,7 +1146,7 @@ var _ = Describe("ValidateConfig", func() {
 						Try: &PlanConfig{
 							Put: "some-resource",
 						},
-						TaskConfigPath: "job-one-config-path",
+						ConfigPath: "job-one-config-path",
 					})
 
 					job2.Plan = append(job2.Plan, PlanConfig{
@@ -1083,7 +1179,7 @@ var _ = Describe("ValidateConfig", func() {
 						Try: &PlanConfig{
 							Get: "some-resource",
 						},
-						TaskConfigPath: "job-one-config-path",
+						ConfigPath: "job-one-config-path",
 					})
 
 					job2.Plan = append(job2.Plan, PlanConfig{
@@ -1260,6 +1356,21 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a set_pipeline step has no file configured", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, PlanConfig{
+						SetPipeline: "other-pipeline",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does return an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].set_pipeline.other-pipeline does not specify any pipeline configuration"))
+				})
+			})
+
 			Context("when a job's input's passed constraints reference a bogus job", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
@@ -1395,6 +1506,5 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-job has negative build_log_retention.days: -1"))
 			})
 		})
-
 	})
 })
