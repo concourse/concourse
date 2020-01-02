@@ -2507,6 +2507,83 @@ var _ = Describe("Jobs API", func() {
 			})
 		})
 	})
+
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/schedule", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/job-name/schedule", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+			})
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthorizedReturns(true)
+
+					fakePipeline.JobReturns(fakeJob, true, nil)
+					fakeJob.RequestScheduleReturns(nil)
+				})
+
+				It("finds the job on the pipeline and schedules it", func() {
+					jobName := fakePipeline.JobArgsForCall(0)
+					Expect(jobName).To(Equal("job-name"))
+
+					Expect(fakeJob.RequestScheduleCallCount()).To(Equal(1))
+
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				Context("when the job is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.JobReturns(nil, false, nil)
+					})
+
+					It("returns a 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when finding the job fails", func() {
+					BeforeEach(func() {
+						fakePipeline.JobReturns(nil, false, errors.New("some-error"))
+					})
+
+					It("returns a 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the job fails to be scheduled", func() {
+					BeforeEach(func() {
+						fakeJob.RequestScheduleReturns(errors.New("some-error"))
+					})
+
+					It("returns a 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Status Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
 })
 
 func fakeDBResourceType(t atc.VersionedResourceType) *dbfakes.FakeResourceType {
