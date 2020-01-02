@@ -434,6 +434,24 @@ var _ = Describe("Volume", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
+			resourceConfigScope, err := defaultResourceType.SetResourceConfig(
+				atc.Source{"some": "source"},
+				atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Name:   "some-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some-type": "((source-param))"},
+						},
+						Version: atc.Version{"some-custom-type": "version"},
+					},
+				},
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"some": "version"}})
+			resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"some-custom-type": "version"}})
+
 			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "get",
 				StepName: "some-resource",

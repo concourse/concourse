@@ -996,25 +996,6 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	return build, nil
 }
 
-func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {
-	_, err := tx.Exec(`
-		WITH max_checkorder AS (
-			SELECT max(check_order) co
-			FROM versioned_resources
-			WHERE resource_id = $1
-			AND type = $2
-		)
-
-		UPDATE versioned_resources
-		SET check_order = mc.co + 1
-		FROM max_checkorder mc
-		WHERE resource_id = $1
-		AND type = $2
-		AND version = $3
-		AND check_order <= mc.co;`, resourceID, resourceType, version)
-	return err
-}
-
 func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 	rows, err := buildsQuery.
 		Where(sq.Eq{

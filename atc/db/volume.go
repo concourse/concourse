@@ -242,9 +242,10 @@ func (volume *createdVolume) findVolumeResourceTypeByCacheID(resourceCacheID int
 	var sqBaseResourceTypeID sql.NullInt64
 	var sqResourceCacheID sql.NullInt64
 
-	err := psql.Select("rc.version, rcfg.base_resource_type_id, rcfg.resource_cache_id").
+	err := psql.Select("rcv.version, rcfg.base_resource_type_id, rcfg.resource_cache_id").
 		From("resource_caches rc").
 		LeftJoin("resource_configs rcfg ON rcfg.id = rc.resource_config_id").
+		LeftJoin("resource_config_versions rcv ON rcv.version_md5 = rc.version_md5").
 		Where(sq.Eq{
 			"rc.id": resourceCacheID,
 		}).

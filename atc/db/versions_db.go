@@ -594,41 +594,6 @@ func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (Resou
 	return version, true, nil
 }
 
-// Migrates all the builds created later than the build cursor for
-// the same job. It is used for the UnusedBuildsVersionConstrained methods to
-// migrate all the builds created after the cursor.
-func (versions VersionsDB) migrateUpper(jobID int, buildIDCursor int) (bool, error) {
-	buildsToMigrateQueryBuilder := psql.Select("id", "job_id", "rerun_of").
-		From("builds").
-		Where(sq.Eq{
-			"job_id":             jobID,
-			"needs_v6_migration": true,
-			"status":             "succeeded",
-		}).
-		Where(sq.Or{
-			sq.And{
-				sq.Gt{
-					"rerun_of": buildIDCursor,
-				},
-				sq.NotEq{
-					"rerun_of": nil,
-				},
-			},
-			sq.And{
-				sq.Gt{
-					"id": buildIDCursor,
-				},
-				sq.Eq{
-					"rerun_of": nil,
-				},
-			},
-		}).
-		OrderBy("COALESCE(rerun_of, id) DESC, id DESC").
-		Limit(uint64(versions.limitRows))
-
-	return migrate(versions.conn, buildsToMigrateQueryBuilder)
-}
-
 // Migrates a single build into the successful build outputs table.
 func (versions VersionsDB) migrateSingle(buildID int) (string, error) {
 	var outputs string
