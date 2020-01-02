@@ -459,7 +459,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			expectedStatus int
 			pipelineName   = "banana"
 			jobName        = "disjob"
-			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/jobs/%s/schedule_job", pipelineName, jobName)
+			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/jobs/%s/schedule", pipelineName, jobName)
 		)
 
 		JustBeforeEach(func() {
