@@ -67,15 +67,20 @@ func (c *Container) Stop(kill bool) error {
 
 	ctx, _ = c.context.CreateContext()
 	result, err := task.Delete(ctx)
+
 	if err != nil {
-		return err
+		if errdefs.IsNotFound(err) {
+			return nil
+		} else {
+			return err
+		}
+	} else {
+		if result != nil {
+			return result.Error()
+		} else {
+			return nil
+		}
 	}
-
-	if result != nil && result.Error() != nil && !errdefs.IsNotFound(result.Error()) {
-		return result.Error()
-	}
-
-	return nil
 }
 
 // Returns information about a container.
