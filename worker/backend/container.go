@@ -9,15 +9,26 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/errdefs"
+	"github.com/containerd/containerd/namespaces"
 )
 
 type Container struct {
-	ctx                 context.Context
+	context             ContainerdContext
 	containerdContainer containerd.Container
 }
 
-func NewContainer(ctx context.Context, container containerd.Container) garden.Container {
-	return &Container{ctx, container}
+type ContainerdContext struct {
+	Namespace       string
+	TimeoutDuration time.Duration
+}
+
+func (c ContainerdContext) CreateContext() (context.Context, context.CancelFunc) {
+	ctx := namespaces.WithNamespace(context.Background(), c.Namespace)
+	return context.WithTimeout(ctx, c.TimeoutDuration)
+}
+
+func NewContainer(context ContainerdContext, container containerd.Container) garden.Container {
+	return &Container{context, container}
 }
 
 var _ garden.Container = (*Container)(nil)
@@ -39,7 +50,8 @@ func (c *Container) Handle() string { return c.containerdContainer.ID() }
 // Errors:
 // * None.
 func (c *Container) Stop(kill bool) error {
-	task, err := c.containerdContainer.Task(c.ctx, nil)
+	ctx, _ := c.context.CreateContext()
+	task, err := c.containerdContainer.Task(ctx, nil)
 	if err != nil {
 		if errdefs.IsNotFound(err) {
 			return nil
@@ -52,12 +64,14 @@ func (c *Container) Stop(kill bool) error {
 		signal = syscall.SIGKILL
 	}
 
-	err = task.Kill(c.ctx, signal)
+	ctx, _ = c.context.CreateContext()
+	err = task.Kill(ctx, signal)
 	if err != nil {
 		return err
 	}
 
-	result, err := task.Delete(c.ctx)
+	ctx, _ = c.context.CreateContext()
+	result, err := task.Delete(ctx)
 	if err != nil {
 		return err
 	}

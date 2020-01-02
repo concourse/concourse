@@ -125,7 +125,12 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Contain
 		return
 	}
 
-	container = NewContainer(ctxWithTimeout, cont)
+	container = NewContainer(
+		ContainerdContext{
+			Namespace: b.namespace,
+			TimeoutDuration: b.clientTimeout,
+		},
+		cont)
 	return
 }
 
@@ -235,7 +240,12 @@ func (b *Backend) Containers(properties garden.Properties) (containers []garden.
 
 	containers = make([]garden.Container, len(res))
 	for i, containerdContainer := range res {
-		gContainer := NewContainer(ctxWithTimeout, containerdContainer)
+		gContainer := NewContainer(
+			ContainerdContext{
+				Namespace: b.namespace,
+				TimeoutDuration: b.clientTimeout,
+			},
+			containerdContainer)
 		containers[i] = gContainer
 	}
 
@@ -257,19 +267,24 @@ func (b *Backend) BulkMetrics(handles []string) (metrics map[string]garden.Conta
 // Errors:
 // * Container not found.
 func (b *Backend) Lookup(handle string) (garden.Container, error) {
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
-	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
-
 	if handle == "" {
 		return nil, InputValidationError{Message: "handle is empty"}
 	}
 
-	_, err := b.client.GetContainer(ctxWithTimeout, handle)
+	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
+
+	containerdContainer, err := b.client.GetContainer(ctxWithTimeout, handle)
 	if err != nil {
 		return nil, ClientError{InnerError: err}
 	}
 
-	return NewContainer(ctxWithTimeout, containerdContainer), nil
+	return NewContainer(
+		ContainerdContext{
+			Namespace: b.namespace,
+			TimeoutDuration: b.clientTimeout,
+		},
+		containerdContainer), nil
 }
 
 // propertiesToFilterList converts a set of garden properties to a list of

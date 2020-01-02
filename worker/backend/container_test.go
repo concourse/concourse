@@ -1,8 +1,8 @@
 package backend_test
 
 import (
-	"context"
 	"testing"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/backend"
@@ -22,9 +22,19 @@ type ContainerSuite struct {
 	backendContainer garden.Container
 }
 
+const (
+	namespaceForContainerUnitTest = "container-test"
+	defaultTimeoutDurationForContainerUnitTest = 10 * time.Second
+)
+
 func (s *ContainerSuite) SetupTest() {
 	s.fakeContainer = &libcontainerdfakes.FakeContainer{}
-	s.backendContainer = backend.NewContainer(context.TODO(), s.fakeContainer)
+	s.backendContainer = backend.NewContainer(
+		backend.ContainerdContext{
+			Namespace: namespaceForContainerUnitTest,
+			TimeoutDuration: defaultTimeoutDurationForContainerUnitTest,
+		},
+		s.fakeContainer)
 }
 
 func(s *ContainerSuite) TestStopUsesSIGTERM() {
