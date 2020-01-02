@@ -1,4 +1,4 @@
-module PipelineCardTests exposing (..)
+module PipelineCardTests exposing (all)
 
 import Application.Application as Application
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
@@ -11,6 +11,7 @@ import Http
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message as Msgs
+import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
@@ -66,6 +67,9 @@ all =
                                   }
                                 ]
                         )
+                    >> Tuple.first
+                    >> Application.handleDelivery
+                        (ClockTicked OneSecond <| Time.millisToPosix 0)
                     >> Tuple.first
                     >> Common.queryView
         in

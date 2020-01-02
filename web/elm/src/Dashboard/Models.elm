@@ -1,32 +1,23 @@
 module Dashboard.Models exposing
-    ( DashboardError(..)
-    , DragState(..)
+    ( DragState(..)
     , DropState(..)
     , Dropdown(..)
     , FooterModel
     , Model
-    , SubState
-    , tick
     )
 
 import Concourse
 import Dashboard.Group.Models
 import Dict exposing (Dict)
 import Login.Login as Login
-import RemoteData
 import Time
-
-
-type DashboardError
-    = Turbulence String
 
 
 type alias Model =
     FooterModel
         (Login.Model
-            { state : RemoteData.RemoteData DashboardError SubState
-            , turbulencePath : String
-            , pipelineRunningKeyframes : String
+            { showTurbulence : Bool
+            , now : Maybe Time.Posix
             , highDensity : Bool
             , query : String
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
@@ -35,11 +26,6 @@ type alias Model =
             , dropState : DropState
             }
         )
-
-
-type alias SubState =
-    { now : Time.Posix
-    }
 
 
 type DragState
@@ -54,11 +40,6 @@ type DropState
 
 type alias PipelineIndex =
     Int
-
-
-tick : Time.Posix -> SubState -> SubState
-tick now substate =
-    { substate | now = now }
 
 
 type alias FooterModel r =

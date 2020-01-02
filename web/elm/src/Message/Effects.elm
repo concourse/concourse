@@ -254,7 +254,6 @@ runEffect effect key csrfToken =
 
         FetchAllTeams ->
             Network.Team.fetchTeams
-                |> Task.map2 (\a b -> ( a, b )) Time.now
                 |> Task.attempt AllTeamsFetched
 
         FetchAllPipelines ->

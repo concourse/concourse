@@ -725,10 +725,8 @@ all =
                 whenOnDashboard { highDensity = True }
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <|
-                            Ok
-                                ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ]
-                                )
+                            Ok <|
+                                apiData [ ( "team", [] ) ]
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -747,10 +745,8 @@ all =
                 whenOnDashboard { highDensity = True }
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <|
-                            Ok
-                                ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ]
-                                )
+                            Ok <|
+                                apiData [ ( "team", [] ) ]
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -777,10 +773,8 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <|
-                            Ok
-                                ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ]
-                                )
+                            Ok <|
+                                apiData [ ( "team", [] ) ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -790,10 +784,8 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <|
-                            Ok
-                                ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ]
-                                )
+                            Ok <|
+                                apiData [ ( "team", [] ) ]
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -827,10 +819,8 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <|
-                            Ok
-                                ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ]
-                                )
+                            Ok <|
+                                apiData [ ( "team", [] ) ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -840,10 +830,8 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <|
-                            Ok
-                                ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ]
-                                )
+                            Ok <|
+                                apiData [ ( "team", [] ) ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -853,10 +841,8 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <|
-                            Ok
-                                ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ]
-                                )
+                            Ok <|
+                                apiData [ ( "team", [] ) ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -867,10 +853,8 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <|
-                            Ok
-                                ( Time.millisToPosix 0
-                                , apiData [ ( "team", [] ) ]
-                                )
+                            Ok <|
+                                apiData [ ( "team", [] ) ]
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
@@ -2204,7 +2188,7 @@ givenDataAndUser :
     -> ( Application.Model, List Effects.Effect )
 givenDataAndUser data user =
     Application.handleCallback
-        (Callback.AllTeamsFetched <| Ok ( Time.millisToPosix 0, data ))
+        (Callback.AllTeamsFetched <| Ok data)
         >> Tuple.first
         >> Application.handleCallback (Callback.UserFetched <| Ok user)
 
@@ -2227,7 +2211,7 @@ givenDataUnauthenticated :
     -> ( Application.Model, List Effects.Effect )
 givenDataUnauthenticated data =
     Application.handleCallback
-        (Callback.AllTeamsFetched <| Ok ( Time.millisToPosix 0, data ))
+        (Callback.AllTeamsFetched <| Ok data)
         >> Tuple.first
         >> Application.handleCallback
             (Callback.UserFetched <|

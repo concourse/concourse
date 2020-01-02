@@ -10,7 +10,6 @@ import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Group.Models exposing (Pipeline)
-import Dashboard.Models exposing (DashboardError)
 import Dashboard.Styles as Styles
 import Duration
 import HoverState
@@ -18,7 +17,6 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, href, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Message exposing (DomID(..), Message(..))
-import RemoteData exposing (RemoteData)
 import Routes
 import Time
 import UserState exposing (UserState)
@@ -81,7 +79,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
 
 
 pipelineView :
-    { now : RemoteData DashboardError Time.Posix
+    { now : Maybe Time.Posix
     , pipeline : Pipeline
     , hovered : HoverState.HoverState
     , pipelineRunningKeyframes : String
@@ -235,7 +233,7 @@ bodyView hovered existingJobs =
 footerView :
     UserState
     -> Pipeline
-    -> RemoteData DashboardError Time.Posix
+    -> Maybe Time.Posix
     -> HoverState.HoverState
     -> List Concourse.Job
     -> Html Message
@@ -351,40 +349,57 @@ sinceTransitionText details now =
             Duration.format <| Duration.between time now
 
 
-statusAgeText : PipelineStatus.PipelineStatus -> Time.Posix -> String
-statusAgeText status now =
-    case status of
-        PipelineStatus.PipelineStatusPaused ->
-            "paused"
-
-        PipelineStatus.PipelineStatusPending False ->
-            "pending"
-
-        PipelineStatus.PipelineStatusPending True ->
-            "running"
-
-        PipelineStatus.PipelineStatusAborted details ->
-            sinceTransitionText details now
-
-        PipelineStatus.PipelineStatusErrored details ->
-            sinceTransitionText details now
-
-        PipelineStatus.PipelineStatusFailed details ->
-            sinceTransitionText details now
-
-        PipelineStatus.PipelineStatusSucceeded details ->
-            sinceTransitionText details now
-
-
-transitionView : RemoteData DashboardError Time.Posix -> PipelineStatus.PipelineStatus -> Html Message
+transitionView : Maybe Time.Posix -> PipelineStatus.PipelineStatus -> Html Message
 transitionView t status =
-    case t of
-        RemoteData.Success time ->
+    case ( status, t ) of
+        ( PipelineStatus.PipelineStatusPaused, _ ) ->
             Html.div
                 (class "build-duration"
                     :: Styles.pipelineCardTransitionAge status
                 )
-                [ Html.text <| statusAgeText status time ]
+                [ Html.text "paused" ]
+
+        ( PipelineStatus.PipelineStatusPending False, _ ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text "pending" ]
+
+        ( PipelineStatus.PipelineStatusPending True, _ ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text "running" ]
+
+        ( PipelineStatus.PipelineStatusAborted details, Just now ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text <| sinceTransitionText details now ]
+
+        ( PipelineStatus.PipelineStatusErrored details, Just now ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text <| sinceTransitionText details now ]
+
+        ( PipelineStatus.PipelineStatusFailed details, Just now ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text <| sinceTransitionText details now ]
+
+        ( PipelineStatus.PipelineStatusSucceeded details, Just now ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text <| sinceTransitionText details now ]
 
         _ ->
             Html.text ""

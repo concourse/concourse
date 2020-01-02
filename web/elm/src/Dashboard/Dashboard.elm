@@ -16,7 +16,7 @@ import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Group.Models exposing (Pipeline)
-import Dashboard.Models as Models exposing (DashboardError(..), DragState(..), DropState(..), Dropdown(..), Model)
+import Dashboard.Models as Models exposing (DragState(..), DropState(..), Dropdown(..), Model)
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
 import Dashboard.Text as Text
@@ -55,32 +55,24 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import RemoteData exposing (RemoteData)
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import SideBar.SideBar as SideBar
+import Time
 import UserState
 import Views.Styles
 
 
-type alias Flags =
-    { turbulencePath : String
-    , searchType : Routes.SearchType
-    , pipelineRunningKeyframes : String
-    }
-
-
-init : Flags -> ( Model, List Effect )
-init flags =
-    ( { state = RemoteData.NotAsked
-      , turbulencePath = flags.turbulencePath
-      , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+init : Routes.SearchType -> ( Model, List Effect )
+init searchType =
+    ( { showTurbulence = False
+      , now = Nothing
       , groups = []
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
-      , highDensity = flags.searchType == Routes.HighDensity
-      , query = Routes.extractQuery flags.searchType
+      , highDensity = searchType == Routes.HighDensity
+      , query = Routes.extractQuery searchType
       , pipelinesWithResourceErrors = Dict.empty
       , existingJobs = []
       , pipelines = []
@@ -104,32 +96,10 @@ handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
         AllTeamsFetched (Err _) ->
+            ( { model | showTurbulence = True }, effects )
+
+        AllTeamsFetched (Ok teams) ->
             ( { model
-                | state =
-                    RemoteData.Failure (Turbulence model.turbulencePath)
-              }
-            , effects
-            )
-
-        AllTeamsFetched (Ok ( now, teams )) ->
-            let
-                newModel =
-                    case model.state of
-                        RemoteData.Success substate ->
-                            { model
-                                | state =
-                                    RemoteData.Success (Models.tick now substate)
-                            }
-
-                        _ ->
-                            { model
-                                | state =
-                                    RemoteData.Success
-                                        { now = now
-                                        }
-                            }
-            in
-            ( { newModel
                 | groups =
                     List.map
                         (\team ->
@@ -144,17 +114,10 @@ handleCallback callback ( model, effects ) =
             )
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
-            ( { model | existingJobs = allJobsInEntireCluster }
-            , effects
-            )
+            ( { model | existingJobs = allJobsInEntireCluster }, effects )
 
         AllJobsFetched (Err _) ->
-            ( { model
-                | state =
-                    RemoteData.Failure (Turbulence model.turbulencePath)
-              }
-            , effects
-            )
+            ( { model | showTurbulence = True }, effects )
 
         AllResourcesFetched (Ok resources) ->
             ( { model
@@ -174,12 +137,7 @@ handleCallback callback ( model, effects ) =
             )
 
         AllResourcesFetched (Err _) ->
-            ( { model
-                | state =
-                    RemoteData.Failure (Turbulence model.turbulencePath)
-              }
-            , effects
-            )
+            ( { model | showTurbulence = True }, effects )
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
             ( { model
@@ -206,12 +164,7 @@ handleCallback callback ( model, effects ) =
             )
 
         AllPipelinesFetched (Err _) ->
-            ( { model
-                | state =
-                    RemoteData.Failure (Turbulence model.turbulencePath)
-              }
-            , effects
-            )
+            ( { model | showTurbulence = True }, effects )
 
         LoggedOut (Ok ()) ->
             ( model
@@ -291,9 +244,7 @@ handleDeliveryBody : Delivery -> ET Model
 handleDeliveryBody delivery ( model, effects ) =
     case delivery of
         ClockTicked OneSecond time ->
-            ( { model | state = RemoteData.map (Models.tick time) model.state }
-            , effects
-            )
+            ( { model | now = Just time }, effects )
 
         ClockTicked FiveSeconds _ ->
             ( model
@@ -505,37 +456,38 @@ dashboardView :
         | hovered : HoverState.HoverState
         , screenSize : ScreenSize
         , userState : UserState.UserState
+        , turbulenceImgSrc : String
+        , pipelineRunningKeyframes : String
     }
     -> Model
     -> Html Message
 dashboardView session model =
-    case model.state of
-        RemoteData.Failure (Turbulence path) ->
-            turbulenceView path
+    if model.showTurbulence then
+        turbulenceView session.turbulenceImgSrc
 
-        _ ->
-            Html.div
-                (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
-                    :: Styles.content model.highDensity
-                )
-            <|
-                welcomeCard session model
-                    :: pipelinesView
-                        session
-                        { teams = model.teams
-                        , substate = model.state
-                        , query = model.query
-                        , hovered = session.hovered
-                        , pipelineRunningKeyframes =
-                            model.pipelineRunningKeyframes
-                        , highDensity = model.highDensity
-                        , pipelinesWithResourceErrors =
-                            model.pipelinesWithResourceErrors
-                        , existingJobs = model.existingJobs
-                        , pipelines = model.pipelines
-                        , dragState = model.dragState
-                        , dropState = model.dropState
-                        }
+    else
+        Html.div
+            (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
+                :: Styles.content model.highDensity
+            )
+        <|
+            welcomeCard session model
+                :: pipelinesView
+                    session
+                    { teams = model.teams
+                    , query = model.query
+                    , hovered = session.hovered
+                    , pipelineRunningKeyframes =
+                        session.pipelineRunningKeyframes
+                    , highDensity = model.highDensity
+                    , pipelinesWithResourceErrors =
+                        model.pipelinesWithResourceErrors
+                    , existingJobs = model.existingJobs
+                    , pipelines = model.pipelines
+                    , dragState = model.dragState
+                    , dropState = model.dropState
+                    , now = model.now
+                    }
 
 
 welcomeCard :
@@ -648,7 +600,6 @@ pipelinesView :
     { a | userState : UserState.UserState }
     ->
         { teams : List Concourse.Team
-        , substate : RemoteData DashboardError Models.SubState
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
         , query : String
@@ -658,6 +609,7 @@ pipelinesView :
         , pipelines : List Pipeline
         , dragState : DragState
         , dropState : DropState
+        , now : Maybe Time.Posix
         }
     -> List (Html Message)
 pipelinesView session params =
@@ -685,7 +637,7 @@ pipelinesView session params =
                                 session
                                 { dragState = params.dragState
                                 , dropState = params.dropState
-                                , now = RemoteData.map .now params.substate
+                                , now = params.now
                                 , hovered = params.hovered
                                 , pipelineRunningKeyframes = params.pipelineRunningKeyframes
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors

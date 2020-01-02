@@ -186,11 +186,9 @@ dashboardWithJob j =
         |> Application.handleCallback
             (Callback.AllTeamsFetched <|
                 Ok
-                    ( Time.millisToPosix 0
-                    , [ { id = 0, name = "team" }
-                      , { id = 1, name = "banana" }
-                      ]
-                    )
+                    [ { id = 0, name = "team" }
+                    , { id = 1, name = "banana" }
+                    ]
             )
         |> Tuple.first
         |> Application.handleCallback

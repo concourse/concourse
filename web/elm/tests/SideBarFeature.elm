@@ -744,14 +744,11 @@ iVisitTheDashboard _ =
 apiDataLoads =
     Tuple.first
         >> Application.handleCallback
-            (Callback.AllTeamsFetched
-                (Ok
-                    ( Time.millisToPosix 0
-                    , [ { name = "team", id = 0 }
-                      , { name = "other-team", id = 1 }
-                      ]
-                    )
-                )
+            (Callback.AllTeamsFetched <|
+                Ok
+                    [ { name = "team", id = 0 }
+                    , { name = "other-team", id = 1 }
+                    ]
             )
         >> Tuple.first
         >> Application.handleCallback
