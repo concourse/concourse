@@ -350,6 +350,15 @@ var _ = Describe("Plan", func() {
 							},
 						},
 					},
+					atc.Plan{
+						ID: "37",
+						SetPipeline: &atc.SetPipelinePlan{
+							Name: "some-pipeline",
+							File: "some-file",
+							VarFiles: []string{"vf"},
+							Vars: map[string]interface{}{"k1": "v1"},
+						},
+					},
 				},
 			}
 
@@ -592,23 +601,29 @@ var _ = Describe("Plan", func() {
           }
         }
       }
-		},
-		{
-			"id": "36",
-			"in_parallel": {
-				"steps": [
-					{
-						"id": "37",
-						"task": {
-							"name": "name",
-							"privileged": false
-						}
-					}
-				],
-				"limit": 1,
-				"fail_fast": true
+	},
+	{
+	"id": "36",
+	  "in_parallel": {
+		"steps": [
+		  {
+			"id": "37",
+			"task": {
+              "name": "name",
+              "privileged": false
 			}
-		}
+		  }
+		],
+		"limit": 1,
+		"fail_fast": true
+	  }
+	},
+	{
+	  "id": "37",
+	  "set_pipeline": {
+		"name": "some-pipeline"
+	  }
+	}
   ]
 }
 `))

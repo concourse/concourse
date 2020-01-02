@@ -39,7 +39,10 @@ type PrometheusEmitter struct {
 	pipelineScheduled *prometheus.CounterVec
 
 	resourceChecksVec *prometheus.CounterVec
-	checksVec         *prometheus.CounterVec
+
+	checksVec       *prometheus.HistogramVec
+	checkEnqueueVec *prometheus.CounterVec
+	checkQueueSize  prometheus.Gauge
 
 	schedulingFullDuration    *prometheus.CounterVec
 	schedulingLoadingDuration *prometheus.CounterVec
@@ -330,16 +333,38 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(resourceChecksVec)
 
-	checksVec := prometheus.NewCounterVec(
+	checksVec := prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "concourse",
+			Subsystem: "lidar",
+			Name:      "duration_seconds",
+			Help:      "Check time in seconds",
+			Buckets:   []float64{0.001, 0.05, 0.1, 0.5, 1, 60, 180, 360, 720, 1440, 2880},
+		},
+		[]string{"scope_id", "status"},
+	)
+	prometheus.MustRegister(checksVec)
+
+	checkEnqueueVec := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "concourse",
 			Subsystem: "lidar",
-			Name:      "checks_total",
-			Help:      "Counts the number of checks finished",
+			Name:      "check_enqueue",
+			Help:      "Counts the number of checks enqueued",
 		},
-		[]string{"scopeID", "checkName"},
+		[]string{"scope_id", "name"},
 	)
-	prometheus.MustRegister(checksVec)
+	prometheus.MustRegister(checkEnqueueVec)
+
+	checkQueueSize := prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "concourse",
+			Subsystem: "lidar",
+			Name:      "check_queue_size",
+			Help:      "Records the size of check queue",
+		},
+	)
+	prometheus.MustRegister(checkQueueSize)
 
 	listener, err := net.Listen("tcp", config.bind())
 	if err != nil {
@@ -370,7 +395,10 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		pipelineScheduled: pipelineScheduled,
 
 		resourceChecksVec: resourceChecksVec,
-		checksVec:         checksVec,
+
+		checksVec:       checksVec,
+		checkEnqueueVec: checkEnqueueVec,
+		checkQueueSize:  checkQueueSize,
 
 		schedulingFullDuration:    schedulingFullDuration,
 		schedulingLoadingDuration: schedulingLoadingDuration,
@@ -435,6 +463,12 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.databaseMetrics(logger, event)
 	case "resource checked":
 		emitter.resourceMetric(logger, event)
+	case "check enqueued":
+		emitter.checkEnqueueMetric(logger, event)
+	case "check queue size":
+		emitter.checkQueueSizeMetric(logger, event)
+	case "check started":
+		emitter.checkMetric(logger, event)
 	case "check finished":
 		emitter.checkMetric(logger, event)
 	default:
@@ -786,19 +820,53 @@ func (emitter *PrometheusEmitter) resourceMetric(logger lager.Logger, event metr
 	emitter.resourceChecksVec.WithLabelValues(team, pipeline).Inc()
 }
 
-func (emitter *PrometheusEmitter) checkMetric(logger lager.Logger, event metric.Event) {
+func (emitter *PrometheusEmitter) checkQueueSizeMetric(logger lager.Logger, event metric.Event) {
+	value, ok := event.Value.(int)
+	if !ok {
+		logger.Error("check-queue-size-type-mismatch", fmt.Errorf("expected event.Value to be a int"))
+		return
+	}
+
+	emitter.checkQueueSize.Set(float64(value))
+}
+
+func (emitter *PrometheusEmitter) checkEnqueueMetric(logger lager.Logger, event metric.Event) {
 	scopeID, exists := event.Attributes["scope_id"]
 	if !exists {
 		logger.Error("failed-to-find-resource-config-scope-id-in-event", fmt.Errorf("expected scope_id to exist in event.Attributes"))
 		return
 	}
+
 	checkName, exists := event.Attributes["check_name"]
 	if !exists {
 		logger.Error("failed-to-find-check-name-in-event", fmt.Errorf("expected check_name to exist in event.Attributes"))
 		return
 	}
 
-	emitter.checksVec.WithLabelValues(scopeID, checkName).Inc()
+	emitter.checkEnqueueVec.WithLabelValues(scopeID, checkName).Inc()
+}
+
+func (emitter *PrometheusEmitter) checkMetric(logger lager.Logger, event metric.Event) {
+	scopeID, exists := event.Attributes["scope_id"]
+	if !exists {
+		logger.Error("failed-to-find-resource-config-scope-id-in-event", fmt.Errorf("expected scope_id to exist in event.Attributes"))
+		return
+	}
+	checkStatus, exists := event.Attributes["check_status"]
+	if !exists {
+		logger.Error("failed-to-find-check-status-in-event", fmt.Errorf("expected check_status to exist in event.Attributes"))
+		return
+	}
+
+	duration, ok := event.Value.(float64)
+	if !ok {
+		logger.Error("check-event-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
+		return
+	}
+	// seconds are the standard prometheus base unit for time
+	duration = duration / 1000
+
+	emitter.checksVec.WithLabelValues(scopeID, checkStatus).Observe(duration)
 }
 
 // updateLastSeen tracks for each worker when it last received a metric event.

@@ -41,7 +41,7 @@ var _ = Describe("Pipeline", func() {
 			},
 			VarSources: atc.VarSourceConfigs{
 				{
-					Name: "some",
+					Name: "some-var-source",
 					Type: "dummy",
 					Config: map[string]interface{}{
 						"vars": map[string]interface{}{"pk": "pv"},
@@ -75,11 +75,20 @@ var _ = Describe("Pipeline", func() {
 							Trigger: true,
 						},
 						{
-							Task:           "some-task",
-							Privileged:     true,
-							TaskConfigPath: "some/config/path.yml",
+							Task:       "some-task",
+							Privileged: true,
+							ConfigPath: "some/config/path.yml",
 							TaskConfig: &atc.TaskConfig{
 								RootfsURI: "some-image",
+							},
+						},
+						{
+							SetPipeline: "some-pipeline",
+							ConfigPath:  "some-file",
+							VarFiles:    []string{"var-file1", "var-file2"},
+							Vars: map[string]interface{}{
+								"k1": "v1",
+								"k2": "v2",
 							},
 						},
 					},
@@ -114,26 +123,26 @@ var _ = Describe("Pipeline", func() {
 			},
 			Resources: atc.ResourceConfigs{
 				{
-					Name:   "some-resource",
-					Type:   "some-type",
-					Source: atc.Source{"some": "source"},
-				},
-				{
 					Name:   "some-other-resource",
 					Type:   "some-type",
 					Source: atc.Source{"some": "other-source"},
 				},
+				{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				},
 			},
 			ResourceTypes: atc.ResourceTypes{
-				{
-					Name:   "some-resource-type",
-					Type:   "base-type",
-					Source: atc.Source{"some": "type-soure"},
-				},
 				{
 					Name:   "some-other-resource-type",
 					Type:   "base-type",
 					Source: atc.Source{"some": "other-type-soure"},
+				},
+				{
+					Name:   "some-resource-type",
+					Type:   "base-type",
+					Source: atc.Source{"some": "type-soure"},
 				},
 			},
 		}
@@ -223,6 +232,108 @@ var _ = Describe("Pipeline", func() {
 
 			It("unpauses the pipeline", func() {
 				Expect(pipeline.Paused()).To(BeFalse())
+			})
+		})
+
+		Context("when requesting schedule for unpausing pipeline", func() {
+			var found bool
+			var err error
+			var job1, job2, job3, job4, job5, job6, job7, job8, job9 db.Job
+			var initialRequestedTime1, initialRequestedTime2, initialRequestedTime3, initialRequestedTime4, initialRequestedTime5, initialRequestedTime6, initialRequestedTime7, initialRequestedTime8, initialRequestedTime9 time.Time
+
+			BeforeEach(func() {
+				job1, found, err = pipeline.Job("job-name")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				initialRequestedTime1 = job1.ScheduleRequestedTime()
+
+				job2, found, err = pipeline.Job("some-other-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				initialRequestedTime2 = job2.ScheduleRequestedTime()
+
+				job3, found, err = pipeline.Job("a-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				initialRequestedTime3 = job3.ScheduleRequestedTime()
+
+				job4, found, err = pipeline.Job("shared-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				initialRequestedTime4 = job4.ScheduleRequestedTime()
+
+				job5, found, err = pipeline.Job("random-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				initialRequestedTime5 = job5.ScheduleRequestedTime()
+
+				job6, found, err = pipeline.Job("job-1")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				initialRequestedTime6 = job6.ScheduleRequestedTime()
+
+				job7, found, err = pipeline.Job("job-2")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				initialRequestedTime7 = job7.ScheduleRequestedTime()
+
+				job8, found, err = pipeline.Job("other-serial-group-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				initialRequestedTime8 = job8.ScheduleRequestedTime()
+
+				job9, found, err = pipeline.Job("different-serial-group-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				initialRequestedTime9 = job9.ScheduleRequestedTime()
+			})
+
+			It("requests schedule on all the jobs in the pipeline", func() {
+				found, err = job1.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = job2.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = job3.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = job4.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = job5.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = job6.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = job7.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = job8.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = job9.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(job1.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime1))
+				Expect(job2.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime2))
+				Expect(job3.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime3))
+				Expect(job4.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime4))
+				Expect(job5.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime5))
+				Expect(job6.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime6))
+				Expect(job7.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime7))
+				Expect(job8.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime8))
+				Expect(job9.ScheduleRequestedTime()).Should(BeTemporally(">", initialRequestedTime9))
 			})
 		})
 	})
@@ -327,9 +438,9 @@ var _ = Describe("Pipeline", func() {
 								Trigger: true,
 							},
 							{
-								Task:           "some-task",
-								Privileged:     true,
-								TaskConfigPath: "some/config/path.yml",
+								Task:       "some-task",
+								Privileged: true,
+								ConfigPath: "some/config/path.yml",
 								TaskConfig: &atc.TaskConfig{
 									RootfsURI: "some-image",
 								},
@@ -1802,11 +1913,11 @@ var _ = Describe("Pipeline", func() {
 	Describe("Variables", func() {
 		var (
 			pvars vars.Variables
-			err error
+			err   error
 		)
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			fakeSecrets = new(credsfakes.FakeSecrets)
-			fakeSecrets.GetStub = func(key string)(interface{}, *time.Time, bool, error) {
+			fakeSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
 				if key == "gk" {
 					return "gv", nil, true, nil
 				}
@@ -1818,10 +1929,16 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		It("should get var from pipeline var source", func() {
-			v, found, err := pvars.Get(vars.VariableDefinition{Name: "pk"})
+			v, found, err := pvars.Get(vars.VariableDefinition{Name: "some-var-source:pk"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(v.(string)).To(Equal("pv"))
+		})
+
+		It("should not get pipeline var 'pk' without specifying var_source name", func() {
+			_, found, err := pvars.Get(vars.VariableDefinition{Name: "pk"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
 		})
 
 		It("should get var from global var source", func() {
@@ -1835,6 +1952,38 @@ var _ = Describe("Pipeline", func() {
 			_, found, err := pvars.Get(vars.VariableDefinition{Name: "foo"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+
+		Context("with the second var_source", func() {
+			BeforeEach(func() {
+				pipelineConfig.VarSources = append(pipelineConfig.VarSources, atc.VarSourceConfig{
+					Name: "second-var-source",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{"pk": "((some-var-source:pk))"},
+					},
+				})
+
+				var created bool
+				pipeline, created, err = team.SavePipeline("fake-pipeline", pipelineConfig, pipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeFalse())
+			})
+
+			// The second var source is configured with vars that needs to be interpolated
+			// from "some-var-source".
+			It("should get pipeline var 'pk' from the second var_source", func() {
+				v, found, err := pvars.Get(vars.VariableDefinition{Name: "second-var-source:pk"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(v.(string)).To(Equal("pv"))
+			})
+		})
+	})
+
+	Context("Config", func() {
+		It("should return config correctly", func() {
+			Expect(pipeline.Config()).To(Equal(pipelineConfig))
 		})
 	})
 })

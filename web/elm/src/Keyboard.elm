@@ -31,6 +31,7 @@ decodeKeyEvent =
 type KeyCode
     = A
     | T
+    | R
     | G
     | H
     | J
@@ -54,6 +55,9 @@ decodeKeyCode =
 
                 "KeyT" ->
                     Ok T
+
+                "KeyR" ->
+                    Ok R
 
                 "KeyG" ->
                     Ok G

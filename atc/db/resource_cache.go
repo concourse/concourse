@@ -60,21 +60,21 @@ func (cache *ResourceCacheDescriptor) findOrCreate(
 		err = psql.Insert("resource_caches").
 			Columns(
 				"resource_config_id",
-				"version",
+				"version_md5",
 				"params_hash",
 			).
 			Values(
 				resourceConfig.ID(),
-				cache.version(),
+				sq.Expr("md5(?)", cache.version()),
 				paramsHash(cache.Params),
 			).
 			Suffix(`
-				ON CONFLICT (resource_config_id, md5(version::text), params_hash) DO UPDATE SET
-				resource_config_id = ?,
-				version = ?,
-				params_hash = ?
+				ON CONFLICT (resource_config_id, version_md5, params_hash) DO UPDATE SET
+				resource_config_id = EXCLUDED.resource_config_id,
+				version_md5 = EXCLUDED.version_md5,
+				params_hash = EXCLUDED.params_hash
 				RETURNING id
-			`, resourceConfig.ID(), cache.version(), paramsHash(cache.Params)).
+			`).
 			RunWith(tx).
 			QueryRow().
 			Scan(&id)
@@ -85,7 +85,6 @@ func (cache *ResourceCacheDescriptor) findOrCreate(
 		rc = &usedResourceCache{
 			id:             id,
 			resourceConfig: resourceConfig,
-			version:        cache.Version,
 			lockFactory:    lockFactory,
 			conn:           conn,
 		}
@@ -133,9 +132,9 @@ func (cache *ResourceCacheDescriptor) findWithResourceConfig(tx Tx, resourceConf
 		From("resource_caches").
 		Where(sq.Eq{
 			"resource_config_id": resourceConfig.ID(),
-			"version":            cache.version(),
 			"params_hash":        paramsHash(cache.Params),
 		}).
+		Where(sq.Expr("version_md5 = md5(?)", cache.version())).
 		Suffix("FOR SHARE").
 		RunWith(tx).
 		QueryRow().
@@ -151,7 +150,6 @@ func (cache *ResourceCacheDescriptor) findWithResourceConfig(tx Tx, resourceConf
 	return &usedResourceCache{
 		id:             id,
 		resourceConfig: resourceConfig,
-		version:        cache.Version,
 		lockFactory:    lockFactory,
 		conn:           conn,
 	}, true, nil
@@ -188,7 +186,6 @@ type UsedResourceCache interface {
 	ID() int
 
 	ResourceConfig() ResourceConfig
-	Version() atc.Version
 
 	Destroy(Tx) (bool, error)
 	BaseResourceType() *UsedBaseResourceType
@@ -197,7 +194,6 @@ type UsedResourceCache interface {
 type usedResourceCache struct {
 	id             int
 	resourceConfig ResourceConfig
-	version        atc.Version
 
 	lockFactory lock.LockFactory
 	conn        Conn
@@ -205,7 +201,6 @@ type usedResourceCache struct {
 
 func (cache *usedResourceCache) ID() int                        { return cache.id }
 func (cache *usedResourceCache) ResourceConfig() ResourceConfig { return cache.resourceConfig }
-func (cache *usedResourceCache) Version() atc.Version           { return cache.version }
 
 func (cache *usedResourceCache) Destroy(tx Tx) (bool, error) {
 	rows, err := psql.Delete("resource_caches").

@@ -67,6 +67,18 @@ type FakePipeline struct {
 		result1 bool
 		result2 error
 	}
+	ConfigStub        func() (atc.Config, error)
+	configMutex       sync.RWMutex
+	configArgsForCall []struct {
+	}
+	configReturns struct {
+		result1 atc.Config
+		result2 error
+	}
+	configReturnsOnCall map[int]struct {
+		result1 atc.Config
+		result2 error
+	}
 	ConfigVersionStub        func() db.ConfigVersion
 	configVersionMutex       sync.RWMutex
 	configVersionArgsForCall []struct {
@@ -709,6 +721,61 @@ func (fake *FakePipeline) CheckPausedReturnsOnCall(i int, result1 bool, result2 
 	}
 	fake.checkPausedReturnsOnCall[i] = struct {
 		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeline) Config() (atc.Config, error) {
+	fake.configMutex.Lock()
+	ret, specificReturn := fake.configReturnsOnCall[len(fake.configArgsForCall)]
+	fake.configArgsForCall = append(fake.configArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Config", []interface{}{})
+	fake.configMutex.Unlock()
+	if fake.ConfigStub != nil {
+		return fake.ConfigStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.configReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakePipeline) ConfigCallCount() int {
+	fake.configMutex.RLock()
+	defer fake.configMutex.RUnlock()
+	return len(fake.configArgsForCall)
+}
+
+func (fake *FakePipeline) ConfigCalls(stub func() (atc.Config, error)) {
+	fake.configMutex.Lock()
+	defer fake.configMutex.Unlock()
+	fake.ConfigStub = stub
+}
+
+func (fake *FakePipeline) ConfigReturns(result1 atc.Config, result2 error) {
+	fake.configMutex.Lock()
+	defer fake.configMutex.Unlock()
+	fake.ConfigStub = nil
+	fake.configReturns = struct {
+		result1 atc.Config
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipeline) ConfigReturnsOnCall(i int, result1 atc.Config, result2 error) {
+	fake.configMutex.Lock()
+	defer fake.configMutex.Unlock()
+	fake.ConfigStub = nil
+	if fake.configReturnsOnCall == nil {
+		fake.configReturnsOnCall = make(map[int]struct {
+			result1 atc.Config
+			result2 error
+		})
+	}
+	fake.configReturnsOnCall[i] = struct {
+		result1 atc.Config
 		result2 error
 	}{result1, result2}
 }
@@ -2614,6 +2681,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.causalityMutex.RUnlock()
 	fake.checkPausedMutex.RLock()
 	defer fake.checkPausedMutex.RUnlock()
+	fake.configMutex.RLock()
+	defer fake.configMutex.RUnlock()
 	fake.configVersionMutex.RLock()
 	defer fake.configVersionMutex.RUnlock()
 	fake.createOneOffBuildMutex.RLock()

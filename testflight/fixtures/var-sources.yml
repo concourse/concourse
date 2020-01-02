@@ -1,6 +1,7 @@
 ---
 var_sources:
-- type: dummy
+- name: vs
+  type: dummy
   config:
     vars:
       some_var: hello-im-a-var
@@ -11,9 +12,9 @@ resources:
 - name: resource-using-vars
   type: mock
   source:
-    initial_version: ((initial_version_var))
+    initial_version: ((vs:initial_version_var))
     create_files:
-      some_file: ((some_numeric_var))
+      some_file: ((vs:some_numeric_var))
 
 jobs:
 - name: use-vars
@@ -35,6 +36,6 @@ jobs:
         args:
         - -exc
         - |
-          test "((some_var))" = "hello-im-a-var"
+          test "((vs:some_var))" = "hello-im-a-var"
           test "$(cat resource-using-vars/version)" = "hello-im-a-version"
           test "$(cat resource-using-vars/some_file)" = "42"

@@ -1,6 +1,7 @@
 package auditor
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
@@ -53,27 +54,105 @@ type auditor struct {
 }
 
 func (a *auditor) ValidateAction(action string) bool {
-	switch loggingLevels[action] {
-	case "EnableBuildAuditLog":
+	switch action {
+	case atc.GetBuild,
+		atc.GetBuildPlan,
+		atc.CreateBuild,
+		atc.RerunJobBuild,
+		atc.ListBuilds,
+		atc.BuildEvents,
+		atc.BuildResources,
+		atc.AbortBuild,
+		atc.GetBuildPreparation,
+		atc.ListBuildsWithVersionAsInput,
+		atc.ListBuildsWithVersionAsOutput,
+		atc.CreateArtifact,
+		atc.GetArtifact,
+		atc.ListBuildArtifacts:
 		return a.EnableBuildAuditLog
-	case "EnableContainerAuditLog":
+	case atc.ListContainers,
+		atc.GetContainer,
+		atc.HijackContainer,
+		atc.ListDestroyingContainers,
+		atc.ReportWorkerContainers:
 		return a.EnableContainerAuditLog
-	case "EnableJobAuditLog":
+	case atc.GetJob,
+		atc.CreateJobBuild,
+		atc.ListAllJobs,
+		atc.ListJobs,
+		atc.ListJobBuilds,
+		atc.ListJobInputs,
+		atc.GetJobBuild,
+		atc.PauseJob,
+		atc.UnpauseJob,
+		atc.JobBadge,
+		atc.MainJobBadge:
 		return a.EnableJobAuditLog
-	case "EnablePipelineAuditLog":
+	case atc.ListAllPipelines,
+		atc.ListPipelines,
+		atc.GetPipeline,
+		atc.DeletePipeline,
+		atc.OrderPipelines,
+		atc.PausePipeline,
+		atc.UnpausePipeline,
+		atc.ExposePipeline,
+		atc.HidePipeline,
+		atc.RenamePipeline,
+		atc.ListPipelineBuilds,
+		atc.CreatePipelineBuild,
+		atc.PipelineBadge:
 		return a.EnablePipelineAuditLog
-	case "EnableResourceAuditLog":
+	case atc.ListAllResources,
+		atc.ListResources,
+		atc.ListResourceTypes,
+		atc.GetResource,
+		atc.UnpinResource,
+		atc.SetPinCommentOnResource,
+		atc.CheckResource,
+		atc.CheckResourceWebHook,
+		atc.CheckResourceType,
+		atc.ListResourceVersions,
+		atc.GetResourceVersion,
+		atc.EnableResourceVersion,
+		atc.DisableResourceVersion,
+		atc.PinResourceVersion,
+		atc.GetResourceCausality,
+		atc.GetCheck:
 		return a.EnableResourceAuditLog
-	case "EnableSystemAuditLog":
+	case
+		atc.SaveConfig,
+		atc.GetConfig,
+		atc.GetCC,
+		atc.GetVersionsDB,
+		atc.ClearTaskCache,
+		atc.SetLogLevel,
+		atc.GetLogLevel,
+		atc.DownloadCLI,
+		atc.GetInfo,
+		atc.GetInfoCreds,
+		atc.ListActiveUsersSince:
 		return a.EnableSystemAuditLog
-	case "EnableTeamAuditLog":
+	case atc.ListTeams,
+		atc.SetTeam,
+		atc.RenameTeam,
+		atc.DestroyTeam,
+		atc.ListTeamBuilds,
+		atc.GetTeam:
 		return a.EnableTeamAuditLog
-	case "EnableWorkerAuditLog":
+	case atc.RegisterWorker,
+		atc.LandWorker,
+		atc.RetireWorker,
+		atc.PruneWorker,
+		atc.HeartbeatWorker,
+		atc.ListWorkers,
+		atc.DeleteWorker:
 		return a.EnableWorkerAuditLog
-	case "EnableVolumeAuditLog":
+	case atc.ListVolumes,
+		atc.ListDestroyingVolumes,
+		atc.ReportWorkerVolumes:
 		return a.EnableVolumeAuditLog
 	default:
-		return false
+		panic(fmt.Sprintf("unhandled action: %s", action))
 	}
 }
 
@@ -82,89 +161,4 @@ func (a *auditor) Audit(action string, userName string, r *http.Request) {
 	if err == nil && a.ValidateAction(action) {
 		a.logger.Info("audit", lager.Data{"action": action, "user": userName, "parameters": r.Form})
 	}
-}
-
-var loggingLevels = map[string]string{
-	atc.SaveConfig:                    "EnableSystemAuditLog",
-	atc.GetConfig:                     "EnableSystemAuditLog",
-	atc.GetCC:                         "EnableSystemAuditLog",
-	atc.GetBuild:                      "EnableBuildAuditLog",
-	atc.GetBuildPlan:                  "EnableBuildAuditLog",
-	atc.CreateBuild:                   "EnableBuildAuditLog",
-	atc.ListBuilds:                    "EnableBuildAuditLog",
-	atc.BuildEvents:                   "EnableBuildAuditLog",
-	atc.BuildResources:                "EnableBuildAuditLog",
-	atc.AbortBuild:                    "EnableBuildAuditLog",
-	atc.GetBuildPreparation:           "EnableBuildAuditLog",
-	atc.GetJob:                        "EnableJobAuditLog",
-	atc.CreateJobBuild:                "EnableJobAuditLog",
-	atc.ListAllJobs:                   "EnableJobAuditLog",
-	atc.ListJobs:                      "EnableJobAuditLog",
-	atc.ListJobBuilds:                 "EnableJobAuditLog",
-	atc.ListJobInputs:                 "EnableJobAuditLog",
-	atc.GetJobBuild:                   "EnableJobAuditLog",
-	atc.PauseJob:                      "EnableJobAuditLog",
-	atc.UnpauseJob:                    "EnableJobAuditLog",
-	atc.GetVersionsDB:                 "EnableSystemAuditLog",
-	atc.JobBadge:                      "EnableJobAuditLog",
-	atc.MainJobBadge:                  "EnableJobAuditLog",
-	atc.ClearTaskCache:                "EnableSystemAuditLog",
-	atc.ListAllResources:              "EnableResourceAuditLog",
-	atc.ListResources:                 "EnableResourceAuditLog",
-	atc.ListResourceTypes:             "EnableResourceAuditLog",
-	atc.GetResource:                   "EnableResourceAuditLog",
-	atc.UnpinResource:                 "EnableResourceAuditLog",
-	atc.SetPinCommentOnResource:       "EnableResourceAuditLog",
-	atc.CheckResource:                 "EnableResourceAuditLog",
-	atc.CheckResourceWebHook:          "EnableResourceAuditLog",
-	atc.CheckResourceType:             "EnableResourceAuditLog",
-	atc.ListResourceVersions:          "EnableResourceAuditLog",
-	atc.GetResourceVersion:            "EnableResourceAuditLog",
-	atc.EnableResourceVersion:         "EnableResourceAuditLog",
-	atc.DisableResourceVersion:        "EnableResourceAuditLog",
-	atc.PinResourceVersion:            "EnableResourceAuditLog",
-	atc.ListBuildsWithVersionAsInput:  "EnableBuildAuditLog",
-	atc.ListBuildsWithVersionAsOutput: "EnableBuildAuditLog",
-	atc.GetResourceCausality:          "EnableResourceAuditLog",
-	atc.ListAllPipelines:              "EnablePipelineAuditLog",
-	atc.ListPipelines:                 "EnablePipelineAuditLog",
-	atc.GetPipeline:                   "EnablePipelineAuditLog",
-	atc.DeletePipeline:                "EnablePipelineAuditLog",
-	atc.OrderPipelines:                "EnablePipelineAuditLog",
-	atc.PausePipeline:                 "EnablePipelineAuditLog",
-	atc.UnpausePipeline:               "EnablePipelineAuditLog",
-	atc.ExposePipeline:                "EnablePipelineAuditLog",
-	atc.HidePipeline:                  "EnablePipelineAuditLog",
-	atc.RenamePipeline:                "EnablePipelineAuditLog",
-	atc.ListPipelineBuilds:            "EnablePipelineAuditLog",
-	atc.CreatePipelineBuild:           "EnablePipelineAuditLog",
-	atc.PipelineBadge:                 "EnablePipelineAuditLog",
-	atc.RegisterWorker:                "EnableWorkerAuditLog",
-	atc.LandWorker:                    "EnableWorkerAuditLog",
-	atc.RetireWorker:                  "EnableWorkerAuditLog",
-	atc.PruneWorker:                   "EnableWorkerAuditLog",
-	atc.HeartbeatWorker:               "EnableWorkerAuditLog",
-	atc.ListWorkers:                   "EnableWorkerAuditLog",
-	atc.DeleteWorker:                  "EnableWorkerAuditLog",
-	atc.SetLogLevel:                   "EnableSystemAuditLog",
-	atc.GetLogLevel:                   "EnableSystemAuditLog",
-	atc.DownloadCLI:                   "EnableSystemAuditLog",
-	atc.GetInfo:                       "EnableSystemAuditLog",
-	atc.GetInfoCreds:                  "EnableSystemAuditLog",
-	atc.ListContainers:                "EnableContainerAuditLog",
-	atc.GetContainer:                  "EnableContainerAuditLog",
-	atc.HijackContainer:               "EnableContainerAuditLog",
-	atc.ListDestroyingContainers:      "EnableContainerAuditLog",
-	atc.ReportWorkerContainers:        "EnableContainerAuditLog",
-	atc.ListVolumes:                   "EnableVolumeAuditLog",
-	atc.ListDestroyingVolumes:         "EnableVolumeAuditLog",
-	atc.ReportWorkerVolumes:           "EnableVolumeAuditLog",
-	atc.ListTeams:                     "EnableTeamAuditLog",
-	atc.SetTeam:                       "EnableTeamAuditLog",
-	atc.RenameTeam:                    "EnableTeamAuditLog",
-	atc.DestroyTeam:                   "EnableTeamAuditLog",
-	atc.ListTeamBuilds:                "EnableTeamAuditLog",
-	atc.CreateArtifact:                "EnableBuildAuditLog",
-	atc.GetArtifact:                   "EnableBuildAuditLog",
-	atc.ListBuildArtifacts:            "EnableBuildAuditLog",
 }

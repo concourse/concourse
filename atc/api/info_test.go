@@ -184,6 +184,7 @@ var _ = Describe("Pipelines API", func() {
 				credServer = ghttp.NewServer()
 				vaultManager := &vault.VaultManager{
 					URL:        credServer.URL(),
+					Namespace:  "testnamespace",
 					PathPrefix: "testpath",
 					TLS:        tls,
 					Auth:       authConfig,
@@ -254,6 +255,8 @@ var _ = Describe("Pipelines API", func() {
           "vault": {
             "url": "` + credServer.URL() + `",
             "path_prefix": "testpath",
+			"shared_path": "",
+			"namespace": "testnamespace",
             "ca_cert": "",
             "server_name": "server-name",
 						"auth_backend": "backend-server",
@@ -265,6 +268,7 @@ var _ = Describe("Pipelines API", func() {
                   "initialized": true,
                   "sealed": false,
                   "standby": false,
+				  "performance_standby": false,
                   "replication_performance_mode": "foo",
                   "replication_dr_mode": "blah",
                   "server_time_utc": 0,

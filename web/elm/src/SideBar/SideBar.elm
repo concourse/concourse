@@ -102,7 +102,7 @@ handleCallback callback currentPipeline ( model, effects ) =
             , effects
             )
 
-        BuildFetched (Ok ( _, build )) ->
+        BuildFetched (Ok build) ->
             ( { model
                 | expandedTeams =
                     case ( currentPipeline, build.job ) of
