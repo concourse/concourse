@@ -1,4 +1,4 @@
-module Network.Build exposing (abort, fetch, fetchJobBuild, fetchJobBuilds)
+module Network.Build exposing (abort, fetch, fetchJobBuild)
 
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
@@ -33,24 +33,3 @@ abort buildId csrfToken =
             , timeout = Nothing
             , withCredentials = False
             }
-
-
-fetchJobBuilds :
-    Concourse.JobIdentifier
-    -> Maybe Page
-    -> Task Http.Error (Paginated Concourse.Build)
-fetchJobBuilds job page =
-    let
-        segments =
-            [ "api"
-            , "v1"
-            , "teams"
-            , job.teamName
-            , "pipelines"
-            , job.pipelineName
-            , "jobs"
-            , job.jobName
-            , "builds"
-            ]
-    in
-    Network.Pagination.fetch Concourse.decodeBuild segments page

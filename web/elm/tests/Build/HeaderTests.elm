@@ -196,17 +196,23 @@ all =
                     |> Header.handleCallback
                         (Callback.BuildFetched <| Ok build)
                     |> Header.handleCallback
-                        (Callback.BuildHistoryFetched <|
-                            Ok
-                                { content = [ build ]
-                                , pagination =
-                                    { previousPage = Nothing
-                                    , nextPage = Nothing
+                        (Callback.ApiResponse
+                            (Callback.RouteJobBuilds jobId Nothing)
+                            (Ok <|
+                                Callback.Builds
+                                    { content = [ build ]
+                                    , pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
                                     }
-                                }
+                            )
                         )
                     |> Tuple.second
-                    |> Common.notContains (Effects.FetchBuildHistory jobId Nothing)
+                    |> Common.notContains
+                        (Effects.ApiCall <|
+                            Callback.RouteJobBuilds jobId Nothing
+                        )
         , test "re-run build appears in the correct spot" <|
             \_ ->
                 ( model, [] )
