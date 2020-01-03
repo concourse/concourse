@@ -70,6 +70,7 @@ import (
 	_ "github.com/concourse/concourse/atc/creds/credhub"
 	_ "github.com/concourse/concourse/atc/creds/dummy"
 	_ "github.com/concourse/concourse/atc/creds/kubernetes"
+	_ "github.com/concourse/concourse/atc/creds/localfile"
 	_ "github.com/concourse/concourse/atc/creds/secretsmanager"
 	_ "github.com/concourse/concourse/atc/creds/ssm"
 	_ "github.com/concourse/concourse/atc/creds/vault"
