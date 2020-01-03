@@ -28,12 +28,9 @@ func (s *Server) ListJobs(pipeline db.Pipeline) http.Handler {
 		for _, job := range dashboard {
 			jobs = append(
 				jobs,
-				present.Job(
+				present.DashboardJob(
 					teamName,
-					job.Job,
-					job.FinishedBuild,
-					job.NextBuild,
-					job.TransitionBuild,
+					job,
 				),
 			)
 		}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
@@ -11,7 +12,7 @@ import (
 //go:generate counterfeiter . Algorithm
 
 type Algorithm interface {
-	Compute(db.Job, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, bool, error)
+	Compute(db.Job, []atc.JobInput, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, bool, error)
 }
 
 type Scheduler struct {
@@ -26,7 +27,12 @@ func (s *Scheduler) Schedule(
 	resources db.Resources,
 	relatedJobs algorithm.NameToIDMap,
 ) (bool, error) {
-	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(job, resources, relatedJobs)
+	jobInputs, err := job.Inputs()
+	if err != nil {
+		return false, fmt.Errorf("inputs: %w", err)
+	}
+
+	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(job, jobInputs, resources, relatedJobs)
 	if err != nil {
 		return false, fmt.Errorf("compute inputs: %w", err)
 	}
@@ -43,17 +49,18 @@ func (s *Scheduler) Schedule(
 		return false, fmt.Errorf("save next input mapping: %w", err)
 	}
 
-	err = s.ensurePendingBuildExists(logger, job, resources)
+	err = s.ensurePendingBuildExists(logger, job, jobInputs, resources)
 	if err != nil {
 		return false, err
 	}
 
-	return s.BuildStarter.TryStartPendingBuildsForJob(logger, pipeline, job, resources, relatedJobs)
+	return s.BuildStarter.TryStartPendingBuildsForJob(logger, pipeline, job, jobInputs, resources, relatedJobs)
 }
 
 func (s *Scheduler) ensurePendingBuildExists(
 	logger lager.Logger,
 	job db.Job,
+	jobInputs []atc.JobInput,
 	resources db.Resources,
 ) error {
 	buildInputs, satisfiableInputs, err := job.GetFullNextBuildInputs()
@@ -72,7 +79,7 @@ func (s *Scheduler) ensurePendingBuildExists(
 	}
 
 	var hasNewInputs bool
-	for _, inputConfig := range job.Config().Inputs() {
+	for _, inputConfig := range jobInputs {
 		inputSource, ok := inputMapping[inputConfig.Name]
 
 		//trigger: true, and the version has not been used

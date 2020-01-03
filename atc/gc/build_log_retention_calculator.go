@@ -2,11 +2,10 @@ package gc
 
 import (
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 )
 
 type BuildLogRetentionCalculator interface {
-	BuildLogsToRetain(db.Job) atc.BuildLogRetention
+	BuildLogsToRetain(atc.JobConfig) atc.BuildLogRetention
 }
 
 type buildLogRetentionCalculator struct {
@@ -30,17 +29,17 @@ func NewBuildLogRetentionCalculator(
 	}
 }
 
-func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(job db.Job) atc.BuildLogRetention {
+func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(jobConfig atc.JobConfig) atc.BuildLogRetention {
 	// What does the job want?
 	var daysToRetainBuildLogs = 0
 	var buildLogsToRetain = 0
 	var minSuccessBuildLogsToRetain = 0
-	if job.Config().BuildLogRetention != nil {
-		daysToRetainBuildLogs = job.Config().BuildLogRetention.Days
-		buildLogsToRetain = job.Config().BuildLogRetention.Builds
-		minSuccessBuildLogsToRetain = job.Config().BuildLogRetention.MinimumSucceededBuilds
+	if jobConfig.BuildLogRetention != nil {
+		daysToRetainBuildLogs = jobConfig.BuildLogRetention.Days
+		buildLogsToRetain = jobConfig.BuildLogRetention.Builds
+		minSuccessBuildLogsToRetain = jobConfig.BuildLogRetention.MinimumSucceededBuilds
 	} else {
-		buildLogsToRetain = job.Config().BuildLogsToRetain
+		buildLogsToRetain = jobConfig.BuildLogsToRetain
 	}
 
 	// If not specified, set to default

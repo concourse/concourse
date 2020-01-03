@@ -39,6 +39,7 @@ type Team interface {
 	CreateJobBuild(pipelineName string, jobName string) (atc.Build, error)
 	RerunJobBuild(pipelineName string, jobName string, buildName string) (atc.Build, error)
 	ListJobs(pipelineName string) ([]atc.Job, error)
+	ScheduleJob(pipelineName string, jobName string) (bool, error)
 
 	PauseJob(pipelineName string, jobName string) (bool, error)
 	UnpauseJob(pipelineName string, jobName string) (bool, error)

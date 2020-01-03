@@ -723,7 +723,12 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	configInputs := job.Config().Inputs()
+	config, err := job.Config()
+	if err != nil {
+		return BuildPreparation{}, false, err
+	}
+
+	configInputs := config.Inputs()
 
 	buildInputs, err := job.GetNextBuildInputs()
 	if err != nil {

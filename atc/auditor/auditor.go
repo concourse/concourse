@@ -85,6 +85,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.GetJobBuild,
 		atc.PauseJob,
 		atc.UnpauseJob,
+		atc.ScheduleJob,
 		atc.JobBadge,
 		atc.MainJobBadge:
 		return a.EnableJobAuditLog

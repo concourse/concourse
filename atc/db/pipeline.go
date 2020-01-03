@@ -8,15 +8,15 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/vars"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/vars"
 )
 
 type ErrResourceNotFound struct {
@@ -75,7 +75,7 @@ type Pipeline interface {
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
-	Dashboard() (Dashboard, error)
+	Dashboard() (atc.Dashboard, error)
 
 	Expose() error
 	Hide() error
@@ -223,17 +223,22 @@ func (p *pipeline) Reload() (bool, error) {
 func (p *pipeline) Config() (atc.Config, error) {
 	jobs, err := p.Jobs()
 	if err != nil {
-		return atc.Config{}, fmt.Errorf("failed to get jobs: %s", err)
+		return atc.Config{}, fmt.Errorf("failed to get jobs: %w", err)
 	}
 
 	resources, err := p.Resources()
 	if err != nil {
-		return atc.Config{}, fmt.Errorf("failed to get resources: %s", err)
+		return atc.Config{}, fmt.Errorf("failed to get resources: %w", err)
 	}
 
 	resourceTypes, err := p.ResourceTypes()
 	if err != nil {
-		return atc.Config{}, fmt.Errorf("failed to get resources-types: %s", err)
+		return atc.Config{}, fmt.Errorf("failed to get resources-types: %w", err)
+	}
+
+	jobConfigs, err := jobs.Configs()
+	if err != nil {
+		return atc.Config{}, fmt.Errorf("failed to get job configs: %w", err)
 	}
 
 	config := atc.Config{
@@ -241,7 +246,7 @@ func (p *pipeline) Config() (atc.Config, error) {
 		VarSources:    p.VarSources(),
 		Resources:     resources.Configs(),
 		ResourceTypes: resourceTypes.Configs(),
-		Jobs:          jobs.Configs(),
+		Jobs:          jobConfigs,
 	}
 
 	return config, nil
@@ -546,9 +551,7 @@ func (p *pipeline) Jobs() (Jobs, error) {
 	return jobs, err
 }
 
-func (p *pipeline) Dashboard() (Dashboard, error) {
-	dashboard := Dashboard{}
-
+func (p *pipeline) Dashboard() (atc.Dashboard, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -556,29 +559,9 @@ func (p *pipeline) Dashboard() (Dashboard, error) {
 
 	defer Rollback(tx)
 
-	rows, err := jobsQuery.
-		Where(sq.Eq{
-			"pipeline_id": p.id,
-			"active":      true,
-		}).
-		OrderBy("j.id ASC").
-		RunWith(tx).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	jobs, err := scanJobs(p.conn, p.lockFactory, rows)
-	if err != nil {
-		return nil, err
-	}
-
-	nextBuilds, err := p.getBuildsFrom(tx, "next_build_id")
-	if err != nil {
-		return nil, err
-	}
-
-	finishedBuilds, err := p.getBuildsFrom(tx, "latest_completed_build_id")
+	dashboard, err := buildDashboard(tx, sq.Eq{
+		"j.pipeline_id": p.id,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -586,22 +569,6 @@ func (p *pipeline) Dashboard() (Dashboard, error) {
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
-	}
-
-	for _, job := range jobs {
-		dashboardJob := DashboardJob{
-			Job: job,
-		}
-
-		if nextBuild, found := nextBuilds[job.Name()]; found {
-			dashboardJob.NextBuild = nextBuild
-		}
-
-		if finishedBuild, found := finishedBuilds[job.Name()]; found {
-			dashboardJob.FinishedBuild = finishedBuild
-		}
-
-		dashboard = append(dashboard, dashboardJob)
 	}
 
 	return dashboard, nil

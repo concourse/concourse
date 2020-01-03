@@ -239,6 +239,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.RenamePipeline:          authorized(inputHandlers[atc.RenamePipeline]),
 				atc.SaveConfig:              authorized(inputHandlers[atc.SaveConfig]),
 				atc.UnpauseJob:              authorized(inputHandlers[atc.UnpauseJob]),
+				atc.ScheduleJob:             authorized(inputHandlers[atc.ScheduleJob]),
 				atc.UnpausePipeline:         authorized(inputHandlers[atc.UnpausePipeline]),
 				atc.ExposePipeline:          authorized(inputHandlers[atc.ExposePipeline]),
 				atc.HidePipeline:            authorized(inputHandlers[atc.HidePipeline]),
