@@ -112,7 +112,7 @@ init flags =
     in
     ( model
     , [ ApiCall (RouteJob flags.jobId)
-      , FetchJobBuilds flags.jobId flags.paging
+      , ApiCall (RouteJobBuilds flags.jobId flags.paging)
       , GetCurrentTime
       , GetCurrentTimeZone
       , FetchAllPipelines
@@ -132,7 +132,7 @@ changeToJob flags ( model, effects ) =
                 }
             }
       }
-    , effects ++ [ FetchJobBuilds model.jobIdentifier flags.paging ]
+    , effects ++ [ ApiCall (RouteJobBuilds model.jobIdentifier flags.paging) ]
     )
 
 
@@ -178,7 +178,7 @@ handleCallback callback ( model, effects ) =
                            ]
             )
 
-        JobBuildsFetched (Ok builds) ->
+        ApiResponse (RouteJobBuilds _ _) (Ok (Callback.Builds builds)) ->
             handleJobBuildsFetched builds ( model, effects )
 
         ApiResponse (RouteJob _) (Ok (Callback.Job job)) ->
@@ -246,7 +246,7 @@ handleDelivery delivery ( model, effects ) =
         ClockTicked FiveSeconds _ ->
             ( model
             , effects
-                ++ [ FetchJobBuilds model.jobIdentifier model.currentPage
+                ++ [ ApiCall (RouteJobBuilds model.jobIdentifier model.currentPage)
                    , ApiCall (RouteJob model.jobIdentifier)
                    , FetchAllPipelines
                    ]

@@ -17,7 +17,7 @@ import EffectTransformer exposing (ET)
 import HoverState
 import Html
 import Http
-import Message.Callback exposing (Callback(..))
+import Message.Callback exposing (Callback(..), Route(..))
 import Message.Effects as Effects exposing (Effect(..))
 import Message.Message as Message
 import Message.Subscription
@@ -128,7 +128,7 @@ handleCallback callback model =
         PausedToggled (Err err) ->
             redirectToLoginIfNecessary err ( model, [] )
 
-        JobBuildsFetched (Err err) ->
+        ApiResponse (RouteJobBuilds _ _) (Err err) ->
             redirectToLoginIfNecessary err ( model, [] )
 
         InputToFetched (Err err) ->

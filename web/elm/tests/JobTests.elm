@@ -21,6 +21,7 @@ import Message.Subscription as Subscription
         )
 import Message.TopLevelMessage as Msgs
 import RemoteData
+import Routes
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -207,7 +208,50 @@ all =
                             }
                             |> Tuple.second
                             |> Common.contains
-                                (Effects.ApiCall (Callback.RouteJob jobIdentifier))
+                                (Effects.ApiCall <|
+                                    Callback.RouteJob jobIdentifier
+                                )
+                , test "fetches builds" <|
+                    \_ ->
+                        Application.init
+                            { turbulenceImgSrc = ""
+                            , notFoundImgSrc = ""
+                            , csrfToken = ""
+                            , authToken = ""
+                            , pipelineRunningKeyframes = ""
+                            }
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                            |> Tuple.second
+                            |> Common.contains
+                                (Effects.ApiCall <|
+                                    Callback.RouteJobBuilds jobIdentifier Nothing
+                                )
+                , test "fetches builds when changing pages" <|
+                    \_ ->
+                        let
+                            page =
+                                Just
+                                    { direction = Since 100
+                                    , limit = 100
+                                    }
+                        in
+                        Common.init "/teams/team/pipelines/pipeline/jobs/job"
+                            |> Application.handleDelivery
+                                (Subscription.RouteChanged <|
+                                    Routes.Job
+                                        { id = jobIdentifier , page = page }
+                                )
+                            |> Tuple.second
+                            |> Common.contains
+                                (Effects.ApiCall <|
+                                    Callback.RouteJobBuilds jobIdentifier page
+                                )
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
                         Common.init "/teams/team/pipelines/pipeline/jobs/job"
@@ -217,37 +261,37 @@ all =
                 , test "loading build has spinners for inputs and outputs" <|
                     init { disabled = False, paused = False }
                         >> Application.handleCallback
-                            (JobBuildsFetched <|
-                                let
-                                    jobId =
-                                        { jobName = "job"
-                                        , pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-
-                                    status =
-                                        BuildStatusSucceeded
-
-                                    builds =
-                                        [ { id = 0
-                                          , name = "0"
-                                          , job = Just jobId
-                                          , status = status
-                                          , duration =
-                                                { startedAt = Nothing
-                                                , finishedAt = Nothing
-                                                }
-                                          , reapTime = Nothing
-                                          }
-                                        ]
-                                in
-                                Ok
-                                    { pagination =
-                                        { previousPage = Nothing
-                                        , nextPage = Nothing
-                                        }
-                                    , content = builds
+                            (let
+                                jobId =
+                                    { jobName = "job"
+                                    , pipelineName = "pipeline"
+                                    , teamName = "team"
                                     }
+
+                                builds =
+                                    [ { id = 0
+                                      , name = "0"
+                                      , job = Just jobId
+                                      , status = BuildStatusSucceeded
+                                      , duration =
+                                            { startedAt = Nothing
+                                            , finishedAt = Nothing
+                                            }
+                                      , reapTime = Nothing
+                                      }
+                                    ]
+                             in
+                             ApiResponse
+                                (Callback.RouteJobBuilds jobId Nothing)
+                                (Ok <|
+                                    Callback.Builds
+                                        { pagination =
+                                            { previousPage = Nothing
+                                            , nextPage = Nothing
+                                            }
+                                        , content = builds
+                                        }
+                                )
                             )
                         >> Tuple.first
                         >> queryView
@@ -493,37 +537,37 @@ all =
             , test "body scrolls independently" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
-                        (JobBuildsFetched <|
-                            let
-                                jobId =
-                                    { jobName = "job"
-                                    , pipelineName = "pipeline"
-                                    , teamName = "team"
-                                    }
-
-                                status =
-                                    BuildStatusSucceeded
-
-                                builds =
-                                    [ { id = 0
-                                      , name = "0"
-                                      , job = Just jobId
-                                      , status = status
-                                      , duration =
-                                            { startedAt = Nothing
-                                            , finishedAt = Nothing
-                                            }
-                                      , reapTime = Nothing
-                                      }
-                                    ]
-                            in
-                            Ok
-                                { pagination =
-                                    { previousPage = Nothing
-                                    , nextPage = Nothing
-                                    }
-                                , content = builds
+                        (let
+                            jobId =
+                                { jobName = "job"
+                                , pipelineName = "pipeline"
+                                , teamName = "team"
                                 }
+
+                            builds =
+                                [ { id = 0
+                                  , name = "0"
+                                  , job = Just jobId
+                                  , status = BuildStatusSucceeded
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                ]
+                         in
+                         ApiResponse
+                            (Callback.RouteJobBuilds jobId Nothing)
+                            (Ok <|
+                                Callback.Builds
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                    , content = builds
+                                    }
+                            )
                         )
                     >> Tuple.first
                     >> queryView
@@ -532,37 +576,37 @@ all =
             , test "inputs icon on build" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
-                        (JobBuildsFetched <|
-                            let
-                                jobId =
-                                    { jobName = "job"
-                                    , pipelineName = "pipeline"
-                                    , teamName = "team"
-                                    }
-
-                                status =
-                                    BuildStatusSucceeded
-
-                                builds =
-                                    [ { id = 0
-                                      , name = "0"
-                                      , job = Just jobId
-                                      , status = status
-                                      , duration =
-                                            { startedAt = Nothing
-                                            , finishedAt = Nothing
-                                            }
-                                      , reapTime = Nothing
-                                      }
-                                    ]
-                            in
-                            Ok
-                                { pagination =
-                                    { previousPage = Nothing
-                                    , nextPage = Nothing
-                                    }
-                                , content = builds
+                        (let
+                            jobId =
+                                { jobName = "job"
+                                , pipelineName = "pipeline"
+                                , teamName = "team"
                                 }
+
+                            builds =
+                                [ { id = 0
+                                  , name = "0"
+                                  , job = Just jobId
+                                  , status = BuildStatusSucceeded
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                ]
+                         in
+                         ApiResponse
+                            (Callback.RouteJobBuilds jobId Nothing)
+                            (Ok <|
+                                Callback.Builds
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                    , content = builds
+                                    }
+                            )
                         )
                     >> Tuple.first
                     >> queryView
@@ -590,37 +634,37 @@ all =
             , test "outputs icon on build" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
-                        (JobBuildsFetched <|
-                            let
-                                jobId =
-                                    { jobName = "job"
-                                    , pipelineName = "pipeline"
-                                    , teamName = "team"
-                                    }
-
-                                status =
-                                    BuildStatusSucceeded
-
-                                builds =
-                                    [ { id = 0
-                                      , name = "0"
-                                      , job = Just jobId
-                                      , status = status
-                                      , duration =
-                                            { startedAt = Nothing
-                                            , finishedAt = Nothing
-                                            }
-                                      , reapTime = Nothing
-                                      }
-                                    ]
-                            in
-                            Ok
-                                { pagination =
-                                    { previousPage = Nothing
-                                    , nextPage = Nothing
-                                    }
-                                , content = builds
+                        (let
+                            jobId =
+                                { jobName = "job"
+                                , pipelineName = "pipeline"
+                                , teamName = "team"
                                 }
+
+                            builds =
+                                [ { id = 0
+                                  , name = "0"
+                                  , job = Just jobId
+                                  , status = BuildStatusSucceeded
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                ]
+                         in
+                         ApiResponse
+                            (Callback.RouteJobBuilds jobId Nothing)
+                            (Ok <|
+                                Callback.Builds
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                    , content = builds
+                                    }
+                            )
                         )
                     >> Tuple.first
                     >> queryView
@@ -678,37 +722,37 @@ all =
             , test "pagination chevrons with no pages" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
-                        (JobBuildsFetched <|
-                            let
-                                jobId =
-                                    { jobName = "job"
-                                    , pipelineName = "pipeline"
-                                    , teamName = "team"
-                                    }
-
-                                status =
-                                    BuildStatusSucceeded
-
-                                builds =
-                                    [ { id = 0
-                                      , name = "0"
-                                      , job = Just jobId
-                                      , status = status
-                                      , duration =
-                                            { startedAt = Nothing
-                                            , finishedAt = Nothing
-                                            }
-                                      , reapTime = Nothing
-                                      }
-                                    ]
-                            in
-                            Ok
-                                { pagination =
-                                    { previousPage = Nothing
-                                    , nextPage = Nothing
-                                    }
-                                , content = builds
+                        (let
+                            jobId =
+                                { jobName = "job"
+                                , pipelineName = "pipeline"
+                                , teamName = "team"
                                 }
+
+                            builds =
+                                [ { id = 0
+                                  , name = "0"
+                                  , job = Just jobId
+                                  , status = BuildStatusSucceeded
+                                  , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                  , reapTime = Nothing
+                                  }
+                                ]
+                         in
+                         ApiResponse
+                            (Callback.RouteJobBuilds jobId Nothing)
+                            (Ok <|
+                                Callback.Builds
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                    , content = builds
+                                    }
+                            )
                         )
                     >> Tuple.first
                     >> queryView
@@ -768,14 +812,11 @@ all =
                             , teamName = "team"
                             }
 
-                        status =
-                            BuildStatusSucceeded
-
                         builds =
                             [ { id = 0
                               , name = "0"
                               , job = Just jobId
-                              , status = status
+                              , status = BuildStatusSucceeded
                               , duration =
                                     { startedAt = Nothing
                                     , finishedAt = Nothing
@@ -791,15 +832,17 @@ all =
                     in
                     init { disabled = False, paused = False } ()
                         |> Application.handleCallback
-                            (JobBuildsFetched <|
-                                Ok
-                                    { pagination =
-                                        { previousPage =
-                                            Just prevPage
-                                        , nextPage = Nothing
+                            (ApiResponse
+                                (Callback.RouteJobBuilds jobId Nothing)
+                                (Ok <|
+                                    Callback.Builds
+                                        { pagination =
+                                            { previousPage = Just prevPage
+                                            , nextPage = Nothing
+                                            }
+                                        , content = builds
                                         }
-                                    , content = builds
-                                    }
+                                )
                             )
                         |> Tuple.first
                 , query =
@@ -862,63 +905,69 @@ all =
                     \_ ->
                         init { disabled = False, paused = False } ()
                             |> Application.handleCallback
-                                (JobBuildsFetched <|
-                                    Ok
-                                        { pagination =
-                                            { previousPage = Nothing
-                                            , nextPage = Nothing
+                                (ApiResponse
+                                    (Callback.RouteJobBuilds jobIdentifier Nothing)
+                                    (Ok <|
+                                        Callback.Builds
+                                            { pagination =
+                                                { previousPage = Nothing
+                                                , nextPage = Nothing
+                                                }
+                                            , content = []
                                             }
-                                        , content = []
-                                        }
+                                    )
                                 )
                             |> Tuple.first
                             |> queryView
                             |> Query.has [ text "no builds for job “job”" ]
                 ]
-            , test "JobBuildsFetched" <|
+            , test "fetching builds updates page and builds" <|
                 \_ ->
-                    let
-                        bwr =
-                            defaultModel.buildsWithResources
-                    in
-                    Expect.equal
-                        { defaultModel
-                            | currentPage =
-                                Just
-                                    { direction = Concourse.Pagination.Since 124
-                                    , limit = 1
-                                    }
-                            , buildsWithResources =
-                                { bwr
-                                    | content =
-                                        [ { build = someBuild
-                                          , resources = Nothing
-                                          }
-                                        ]
-                                }
-                        }
-                    <|
-                        Tuple.first <|
-                            Job.handleCallback
-                                (JobBuildsFetched <|
-                                    Ok
-                                        { content = [ someBuild ]
-                                        , pagination =
+                    ( defaultModel, [] )
+                        |> Job.handleCallback
+                            (ApiResponse
+                                (Callback.RouteJobBuilds someJobInfo Nothing)
+                                (Ok <|
+                                    Callback.Builds
+                                        { pagination =
                                             { previousPage = Nothing
                                             , nextPage = Nothing
                                             }
+                                        , content = [ someBuild ]
                                         }
                                 )
-                                ( defaultModel, [] )
-            , test "JobBuildsFetched error" <|
+                            )
+                        |> Tuple.first
+                        |> Expect.equal
+                            { defaultModel
+                                | currentPage =
+                                    Just
+                                        { direction = Concourse.Pagination.Since 124
+                                        , limit = 1
+                                        }
+                                , buildsWithResources =
+                                    let
+                                        bwr =
+                                            defaultModel.buildsWithResources
+                                    in
+                                    { bwr
+                                        | content =
+                                            [ { build = someBuild
+                                              , resources = Nothing
+                                              }
+                                            ]
+                                    }
+                            }
+            , test "error fetching builds does nothing" <|
                 \_ ->
-                    Expect.equal
-                        defaultModel
-                    <|
-                        Tuple.first <|
-                            Job.handleCallback
-                                (JobBuildsFetched <| Err Http.NetworkError)
-                                ( defaultModel, [] )
+                    ( defaultModel, [] )
+                        |> Job.handleCallback
+                            (ApiResponse
+                                (Callback.RouteJobBuilds someJobInfo Nothing)
+                                (Err Http.NetworkError)
+                            )
+                        |> Tuple.first
+                        |> Expect.equal defaultModel
             , test "BuildResourcesFetched" <|
                 \_ ->
                     let
@@ -1023,21 +1072,27 @@ all =
                         )
                     >> Tuple.second
                     >> Expect.all
-                        [ Common.contains (Effects.FetchJobBuilds jobIdentifier Nothing)
-                        , Common.contains
-                            (Effects.ApiCall <| Callback.RouteJob jobIdentifier)
+                        [ Common.contains <|
+                            Effects.ApiCall <|
+                                Callback.RouteJobBuilds jobIdentifier Nothing
+                        , Common.contains <|
+                            Effects.ApiCall <|
+                                Callback.RouteJob jobIdentifier
                         ]
             , test "on one-second timer, updates build timestamps" <|
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
-                        (Callback.JobBuildsFetched <|
-                            Ok
-                                { content = [ someBuild ]
-                                , pagination =
-                                    { nextPage = Nothing
-                                    , previousPage = Nothing
+                        (ApiResponse
+                            (Callback.RouteJobBuilds jobIdentifier Nothing)
+                            (Ok <|
+                                Callback.Builds
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                    , content = [ someBuild ]
                                     }
-                                }
+                            )
                         )
                     >> Tuple.first
                     >> Application.update
@@ -1057,14 +1112,17 @@ all =
                         )
                     >> Tuple.first
                     >> Application.handleCallback
-                        (Callback.JobBuildsFetched <|
-                            Ok
-                                { content = [ someBuild ]
-                                , pagination =
-                                    { nextPage = Nothing
-                                    , previousPage = Nothing
+                        (ApiResponse
+                            (Callback.RouteJobBuilds jobIdentifier Nothing)
+                            (Ok <|
+                                Callback.Builds
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                    , content = [ someBuild ]
                                     }
-                                }
+                            )
                         )
                     >> Tuple.first
                     >> Application.update
