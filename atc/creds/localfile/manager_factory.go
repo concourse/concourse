@@ -5,8 +5,7 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-type ManagerFactory struct {
-}
+type ManagerFactory struct{}
 
 func init() {
 	creds.Register("localfile", NewManagerFactory())

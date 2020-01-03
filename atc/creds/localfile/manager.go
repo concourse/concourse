@@ -18,25 +18,6 @@ type Manager struct {
 
 func (manager *Manager) Init(logger lager.Logger) error {
 
-	// Just go through the motions to make sure everything can be parsed/read/etc.
-	yamlDoc, err := ioutil.ReadFile(manager.Path)
-	if err != nil {
-		return err
-	}
-
-	jsonDoc, err := yaml.YAMLToJSON(yamlDoc)
-	if err != nil {
-		fmt.Printf("Error converting YAML to JSON: %s\n", err.Error())
-		return err
-	}
-
-	var someStruct map[string]interface{}
-	err = json.Unmarshal(jsonDoc, &someStruct)
-	if err != nil {
-		fmt.Printf("Error unmarshaling JSON: %s\n", err.Error())
-		return err
-	}
-
 	manager.SecretsFactory = &SecretsFactory{
 		path:   manager.Path,
 		logger: logger,
@@ -61,8 +42,25 @@ func (manager Manager) IsConfigured() bool {
 func (manager Manager) Validate() error {
 	_, err := os.Stat(manager.Path)
 	if os.IsNotExist(err) {
+		fmt.Sprintf("Local credential file not found")
 		return fmt.Errorf("Local credential file not found")
 	}
+
+	// Just go through the motions to make sure everything can be parsed/read/etc.
+	yamlDoc, err := ioutil.ReadFile(manager.Path)
+	if err != nil {
+		// TODO: Proper error reporting
+		fmt.Sprintf("Error reading YAML file: %s\n", err.Error())
+		return fmt.Errorf("Error reading YAML file: %s\n", err.Error())
+	}
+
+	_, err = yaml.YAMLToJSON(yamlDoc)
+	if err != nil {
+		fmt.Sprintf("Error converting YAML to JSON: %s\n", err.Error())
+		return fmt.Errorf("Error converting YAML to JSON: %s\n", err.Error())
+	}
+
+	// TODO: Add gjson.validate() (or similar)
 
 	return nil
 }
@@ -74,9 +72,11 @@ func (manager Manager) Health() (*creds.HealthResponse, error) {
 }
 
 func (manager Manager) Close(logger lager.Logger) {
+	// Anything here?
 }
 
 func (manager Manager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
+	// TODO: Sanity check what/why this is happening here.
 	if manager.SecretsFactory == nil {
 		manager.SecretsFactory = &SecretsFactory{
 			path:   manager.Path,

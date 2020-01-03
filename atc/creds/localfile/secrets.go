@@ -2,10 +2,9 @@ package localfile
 
 import (
 	"code.cloudfoundry.org/lager"
-	"encoding/json"
-	"fmt"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/thedevsaddam/gojsonq"
+	"github.com/tidwall/gjson"
+	"io/ioutil"
 	yaml "sigs.k8s.io/yaml"
 	"time"
 )
@@ -35,58 +34,22 @@ func (secrets *Secrets) NewSecretLookupPaths(teamName string, pipelineName strin
 func (secrets *Secrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 
 	secrets.logger.Info("secrets-get-path", lager.Data{
-		"path": secrets.path,
+		"path":   secrets.path,
+		"secret": secretPath,
 	})
 
-	jq := gojsonq.New(gojsonq.SetDecoder(&yamlDecoder{})).File(secrets.path)
+	// TODO: Not efficient to read it every time, though it does allow updating secrets without a restart.
+	// Could check mtime to reload file or something...
+	yamlDoc, _ := ioutil.ReadFile(secrets.path)
+	jsonDoc, _ := yaml.YAMLToJSON(yamlDoc)
 
-	query := jq.Find("shared.some_key")
+	result := gjson.GetBytes(jsonDoc, secretPath)
 
-	secrets.logger.Info("secrets-get", lager.Data{
-		"test-query": fmt.Sprintf("%v", query),
-	})
-
-	query2 := jq.Find("shared.some_key")
-
-	secrets.logger.Info(secretPath, lager.Data{
-		"test-query": fmt.Sprintf("%v", query2),
-	})
-
-	/*
-		result, err := jq.FindR(secretPath)
-
-		if err != nil {
-
-			secrets.logger.Info("secretes-get-error", lager.Data{
-				"error": fmt.Sprintf("%v", err),
-			})
-
-			// TODO: Figure out how to handle real errors and not just 404
-			return nil, nil, false, nil
-		}
-
-		secrets.logger.Info("secretes-get-error", lager.Data{
-			"error": "did not return",
-		})
-
-		value, _ := result.String()
-	*/
-
-	result := jq.Find(secretPath)
-
-	if result == nil {
+	if !result.Exists() {
 		return nil, nil, false, nil
 	}
 
-	return fmt.Sprintf("%v", result), nil, true, nil
-}
-
-type yamlDecoder struct{}
-
-func (i *yamlDecoder) Decode(data []byte, v interface{}) error {
-	bb, err := yaml.YAMLToJSON(data)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(bb, &v)
+	// TODO: Would basically like string or map (array seems unecessary/excessive to handle).
+	// Do not want a nested map (excessive/unecessary).
+	return result.Value(), nil, true, nil
 }
