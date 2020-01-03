@@ -84,6 +84,10 @@ var buildsQuery = psql.Select(`
 var minMaxIdQuery = psql.Select("COALESCE(MAX(b.id), 0)", "COALESCE(MIN(b.id), 0)").
 	From("builds as b")
 
+var latestCompletedBuildQuery = psql.Select("max(id)").
+	From("builds").
+	Where(sq.Expr(`status NOT IN ('pending', 'started')`))
+
 //go:generate counterfeiter . Build
 
 type Build interface {
@@ -505,7 +509,7 @@ func (b *build) Finish(status BuildStatus) error {
 			return err
 		}
 
-		err = updateTransitionBuildForJob(tx, b.jobID, b.id, status)
+		err = updateTransitionBuildForJob(tx, b.jobID, b.id, status, b.rerunOf)
 		if err != nil {
 			return err
 		}
@@ -1563,8 +1567,10 @@ func updateNextBuildForJob(tx Tx, jobID int) error {
 		SET next_build_id = (
 			SELECT min(b.id)
 			FROM builds b
+			INNER JOIN jobs j ON j.id = b.job_id
 			WHERE b.job_id = $1
 			AND b.status IN ('pending', 'started')
+			AND (b.rerun_of IS NULL OR b.rerun_of = j.latest_completed_build_id)
 		)
 		WHERE j.id = $1
 	`, jobID)
@@ -1575,16 +1581,43 @@ func updateNextBuildForJob(tx Tx, jobID int) error {
 }
 
 func updateLatestCompletedBuildForJob(tx Tx, jobID int) error {
-	_, err := tx.Exec(`
+	var latestNonRerunId int
+	err := latestCompletedBuildQuery.
+		Where(sq.Eq{"job_id": jobID}).
+		Where(sq.Eq{"rerun_of": nil}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&latestNonRerunId)
+	if err != nil {
+		return err
+	}
+
+	var latestRerunId sql.NullString
+	err = latestCompletedBuildQuery.
+		Where(sq.Eq{"job_id": jobID}).
+		Where(sq.Eq{"rerun_of": latestNonRerunId}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&latestRerunId)
+	if err != nil {
+		return err
+	}
+
+	var id int
+	if latestRerunId.Valid {
+		id, err = strconv.Atoi(latestRerunId.String)
+		if err != nil {
+			return err
+		}
+	} else {
+		id = latestNonRerunId
+	}
+
+	_, err = tx.Exec(`
 		UPDATE jobs AS j
-		SET latest_completed_build_id = (
-			SELECT max(b.id)
-			FROM builds b
-			WHERE b.job_id = $1
-			AND b.status NOT IN ('pending', 'started')
-		)
-		WHERE j.id = $1
-	`, jobID)
+		SET latest_completed_build_id = $1
+		WHERE j.id = $2
+	`, id, jobID)
 	if err != nil {
 		return err
 	}
@@ -1592,7 +1625,7 @@ func updateLatestCompletedBuildForJob(tx Tx, jobID int) error {
 	return nil
 }
 
-func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus BuildStatus) error {
+func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus BuildStatus, rerunID int) error {
 	var shouldUpdateTransition bool
 
 	var latestID int
@@ -1622,7 +1655,7 @@ func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus Buil
 		return nil
 	}
 
-	if latestStatus != buildStatus {
+	if latestStatus != buildStatus && (isNotRerunBuild(rerunID) || rerunID == latestID) {
 		// status has changed; transitioned!
 		shouldUpdateTransition = true
 	}
@@ -1639,4 +1672,8 @@ func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus Buil
 	}
 
 	return nil
+}
+
+func isNotRerunBuild(rerunID int) bool {
+	return rerunID == 0
 }
