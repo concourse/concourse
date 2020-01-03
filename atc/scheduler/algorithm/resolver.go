@@ -28,12 +28,13 @@ type relatedInputConfigs struct {
 func constructResolvers(
 	versions db.VersionsDB,
 	job db.Job,
+	inputs []atc.JobInput,
 	resources db.Resources,
 	relatedJobs NameToIDMap,
 ) ([]Resolver, error) {
 	resolvers := []Resolver{}
 	inputConfigsWithPassed := InputConfigs{}
-	for _, input := range job.Config().Inputs() {
+	for _, input := range inputs {
 		resource, found := resources.Lookup(input.Resource)
 		if !found {
 			return nil, errors.New("input resource not found")

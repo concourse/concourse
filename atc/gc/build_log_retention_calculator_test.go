@@ -2,8 +2,6 @@ package gc_test
 
 import (
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
@@ -67,14 +65,12 @@ var _ = Describe("BuildLogRetentionCalculator", func() {
 	})
 })
 
-func makeJob(retainAmount int, retainMinSuccessAmount, retainAmountDays int) db.Job {
-	rv := new(dbfakes.FakeJob)
-	rv.ConfigReturns(atc.JobConfig{
+func makeJob(retainAmount int, retainMinSuccessAmount, retainAmountDays int) atc.JobConfig {
+	return atc.JobConfig{
 		BuildLogRetention: &atc.BuildLogRetention{
 			Builds:                 retainAmount,
 			Days:                   retainAmountDays,
 			MinimumSucceededBuilds: retainMinSuccessAmount,
 		},
-	})
-	return rv
+	}
 }

@@ -1,12 +1,13 @@
 package db_test
 
 import (
+	"strconv"
+	"time"
+
 	"code.cloudfoundry.org/clock"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/vars"
-	"strconv"
-	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -1085,15 +1086,15 @@ var _ = Describe("Pipeline", func() {
 			actualDashboard, err := pipeline.Dashboard()
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
-			Expect(actualDashboard[1].Job.Name()).To(Equal(otherJob.Name()))
-			Expect(actualDashboard[2].Job.Name()).To(Equal(aJob.Name()))
-			Expect(actualDashboard[3].Job.Name()).To(Equal(sharedJob.Name()))
-			Expect(actualDashboard[4].Job.Name()).To(Equal(randomJob.Name()))
-			Expect(actualDashboard[5].Job.Name()).To(Equal(job1.Name()))
-			Expect(actualDashboard[6].Job.Name()).To(Equal(job2.Name()))
-			Expect(actualDashboard[7].Job.Name()).To(Equal(otherSerialGroupJob.Name()))
-			Expect(actualDashboard[8].Job.Name()).To(Equal(differentSerialGroupJob.Name()))
+			Expect(actualDashboard[0].Name).To(Equal(job.Name()))
+			Expect(actualDashboard[1].Name).To(Equal(otherJob.Name()))
+			Expect(actualDashboard[2].Name).To(Equal(aJob.Name()))
+			Expect(actualDashboard[3].Name).To(Equal(sharedJob.Name()))
+			Expect(actualDashboard[4].Name).To(Equal(randomJob.Name()))
+			Expect(actualDashboard[5].Name).To(Equal(job1.Name()))
+			Expect(actualDashboard[6].Name).To(Equal(job2.Name()))
+			Expect(actualDashboard[7].Name).To(Equal(otherSerialGroupJob.Name()))
+			Expect(actualDashboard[8].Name).To(Equal(differentSerialGroupJob.Name()))
 
 			By("returning a job's most recent pending build if there are no running builds")
 			job, found, err = pipeline.Job("job-name")
@@ -1106,8 +1107,8 @@ var _ = Describe("Pipeline", func() {
 			actualDashboard, err = pipeline.Dashboard()
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
-			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(firstJobBuild.ID()))
+			Expect(actualDashboard[0].Name).To(Equal(job.Name()))
+			Expect(actualDashboard[0].NextBuild.ID).To(Equal(firstJobBuild.ID()))
 
 			By("returning a job's most recent started build")
 			found, err = firstJobBuild.Start(atc.Plan{ID: "some-id"})
@@ -1121,11 +1122,9 @@ var _ = Describe("Pipeline", func() {
 			actualDashboard, err = pipeline.Dashboard()
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
-			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(firstJobBuild.ID()))
-			Expect(actualDashboard[0].NextBuild.Status()).To(Equal(db.BuildStatusStarted))
-			Expect(actualDashboard[0].NextBuild.Schema()).To(Equal("exec.v2"))
-			Expect(actualDashboard[0].NextBuild.PrivatePlan()).To(Equal(atc.Plan{ID: "some-id"}))
+			Expect(actualDashboard[0].Name).To(Equal(job.Name()))
+			Expect(actualDashboard[0].NextBuild.ID).To(Equal(firstJobBuild.ID()))
+			Expect(actualDashboard[0].NextBuild.Status).To(Equal("started"))
 
 			By("returning a job's most recent started build even if there is a newer pending build")
 			job, found, err = pipeline.Job("job-name")
@@ -1138,8 +1137,8 @@ var _ = Describe("Pipeline", func() {
 			actualDashboard, err = pipeline.Dashboard()
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
-			Expect(actualDashboard[0].NextBuild.ID()).To(Equal(firstJobBuild.ID()))
+			Expect(actualDashboard[0].Name).To(Equal(job.Name()))
+			Expect(actualDashboard[0].NextBuild.ID).To(Equal(firstJobBuild.ID()))
 
 			By("returning a job's most recent finished build")
 			err = firstJobBuild.Finish(db.BuildStatusSucceeded)
@@ -1155,9 +1154,9 @@ var _ = Describe("Pipeline", func() {
 			actualDashboard, err = pipeline.Dashboard()
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(actualDashboard[0].Job.Name()).To(Equal(job.Name()))
+			Expect(actualDashboard[0].Name).To(Equal(job.Name()))
 			Expect(actualDashboard[0].NextBuild).To(BeNil())
-			Expect(actualDashboard[0].FinishedBuild.ID()).To(Equal(secondJobBuild.ID()))
+			Expect(actualDashboard[0].FinishedBuild.ID).To(Equal(secondJobBuild.ID()))
 		})
 	})
 

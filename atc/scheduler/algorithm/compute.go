@@ -3,6 +3,7 @@ package algorithm
 import (
 	"fmt"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -23,10 +24,11 @@ type algorithm struct {
 
 func (a *algorithm) Compute(
 	job db.Job,
+	inputs []atc.JobInput,
 	resources db.Resources,
 	relatedJobs NameToIDMap,
 ) (db.InputMapping, bool, bool, error) {
-	resolvers, err := constructResolvers(a.versionsDB, job, resources, relatedJobs)
+	resolvers, err := constructResolvers(a.versionsDB, job, inputs, resources, relatedJobs)
 	if err != nil {
 		return nil, false, false, fmt.Errorf("construct resolvers: %w", err)
 	}

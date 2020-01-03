@@ -26,6 +26,8 @@ var _ = Describe("BuildStarter", func() {
 
 		buildStarter scheduler.BuildStarter
 
+		jobInputs []atc.JobInput
+
 		disaster error
 	)
 
@@ -73,11 +75,21 @@ var _ = Describe("BuildStarter", func() {
 				job.GetPendingBuildsReturns(pendingBuilds, nil)
 				job.NameReturns("some-job")
 				job.IDReturns(1)
-				job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}})
+				job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}}, nil)
 
 				relatedJobs = algorithm.NameToIDMap{"some-job": 1}
 
 				fakePipeline.CheckPausedReturns(false, nil)
+				jobInputs = []atc.JobInput{
+					{
+						Name:     "input-1",
+						Resource: "some-resource",
+					},
+					{
+						Name:     "input-2",
+						Resource: "some-resource",
+					},
+				}
 			})
 
 			Context("when one pending build is aborted before start", func() {
@@ -97,6 +109,7 @@ var _ = Describe("BuildStarter", func() {
 						lagertest.NewTestLogger("test"),
 						fakePipeline,
 						job,
+						jobInputs,
 						resources,
 						relatedJobs,
 					)
@@ -156,6 +169,7 @@ var _ = Describe("BuildStarter", func() {
 						lagertest.NewTestLogger("test"),
 						fakePipeline,
 						job,
+						jobInputs,
 						resources,
 						relatedJobs,
 					)
@@ -240,7 +254,7 @@ var _ = Describe("BuildStarter", func() {
 
 							fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeDBResourceType}, nil)
 
-							job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "other-resource"}}})
+							job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "other-resource"}}}, nil)
 
 							createdBuild.IsNewerThanLastCheckOfReturns(false)
 
@@ -264,9 +278,10 @@ var _ = Describe("BuildStarter", func() {
 
 							It("computes the next inputs for the right job and versions", func() {
 								Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
-								actualJob, _, actualRelatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
+								actualJob, actualInputs, _, actualRelatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
 								Expect(actualJob.Name()).To(Equal(job.Name()))
 								Expect(actualRelatedJobs).To(Equal(relatedJobs))
+								Expect(actualInputs).To(Equal(jobInputs))
 							})
 
 							It("returns the error and retries to schedule", func() {
@@ -401,7 +416,7 @@ var _ = Describe("BuildStarter", func() {
 				BeforeEach(func() {
 					job.NameReturns("some-job")
 					job.IDReturns(1)
-					job.ConfigReturns(atc.JobConfig{Name: "some-job"})
+					job.ConfigReturns(atc.JobConfig{Name: "some-job"}, nil)
 					createdBuild.IsManuallyTriggeredReturns(false)
 
 					relatedJobs = algorithm.NameToIDMap{"some-job": 1}
@@ -411,6 +426,8 @@ var _ = Describe("BuildStarter", func() {
 					fakeDBResourceType.VersionReturns(atc.Version{"some": "version"})
 
 					fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeDBResourceType}, nil)
+
+					jobInputs = []atc.JobInput{}
 				})
 
 				JustBeforeEach(func() {
@@ -418,6 +435,7 @@ var _ = Describe("BuildStarter", func() {
 						lagertest.NewTestLogger("test"),
 						fakePipeline,
 						job,
+						jobInputs,
 						db.Resources{resource},
 						relatedJobs,
 					)

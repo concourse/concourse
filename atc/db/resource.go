@@ -796,7 +796,7 @@ func scanResource(r *resource, row scannable) error {
 // order for the updates, which can lead to deadlocking.
 func requestScheduleForJobsUsingResource(tx Tx, resourceID int) error {
 	rows, err := psql.Select("DISTINCT job_id").
-		From("job_pipes").
+		From("job_inputs").
 		Where(sq.Eq{
 			"resource_id": resourceID,
 		}).

@@ -1,12 +1,13 @@
 package db_test
 
 import (
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	"database/sql"
 	"fmt"
 	"strconv"
 	"time"
+
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -1886,11 +1887,17 @@ var _ = Describe("Team", func() {
 					Name: "job-2",
 				},
 			}
+			config.Resources = atc.ResourceConfigs{
+				{
+					Name: "some-resource",
+					Type: "some-type",
+				},
+			}
 
 			savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
 			Expect(err).ToNot(HaveOccurred())
 
-			_, found, err := savedPipeline.Resource("some-resource")
+			_, found, err := savedPipeline.Resource("some-other-resource")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -2359,8 +2366,8 @@ var _ = Describe("Team", func() {
 			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, true)
 			Expect(err).ToNot(HaveOccurred())
 
-			rows, err := psql.Select("job_id", "resource_id", "passed_job_id").
-				From("job_pipes").
+			rows, err := psql.Select("name", "job_id", "resource_id", "passed_job_id").
+				From("job_inputs").
 				Where(sq.Expr(`job_id in (
 					SELECT j.id
 					FROM jobs j
@@ -2371,6 +2378,7 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			type jobPipe struct {
+				name        string
 				jobID       int
 				resourceID  int
 				passedJobID int
@@ -2380,7 +2388,7 @@ var _ = Describe("Team", func() {
 			for rows.Next() {
 				var jp jobPipe
 				var passedJob sql.NullInt64
-				err = rows.Scan(&jp.jobID, &jp.resourceID, &passedJob)
+				err = rows.Scan(&jp.name, &jp.jobID, &jp.resourceID, &passedJob)
 				Expect(err).ToNot(HaveOccurred())
 
 				if passedJob.Valid {
@@ -2408,19 +2416,23 @@ var _ = Describe("Team", func() {
 
 			Expect(jobPipes).To(ConsistOf(
 				jobPipe{
+					name:       "some-resource",
 					jobID:      job1.ID(),
 					resourceID: someResource.ID(),
 				},
 				jobPipe{
+					name:       "some-resource",
 					jobID:      job2.ID(),
 					resourceID: someResource.ID(),
 				},
 				jobPipe{
+					name:        "some-input",
 					jobID:       someJob.ID(),
 					resourceID:  someResource.ID(),
 					passedJobID: job1.ID(),
 				},
 				jobPipe{
+					name:        "some-input",
 					jobID:       someJob.ID(),
 					resourceID:  someResource.ID(),
 					passedJobID: job2.ID(),
@@ -2497,8 +2509,8 @@ var _ = Describe("Team", func() {
 			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
 			Expect(err).ToNot(HaveOccurred())
 
-			rows, err = psql.Select("job_id", "resource_id", "passed_job_id").
-				From("job_pipes").
+			rows, err = psql.Select("name", "job_id", "resource_id", "passed_job_id").
+				From("job_inputs").
 				Where(sq.Expr(`job_id in (
 					SELECT j.id
 					FROM jobs j
@@ -2512,7 +2524,7 @@ var _ = Describe("Team", func() {
 			for rows.Next() {
 				var jp jobPipe
 				var passedJob sql.NullInt64
-				err = rows.Scan(&jp.jobID, &jp.resourceID, &passedJob)
+				err = rows.Scan(&jp.name, &jp.jobID, &jp.resourceID, &passedJob)
 				Expect(err).ToNot(HaveOccurred())
 
 				if passedJob.Valid {
@@ -2524,10 +2536,12 @@ var _ = Describe("Team", func() {
 
 			Expect(newJobPipes).To(ConsistOf(
 				jobPipe{
+					name:       "some-resource",
 					jobID:      job2.ID(),
 					resourceID: someResource.ID(),
 				},
 				jobPipe{
+					name:        "some-input",
 					jobID:       someJob.ID(),
 					resourceID:  someResource.ID(),
 					passedJobID: job2.ID(),
@@ -2593,11 +2607,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			jobs, err := pipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			jobConfigs, err := jobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
 				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
-				Jobs:          jobs.Configs(),
+				Jobs:          jobConfigs,
 			}, config)
 
 			otherPipeline, found, err := team.Pipeline(otherPipelineName)
@@ -2611,11 +2627,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			otherJobs, err := otherPipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			otherJobConfigs, err := otherJobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
 				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
-				Jobs:          otherJobs.Configs(),
+				Jobs:          otherJobConfigs,
 			}, otherConfig)
 
 		})
@@ -2638,11 +2656,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			jobs, err := pipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			jobConfigs, err := jobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
 				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
-				Jobs:          jobs.Configs(),
+				Jobs:          jobConfigs,
 			}, config)
 
 			otherResourceTypes, err := otherPipeline.ResourceTypes()
@@ -2651,11 +2671,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			otherJobs, err := otherPipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			otherJobConfigs, err := otherJobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
 				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
-				Jobs:          otherJobs.Configs(),
+				Jobs:          otherJobConfigs,
 			}, otherConfig)
 
 			By("returning the saved groups")
@@ -2723,11 +2745,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			jobs, err = pipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			jobConfigs, err = jobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
 				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
-				Jobs:          jobs.Configs(),
+				Jobs:          jobConfigs,
 			}, updatedConfig)
 
 			otherResourceTypes, err = otherPipeline.ResourceTypes()
@@ -2736,11 +2760,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			otherJobs, err = otherPipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
+			otherJobConfigs, err = jobs.Configs()
+			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
 				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
-				Jobs:          otherJobs.Configs(),
+				Jobs:          otherJobConfigs,
 			}, updatedConfig)
 
 			By("returning the saved groups")
