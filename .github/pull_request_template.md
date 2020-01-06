@@ -2,7 +2,7 @@
 
 > If you haven't already, please take a look at our [Code of Conduct] and our
 > [Contributing Guide]. There are certain anti-patterns that we try to avoid -
-> check the [Anti-patterns page] to now more.
+> check the [Anti-patterns page] to know more.
 
 > To help us review your PR, please fill in the following information.
 
@@ -33,7 +33,7 @@ closes # .
 # How does it accomplish that?
 
 > What is the approach that you took to get to the end goal of this PR?
-> Succintly, what are the changes included in this PR?
+> Succinctly, what are the changes included in this PR?
 
 
 
