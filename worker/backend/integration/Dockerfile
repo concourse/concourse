@@ -5,6 +5,7 @@ FROM concourse/golang-builder
 
 RUN mkdir -p /go/src/github.com/concourse/ /usr/local/concourse/bin/
 ENV PATH=/usr/local/concourse/bin:$PATH
+ENV GO111MODULE=on
 
 COPY start.sh /usr/local/concourse/bin/start.sh
 VOLUME /go/src/github.com/concourse/concourse
