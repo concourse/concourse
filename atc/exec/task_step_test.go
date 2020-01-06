@@ -435,9 +435,8 @@ var _ = Describe("TaskStep", func() {
 							MountPath: "some-artifact-root/some-path-2",
 						},
 					},
-					Err: nil,
 				}
-				fakeClient.RunTaskStepReturns(taskResult)
+				fakeClient.RunTaskStepReturns(taskResult, nil)
 			})
 
 			It("creates the containerSpec with the caches in the inputs", func() {
@@ -786,9 +785,8 @@ var _ = Describe("TaskStep", func() {
 					taskResult := worker.TaskResult{
 						Status:       taskStepStatus,
 						VolumeMounts: []worker.VolumeMount{},
-						Err:          nil,
 					}
-					fakeClient.RunTaskStepReturns(taskResult)
+					fakeClient.RunTaskStepReturns(taskResult, nil)
 				})
 				It("finishes the task via the delegate", func() {
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
@@ -840,9 +838,8 @@ var _ = Describe("TaskStep", func() {
 									MountPath: fakeMountPath3,
 								},
 							},
-							Err: nil,
 						}
-						fakeClient.RunTaskStepReturns(fakeTaskResult)
+						fakeClient.RunTaskStepReturns(fakeTaskResult, nil)
 					})
 
 					JustBeforeEach(func() {
@@ -878,8 +875,8 @@ var _ = Describe("TaskStep", func() {
 			Context("when the task exits with nonzero status", func() {
 				BeforeEach(func() {
 					taskStepStatus = 5
-					taskResult := worker.TaskResult{Status: taskStepStatus, VolumeMounts: []worker.VolumeMount{}, Err: nil}
-					fakeClient.RunTaskStepReturns(taskResult)
+					taskResult := worker.TaskResult{Status: taskStepStatus, VolumeMounts: []worker.VolumeMount{}}
+					fakeClient.RunTaskStepReturns(taskResult, nil)
 				})
 				It("finishes the task via the delegate", func() {
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
@@ -897,8 +894,8 @@ var _ = Describe("TaskStep", func() {
 			disaster := errors.New("task run failed")
 
 			BeforeEach(func() {
-				taskResult := worker.TaskResult{Status: -1, VolumeMounts: []worker.VolumeMount{}, Err: disaster}
-				fakeClient.RunTaskStepReturns(taskResult)
+				taskResult := worker.TaskResult{Status: -1, VolumeMounts: []worker.VolumeMount{}}
+				fakeClient.RunTaskStepReturns(taskResult, disaster)
 			})
 
 			It("returns the error", func() {
@@ -916,9 +913,7 @@ var _ = Describe("TaskStep", func() {
 					worker.TaskResult{
 						Status:       -1,
 						VolumeMounts: []worker.VolumeMount{},
-						Err:          context.Canceled,
-					},
-				)
+					}, context.Canceled)
 				cancel()
 			})
 
@@ -990,9 +985,8 @@ var _ = Describe("TaskStep", func() {
 							MountPath: fakeMountPath3,
 						},
 					},
-					Err: nil,
 				}
-				fakeClient.RunTaskStepReturns(taskResult)
+				fakeClient.RunTaskStepReturns(taskResult, nil)
 			})
 
 			It("re-registers the outputs as artifacts", func() {
@@ -1038,9 +1032,8 @@ var _ = Describe("TaskStep", func() {
 							MountPath: fakeMountPath,
 						},
 					},
-					Err: nil,
 				}
-				fakeClient.RunTaskStepReturns(taskResult)
+				fakeClient.RunTaskStepReturns(taskResult, nil)
 			})
 
 			JustBeforeEach(func() {

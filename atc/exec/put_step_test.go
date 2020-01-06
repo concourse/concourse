@@ -73,6 +73,7 @@ var _ = Describe("PutStep", func() {
 
 		versionResult runtime.VersionResult
 		clientErr     error
+		failErr		  error
 	)
 
 	BeforeEach(func() {
@@ -162,7 +163,10 @@ var _ = Describe("PutStep", func() {
 			Put: putPlan,
 		}
 
-		fakeClient.RunPutStepReturns(worker.PutResult{Status: 0, VersionResult: versionResult, Err: clientErr})
+		fakeClient.RunPutStepReturns(
+			worker.PutResult{Status: 0, VersionResult: versionResult, Failure: failErr},
+		clientErr,
+			)
 
 		putStep = exec.NewPutStep(
 			plan.ID,
@@ -347,7 +351,7 @@ var _ = Describe("PutStep", func() {
 	Context("when RunPutStep exits unsuccessfully", func() {
 		BeforeEach(func() {
 			versionResult = runtime.VersionResult{}
-			clientErr = runtime.ErrResourceScriptFailed{
+			failErr = runtime.ErrResourceScriptFailed{
 				ExitStatus: 42,
 			}
 		})

@@ -224,7 +224,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	result := step.workerClient.RunTaskStep(
+	result, err := step.workerClient.RunTaskStep(
 		ctx,
 		logger,
 		owner,
@@ -238,7 +238,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		step.lockFactory,
 	)
 
-	err = result.Err
 	if err != nil {
 		if err == context.Canceled || err == context.DeadlineExceeded {
 			step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
