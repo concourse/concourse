@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"strconv"
 
 	"github.com/concourse/concourse/atc"
@@ -68,6 +70,25 @@ func GetBuild(client concourse.Client, team concourse.Team, jobName string, buil
 
 		return atc.Build{}, errors.New("no builds match job")
 	}
+}
+
+func GetLatestResourceVersion(team concourse.Team, resource flaghelpers.ResourceFlag, version atc.Version) (atc.ResourceVersion, error) {
+	versions, _, found, err := team.ResourceVersions(resource.PipelineName, resource.ResourceName, concourse.Page{}, version)
+
+	if err != nil {
+		return atc.ResourceVersion{}, err
+	}
+
+	if !found || len(versions) <= 0 {
+		versionBytes, err := json.Marshal(version)
+		if err != nil {
+			return atc.ResourceVersion{}, err
+		}
+
+		return atc.ResourceVersion{}, errors.New(fmt.Sprintf("could not find version matching %s", string(versionBytes)))
+	}
+
+	return versions[0], nil
 }
 
 func SliceItoa(slice []int) string {

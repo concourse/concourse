@@ -1,7 +1,9 @@
 package commands_test
 
 import (
+	"errors"
 	"fmt"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"strconv"
 
 	"github.com/concourse/concourse/atc"
@@ -211,6 +213,55 @@ var _ = Describe("Helper Functions", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(build).To(Equal(expectedOneOffBuild))
 				Expect(client.BuildsCallCount()).To(Equal(2))
+			})
+		})
+	})
+	Describe("#GetLatestResourceVersions", func() {
+		var team *fakes.FakeTeam
+		var resourceVersions []atc.ResourceVersion
+
+		resource := flaghelpers.ResourceFlag{
+			PipelineName: "mypipeline",
+			ResourceName: "myresource",
+		}
+
+		BeforeEach(func() {
+			team = new(fakes.FakeTeam)
+			resourceVersions = []atc.ResourceVersion{
+				{
+					ID:      1,
+					Version: atc.Version{"version": "v1"},
+				},
+				{
+					ID:      2,
+					Version: atc.Version{"version": "v1"},
+				},
+			}
+		})
+
+		When("resource versions exist", func() {
+			It("returns latest resource version", func() {
+				team.ResourceVersionsReturns(resourceVersions, concourse.Pagination{}, true, nil)
+				latestResourceVersion, err := GetLatestResourceVersion(team, resource, atc.Version{"version": "v1"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(latestResourceVersion.Version).To(Equal(atc.Version{"version": "v1"}))
+				Expect(latestResourceVersion.ID).To(Equal(1))
+			})
+		})
+
+		When("call to resource versions returns an error", func() {
+			It("returns an error", func() {
+				team.ResourceVersionsReturns(nil, concourse.Pagination{}, false, errors.New("fake error"))
+				_, err := GetLatestResourceVersion(team, resource, atc.Version{"version": "v1"})
+				Expect(err).To(MatchError("fake error"))
+			})
+		})
+
+		When("call to resource versions returns an empty array", func() {
+			It("returns an error", func() {
+				team.ResourceVersionsReturns([]atc.ResourceVersion{}, concourse.Pagination{}, true, nil)
+				_, err := GetLatestResourceVersion(team, resource, atc.Version{"version": "v2"})
+				Expect(err).To(MatchError("could not find version matching {\"version\":\"v2\"}"))
 			})
 		})
 	})

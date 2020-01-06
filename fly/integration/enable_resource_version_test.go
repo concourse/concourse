@@ -104,7 +104,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 				})
 
-				Context("when the version does not exist", func() {
+				Context("when the resource does not exist", func() {
 					BeforeEach(func() {
 						expectedGetStatus = http.StatusNotFound
 					})

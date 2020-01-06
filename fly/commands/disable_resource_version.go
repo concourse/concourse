@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type DisableResourceVersionCommand struct {
@@ -30,22 +29,11 @@ func (command *DisableResourceVersionCommand) Execute([]string) error {
 	team := target.Team()
 
 	if command.Version != nil {
-		versions, _, found, err := team.ResourceVersions(command.Resource.PipelineName, command.Resource.ResourceName, concourse.Page{}, *command.Version)
-
+		latestResourceVer, err := GetLatestResourceVersion(team, command.Resource, *command.Version)
 		if err != nil {
 			return err
 		}
 
-		if !found || len(versions) <= 0 {
-			pinVersionBytes, err := json.Marshal(command.Version)
-			if err != nil {
-				return err
-			}
-
-			displayhelpers.Failf("could not find version matching %s", string(pinVersionBytes))
-		}
-
-		latestResourceVer := versions[0]
 		disabled := !latestResourceVer.Enabled
 
 		if !disabled {
@@ -56,12 +44,12 @@ func (command *DisableResourceVersionCommand) Execute([]string) error {
 		}
 
 		if disabled {
-			versionBytes, err := json.Marshal(latestResourceVer.Version)
+			disableVersionBytes, err := json.Marshal(latestResourceVer.Version)
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("disabled '%s/%s' with version %s\n", command.Resource.PipelineName, command.Resource.ResourceName, string(versionBytes))
+			fmt.Printf("disabled '%s/%s' with version %s\n", command.Resource.PipelineName, command.Resource.ResourceName, string(disableVersionBytes))
 		} else {
 			displayhelpers.Failf("could not disable '%s/%s', make sure the resource version exists\n", command.Resource.PipelineName, command.Resource.ResourceName)
 		}
