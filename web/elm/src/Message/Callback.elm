@@ -50,7 +50,7 @@ type Callback
     | ScreenResized Browser.Dom.Viewport
     | BuildJobDetailsFetched (Fetched Concourse.Job)
     | BuildFetched (Fetched Concourse.Build)
-    | BuildPrepFetched (Fetched Concourse.BuildPrep)
+    | BuildPrepFetched Concourse.BuildId (Fetched Concourse.BuildPrep)
     | BuildHistoryFetched (Fetched (Paginated Concourse.Build))
     | PlanAndResourcesFetched Int (Fetched ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildAborted (Fetched ())

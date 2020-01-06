@@ -162,6 +162,7 @@ changeToBuild { highlight, pageType } ( model, effects ) =
             effects
                 ++ [ CloseBuildEventStream, FetchJobBuild jbi ]
     )
+        |> Header.changeToBuild pageType
 
 
 extractTitle : Model -> String
@@ -215,10 +216,14 @@ handleCallback action ( model, effects ) =
         BuildAborted (Ok ()) ->
             ( model, effects )
 
-        BuildPrepFetched (Ok buildPrep) ->
-            handleBuildPrepFetched buildPrep ( model, effects )
+        BuildPrepFetched buildId (Ok buildPrep) ->
+            if buildId == model.id then
+                handleBuildPrepFetched buildPrep ( model, effects )
 
-        BuildPrepFetched (Err err) ->
+            else
+                ( model, effects )
+
+        BuildPrepFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
@@ -360,25 +365,8 @@ handleDelivery session delivery ( model, effects ) =
                         )
             in
             case ( model.hasLoadedYet, buildStatus ) of
-                ( True, Just ( status, date ) ) ->
-                    ( { newModel
-                        | status =
-                            if Concourse.BuildStatus.isRunning model.status then
-                                status
-
-                            else
-                                model.status
-                        , duration =
-                            let
-                                duration =
-                                    model.duration
-                            in
-                            if Concourse.BuildStatus.isRunning status then
-                                duration
-
-                            else
-                                { duration | finishedAt = Just date }
-                      }
+                ( True, Just ( status, _ ) ) ->
+                    ( newModel
                     , if Concourse.BuildStatus.isRunning model.status then
                         newEffects ++ [ SetFavIcon (Just status) ]
 
@@ -560,10 +548,7 @@ handleBuildFetched build ( model, effects ) =
     let
         withBuild =
             { model
-                | hasLoadedYet = True
-                , duration = build.duration
-                , status = build.status
-                , reapTime = build.reapTime
+                | reapTime = build.reapTime
                 , output =
                     if model.hasLoadedYet then
                         model.output
@@ -604,9 +589,15 @@ handleBuildFetched build ( model, effects ) =
             else
                 ( withBuild, effects )
     in
-    ( newModel
-    , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status), Focus bodyId ]
-    )
+    if not model.hasLoadedYet || build.id == model.id then
+        ( newModel
+        , cmd
+            ++ fetchJobAndHistory
+            ++ [ SetFavIcon (Just build.status), Focus bodyId ]
+        )
+
+    else
+        ( model, effects )
 
 
 pollUntilStarted : Int -> List Effect

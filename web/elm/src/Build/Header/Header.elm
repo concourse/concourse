@@ -1,5 +1,6 @@
 module Build.Header.Header exposing
-    ( handleCallback
+    ( changeToBuild
+    , handleCallback
     , handleDelivery
     , header
     , update
@@ -116,7 +117,31 @@ historyItem model =
     { id = model.id
     , name = model.name
     , status = model.status
+    , duration = model.duration
     }
+
+
+changeToBuild : BuildPageType -> ET (Model r)
+changeToBuild pageType ( model, effects ) =
+    case pageType of
+        JobBuildPage { buildName } ->
+            ( model.history
+                |> List.Extra.find (.name >> (==) buildName)
+                |> Maybe.map
+                    (\b ->
+                        { model
+                            | id = b.id
+                            , status = b.status
+                            , duration = b.duration
+                            , name = b.name
+                        }
+                    )
+                |> Maybe.withDefault model
+            , effects
+            )
+
+        _ ->
+            ( model, effects )
 
 
 duration : Session -> Model r -> Views.BuildDuration
@@ -316,13 +341,8 @@ handleDelivery delivery ( model, effects ) =
 
                                 else
                                     model.status
-                        in
-                        ( { model
-                            | history =
-                                List.Extra.updateIf (.id >> (==) model.id)
-                                    (\item -> { item | status = newStatus })
-                                    model.history
-                            , duration =
+
+                            newDuration =
                                 let
                                     dur =
                                         model.duration
@@ -335,6 +355,18 @@ handleDelivery delivery ( model, effects ) =
                                         else
                                             Just date
                                 }
+                        in
+                        ( { model
+                            | history =
+                                List.Extra.updateIf (.id >> (==) model.id)
+                                    (\item ->
+                                        { item
+                                            | status = newStatus
+                                            , duration = newDuration
+                                        }
+                                    )
+                                    model.history
+                            , duration = newDuration
                             , status = newStatus
                           }
                         , effects
@@ -475,6 +507,7 @@ handleCallback callback ( model, effects ) =
                     { id = b.id
                     , name = b.name
                     , status = b.status
+                    , duration = b.duration
                     }
                         :: model.history
               }
@@ -495,21 +528,29 @@ handleCallback callback ( model, effects ) =
 
 handleBuildFetched : Concourse.Build -> ET (Model r)
 handleBuildFetched b ( model, effects ) =
-    ( { model
-        | history =
-            List.Extra.setIf (.id >> (==) b.id)
-                { id = b.id
-                , name = b.name
-                , status = b.status
-                }
-                model.history
-        , fetchingHistory = True
-        , job = b.job
-        , id = b.id
-        , name = b.name
-      }
-    , effects
-    )
+    if not model.hasLoadedYet || model.id == b.id then
+        ( { model
+            | hasLoadedYet = True
+            , history =
+                List.Extra.setIf (.id >> (==) b.id)
+                    { id = b.id
+                    , name = b.name
+                    , status = b.status
+                    , duration = b.duration
+                    }
+                    model.history
+            , fetchingHistory = True
+            , duration = b.duration
+            , status = b.status
+            , job = b.job
+            , id = b.id
+            , name = b.name
+          }
+        , effects
+        )
+
+    else
+        ( model, effects )
 
 
 handleHistoryFetched : Paginated Concourse.Build -> ET (Model r)
@@ -525,6 +566,7 @@ handleHistoryFetched history ( model, effects ) =
                                         { id = b.id
                                         , name = b.name
                                         , status = b.status
+                                        , duration = b.duration
                                         }
                                     )
                            )
