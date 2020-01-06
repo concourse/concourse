@@ -996,7 +996,8 @@ viewBuildPrep buildPrep =
                     , Html.h3 [] [ Html.text "preparing build" ]
                     ]
                 , Html.div []
-                    [ Html.ul [ class "prep-status-list"
+                    [ Html.ul
+                        [ class "prep-status-list"
                         , style "font-size" "14px"
                         ]
                         ([ viewBuildPrepLi "checking pipeline is not paused" prep.pausedPipeline Dict.empty

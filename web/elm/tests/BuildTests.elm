@@ -3500,12 +3500,14 @@ taskStepLabel =
     , containing [ text "task:" ]
     ]
 
+
 setPipelineStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
     , style "padding-left" "6px"
     , containing [ text "set_pipeline:" ]
     ]
+
 
 firstOccurrenceLabelID =
     Message.Message.FirstOccurrenceGetStepLabel
