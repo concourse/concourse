@@ -201,7 +201,6 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	} else if createdContainer != nil {
 		containerHandle = createdContainer.Handle()
 	} else {
-
 		logger.Debug("creating-container-in-db")
 		creatingContainer, err = worker.dbWorker.CreateContainer(
 			owner,
@@ -212,6 +211,8 @@ func (worker *gardenWorker) FindOrCreateContainer(
 			if _, ok := err.(db.ContainerOwnerDisappearedError); ok {
 				return nil, ResourceConfigCheckSessionExpiredError
 			}
+
+			return nil, err
 		}
 		logger.Debug("created-creating-container-in-db")
 		containerHandle = creatingContainer.Handle()

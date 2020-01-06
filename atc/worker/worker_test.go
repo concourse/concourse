@@ -259,7 +259,6 @@ var _ = Describe("Worker", func() {
 		fakeDBWorker.HTTPProxyURLReturns("http://proxy.com")
 		fakeDBWorker.HTTPSProxyURLReturns("https://proxy.com")
 		fakeDBWorker.NoProxyReturns("http://noproxy.com")
-		fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
 
 		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
@@ -1520,16 +1519,46 @@ var _ = Describe("Worker", func() {
 		})
 
 		Context("when container does not exist in database", func() {
+
 			BeforeEach(func() {
-				fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
 				fakeDBWorker.FindContainerReturns(nil, nil, nil)
+				fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
 			})
 
-			It("creates a creating container in database", func() {
+			It("attemps to create container in the db", func() {
 				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(1))
-				owner, metadata := fakeDBWorker.CreateContainerArgsForCall(0)
-				Expect(owner).To(Equal(fakeContainerOwner))
-				Expect(metadata).To(Equal(containerMetadata))
+			})
+
+			Context("having db container creation erroring", func() {
+				Context("with ContainerOwnerDisappearedError", func() {
+					BeforeEach(func() {
+						fakeDBWorker.CreateContainerReturns(nil, db.ContainerOwnerDisappearedError{})
+					})
+
+					It("fails w/ ResourceConfigCheckSessionExpiredError", func() {
+						Expect(findOrCreateErr).To(HaveOccurred())
+						Expect(findOrCreateErr).To(Equal(ResourceConfigCheckSessionExpiredError))
+					})
+				})
+
+				Context("with a non-specific error", func() {
+					BeforeEach(func() {
+						fakeDBWorker.CreateContainerReturns(nil, errors.New("err"))
+					})
+
+					It("fails with the same err", func() {
+						Expect(findOrCreateErr).To(HaveOccurred())
+						Expect(findOrCreateErr).To(Equal(errors.New("err")))
+					})
+				})
+			})
+
+			Context("having db container creation succeeding", func() {
+				It("creates a creating container in database", func() {
+					owner, metadata := fakeDBWorker.CreateContainerArgsForCall(0)
+					Expect(owner).To(Equal(fakeContainerOwner))
+					Expect(metadata).To(Equal(containerMetadata))
+				})
 			})
 
 		})
