@@ -996,7 +996,9 @@ viewBuildPrep buildPrep =
                     , Html.h3 [] [ Html.text "preparing build" ]
                     ]
                 , Html.div []
-                    [ Html.ul [ class "prep-status-list" ]
+                    [ Html.ul [ class "prep-status-list"
+                        , style "font-size" "14px"
+                        ]
                         ([ viewBuildPrepLi "checking pipeline is not paused" prep.pausedPipeline Dict.empty
                          , viewBuildPrepLi "checking job is not paused" prep.pausedJob Dict.empty
                          ]
@@ -1066,7 +1068,7 @@ viewBuildPrepStatus status =
                 [ title "thinking..." ]
                 [ Spinner.spinner
                     { sizePx = 12
-                    , margin = "0 5px 0 0"
+                    , margin = "0 8px 0 0"
                     }
                 ]
 
@@ -1075,7 +1077,7 @@ viewBuildPrepStatus status =
                 [ title "blocking" ]
                 [ Spinner.spinner
                     { sizePx = 12
-                    , margin = "0 5px 0 0"
+                    , margin = "0 8px 0 0"
                     }
                 ]
 
@@ -1084,7 +1086,7 @@ viewBuildPrepStatus status =
                 { sizePx = 12
                 , image = "ic-not-blocking-check.svg"
                 }
-                [ style "margin-right" "5px"
+                [ style "margin-right" "8px"
                 , style "background-size" "contain"
                 , title "not blocking"
                 ]

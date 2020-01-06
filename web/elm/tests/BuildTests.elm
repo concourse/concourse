@@ -2171,7 +2171,7 @@ all =
                                 , style "background-size" "contain"
                                 , style "width" "12px"
                                 , style "height" "12px"
-                                , style "margin-right" "5px"
+                                , style "margin-right" "8px"
                                 , attribute <| Attr.title "not blocking"
                                 ]
                             ]
@@ -2208,7 +2208,7 @@ all =
                                     "container-rotate 1568ms linear infinite"
                                 , style "height" "12px"
                                 , style "width" "12px"
-                                , style "margin" "0 5px 0 0"
+                                , style "margin" "0 8px 0 0"
                                 ]
                             , Query.has [ attribute <| Attr.title "blocking" ]
                             ]
@@ -2245,7 +2245,7 @@ all =
                                     "container-rotate 1568ms linear infinite"
                                 , style "height" "12px"
                                 , style "width" "12px"
-                                , style "margin" "0 5px 0 0"
+                                , style "margin" "0 8px 0 0"
                                 ]
                             , Query.has [ attribute <| Attr.title "thinking..." ]
                             ]
