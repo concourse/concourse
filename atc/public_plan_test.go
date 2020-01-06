@@ -337,7 +337,7 @@ var _ = Describe("Plan", func() {
 							Limit:    1,
 							FailFast: true,
 							Steps: []atc.Plan{
-								atc.Plan{
+								{
 									ID: "37",
 									Task: &atc.TaskPlan{
 										Name:       "name",

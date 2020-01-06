@@ -188,7 +188,7 @@ var _ = Describe("PutStep", func() {
 			})
 
 			It("calls RunPutStep with all inputs", func() {
-				_, _, _, actualContainerSpec, _, _, _, _,  _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 				Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
 				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))

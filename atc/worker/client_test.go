@@ -13,8 +13,8 @@ import (
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
-	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/onsi/gomega/gbytes"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -639,15 +639,15 @@ var _ = Describe("Client", func() {
 					fakeVolume3.HandleReturns("some-handle-3")
 
 					fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume1,
 							MountPath: fakeMountPath1,
 						},
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume2,
 							MountPath: fakeMountPath2,
 						},
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume3,
 							MountPath: fakeMountPath3,
 						},
@@ -1001,15 +1001,15 @@ var _ = Describe("Client", func() {
 							fakeVolume3.HandleReturns("some-handle-3")
 
 							fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-								worker.VolumeMount{
+								{
 									Volume:    fakeVolume1,
 									MountPath: fakeMountPath1,
 								},
-								worker.VolumeMount{
+								{
 									Volume:    fakeVolume2,
 									MountPath: fakeMountPath2,
 								},
-								worker.VolumeMount{
+								{
 									Volume:    fakeVolume3,
 									MountPath: fakeMountPath3,
 								},

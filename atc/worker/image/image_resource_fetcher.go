@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hashicorp/go-multierror"
 	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/zstd"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"

@@ -2,10 +2,10 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"errors"
 	"strings"
 
 	"code.cloudfoundry.org/lager"

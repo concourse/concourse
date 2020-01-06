@@ -247,12 +247,12 @@ func NewTaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.Cre
 
 type taskDelegate struct {
 	exec.BuildStepDelegate
-	config atc.TaskConfig
+	config      atc.TaskConfig
 	build       db.Build
 	eventOrigin event.Origin
 }
 
-func(d *taskDelegate) SetTaskConfig(config atc.TaskConfig){
+func (d *taskDelegate) SetTaskConfig(config atc.TaskConfig) {
 	d.config = config
 }
 

@@ -10,7 +10,6 @@ import (
 
 var (
 	resourceFactory resource.ResourceFactory
-
 )
 
 var _ = BeforeEach(func() {

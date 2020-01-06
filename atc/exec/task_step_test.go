@@ -426,11 +426,11 @@ var _ = Describe("TaskStep", func() {
 				taskResult := worker.TaskResult{
 					Status: 0,
 					VolumeMounts: []worker.VolumeMount{
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume1,
 							MountPath: "some-artifact-root/some-path-1",
 						},
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume2,
 							MountPath: "some-artifact-root/some-path-2",
 						},
@@ -827,15 +827,15 @@ var _ = Describe("TaskStep", func() {
 						fakeTaskResult := worker.TaskResult{
 							Status: 0,
 							VolumeMounts: []worker.VolumeMount{
-								worker.VolumeMount{
+								{
 									Volume:    fakeVolume1,
 									MountPath: fakeMountPath1,
 								},
-								worker.VolumeMount{
+								{
 									Volume:    fakeVolume2,
 									MountPath: fakeMountPath2,
 								},
-								worker.VolumeMount{
+								{
 									Volume:    fakeVolume3,
 									MountPath: fakeMountPath3,
 								},
@@ -977,15 +977,15 @@ var _ = Describe("TaskStep", func() {
 				taskResult := worker.TaskResult{
 					Status: 0,
 					VolumeMounts: []worker.VolumeMount{
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume1,
 							MountPath: fakeMountPath1,
 						},
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume2,
 							MountPath: fakeMountPath2,
 						},
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume3,
 							MountPath: fakeMountPath3,
 						},
@@ -1033,7 +1033,7 @@ var _ = Describe("TaskStep", func() {
 				taskResult := worker.TaskResult{
 					Status: 0,
 					VolumeMounts: []worker.VolumeMount{
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume,
 							MountPath: fakeMountPath,
 						},

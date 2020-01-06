@@ -230,10 +230,10 @@ var _ = Describe("DelegateFactory", func() {
 		BeforeEach(func() {
 			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
 			someConfig = atc.TaskConfig{
-				Platform:"some-platform",
+				Platform: "some-platform",
 				Run: atc.TaskRunConfig{
-					Path:"some-foo-path",
-					Dir: "some-bar-dir",
+					Path: "some-foo-path",
+					Dir:  "some-bar-dir",
 				},
 			}
 			delegate.SetTaskConfig(someConfig)

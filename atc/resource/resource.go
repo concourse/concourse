@@ -12,7 +12,7 @@ import (
 
 //go:generate counterfeiter . ResourceFactory
 type ResourceFactory interface {
-	NewResource (source atc.Source, params atc.Params, version atc.Version) Resource
+	NewResource(source atc.Source, params atc.Params, version atc.Version) Resource
 }
 
 type resourceFactory struct {
@@ -29,7 +29,6 @@ func (rf resourceFactory) NewResource(source atc.Source, params atc.Params, vers
 		Version: version,
 	}
 }
-
 
 //go:generate counterfeiter . Resource
 

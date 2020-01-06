@@ -76,4 +76,3 @@ var _ = Describe("ArtifactRepository", func() {
 
 	})
 })
-

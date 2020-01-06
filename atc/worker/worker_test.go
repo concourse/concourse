@@ -1355,11 +1355,11 @@ var _ = Describe("Worker", func() {
 
 				It("creates each volume unprivileged", func() {
 					Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
-						"/scratch":                    VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
-						"/some/work-dir":              VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
-						"/some/work-dir/output":       VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
-						"/some/work-dir/local-input":  VolumeSpec{Strategy: fakeLocalVolume.COWStrategy()},
-						"/some/work-dir/remote-input": VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
+						"/scratch":                    {Strategy: baggageclaim.EmptyStrategy{}},
+						"/some/work-dir":              {Strategy: baggageclaim.EmptyStrategy{}},
+						"/some/work-dir/output":       {Strategy: baggageclaim.EmptyStrategy{}},
+						"/some/work-dir/local-input":  {Strategy: fakeLocalVolume.COWStrategy()},
+						"/some/work-dir/remote-input": {Strategy: baggageclaim.EmptyStrategy{}},
 					}))
 				})
 
@@ -1401,11 +1401,11 @@ var _ = Describe("Worker", func() {
 
 					It("creates each volume privileged", func() {
 						Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
-							"/scratch":                    VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-							"/some/work-dir":              VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-							"/some/work-dir/output":       VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-							"/some/work-dir/local-input":  VolumeSpec{Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
-							"/some/work-dir/remote-input": VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/scratch":                    {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/some/work-dir":              {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/some/work-dir/output":       {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/some/work-dir/local-input":  {Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
+							"/some/work-dir/remote-input": {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 						}))
 					})
 
