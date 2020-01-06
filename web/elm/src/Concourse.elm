@@ -58,7 +58,6 @@ module Concourse exposing
     , decodeUser
     , decodeVersion
     , decodeVersionedResource
-    , receiveStatus
     , retrieveCSRFToken
     )
 
@@ -160,24 +159,6 @@ type alias Build =
     , status : BuildStatus
     , duration : BuildDuration
     , reapTime : Maybe Time.Posix
-    }
-
-
-receiveStatus : BuildStatus -> Time.Posix -> Build -> Build
-receiveStatus newStatus date ({ duration, status } as build) =
-    { build
-        | status =
-            if Concourse.BuildStatus.isRunning status then
-                newStatus
-
-            else
-                status
-        , duration =
-            if Concourse.BuildStatus.isRunning newStatus then
-                duration
-
-            else
-                { duration | finishedAt = Just date }
     }
 
 

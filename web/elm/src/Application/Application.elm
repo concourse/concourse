@@ -261,16 +261,12 @@ sideBarHandleCallback callback ( model, effects ) =
 
                         SubPage.BuildModel buildModel ->
                             SideBar.handleCallback callback
-                                (buildModel.build
-                                    |> RemoteData.andThen
-                                        (\b ->
-                                            case b.job of
-                                                Just j ->
-                                                    RemoteData.Success j
+                                (case buildModel.job of
+                                    Just j ->
+                                        RemoteData.Success j
 
-                                                Nothing ->
-                                                    RemoteData.NotAsked
-                                        )
+                                    Nothing ->
+                                        RemoteData.NotAsked
                                 )
 
                         _ ->
