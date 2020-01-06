@@ -15,13 +15,13 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/radar"
-	. "github.com/concourse/concourse/atc/radar"
 	rfakes "github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
 
+	. "github.com/concourse/concourse/atc/radar"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

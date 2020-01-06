@@ -3,10 +3,9 @@ package exec
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/atc/runtime"
-
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
 )
 
 type PutInputNotFoundError struct {

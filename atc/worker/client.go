@@ -9,14 +9,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/concourse/concourse/atc/resource"
-
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/hashicorp/go-multierror"
 )

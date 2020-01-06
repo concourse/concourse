@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/concourse/concourse/atc/runtime"
-
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/runtime"
 )
 
 type WorkerSpec struct {

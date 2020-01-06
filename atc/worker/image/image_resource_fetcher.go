@@ -10,13 +10,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/zstd"
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/hashicorp/go-multierror"
 )
 
 const ImageMetadataFile = "metadata.json"

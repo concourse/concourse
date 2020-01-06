@@ -5,11 +5,10 @@ import (
 	"context"
 	"io"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/hashicorp/go-multierror"
-
-	"code.cloudfoundry.org/lager"
 )
 
 //go:generate counterfeiter . ArtifactSource

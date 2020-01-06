@@ -9,20 +9,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/concourse/atc/runtime"
-
-	"github.com/concourse/concourse/atc/resource"
-
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/worker/gclient"
-	"golang.org/x/sync/errgroup"
-
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/cppforlife/go-semi-semantic/version"
+	"golang.org/x/sync/errgroup"
 )
 
 const userPropertyName = "user"
