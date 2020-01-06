@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"strconv"
-
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
@@ -89,15 +87,4 @@ func GetLatestResourceVersion(team concourse.Team, resource flaghelpers.Resource
 	}
 
 	return versions[0], nil
-}
-
-func SliceItoa(slice []int) string {
-	var strSlice string
-	for i, val := range slice {
-		if i > 0 {
-			strSlice += "."
-		}
-		strSlice += strconv.Itoa(val)
-	}
-	return strSlice
 }
