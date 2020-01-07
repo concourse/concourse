@@ -186,7 +186,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 			Help:      "Build time in seconds",
 			Buckets:   []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
 		},
-		[]string{"team", "pipeline"},
+		[]string{"team", "pipeline", "job"},
 	)
 	prometheus.MustRegister(buildDurationsVec)
 
@@ -555,7 +555,7 @@ func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, even
 	}
 	// seconds are the standard prometheus base unit for time
 	duration = duration / 1000
-	emitter.buildDurationsVec.WithLabelValues(team, pipeline).Observe(duration)
+	emitter.buildDurationsVec.WithLabelValues(team, pipeline, job).Observe(duration)
 }
 
 func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, event metric.Event) {
