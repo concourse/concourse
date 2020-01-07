@@ -750,18 +750,6 @@ sampleModel =
     , history = []
     , nextPage = Nothing
     , prep = Nothing
-    , build =
-        RemoteData.Success
-            { id = 0
-            , name = "0"
-            , job = Nothing
-            , status = Concourse.BuildStatus.BuildStatusStarted
-            , duration =
-                { startedAt = Nothing
-                , finishedAt = Nothing
-                }
-            , reapTime = Nothing
-            }
     , duration = { startedAt = Nothing, finishedAt = Nothing }
     , status = Concourse.BuildStatus.BuildStatusStarted
     , output =
@@ -782,6 +770,9 @@ sampleModel =
     , scrolledToCurrentBuild = False
     , shiftDown = False
     , isUserMenuExpanded = False
+    , hasLoadedYet = True
+    , notFound = False
+    , reapTime = Nothing
     }
 
 
