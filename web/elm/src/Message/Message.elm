@@ -18,7 +18,7 @@ type Message
       FilterMsg String
     | FocusMsg
     | BlurMsg
-    | Pipeline
+      -- Pipeline
     | ToggleGroup Concourse.PipelineGroup
     | SetGroups (List String)
       -- Dashboard

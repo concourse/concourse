@@ -99,17 +99,13 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState } =
         ]
 
 
-headerView : { a | hovered : HoverState.HoverState } -> Pipeline -> Html Message
-headerView { hovered } pipeline =
+headerView : Pipeline -> Html Message
+headerView pipeline =
     Html.a
         [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
             ([ class "card-header"
              , onMouseEnter <| Tooltip pipeline.name pipeline.teamName
-             , if HoverState.isHovered Message.Pipeline hovered then
-                style "background-color" "1f1f1f"
-                else
-                style "background-color" ""
              ]
                 ++ Styles.pipelineCardHeader
             )
