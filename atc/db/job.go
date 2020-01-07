@@ -191,7 +191,7 @@ func (j *job) Config() (atc.JobConfig, error) {
 }
 
 func (j *job) Inputs() ([]atc.JobInput, error) {
-	rows, err := psql.Select("ji.name", "r.name", "array_agg(p.name)", "ji.trigger", "ji.version").
+	rows, err := psql.Select("ji.name", "r.name", "array_agg(p.name ORDER BY p.id)", "ji.trigger", "ji.version").
 		From("job_inputs ji").
 		Join("resources r ON r.id = ji.resource_id").
 		LeftJoin("jobs p ON p.id = ji.passed_job_id").
@@ -199,7 +199,6 @@ func (j *job) Inputs() ([]atc.JobInput, error) {
 			"ji.job_id": j.id,
 		}).
 		GroupBy("ji.name, ji.job_id, r.name, ji.trigger, ji.version").
-		OrderBy("ji.job_id").
 		RunWith(j.conn).
 		Query()
 	if err != nil {
