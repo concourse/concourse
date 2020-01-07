@@ -228,12 +228,12 @@ limited lifetime and tight rotation policies.
 
     \codeblock{yaml}{{{
     var_sources:
-    - name: dummy-vars
+    - name: dumb
       type: dummy
       config:
         vars:
-          simple-value: hello!
-          some-user:
+          simple: hello!
+          user:
             username: big
             password: sekrit
 
@@ -253,26 +253,26 @@ limited lifetime and tight rotation policies.
             args:
             - -c
             - |
-              echo simple-value is ((dummy-vars:simple-value))
-              echo username is ((dummy-vars:some-user.username))
-              echo password is ((dummy-vars:some-user.password))
+              echo simple: ((dumb:simple))
+              echo username: ((dumb:user.username))
+              echo password: ((dumb:user.password))
     }}}
 
     The \code{print-creds} job above will print the following:
 
     \code{{{
-    simple-value is hello!
-    username is big
-    password is sekrit
+    simple: hello!
+    username: big
+    password: sekrit
     }}}
 
     With \reference{creds-redacting}{credential redaction} enabled, the output
     above will actually print the following:
 
     \code{{{
-    simple-value is ((redacted))
-    username is ((redacted))
-    password is ((redacted))
+    simple: ((redacted))
+    username: ((redacted))
+    password: ((redacted))
     }}}
 
     The \code{dummy} var source type is, well, pretty dumb. It just provides
