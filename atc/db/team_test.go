@@ -2336,6 +2336,14 @@ var _ = Describe("Team", func() {
 
 						Plan: atc.PlanSequence{
 							{
+								Do: &atc.PlanSequence{
+									{
+										Get:      "other-input",
+										Resource: "some-resource",
+									},
+								},
+							},
+							{
 								Get:      "some-input",
 								Resource: "some-resource",
 								Params: atc.Params{
@@ -2423,6 +2431,11 @@ var _ = Describe("Team", func() {
 				jobPipe{
 					name:       "some-resource",
 					jobID:      job2.ID(),
+					resourceID: someResource.ID(),
+				},
+				jobPipe{
+					name:       "other-input",
+					jobID:      someJob.ID(),
 					resourceID: someResource.ID(),
 				},
 				jobPipe{
