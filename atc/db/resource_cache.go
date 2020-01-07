@@ -60,17 +60,20 @@ func (cache *ResourceCacheDescriptor) findOrCreate(
 		err = psql.Insert("resource_caches").
 			Columns(
 				"resource_config_id",
+				"version",
 				"version_md5",
 				"params_hash",
 			).
 			Values(
 				resourceConfig.ID(),
+				cache.version(),
 				sq.Expr("md5(?)", cache.version()),
 				paramsHash(cache.Params),
 			).
 			Suffix(`
 				ON CONFLICT (resource_config_id, version_md5, params_hash) DO UPDATE SET
 				resource_config_id = EXCLUDED.resource_config_id,
+				version = EXCLUDED.version,
 				version_md5 = EXCLUDED.version_md5,
 				params_hash = EXCLUDED.params_hash
 				RETURNING id
