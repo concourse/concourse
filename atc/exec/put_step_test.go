@@ -73,7 +73,7 @@ var _ = Describe("PutStep", func() {
 
 		versionResult runtime.VersionResult
 		clientErr     error
-		failErr		  error
+		someExitStatus int
 	)
 
 	BeforeEach(func() {
@@ -151,6 +151,8 @@ var _ = Describe("PutStep", func() {
 
 		fakeResourceFactory.NewResourceReturns(fakeResource)
 
+		someExitStatus = 0
+
 	})
 
 	AfterEach(func() {
@@ -164,7 +166,7 @@ var _ = Describe("PutStep", func() {
 		}
 
 		fakeClient.RunPutStepReturns(
-			worker.PutResult{Status: 0, VersionResult: versionResult, Failure: failErr},
+			worker.PutResult{Status: someExitStatus, VersionResult: versionResult},
 		clientErr,
 			)
 
@@ -351,9 +353,7 @@ var _ = Describe("PutStep", func() {
 	Context("when RunPutStep exits unsuccessfully", func() {
 		BeforeEach(func() {
 			versionResult = runtime.VersionResult{}
-			failErr = runtime.ErrResourceScriptFailed{
-				ExitStatus: 42,
-			}
+			someExitStatus = 42
 		})
 
 		It("finishes the step via the delegate", func() {

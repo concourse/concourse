@@ -124,7 +124,7 @@ func (s *fetchSource) Find() (GetResult, Volume, bool, error) {
 	}
 
 	return GetResult{
-			Status: 0,
+			ExitStatus: 0,
 			VersionResult: runtime.VersionResult{
 				Version:  s.cache.Version(),
 				Metadata: atcMetaData,
@@ -174,8 +174,7 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 
 		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
 			return GetResult{
-				Status: failErr.ExitStatus,
-				Failure: failErr,
+				ExitStatus: failErr.ExitStatus,
 			}, nil, nil
 		}
 		return GetResult{}, nil, err
@@ -202,7 +201,7 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 	}
 
 	return GetResult{
-		Status:        0,
+		ExitStatus:    0,
 		VersionResult: vr,
 		GetArtifact: runtime.GetArtifact{
 			VolumeHandle: volume.Handle(),

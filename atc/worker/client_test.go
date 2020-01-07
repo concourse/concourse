@@ -345,56 +345,28 @@ var _ = Describe("Client", func() {
 			})
 		})
 
-		Context("Worker.Fetch returns an error", func() {
-			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
-				fakeChosenWorker.FetchReturns(worker.GetResult{}, nil, disasterErr)
-			})
-
-			It("Returns the error", func() {
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(disasterErr))
-
-				Expect(result).To(Equal(worker.GetResult{}))
-			})
-		})
-		Context("Worker.Fetch returns an Script Error", func() {
-			var someScriptError error
-			BeforeEach(func() {
-				someScriptError = runtime.ErrResourceScriptFailed{Path:"some-path"}
-				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
-				fakeChosenWorker.FetchReturns(worker.GetResult{Status: 17, Failure: someScriptError}, nil, nil)
-			})
-
-			It("Returns the failure", func() {
-				Expect(err).To(BeNil())
-				Expect(result.Failure).To(Equal(someScriptError))
-				Expect(result.Status).To(Equal(17))
-			})
-		})
-
-		Context("worker.Fetch is successful", func() {
+		Context("Calling chosenWorker.Fetch", func(){
 			var (
-				fakeVolume    *workerfakes.FakeVolume
+				someError error
 				someGetResult worker.GetResult
+				fakeVolume *workerfakes.FakeVolume
 			)
-			BeforeEach(func() {
+			BeforeEach(func(){
 				someGetResult = worker.GetResult{
-					Status: 0,
+					ExitStatus: 0,
 					VersionResult: runtime.VersionResult{
 						atc.Version{"some-version": "some-value"},
 						[]atc.MetadataField{{"foo", "bar"}},
 					},
 				}
+				someError = errors.New("some-foo-error")
 				fakeVolume = new(workerfakes.FakeVolume)
-				fakeChosenWorker.FetchReturns(someGetResult, fakeVolume, nil)
+				fakeChosenWorker.FetchReturns(someGetResult, fakeVolume, someError)
 			})
-
-			It("returns getResult from worker->Fetch", func() {
+			It("returns getResult & err", func() {
 				Expect(result).To(Equal(someGetResult))
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).To(Equal(someError))
 			})
-
 		})
 	})
 
@@ -1180,7 +1152,6 @@ var _ = Describe("Client", func() {
 			versionResult runtime.VersionResult
 			status        int
 			err           error
-			failure error
 			result worker.PutResult
 
 			disasterErr error
@@ -1236,7 +1207,6 @@ var _ = Describe("Client", func() {
 			)
 			versionResult = result.VersionResult
 			status = result.Status
-			failure = result.Failure
 		})
 
 		It("finds/chooses a worker", func() {
@@ -1334,7 +1304,6 @@ var _ = Describe("Client", func() {
 
 					It("returns a PutResult with the exit status from ErrResourceScriptFailed", func() {
 						Expect(status).To(Equal(10))
-						Expect(failure).To(Equal(scriptFailErr))
 						Expect(err).To(BeNil())
 					})
 				})
@@ -1348,7 +1317,6 @@ var _ = Describe("Client", func() {
 					})
 
 					It("returns an error", func() {
-						Expect(failure).To(BeNil())
 						Expect(err).To(Equal(disasterErr))
 					})
 
@@ -1365,7 +1333,7 @@ var _ = Describe("Client", func() {
 
 					fakeResource.PutReturns(expectedVersionResult, nil)
 				})
-				It("returns the correct VersionResult and Status", func() {
+				It("returns the correct VersionResult and ExitStatus", func() {
 					Expect(err).To(BeNil())
 					Expect(status).To(Equal(0))
 					Expect(versionResult).To(Equal(expectedVersionResult))

@@ -146,7 +146,7 @@ var _ = Describe("FetchSource", func() {
 					{Name: "some", Value: "metadata"},
 				}
 				expectedGetResult = worker.GetResult{
-					Status:        0,
+					ExitStatus:    0,
 					VersionResult: runtime.VersionResult{Metadata: expectedMetadata},
 					GetArtifact:   runtime.GetArtifact{fakeVolume.Handle()},
 				}
@@ -197,7 +197,7 @@ var _ = Describe("FetchSource", func() {
 					{Name: "some", Value: "metadata"},
 				}
 				expectedGetResult = worker.GetResult{
-					Status:        0,
+					ExitStatus:    0,
 					VersionResult: runtime.VersionResult{Metadata: expectedMetadata},
 					GetArtifact:   runtime.GetArtifact{fakeVolume.Handle()},
 				}
@@ -281,7 +281,7 @@ var _ = Describe("FetchSource", func() {
 			})
 
 			It("returns a successful GetResult and volume with fetched bits", func() {
-				Expect(getResult.Status).To(BeZero())
+				Expect(getResult.ExitStatus).To(BeZero())
 				Expect(getResult.GetArtifact.VolumeHandle).To(Equal(fakeVolume.Handle()))
 				Expect(volume).ToNot(BeNil())
 			})
