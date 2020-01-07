@@ -9,8 +9,8 @@ import Build.Output.Models exposing (OutputModel)
 import Concourse
 import Keyboard
 import Login.Login as Login
-import RemoteData
 import Routes exposing (Highlight)
+import Time
 
 
 
@@ -20,8 +20,7 @@ import Routes exposing (Highlight)
 type alias Model =
     Login.Model
         (Build.Header.Models.Model
-            { build : RemoteData.WebData Concourse.Build
-            , autoScroll : Bool
+            { autoScroll : Bool
             , previousKeyPress : Maybe Keyboard.KeyEvent
             , shiftDown : Bool
             , showHelp : Bool
@@ -30,6 +29,9 @@ type alias Model =
             , output : CurrentOutput
             , prep : Maybe Concourse.BuildPrep
             , page : BuildPageType
+            , hasLoadedYet : Bool
+            , notFound : Bool
+            , reapTime : Maybe Time.Posix
             }
         )
 

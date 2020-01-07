@@ -355,7 +355,7 @@ runEffect effect key csrfToken =
         FetchBuildPrep delay buildId ->
             Process.sleep delay
                 |> Task.andThen (always <| Network.BuildPrep.fetch buildId)
-                |> Task.attempt BuildPrepFetched
+                |> Task.attempt (BuildPrepFetched buildId)
 
         FetchBuildPlanAndResources buildId ->
             Task.map2 (\a b -> ( a, b )) (Network.BuildPlan.fetch buildId) (Network.BuildResources.fetch buildId)

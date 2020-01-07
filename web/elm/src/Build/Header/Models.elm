@@ -26,6 +26,7 @@ type alias Model r =
         , fetchingHistory : Bool
         , nextPage : Maybe Page
         , previousTriggerBuildByKey : Bool
+        , hasLoadedYet : Bool
     }
 
 
@@ -33,6 +34,7 @@ type alias HistoryItem =
     { id : Int
     , name : String
     , status : BuildStatus.BuildStatus
+    , duration : Concourse.BuildDuration
     }
 
 
