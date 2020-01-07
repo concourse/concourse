@@ -12,9 +12,9 @@ RUN grep '^replace' go.mod || go mod download
 
 
 # containerd tooling
-ARG RUNC_VERSION=v1.0.0-rc8
-ARG CNI_VERSION=v0.8.2
-ARG CONTAINERD_VERSION=1.3.0
+ARG RUNC_VERSION=v1.0.0-rc9
+ARG CNI_VERSION=v0.8.3
+ARG CONTAINERD_VERSION=1.3.2
 
 RUN apt update && apt install -y curl
 
