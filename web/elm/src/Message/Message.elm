@@ -52,7 +52,7 @@ type DomID
     | NextPageButton
     | CheckButton Bool
     | SaveCommentButton
-    | FirstOccurrenceIcon StepID
+    | FirstOccurrenceGetStepLabel StepID
     | StepState StepID
     | PinIcon
     | PinMenuDropDown String

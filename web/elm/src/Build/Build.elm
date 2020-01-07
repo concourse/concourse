@@ -302,9 +302,9 @@ handleDelivery session delivery ( model, effects ) =
             ( { model | now = Just time }
             , effects
                 ++ (case session.hovered of
-                        HoverState.Hovered (FirstOccurrenceIcon stepID) ->
+                        HoverState.Hovered (FirstOccurrenceGetStepLabel stepID) ->
                             [ GetViewportOf
-                                (FirstOccurrenceIcon stepID)
+                                (FirstOccurrenceGetStepLabel stepID)
                                 AlwaysShow
                             ]
 
@@ -736,13 +736,13 @@ body session { prep, build, output, authorized, showHelp } =
 projectOntoBuildPage : HoverState.HoverState -> HoverState.HoverState
 projectOntoBuildPage hovered =
     case hovered of
-        HoverState.Hovered (FirstOccurrenceIcon _) ->
+        HoverState.Hovered (FirstOccurrenceGetStepLabel _) ->
             hovered
 
-        HoverState.TooltipPending (FirstOccurrenceIcon _) ->
+        HoverState.TooltipPending (FirstOccurrenceGetStepLabel _) ->
             hovered
 
-        HoverState.Tooltip (FirstOccurrenceIcon _) _ ->
+        HoverState.Tooltip (FirstOccurrenceGetStepLabel _) _ ->
             hovered
 
         HoverState.Hovered (StepState _) ->

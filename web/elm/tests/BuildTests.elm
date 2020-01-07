@@ -2325,6 +2325,23 @@ all =
                                 )
                             >> Tuple.first
 
+                    fetchPlanWithSetPipelineStep : () -> Application.Model
+                    fetchPlanWithSetPipelineStep =
+                        givenBuildStarted
+                            >> Tuple.first
+                            >> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step =
+                                                Concourse.BuildStepSetPipeline
+                                                    "step"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            >> Tuple.first
+
                     fetchPlanWithPutStep : () -> Application.Model
                     fetchPlanWithPutStep =
                         givenBuildStarted
@@ -2493,128 +2510,63 @@ all =
                         >> Query.children []
                         >> Query.each
                             (Query.has [ style "display" "flex" ])
-                , test "resource get step shows downward arrow" <|
+                , test "resource get step shows get label" <|
                     fetchPlanWithGetStep
                         >> Common.queryView
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = "ic-arrow-downward.svg"
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
-                , test "artifact input step shows downward arrow" <|
+                        >> Query.has getStepLabel
+                , test "artifact input step shows get label" <|
                     fetchPlanWithArtifactInputStep
                         >> Common.queryView
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = "ic-arrow-downward.svg"
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
-                , test "task step shows terminal icon" <|
+                        >> Query.has getStepLabel
+                , test "task step shows task label" <|
                     fetchPlanWithTaskStep
                         >> Common.queryView
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = "ic-terminal.svg"
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
-                , test "artifact output step shows upward arrow" <|
+                        >> Query.has taskStepLabel
+                , test "set_pipeline step shows set_pipeline label" <|
+                    fetchPlanWithSetPipelineStep
+                        >> Common.queryView
+                        >> Query.has setPipelineStepLabel
+                , test "artifact output step shows put label" <|
                     fetchPlanWithEnsureArtifactOutputStep
                         >> Common.queryView
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = "ic-arrow-upward.svg"
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
+                        >> Query.has putStepLabel
                 , test "put step shows upward arrow" <|
                     fetchPlanWithPutStep
                         >> Common.queryView
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = "ic-arrow-upward.svg"
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
+                        >> Query.has putStepLabel
                 , test "get step on first occurrence shows yellow downward arrow" <|
                     fetchPlanWithGetStepWithFirstOccurrence
                         >> Common.queryView
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = "ic-arrow-downward-yellow.svg"
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
-                , test "hovering over a grey down arrow does nothing" <|
+                        >> Query.has firstOccurrenceGetStepLabel
+                , test "hovering over a normal get step label does nothing" <|
                     fetchPlanWithGetStep
                         >> Common.queryView
-                        >> Query.find
-                            (iconSelector
-                                { size = "28px"
-                                , image = "ic-arrow-downward.svg"
-                                }
-                            )
+                        >> Query.find getStepLabel
                         >> Event.simulate Event.mouseEnter
                         >> Event.toResult
                         >> Expect.err
-                , describe "yellow resource down arrow hover behaviour"
-                    [ test "yellow resource down arrow has no tooltip" <|
+                , describe "first-occurrence get step label hover behaviour"
+                    [ test "first-occurrence get step label has no tooltip" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> Common.queryView
-                            >> Query.findAll
-                                (iconSelector
-                                    { size = "28px"
-                                    , image = "ic-arrow-downward-yellow.svg"
-                                    }
-                                )
-                            >> Query.first
-                            >> Query.children []
+                            >> Query.findAll [ text "new version" ]
                             >> Query.count (Expect.equal 0)
-                    , test "hovering over yellow arrow triggers Hover message" <|
+                    , test "hovering over yellow label triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> Common.queryView
-                            >> Query.findAll
-                                (iconSelector
-                                    { size = "28px"
-                                    , image = "ic-arrow-downward-yellow.svg"
-                                    }
-                                )
+                            >> Query.findAll firstOccurrenceGetStepLabel
                             >> Query.first
                             >> Event.simulate Event.mouseEnter
                             >> Event.expect
                                 (Msgs.Update <|
                                     Message.Message.Hover <|
-                                        Just <|
-                                            Message.Message.FirstOccurrenceIcon
-                                                "foo"
+                                        Just firstOccurrenceLabelID
                                 )
                     , test "no tooltip before 1 second has passed" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> Application.update
-                                (Msgs.Update <|
-                                    Message.Message.Hover <|
-                                        Just <|
-                                            Message.Message.FirstOccurrenceIcon
-                                                "foo"
-                                )
-                            >> Tuple.first
+                            >> hoverFirstOccurrenceLabel
                             >> Common.queryView
-                            >> Query.findAll
-                                (iconSelector
-                                    { size = "28px"
-                                    , image = "ic-arrow-downward-yellow.svg"
-                                    }
-                                )
-                            >> Query.first
-                            >> Query.children []
+                            >> Query.findAll [ text "new version" ]
                             >> Query.count (Expect.equal 0)
                     , test "1 second after hovering, tooltip appears" <|
                         fetchPlanWithGetStepWithFirstOccurrence
@@ -2623,14 +2575,7 @@ all =
                                     Time.millisToPosix 0
                                 )
                             >> Tuple.first
-                            >> Application.update
-                                (Msgs.Update <|
-                                    Message.Message.Hover <|
-                                        Just <|
-                                            Message.Message.FirstOccurrenceIcon
-                                                "foo"
-                                )
-                            >> Tuple.first
+                            >> hoverFirstOccurrenceLabel
                             >> Application.handleDelivery
                                 (ClockTicked OneSecond <|
                                     Time.millisToPosix 1
@@ -2638,26 +2583,14 @@ all =
                             >> Tuple.second
                             >> Common.contains
                                 (Effects.GetViewportOf
-                                    (Message.Message.FirstOccurrenceIcon "foo")
+                                    firstOccurrenceLabelID
                                     Callback.AlwaysShow
                                 )
-                    , test "mousing off yellow arrow triggers Hover message" <|
+                    , test "mousing off yellow label triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
-                            >> Application.update
-                                (Msgs.Update <|
-                                    Message.Message.Hover <|
-                                        Just <|
-                                            Message.Message.FirstOccurrenceIcon
-                                                "foo"
-                                )
-                            >> Tuple.first
+                            >> hoverFirstOccurrenceLabel
                             >> Common.queryView
-                            >> Query.findAll
-                                (iconSelector
-                                    { size = "28px"
-                                    , image = "ic-arrow-downward-yellow.svg"
-                                    }
-                                )
+                            >> Query.findAll firstOccurrenceGetStepLabel
                             >> Query.first
                             >> Event.simulate Event.mouseLeave
                             >> Event.expect
@@ -2669,14 +2602,7 @@ all =
                                     Time.millisToPosix 0
                                 )
                             >> Tuple.first
-                            >> Application.update
-                                (Msgs.Update <|
-                                    Message.Message.Hover <|
-                                        Just <|
-                                            Message.Message.FirstOccurrenceIcon
-                                                "foo"
-                                )
-                            >> Tuple.first
+                            >> hoverFirstOccurrenceLabel
                             >> Application.handleDelivery
                                 (ClockTicked OneSecond <|
                                     Time.millisToPosix 1
@@ -2688,14 +2614,7 @@ all =
                                 )
                             >> Tuple.first
                             >> Common.queryView
-                            >> Query.findAll
-                                (iconSelector
-                                    { size = "28px"
-                                    , image = "ic-arrow-downward-yellow.svg"
-                                    }
-                                )
-                            >> Query.first
-                            >> Query.children []
+                            >> Query.findAll [ text "new version" ]
                             >> Query.count (Expect.equal 0)
                     ]
                 , test "hovering one resource of several produces only a single tooltip" <|
@@ -2705,14 +2624,7 @@ all =
                                 Time.millisToPosix 0
                             )
                         >> Tuple.first
-                        >> Application.update
-                            (Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just <|
-                                        Message.Message.FirstOccurrenceIcon
-                                            "foo"
-                            )
-                        >> Tuple.first
+                        >> hoverFirstOccurrenceLabel
                         >> Application.handleDelivery
                             (ClockTicked OneSecond <|
                                 Time.millisToPosix 1
@@ -3477,6 +3389,55 @@ all =
                 ]
             ]
         ]
+
+
+getStepLabel =
+    [ style "color" Colors.pending
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "get:" ]
+    ]
+
+
+firstOccurrenceGetStepLabel =
+    [ style "color" Colors.started
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "get:" ]
+    ]
+
+
+putStepLabel =
+    [ style "color" Colors.pending
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "put:" ]
+    ]
+
+
+taskStepLabel =
+    [ style "color" Colors.pending
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "task:" ]
+    ]
+
+setPipelineStepLabel =
+    [ style "color" Colors.pending
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "set_pipeline:" ]
+    ]
+
+firstOccurrenceLabelID =
+    Message.Message.FirstOccurrenceGetStepLabel
+        "foo"
+
+
+hoverFirstOccurrenceLabel =
+    Application.update
+        (Msgs.Update <| Message.Message.Hover <| Just firstOccurrenceLabelID)
+        >> Tuple.first
 
 
 tooltipGreyHex : String
