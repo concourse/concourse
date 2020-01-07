@@ -49,7 +49,7 @@ type CacheArtifact struct {
 func (art CacheArtifact) ID() string {
 	return fmt.Sprintf("%d, %d, %s, %s", art.TeamID, art.JobID, art.StepName, art.Path)
 }
-
+// TODO (Krishna/Sameer): get rid of these - can GetArtifact and TaskArtifact be merged ?
 type GetArtifact struct {
 	VolumeHandle string
 }

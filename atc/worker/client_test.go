@@ -358,6 +358,20 @@ var _ = Describe("Client", func() {
 				Expect(result).To(Equal(worker.GetResult{}))
 			})
 		})
+		Context("Worker.Fetch returns an Script Error", func() {
+			var someScriptError error
+			BeforeEach(func() {
+				someScriptError = runtime.ErrResourceScriptFailed{Path:"some-path"}
+				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
+				fakeChosenWorker.FetchReturns(worker.GetResult{Status: 17, Failure: someScriptError}, nil, nil)
+			})
+
+			It("Returns the failure", func() {
+				Expect(err).To(BeNil())
+				Expect(result.Failure).To(Equal(someScriptError))
+				Expect(result.Status).To(Equal(17))
+			})
+		})
 
 		Context("worker.Fetch is successful", func() {
 			var (
