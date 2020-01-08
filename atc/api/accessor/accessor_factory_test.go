@@ -1,103 +1,130 @@
 package accessor_test
 
 import (
-	"code.cloudfoundry.org/lager"
-	"crypto/rand"
-	"crypto/rsa"
-	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"errors"
 	"net/http"
+
+	"code.cloudfoundry.org/lager"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("AccessorFactory", func() {
-	var accessorFactory accessor.AccessFactory
-	var access accessor.Access
-	var key *rsa.PrivateKey
-	var req *http.Request
+	var (
+		err    error
+		access accessor.Access
+
+		accessorFactory accessor.AccessFactory
+		req             *http.Request
+
+		fakeVerifier    *accessorfakes.FakeVerifier
+		fakeTeamFactory *dbfakes.FakeTeamFactory
+	)
 
 	Describe("Create", func() {
+
 		BeforeEach(func() {
-			reader := rand.Reader
-			bitSize := 2048
-			var err error
-			key, err = rsa.GenerateKey(reader, bitSize)
-			Expect(err).NotTo(HaveOccurred())
-
-			publicKey := &key.PublicKey
-			//publicKey = rsa.GenerateKey(random, bits)
-			accessorFactory = accessor.NewAccessFactory(publicKey)
-
 			req, err = http.NewRequest("GET", "localhost:8080", nil)
 			Expect(err).NotTo(HaveOccurred())
+
+			fakeVerifier = new(accessorfakes.FakeVerifier)
+			fakeTeamFactory = new(dbfakes.FakeTeamFactory)
+
+			accessorFactory = accessor.NewAccessFactory(fakeVerifier, fakeTeamFactory, "sub", []string{"some-sub"})
 		})
+
 		JustBeforeEach(func() {
-			access = accessorFactory.Create(req, "some-action")
+			access, err = accessorFactory.Create(req, "some-role")
 		})
 
-		Context("when request has jwt token set", func() {
+		Context("when the verifier returns an NoToken error", func() {
 			BeforeEach(func() {
-				token := jwt.New(jwt.SigningMethodRS256)
-				tokenString, err := token.SignedString(key)
+				fakeVerifier.VerifyReturns(nil, accessor.ErrVerificationNoToken)
+			})
+
+			It("does not query for teams", func() {
+				Expect(fakeTeamFactory.GetTeamsCallCount()).To(Equal(0))
+			})
+
+			It("creates an accessor", func() {
 				Expect(err).NotTo(HaveOccurred())
-				req.Header.Add("Authorization", fmt.Sprintf("BEARER %s", tokenString))
-			})
-
-			It("creates valid access object", func() {
-				Expect(access).ToNot(BeNil())
+				Expect(access.HasToken()).To(BeFalse())
 			})
 		})
 
-		Context("when request has jwt token with invalid signing key", func() {
+		Context("when the verifier returns any other error", func() {
 			BeforeEach(func() {
-				mySigningKey := []byte("AllYourBase")
+				fakeVerifier.VerifyReturns(nil, errors.New("some error"))
+			})
 
-				token := jwt.New(jwt.SigningMethodHS256)
-				tokenString, err := token.SignedString(mySigningKey)
+			It("does not query for teams", func() {
+				Expect(fakeTeamFactory.GetTeamsCallCount()).To(Equal(0))
+			})
 
+			It("creates an accessor", func() {
 				Expect(err).NotTo(HaveOccurred())
-				req.Header.Add("Authorization", fmt.Sprintf("BEARER %s", tokenString))
-			})
-
-			It("creates valid access object", func() {
-				Expect(access).ToNot(BeNil())
-			})
-
-		})
-		Context("when request does not have jwt token set", func() {
-			BeforeEach(func() {
-				req.Header.Add("Authorization", "")
-			})
-			It("creates valid access object", func() {
-				Expect(access).ToNot(BeNil())
+				Expect(access.HasToken()).To(BeTrue())
+				Expect(access.IsAuthenticated()).To(BeFalse())
 			})
 		})
 
-		Context("when request does not have valid jwt token set", func() {
+		Context("when the verifier returns claims", func() {
+			var claims map[string]interface{}
+
 			BeforeEach(func() {
-				req.Header.Add("Authorization", "blah-token")
+				claims = map[string]interface{}{
+					"sub": "some-sub",
+					"aud": "some-aud",
+				}
+
+				fakeVerifier.VerifyReturns(claims, nil)
 			})
-			It("creates valid access object", func() {
-				Expect(access).ToNot(BeNil())
+
+			It("queries for teams", func() {
+				Expect(fakeTeamFactory.GetTeamsCallCount()).To(Equal(1))
+			})
+
+			Context("when the team factory returns an error", func() {
+				BeforeEach(func() {
+					fakeTeamFactory.GetTeamsReturns(nil, errors.New("nope"))
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when the team factory returns teams", func() {
+				var teams []db.Team
+
+				BeforeEach(func() {
+					fakeTeam1 := new(dbfakes.FakeTeam)
+					fakeTeam2 := new(dbfakes.FakeTeam)
+					fakeTeam3 := new(dbfakes.FakeTeam)
+
+					teams = []db.Team{fakeTeam1, fakeTeam2, fakeTeam3}
+
+					fakeTeamFactory.GetTeamsReturns(teams, nil)
+				})
+
+				It("creates an accessor", func() {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(access.HasToken()).To(BeTrue())
+					Expect(access.IsAuthenticated()).To(BeTrue())
+				})
 			})
 		})
 	})
 
 	Describe("CustomizeRolesMapping", func() {
-		var (
-			accessorFactory accessor.AccessFactory
-		)
-
 		BeforeEach(func() {
-			accessorFactory = accessor.NewAccessFactory(&rsa.PublicKey{})
-		})
-
-		JustBeforeEach(func() {
 			customData := accessor.CustomActionRoleMap{
 				accessor.OperatorRole: []string{atc.HijackContainer, atc.CreatePipelineBuild},
 				accessor.ViewerRole:   []string{atc.GetPipeline},

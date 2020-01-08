@@ -8,16 +8,6 @@ import (
 )
 
 type FakeAccess struct {
-	CSRFTokenStub        func() string
-	cSRFTokenMutex       sync.RWMutex
-	cSRFTokenArgsForCall []struct {
-	}
-	cSRFTokenReturns struct {
-		result1 string
-	}
-	cSRFTokenReturnsOnCall map[int]struct {
-		result1 string
-	}
 	HasTokenStub        func() bool
 	hasTokenMutex       sync.RWMutex
 	hasTokenArgsForCall []struct {
@@ -79,6 +69,26 @@ type FakeAccess struct {
 	teamNamesReturnsOnCall map[int]struct {
 		result1 []string
 	}
+	UserIDStub        func() string
+	userIDMutex       sync.RWMutex
+	userIDArgsForCall []struct {
+	}
+	userIDReturns struct {
+		result1 string
+	}
+	userIDReturnsOnCall map[int]struct {
+		result1 string
+	}
+	UserInfoStub        func() accessor.UserInfo
+	userInfoMutex       sync.RWMutex
+	userInfoArgsForCall []struct {
+	}
+	userInfoReturns struct {
+		result1 accessor.UserInfo
+	}
+	userInfoReturnsOnCall map[int]struct {
+		result1 accessor.UserInfo
+	}
 	UserNameStub        func() string
 	userNameMutex       sync.RWMutex
 	userNameArgsForCall []struct {
@@ -91,58 +101,6 @@ type FakeAccess struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeAccess) CSRFToken() string {
-	fake.cSRFTokenMutex.Lock()
-	ret, specificReturn := fake.cSRFTokenReturnsOnCall[len(fake.cSRFTokenArgsForCall)]
-	fake.cSRFTokenArgsForCall = append(fake.cSRFTokenArgsForCall, struct {
-	}{})
-	fake.recordInvocation("CSRFToken", []interface{}{})
-	fake.cSRFTokenMutex.Unlock()
-	if fake.CSRFTokenStub != nil {
-		return fake.CSRFTokenStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.cSRFTokenReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeAccess) CSRFTokenCallCount() int {
-	fake.cSRFTokenMutex.RLock()
-	defer fake.cSRFTokenMutex.RUnlock()
-	return len(fake.cSRFTokenArgsForCall)
-}
-
-func (fake *FakeAccess) CSRFTokenCalls(stub func() string) {
-	fake.cSRFTokenMutex.Lock()
-	defer fake.cSRFTokenMutex.Unlock()
-	fake.CSRFTokenStub = stub
-}
-
-func (fake *FakeAccess) CSRFTokenReturns(result1 string) {
-	fake.cSRFTokenMutex.Lock()
-	defer fake.cSRFTokenMutex.Unlock()
-	fake.CSRFTokenStub = nil
-	fake.cSRFTokenReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeAccess) CSRFTokenReturnsOnCall(i int, result1 string) {
-	fake.cSRFTokenMutex.Lock()
-	defer fake.cSRFTokenMutex.Unlock()
-	fake.CSRFTokenStub = nil
-	if fake.cSRFTokenReturnsOnCall == nil {
-		fake.cSRFTokenReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.cSRFTokenReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
 }
 
 func (fake *FakeAccess) HasToken() bool {
@@ -465,6 +423,110 @@ func (fake *FakeAccess) TeamNamesReturnsOnCall(i int, result1 []string) {
 	}{result1}
 }
 
+func (fake *FakeAccess) UserID() string {
+	fake.userIDMutex.Lock()
+	ret, specificReturn := fake.userIDReturnsOnCall[len(fake.userIDArgsForCall)]
+	fake.userIDArgsForCall = append(fake.userIDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("UserID", []interface{}{})
+	fake.userIDMutex.Unlock()
+	if fake.UserIDStub != nil {
+		return fake.UserIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.userIDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeAccess) UserIDCallCount() int {
+	fake.userIDMutex.RLock()
+	defer fake.userIDMutex.RUnlock()
+	return len(fake.userIDArgsForCall)
+}
+
+func (fake *FakeAccess) UserIDCalls(stub func() string) {
+	fake.userIDMutex.Lock()
+	defer fake.userIDMutex.Unlock()
+	fake.UserIDStub = stub
+}
+
+func (fake *FakeAccess) UserIDReturns(result1 string) {
+	fake.userIDMutex.Lock()
+	defer fake.userIDMutex.Unlock()
+	fake.UserIDStub = nil
+	fake.userIDReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeAccess) UserIDReturnsOnCall(i int, result1 string) {
+	fake.userIDMutex.Lock()
+	defer fake.userIDMutex.Unlock()
+	fake.UserIDStub = nil
+	if fake.userIDReturnsOnCall == nil {
+		fake.userIDReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.userIDReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeAccess) UserInfo() accessor.UserInfo {
+	fake.userInfoMutex.Lock()
+	ret, specificReturn := fake.userInfoReturnsOnCall[len(fake.userInfoArgsForCall)]
+	fake.userInfoArgsForCall = append(fake.userInfoArgsForCall, struct {
+	}{})
+	fake.recordInvocation("UserInfo", []interface{}{})
+	fake.userInfoMutex.Unlock()
+	if fake.UserInfoStub != nil {
+		return fake.UserInfoStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.userInfoReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeAccess) UserInfoCallCount() int {
+	fake.userInfoMutex.RLock()
+	defer fake.userInfoMutex.RUnlock()
+	return len(fake.userInfoArgsForCall)
+}
+
+func (fake *FakeAccess) UserInfoCalls(stub func() accessor.UserInfo) {
+	fake.userInfoMutex.Lock()
+	defer fake.userInfoMutex.Unlock()
+	fake.UserInfoStub = stub
+}
+
+func (fake *FakeAccess) UserInfoReturns(result1 accessor.UserInfo) {
+	fake.userInfoMutex.Lock()
+	defer fake.userInfoMutex.Unlock()
+	fake.UserInfoStub = nil
+	fake.userInfoReturns = struct {
+		result1 accessor.UserInfo
+	}{result1}
+}
+
+func (fake *FakeAccess) UserInfoReturnsOnCall(i int, result1 accessor.UserInfo) {
+	fake.userInfoMutex.Lock()
+	defer fake.userInfoMutex.Unlock()
+	fake.UserInfoStub = nil
+	if fake.userInfoReturnsOnCall == nil {
+		fake.userInfoReturnsOnCall = make(map[int]struct {
+			result1 accessor.UserInfo
+		})
+	}
+	fake.userInfoReturnsOnCall[i] = struct {
+		result1 accessor.UserInfo
+	}{result1}
+}
+
 func (fake *FakeAccess) UserName() string {
 	fake.userNameMutex.Lock()
 	ret, specificReturn := fake.userNameReturnsOnCall[len(fake.userNameArgsForCall)]
@@ -520,8 +582,6 @@ func (fake *FakeAccess) UserNameReturnsOnCall(i int, result1 string) {
 func (fake *FakeAccess) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.cSRFTokenMutex.RLock()
-	defer fake.cSRFTokenMutex.RUnlock()
 	fake.hasTokenMutex.RLock()
 	defer fake.hasTokenMutex.RUnlock()
 	fake.isAdminMutex.RLock()
@@ -534,6 +594,10 @@ func (fake *FakeAccess) Invocations() map[string][][]interface{} {
 	defer fake.isSystemMutex.RUnlock()
 	fake.teamNamesMutex.RLock()
 	defer fake.teamNamesMutex.RUnlock()
+	fake.userIDMutex.RLock()
+	defer fake.userIDMutex.RUnlock()
+	fake.userInfoMutex.RLock()
+	defer fake.userInfoMutex.RUnlock()
 	fake.userNameMutex.RLock()
 	defer fake.userNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -4,16 +4,19 @@ import (
 	"context"
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/auditor"
 )
 
 func NewHandler(
+	logger lager.Logger,
 	handler http.Handler,
 	accessFactory AccessFactory,
 	action string,
 	aud auditor.Auditor,
 ) http.Handler {
 	return accessorHandler{
+		logger:        logger,
 		handler:       handler,
 		accessFactory: accessFactory,
 		action:        action,
@@ -22,6 +25,7 @@ func NewHandler(
 }
 
 type accessorHandler struct {
+	logger        lager.Logger
 	handler       http.Handler
 	accessFactory AccessFactory
 	action        string
@@ -30,7 +34,13 @@ type accessorHandler struct {
 
 func (h accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	acc := h.accessFactory.Create(r, h.action)
+	acc, err := h.accessFactory.Create(r, h.action)
+	if err != nil {
+		h.logger.Error("failed-to-create-accessor", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	ctx := context.WithValue(r.Context(), "accessor", acc)
 
 	h.auditor.Audit(h.action, acc.UserName(), r)

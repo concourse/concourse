@@ -1,14 +1,18 @@
 package accessor
 
 import (
-	"code.cloudfoundry.org/lager"
-	"crypto/rsa"
 	"fmt"
 	"net/http"
-	"strings"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
 )
+
+//go:generate counterfeiter . Verifier
+
+type Verifier interface {
+	Verify(*http.Request) (map[string]interface{}, error)
+}
 
 //go:generate counterfeiter . AccessFactory
 
@@ -16,19 +20,22 @@ type AccessFactory interface {
 	ActionRoleMapModifier
 	ActionRoleMap
 
-	Create(*http.Request, string) Access
+	Create(*http.Request, string) (Access, error)
 }
 
-type accessFactory struct {
-	publicKey      *rsa.PublicKey
-	rolesActionMap map[string]string
-}
-
-func NewAccessFactory(key *rsa.PublicKey) AccessFactory {
+func NewAccessFactory(
+	verifier Verifier,
+	teamFactory db.TeamFactory,
+	systemClaimKey string,
+	systemClaimValues []string,
+) AccessFactory {
 
 	factory := accessFactory{
-		publicKey:      key,
-		rolesActionMap: map[string]string{},
+		verifier:          verifier,
+		teamFactory:       teamFactory,
+		systemClaimKey:    systemClaimKey,
+		systemClaimValues: systemClaimValues,
+		rolesActionMap:    map[string]string{},
 	}
 
 	// Copy rolesActionMap
@@ -39,32 +46,45 @@ func NewAccessFactory(key *rsa.PublicKey) AccessFactory {
 	return &factory
 }
 
-func (a *accessFactory) Create(r *http.Request, action string) Access {
-
-	header := r.Header.Get("Authorization")
-	if header == "" {
-		return &access{nil, action, a}
-	}
-
-	if len(header) < 7 || strings.ToUpper(header[0:6]) != "BEARER" {
-		return &access{&jwt.Token{}, action, a}
-	}
-
-	token, err := jwt.Parse(header[7:], a.validate)
-	if err != nil {
-		return &access{&jwt.Token{}, action, a}
-	}
-
-	return &access{token, action, a}
+type accessFactory struct {
+	verifier          Verifier
+	teamFactory       db.TeamFactory
+	systemClaimKey    string
+	systemClaimValues []string
+	rolesActionMap    map[string]string
 }
 
-func (a *accessFactory) validate(token *jwt.Token) (interface{}, error) {
+func (a *accessFactory) Create(r *http.Request, action string) (Access, error) {
 
-	if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-		return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+	requiredRole := a.RoleOfAction(action)
+
+	verification := a.verify(r)
+
+	if !verification.IsTokenValid {
+		return NewAccessor(verification, requiredRole, a.systemClaimKey, a.systemClaimValues, nil), nil
 	}
 
-	return a.publicKey, nil
+	teams, err := a.teamFactory.GetTeams()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewAccessor(verification, requiredRole, a.systemClaimKey, a.systemClaimValues, teams), nil
+}
+
+func (a *accessFactory) verify(r *http.Request) Verification {
+
+	claims, err := a.verifier.Verify(r)
+	if err != nil {
+		switch err {
+		case ErrVerificationNoToken:
+			return Verification{HasToken: false, IsTokenValid: false}
+		default:
+			return Verification{HasToken: true, IsTokenValid: false}
+		}
+	}
+
+	return Verification{HasToken: true, IsTokenValid: true, Claims: claims}
 }
 
 func (a *accessFactory) CustomizeActionRoleMap(logger lager.Logger, customMapping CustomActionRoleMap) error {

@@ -10,7 +10,7 @@ import (
 )
 
 type FakeAccessFactory struct {
-	CreateStub        func(*http.Request, string) accessor.Access
+	CreateStub        func(*http.Request, string) (accessor.Access, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 *http.Request
@@ -18,9 +18,11 @@ type FakeAccessFactory struct {
 	}
 	createReturns struct {
 		result1 accessor.Access
+		result2 error
 	}
 	createReturnsOnCall map[int]struct {
 		result1 accessor.Access
+		result2 error
 	}
 	CustomizeActionRoleMapStub        func(lager.Logger, accessor.CustomActionRoleMap) error
 	customizeActionRoleMapMutex       sync.RWMutex
@@ -49,7 +51,7 @@ type FakeAccessFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAccessFactory) Create(arg1 *http.Request, arg2 string) accessor.Access {
+func (fake *FakeAccessFactory) Create(arg1 *http.Request, arg2 string) (accessor.Access, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
@@ -62,10 +64,10 @@ func (fake *FakeAccessFactory) Create(arg1 *http.Request, arg2 string) accessor.
 		return fake.CreateStub(arg1, arg2)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.createReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeAccessFactory) CreateCallCount() int {
@@ -74,7 +76,7 @@ func (fake *FakeAccessFactory) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeAccessFactory) CreateCalls(stub func(*http.Request, string) accessor.Access) {
+func (fake *FakeAccessFactory) CreateCalls(stub func(*http.Request, string) (accessor.Access, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
@@ -87,27 +89,30 @@ func (fake *FakeAccessFactory) CreateArgsForCall(i int) (*http.Request, string) 
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeAccessFactory) CreateReturns(result1 accessor.Access) {
+func (fake *FakeAccessFactory) CreateReturns(result1 accessor.Access, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
 		result1 accessor.Access
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeAccessFactory) CreateReturnsOnCall(i int, result1 accessor.Access) {
+func (fake *FakeAccessFactory) CreateReturnsOnCall(i int, result1 accessor.Access, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {
 			result1 accessor.Access
+			result2 error
 		})
 	}
 	fake.createReturnsOnCall[i] = struct {
 		result1 accessor.Access
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeAccessFactory) CustomizeActionRoleMap(arg1 lager.Logger, arg2 accessor.CustomActionRoleMap) error {
