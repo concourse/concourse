@@ -93,12 +93,12 @@ type client struct {
 }
 
 type TaskResult struct {
-	Status       int
+	ExitStatus       int
 	VolumeMounts []VolumeMount
 }
 
 type PutResult struct {
-	Status        int
+	ExitStatus        int
 	VersionResult runtime.VersionResult
 }
 
@@ -106,10 +106,6 @@ type GetResult struct {
 	ExitStatus    int
 	VersionResult runtime.VersionResult
 	GetArtifact   runtime.GetArtifact
-}
-
-func (result GetResult) ExitSuccessful() bool {
-	return result.ExitStatus == 0
 }
 
 type ImageFetcherSpec struct {
@@ -229,7 +225,7 @@ func (client *client) RunTaskStep(
 		}
 
 		return TaskResult{
-			Status:       status,
+			ExitStatus:       status,
 			VolumeMounts: container.VolumeMounts(),
 		}, err
 	}
@@ -289,25 +285,25 @@ func (client *client) RunTaskStep(
 
 		status := <-exitStatusChan
 		return TaskResult{
-			Status:       status.processStatus,
+			ExitStatus:       status.processStatus,
 			VolumeMounts: container.VolumeMounts(),
 		}, ctx.Err()
 
 	case status := <-exitStatusChan:
 		if status.processErr != nil {
 			return TaskResult{
-				Status:       status.processStatus,
+				ExitStatus:       status.processStatus,
 			}, status.processErr
 		}
 
 		err = container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", status.processStatus))
 		if err != nil {
 			return TaskResult{
-				Status: status.processStatus,
+				ExitStatus: status.processStatus,
 			}, err
 		}
 		return TaskResult{
-			Status: status.processStatus,
+			ExitStatus: status.processStatus,
 			VolumeMounts: container.VolumeMounts(),
 		}, err
 	}
@@ -545,7 +541,7 @@ func (client *client) RunPutStep(
 		}
 
 		return PutResult{
-			Status: status,
+			ExitStatus: status,
 			VersionResult: runtime.VersionResult{},
 		}, nil
 	}
@@ -556,7 +552,7 @@ func (client *client) RunPutStep(
 	if err != nil {
 		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
 			return PutResult{
-				Status:        failErr.ExitStatus,
+				ExitStatus:        failErr.ExitStatus,
 				VersionResult: runtime.VersionResult{},
 			}, nil
 		} else {
@@ -564,7 +560,7 @@ func (client *client) RunPutStep(
 		}
 	}
 	return PutResult{
-		Status: 0,
+		ExitStatus: 0,
 		VersionResult: vr,
 	}, nil
 }

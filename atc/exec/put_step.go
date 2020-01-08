@@ -200,8 +200,8 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	if result.Status != 0 {
-		step.delegate.Finished(logger, ExitStatus(result.Status), runtime.VersionResult{})
+	if result.ExitStatus != 0 {
+		step.delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
 		return nil
 	}
 

@@ -245,8 +245,8 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	step.succeeded = (result.Status == 0)
-	step.delegate.Finished(logger, ExitStatus(result.Status))
+	step.succeeded = (result.ExitStatus == 0)
+	step.delegate.Finished(logger, ExitStatus(result.ExitStatus))
 
 	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 

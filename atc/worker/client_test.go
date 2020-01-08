@@ -488,7 +488,7 @@ var _ = Describe("Client", func() {
 				fakeEventDelegate,
 				fakeLockFactory,
 			)
-			status = taskResult.Status
+			status = taskResult.ExitStatus
 			volumeMounts = taskResult.VolumeMounts
 		})
 
@@ -1206,7 +1206,7 @@ var _ = Describe("Client", func() {
 				fakeResource,
 			)
 			versionResult = result.VersionResult
-			status = result.Status
+			status = result.ExitStatus
 		})
 
 		It("finds/chooses a worker", func() {

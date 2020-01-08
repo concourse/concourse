@@ -424,7 +424,7 @@ var _ = Describe("TaskStep", func() {
 				fakeVolume1 = new(workerfakes.FakeVolume)
 				fakeVolume2 = new(workerfakes.FakeVolume)
 				taskResult := worker.TaskResult{
-					Status: 0,
+					ExitStatus: 0,
 					VolumeMounts: []worker.VolumeMount{
 						{
 							Volume:    fakeVolume1,
@@ -783,7 +783,7 @@ var _ = Describe("TaskStep", func() {
 				BeforeEach(func() {
 					taskStepStatus = 0
 					taskResult := worker.TaskResult{
-						Status:       taskStepStatus,
+						ExitStatus:       taskStepStatus,
 						VolumeMounts: []worker.VolumeMount{},
 					}
 					fakeClient.RunTaskStepReturns(taskResult, nil)
@@ -823,7 +823,7 @@ var _ = Describe("TaskStep", func() {
 						fakeVolume3.HandleReturns("some-handle-3")
 
 						fakeTaskResult := worker.TaskResult{
-							Status: 0,
+							ExitStatus: 0,
 							VolumeMounts: []worker.VolumeMount{
 								{
 									Volume:    fakeVolume1,
@@ -875,7 +875,7 @@ var _ = Describe("TaskStep", func() {
 			Context("when the task exits with nonzero status", func() {
 				BeforeEach(func() {
 					taskStepStatus = 5
-					taskResult := worker.TaskResult{Status: taskStepStatus, VolumeMounts: []worker.VolumeMount{}}
+					taskResult := worker.TaskResult{ExitStatus: taskStepStatus, VolumeMounts: []worker.VolumeMount{}}
 					fakeClient.RunTaskStepReturns(taskResult, nil)
 				})
 				It("finishes the task via the delegate", func() {
@@ -894,7 +894,7 @@ var _ = Describe("TaskStep", func() {
 			disaster := errors.New("task run failed")
 
 			BeforeEach(func() {
-				taskResult := worker.TaskResult{Status: -1, VolumeMounts: []worker.VolumeMount{}}
+				taskResult := worker.TaskResult{ExitStatus: -1, VolumeMounts: []worker.VolumeMount{}}
 				fakeClient.RunTaskStepReturns(taskResult, disaster)
 			})
 
@@ -911,7 +911,7 @@ var _ = Describe("TaskStep", func() {
 			BeforeEach(func() {
 				fakeClient.RunTaskStepReturns(
 					worker.TaskResult{
-						Status:       -1,
+						ExitStatus:       -1,
 						VolumeMounts: []worker.VolumeMount{},
 					}, context.Canceled)
 				cancel()
@@ -970,7 +970,7 @@ var _ = Describe("TaskStep", func() {
 				fakeVolume3.HandleReturns("some-handle-3")
 
 				taskResult := worker.TaskResult{
-					Status: 0,
+					ExitStatus: 0,
 					VolumeMounts: []worker.VolumeMount{
 						{
 							Volume:    fakeVolume1,
@@ -1025,7 +1025,7 @@ var _ = Describe("TaskStep", func() {
 				fakeVolume.HandleReturns("some-handle")
 
 				taskResult := worker.TaskResult{
-					Status: 0,
+					ExitStatus: 0,
 					VolumeMounts: []worker.VolumeMount{
 						{
 							Volume:    fakeVolume,

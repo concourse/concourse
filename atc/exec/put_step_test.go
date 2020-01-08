@@ -166,7 +166,7 @@ var _ = Describe("PutStep", func() {
 		}
 
 		fakeClient.RunPutStepReturns(
-			worker.PutResult{Status: someExitStatus, VersionResult: versionResult},
+			worker.PutResult{ExitStatus: someExitStatus, VersionResult: versionResult},
 		clientErr,
 			)
 
