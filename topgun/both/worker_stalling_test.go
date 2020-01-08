@@ -82,7 +82,10 @@ var _ = Describe("Worker stalling", func() {
 				matches := buildRegex.FindSubmatch(buildSession.Out.Contents())
 				buildID = string(matches[1])
 
-				Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
+				//For the initializing block
+				Eventually(buildSession).Should(gbytes.Say("echo 'waiting for /tmp/stop-waiting to exist'"))
+				//For the output from the running step
+				Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting to exist"))
 
 				By("stopping the worker without draining")
 				Bosh("ssh", "worker/0", "-c", "sudo /var/vcap/bosh/bin/monit stop worker")
@@ -118,7 +121,7 @@ var _ = Describe("Worker stalling", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					// wait for new output
-					Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting"))
+					Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting to exist"))
 
 					By("hijacking the build to tell it to finish")
 					Eventually(func() int {
