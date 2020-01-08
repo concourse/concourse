@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/url"
 	"os"
 
 	concourseCmd "github.com/concourse/concourse/cmd"
@@ -24,6 +25,7 @@ type WebCommand struct {
 func (WebCommand) LessenRequirements(command *flags.Command) {
 	// defaults to atc external URL
 	command.FindOptionByLongName("tsa-atc-url").Required = false
+	command.FindOptionByLongName("tsa-token-url").Required = false
 }
 
 func (cmd *WebCommand) Execute(args []string) error {
@@ -71,6 +73,14 @@ func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	if len(cmd.TSACommand.ATCURLs) == 0 {
 		cmd.TSACommand.ATCURLs = []flag.URL{cmd.RunCommand.DefaultURL()}
 	}
+
+	if cmd.TSACommand.TokenURL.URL == nil {
+		tokenPath, _ := url.Parse("/sky/issuer/token")
+		cmd.TSACommand.TokenURL.URL = cmd.RunCommand.DefaultURL().URL.ResolveReference(tokenPath)
+	}
+
+	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.TSACommand.ClientID] = cmd.TSACommand.ClientSecret
+	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.RunCommand.Server.ClientID] = cmd.RunCommand.Server.ClientSecret
 
 	cmd.TSACommand.ClusterName = cmd.RunCommand.Server.ClusterName
 	cmd.TSACommand.LogClusterName = cmd.RunCommand.LogClusterName

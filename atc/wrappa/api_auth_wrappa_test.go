@@ -37,91 +37,64 @@ var _ = Describe("APIAuthWrappa", func() {
 	})
 
 	authenticateIfTokenProvided := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			auth.CheckAuthenticationIfProvidedHandler(
-				handler,
-				rejector,
-			),
+		return auth.CheckAuthenticationIfProvidedHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	authenticated := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			auth.CheckAuthenticationHandler(
-				handler,
-				rejector,
-			),
+		return auth.CheckAuthenticationHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	authenticatedAndAdmin := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			auth.CheckAdminHandler(
-				handler,
-				rejector,
-			),
+		return auth.CheckAdminHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	authorized := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			auth.CheckAuthorizationHandler(
-				handler,
-				rejector,
-			),
+		return auth.CheckAuthorizationHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	openForPublicPipelineOrAuthorized := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			fakeCheckPipelineAccessHandlerFactory.HandlerFor(
-				handler,
-				rejector,
-			),
+		return fakeCheckPipelineAccessHandlerFactory.HandlerFor(
+			handler,
 			rejector,
 		)
 	}
 
 	doesNotCheckIfPrivateJob := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			fakeCheckBuildReadAccessHandlerFactory.AnyJobHandler(
-				handler,
-				rejector,
-			),
+		return fakeCheckBuildReadAccessHandlerFactory.AnyJobHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	checksIfPrivateJob := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			fakeCheckBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(
-				handler,
-				rejector,
-			),
+		return fakeCheckBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	checkWritePermissionForBuild := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			fakeCheckBuildWriteAccessHandlerFactory.HandlerFor(
-				handler,
-				rejector,
-			),
+		return fakeCheckBuildWriteAccessHandlerFactory.HandlerFor(
+			handler,
 			rejector,
 		)
 	}
 
 	checkTeamAccessForWorker := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			fakeCheckWorkerTeamAccessHandlerFactory.HandlerFor(
-				handler,
-				rejector,
-			),
+		return fakeCheckWorkerTeamAccessHandlerFactory.HandlerFor(
+			handler,
 			rejector,
 		)
 	}
