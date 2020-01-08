@@ -198,6 +198,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.SetTeam:         authenticated(inputHandlers[atc.SetTeam]),
 				atc.RenameTeam:      authenticated(inputHandlers[atc.RenameTeam]),
 				atc.DestroyTeam:     authenticated(inputHandlers[atc.DestroyTeam]),
+				atc.GetUser:         authenticated(inputHandlers[atc.GetUser]),
 
 				//authenticateIfTokenProvided / delegating to handler
 				atc.GetInfo:              authenticateIfTokenProvided(inputHandlers[atc.GetInfo]),

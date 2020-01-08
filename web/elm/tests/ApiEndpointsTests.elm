@@ -288,7 +288,7 @@ testEndpoints =
             \_ ->
                 UserInfo
                     |> toPath
-                    |> Expect.equal "/sky/userinfo"
+                    |> Expect.equal "/api/v1/user"
         , test "Logout" <|
             \_ ->
                 Logout

@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/testhelpers"
@@ -19,20 +19,85 @@ import (
 var _ = Describe("Users API", func() {
 
 	var (
-		response   *http.Response
-		fakeaccess *accessorfakes.FakeAccess
-		query      url.Values
+		response *http.Response
+		query    url.Values
 	)
 
-	BeforeEach(func() {
-		fakeaccess = new(accessorfakes.FakeAccess)
+	Context("GET /api/v1/user", func() {
+
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("GET", server.URL+"/api/v1/user", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			req.URL.RawQuery = query.Encode()
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+
+				fakeAccess.UserInfoReturns(accessor.UserInfo{
+					Sub:      "some-sub",
+					Name:     "some-name",
+					UserID:   "some-user-id",
+					UserName: "some-user-name",
+					Email:    "some@email.com",
+					IsAdmin:  true,
+					IsSystem: false,
+					Teams: map[string][]string{
+						"some-team":       []string{"owner"},
+						"some-other-team": []string{"viewer"},
+					},
+				})
+			})
+
+			It("succeeds", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns Content-Type 'application/json'", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			})
+
+			It("returns the current user", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`{
+							"sub": "some-sub",
+							"name": "some-name",
+							"user_id": "some-user-id",
+							"user_name": "some-user-name",
+							"email": "some@email.com",
+							"is_admin": true,
+							"is_system": false,
+							"teams": {
+							  "some-team": ["owner"],
+							  "some-other-team": ["viewer"]
+							}
+						}`))
+			})
+		})
+
+		Context("not authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
 	})
 
 	Context("GET /api/v1/users", func() {
 
 		JustBeforeEach(func() {
-			fakeAccessor.CreateReturns(fakeaccess)
-
 			req, err := http.NewRequest("GET", server.URL+"/api/v1/users", nil)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -45,7 +110,7 @@ var _ = Describe("Users API", func() {
 		Context("when authenticated", func() {
 
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("not an admin", func() {
@@ -59,7 +124,7 @@ var _ = Describe("Users API", func() {
 			Context("being an admin", func() {
 
 				BeforeEach(func() {
-					fakeaccess.IsAdminReturns(true)
+					fakeAccess.IsAdminReturns(true)
 				})
 
 				It("succeeds", func() {
@@ -119,8 +184,7 @@ var _ = Describe("Users API", func() {
 							"id": 6,
 							"username": "bob",
 							"connector": "github",
-							"last_login": 10,
-							"sub": ""
+							"last_login": 10
 						}]`))
 					})
 
@@ -133,7 +197,7 @@ var _ = Describe("Users API", func() {
 		Context("not authenticated", func() {
 
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -147,13 +211,11 @@ var _ = Describe("Users API", func() {
 	Context("GET /api/v1/users?since=", func() {
 		var date string
 		BeforeEach(func() {
-			fakeaccess.IsAuthenticatedReturns(true)
-			fakeaccess.IsAdminReturns(true)
+			fakeAccess.IsAuthenticatedReturns(true)
+			fakeAccess.IsAdminReturns(true)
 		})
 
 		JustBeforeEach(func() {
-			fakeAccessor.CreateReturns(fakeaccess)
-
 			req, err := http.NewRequest("GET", server.URL+"/api/v1/users?since="+date, nil)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -182,8 +244,7 @@ var _ = Describe("Users API", func() {
 						"id": 6,
 						"username": "bob",
 						"connector": "github",
-						"last_login": 10,
-						"sub": ""
+						"last_login": 10
 					}]`))
 			})
 		})
