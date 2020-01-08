@@ -36,7 +36,7 @@ type RegisterableArtifact interface {
 	runtime.Artifact
 }
 
-// RegisterSource inserts an ArtifactSource into the map under the given
+// RegisterArtifact inserts an RegisterableArtifact into the map under the given
 // ArtifactName. Producers of artifacts, e.g. the Get step and the Task step,
 // will call this after they've successfully produced their artifact(s).
 func (repo *Repository) RegisterArtifact(name ArtifactName, artifact RegisterableArtifact) {
