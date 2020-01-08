@@ -1,6 +1,8 @@
 package vault_test
 
 import (
+	"text/template"
+
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/vault"
 	"github.com/concourse/concourse/vars"
@@ -47,10 +49,14 @@ var _ = Describe("Vault", func() {
 			}},
 		}
 
+		p, _ := creds.BuildSecretTemplate("p", "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}")
+		t, _ := creds.BuildSecretTemplate("t", "/concourse/{{.Team}}/{{.Secret}}")
+
 		v = &vault.Vault{
-			SecretReader: msr,
-			Prefix:       "/concourse",
-			SharedPath:   "shared",
+			SecretReader:    msr,
+			Prefix:          "/concourse",
+			LookupTemplates: []*template.Template{p, t},
+			SharedPath:      "shared",
 		}
 
 		variables = creds.NewVariables(v, "team", "pipeline", false)
@@ -123,11 +129,73 @@ var _ = Describe("Vault", func() {
 			Expect(err).To(BeNil())
 		})
 
+		Context("with custom lookup templates", func() {
+			BeforeEach(func() {
+				a, _ := creds.BuildSecretTemplate("a", "/concourse/place1/{{.Team}}/sub/{{.Pipeline}}/{{.Secret}}")
+				b, _ := creds.BuildSecretTemplate("b", "/concourse/place2/{{.Team}}/{{.Secret}}")
+				c, _ := creds.BuildSecretTemplate("c", "/concourse/place3/{{.Secret}}")
+
+				sr := &MockSecretReader{&[]MockSecret{
+					{
+						path: "/concourse/place1/team/sub/pipeline/foo",
+						secret: &vaultapi.Secret{
+							Data: map[string]interface{}{"value": "bar"},
+						},
+					},
+					{
+						path: "/concourse/place2/team/baz",
+						secret: &vaultapi.Secret{
+							Data: map[string]interface{}{"value": "qux"},
+						},
+					},
+					{
+						path: "/concourse/place3/global",
+						secret: &vaultapi.Secret{
+							Data: map[string]interface{}{"value": "shared"},
+						},
+					}},
+				}
+
+				v = &vault.Vault{
+					SecretReader:    sr,
+					Prefix:          "/concourse",
+					LookupTemplates: []*template.Template{a, b, c},
+				}
+
+				variables = creds.NewVariables(v, "team", "pipeline", false)
+			})
+
+			It("should find pipeline secrets in the configured place", func() {
+				value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+				Expect(value).To(BeEquivalentTo("bar"))
+				Expect(found).To(BeTrue())
+				Expect(err).To(BeNil())
+			})
+
+			It("should find team secrets in the configured place", func() {
+				value, found, err := variables.Get(vars.VariableDefinition{Name: "baz"})
+				Expect(value).To(BeEquivalentTo("qux"))
+				Expect(found).To(BeTrue())
+				Expect(err).To(BeNil())
+			})
+
+			It("should find static secrets in the configured place", func() {
+				value, found, err := variables.Get(vars.VariableDefinition{Name: "global"})
+				Expect(value).To(BeEquivalentTo("shared"))
+				Expect(found).To(BeTrue())
+				Expect(err).To(BeNil())
+			})
+		})
+
 		Context("without shared", func() {
 			BeforeEach(func() {
+				p, _ := creds.BuildSecretTemplate("p", "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}")
+				t, _ := creds.BuildSecretTemplate("t", "/concourse/{{.Team}}/{{.Secret}}")
+
 				v = &vault.Vault{
-					SecretReader: msr,
-					Prefix:       "/concourse",
+					SecretReader:    msr,
+					Prefix:          "/concourse",
+					LookupTemplates: []*template.Template{p, t},
 				}
 
 				variables = creds.NewVariables(v, "team", "pipeline", false)
