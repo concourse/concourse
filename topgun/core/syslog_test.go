@@ -30,7 +30,7 @@ var _ = Describe("An ATC with syslog draining set", func() {
 		<-buildSession.Exited
 		Expect(buildSession.ExitCode()).To(Equal(0))
 
-		Eventually(func()(bool, error){
+		Eventually(func() (bool, error) {
 			Bosh("scp", "web/0:/var/vcap/store/syslog_storer/syslog.log", "/tmp/syslog.log")
 			return checkContent("/tmp/syslog.log", "shhhh")
 		}).Should(BeTrue())

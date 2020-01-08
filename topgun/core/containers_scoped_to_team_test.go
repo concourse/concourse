@@ -63,7 +63,7 @@ var _ = Describe("Container scope", func() {
 			Fly.Run("login", "-n", "main", "-u", AtcUsername, "-p", AtcPassword)
 
 			By("stopping the build")
-			Eventually(func()int {
+			Eventually(func() int {
 				hijackSession := Fly.Start(
 					"hijack",
 					"-b", "1",

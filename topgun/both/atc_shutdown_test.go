@@ -103,7 +103,7 @@ var _ = Describe("ATC Shutting down", func() {
 					time.Sleep(10 * time.Second)
 
 					By("hijacking the build to tell it to finish")
-					Eventually(func()int {
+					Eventually(func() int {
 						hijackSession := Fly.Start(
 							"hijack",
 							"-b", buildID,

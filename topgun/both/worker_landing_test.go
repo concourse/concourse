@@ -194,7 +194,7 @@ var _ = Describe("Worker landing", func() {
 
 				It("finishes landing once the build is done", func() {
 					By("hijacking the build to tell it to finish")
-					Eventually(func()int {
+					Eventually(func() int {
 						hijackSession := Fly.Start(
 							"hijack",
 							"-b", buildID,

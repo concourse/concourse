@@ -60,7 +60,7 @@ var _ = Describe("Hijacked containers", func() {
 		)
 
 		By("finishing the build")
-		Eventually(func()int {
+		Eventually(func() int {
 			hS := Fly.Start(
 				"hijack",
 				"-j", "hijacked-containers-test/simple-job",
@@ -80,7 +80,7 @@ var _ = Describe("Hijacked containers", func() {
 		//For the output from the running step
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting to exist"))
 
-		Eventually(func()int {
+		Eventually(func() int {
 			hS := Fly.Start(
 				"hijack",
 				"-j", "hijacked-containers-test/simple-job",
@@ -120,7 +120,7 @@ var _ = Describe("Hijacked containers", func() {
 		)
 
 		By("waiting for build to finish")
-		Eventually(func()int {
+		Eventually(func() int {
 			hS := Fly.Start(
 				"hijack",
 				"-b", "1",
