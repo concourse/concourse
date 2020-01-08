@@ -3,10 +3,8 @@ package ssm
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"strings"
 	"text/template"
-	"text/template/parse"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
@@ -28,26 +26,6 @@ type SsmManager struct {
 	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS SSM parameter name template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
 	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS SSM parameter name template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
 	Ssm                    *Ssm
-}
-
-type SsmSecret struct {
-	Team     string
-	Pipeline string
-	Secret   string
-}
-
-func buildSecretTemplate(name, tmpl string) (*template.Template, error) {
-	t, err := template.
-		New(name).
-		Option("missingkey=error").
-		Parse(tmpl)
-	if err != nil {
-		return nil, err
-	}
-	if parse.IsEmptyTree(t.Root) {
-		return nil, errors.New("secret template should not be empty")
-	}
-	return t, nil
 }
 
 func (manager *SsmManager) MarshalJSON() ([]byte, error) {
@@ -119,23 +97,14 @@ func (manager *SsmManager) IsConfigured() bool {
 }
 
 func (manager *SsmManager) Validate() error {
-	// Make sure that the template is valid
-	pipelineSecretTemplate, err := buildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate)
-	if err != nil {
+	if _, err := creds.BuildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate); err != nil {
 		return err
 	}
-	teamSecretTemplate, err := buildSecretTemplate("team-secret-template", manager.TeamSecretTemplate)
-	if err != nil {
+
+	if _, err := creds.BuildSecretTemplate("team-secret-template", manager.TeamSecretTemplate); err != nil {
 		return err
 	}
-	// Execute the templates on dummy data to verify that it does not expect additional data
-	dummy := SsmSecret{Team: "team", Pipeline: "pipeline", Secret: "secret"}
-	if err = pipelineSecretTemplate.Execute(ioutil.Discard, &dummy); err != nil {
-		return err
-	}
-	if err = teamSecretTemplate.Execute(ioutil.Discard, &dummy); err != nil {
-		return err
-	}
+
 	// All of the AWS credential variables may be empty since credentials may be obtained via environemnt variables
 	// or other means. However, if one of them is provided, then all of them (except session token) must be provided.
 	if manager.AwsAccessKeyID == "" && manager.AwsSecretAccessKey == "" && manager.AwsSessionToken == "" {
@@ -161,12 +130,12 @@ func (manager *SsmManager) NewSecretsFactory(log lager.Logger) (creds.SecretsFac
 		return nil, err
 	}
 
-	pipelineSecretTemplate, err := buildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate)
+	pipelineSecretTemplate, err := creds.BuildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate)
 	if err != nil {
 		return nil, err
 	}
 
-	teamSecretTemplate, err := buildSecretTemplate("team-secret-template", manager.TeamSecretTemplate)
+	teamSecretTemplate, err := creds.BuildSecretTemplate("team-secret-template", manager.TeamSecretTemplate)
 	if err != nil {
 		return nil, err
 	}
