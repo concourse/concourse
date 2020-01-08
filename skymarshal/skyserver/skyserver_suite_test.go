@@ -3,31 +3,25 @@ package skyserver_test
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"net/http"
-	"net/http/cookiejar"
+	"encoding/json"
 	"net/http/httptest"
 	"testing"
 
-	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/skymarshal/skyserver"
-	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/skymarshal/skyserver"
+	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
 	"github.com/onsi/gomega/ghttp"
+	"golang.org/x/oauth2"
+	"gopkg.in/square/go-jose.v2"
 )
 
 var (
-	fakeTeamFactory     *dbfakes.FakeTeamFactory
-	fakeUserFactory     *dbfakes.FakeUserFactory
-	fakeTokenVerifier   *tokenfakes.FakeVerifier
-	fakeTokenIssuer     *tokenfakes.FakeIssuer
 	fakeTokenMiddleware *tokenfakes.FakeMiddleware
 	skyServer           *httptest.Server
 	dexServer           *ghttp.Server
-	client              *http.Client
-	cookieJar           *cookiejar.Jar
 	signingKey          *rsa.PrivateKey
 	config              *skyserver.SkyConfig
 )
@@ -40,39 +34,31 @@ func TestSkyServer(t *testing.T) {
 var _ = BeforeEach(func() {
 	var err error
 
-	fakeTeam := new(dbfakes.FakeTeam)
-	fakeTeam.IDReturns(734)
-
-	fakeTeamFactory = new(dbfakes.FakeTeamFactory)
-	fakeTeamFactory.FindTeamReturns(fakeTeam, true, nil)
-	fakeTeamFactory.GetByIDReturns(fakeTeam)
-
-	fakeTokenVerifier = new(tokenfakes.FakeVerifier)
-	fakeTokenIssuer = new(tokenfakes.FakeIssuer)
 	fakeTokenMiddleware = new(tokenfakes.FakeMiddleware)
 
-	fakeUserFactory = new(dbfakes.FakeUserFactory)
-
 	dexServer = ghttp.NewTLSServer()
-	dexIssuerUrl := dexServer.URL() + "/sky/issuer"
 
 	signingKey, err = rsa.GenerateKey(rand.Reader, 2048)
 	Expect(err).NotTo(HaveOccurred())
 
-	cookieJar, err = cookiejar.New(nil)
-	Expect(err).ToNot(HaveOccurred())
+	endpoint := oauth2.Endpoint{
+		AuthURL:   dexServer.URL() + "/auth",
+		TokenURL:  dexServer.URL() + "/token",
+		AuthStyle: oauth2.AuthStyleInHeader,
+	}
+
+	oauthConfig := &oauth2.Config{
+		Endpoint:     endpoint,
+		ClientID:     "dex-client-id",
+		ClientSecret: "dex-client-secret",
+		Scopes:       []string{"some-scope"},
+	}
 
 	config = &skyserver.SkyConfig{
 		Logger:          lagertest.NewTestLogger("sky"),
-		TokenVerifier:   fakeTokenVerifier,
-		TokenIssuer:     fakeTokenIssuer,
 		TokenMiddleware: fakeTokenMiddleware,
-		UserFactory:     fakeUserFactory,
-		DexClientID:     "dex-client-id",
-		DexClientSecret: "dex-client-secret",
-		DexIssuerURL:    dexIssuerUrl,
-		DexHTTPClient:   dexServer.HTTPTestServer.Client(),
-		SigningKey:      signingKey,
+		OAuthConfig:     oauthConfig,
+		HTTPClient:      dexServer.HTTPTestServer.Client(),
 	}
 
 	server, err := skyserver.NewSkyServer(config)
@@ -81,12 +67,32 @@ var _ = BeforeEach(func() {
 	skyServer = httptest.NewUnstartedServer(skyserver.NewSkyHandler(server))
 })
 
-var _ = JustBeforeEach(func() {
-	client = skyServer.Client()
-	client.Jar = cookieJar
-})
-
 var _ = AfterEach(func() {
 	skyServer.Close()
 	dexServer.Close()
 })
+
+func newToken(raw map[string]interface{}) string {
+
+	claims, err := json.Marshal(raw)
+	Expect(err).NotTo(HaveOccurred())
+
+	signingKey := jose.SigningKey{
+		Algorithm: jose.RS256,
+		Key:       signingKey,
+	}
+
+	var signerOpts = &jose.SignerOptions{}
+	signerOpts.WithHeader("kid", "kid")
+
+	signer, err := jose.NewSigner(signingKey, signerOpts)
+	Expect(err).NotTo(HaveOccurred())
+
+	object, err := signer.Sign([]byte(claims))
+	Expect(err).NotTo(HaveOccurred())
+
+	token, err := object.CompactSerialize()
+	Expect(err).NotTo(HaveOccurred())
+
+	return token
+}

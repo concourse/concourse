@@ -2,7 +2,9 @@ package dexserver
 
 import (
 	"context"
+	"crypto/rsa"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/skymarshal/logger"
@@ -15,14 +17,15 @@ import (
 )
 
 type DexConfig struct {
-	Logger       lager.Logger
-	IssuerURL    string
-	WebHostURL   string
-	ClientID     string
-	ClientSecret string
-	RedirectURL  string
-	Flags        skycmd.AuthFlags
-	Storage      s.Storage
+	Logger      lager.Logger
+	IssuerURL   string
+	WebHostURL  string
+	SigningKey  *rsa.PrivateKey
+	Expiration  time.Duration
+	Clients     map[string]string
+	Users       map[string]string
+	RedirectURL string
+	Storage     s.Storage
 }
 
 func NewDexServer(config *DexConfig) (*server.Server, error) {
@@ -32,7 +35,7 @@ func NewDexServer(config *DexConfig) (*server.Server, error) {
 		return nil, err
 	}
 
-	return server.NewServer(context.Background(), newDexServerConfig)
+	return server.NewServerWithKey(context.Background(), newDexServerConfig, config.SigningKey)
 }
 
 func NewDexServerConfig(config *DexConfig) (server.Config, error) {
@@ -71,11 +74,13 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		}
 	}
 
-	clients = append(clients, storage.Client{
-		ID:           config.ClientID,
-		Secret:       config.ClientSecret,
-		RedirectURIs: []string{config.RedirectURL},
-	})
+	for clientId, clientSecret := range config.Clients {
+		clients = append(clients, storage.Client{
+			ID:           clientId,
+			Secret:       clientSecret,
+			RedirectURIs: []string{config.RedirectURL},
+		})
+	}
 
 	if err := replacePasswords(config.Storage, passwords); err != nil {
 		return server.Config{}, err
@@ -101,6 +106,7 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		PasswordConnector:      "local",
 		SupportedResponseTypes: []string{"code", "token", "id_token"},
 		SkipApprovalScreen:     true,
+		IDTokensValidFor:       config.Expiration,
 		Issuer:                 config.IssuerURL,
 		Storage:                config.Storage,
 		Web:                    webConfig,
@@ -186,7 +192,7 @@ func replaceConnectors(store s.Storage, connectors []storage.Connector) error {
 func newLocalUsers(config *DexConfig) map[string][]byte {
 	users := map[string][]byte{}
 
-	for username, password := range config.Flags.LocalUsers {
+	for username, password := range config.Users {
 		if username != "" && password != "" {
 
 			var hashed []byte

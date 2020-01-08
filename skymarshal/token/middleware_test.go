@@ -1,10 +1,10 @@
 package token_test
 
 import (
+	"fmt"
 	"time"
 
 	"net/http"
-	"net/http/cookiejar"
 	"net/http/httptest"
 
 	"github.com/concourse/concourse/skymarshal/token"
@@ -13,34 +13,167 @@ import (
 )
 
 var _ = Describe("Token Middleware", func() {
-	It("GetToken is the inverse of SetToken when cookies are supported", func() {
-		tokenString := "some-type some-token"
-		middleware := token.NewMiddleware(false)
 
-		testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			switch req.URL.Path {
-			case "/set":
-				middleware.SetToken(w, tokenString, time.Now().Add(1*time.Hour))
-			case "/get":
-				defer GinkgoRecover()
-				Expect(middleware.GetToken(req)).To(Equal(tokenString))
-			}
-		}))
-		client := testServer.Client()
-		cookieJar, err := cookiejar.New(nil)
-		Expect(err).ToNot(HaveOccurred())
-		client.Jar = cookieJar
+	var (
+		err        error
+		expiry     time.Time
+		r          *http.Request
+		w          *httptest.ResponseRecorder
+		middleware token.Middleware
+	)
 
-		request, err := http.NewRequest("GET", testServer.URL+"/set", nil)
-		Expect(err).NotTo(HaveOccurred())
-		_, err = client.Do(request)
+	BeforeEach(func() {
+		expiry = time.Now().Add(time.Minute)
+
+		r, err = http.NewRequest("GET", "http://example.come", nil)
 		Expect(err).NotTo(HaveOccurred())
 
-		request, err = http.NewRequest("GET", testServer.URL+"/get", nil)
-		Expect(err).NotTo(HaveOccurred())
-		_, err = client.Do(request)
-		Expect(err).NotTo(HaveOccurred())
+		w = httptest.NewRecorder()
 
-		testServer.Close()
+		middleware = token.NewMiddleware(false)
+	})
+
+	Describe("Auth Tokens", func() {
+		Describe("GetAuthToken", func() {
+			var result string
+
+			BeforeEach(func() {
+				r.AddCookie(&http.Cookie{Name: "skymarshal_auth0", Value: "blah0"})
+				r.AddCookie(&http.Cookie{Name: "skymarshal_auth1", Value: "blah1"})
+				r.AddCookie(&http.Cookie{Name: "skymarshal_auth2", Value: "blah2"})
+				r.AddCookie(&http.Cookie{Name: "skymarshal_auth3", Value: "blah3"})
+			})
+
+			JustBeforeEach(func() {
+				result = middleware.GetAuthToken(r)
+			})
+
+			It("gets the token from the request", func() {
+				Expect(result).To(Equal("blah0blah1blah2blah3"))
+			})
+		})
+
+		Describe("SetAuthToken", func() {
+			JustBeforeEach(func() {
+				err = middleware.SetAuthToken(w, "blah", expiry)
+			})
+
+			It("writes the token to a cookie", func() {
+				cookies := w.Result().Cookies()
+				Expect(cookies).To(HaveLen(1))
+
+				Expect(cookies[0].Name).To(Equal("skymarshal_auth0"))
+				Expect(cookies[0].Expires.Unix()).To(Equal(expiry.Unix()))
+				Expect(cookies[0].Value).To(Equal("blah"))
+			})
+		})
+
+		Describe("UnsetAuthToken", func() {
+			JustBeforeEach(func() {
+				middleware.UnsetAuthToken(w)
+			})
+
+			It("clears the token from the cookie", func() {
+				cookies := w.Result().Cookies()
+				Expect(cookies).To(HaveLen(15))
+
+				for i := 0; i < token.NumCookies; i++ {
+					Expect(cookies[i].Name).To(Equal(fmt.Sprintf("skymarshal_auth%d", i)))
+					Expect(cookies[i].Value).To(Equal(""))
+				}
+			})
+		})
+	})
+
+	Describe("CSRF Tokens", func() {
+
+		Describe("GetCSRFToken", func() {
+			var result string
+
+			BeforeEach(func() {
+				r.AddCookie(&http.Cookie{Name: "skymarshal_csrf", Value: "blah"})
+			})
+
+			JustBeforeEach(func() {
+				result = middleware.GetCSRFToken(r)
+			})
+
+			It("gets the token from the request", func() {
+				Expect(result).To(Equal("blah"))
+			})
+		})
+
+		Describe("SetCSRFToken", func() {
+			JustBeforeEach(func() {
+				err = middleware.SetCSRFToken(w, "blah", expiry)
+			})
+
+			It("writes the token to a cookie", func() {
+				cookies := w.Result().Cookies()
+				Expect(cookies).To(HaveLen(1))
+				Expect(cookies[0].Name).To(Equal("skymarshal_csrf"))
+				Expect(cookies[0].Expires.Unix()).To(Equal(expiry.Unix()))
+				Expect(cookies[0].Value).To(Equal("blah"))
+			})
+		})
+
+		Describe("UnsetCSRFToken", func() {
+			JustBeforeEach(func() {
+				middleware.UnsetCSRFToken(w)
+			})
+
+			It("clears the token from the cookie", func() {
+				cookies := w.Result().Cookies()
+				Expect(cookies).To(HaveLen(1))
+				Expect(cookies[0].Name).To(Equal("skymarshal_csrf"))
+				Expect(cookies[0].Value).To(Equal(""))
+			})
+		})
+	})
+
+	Describe("State Tokens", func() {
+
+		Describe("GetStateToken", func() {
+			var result string
+
+			BeforeEach(func() {
+				r.AddCookie(&http.Cookie{Name: "skymarshal_state", Value: "blah"})
+			})
+
+			JustBeforeEach(func() {
+				result = middleware.GetStateToken(r)
+			})
+
+			It("gets the token from the request", func() {
+				Expect(result).To(Equal("blah"))
+			})
+		})
+
+		Describe("SetStateToken", func() {
+			JustBeforeEach(func() {
+				err = middleware.SetStateToken(w, "blah", expiry)
+			})
+
+			It("writes the token to a cookie", func() {
+				cookies := w.Result().Cookies()
+				Expect(cookies).To(HaveLen(1))
+				Expect(cookies[0].Name).To(Equal("skymarshal_state"))
+				Expect(cookies[0].Expires.Unix()).To(Equal(expiry.Unix()))
+				Expect(cookies[0].Value).To(Equal("blah"))
+			})
+		})
+
+		Describe("UnsetStateToken", func() {
+			JustBeforeEach(func() {
+				middleware.UnsetStateToken(w)
+			})
+
+			It("clears the token from the cookie", func() {
+				cookies := w.Result().Cookies()
+				Expect(cookies).To(HaveLen(1))
+				Expect(cookies[0].Name).To(Equal("skymarshal_state"))
+				Expect(cookies[0].Value).To(Equal(""))
+			})
+		})
 	})
 })

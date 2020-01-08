@@ -1,8 +1,10 @@
 package skyserver
 
 import (
-	"crypto/rsa"
+	"context"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,39 +13,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/concourse/atc/db"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/skymarshal/token"
-	"github.com/coreos/go-oidc"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 type SkyConfig struct {
 	Logger          lager.Logger
-	TokenVerifier   token.Verifier
-	TokenIssuer     token.Issuer
 	TokenMiddleware token.Middleware
-	UserFactory     db.UserFactory
-	SigningKey      *rsa.PrivateKey
-	SecureCookies   bool
-	DexClientID     string
-	DexClientSecret string
-	DexRedirectURL  string
-	DexIssuerURL    string
-	DexHTTPClient   *http.Client
+	OAuthConfig     *oauth2.Config
+	HTTPClient      *http.Client
 }
-
-const stateCookieName = "skymarshal_state"
 
 func NewSkyHandler(server *SkyServer) http.Handler {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/sky/login", server.Login)
 	handler.HandleFunc("/sky/logout", server.Logout)
 	handler.HandleFunc("/sky/callback", server.Callback)
-	handler.HandleFunc("/sky/userinfo", server.UserInfo)
-	handler.HandleFunc("/sky/token", server.Token)
 	return handler
 }
 
@@ -59,7 +46,7 @@ func (s *SkyServer) Login(w http.ResponseWriter, r *http.Request) {
 
 	logger := s.config.Logger.Session("login")
 
-	tokenString := s.config.TokenMiddleware.GetToken(r)
+	tokenString := s.config.TokenMiddleware.GetAuthToken(r)
 	if tokenString == "" {
 		s.NewLogin(w, r)
 		return
@@ -86,9 +73,8 @@ func (s *SkyServer) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var claims jwt.Claims
-	var result map[string]interface{}
 
-	if err = parsed.Claims(&s.config.SigningKey.PublicKey, &claims, &result); err != nil {
+	if err = parsed.UnsafeClaimsWithoutVerification(&claims); err != nil {
 		logger.Error("failed-to-parse-claims", err)
 		s.NewLogin(w, r)
 		return
@@ -106,43 +92,31 @@ func (s *SkyServer) Login(w http.ResponseWriter, r *http.Request) {
 		Expiry:      claims.Expiry.Time(),
 	}
 
-	token := oauth2Token.WithExtra(map[string]interface{}{
-		"csrf": result["csrf"],
-	})
-
-	s.Redirect(w, r, token, redirectURI)
+	s.Redirect(w, r, oauth2Token, redirectURI)
 }
 
 func (s *SkyServer) NewLogin(w http.ResponseWriter, r *http.Request) {
+
+	logger := s.config.Logger.Session("new-login")
 
 	redirectURI := r.FormValue("redirect_uri")
 	if redirectURI == "" {
 		redirectURI = "/"
 	}
 
-	oauth2Config := &oauth2.Config{
-		ClientID:     s.config.DexClientID,
-		ClientSecret: s.config.DexClientSecret,
-		RedirectURL:  s.config.DexRedirectURL,
-		Endpoint:     s.endpoint(),
-		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
+	stateToken := encode(stateToken{
+		RedirectURI: redirectURI,
+		Entropy:     randomString(),
+	})
+
+	err := s.config.TokenMiddleware.SetStateToken(w, stateToken, time.Now().Add(time.Hour))
+	if err != nil {
+		logger.Error("invalid-state-token", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	stateToken := encode(&token.StateToken{
-		RedirectURI: redirectURI,
-		Entropy:     token.RandomString(),
-	})
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     stateCookieName,
-		Value:    stateToken,
-		Path:     "/",
-		Expires:  time.Now().Add(time.Hour),
-		Secure:   s.config.SecureCookies,
-		HttpOnly: true,
-	})
-
-	authCodeURL := oauth2Config.AuthCodeURL(stateToken, oauth2.AccessTypeOffline)
+	authCodeURL := s.config.OAuthConfig.AuthCodeURL(stateToken, oauth2.AccessTypeOffline)
 
 	http.Redirect(w, r, authCodeURL, http.StatusTemporaryRedirect)
 }
@@ -151,56 +125,31 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 
 	logger := s.config.Logger.Session("callback")
 
-	var (
-		err                  error
-		stateToken, authCode string
-		dexToken, skyToken   *oauth2.Token
-		verifiedClaims       *token.VerifiedClaims
-	)
-
-	oauth2Config := &oauth2.Config{
-		ClientID:     s.config.DexClientID,
-		ClientSecret: s.config.DexClientSecret,
-		RedirectURL:  s.config.DexRedirectURL,
-		Endpoint:     s.endpoint(),
-	}
-
-	cookieState, err := r.Cookie(stateCookieName)
-	if err != nil {
-		logger.Error("failed-to-fetch-cookie-state", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
 	if errMsg, errDesc := r.FormValue("error"), r.FormValue("error_description"); errMsg != "" {
 		logger.Error("failed-with-callback-error", errors.New(errMsg+" : "+errDesc))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if stateToken = cookieState.Value; stateToken != r.FormValue("state") {
-		logger.Error("failed-with-unexpected-state-token", err)
+	stateToken := s.config.TokenMiddleware.GetStateToken(r)
+	if stateToken == "" {
+		logger.Error("failed-with-invalid-state-token", errors.New("state token is empty"))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     stateCookieName,
-		Path:     "/",
-		MaxAge:   -1,
-		Secure:   s.config.SecureCookies,
-		HttpOnly: true,
-	})
-
-	if authCode = r.FormValue("code"); authCode == "" {
-		logger.Error("failed-to-get-auth-code", err)
+	if stateToken != r.FormValue("state") {
+		logger.Error("failed-with-unexpected-state-token", errors.New("state token does not match"))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	ctx := oidc.ClientContext(r.Context(), s.config.DexHTTPClient)
+	s.config.TokenMiddleware.UnsetStateToken(w)
 
-	if dexToken, err = oauth2Config.Exchange(ctx, authCode); err != nil {
+	ctx := context.WithValue(r.Context(), oauth2.HTTPClient, s.config.HTTPClient)
+
+	dexToken, err := s.config.OAuthConfig.Exchange(ctx, r.FormValue("code"))
+	if err != nil {
 		logger.Error("failed-to-fetch-dex-token", err)
 		switch e := err.(type) {
 		case *oauth2.RetrieveError:
@@ -212,28 +161,17 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if verifiedClaims, err = s.config.TokenVerifier.Verify(ctx, dexToken); err != nil {
-		logger.Error("failed-to-verify-dex-token", err)
+	dexToken, err = token.UseIDToken(dexToken)
+	if err != nil {
+		logger.Error("failed-to-convert-id-token", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if skyToken, err = s.config.TokenIssuer.Issue(verifiedClaims); err != nil {
-		logger.Error("failed-to-issue-concourse-token", err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	if _, err = s.config.UserFactory.CreateOrUpdateUser(verifiedClaims.UserName, verifiedClaims.ConnectorID, verifiedClaims.Sub); err != nil {
-		logger.Error("failed-to-save-user-to-database", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	s.Redirect(w, r, skyToken, decode(stateToken).RedirectURI)
+	s.Redirect(w, r, dexToken, decode(stateToken).RedirectURI)
 }
 
-func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oauth2.Token, redirectURI string) {
+func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, oauth2Token *oauth2.Token, redirectURI string) {
 	logger := s.config.Logger.Session("redirect")
 
 	redirectURL, err := url.ParseRequestURI(redirectURI)
@@ -249,16 +187,18 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oaut
 		return
 	}
 
-	csrfToken, ok := token.Extra("csrf").(string)
-	if !ok {
-		logger.Error("failed-to-extract-csrf-token", err)
-		w.WriteHeader(http.StatusBadRequest)
+	err = s.config.TokenMiddleware.SetAuthToken(w, oauth2Token.TokenType+" "+oauth2Token.AccessToken, oauth2Token.Expiry)
+	if err != nil {
+		logger.Error("failed-to-set-auth-token", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = s.config.TokenMiddleware.SetToken(w, token.TokenType+" "+token.AccessToken, token.Expiry)
+	csrfToken := randomString()
+
+	err = s.config.TokenMiddleware.SetCSRFToken(w, csrfToken, oauth2Token.Expiry)
 	if err != nil {
-		logger.Error("invalid-token", err)
+		logger.Error("failed-to-set-state-token", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -269,189 +209,32 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oaut
 	http.Redirect(w, r, redirectURL.EscapedPath()+"?"+params.Encode(), http.StatusTemporaryRedirect)
 }
 
-func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
-
-	logger := s.config.Logger.Session("token")
-
-	var (
-		err                error
-		grantType          string
-		dexToken, skyToken *oauth2.Token
-		verifiedClaims     *token.VerifiedClaims
-	)
-
-	if r.Method != "POST" {
-		logger.Error("invalid-method", nil)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	clientID, clientSecret, ok := r.BasicAuth()
-	if !ok {
-		logger.Error("invalid-basic-auth", nil)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	if clientID != "fly" || clientSecret != "Zmx5" {
-		logger.Error("invalid-client", nil)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	if grantType = r.FormValue("grant_type"); grantType != "password" {
-		logger.Error("invalid-grant-type", nil, lager.Data{"grant_type": grantType})
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	username := r.FormValue("username")
-	password := r.FormValue("password")
-	scope := r.FormValue("scope")
-
-	oauth2Config := &oauth2.Config{
-		ClientID:     s.config.DexClientID,
-		ClientSecret: s.config.DexClientSecret,
-		Endpoint:     s.endpoint(),
-		Scopes:       strings.Split(scope, "+"),
-	}
-
-	ctx := oidc.ClientContext(r.Context(), s.config.DexHTTPClient)
-
-	if dexToken, err = oauth2Config.PasswordCredentialsToken(ctx, username, password); err != nil {
-		logger.Error("failed-to-fetch-dex-token", err)
-		switch e := err.(type) {
-		case *oauth2.RetrieveError:
-			http.Error(w, string(e.Body), e.Response.StatusCode)
-			return
-		default:
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-
-	if verifiedClaims, err = s.config.TokenVerifier.Verify(ctx, dexToken); err != nil {
-		logger.Error("failed-to-verify-dex-token", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if skyToken, err = s.config.TokenIssuer.Issue(verifiedClaims); err != nil {
-		logger.Error("failed-to-issue-concourse-token", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if _, err = s.config.UserFactory.CreateOrUpdateUser(verifiedClaims.UserName, verifiedClaims.ConnectorID, verifiedClaims.Sub); err != nil {
-		logger.Error("failed-to-save-user-to-database", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(skyToken)
-}
-
 func (s *SkyServer) Logout(w http.ResponseWriter, r *http.Request) {
-	s.config.TokenMiddleware.UnsetToken(w)
+	s.config.TokenMiddleware.UnsetAuthToken(w)
+	s.config.TokenMiddleware.UnsetCSRFToken(w)
 }
 
-func (s *SkyServer) UserInfo(w http.ResponseWriter, r *http.Request) {
-
-	logger := s.config.Logger.Session("userinfo")
-
-	parts := strings.Split(r.Header.Get("Authorization"), " ")
-
-	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	parsed, err := jwt.ParseSigned(parts[1])
-	if err != nil {
-		logger.Error("failed-to-parse-authorization-token", err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	var claims jwt.Claims
-	var userInfo UserInfo
-
-	if err = parsed.Claims(&s.config.SigningKey.PublicKey, &claims, &userInfo); err != nil {
-		logger.Error("failed-to-parse-claims", err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	if err = claims.Validate(jwt.Expected{Time: time.Now()}); err != nil {
-		logger.Error("failed-to-validate-claims", err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	w.Header().Add("Content-Type", "application/json")
-
-	json.NewEncoder(w).Encode(userInfo)
+type stateToken struct {
+	RedirectURI string `json:"redirect_uri"`
+	Entropy     string `json:"entropy"`
 }
 
-func (s *SkyServer) endpoint() oauth2.Endpoint {
-	return oauth2.Endpoint{
-		AuthURL:   strings.TrimRight(s.config.DexIssuerURL, "/") + "/auth",
-		TokenURL:  strings.TrimRight(s.config.DexIssuerURL, "/") + "/token",
-		AuthStyle: oauth2.AuthStyleInHeader,
-	}
-}
-
-func encode(token *token.StateToken) string {
+func encode(token stateToken) string {
 	json, _ := json.Marshal(token)
 
 	return base64.StdEncoding.EncodeToString(json)
 }
 
-func decode(raw string) *token.StateToken {
+func decode(raw string) stateToken {
 	data, _ := base64.StdEncoding.DecodeString(raw)
 
-	var token *token.StateToken
+	var token stateToken
 	json.Unmarshal(data, &token)
 	return token
 }
 
-type UserInfo struct {
-	Exp      float64  `json:"exp"`
-	Sub      string   `json:"sub"`
-	UserId   string   `json:"user_id"`
-	UserName string   `json:"user_name"`
-	Name     string   `json:"name"`
-	Email    string   `json:"email"`
-	CSRF     string   `json:"csrf"`
-	IsAdmin  bool     `json:"is_admin"`
-	Teams    TeamInfo `json:"teams"`
-}
-
-type TeamInfo map[string]interface{}
-
-func (t *TeamInfo) UnmarshalJSON(b []byte) error {
-
-	var result interface{}
-	err := json.Unmarshal(b, &result)
-	if err != nil {
-		return err
-	}
-
-	info := TeamInfo{}
-	switch val := result.(type) {
-	case []interface{}:
-		for _, team := range val {
-			info[team.(string)] = []string{"owner"}
-		}
-	case map[string]interface{}:
-		for team, roles := range val {
-			info[team] = roles
-		}
-	default:
-		return errors.New("Unsupported teams type")
-	}
-
-	*t = info
-	return nil
+func randomString() string {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
 }
