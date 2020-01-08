@@ -8,11 +8,12 @@ import (
 )
 
 type WebAuthHandler struct {
-	Handler http.Handler
+	Handler    http.Handler
+	Middleware token.Middleware
 }
 
 func (handler WebAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	tokenString := token.NewMiddleware(true).GetToken(r)
+	tokenString := handler.Middleware.GetAuthToken(r)
 	if tokenString != "" {
 		ctx := context.WithValue(r.Context(), CSRFRequiredKey, handler.isCSRFRequired(r))
 		r = r.WithContext(ctx)

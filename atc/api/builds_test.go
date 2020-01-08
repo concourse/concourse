@@ -451,7 +451,6 @@ var _ = Describe("Builds API", func() {
 
 		Context("when parsing the build_id fails", func() {
 			BeforeEach(func() {
-				fakeAccessor.CreateReturns(fakeAccess)
 				var err error
 
 				response, err = client.Get(server.URL + "/api/v1/builds/nope")

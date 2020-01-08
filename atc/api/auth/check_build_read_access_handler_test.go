@@ -45,7 +45,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
+		fakeAccessor.CreateReturns(fakeaccess, nil)
 		server = httptest.NewServer(handler)
 
 		request, err := http.NewRequest("POST", server.URL+"?:build_id=55", nil)
@@ -103,7 +103,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 	Context("AnyJobHandler", func() {
 		BeforeEach(func() {
 			checkBuildReadAccessHandler := handlerFactory.AnyJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = accessor.NewHandler(
+			handler = accessor.NewHandler(logger,
 				checkBuildReadAccessHandler,
 				fakeAccessor,
 				"some-action",
@@ -216,7 +216,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 		BeforeEach(func() {
 			fakeJob = new(dbfakes.FakeJob)
 			checkBuildReadAccessHandler := handlerFactory.CheckIfPrivateJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = accessor.NewHandler(
+			handler = accessor.NewHandler(logger,
 				checkBuildReadAccessHandler,
 				fakeAccessor,
 				"some-action",

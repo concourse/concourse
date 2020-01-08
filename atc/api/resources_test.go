@@ -13,7 +13,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -25,7 +24,6 @@ var _ = Describe("Resources API", func() {
 	var (
 		fakePipeline *dbfakes.FakePipeline
 		resource1    *dbfakes.FakeResource
-		fakeaccess   = new(accessorfakes.FakeAccess)
 		variables    vars.Variables
 	)
 
@@ -33,10 +31,6 @@ var _ = Describe("Resources API", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
-	})
-
-	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
 	})
 
 	Describe("GET /api/v1/resources", func() {
@@ -158,7 +152,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.TeamNamesReturns([]string{"some-team"})
+					fakeAccess.TeamNamesReturns([]string{"some-team"})
 				})
 
 				It("constructs job factory with provided team names", func() {
@@ -168,7 +162,7 @@ var _ = Describe("Resources API", func() {
 
 				Context("when user has admin privilege", func() {
 					BeforeEach(func() {
-						fakeaccess.IsAdminReturns(true)
+						fakeAccess.IsAdminReturns(true)
 					})
 
 					It("returns all resources", func() {
@@ -223,8 +217,8 @@ var _ = Describe("Resources API", func() {
 
 			Context("when not authenticated and not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(false)
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(false)
+					fakeAccess.IsAuthorizedReturns(false)
 				})
 
 				Context("and the pipeline is private", func() {
@@ -286,8 +280,8 @@ var _ = Describe("Resources API", func() {
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 				})
 
 				It("returns 200 OK", func() {
@@ -373,12 +367,12 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authenticated ", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 				})
 
 				It("tries to find the resource", func() {
@@ -436,7 +430,7 @@ var _ = Describe("Resources API", func() {
 			})
 			Context("when not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthorizedReturns(false)
 				})
 
 				It("returns Forbidden", func() {
@@ -446,7 +440,7 @@ var _ = Describe("Resources API", func() {
 		})
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Unauthorized", func() {
@@ -477,7 +471,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Unauthorized", func() {
@@ -487,12 +481,12 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authenticated ", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 				})
 
 				It("tries to find the resource", func() {
@@ -557,7 +551,7 @@ var _ = Describe("Resources API", func() {
 			})
 			Context("when not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthorizedReturns(false)
 				})
 
 				It("returns Forbidden", func() {
@@ -589,8 +583,8 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when looking up the resource fails", func() {
@@ -720,7 +714,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Unauthorized", func() {
@@ -779,8 +773,8 @@ var _ = Describe("Resources API", func() {
 
 			Context("when not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(false)
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(false)
+					fakeAccess.IsAuthorizedReturns(false)
 				})
 
 				Context("and the pipeline is private", func() {
@@ -845,8 +839,8 @@ var _ = Describe("Resources API", func() {
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 				})
 
 				It("returns 200 OK", func() {
@@ -945,8 +939,8 @@ var _ = Describe("Resources API", func() {
 
 		Context("when not authenticated and not authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
-				fakeaccess.IsAuthorizedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthorizedReturns(false)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -1005,8 +999,8 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			It("looks it up in the database", func() {
@@ -1151,8 +1145,8 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authenticated but not authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(false)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -1231,7 +1225,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Unauthorized", func() {
@@ -1241,8 +1235,8 @@ var _ = Describe("Resources API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(false)
 			})
 
 			It("returns Forbidden", func() {
@@ -1253,8 +1247,8 @@ var _ = Describe("Resources API", func() {
 		Context("when authenticated and authorized", func() {
 
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when looking up the resource type fails", func() {

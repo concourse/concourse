@@ -5,17 +5,18 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
 )
 
 var _ = Describe("WebAuthHandler", func() {
 	var (
-		givenRequest *http.Request
+		fakeMiddleware *tokenfakes.FakeMiddleware
+		givenRequest   *http.Request
 	)
 
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -25,8 +26,11 @@ var _ = Describe("WebAuthHandler", func() {
 	var server *httptest.Server
 
 	BeforeEach(func() {
+		fakeMiddleware = new(tokenfakes.FakeMiddleware)
+
 		server = httptest.NewServer(auth.WebAuthHandler{
-			Handler: simpleHandler,
+			Handler:    simpleHandler,
+			Middleware: fakeMiddleware,
 		})
 	})
 
@@ -65,16 +69,7 @@ var _ = Describe("WebAuthHandler", func() {
 
 		Context("with the auth cookie", func() {
 			BeforeEach(func() {
-				request.AddCookie(&http.Cookie{
-					Name:  auth.AuthCookieName + "0",
-					Value: "username:password",
-				})
-				for i := 1; i < 15; i++ {
-					request.AddCookie(&http.Cookie{
-						Name:  auth.AuthCookieName + strconv.Itoa(i),
-						Value: "",
-					})
-				}
+				fakeMiddleware.GetAuthTokenReturns("username:password")
 			})
 
 			It("sets the Authorization header with the value from the cookie", func() {

@@ -48,7 +48,7 @@ var _ = Describe("CheckAdminHandler", func() {
 			http.Error(w, "still nope", http.StatusForbidden)
 		}
 
-		server = httptest.NewServer(accessor.NewHandler(auth.CheckAdminHandler(
+		server = httptest.NewServer(accessor.NewHandler(logger, auth.CheckAdminHandler(
 			simpleHandler,
 			fakeRejector,
 		), fakeAccessor,
@@ -62,7 +62,7 @@ var _ = Describe("CheckAdminHandler", func() {
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
+		fakeAccessor.CreateReturns(fakeaccess, nil)
 	})
 
 	Context("when a request is made", func() {

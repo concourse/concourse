@@ -44,11 +44,11 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		build.JobNameReturns("some-job")
 
 		checkBuildWriteAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
-		handler = accessor.NewHandler(checkBuildWriteAccessHandler, fakeAccessor, "some-action", new(auditorfakes.FakeAuditor))
+		handler = accessor.NewHandler(logger, checkBuildWriteAccessHandler, fakeAccessor, "some-action", new(auditorfakes.FakeAuditor))
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
+		fakeAccessor.CreateReturns(fakeaccess, nil)
 		server = httptest.NewServer(handler)
 
 		request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:build_id=55", nil)
