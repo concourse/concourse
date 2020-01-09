@@ -28,6 +28,7 @@ var _ = Describe("ArtifactRepository", func() {
 
 		BeforeEach(func() {
 			firstArtifact = new(runtimefakes.FakeArtifact)
+			firstArtifact.IDReturns("some-first")
 			repo.RegisterArtifact("first-artifact", firstArtifact)
 		})
 
@@ -46,29 +47,31 @@ var _ = Describe("ArtifactRepository", func() {
 		})
 
 		Context("when a second artifact is registered", func() {
-			var artifact *runtimefakes.FakeArtifact
+			var secondArtifact *runtimefakes.FakeArtifact
 
 			BeforeEach(func() {
-				artifact = new(runtimefakes.FakeArtifact)
-				repo.RegisterArtifact("second-artifact", artifact)
+				secondArtifact = new(runtimefakes.FakeArtifact)
+				secondArtifact.IDReturns("some-second")
+
+				repo.RegisterArtifact("second-artifact", secondArtifact)
 			})
 
 			Describe("ArtifactFor", func() {
 				It("yields the first artifact by the given name", func() {
-					artifact, found := repo.ArtifactFor("first-artifact")
-					Expect(artifact).To(Equal(firstArtifact))
+					actualArtifact, found := repo.ArtifactFor("first-artifact")
+					Expect(actualArtifact).To(Equal(firstArtifact))
 					Expect(found).To(BeTrue())
 				})
 
 				It("yields the second artifact by the given name", func() {
-					artifact, found := repo.ArtifactFor("second-artifact")
-					Expect(artifact).To(Equal(firstArtifact))
+					actualArtifact, found := repo.ArtifactFor("second-artifact")
+					Expect(actualArtifact).To(Equal(secondArtifact))
 					Expect(found).To(BeTrue())
 				})
 
 				It("yields nothing for unregistered names", func() {
-					artifact, found := repo.ArtifactFor("bogus-artifact")
-					Expect(artifact).To(BeNil())
+					actualArtifact, found := repo.ArtifactFor("bogus-artifact")
+					Expect(actualArtifact).To(BeNil())
 					Expect(found).To(BeFalse())
 				})
 			})
