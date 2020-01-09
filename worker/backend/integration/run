@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+set -o errexit
+
+readonly CONTAINER_NAME="containerd-integration"
+
+main() {
+  case $1 in
+  containerd)
+    start_containerd
+    ;;
+  test)
+    docker exec $CONTAINER_NAME go test -v .
+    ;;
+  *)
+    echo "Usage: $0 (containerd|test)"
+    ;;
+  esac
+}
+
+start_containerd() {
+  docker run --privileged -it \
+    --name $CONTAINER_NAME \
+    --volume /scratch \
+    --volume gopath:/gopath \
+    --volume $(realpath ../../..):/src \
+    --workdir /src/worker/backend/integration \
+    concourse/unit \
+    /bin/bash -c '
+PATH=/usr/local/concourse/bin \
+	containerd --config <(echo "state = \"/scratch\"")
+'
+}
+
+main "$@"
