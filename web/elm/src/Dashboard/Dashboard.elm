@@ -228,6 +228,15 @@ handleCallback callback ( model, effects ) =
         AllPipelinesFetched (Err _) ->
             ( { model | showTurbulence = True }, effects )
 
+        PipelinesOrdered teamName _ ->
+            ( model, effects ++ [ FetchPipelines teamName ] )
+
+        PipelinesFetched (Ok _) ->
+            ( { model | dropState = NotDropping }, effects )
+
+        PipelinesFetched (Err _) ->
+            ( { model | showTurbulence = True }, effects )
+
         LoggedOut (Ok ()) ->
             ( model
             , effects
@@ -353,7 +362,7 @@ updateBody msg ( model, effects ) =
                     ( { model
                         | pipelines = pipelines
                         , dragState = NotDragging
-                        , dropState = NotDropping
+                        , dropState = DroppingWhileApiRequestInFlight
                       }
                     , effects
                         ++ [ pipelines

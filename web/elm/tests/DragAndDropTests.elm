@@ -2,7 +2,9 @@ module DragAndDropTests exposing (all)
 
 import Application.Application as Application
 import Common exposing (given, then_, when)
+import Dict exposing (Dict)
 import Expect exposing (Expectation)
+import Http
 import Json.Encode as Encode
 import Message.Callback as Callback
 import Message.Effects as Effects
@@ -110,6 +112,40 @@ all =
                 >> given iDropThePipelineCard
                 >> when iAmLookingAtTheTeamHeader
                 >> then_ iSeeASpinner
+        , test "fetches team's pipelines when order pipelines call succeeds" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedTwoPipelines
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> given iDropThePipelineCard
+                >> when orderPipelinesSucceeds
+                >> then_ myBrowserMakesTheFetchPipelinesAPICall
+        , test "when dropping succeeds the spinner disappears" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedTwoPipelines
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> given iDropThePipelineCard
+                >> given dashboardRefreshPipelines
+                >> when iAmLookingAtTheTeamHeader
+                >> then_ iDoNotSeeASpinner
+        , test "fetches team's pipelines when order pipelines call fails" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedTwoPipelines
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> given iDropThePipelineCard
+                >> when orderPipelinesFails
+                >> then_ myBrowserMakesTheFetchPipelinesAPICall
+        , test "failed to fetch team's pipelines displays turbulence view" <|
+            given
+                iVisitedTheDashboard
+                >> given myBrowserFetchedTwoPipelines
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> given iDropThePipelineCard
+                >> when dashboardFailsToRefreshPipelines
+                >> then_ iSeeTheTurbulenceView
         ]
 
 
@@ -282,7 +318,20 @@ iAmLookingAtTheTeamHeader =
 iSeeASpinner =
     Query.has
         [ style "animation"
-            "1568ms linear 0s infinite normal none running container-rotate"
+            "container-rotate 1568ms linear infinite"
+        ]
+
+
+iSeeTheTurbulenceView =
+    Tuple.first
+        >> Common.queryView
+        >> Query.has [ text "experiencing turbulence" ]
+
+
+iDoNotSeeASpinner =
+    Query.hasNot
+        [ style "animation"
+            "container-rotate 1568ms linear infinite"
         ]
 
 
@@ -307,6 +356,71 @@ myBrowserMakesTheOrderPipelinesAPICall =
         >> Common.contains
             (Effects.SendOrderPipelinesRequest "team"
                 [ "other-pipeline", "pipeline" ]
+            )
+
+
+myBrowserMakesTheFetchPipelinesAPICall =
+    Tuple.second
+        >> Common.contains
+            (Effects.FetchPipelines "team")
+
+
+orderPipelinesSucceeds =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PipelinesOrdered "team" <| Ok ())
+
+
+orderPipelinesFails =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PipelinesOrdered "team" <|
+                Err
+                    (Http.BadStatus
+                        { url = "http://localhost:8080"
+                        , status = { code = 500, message = "could not find pipeline" }
+                        , headers = Dict.empty
+                        , body = ""
+                        }
+                    )
+            )
+
+
+dashboardRefreshPipelines =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PipelinesFetched <|
+                Ok
+                    [ { id = 0
+                      , name = "pipeline"
+                      , paused = False
+                      , public = True
+                      , teamName = "team"
+                      , groups = []
+                      }
+                    , { id = 1
+                      , name = "other-pipeline"
+                      , paused = False
+                      , public = True
+                      , teamName = "team"
+                      , groups = []
+                      }
+                    ]
+            )
+
+
+dashboardFailsToRefreshPipelines =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PipelinesFetched <|
+                Err
+                    (Http.BadStatus
+                        { url = "http://localhost:8080"
+                        , status = { code = 500, message = "could not find pipeline" }
+                        , headers = Dict.empty
+                        , body = ""
+                        }
+                    )
             )
 
 

@@ -117,6 +117,7 @@ type Effect
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
+    | FetchPipelines String
     | FetchClusterInfo
     | FetchInputTo Concourse.VersionedResourceIdentifier
     | FetchOutputOf Concourse.VersionedResourceIdentifier
@@ -228,6 +229,10 @@ runEffect effect key csrfToken =
             Network.Pipeline.fetchPipeline id
                 |> Task.attempt PipelineFetched
 
+        FetchPipelines team ->
+            Network.Pipeline.fetchPipelinesForTeam team
+                |> Task.attempt PipelinesFetched
+
         FetchAllResources ->
             Network.Resource.fetchAllResources
                 |> Task.map (Maybe.withDefault [])
@@ -335,7 +340,7 @@ runEffect effect key csrfToken =
 
         SendOrderPipelinesRequest teamName pipelineNames ->
             Network.Pipeline.order teamName pipelineNames csrfToken
-                |> Task.attempt (always EmptyCallback)
+                |> Task.attempt (PipelinesOrdered teamName)
 
         SendLogOutRequest ->
             Task.attempt LoggedOut Network.User.logOut

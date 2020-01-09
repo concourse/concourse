@@ -137,7 +137,7 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pip
                         Maybe.map (Tag.view False) (tag session g)
                    )
                 ++ (if dropState == DroppingWhileApiRequestInFlight then
-                        [ Spinner.spinner { sizePx = 20, margin = "0" } ]
+                        [ Spinner.spinner { sizePx = 20, margin = "0 0 0 10px" } ]
 
                     else
                         []
