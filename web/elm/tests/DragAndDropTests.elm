@@ -102,6 +102,14 @@ all =
                 >> given iAmDraggingTheFirstPipelineCard
                 >> when fiveSecondsPasses
                 >> then_ myBrowserDoesNotRequestPipelineData
+        , test "dropping a card displays a spinner near the pipeline team name" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedTwoPipelines
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> given iDropThePipelineCard
+                >> when iAmLookingAtTheTeamHeader
+                >> then_ iSeeASpinner
         ]
 
 
@@ -263,6 +271,19 @@ iAmDraggingOverTheThirdDropArea =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <| Message.DragOver "team" 2)
+
+
+iAmLookingAtTheTeamHeader =
+    Tuple.first
+        >> Common.queryView
+        >> Query.find [ class "dashboard-team-header" ]
+
+
+iSeeASpinner =
+    Query.has
+        [ style "animation"
+            "1568ms linear 0s infinite normal none running container-rotate"
+        ]
 
 
 itListensForDragEnd =

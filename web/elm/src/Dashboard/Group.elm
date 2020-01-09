@@ -1,17 +1,9 @@
 module Dashboard.Group exposing
     ( PipelineIndex
-    , dragIndex
-    , dropIndex
     , hdView
     , ordering
     , pipelineDropAreaView
     , pipelineNotSetView
-    , setDragIndex
-    , setDropIndex
-    , setTeamName
-    , shiftPipelineTo
-    , shiftPipelines
-    , teamName
     , view
     )
 
@@ -25,7 +17,7 @@ import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
-import Html.Events exposing (on, preventDefaultOn)
+import Html.Events exposing (on, preventDefaultOn, stopPropagationOn)
 import Json.Decode
 import Maybe.Extra
 import Message.Effects as Effects
@@ -33,6 +25,7 @@ import Message.Message exposing (DomID(..), Message(..))
 import Ordering exposing (Ordering)
 import Time
 import UserState exposing (UserState(..))
+import Views.Spinner as Spinner
 
 
 ordering : { a | userState : UserState } -> Ordering Group
@@ -43,112 +36,6 @@ ordering session =
 
 type alias PipelineIndex =
     Int
-
-
-teamName : DragState -> Maybe Concourse.TeamName
-teamName dragState =
-    case dragState of
-        Dragging name _ ->
-            Just name
-
-        NotDragging ->
-            Nothing
-
-
-setTeamName : Concourse.TeamName -> DragState -> DragState
-setTeamName name dragState =
-    case dragState of
-        Dragging _ dragIdx ->
-            Dragging name dragIdx
-
-        NotDragging ->
-            NotDragging
-
-
-dragIndex : DragState -> Maybe PipelineIndex
-dragIndex dragState =
-    case dragState of
-        Dragging _ dragIdx ->
-            Just dragIdx
-
-        NotDragging ->
-            Nothing
-
-
-setDragIndex : PipelineIndex -> DragState -> DragState
-setDragIndex dragIdx dragState =
-    case dragState of
-        Dragging name _ ->
-            Dragging name dragIdx
-
-        NotDragging ->
-            NotDragging
-
-
-dropIndex : DropState -> Maybe PipelineIndex
-dropIndex dropState =
-    case dropState of
-        Dropping dropIdx ->
-            Just dropIdx
-
-        NotDropping ->
-            Nothing
-
-
-setDropIndex : PipelineIndex -> DropState -> DropState
-setDropIndex dropIdx dropState =
-    case dropState of
-        Dropping _ ->
-            Dropping dropIdx
-
-        NotDropping ->
-            NotDropping
-
-
-shiftPipelines : Int -> Int -> Group -> Group
-shiftPipelines dragIdx dropIdx g =
-    if dragIdx == dropIdx then
-        g
-
-    else
-        let
-            pipelines =
-                case
-                    List.head <|
-                        List.drop dragIdx <|
-                            g.pipelines
-                of
-                    Nothing ->
-                        g.pipelines
-
-                    Just pipeline ->
-                        shiftPipelineTo pipeline dropIdx g.pipelines
-        in
-        { g | pipelines = pipelines }
-
-
-shiftPipelineTo : Pipeline -> Int -> List Pipeline -> List Pipeline
-shiftPipelineTo pipeline position pipelines =
-    case pipelines of
-        [] ->
-            if position < 0 then
-                []
-
-            else
-                [ pipeline ]
-
-        p :: ps ->
-            if p.teamName /= pipeline.teamName then
-                p :: shiftPipelineTo pipeline position ps
-
-            else if p == pipeline then
-                shiftPipelineTo pipeline (position - 1) ps
-
-            else if position == 0 then
-                pipeline :: p :: shiftPipelineTo pipeline (position - 1) ps
-
-            else
-                p :: shiftPipelineTo pipeline (position - 1) ps
 
 
 view :
@@ -248,6 +135,12 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pip
                 [ Html.text g.teamName ]
                 :: (Maybe.Extra.toList <|
                         Maybe.map (Tag.view False) (tag session g)
+                   )
+                ++ (if dropState == DroppingWhileApiRequestInFlight then
+                        [ Spinner.spinner { sizePx = 20, margin = "0" } ]
+
+                    else
+                        []
                    )
             )
         , Html.div
@@ -356,6 +249,7 @@ pipelineDropAreaView dragState dropState name index =
         -- preventDefault is required so that the card will not appear to
         -- "float" or "snap" back to its original position when dropped.
         , preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver name index, True ))
+        , stopPropagationOn "drop" (Json.Decode.succeed ( DragEnd, True ))
         , style "padding" <|
             "0 "
                 ++ (if active && over then

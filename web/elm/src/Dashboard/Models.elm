@@ -40,6 +40,7 @@ type DragState
 type DropState
     = NotDropping
     | Dropping PipelineIndex
+    | DroppingWhileApiRequestInFlight
 
 
 type alias PipelineIndex =
