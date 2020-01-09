@@ -158,6 +158,28 @@ $ echo 'replace github.com/concourse/baggageclaim => github.com/your-user/baggag
 $ docker-compose up --build -d
 ```
 
+### Working on `containerd`
+
+While the majority of tests that relate to `containerd` are unit tests (which
+can be run anywhere), the integration ones need a `containerd` daemon to be
+running.
+
+There's a helper script ([`run`](./worker/backend/integration/run)) aimed to
+make such testing easier:
+
+```sh
+# start `containerd` in a container based of an image that has all the necessary
+# `containerd` binaries for the version that Concourse expects, having the
+# source code mounted under `/src`.
+#
+run containerd
+
+# in another terminal, run the integration tests
+#
+run test
+```
+
+
 ### Working on the web UI
 
 Concourse is written in Go, but the web UI is written in
