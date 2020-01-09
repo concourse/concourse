@@ -20,7 +20,7 @@ Consult their GitHub repos for more information:
 
 * [Docker image](https://github.com/concourse/concourse-docker)
 * [BOSH release](https://github.com/concourse/concourse-bosh-release)
-* [Kubernetes Helm chart](https://github.com/helm/charts/tree/master/stable/concourse)
+* [Kubernetes Helm chart](https://github.com/concourse/concourse-chart)
 
 
 ## Quick Start
