@@ -66,16 +66,16 @@ func (flag *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 	}
 
 	return json.Marshal(oidc.Config{
-		Issuer:             flag.Issuer,
-		ClientID:           flag.ClientID,
-		ClientSecret:       flag.ClientSecret,
-		Scopes:             flag.Scopes,
-		GroupsKey:          flag.GroupsKey,
-		UserNameKey:        flag.UserNameKey,
-		HostedDomains:      flag.HostedDomains,
-		RootCAs:            caCerts,
-		InsecureSkipVerify: flag.InsecureSkipVerify,
-		RedirectURI:        redirectURI,
+		Issuer:       flag.Issuer,
+		ClientID:     flag.ClientID,
+		ClientSecret: flag.ClientSecret,
+		Scopes:       flag.Scopes,
+		// GroupsKey:          flag.GroupsKey,
+		UserNameKey:   flag.UserNameKey,
+		HostedDomains: flag.HostedDomains,
+		// RootCAs:            caCerts,
+		// InsecureSkipVerify: flag.InsecureSkipVerify,
+		RedirectURI: redirectURI,
 	})
 }
 

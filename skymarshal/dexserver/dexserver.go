@@ -10,7 +10,6 @@ import (
 	s "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/dex/storage"
-	"github.com/gobuffalo/packr"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -90,11 +89,11 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 	}
 
 	webConfig := server.WebConfig{
-		LogoURL: strings.TrimRight(config.WebHostURL, "/") + "/themes/concourse/logo.svg",
-		HostURL: config.WebHostURL,
-		Theme:   "concourse",
-		Issuer:  "Concourse",
-		Dir:     packr.NewBox("../web"),
+		// LogoURL: strings.TrimRight(config.WebHostURL, "/") + "/themes/concourse/logo.svg",
+		// HostURL: config.WebHostURL,
+		Theme:  "concourse",
+		Issuer: "Concourse",
+		Dir:    "web/assets/web",
 	}
 
 	return server.Config{

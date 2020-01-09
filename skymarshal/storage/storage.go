@@ -22,19 +22,20 @@ func NewPostgresStorage(log lager.Logger, postgres flag.PostgresConfig) (Storage
 	}
 
 	store := sql.Postgres{
-		Database: postgres.Database,
-		User:     postgres.User,
-		Password: postgres.Password,
-		Host:     host,
-		Port:     postgres.Port,
-		SSL: sql.PostgresSSL{
+		SSL: sql.SSL{
 			Mode:     postgres.SSLMode,
 			CAFile:   string(postgres.CACert),
 			CertFile: string(postgres.ClientCert),
 			KeyFile:  string(postgres.ClientKey),
 		},
-		ConnectionTimeout: int(postgres.ConnectTimeout.Seconds()),
 	}
+
+	store.Database = postgres.Database
+	store.User = postgres.User
+	store.Password = postgres.Password
+	store.Host = host
+	store.Port = postgres.Port
+	store.ConnectionTimeout = int(postgres.ConnectTimeout.Seconds())
 
 	return store.Open(logger.New(log))
 }
