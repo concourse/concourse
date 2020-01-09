@@ -111,7 +111,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListBuilds,
 			atc.MainJobBadge,
 			atc.GetWall,
-			atc.GetExpiration:
+			atc.GetWallExpiration:
 			newHandler = auth.CheckAuthenticationIfProvidedHandler(handler, rejector)
 
 		case atc.GetLogLevel,
@@ -120,7 +120,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetInfoCreds,
 			atc.SetWall,
 			atc.ClearWall,
-			atc.SetExpiration:
+			atc.SetWallExpiration:
 			newHandler = auth.CheckAdminHandler(handler, rejector)
 
 		// authorized (requested team matches resource team)

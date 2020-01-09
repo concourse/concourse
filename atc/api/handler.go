@@ -54,7 +54,6 @@ func NewHandler(
 	dbCheckFactory db.CheckFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
-	dbWall db.Wall,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
@@ -71,6 +70,7 @@ func NewHandler(
 	varSourcePool creds.VarSourcePool,
 	credsManagers creds.Managers,
 	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
+	dbWall db.Wall,
 ) (http.Handler, error) {
 
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
@@ -208,11 +208,11 @@ func NewHandler(
 		atc.CreateArtifact: teamHandlerFactory.HandlerFor(artifactServer.CreateArtifact),
 		atc.GetArtifact:    teamHandlerFactory.HandlerFor(artifactServer.GetArtifact),
 
-		atc.GetWall: http.HandlerFunc(wallServer.GetWall),
-		atc.SetWall: http.HandlerFunc(wallServer.SetWall),
-		atc.ClearWall: http.HandlerFunc(wallServer.ClearWall),
-		atc.GetExpiration: http.HandlerFunc(wallServer.GetExpiration),
-		atc.SetExpiration: http.HandlerFunc(wallServer.SetExpiration),
+		atc.GetWall:           http.HandlerFunc(wallServer.GetWall),
+		atc.SetWall:           http.HandlerFunc(wallServer.SetWall),
+		atc.ClearWall:         http.HandlerFunc(wallServer.ClearWall),
+		atc.GetWallExpiration: http.HandlerFunc(wallServer.GetExpiration),
+		atc.SetWallExpiration: http.HandlerFunc(wallServer.SetExpiration),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))

@@ -13,6 +13,7 @@ func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
 	message, err := s.wall.GetMessage()
 	if err != nil {
 		logger.Error("failed-to-get-wall-message", err)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
