@@ -337,7 +337,7 @@ var _ = Describe("Plan", func() {
 							Limit:    1,
 							FailFast: true,
 							Steps: []atc.Plan{
-								atc.Plan{
+								{
 									ID: "37",
 									Task: &atc.TaskPlan{
 										Name:       "name",
@@ -353,10 +353,10 @@ var _ = Describe("Plan", func() {
 					atc.Plan{
 						ID: "37",
 						SetPipeline: &atc.SetPipelinePlan{
-							Name: "some-pipeline",
-							File: "some-file",
+							Name:     "some-pipeline",
+							File:     "some-file",
 							VarFiles: []string{"vf"},
-							Vars: map[string]interface{}{"k1": "v1"},
+							Vars:     map[string]interface{}{"k1": "v1"},
 						},
 					},
 				},

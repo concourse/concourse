@@ -10,7 +10,6 @@ import (
 const AbortedLogMessage = "interrupted"
 const TimeoutLogMessage = "timeout exceeded"
 
-
 type LogErrorStepDelegate interface {
 	Errored(lager.Logger, string)
 }

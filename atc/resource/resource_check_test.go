@@ -3,11 +3,11 @@ package resource_test
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 
-	"code.cloudfoundry.org/garden"
-	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,123 +15,72 @@ import (
 
 var _ = Describe("Resource Check", func() {
 	var (
+		ctx             context.Context
+		someProcessSpec runtime.ProcessSpec
+		fakeRunnable    runtimefakes.FakeRunner
+
+		checkVersions []atc.Version
+
 		source  atc.Source
+		params  atc.Params
 		version atc.Version
 
-		checkScriptStdout     string
-		checkScriptStderr     string
-		checkScriptExitStatus int
-		runCheckError         error
+		resource resource.Resource
 
-		checkScriptProcess *gardenfakes.FakeProcess
-
-		checkResult []atc.Version
-		checkErr    error
+		checkErr error
 	)
 
 	BeforeEach(func() {
+		ctx = context.Background()
+
 		source = atc.Source{"some": "source"}
 		version = atc.Version{"some": "version"}
+		params = atc.Params{"some": "params"}
 
-		checkScriptStdout = "[]"
-		checkScriptStderr = ""
-		checkScriptExitStatus = 0
-		runCheckError = nil
+		someProcessSpec.Path = "some/fake/path"
 
-		checkScriptProcess = new(gardenfakes.FakeProcess)
-		checkScriptProcess.WaitStub = func() (int, error) {
-			return checkScriptExitStatus, nil
-		}
-
-		checkResult = nil
-		checkErr = nil
+		resource = resourceFactory.NewResource(source, params, version)
 	})
 
 	JustBeforeEach(func() {
-		fakeContainer.RunStub = func(ctx context.Context, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
-			if runCheckError != nil {
-				return nil, runCheckError
-			}
-
-			_, err := io.Stdout.Write([]byte(checkScriptStdout))
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = io.Stderr.Write([]byte(checkScriptStderr))
-			Expect(err).NotTo(HaveOccurred())
-
-			return checkScriptProcess, nil
-		}
-
-		checkResult, checkErr = resourceForContainer.Check(context.TODO(), source, version)
+		checkVersions, checkErr = resource.Check(ctx, someProcessSpec, &fakeRunnable)
 	})
 
-	It("runs /opt/resource/check the request on stdin", func() {
-		Expect(checkErr).NotTo(HaveOccurred())
-
-		_, spec, io := fakeContainer.RunArgsForCall(0)
-		Expect(spec.Path).To(Equal("/opt/resource/check"))
-		Expect(spec.Args).To(BeEmpty())
-
-		request, err := ioutil.ReadAll(io.Stdin)
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(string(request)).To(Equal(`{"source":{"some":"source"},"version":{"some":"version"}}`))
-	})
-
-	Context("when /check outputs versions", func() {
+	Context("when Runnable -> RunScript succeeds", func() {
 		BeforeEach(func() {
-			checkScriptStdout = `[{"ver":"abc"}, {"ver":"def"}, {"ver":"ghi"}]`
+			fakeRunnable.RunScriptReturns(nil)
 		})
 
-		It("returns the raw parsed contents", func() {
-			Expect(checkErr).NotTo(HaveOccurred())
+		It("Invokes Runnable -> RunScript with the correct arguments", func() {
+			actualCtx, actualSpecPath, actualArgs,
+				actualInput, actualVersionResultRef, actualSpecStdErrWriter,
+				actualRecoverableBool := fakeRunnable.RunScriptArgsForCall(0)
 
-			Expect(checkResult).To(Equal([]atc.Version{
-				atc.Version{"ver": "abc"},
-				atc.Version{"ver": "def"},
-				atc.Version{"ver": "ghi"},
-			}))
+			signature, err := resource.Signature()
+			Expect(err).ToNot(HaveOccurred())
 
+			Expect(actualCtx).To(Equal(ctx))
+			Expect(actualSpecPath).To(Equal(someProcessSpec.Path))
+			Expect(actualArgs).To(BeNil())
+			Expect(actualInput).To(Equal(signature))
+			Expect(actualVersionResultRef).To(Equal(&checkVersions))
+			Expect(actualSpecStdErrWriter).To(BeNil())
+			Expect(actualRecoverableBool).To(BeFalse())
+		})
+
+		It("doesnt return an error", func() {
+			Expect(checkErr).To(BeNil())
 		})
 	})
 
-	Context("when running /opt/resource/check fails", func() {
-		disaster := errors.New("oh no!")
-
+	Context("when Runnable -> RunScript returns an error", func() {
+		var disasterErr = errors.New("there was an issue")
 		BeforeEach(func() {
-			runCheckError = disaster
+			fakeRunnable.RunScriptReturns(disasterErr)
 		})
-
 		It("returns the error", func() {
-			Expect(checkErr).To(Equal(disaster))
+			Expect(checkErr).To(Equal(disasterErr))
 		})
 	})
 
-	Context("when /opt/resource/check exits nonzero", func() {
-		BeforeEach(func() {
-			checkScriptStderr = "some-stderr"
-			checkScriptExitStatus = 9
-		})
-
-		It("returns an error containing stderr of the process", func() {
-			Expect(checkErr).To(HaveOccurred())
-
-			Expect(checkErr.Error()).To(ContainSubstring("exit status 9"))
-			Expect(checkErr.Error()).To(ContainSubstring("some-stderr"))
-		})
-	})
-
-	Context("when the output of /opt/resource/check is malformed", func() {
-		BeforeEach(func() {
-			checkScriptStdout = "ß"
-		})
-
-		It("returns an error", func() {
-			Expect(checkErr).To(HaveOccurred())
-		})
-
-		It("returns original payload in error", func() {
-			Expect(checkErr.Error()).Should(ContainSubstring(checkScriptStdout))
-		})
-	})
 })

@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -19,12 +20,12 @@ type FakeGetDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FinishedStub        func(lager.Logger, exec.ExitStatus, exec.VersionInfo)
+	FinishedStub        func(lager.Logger, exec.ExitStatus, runtime.VersionResult)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
-		arg3 exec.VersionInfo
+		arg3 runtime.VersionResult
 	}
 	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
@@ -67,12 +68,12 @@ type FakeGetDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
-	UpdateVersionStub        func(lager.Logger, atc.GetPlan, exec.VersionInfo)
+	UpdateVersionStub        func(lager.Logger, atc.GetPlan, runtime.VersionResult)
 	updateVersionMutex       sync.RWMutex
 	updateVersionArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.GetPlan
-		arg3 exec.VersionInfo
+		arg3 runtime.VersionResult
 	}
 	VariablesStub        func() vars.CredVarsTracker
 	variablesMutex       sync.RWMutex
@@ -120,12 +121,12 @@ func (fake *FakeGetDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeGetDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 exec.VersionInfo) {
+func (fake *FakeGetDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 runtime.VersionResult) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
-		arg3 exec.VersionInfo
+		arg3 runtime.VersionResult
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3})
 	fake.finishedMutex.Unlock()
@@ -140,13 +141,13 @@ func (fake *FakeGetDelegate) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeGetDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, exec.VersionInfo)) {
+func (fake *FakeGetDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, runtime.VersionResult)) {
 	fake.finishedMutex.Lock()
 	defer fake.finishedMutex.Unlock()
 	fake.FinishedStub = stub
 }
 
-func (fake *FakeGetDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, exec.VersionInfo) {
+func (fake *FakeGetDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, runtime.VersionResult) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	argsForCall := fake.finishedArgsForCall[i]
@@ -379,12 +380,12 @@ func (fake *FakeGetDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakeGetDelegate) UpdateVersion(arg1 lager.Logger, arg2 atc.GetPlan, arg3 exec.VersionInfo) {
+func (fake *FakeGetDelegate) UpdateVersion(arg1 lager.Logger, arg2 atc.GetPlan, arg3 runtime.VersionResult) {
 	fake.updateVersionMutex.Lock()
 	fake.updateVersionArgsForCall = append(fake.updateVersionArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.GetPlan
-		arg3 exec.VersionInfo
+		arg3 runtime.VersionResult
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("UpdateVersion", []interface{}{arg1, arg2, arg3})
 	fake.updateVersionMutex.Unlock()
@@ -399,13 +400,13 @@ func (fake *FakeGetDelegate) UpdateVersionCallCount() int {
 	return len(fake.updateVersionArgsForCall)
 }
 
-func (fake *FakeGetDelegate) UpdateVersionCalls(stub func(lager.Logger, atc.GetPlan, exec.VersionInfo)) {
+func (fake *FakeGetDelegate) UpdateVersionCalls(stub func(lager.Logger, atc.GetPlan, runtime.VersionResult)) {
 	fake.updateVersionMutex.Lock()
 	defer fake.updateVersionMutex.Unlock()
 	fake.UpdateVersionStub = stub
 }
 
-func (fake *FakeGetDelegate) UpdateVersionArgsForCall(i int) (lager.Logger, atc.GetPlan, exec.VersionInfo) {
+func (fake *FakeGetDelegate) UpdateVersionArgsForCall(i int) (lager.Logger, atc.GetPlan, runtime.VersionResult) {
 	fake.updateVersionMutex.RLock()
 	defer fake.updateVersionMutex.RUnlock()
 	argsForCall := fake.updateVersionArgsForCall[i]

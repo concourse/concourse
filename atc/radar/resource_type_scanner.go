@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -318,11 +319,16 @@ func (scanner *resourceTypeScanner) check(
 		return err
 	}
 
-	res := scanner.resourceFactory.NewResourceForContainer(container)
-	newVersions, err := res.Check(context.TODO(), source, fromVersion)
+	//TODO: Check if we need to add anything else to this processSpec
+	processSpec := runtime.ProcessSpec{
+		Path: "/opt/resource/check",
+	}
+
+	res := scanner.resourceFactory.NewResource(source, nil, fromVersion)
+	newVersions, err := res.Check(context.TODO(), processSpec, container)
 	resourceConfigScope.SetCheckError(err)
 	if err != nil {
-		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
+		if rErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
 			return rErr
 		}

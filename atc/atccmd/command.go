@@ -33,7 +33,6 @@ import (
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/builder"
-	"github.com/concourse/concourse/atc/fetcher"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/lidar"
 	"github.com/concourse/concourse/atc/lockrunner"
@@ -567,14 +566,14 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	fetchSourceFactory := fetcher.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
-	resourceFetcher := fetcher.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
+	fetchSourceFactory := worker.NewFetchSourceFactory(dbResourceCacheFactory)
+	resourceFetcher := worker.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
+		resourceFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		resourceFetcher,
-		resourceFactory,
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -590,6 +589,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+		resourceFetcher,
 		image.NewImageFactory(imageResourceFetcherFactory),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
@@ -745,14 +745,14 @@ func (cmd *RunCommand) constructBackendMembers(
 
 	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
-	fetchSourceFactory := fetcher.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
-	resourceFetcher := fetcher.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
+	fetchSourceFactory := worker.NewFetchSourceFactory(dbResourceCacheFactory)
+	resourceFetcher := worker.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
+		resourceFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		resourceFetcher,
-		resourceFactory,
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
@@ -768,6 +768,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+		resourceFetcher,
 		image.NewImageFactory(imageResourceFetcherFactory),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
@@ -799,20 +800,18 @@ func (cmd *RunCommand) constructBackendMembers(
 	engine := cmd.constructEngine(
 		pool,
 		workerClient,
-		resourceFetcher,
+		resourceFactory,
 		teamFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		secretManager,
 		defaultLimits,
 		buildContainerStrategy,
-		resourceFactory,
 		lockFactory,
 	)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		pool,
-		resourceFactory,
 		dbResourceConfigFactory,
 		cmd.ResourceTypeCheckingInterval,
 		cmd.ResourceCheckingInterval,
@@ -965,14 +964,14 @@ func (cmd *RunCommand) constructGCMember(
 	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(gcConn, lockFactory)
-	fetchSourceFactory := fetcher.NewFetchSourceFactory(dbResourceCacheFactory, resourceFactory)
-	resourceFetcher := fetcher.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
+	fetchSourceFactory := worker.NewFetchSourceFactory(dbResourceCacheFactory)
+	resourceFetcher := worker.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
 	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
+		resourceFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		resourceFetcher,
-		resourceFactory,
 	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(gcConn)
@@ -989,6 +988,7 @@ func (cmd *RunCommand) constructGCMember(
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
+		resourceFetcher,
 		image.NewImageFactory(imageResourceFetcherFactory),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
@@ -1453,27 +1453,25 @@ func (cmd *RunCommand) configureComponentIntervals(componentFactory db.Component
 func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
 	workerClient worker.Client,
-	resourceFetcher fetcher.Fetcher,
+	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	secretManager creds.Secrets,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
-	resourceFactory resource.ResourceFactory,
 	lockFactory lock.LockFactory,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
 		workerPool,
 		workerClient,
-		resourceFetcher,
+		resourceFactory,
 		teamFactory,
 		resourceCacheFactory,
 		resourceConfigFactory,
 		defaultLimits,
 		strategy,
-		resourceFactory,
 		lockFactory,
 	)
 

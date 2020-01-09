@@ -47,8 +47,8 @@ type ImageResource struct {
 	Type   string `json:"type"`
 	Source Source `json:"source"`
 
-	Params  *Params  `json:"params,omitempty"`
-	Version *Version `json:"version,omitempty"`
+	Params  Params  `json:"params,omitempty"`
+	Version Version `json:"version,omitempty"`
 }
 
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {

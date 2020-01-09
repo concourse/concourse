@@ -1,4 +1,4 @@
-package artifact_test
+package build_test
 
 import (
 	"testing"

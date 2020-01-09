@@ -12,10 +12,12 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
@@ -27,12 +29,17 @@ var _ = Describe("PutStep", func() {
 		cancel func()
 
 		fakeWorker                *workerfakes.FakeWorker
-		fakePool                  *workerfakes.FakePool
+		fakeClient                *workerfakes.FakeClient
 		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
+		fakeResource              *resourcefakes.FakeResource
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeDelegate              *execfakes.FakePutDelegate
 		putPlan                   *atc.PutPlan
+
+		fakeArtifact        *runtimefakes.FakeArtifact
+		fakeOtherArtifact   *runtimefakes.FakeArtifact
+		fakeMountedArtifact *runtimefakes.FakeArtifact
 
 		interpolatedResourceTypes atc.VersionedResourceTypes
 
@@ -51,7 +58,7 @@ var _ = Describe("PutStep", func() {
 			PipelineName: "some-pipeline",
 		}
 
-		repo  *artifact.Repository
+		repo  *build.Repository
 		state *execfakes.FakeRunState
 
 		putStep *exec.PutStep
@@ -63,6 +70,9 @@ var _ = Describe("PutStep", func() {
 		stderrBuf *gbytes.Buffer
 
 		planID atc.PlanID
+
+		versionResult runtime.VersionResult
+		clientErr     error
 	)
 
 	BeforeEach(func() {
@@ -71,7 +81,7 @@ var _ = Describe("PutStep", func() {
 		planID = atc.PlanID("some-plan-id")
 
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
-		fakePool = new(workerfakes.FakePool)
+		fakeClient = new(workerfakes.FakeClient)
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
@@ -86,9 +96,17 @@ var _ = Describe("PutStep", func() {
 		fakeDelegate.StderrReturns(stderrBuf)
 		fakeDelegate.VariablesReturns(vars.NewCredVarsTracker(credVarsTracker, false))
 
-		repo = artifact.NewRepository()
+		versionResult = runtime.VersionResult{
+			Version:  atc.Version{"some": "version"},
+			Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
+		}
+
+		fakeResource = new(resourcefakes.FakeResource)
+		fakeResource.PutReturns(versionResult, nil)
+
+		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
-		state.ArtifactsReturns(repo)
+		state.ArtifactRepositoryReturns(repo)
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -121,6 +139,17 @@ var _ = Describe("PutStep", func() {
 			Tags:                   []string{"some", "tags"},
 			VersionedResourceTypes: uninterpolatedResourceTypes,
 		}
+
+		fakeArtifact = new(runtimefakes.FakeArtifact)
+		fakeOtherArtifact = new(runtimefakes.FakeArtifact)
+		fakeMountedArtifact = new(runtimefakes.FakeArtifact)
+
+		repo.RegisterArtifact("some-source", fakeArtifact)
+		repo.RegisterArtifact("some-other-source", fakeOtherArtifact)
+		repo.RegisterArtifact("some-mounted-source", fakeMountedArtifact)
+
+		fakeResourceFactory.NewResourceReturns(fakeResource)
+
 	})
 
 	AfterEach(func() {
@@ -133,6 +162,8 @@ var _ = Describe("PutStep", func() {
 			Put: putPlan,
 		}
 
+		fakeClient.RunPutStepReturns(worker.PutResult{Status: 0, VersionResult: versionResult, Err: clientErr})
+
 		putStep = exec.NewPutStep(
 			plan.ID,
 			*plan.Put,
@@ -141,270 +172,220 @@ var _ = Describe("PutStep", func() {
 			fakeResourceFactory,
 			fakeResourceConfigFactory,
 			fakeStrategy,
-			fakePool,
+			fakeClient,
 			fakeDelegate,
 		)
 
 		stepErr = putStep.Run(ctx, state)
 	})
 
-	Context("when repo contains sources", func() {
+	Context("inputs", func() {
+		Context("when inputs are specified with 'all' keyword", func() {
+			BeforeEach(func() {
+				putPlan.Inputs = &atc.InputsConfig{
+					All: true,
+				}
+			})
+
+			It("calls RunPutStep with all inputs", func() {
+				_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+			})
+		})
+
+		Context("when inputs are left blank", func() {
+			It("calls RunPutStep with all inputs", func() {
+				_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
+				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+			})
+		})
+
+		Context("when only some inputs are specified ", func() {
+			BeforeEach(func() {
+				putPlan.Inputs = &atc.InputsConfig{
+					Specified: []string{"some-source", "some-other-source"},
+				}
+			})
+
+			It("calls RunPutStep with specified inputs", func() {
+				_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
+				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+			})
+		})
+	})
+
+	It("calls workerClient -> RunPutStep with the appropriate arguments", func() {
+		Expect(fakeClient.RunPutStepCallCount()).To(Equal(1))
+		actualContext, _, actualOwner, actualContainerSpec, actualWorkerSpec, actualStrategy, actualContainerMetadata, actualImageFetcherSpec, actualProcessSpec, actualEventDelegate, actualResource := fakeClient.RunPutStepArgsForCall(0)
+
+		Expect(actualContext).To(Equal(ctx))
+		Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
+		Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+			ResourceType: "some-resource-type",
+		}))
+		Expect(actualContainerSpec.Tags).To(Equal([]string{"some", "tags"}))
+		Expect(actualContainerSpec.TeamID).To(Equal(123))
+		Expect(actualContainerSpec.Env).To(Equal(stepMetadata.Env()))
+		Expect(actualContainerSpec.Dir).To(Equal("/tmp/build/put"))
+
+		Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
+		Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+		Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
+		Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+
+		Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
+			TeamID:        123,
+			Tags:          []string{"some", "tags"},
+			ResourceType:  "some-resource-type",
+			ResourceTypes: interpolatedResourceTypes,
+		}))
+		Expect(actualStrategy).To(Equal(fakeStrategy))
+
+		Expect(actualContainerMetadata).To(Equal(containerMetadata))
+		Expect(actualImageFetcherSpec.ResourceTypes).To(Equal(interpolatedResourceTypes))
+		Expect(actualImageFetcherSpec.Delegate).To(Equal(fakeDelegate))
+
+		Expect(actualProcessSpec).To(Equal(
+			runtime.ProcessSpec{
+				Path:         "/opt/resource/out",
+				Args:         []string{resource.ResourcesDir("put")},
+				StdoutWriter: stdoutBuf,
+				StderrWriter: stderrBuf,
+			}))
+		Expect(actualEventDelegate).To(Equal(fakeDelegate))
+		Expect(actualResource).To(Equal(fakeResource))
+	})
+
+	Context("when creds tracker can initialize the resource", func() {
 		var (
-			fakeSource        *workerfakes.FakeArtifactSource
-			fakeOtherSource   *workerfakes.FakeArtifactSource
-			fakeMountedSource *workerfakes.FakeArtifactSource
+			fakeResourceConfig *dbfakes.FakeResourceConfig
 		)
 
 		BeforeEach(func() {
-			fakeSource = new(workerfakes.FakeArtifactSource)
-			fakeOtherSource = new(workerfakes.FakeArtifactSource)
-			fakeMountedSource = new(workerfakes.FakeArtifactSource)
+			fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+			fakeResourceConfig.IDReturns(1)
 
-			repo.RegisterSource("some-source", fakeSource)
-			repo.RegisterSource("some-other-source", fakeOtherSource)
-			repo.RegisterSource("some-mounted-source", fakeMountedSource)
+			fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
+
+			fakeWorker.NameReturns("some-worker")
 		})
 
-		Context("when the tracker can initialize the resource", func() {
-			var (
-				fakeResource       *resourcefakes.FakeResource
-				fakeResourceConfig *dbfakes.FakeResourceConfig
-				fakeVersionResult  resource.VersionResult
-			)
-
-			BeforeEach(func() {
-				fakeResourceConfig = new(dbfakes.FakeResourceConfig)
-				fakeResourceConfig.IDReturns(1)
-
-				fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
-
-				fakeVersionResult = resource.VersionResult{
-					Version:  atc.Version{"some": "version"},
-					Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
-				}
-
-				fakeWorker.NameReturns("some-worker")
-				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
-
-				fakeResource = new(resourcefakes.FakeResource)
-				fakeResource.PutReturns(fakeVersionResult, nil)
-				fakeResourceFactory.NewResourceForContainerReturns(fakeResource)
-			})
-
-			It("finds/chooses a worker and creates a container with the correct type, session, and sources with no inputs specified (meaning it takes all artifacts)", func() {
-				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-				_, _, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
-				Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
-				Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-					ResourceType: "some-resource-type",
-				}))
-				Expect(actualContainerSpec.Tags).To(Equal([]string{"some", "tags"}))
-				Expect(actualContainerSpec.TeamID).To(Equal(123))
-				Expect(actualContainerSpec.Env).To(Equal(stepMetadata.Env()))
-				Expect(actualContainerSpec.Dir).To(Equal("/tmp/build/put"))
-				Expect(actualContainerSpec.Inputs).To(HaveLen(3))
-				Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
-					TeamID:        123,
-					Tags:          []string{"some", "tags"},
-					ResourceType:  "some-resource-type",
-					ResourceTypes: interpolatedResourceTypes,
-				}))
-				Expect(strategy).To(Equal(fakeStrategy))
-
-				_, _, delegate, owner, actualContainerMetadata, containerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
-				Expect(owner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
-				Expect(actualContainerMetadata).To(Equal(containerMetadata))
-				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-					ResourceType: "some-resource-type",
-				}))
-				Expect(containerSpec.Tags).To(Equal([]string{"some", "tags"}))
-				Expect(containerSpec.TeamID).To(Equal(123))
-				Expect(containerSpec.Env).To(Equal(stepMetadata.Env()))
-				Expect(containerSpec.Dir).To(Equal("/tmp/build/put"))
-				Expect(containerSpec.Inputs).To(HaveLen(3))
-
-				Expect([]worker.ArtifactSource{
-					containerSpec.Inputs[0].Source(),
-					containerSpec.Inputs[1].Source(),
-					containerSpec.Inputs[2].Source(),
-				}).To(ConsistOf(
-					exec.PutResourceSource{fakeSource},
-					exec.PutResourceSource{fakeOtherSource},
-					exec.PutResourceSource{fakeMountedSource},
-				))
-				Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
-				Expect(delegate).To(Equal(fakeDelegate))
-			})
-
-			It("secrets are tracked", func() {
-				mapit := vars.NewMapCredVarsTrackerIterator()
-				credVarsTracker.IterateInterpolatedCreds(mapit)
-				Expect(mapit.Data["custom-param"]).To(Equal("source"))
-				Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
-			})
-
-			Context("when the inputs are specified", func() {
-				BeforeEach(func() {
-					putPlan.Inputs = &atc.InputsConfig{
-						Specified: []string{"some-source", "some-other-source"},
-					}
-				})
-
-				It("initializes the container with specified inputs", func() {
-					_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
-					Expect(containerSpec.Inputs).To(HaveLen(2))
-					Expect([]worker.ArtifactSource{
-						containerSpec.Inputs[0].Source(),
-						containerSpec.Inputs[1].Source(),
-					}).To(ConsistOf(
-						exec.PutResourceSource{fakeSource},
-						exec.PutResourceSource{fakeOtherSource},
-					))
-				})
-			})
-
-			It("puts the resource with the given context", func() {
-				Expect(fakeResource.PutCallCount()).To(Equal(1))
-				putCtx, _, _, _ := fakeResource.PutArgsForCall(0)
-				Expect(putCtx).To(Equal(ctx))
-			})
-
-			It("puts the resource with the correct source and params", func() {
-				Expect(fakeResource.PutCallCount()).To(Equal(1))
-
-				_, _, putSource, putParams := fakeResource.PutArgsForCall(0)
-				Expect(putSource).To(Equal(atc.Source{"some": "super-secret-source"}))
-				Expect(putParams).To(Equal(atc.Params{"some-param": "some-value"}))
-			})
-
-			It("puts the resource with the io config forwarded", func() {
-				Expect(fakeResource.PutCallCount()).To(Equal(1))
-
-				_, ioConfig, _, _ := fakeResource.PutArgsForCall(0)
-				Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
-				Expect(ioConfig.Stderr).To(Equal(stderrBuf))
-			})
-
-			It("runs the get resource action", func() {
-				Expect(fakeResource.PutCallCount()).To(Equal(1))
-			})
-
-			It("is successful", func() {
-				Expect(putStep.Succeeded()).To(BeTrue())
-			})
-
-			It("saves the build output", func() {
-				Expect(fakeDelegate.SaveOutputCallCount()).To(Equal(1))
-
-				_, plan, actualSource, actualResourceTypes, info := fakeDelegate.SaveOutputArgsForCall(0)
-				Expect(plan.Name).To(Equal("some-name"))
-				Expect(plan.Type).To(Equal("some-resource-type"))
-				Expect(plan.Resource).To(Equal("some-resource"))
-				Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
-				Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
-				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-				Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
-			})
-
-			Context("when the resource is blank", func() {
-				BeforeEach(func() {
-					putPlan.Resource = ""
-				})
-
-				It("is successful", func() {
-					Expect(putStep.Succeeded()).To(BeTrue())
-				})
-
-				It("does not save the build output", func() {
-					Expect(fakeDelegate.SaveOutputCallCount()).To(Equal(0))
-				})
-			})
-
-			It("finishes via the delegate", func() {
-				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
-				_, status, info := fakeDelegate.FinishedArgsForCall(0)
-				Expect(status).To(Equal(exec.ExitStatus(0)))
-				Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-				Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
-			})
-
-			It("stores the version info as the step result", func() {
-				Expect(state.StoreResultCallCount()).To(Equal(1))
-				sID, sVal := state.StoreResultArgsForCall(0)
-				Expect(sID).To(Equal(planID))
-				Expect(sVal).To(Equal(exec.VersionInfo{
-					Version:  atc.Version{"some": "version"},
-					Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
-				}))
-			})
-
-			Context("when performing the put exits unsuccessfully", func() {
-				BeforeEach(func() {
-					fakeResource.PutReturns(resource.VersionResult{}, resource.ErrResourceScriptFailed{
-						ExitStatus: 42,
-					})
-				})
-
-				It("finishes the step via the delegate", func() {
-					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
-					_, status, info := fakeDelegate.FinishedArgsForCall(0)
-					Expect(status).To(Equal(exec.ExitStatus(42)))
-					Expect(info).To(BeZero())
-				})
-
-				It("returns nil", func() {
-					Expect(stepErr).ToNot(HaveOccurred())
-				})
-
-				It("is not successful", func() {
-					Expect(putStep.Succeeded()).To(BeFalse())
-				})
-			})
-
-			Context("when performing the put errors", func() {
-				disaster := errors.New("oh no")
-
-				BeforeEach(func() {
-					fakeResource.PutReturns(resource.VersionResult{}, disaster)
-				})
-
-				It("does not finish the step via the delegate", func() {
-					Expect(fakeDelegate.FinishedCallCount()).To(Equal(0))
-				})
-
-				It("returns the error", func() {
-					Expect(stepErr).To(Equal(disaster))
-				})
-
-				It("is not successful", func() {
-					Expect(putStep.Succeeded()).To(BeFalse())
-				})
-			})
+		It("secrets are tracked", func() {
+			mapit := vars.NewMapCredVarsTrackerIterator()
+			credVarsTracker.IterateInterpolatedCreds(mapit)
+			Expect(mapit.Data["custom-param"]).To(Equal("source"))
+			Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
 		})
 
-		Context("when find or choosing a worker fails", func() {
-			disaster := errors.New("nope")
+		It("creates a resource with the correct source and params", func() {
+			actualSource, actualParams, _ := fakeResourceFactory.NewResourceArgsForCall(0)
+			Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
+			Expect(actualParams).To(Equal(atc.Params{"some-param": "some-value"}))
 
-			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerForContainerReturns(nil, disaster)
-			})
-
-			It("returns the failure", func() {
-				Expect(stepErr).To(Equal(disaster))
-			})
+			_, _, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunPutStepArgsForCall(0)
+			Expect(actualResource).To(Equal(fakeResource))
 		})
 
-		Context("when find or creating a container fails", func() {
-			disaster := errors.New("nope")
+	})
 
-			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
-				fakeWorker.FindOrCreateContainerReturns(nil, disaster)
-			})
+	It("saves the build output", func() {
+		Expect(fakeDelegate.SaveOutputCallCount()).To(Equal(1))
 
-			It("returns the failure", func() {
-				Expect(stepErr).To(Equal(disaster))
-			})
+		_, plan, actualSource, actualResourceTypes, info := fakeDelegate.SaveOutputArgsForCall(0)
+		Expect(plan.Name).To(Equal("some-name"))
+		Expect(plan.Type).To(Equal("some-resource-type"))
+		Expect(plan.Resource).To(Equal("some-resource"))
+		Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
+		Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
+		Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+		Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+	})
+
+	Context("when the step.Plan.Resource is blank", func() {
+		BeforeEach(func() {
+			putPlan.Resource = ""
+		})
+
+		It("is successful", func() {
+			Expect(putStep.Succeeded()).To(BeTrue())
+		})
+
+		It("does not save the build output", func() {
+			Expect(fakeDelegate.SaveOutputCallCount()).To(Equal(0))
+		})
+	})
+
+	Context("when RunPutStep succeeds", func() {
+		It("finishes via the delegate", func() {
+			Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+			_, status, info := fakeDelegate.FinishedArgsForCall(0)
+			Expect(status).To(Equal(exec.ExitStatus(0)))
+			Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+			Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
+		})
+
+		It("stores the version result as the step result", func() {
+			Expect(state.StoreResultCallCount()).To(Equal(1))
+			sID, sVal := state.StoreResultArgsForCall(0)
+			Expect(sID).To(Equal(planID))
+			Expect(sVal).To(Equal(versionResult))
+		})
+
+		It("is successful", func() {
+			Expect(putStep.Succeeded()).To(BeTrue())
+		})
+	})
+
+	Context("when RunPutStep exits unsuccessfully", func() {
+		BeforeEach(func() {
+			versionResult = runtime.VersionResult{}
+			clientErr = runtime.ErrResourceScriptFailed{
+				ExitStatus: 42,
+			}
+		})
+
+		It("finishes the step via the delegate", func() {
+			Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+			_, status, info := fakeDelegate.FinishedArgsForCall(0)
+			Expect(status).To(Equal(exec.ExitStatus(42)))
+			Expect(info).To(BeZero())
+		})
+
+		It("returns nil", func() {
+			Expect(stepErr).ToNot(HaveOccurred())
+		})
+
+		It("is not successful", func() {
+			Expect(putStep.Succeeded()).To(BeFalse())
+		})
+	})
+
+	Context("when RunPutStep exits with an error", func() {
+		disaster := errors.New("oh no")
+
+		BeforeEach(func() {
+			versionResult = runtime.VersionResult{}
+			clientErr = disaster
+		})
+
+		It("does not finish the step via the delegate", func() {
+			Expect(fakeDelegate.FinishedCallCount()).To(Equal(0))
+		})
+
+		It("returns the error", func() {
+			Expect(stepErr).To(Equal(disaster))
+		})
+
+		It("is not successful", func() {
+			Expect(putStep.Succeeded()).To(BeFalse())
 		})
 	})
 })

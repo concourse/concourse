@@ -1,11 +1,11 @@
 package radar
 
 import (
-	"github.com/concourse/concourse/atc/creds"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
@@ -27,7 +27,6 @@ type scanRunnerFactory struct {
 
 func NewScanRunnerFactory(
 	pool worker.Pool,
-	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	resourceTypeCheckingInterval time.Duration,
 	resourceCheckingInterval time.Duration,
@@ -42,7 +41,7 @@ func NewScanRunnerFactory(
 	resourceTypeScanner := NewResourceTypeScanner(
 		clock,
 		pool,
-		resourceFactory,
+		resource.NewResourceFactory(),
 		resourceConfigFactory,
 		resourceTypeCheckingInterval,
 		dbPipeline,
@@ -55,7 +54,7 @@ func NewScanRunnerFactory(
 	resourceScanner := NewResourceScanner(
 		clock,
 		pool,
-		resourceFactory,
+		resource.NewResourceFactory(),
 		resourceConfigFactory,
 		resourceCheckingInterval,
 		dbPipeline,

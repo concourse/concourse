@@ -1,13 +1,11 @@
 package exec
 
 import (
-	"context"
 	"fmt"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 )
 
 type PutInputNotFoundError struct {
@@ -19,7 +17,7 @@ func (e PutInputNotFoundError) Error() string {
 }
 
 type PutInputs interface {
-	FindAll(*artifact.Repository) ([]worker.InputSource, error)
+	FindAll(*build.Repository) (map[string]runtime.Artifact, error)
 }
 
 type allInputs struct{}
@@ -28,14 +26,16 @@ func NewAllInputs() PutInputs {
 	return &allInputs{}
 }
 
-func (i allInputs) FindAll(artifacts *artifact.Repository) ([]worker.InputSource, error) {
-	inputs := []worker.InputSource{}
+func (i allInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Artifact, error) {
+	inputs := map[string]runtime.Artifact{}
 
-	for name, source := range artifacts.AsMap() {
-		inputs = append(inputs, &putInputSource{
-			name:   name,
-			source: PutResourceSource{source},
-		})
+	for name, artifact := range artifacts.AsMap() {
+		pi := putInput{
+			name:     name,
+			artifact: artifact,
+		}
+
+		inputs[pi.DestinationPath()] = pi.Artifact()
 	}
 
 	return inputs, nil
@@ -51,40 +51,35 @@ func NewSpecificInputs(inputs []string) PutInputs {
 	}
 }
 
-func (i specificInputs) FindAll(artifacts *artifact.Repository) ([]worker.InputSource, error) {
+func (i specificInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Artifact, error) {
 	artifactsMap := artifacts.AsMap()
 
-	inputs := []worker.InputSource{}
+	inputs := map[string]runtime.Artifact{}
+
 	for _, i := range i.inputs {
-		artifactSource, found := artifactsMap[artifact.Name(i)]
+		artifact, found := artifactsMap[build.ArtifactName(i)]
 		if !found {
 			return nil, PutInputNotFoundError{Input: i}
 		}
 
-		inputs = append(inputs, &putInputSource{
-			name:   artifact.Name(i),
-			source: PutResourceSource{artifactSource},
-		})
+		pi := putInput{
+			name:     build.ArtifactName(i),
+			artifact: artifact,
+		}
+
+		inputs[pi.DestinationPath()] = pi.Artifact()
 	}
 
 	return inputs, nil
 }
 
-type putInputSource struct {
-	name   artifact.Name
-	source worker.ArtifactSource
+type putInput struct {
+	name     build.ArtifactName
+	artifact runtime.Artifact
 }
 
-func (s *putInputSource) Source() worker.ArtifactSource { return s.source }
+func (input putInput) Artifact() runtime.Artifact { return input.artifact }
 
-func (s *putInputSource) DestinationPath() string {
-	return resource.ResourcesDir("put/" + string(s.name))
-}
-
-type PutResourceSource struct {
-	worker.ArtifactSource
-}
-
-func (source PutResourceSource) StreamTo(ctx context.Context, logger lager.Logger, dest worker.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(ctx, logger, dest)
+func (input putInput) DestinationPath() string {
+	return resource.ResourcesDir("put/" + string(input.name))
 }

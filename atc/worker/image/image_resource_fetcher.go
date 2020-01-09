@@ -3,19 +3,19 @@ package image
 import (
 	"archive/tar"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
-
-	"github.com/hashicorp/go-multierror"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/fetcher"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/hashicorp/go-multierror"
 )
 
 const ImageMetadataFile = "metadata.json"
@@ -51,23 +51,23 @@ type ImageResourceFetcher interface {
 }
 
 type imageResourceFetcherFactory struct {
+	resourceFactory         resource.ResourceFactory
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
-	resourceFetcher         fetcher.Fetcher
-	resourceFactory         resource.ResourceFactory
+	resourceFetcher         worker.Fetcher
 }
 
 func NewImageResourceFetcherFactory(
+	resourceFactory resource.ResourceFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
-	resourceFetcher fetcher.Fetcher,
-	resourceFactory resource.ResourceFactory,
+	resourceFetcher worker.Fetcher,
 ) ImageResourceFetcherFactory {
 	return &imageResourceFetcherFactory{
+		resourceFactory:         resourceFactory,
 		dbResourceCacheFactory:  dbResourceCacheFactory,
 		dbResourceConfigFactory: dbResourceConfigFactory,
 		resourceFetcher:         resourceFetcher,
-		resourceFactory:         resourceFactory,
 	}
 }
 
@@ -81,8 +81,8 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 ) ImageResourceFetcher {
 	return &imageResourceFetcher{
 		worker:                  worker,
-		resourceFactory:         f.resourceFactory,
 		resourceFetcher:         f.resourceFetcher,
+		resourceFactory:         f.resourceFactory,
 		dbResourceCacheFactory:  f.dbResourceCacheFactory,
 		dbResourceConfigFactory: f.dbResourceConfigFactory,
 
@@ -96,8 +96,8 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 
 type imageResourceFetcher struct {
 	worker                  worker.Worker
+	resourceFetcher         worker.Fetcher
 	resourceFactory         resource.ResourceFactory
-	resourceFetcher         fetcher.Fetcher
 	dbResourceCacheFactory  db.ResourceCacheFactory
 	dbResourceConfigFactory db.ResourceConfigFactory
 
@@ -124,10 +124,7 @@ func (i *imageResourceFetcher) Fetch(
 		}
 	}
 
-	var params atc.Params
-	if i.imageResource.Params != nil {
-		params = *i.imageResource.Params
-	}
+	params := i.imageResource.Params
 
 	resourceCache, err := i.dbResourceCacheFactory.FindOrCreateResourceCache(
 		db.ForContainer(container.ID()),
@@ -142,16 +139,6 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	resourceInstance := resource.NewResourceInstance(
-		resource.ResourceType(i.imageResource.Type),
-		version,
-		i.imageResource.Source,
-		params,
-		i.customTypes,
-		resourceCache,
-		db.NewImageGetContainerOwner(container, i.teamID),
-	)
-
 	err = i.imageFetchingDelegate.ImageVersionDetermined(resourceCache)
 	if err != nil {
 		return nil, nil, nil, err
@@ -163,34 +150,58 @@ func (i *imageResourceFetcher) Fetch(
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
-			ResourceType: string(resourceInstance.ResourceType()),
+			ResourceType: i.imageResource.Type,
 		},
 		TeamID: i.teamID,
 	}
 
-	// The random placement strategy is not really used because the image
-	// resource will always find the same worker as the container that owns it
-	versionedSource, err := i.resourceFetcher.Fetch(
+	processSpec := runtime.ProcessSpec{
+		Path:         "/opt/resource/in",
+		Args:         []string{resource.ResourcesDir("get")},
+		StdoutWriter: i.imageFetchingDelegate.Stdout(),
+		StderrWriter: i.imageFetchingDelegate.Stderr(),
+	}
+	res := i.resourceFactory.NewResource(
+		i.imageResource.Source,
+		params,
+		version,
+	)
+
+	sign, err := res.Signature()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	lockName := lockName(sign, i.worker.Name())
+	imageFetcherSpec := worker.ImageFetcherSpec{
+		ResourceTypes: i.customTypes,
+		Delegate:      i.imageFetchingDelegate,
+	}
+
+	_, volume, err := i.resourceFetcher.Fetch(
 		ctx,
 		logger.Session("init-image"),
 		containerMetadata,
 		i.worker,
 		containerSpec,
-		i.customTypes,
-		resourceInstance,
-		i.imageFetchingDelegate,
+		processSpec,
+		res,
+		db.NewImageGetContainerOwner(container, i.teamID),
+		imageFetcherSpec,
+		resourceCache,
+		lockName,
 	)
+
 	if err != nil {
 		logger.Error("failed-to-fetch-image", err)
 		return nil, nil, nil, err
 	}
 
-	volume := versionedSource.Volume()
 	if volume == nil {
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 
-	reader, err := versionedSource.StreamOut(ctx, ImageMetadataFile)
+	reader, err := volume.StreamOut(ctx, ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -247,8 +258,11 @@ func (i *imageResourceFetcher) ensureVersionOfType(
 		return err
 	}
 
-	checkResourceType := i.resourceFactory.NewResourceForContainer(resourceTypeContainer)
-	versions, err := checkResourceType.Check(context.TODO(), resourceType.Source, nil)
+	processSpec := runtime.ProcessSpec{
+		Path: "/opt/resource/check",
+	}
+	checkResourceType := i.resourceFactory.NewResource(resourceType.Source, nil, resourceType.Version)
+	versions, err := checkResourceType.Check(context.TODO(), processSpec, resourceTypeContainer)
 	if err != nil {
 		return err
 	}
@@ -305,8 +319,11 @@ func (i *imageResourceFetcher) getLatestVersion(
 		return nil, err
 	}
 
-	checkingResource := i.resourceFactory.NewResourceForContainer(imageContainer)
-	versions, err := checkingResource.Check(context.TODO(), i.imageResource.Source, nil)
+	processSpec := runtime.ProcessSpec{
+		Path: "/opt/resource/check",
+	}
+	checkingResource := i.resourceFactory.NewResource(i.imageResource.Source, nil, i.imageResource.Version)
+	versions, err := checkingResource.Check(context.TODO(), processSpec, imageContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -338,4 +355,9 @@ func (frc fileReadMultiCloser) Close() error {
 	}
 
 	return closeErrors
+}
+
+func lockName(resourceJson []byte, workerName string) string {
+	jsonRes := append(resourceJson, []byte(workerName)...)
+	return fmt.Sprintf("%x", sha256.Sum256(jsonRes))
 }

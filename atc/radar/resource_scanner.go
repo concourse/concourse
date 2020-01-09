@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/concourse/concourse/atc/runtime"
+
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -395,8 +397,13 @@ func (scanner *resourceScanner) check(
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res := scanner.resourceFactory.NewResourceForContainer(container)
-	newVersions, err := res.Check(ctx, source, fromVersion)
+	//TODO: Check if we need to add anything else to this processSpec
+	processSpec := runtime.ProcessSpec{
+		Path: "/opt/resource/check",
+	}
+
+	res := scanner.resourceFactory.NewResource(source, nil, fromVersion)
+	newVersions, err := res.Check(ctx, processSpec, container)
 	if err == context.DeadlineExceeded {
 		err = fmt.Errorf("Timed out after %v while checking for new versions - perhaps increase your resource check timeout?", timeout)
 	}
@@ -410,7 +417,7 @@ func (scanner *resourceScanner) check(
 	}.Emit(logger)
 
 	if err != nil {
-		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
+		if rErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
 			return rErr
 		}
@@ -450,7 +457,7 @@ func (scanner *resourceScanner) check(
 }
 
 func swallowErrResourceScriptFailed(err error) error {
-	if _, ok := err.(resource.ErrResourceScriptFailed); ok {
+	if _, ok := err.(runtime.ErrResourceScriptFailed); ok {
 		return nil
 	}
 	return err

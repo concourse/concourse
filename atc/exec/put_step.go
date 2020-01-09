@@ -2,8 +2,9 @@ package exec
 
 import (
 	"context"
-	"github.com/concourse/concourse/vars"
 	"io"
+
+	"github.com/concourse/concourse/vars"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -11,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -26,10 +28,10 @@ type PutDelegate interface {
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
-	Finished(lager.Logger, ExitStatus, VersionInfo)
+	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
 	Errored(lager.Logger, string)
 
-	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, VersionInfo)
+	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
 }
 
 // PutStep produces a resource version using preconfigured params and any data
@@ -42,7 +44,7 @@ type PutStep struct {
 	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
-	pool                  worker.Pool
+	workerClient          worker.Client
 	delegate              PutDelegate
 	succeeded             bool
 }
@@ -55,7 +57,7 @@ func NewPutStep(
 	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
-	pool worker.Pool,
+	workerClient worker.Client,
 	delegate PutDelegate,
 ) *PutStep {
 	return &PutStep{
@@ -65,7 +67,7 @@ func NewPutStep(
 		containerMetadata:     containerMetadata,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
-		pool:                  pool,
+		workerClient:          workerClient,
 		strategy:              strategy,
 		delegate:              delegate,
 	}
@@ -118,7 +120,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		putInputs = NewSpecificInputs(step.plan.Inputs.Specified)
 	}
 
-	containerInputs, err := putInputs.FindAll(state.Artifacts())
+	containerInputs, err := putInputs.FindAll(state.ArtifactRepository())
 	if err != nil {
 		return err
 	}
@@ -134,7 +136,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 
 		Env: step.metadata.Env(),
 
-		Inputs: containerInputs,
+		ArtifactByPath: containerInputs,
 	}
 
 	workerSpec := worker.WorkerSpec{
@@ -146,75 +148,66 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	chosenWorker, err := step.pool.FindOrChooseWorkerForContainer(
+	containerSpec.BindMounts = []worker.BindMountSource{
+		&worker.CertsVolumeMount{Logger: logger},
+	}
+
+	imageSpec := worker.ImageFetcherSpec{
+		ResourceTypes: resourceTypes,
+		Delegate:      step.delegate,
+	}
+
+	processSpec := runtime.ProcessSpec{
+		Path:         "/opt/resource/out",
+		Args:         []string{resource.ResourcesDir("put")},
+		StdoutWriter: step.delegate.Stdout(),
+		StderrWriter: step.delegate.Stderr(),
+	}
+
+	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
+
+	result := step.workerClient.RunPutStep(
 		ctx,
 		logger,
 		owner,
 		containerSpec,
 		workerSpec,
 		step.strategy,
-	)
-	if err != nil {
-		return err
-	}
-
-	containerSpec.BindMounts = []worker.BindMountSource{
-		&worker.CertsVolumeMount{Logger: logger},
-	}
-
-	container, err := chosenWorker.FindOrCreateContainer(
-		ctx,
-		logger,
-		step.delegate,
-		owner,
 		step.containerMetadata,
-		containerSpec,
-		resourceTypes,
+		imageSpec,
+		processSpec,
+		step.delegate,
+		resourceToPut,
 	)
-	if err != nil {
-		return err
-	}
 
-	step.delegate.Starting(logger)
-
-	putResource := step.resourceFactory.NewResourceForContainer(container)
-	versionResult, err := putResource.Put(
-		ctx,
-		resource.IOConfig{
-			Stdout: step.delegate.Stdout(),
-			Stderr: step.delegate.Stderr(),
-		},
-		source,
-		params,
-	)
+	versionResult := result.VersionResult
+	err = result.Err
 
 	if err != nil {
 		logger.Error("failed-to-put-resource", err)
 
-		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), VersionInfo{})
+		if err, ok := err.(runtime.ErrResourceScriptFailed); ok {
+			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), runtime.VersionResult{})
 			return nil
 		}
 
 		return err
 	}
 
-	versionInfo := VersionInfo{
-		Version:  versionResult.Version,
-		Metadata: versionResult.Metadata,
-	}
-
+	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
+	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {
-		step.delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionInfo)
+		step.delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
 	}
 
-	state.StoreResult(step.planID, versionInfo)
+	state.StoreResult(step.planID, versionResult)
 
 	step.succeeded = true
 
-	step.delegate.Finished(logger, 0, versionInfo)
+	step.delegate.Finished(logger, 0, versionResult)
 
 	return nil
+
 }
 
 // Succeeded returns true if the resource script exited successfully.
