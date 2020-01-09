@@ -3,6 +3,7 @@
 set -o errexit
 
 readonly CONTAINER_NAME="containerd-integration"
+readonly CONCOURSE_DIR="$(realpath $(dirname $0)/../../..)"
 
 main() {
   case $1 in
@@ -23,7 +24,7 @@ start_containerd() {
     --name $CONTAINER_NAME \
     --volume /scratch \
     --volume gopath:/gopath \
-    --volume $(realpath ../../..):/src \
+    --volume $CONCOURSE_DIR:/src \
     --workdir /src/worker/backend/integration \
     concourse/unit \
     /bin/bash -c '
