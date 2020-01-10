@@ -251,8 +251,8 @@ and viewers cannot.
     \table-row{CreateJobBuild               }{\reference{fly-trigger-job}                                       }{trigger button on job and build pages  }{✘                                }{✓           }
     \table-row{CreatePipelineBuild          }{\reference{fly-execute}                                           }{n/a                                    }{✘                                }{✓           }
     \table-row{DeletePipeline               }{\reference{fly-destroy-pipeline}                                  }{n/a                                    }{✘                                }{✓           }
-    \table-row{DisableResourceVersion       }{n/a                                                               }{version disable widget on resource page}{✘                                }{✓           }
-    \table-row{EnableResourceVersion        }{n/a                                                               }{version enable widget on resource page }{✘                                }{✓           }
+    \table-row{DisableResourceVersion       }{\reference{fly-disable-resource-version}                          }{version disable widget on resource page}{✘                                }{✓           }
+    \table-row{EnableResourceVersion        }{\reference{fly-enable-resource-version}                           }{version enable widget on resource page }{✘                                }{✓           }
     \table-row{PinResourceVersion           }{\reference{fly-pin-resource}                                      }{pin buttons on resource page           }{✘                                }{✓           }
     \table-row{UnpinResource                }{\code{fly unpin-resource}                                         }{pin buttons on resource page           }{✘                                }{✓           }
     \table-row{SetPinCommentOnResource      }{\reference{fly-pin-resource}                                      }{comment overlay on resource page       }{✘                                }{✓           }
