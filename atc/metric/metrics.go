@@ -675,20 +675,20 @@ func (event WorkersState) Emit(logger lager.Logger) {
 	for _, workerState := range event.WorkerStateByName {
 		_, exists := perStateCounter[workerState]
 		if !exists {
-			perStateCounter[workerState] = 0
+			perStateCounter[workerState] = 1
 			continue
 		}
 
 		perStateCounter[workerState] += 1
 	}
 
-	for state, count := range perStateCounter {
+	for _, state := range db.AllWorkerStates() {
+		count := perStateCounter[state]
 		if state == db.WorkerStateStalled && count > 0 {
 			eventState = EventStateWarning
 		} else {
 			eventState = EventStateOK
 		}
-
 		emit(
 			logger.Session("worker-state"),
 			Event{
