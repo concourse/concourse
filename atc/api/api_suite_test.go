@@ -178,7 +178,6 @@ var _ = BeforeEach(func() {
 		dbCheckFactory,
 		dbResourceConfigFactory,
 		dbUserFactory,
-		dbWall,
 
 		constructedEventHandler.Construct,
 
@@ -195,6 +194,7 @@ var _ = BeforeEach(func() {
 		fakeVarSourcePool,
 		credsManagers,
 		interceptTimeoutFactory,
+		dbWall,
 	)
 
 	Expect(err).NotTo(HaveOccurred())
