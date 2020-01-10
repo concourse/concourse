@@ -3,6 +3,7 @@ package engine_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -458,6 +459,7 @@ var _ = Describe("Engine", func() {
 							It("finishes the check", func() {
 								waitGroup.Wait()
 								Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
+								Expect(fakeCheck.FinishWithErrorArgsForCall(0)).To(Equal(fmt.Errorf("run check step: %w", errors.New("nope"))))
 							})
 						})
 
@@ -480,6 +482,7 @@ var _ = Describe("Engine", func() {
 
 						It("releases the lock", func() {
 							Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeCheck.FinishWithErrorArgsForCall(0)).To(Equal(fmt.Errorf("create check step: %w", errors.New("nope"))))
 						})
 					})
 				})
