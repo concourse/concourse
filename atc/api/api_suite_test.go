@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -58,7 +57,6 @@ var (
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
-	expire                  time.Duration
 	isTLSEnabled            bool
 	cliDownloadsDir         string
 	logger                  *lagertest.TestLogger
@@ -138,8 +136,6 @@ var _ = BeforeEach(func() {
 	logger = lagertest.NewTestLogger("api")
 
 	sink = lager.NewReconfigurableSink(lager.NewPrettySink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
-
-	expire = 24 * time.Hour
 
 	isTLSEnabled = false
 
