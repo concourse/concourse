@@ -87,6 +87,12 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pip
                                             else
                                                 []
                                            )
+                                        ++ (if dropState == DroppingWhileApiRequestInFlight g.teamName then
+                                                [ style "opacity" "0.45", style "pointer-events" "none" ]
+
+                                            else
+                                                [ style "opacity" "1" ]
+                                           )
                                     )
                                     [ Pipeline.pipelineView
                                         { now = now
@@ -136,7 +142,7 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pip
                 :: (Maybe.Extra.toList <|
                         Maybe.map (Tag.view False) (tag session g)
                    )
-                ++ (if dropState == DroppingWhileApiRequestInFlight then
+                ++ (if dropState == DroppingWhileApiRequestInFlight g.teamName then
                         [ Spinner.spinner { sizePx = 20, margin = "0 0 0 10px" } ]
 
                     else

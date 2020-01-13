@@ -40,7 +40,7 @@ type DragState
 type DropState
     = NotDropping
     | Dropping PipelineIndex
-    | DroppingWhileApiRequestInFlight
+    | DroppingWhileApiRequestInFlight Concourse.TeamName
 
 
 type alias PipelineIndex =

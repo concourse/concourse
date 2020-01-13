@@ -14,7 +14,7 @@ import Message.TopLevelMessage as TopLevelMessage exposing (TopLevelMessage)
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (class, style, text)
+import Test.Html.Selector exposing (class, id, style, text)
 import Time
 import Url
 
@@ -112,6 +112,30 @@ all =
                 >> given iDropThePipelineCard
                 >> when iAmLookingAtTheTeamHeader
                 >> then_ iSeeASpinner
+        , test "dropping a card does not display a spinner near other team names" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedPipelinesFromMultipleTeams
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> given iDropThePipelineCard
+                >> when iAmLookingAtTheOtherTeamHeader
+                >> then_ iDoNotSeeASpinner
+        , test "after dropping a card, every pipeline card of that team has opacity 0.5" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedTwoPipelines
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> given iDropThePipelineCard
+                >> when iAmLookingAtAllPipelineCardsOfThatTeam
+                >> then_ iSeeAllCardsHaveOpacity
+        , test "after dropping a card, every pipeline card of that team is disabled" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedTwoPipelines
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> given iDropThePipelineCard
+                >> when iAmLookingAtAllPipelineCardsOfThatTeam
+                >> then_ theyAreNotClickable
         , test "fetches team's pipelines when order pipelines call succeeds" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedTwoPipelines
@@ -129,6 +153,24 @@ all =
                 >> given dashboardRefreshPipelines
                 >> when iAmLookingAtTheTeamHeader
                 >> then_ iDoNotSeeASpinner
+        , test "when dropping succeeds all pipeline cards of that team have opacity of 1" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedTwoPipelines
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> given iDropThePipelineCard
+                >> given dashboardRefreshPipelines
+                >> when iAmLookingAtAllPipelineCardsOfThatTeam
+                >> then_ iSeeAllCardsDontHaveOpacity
+        , test "when dropping succeeds, every pipeline card of that team is enabled" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedTwoPipelines
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> given iDropThePipelineCard
+                >> given dashboardRefreshPipelines
+                >> when iAmLookingAtAllPipelineCardsOfThatTeam
+                >> then_ theyAreClickable
         , test "fetches team's pipelines when order pipelines call fails" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedTwoPipelines
@@ -226,6 +268,20 @@ iAmLookingAtTheFirstPipelineCard =
         >> Query.first
 
 
+iAmLookingAtTheInitialDropArea =
+    Tuple.first
+        >> Common.queryView
+        >> Query.findAll [ class "drop-area" ]
+        >> Query.first
+
+
+iAmLookingAtAllPipelineCardsOfThatTeam =
+    Tuple.first
+        >> Common.queryView
+        >> Query.find [ id "team" ]
+        >> Query.findAll [ class "card" ]
+
+
 itListensForDragStart : Query.Single TopLevelMessage -> Expectation
 itListensForDragStart =
     Event.simulate (Event.custom "dragstart" (Encode.object []))
@@ -255,19 +311,20 @@ itIsVisible =
         ]
 
 
-iAmLookingAtTheInitialDropArea =
-    Tuple.first
-        >> Common.queryView
-        >> Query.findAll [ class "drop-area" ]
-        >> Query.first
-
-
 itIsWide =
     Query.has [ style "padding" "0 198.5px" ]
 
 
 itIsNarrow =
     Query.has [ style "padding" "0 50px" ]
+
+
+theyAreClickable =
+    Query.each (Query.hasNot [ style "pointer-events" "none" ])
+
+
+theyAreNotClickable =
+    Query.each (Query.has [ style "pointer-events" "none" ])
 
 
 iAmLookingAtTheFinalDropArea =
@@ -315,11 +372,22 @@ iAmLookingAtTheTeamHeader =
         >> Query.find [ class "dashboard-team-header" ]
 
 
+iAmLookingAtTheOtherTeamHeader =
+    Tuple.first
+        >> Common.queryView
+        >> Query.find [ id "other-team" ]
+        >> Query.find [ class "dashboard-team-header" ]
+
+
 iSeeASpinner =
     Query.has
         [ style "animation"
             "container-rotate 1568ms linear infinite"
         ]
+
+
+iSeeAllCardsHaveOpacity =
+    Query.each (Query.has [ style "opacity" "0.5" ])
 
 
 iSeeTheTurbulenceView =
@@ -333,6 +401,10 @@ iDoNotSeeASpinner =
         [ style "animation"
             "container-rotate 1568ms linear infinite"
         ]
+
+
+iSeeAllCardsDontHaveOpacity =
+    Query.each (Query.has [ style "opacity" "1" ])
 
 
 itListensForDragEnd =

@@ -362,7 +362,7 @@ updateBody msg ( model, effects ) =
                     ( { model
                         | pipelines = pipelines
                         , dragState = NotDragging
-                        , dropState = DroppingWhileApiRequestInFlight
+                        , dropState = DroppingWhileApiRequestInFlight teamName
                       }
                     , effects
                         ++ [ pipelines
