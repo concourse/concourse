@@ -50,7 +50,7 @@ require (
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v1.6.2 // indirect
 	github.com/gorilla/websocket v1.4.0
-	github.com/hashicorp/go-multierror v1.0.0
+	github.com/hashicorp/go-multierror v1.0.1-0.20191120192120-72917a1559e1
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hashicorp/vault/api v1.0.5-0.20191108163347-bdd38fca2cff

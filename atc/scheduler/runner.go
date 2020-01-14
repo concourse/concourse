@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
+	"github.com/hashicorp/go-multierror"
 )
 
 //go:generate counterfeiter . BuildScheduler
@@ -55,22 +56,20 @@ func (s *schedulerRunner) Run(ctx context.Context) error {
 		return err
 	}
 
-	for pipelineID, jobs := range pipelineIDToJobs {
+	errGroup := new(multierror.Group)
+	for pipelineID, jobsToSchedule := range pipelineIDToJobs {
 		pipeline := pipelineIDToPipeline[pipelineID]
 
-		go func(jobsToSchedule db.Jobs) {
-			err := s.schedulePipeline(pipeline, jobsToSchedule)
-			if err != nil {
-				s.logger.Error("failed-to-schedule-pipeline", err, lager.Data{"pipeline": pipeline.Name()})
-				return
-			}
-		}(jobs)
+		err := s.schedulePipeline(errGroup, pipeline, jobsToSchedule)
+		if err != nil {
+			s.logger.Error("failed-to-schedule-pipeline", err, lager.Data{"pipeline": pipeline.Name()})
+		}
 	}
 
-	return nil
+	return errGroup.Wait().ErrorOrNil()
 }
 
-func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline, jobsToSchedule db.Jobs) error {
+func (s *schedulerRunner) schedulePipeline(errGroup *multierror.Group, pipeline db.Pipeline, jobsToSchedule db.Jobs) error {
 	logger := s.logger.Session("pipeline", lager.Data{"pipeline": pipeline.Name()})
 
 	resources, err := pipeline.Resources()
@@ -98,47 +97,42 @@ func (s *schedulerRunner) schedulePipeline(pipeline db.Pipeline, jobsToSchedule 
 			continue
 		}
 
+		// shadow loop var for the goroutine closure
+		job := job
+
 		s.guardJobScheduling <- struct{}{}
-		go func(job db.Job) {
-			// Grabs out the requested time that triggered off the job schedule in
-			// order to set the last scheduled to the exact time of this triggering
-			// request
-			requestedTime := job.ScheduleRequestedTime()
+		errGroup.Go(func() error {
+			defer func() {
+				<-s.guardJobScheduling
+			}()
 
-			needsRetry, err := s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
-			if err != nil {
-				logger.Error("failed-to-schedule-job", err, lager.Data{"job": job.Name()})
-			} else {
-				if !needsRetry {
-					err = job.UpdateLastScheduled(requestedTime)
-					if err != nil {
-						logger.Error("failed-to-update-last-scheduled", err, lager.Data{"job": job.Name()})
-					}
-				}
-			}
-
-			<-s.guardJobScheduling
-		}(job)
+			return s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
+		})
 	}
 
 	return nil
 }
 
-func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, pipeline db.Pipeline, currentJob db.Job, resources db.Resources, jobs algorithm.NameToIDMap) (bool, error) {
-	logger = logger.Session("schedule-job", lager.Data{"job": currentJob.Name()})
+func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, pipeline db.Pipeline, job db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
+	logger = logger.Session("schedule-job", lager.Data{"job": job.Name()})
 
 	logger.Debug("schedule")
 
 	defer schedulingLock.Release()
 
-	found, err := currentJob.Reload()
+	// Grabs out the requested time that triggered off the job schedule in
+	// order to set the last scheduled to the exact time of this triggering
+	// request
+	requestedTime := job.ScheduleRequestedTime()
+
+	found, err := job.Reload()
 	if err != nil {
-		return false, fmt.Errorf("reload job: %w", err)
+		return fmt.Errorf("reload job: %w", err)
 	}
 
 	if !found {
 		logger.Debug("could-not-find-job-to-reload")
-		return false, nil
+		return nil
 	}
 
 	jStart := time.Now()
@@ -146,22 +140,30 @@ func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.L
 	needsRetry, err := s.scheduler.Schedule(
 		logger,
 		pipeline,
-		currentJob,
+		job,
 		resources,
 		jobs,
 	)
 	if err != nil {
-		return false, fmt.Errorf("schedule job: %w", err)
+		return fmt.Errorf("schedule job: %w", err)
+	}
+
+	if !needsRetry {
+		err = job.UpdateLastScheduled(requestedTime)
+		if err != nil {
+			logger.Error("failed-to-update-last-scheduled", err, lager.Data{"job": job.Name()})
+			return fmt.Errorf("update last scheduled: %w", err)
+		}
 	}
 
 	metric.SchedulingJobDuration{
-		PipelineName: currentJob.PipelineName(),
-		JobName:      currentJob.Name(),
-		JobID:        currentJob.ID(),
+		PipelineName: job.PipelineName(),
+		JobName:      job.Name(),
+		JobID:        job.ID(),
 		Duration:     time.Since(jStart),
 	}.Emit(logger)
 
-	return needsRetry, nil
+	return nil
 }
 
 func (s *schedulerRunner) constructPipelineIDMaps(jobs db.Jobs) (map[int]db.Pipeline, map[int]db.Jobs, error) {

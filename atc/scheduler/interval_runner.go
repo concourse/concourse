@@ -73,16 +73,16 @@ func (r *intervalRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	}
 }
 
-func (r *intervalRunner) run(ctx context.Context, force bool) error {
+func (r *intervalRunner) run(ctx context.Context, force bool) {
 	lock, acquired, err := r.lockFactory.Acquire(r.logger, lock.NewTaskLockID(r.componentName))
 	if err != nil {
 		r.logger.Error("failed-to-acquire-lock", err)
-		return err
+		return
 	}
 
 	if !acquired {
 		r.logger.Debug("lock-cannot-be-acquired", lager.Data{"name": r.componentName})
-		return nil
+		return
 	}
 
 	defer lock.Release()
@@ -90,33 +90,33 @@ func (r *intervalRunner) run(ctx context.Context, force bool) error {
 	component, found, err := r.componentFactory.Find(r.componentName)
 	if err != nil {
 		r.logger.Error("failed-to-find-component", err)
-		return err
+		return
 	}
 
 	if !found {
 		r.logger.Info("component-not-found", lager.Data{"name": r.componentName})
-		return nil
+		return
 	}
 
 	if component.Paused() {
 		r.logger.Debug("component-is-paused", lager.Data{"name": r.componentName})
-		return nil
+		return
 	}
 
 	if !force && !component.IntervalElapsed() {
 		r.logger.Debug("component-interval-not-reached", lager.Data{"name": r.componentName, "last-ran": component.LastRan()})
-		return nil
+		return
 	}
 
 	if err = r.runner.Run(ctx); err != nil {
 		r.logger.Error("failed-to-run-task", err, lager.Data{"task-name": r.componentName})
-		return err
+		return
 	}
 
 	if err = component.UpdateLastRan(); err != nil {
 		r.logger.Error("failed-to-update-last-ran", err)
-		return err
+		return
 	}
 
-	return nil
+	return
 }
