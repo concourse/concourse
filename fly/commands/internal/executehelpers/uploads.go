@@ -18,15 +18,16 @@ func Upload(bar *mpb.Bar, team concourse.Team, path string, includeIgnored bool,
 
 	archiveStream, archiveWriter := io.Pipe()
 
-	go func() {
-		zstdWriter, err := zstd.NewWriter(archiveWriter)
-		if err != nil {
-			return
-		}
+	zstdWriter, err := zstd.NewWriter(archiveWriter)
+	if err != nil {
+		return atc.WorkerArtifact{}, err
+	}
 
+	go func() {
 		err = tarfs.Compress(zstdWriter, path, files...)
 		if err != nil {
 			_ = zstdWriter.Close()
+			archiveWriter.CloseWithError(err)
 			return
 		}
 
