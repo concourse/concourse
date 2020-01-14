@@ -4,31 +4,29 @@ import (
 	"encoding/json"
 	"github.com/concourse/concourse/atc"
 	"net/http"
-	"time"
 )
 
-func (s *Server) GetExpiration(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetWall(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("wall")
 
 	w.Header().Set("Content-Type", "application/json")
 
-	expiresAt, err := s.wall.GetExpiration()
+	wall, err := s.wall.GetWall()
 	if err != nil {
-		logger.Error("failed-to-get-expiration", err)
-	}
-
-	var wall atc.Wall
-	if !expiresAt.IsZero() {
-		wall.ExpiresIn = time.Until(expiresAt).Round(time.Second).String()
+		logger.Error("failed-to-get-message", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	err = json.NewEncoder(w).Encode(wall)
 	if err != nil {
 		logger.Error("failed-to-encode-json", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 }
 
-func (s *Server) SetExpiration(w http.ResponseWriter, r *http.Request) {
+func (s *Server) SetWall(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("wall")
 
 	var wall atc.Wall
@@ -39,17 +37,19 @@ func (s *Server) SetExpiration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expiresIn, err := time.ParseDuration(wall.ExpiresIn)
+	err = s.wall.SetWall(wall)
 	if err != nil {
-		logger.Error("failed-to-parse-duration", err)
+		logger.Error("failed-to-set-wall-message", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+}
 
-	err = s.wall.SetExpiration(expiresIn)
+func (s *Server) ClearWall(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.Session("wall")
+	err := s.wall.Clear()
 	if err != nil {
-		logger.Error("failed-to-set-expiration", err)
+		logger.Error("failed-to-clear-the-wall", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		return
 	}
 }

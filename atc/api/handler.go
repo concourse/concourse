@@ -97,7 +97,7 @@ func NewHandler(
 	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, containerRepository, destroyer)
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
-	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers, dbWall)
+	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
 	artifactServer := artifactserver.NewServer(logger, workerClient)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)
@@ -213,8 +213,6 @@ func NewHandler(
 		atc.GetWall:           http.HandlerFunc(wallServer.GetWall),
 		atc.SetWall:           http.HandlerFunc(wallServer.SetWall),
 		atc.ClearWall:         http.HandlerFunc(wallServer.ClearWall),
-		atc.GetWallExpiration: http.HandlerFunc(wallServer.GetExpiration),
-		atc.SetWallExpiration: http.HandlerFunc(wallServer.SetExpiration),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))

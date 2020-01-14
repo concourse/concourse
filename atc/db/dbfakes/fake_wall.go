@@ -3,8 +3,8 @@ package dbfakes
 
 import (
 	"sync"
-	"time"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -19,50 +19,27 @@ type FakeWall struct {
 	clearReturnsOnCall map[int]struct {
 		result1 error
 	}
-	GetExpirationStub        func() (time.Time, error)
-	getExpirationMutex       sync.RWMutex
-	getExpirationArgsForCall []struct {
+	GetWallStub        func() (atc.Wall, error)
+	getWallMutex       sync.RWMutex
+	getWallArgsForCall []struct {
 	}
-	getExpirationReturns struct {
-		result1 time.Time
+	getWallReturns struct {
+		result1 atc.Wall
 		result2 error
 	}
-	getExpirationReturnsOnCall map[int]struct {
-		result1 time.Time
+	getWallReturnsOnCall map[int]struct {
+		result1 atc.Wall
 		result2 error
 	}
-	GetMessageStub        func() (string, error)
-	getMessageMutex       sync.RWMutex
-	getMessageArgsForCall []struct {
+	SetWallStub        func(atc.Wall) error
+	setWallMutex       sync.RWMutex
+	setWallArgsForCall []struct {
+		arg1 atc.Wall
 	}
-	getMessageReturns struct {
-		result1 string
-		result2 error
-	}
-	getMessageReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
-	}
-	SetExpirationStub        func(time.Duration) error
-	setExpirationMutex       sync.RWMutex
-	setExpirationArgsForCall []struct {
-		arg1 time.Duration
-	}
-	setExpirationReturns struct {
+	setWallReturns struct {
 		result1 error
 	}
-	setExpirationReturnsOnCall map[int]struct {
-		result1 error
-	}
-	SetMessageStub        func(string) error
-	setMessageMutex       sync.RWMutex
-	setMessageArgsForCall []struct {
-		arg1 string
-	}
-	setMessageReturns struct {
-		result1 error
-	}
-	setMessageReturnsOnCall map[int]struct {
+	setWallReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -121,232 +98,117 @@ func (fake *FakeWall) ClearReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeWall) GetExpiration() (time.Time, error) {
-	fake.getExpirationMutex.Lock()
-	ret, specificReturn := fake.getExpirationReturnsOnCall[len(fake.getExpirationArgsForCall)]
-	fake.getExpirationArgsForCall = append(fake.getExpirationArgsForCall, struct {
+func (fake *FakeWall) GetWall() (atc.Wall, error) {
+	fake.getWallMutex.Lock()
+	ret, specificReturn := fake.getWallReturnsOnCall[len(fake.getWallArgsForCall)]
+	fake.getWallArgsForCall = append(fake.getWallArgsForCall, struct {
 	}{})
-	fake.recordInvocation("GetExpiration", []interface{}{})
-	fake.getExpirationMutex.Unlock()
-	if fake.GetExpirationStub != nil {
-		return fake.GetExpirationStub()
+	fake.recordInvocation("GetWall", []interface{}{})
+	fake.getWallMutex.Unlock()
+	if fake.GetWallStub != nil {
+		return fake.GetWallStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getExpirationReturns
+	fakeReturns := fake.getWallReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeWall) GetExpirationCallCount() int {
-	fake.getExpirationMutex.RLock()
-	defer fake.getExpirationMutex.RUnlock()
-	return len(fake.getExpirationArgsForCall)
+func (fake *FakeWall) GetWallCallCount() int {
+	fake.getWallMutex.RLock()
+	defer fake.getWallMutex.RUnlock()
+	return len(fake.getWallArgsForCall)
 }
 
-func (fake *FakeWall) GetExpirationCalls(stub func() (time.Time, error)) {
-	fake.getExpirationMutex.Lock()
-	defer fake.getExpirationMutex.Unlock()
-	fake.GetExpirationStub = stub
+func (fake *FakeWall) GetWallCalls(stub func() (atc.Wall, error)) {
+	fake.getWallMutex.Lock()
+	defer fake.getWallMutex.Unlock()
+	fake.GetWallStub = stub
 }
 
-func (fake *FakeWall) GetExpirationReturns(result1 time.Time, result2 error) {
-	fake.getExpirationMutex.Lock()
-	defer fake.getExpirationMutex.Unlock()
-	fake.GetExpirationStub = nil
-	fake.getExpirationReturns = struct {
-		result1 time.Time
+func (fake *FakeWall) GetWallReturns(result1 atc.Wall, result2 error) {
+	fake.getWallMutex.Lock()
+	defer fake.getWallMutex.Unlock()
+	fake.GetWallStub = nil
+	fake.getWallReturns = struct {
+		result1 atc.Wall
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeWall) GetExpirationReturnsOnCall(i int, result1 time.Time, result2 error) {
-	fake.getExpirationMutex.Lock()
-	defer fake.getExpirationMutex.Unlock()
-	fake.GetExpirationStub = nil
-	if fake.getExpirationReturnsOnCall == nil {
-		fake.getExpirationReturnsOnCall = make(map[int]struct {
-			result1 time.Time
+func (fake *FakeWall) GetWallReturnsOnCall(i int, result1 atc.Wall, result2 error) {
+	fake.getWallMutex.Lock()
+	defer fake.getWallMutex.Unlock()
+	fake.GetWallStub = nil
+	if fake.getWallReturnsOnCall == nil {
+		fake.getWallReturnsOnCall = make(map[int]struct {
+			result1 atc.Wall
 			result2 error
 		})
 	}
-	fake.getExpirationReturnsOnCall[i] = struct {
-		result1 time.Time
+	fake.getWallReturnsOnCall[i] = struct {
+		result1 atc.Wall
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeWall) GetMessage() (string, error) {
-	fake.getMessageMutex.Lock()
-	ret, specificReturn := fake.getMessageReturnsOnCall[len(fake.getMessageArgsForCall)]
-	fake.getMessageArgsForCall = append(fake.getMessageArgsForCall, struct {
-	}{})
-	fake.recordInvocation("GetMessage", []interface{}{})
-	fake.getMessageMutex.Unlock()
-	if fake.GetMessageStub != nil {
-		return fake.GetMessageStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.getMessageReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeWall) GetMessageCallCount() int {
-	fake.getMessageMutex.RLock()
-	defer fake.getMessageMutex.RUnlock()
-	return len(fake.getMessageArgsForCall)
-}
-
-func (fake *FakeWall) GetMessageCalls(stub func() (string, error)) {
-	fake.getMessageMutex.Lock()
-	defer fake.getMessageMutex.Unlock()
-	fake.GetMessageStub = stub
-}
-
-func (fake *FakeWall) GetMessageReturns(result1 string, result2 error) {
-	fake.getMessageMutex.Lock()
-	defer fake.getMessageMutex.Unlock()
-	fake.GetMessageStub = nil
-	fake.getMessageReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeWall) GetMessageReturnsOnCall(i int, result1 string, result2 error) {
-	fake.getMessageMutex.Lock()
-	defer fake.getMessageMutex.Unlock()
-	fake.GetMessageStub = nil
-	if fake.getMessageReturnsOnCall == nil {
-		fake.getMessageReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 error
-		})
-	}
-	fake.getMessageReturnsOnCall[i] = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeWall) SetExpiration(arg1 time.Duration) error {
-	fake.setExpirationMutex.Lock()
-	ret, specificReturn := fake.setExpirationReturnsOnCall[len(fake.setExpirationArgsForCall)]
-	fake.setExpirationArgsForCall = append(fake.setExpirationArgsForCall, struct {
-		arg1 time.Duration
+func (fake *FakeWall) SetWall(arg1 atc.Wall) error {
+	fake.setWallMutex.Lock()
+	ret, specificReturn := fake.setWallReturnsOnCall[len(fake.setWallArgsForCall)]
+	fake.setWallArgsForCall = append(fake.setWallArgsForCall, struct {
+		arg1 atc.Wall
 	}{arg1})
-	fake.recordInvocation("SetExpiration", []interface{}{arg1})
-	fake.setExpirationMutex.Unlock()
-	if fake.SetExpirationStub != nil {
-		return fake.SetExpirationStub(arg1)
+	fake.recordInvocation("SetWall", []interface{}{arg1})
+	fake.setWallMutex.Unlock()
+	if fake.SetWallStub != nil {
+		return fake.SetWallStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setExpirationReturns
+	fakeReturns := fake.setWallReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeWall) SetExpirationCallCount() int {
-	fake.setExpirationMutex.RLock()
-	defer fake.setExpirationMutex.RUnlock()
-	return len(fake.setExpirationArgsForCall)
+func (fake *FakeWall) SetWallCallCount() int {
+	fake.setWallMutex.RLock()
+	defer fake.setWallMutex.RUnlock()
+	return len(fake.setWallArgsForCall)
 }
 
-func (fake *FakeWall) SetExpirationCalls(stub func(time.Duration) error) {
-	fake.setExpirationMutex.Lock()
-	defer fake.setExpirationMutex.Unlock()
-	fake.SetExpirationStub = stub
+func (fake *FakeWall) SetWallCalls(stub func(atc.Wall) error) {
+	fake.setWallMutex.Lock()
+	defer fake.setWallMutex.Unlock()
+	fake.SetWallStub = stub
 }
 
-func (fake *FakeWall) SetExpirationArgsForCall(i int) time.Duration {
-	fake.setExpirationMutex.RLock()
-	defer fake.setExpirationMutex.RUnlock()
-	argsForCall := fake.setExpirationArgsForCall[i]
+func (fake *FakeWall) SetWallArgsForCall(i int) atc.Wall {
+	fake.setWallMutex.RLock()
+	defer fake.setWallMutex.RUnlock()
+	argsForCall := fake.setWallArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *FakeWall) SetExpirationReturns(result1 error) {
-	fake.setExpirationMutex.Lock()
-	defer fake.setExpirationMutex.Unlock()
-	fake.SetExpirationStub = nil
-	fake.setExpirationReturns = struct {
+func (fake *FakeWall) SetWallReturns(result1 error) {
+	fake.setWallMutex.Lock()
+	defer fake.setWallMutex.Unlock()
+	fake.SetWallStub = nil
+	fake.setWallReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeWall) SetExpirationReturnsOnCall(i int, result1 error) {
-	fake.setExpirationMutex.Lock()
-	defer fake.setExpirationMutex.Unlock()
-	fake.SetExpirationStub = nil
-	if fake.setExpirationReturnsOnCall == nil {
-		fake.setExpirationReturnsOnCall = make(map[int]struct {
+func (fake *FakeWall) SetWallReturnsOnCall(i int, result1 error) {
+	fake.setWallMutex.Lock()
+	defer fake.setWallMutex.Unlock()
+	fake.SetWallStub = nil
+	if fake.setWallReturnsOnCall == nil {
+		fake.setWallReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.setExpirationReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeWall) SetMessage(arg1 string) error {
-	fake.setMessageMutex.Lock()
-	ret, specificReturn := fake.setMessageReturnsOnCall[len(fake.setMessageArgsForCall)]
-	fake.setMessageArgsForCall = append(fake.setMessageArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("SetMessage", []interface{}{arg1})
-	fake.setMessageMutex.Unlock()
-	if fake.SetMessageStub != nil {
-		return fake.SetMessageStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.setMessageReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeWall) SetMessageCallCount() int {
-	fake.setMessageMutex.RLock()
-	defer fake.setMessageMutex.RUnlock()
-	return len(fake.setMessageArgsForCall)
-}
-
-func (fake *FakeWall) SetMessageCalls(stub func(string) error) {
-	fake.setMessageMutex.Lock()
-	defer fake.setMessageMutex.Unlock()
-	fake.SetMessageStub = stub
-}
-
-func (fake *FakeWall) SetMessageArgsForCall(i int) string {
-	fake.setMessageMutex.RLock()
-	defer fake.setMessageMutex.RUnlock()
-	argsForCall := fake.setMessageArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeWall) SetMessageReturns(result1 error) {
-	fake.setMessageMutex.Lock()
-	defer fake.setMessageMutex.Unlock()
-	fake.SetMessageStub = nil
-	fake.setMessageReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeWall) SetMessageReturnsOnCall(i int, result1 error) {
-	fake.setMessageMutex.Lock()
-	defer fake.setMessageMutex.Unlock()
-	fake.SetMessageStub = nil
-	if fake.setMessageReturnsOnCall == nil {
-		fake.setMessageReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.setMessageReturnsOnCall[i] = struct {
+	fake.setWallReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -356,14 +218,10 @@ func (fake *FakeWall) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.clearMutex.RLock()
 	defer fake.clearMutex.RUnlock()
-	fake.getExpirationMutex.RLock()
-	defer fake.getExpirationMutex.RUnlock()
-	fake.getMessageMutex.RLock()
-	defer fake.getMessageMutex.RUnlock()
-	fake.setExpirationMutex.RLock()
-	defer fake.setExpirationMutex.RUnlock()
-	fake.setMessageMutex.RLock()
-	defer fake.setMessageMutex.RUnlock()
+	fake.getWallMutex.RLock()
+	defer fake.getWallMutex.RUnlock()
+	fake.setWallMutex.RLock()
+	defer fake.setWallMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

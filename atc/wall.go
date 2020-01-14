@@ -1,6 +1,8 @@
 package atc
 
+import "time"
+
 type Wall struct {
-	Message   string `json:"message,omitempty"`
-	ExpiresIn string `json:"expires_in,omitempty"`
+	Message string `json:"message,omitempty"`
+	TTL     time.Duration `json:"TTL,omitempty"`
 }

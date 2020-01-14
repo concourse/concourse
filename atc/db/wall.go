@@ -3,16 +3,15 @@ package db
 import (
 	"database/sql"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc"
 	"time"
 )
 
 //go:generate counterfeiter . Wall
 
 type Wall interface {
-	SetMessage(string) error
-	GetMessage() (string, error)
-	SetExpiration(time.Duration) error
-	GetExpiration() (time.Time, error)
+	SetWall(atc.Wall) error
+	GetWall() (atc.Wall, error)
 	Clear() error
 }
 
@@ -24,16 +23,35 @@ func NewWall(conn Conn) Wall {
 	return &wall{conn: conn}
 }
 
-func (w wall) SetMessage(message string) error {
-	err := w.Clear()
+func (w wall) SetWall(wall atc.Wall) error {
+	tx, err := w.conn.Begin()
 	if err != nil {
 		return err
 	}
 
-	_, err = psql.Insert("wall").
-		Columns("message").
-		Values(message).
-		RunWith(w.conn).Exec()
+	defer Rollback(tx)
+
+	_, err = psql.Delete("wall").RunWith(tx).Exec()
+	if err != nil {
+		return err
+	}
+
+	query := psql.Insert("wall").
+		Columns("message")
+
+	if wall.TTL != 0 {
+		expiresAt := time.Now().Add(wall.TTL)
+		query = query.Columns("expires_at").Values(wall.Message, expiresAt)
+	} else {
+		query = query.Values(wall.Message)
+	}
+
+	_, err = query.RunWith(tx).Exec()
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -41,45 +59,38 @@ func (w wall) SetMessage(message string) error {
 	return nil
 }
 
-func (w wall) GetMessage() (string, error) {
-	var message string
-	err := psql.Select("message").
+func (w wall) GetWall() (atc.Wall, error) {
+	var wall atc.Wall
+
+	row := psql.Select("message", "expires_at").
 		From("wall").
 		Where(sq.Or{
 			sq.Gt{"expires_at": time.Now()},
 			sq.Eq{"expires_at": nil},
 		}).
-		RunWith(w.conn).QueryRow().Scan(&message)
+		RunWith(w.conn).QueryRow()
+
+	err := scanWall(&wall, row)
 	if err != nil && err != sql.ErrNoRows {
-		return "", err
+		return atc.Wall{}, err
 	}
 
-	return message, nil
+	return wall, nil
 }
 
-func (w wall) SetExpiration(duration time.Duration) error {
-	expiration := time.Now().Add(duration)
-	_, err := psql.Update("wall").
-		Set("expires_at", expiration).
-		RunWith(w.conn).Exec()
+func scanWall(wall *atc.Wall, scan scannable) error {
+	var expiresAt sql.NullTime
+
+	err := scan.Scan(&wall.Message, &expiresAt)
 	if err != nil {
 		return err
 	}
-	return nil
-}
 
-func (w wall) GetExpiration() (time.Time, error) {
-	var expiration time.Time
-	err := psql.Select("expires_at").
-		From("wall").
-		RunWith(w.conn).QueryRow().Scan(&expiration)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return expiration, nil
-		}
-		return expiration, err
+	if expiresAt.Valid {
+		wall.TTL = time.Until(expiresAt.Time)
 	}
-	return expiration, nil
+
+	return nil
 }
 
 func (w wall) Clear() error {
