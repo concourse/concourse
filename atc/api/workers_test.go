@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Workers API", func() {
+var _ = FDescribe("Workers API", func() {
 	var (
 		fakeaccess *accessorfakes.FakeAccess
 	)

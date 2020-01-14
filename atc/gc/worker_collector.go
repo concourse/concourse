@@ -70,9 +70,11 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	if err != nil {
 		logger.Error("failed-to-get-workers-states-for-metrics", err)
 	} else {
-		metric.WorkersState{
-			WorkerStateByName: workerStateByName,
-		}.Emit(logger)
+		metric.NewMonitor(logger).Measure(
+			metric.WorkersState{
+				WorkerStateByName: workerStateByName,
+			},
+		)
 	}
 
 	return nil

@@ -99,9 +99,11 @@ func (d *destroyer) FindDestroyingVolumesForGc(workerName string) ([]string, err
 		})
 	}
 
-	metric.DestroyingVolumesToBeGarbageCollected{
-		Volumes: len(destroyingVolumesHandles),
-	}.Emit(d.logger)
+	metric.NewMonitor(d.logger).Measure(
+		metric.DestroyingVolumesToBeGarbageCollected{
+			Volumes: len(destroyingVolumesHandles),
+		},
+	)
 
 	return destroyingVolumesHandles, nil
 }

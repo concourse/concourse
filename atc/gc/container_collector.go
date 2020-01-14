@@ -90,9 +90,11 @@ func (c *containerCollector) markFailedContainersAsDestroying(logger lager.Logge
 		})
 	}
 
-	metric.FailedContainersToBeGarbageCollected{
-		Containers: numFailedContainers,
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.FailedContainersToBeGarbageCollected{
+			Containers: numFailedContainers,
+		},
+	)
 
 	return nil
 }
@@ -113,17 +115,23 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 		})
 	}
 
-	metric.CreatingContainersToBeGarbageCollected{
-		Containers: len(creatingContainers),
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.CreatingContainersToBeGarbageCollected{
+			Containers: len(creatingContainers),
+		},
+	)
 
-	metric.CreatedContainersToBeGarbageCollected{
-		Containers: len(createdContainers),
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.CreatedContainersToBeGarbageCollected{
+			Containers: len(createdContainers),
+		},
+	)
 
-	metric.DestroyingContainersToBeGarbageCollected{
-		Containers: len(destroyingContainers),
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.DestroyingContainersToBeGarbageCollected{
+			Containers: len(destroyingContainers),
+		},
+	)
 
 	var workerCreatedContainers = make(map[string][]db.CreatedContainer)
 

@@ -63,27 +63,33 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		registration.CertsPath = nil
 	}
 
-	metric.WorkerContainers{
-		WorkerName: registration.Name,
-		Containers: registration.ActiveContainers,
-		Platform:   registration.Platform,
-		TeamName:   registration.Team,
-		Tags:       registration.Tags,
-	}.Emit(s.logger)
+	metric.NewMonitor(s.logger).Measure(
+		metric.WorkerContainers{
+			WorkerName: registration.Name,
+			Containers: registration.ActiveContainers,
+			Platform:   registration.Platform,
+			TeamName:   registration.Team,
+			Tags:       registration.Tags,
+		},
+	)
 
-	metric.WorkerVolumes{
-		WorkerName: registration.Name,
-		Volumes:    registration.ActiveVolumes,
-		Platform:   registration.Platform,
-		TeamName:   registration.Team,
-		Tags:       registration.Tags,
-	}.Emit(s.logger)
+	metric.NewMonitor(s.logger).Measure(
+		metric.WorkerVolumes{
+			WorkerName: registration.Name,
+			Volumes:    registration.ActiveVolumes,
+			Platform:   registration.Platform,
+			TeamName:   registration.Team,
+			Tags:       registration.Tags,
+		},
+	)
 
-	metric.WorkerTasks{
-		WorkerName: registration.Name,
-		Tasks:      registration.ActiveTasks,
-		Platform:   registration.Platform,
-	}.Emit(s.logger)
+	metric.NewMonitor(s.logger).Measure(
+		metric.WorkerTasks{
+			WorkerName: registration.Name,
+			Tasks:      registration.ActiveTasks,
+			Platform:   registration.Platform,
+		},
+	)
 
 	if registration.Team != "" {
 		team, found, err := s.teamFactory.FindTeam(registration.Team)

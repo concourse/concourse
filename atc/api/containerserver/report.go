@@ -56,10 +56,12 @@ func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) 
 		})
 	}
 
-	metric.WorkerUnknownContainers{
-		WorkerName: workerName,
-		Containers: numUnknownContainers,
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.WorkerUnknownContainers{
+			WorkerName: workerName,
+			Containers: numUnknownContainers,
+		},
+	)
 
 	err = s.containerRepository.UpdateContainersMissingSince(workerName, handles)
 	if err != nil {

@@ -68,9 +68,11 @@ func (vc *volumeCollector) cleanupFailedVolumes(logger lager.Logger) error {
 		})
 	}
 
-	metric.FailedVolumesToBeGarbageCollected{
-		Volumes: failedVolumesLen,
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.FailedVolumesToBeGarbageCollected{
+			Volumes: failedVolumesLen,
+		},
+	)
 
 	return nil
 }
@@ -88,9 +90,11 @@ func (vc *volumeCollector) markOrphanedVolumesAsDestroying(logger lager.Logger) 
 		})
 	}
 
-	metric.CreatedVolumesToBeGarbageCollected{
-		Volumes: len(orphanedVolumesHandles),
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.CreatedVolumesToBeGarbageCollected{
+			Volumes: len(orphanedVolumesHandles),
+		},
+	)
 
 	for _, orphanedVolume := range orphanedVolumesHandles {
 		// queue

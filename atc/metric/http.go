@@ -8,14 +8,14 @@ import (
 )
 
 type MetricsHandler struct {
-	Logger  lager.Logger
+	Monitor Monitor
 	Route   string
 	Handler http.Handler
 }
 
 func WrapHandler(logger lager.Logger, route string, handler http.Handler) http.Handler {
 	return MetricsHandler{
-		Logger:  logger,
+		Monitor: NewMonitor(logger),
 		Route:   route,
 		Handler: handler,
 	}
@@ -24,11 +24,11 @@ func WrapHandler(logger lager.Logger, route string, handler http.Handler) http.H
 func (handler MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	metrics := httpsnoop.CaptureMetrics(handler.Handler, w, r)
 
-	HTTPResponseTime{
+	handler.Monitor.Measure(HTTPResponseTime{
 		Route:      handler.Route,
 		Path:       r.URL.Path,
 		Method:     r.Method,
 		StatusCode: metrics.Code,
 		Duration:   metrics.Duration,
-	}.Emit(handler.Logger)
+	})
 }

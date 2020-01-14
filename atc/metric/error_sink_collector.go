@@ -24,8 +24,10 @@ func (c *ErrorSinkCollector) Log(f lager.LogFormat) {
 		return
 	}
 
-	ErrorLog{
-		Value:   1,
-		Message: f.Message,
-	}.Emit(c.logger)
+	NewMonitor(c.logger).Measure(
+		ErrorLog{
+			Value:   1,
+			Message: f.Message,
+		},
+	)
 }

@@ -254,13 +254,15 @@ func (b *engineBuild) saveStatus(logger lager.Logger, status atc.BuildStatus) {
 }
 
 func (b *engineBuild) trackStarted(logger lager.Logger) {
-	metric.BuildStarted{
-		PipelineName: b.build.PipelineName(),
-		JobName:      b.build.JobName(),
-		BuildName:    b.build.Name(),
-		BuildID:      b.build.ID(),
-		TeamName:     b.build.TeamName(),
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.BuildStarted{
+			PipelineName: b.build.PipelineName(),
+			JobName:      b.build.JobName(),
+			BuildName:    b.build.Name(),
+			BuildID:      b.build.ID(),
+			TeamName:     b.build.TeamName(),
+		},
+	)
 }
 
 func (b *engineBuild) trackFinished(logger lager.Logger) {
@@ -276,15 +278,17 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 	}
 
 	if !b.build.IsRunning() {
-		metric.BuildFinished{
-			PipelineName:  b.build.PipelineName(),
-			JobName:       b.build.JobName(),
-			BuildName:     b.build.Name(),
-			BuildID:       b.build.ID(),
-			BuildStatus:   b.build.Status(),
-			BuildDuration: b.build.EndTime().Sub(b.build.StartTime()),
-			TeamName:      b.build.TeamName(),
-		}.Emit(logger)
+		metric.NewMonitor(logger).Measure(
+			metric.BuildFinished{
+				PipelineName:  b.build.PipelineName(),
+				JobName:       b.build.JobName(),
+				BuildName:     b.build.Name(),
+				BuildID:       b.build.ID(),
+				BuildStatus:   b.build.Status(),
+				BuildDuration: b.build.EndTime().Sub(b.build.StartTime()),
+				TeamName:      b.build.TeamName(),
+			},
+		)
 	}
 }
 
@@ -409,19 +413,23 @@ func (c *engineCheck) clearRunState() {
 }
 
 func (c *engineCheck) trackStarted(logger lager.Logger) {
-	metric.CheckStarted{
-		CheckName:             c.check.Plan().Check.Name,
-		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
-		CheckStatus:           c.check.Status(),
-		CheckPendingDuration:  c.check.StartTime().Sub(c.check.CreateTime()),
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.CheckStarted{
+			CheckName:             c.check.Plan().Check.Name,
+			ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
+			CheckStatus:           c.check.Status(),
+			CheckPendingDuration:  c.check.StartTime().Sub(c.check.CreateTime()),
+		},
+	)
 }
 
 func (c *engineCheck) trackFinished(logger lager.Logger) {
-	metric.CheckFinished{
-		CheckName:             c.check.Plan().Check.Name,
-		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
-		CheckStatus:           c.check.Status(),
-		CheckDuration:         c.check.EndTime().Sub(c.check.StartTime()),
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.CheckFinished{
+			CheckName:             c.check.Plan().Check.Name,
+			ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
+			CheckStatus:           c.check.Status(),
+			CheckDuration:         c.check.EndTime().Sub(c.check.StartTime()),
+		},
+	)
 }

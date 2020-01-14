@@ -28,9 +28,11 @@ func (s *Server) ListDestroyingVolumes(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debug("volumes-to-destroy", lager.Data{"count": len(volumeHandles)})
 
-	metric.VolumesToBeGarbageCollected{
-		Volumes: len(volumeHandles),
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.VolumesToBeGarbageCollected{
+			Volumes: len(volumeHandles),
+		},
+	)
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(volumeHandles)

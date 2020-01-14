@@ -57,10 +57,12 @@ func (s *Server) ReportWorkerVolumes(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	metric.WorkerUnknownVolumes{
-		WorkerName: workerName,
-		Volumes:    numUnknownVolumes,
-	}.Emit(logger)
+	metric.NewMonitor(logger).Measure(
+		metric.WorkerUnknownVolumes{
+			WorkerName: workerName,
+			Volumes:    numUnknownVolumes,
+		},
+	)
 
 	err = s.repository.UpdateVolumesMissingSince(workerName, handles)
 	if err != nil {

@@ -41,21 +41,25 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 
 	registration.Name = workerName
 
-	metric.WorkerContainers{
-		WorkerName: registration.Name,
-		Containers: registration.ActiveContainers,
-		Platform:   registration.Platform,
-		TeamName:   registration.Team,
-		Tags:       registration.Tags,
-	}.Emit(s.logger)
+	metric.NewMonitor(s.logger).Measure(
+		metric.WorkerContainers{
+			WorkerName: registration.Name,
+			Containers: registration.ActiveContainers,
+			Platform:   registration.Platform,
+			TeamName:   registration.Team,
+			Tags:       registration.Tags,
+		},
+	)
 
-	metric.WorkerVolumes{
-		WorkerName: registration.Name,
-		Volumes:    registration.ActiveVolumes,
-		Platform:   registration.Platform,
-		TeamName:   registration.Team,
-		Tags:       registration.Tags,
-	}.Emit(s.logger)
+	metric.NewMonitor(s.logger).Measure(
+		metric.WorkerVolumes{
+			WorkerName: registration.Name,
+			Volumes:    registration.ActiveVolumes,
+			Platform:   registration.Platform,
+			TeamName:   registration.Team,
+			Tags:       registration.Tags,
+		},
+	)
 
 	savedWorker, err := s.dbWorkerFactory.HeartbeatWorker(registration, ttl)
 	if err == db.ErrWorkerNotPresent {
@@ -76,11 +80,13 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		logger.Info("failed-to-get-worker-active-tasks")
 	}
 
-	metric.WorkerTasks{
-		WorkerName: registration.Name,
-		Tasks:      activeTasks,
-		Platform:   registration.Platform,
-	}.Emit(s.logger)
+	metric.NewMonitor(s.logger).Measure(
+		metric.WorkerTasks{
+			WorkerName: registration.Name,
+			Tasks:      activeTasks,
+			Platform:   registration.Platform,
+		},
+	)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

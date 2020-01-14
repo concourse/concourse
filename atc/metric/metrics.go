@@ -121,9 +121,8 @@ type WorkerContainers struct {
 	Tags       []string
 }
 
-func (event WorkerContainers) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("worker-containers"),
+func (event WorkerContainers) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "worker containers",
 			Value: event.Containers,
@@ -135,7 +134,11 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 				"tags":      strings.Join(event.Tags[:], "/"),
 			},
 		},
-	)
+	}
+}
+
+func (event WorkerContainers) Name() string {
+	return "worker-containers"
 }
 
 type WorkerUnknownContainers struct {
@@ -143,9 +146,8 @@ type WorkerUnknownContainers struct {
 	Containers int
 }
 
-func (event WorkerUnknownContainers) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("worker-unknown-containers"),
+func (event WorkerUnknownContainers) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "worker unknown containers",
 			Value: event.Containers,
@@ -154,7 +156,11 @@ func (event WorkerUnknownContainers) Emit(logger lager.Logger) {
 				"worker": event.WorkerName,
 			},
 		},
-	)
+	}
+}
+
+func (event WorkerUnknownContainers) Name() string {
+	return "worker-unknown-containers"
 }
 
 type WorkerVolumes struct {
@@ -165,9 +171,8 @@ type WorkerVolumes struct {
 	Tags       []string
 }
 
-func (event WorkerVolumes) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("worker-volumes"),
+func (event WorkerVolumes) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "worker volumes",
 			Value: event.Volumes,
@@ -179,7 +184,11 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 				"tags":      strings.Join(event.Tags[:], "/"),
 			},
 		},
-	)
+	}
+}
+
+func (event WorkerVolumes) Name() string {
+	return "worker-volumes"
 }
 
 type WorkerUnknownVolumes struct {
@@ -187,9 +196,8 @@ type WorkerUnknownVolumes struct {
 	Volumes    int
 }
 
-func (event WorkerUnknownVolumes) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("worker-unknown-volumes"),
+func (event WorkerUnknownVolumes) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "worker unknown volumes",
 			Value: event.Volumes,
@@ -198,7 +206,11 @@ func (event WorkerUnknownVolumes) Emit(logger lager.Logger) {
 				"worker": event.WorkerName,
 			},
 		},
-	)
+	}
+}
+
+func (event WorkerUnknownVolumes) Name() string {
+	return "worker-unknown-volumes"
 }
 
 type WorkerTasks struct {
@@ -207,9 +219,8 @@ type WorkerTasks struct {
 	Tasks      int
 }
 
-func (event WorkerTasks) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("worker-tasks"),
+func (event WorkerTasks) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "worker tasks",
 			Value: event.Tasks,
@@ -219,135 +230,163 @@ func (event WorkerTasks) Emit(logger lager.Logger) {
 				"platform": event.Platform,
 			},
 		},
-	)
+	}
+}
+
+func (event WorkerTasks) Name() string {
+	return "worker-tasks"
 }
 
 type VolumesToBeGarbageCollected struct {
 	Volumes int
 }
 
-func (event VolumesToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("gc-found-orphaned-volumes-for-deletion"),
+func (event VolumesToBeGarbageCollected) Events() []Event {
+	return []Event{
 		Event{
 			Name:       "orphaned volumes to be garbage collected",
 			Value:      event.Volumes,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
-	)
+	}
+}
+
+func (event VolumesToBeGarbageCollected) Name() string {
+	return "gc-found-orphaned-volumes-for-deletion"
 }
 
 type CreatingContainersToBeGarbageCollected struct {
 	Containers int
 }
 
-func (event CreatingContainersToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("gc-found-creating-containers-for-deletion"),
+func (event CreatingContainersToBeGarbageCollected) Events() []Event {
+	return []Event{
 		Event{
 			Name:       "creating containers to be garbage collected",
 			Value:      event.Containers,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
-	)
+	}
+}
+
+func (event CreatingContainersToBeGarbageCollected) Name() string {
+	return "gc-found-creating-containers-for-deletion"
 }
 
 type CreatedContainersToBeGarbageCollected struct {
 	Containers int
 }
 
-func (event CreatedContainersToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("gc-found-created-ccontainers-for-deletion"),
+func (event CreatedContainersToBeGarbageCollected) Events() []Event {
+	return []Event{
 		Event{
 			Name:       "created containers to be garbage collected",
 			Value:      event.Containers,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
-	)
+	}
+}
+
+func (event CreatedContainersToBeGarbageCollected) Name() string {
+	return "gc-found-created-ccontainers-for-deletion"
 }
 
 type DestroyingContainersToBeGarbageCollected struct {
 	Containers int
 }
 
-func (event DestroyingContainersToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("gc-found-destroying-containers-for-deletion"),
+func (event DestroyingContainersToBeGarbageCollected) Events() []Event {
+	return []Event{
 		Event{
 			Name:       "destroying containers to be garbage collected",
 			Value:      event.Containers,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
-	)
+	}
+}
+
+func (event DestroyingContainersToBeGarbageCollected) Name() string {
+	return "gc-found-destroying-containers-for-deletion"
 }
 
 type FailedContainersToBeGarbageCollected struct {
 	Containers int
 }
 
-func (event FailedContainersToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("gc-found-failed-containers-for-deletion"),
+func (event FailedContainersToBeGarbageCollected) Events() []Event {
+	return []Event{
 		Event{
 			Name:       "failed containers to be garbage collected",
 			Value:      event.Containers,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
-	)
+	}
+}
+
+func (event FailedContainersToBeGarbageCollected) Name() string {
+	return "gc-found-failed-containers-for-deletion"
 }
 
 type CreatedVolumesToBeGarbageCollected struct {
 	Volumes int
 }
 
-func (event CreatedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("gc-found-created-volumes-for-deletion"),
+func (event CreatedVolumesToBeGarbageCollected) Events() []Event {
+	return []Event{
 		Event{
 			Name:       "created volumes to be garbage collected",
 			Value:      event.Volumes,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
-	)
+	}
+}
+
+func (event CreatedVolumesToBeGarbageCollected) Name() string {
+	return "gc-found-created-volumes-for-deletion"
 }
 
 type DestroyingVolumesToBeGarbageCollected struct {
 	Volumes int
 }
 
-func (event DestroyingVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("gc-found-destroying-volumes-for-deletion"),
+func (event DestroyingVolumesToBeGarbageCollected) Events() []Event {
+	return []Event{
 		Event{
 			Name:       "destroying volumes to be garbage collected",
 			Value:      event.Volumes,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
-	)
+	}
+}
+
+func (event DestroyingVolumesToBeGarbageCollected) Name() string {
+	return "gc-found-destroying-volumes-for-deletion"
 }
 
 type FailedVolumesToBeGarbageCollected struct {
 	Volumes int
 }
 
-func (event FailedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("gc-found-failed-volumes-for-deletion"),
+func (event FailedVolumesToBeGarbageCollected) Events() []Event {
+	return []Event{
 		Event{
 			Name:       "failed volumes to be garbage collected",
 			Value:      event.Volumes,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
-	)
+	}
+}
+
+func (event FailedVolumesToBeGarbageCollected) Name() string {
+	return "gc-found-failed-volumes-for-deletion"
 }
 
 type GarbageCollectionContainerCollectorJobDropped struct {
@@ -376,9 +415,8 @@ type BuildStarted struct {
 	TeamName     string
 }
 
-func (event BuildStarted) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("build-started"),
+func (event BuildStarted) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "build started",
 			Value: event.BuildID,
@@ -391,7 +429,11 @@ func (event BuildStarted) Emit(logger lager.Logger) {
 				"team_name":  event.TeamName,
 			},
 		},
-	)
+	}
+}
+
+func (event BuildStarted) Name() string {
+	return "build-started"
 }
 
 type BuildFinished struct {
@@ -404,9 +446,8 @@ type BuildFinished struct {
 	TeamName      string
 }
 
-func (event BuildFinished) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("build-finished"),
+func (event BuildFinished) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "build finished",
 			Value: ms(event.BuildDuration),
@@ -420,7 +461,11 @@ func (event BuildFinished) Emit(logger lager.Logger) {
 				"team_name":    event.TeamName,
 			},
 		},
-	)
+	}
+}
+
+func (event BuildFinished) Name() string {
+	return "build-finished"
 }
 
 func ms(duration time.Duration) float64 {
@@ -432,9 +477,8 @@ type ErrorLog struct {
 	Value   int
 }
 
-func (e ErrorLog) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("error-log"),
+func (e ErrorLog) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "error log",
 			Value: e.Value,
@@ -443,7 +487,11 @@ func (e ErrorLog) Emit(logger lager.Logger) {
 				"message": e.Message,
 			},
 		},
-	)
+	}
+}
+
+func (e ErrorLog) Name() string {
+	return "error-log"
 }
 
 type HTTPResponseTime struct {
@@ -454,7 +502,7 @@ type HTTPResponseTime struct {
 	Duration   time.Duration
 }
 
-func (event HTTPResponseTime) Emit(logger lager.Logger) {
+func (event HTTPResponseTime) Events() []Event {
 	state := EventStateOK
 
 	if event.Duration > 100*time.Millisecond {
@@ -465,8 +513,7 @@ func (event HTTPResponseTime) Emit(logger lager.Logger) {
 		state = EventStateCritical
 	}
 
-	emit(
-		logger.Session("http-response-time"),
+	return []Event{
 		Event{
 			Name:  "http response time",
 			Value: ms(event.Duration),
@@ -478,7 +525,11 @@ func (event HTTPResponseTime) Emit(logger lager.Logger) {
 				"status": strconv.Itoa(event.StatusCode),
 			},
 		},
-	)
+	}
+}
+
+func (event HTTPResponseTime) Name() string {
+	return "http-response-time"
 }
 
 type ResourceCheck struct {
@@ -515,9 +566,8 @@ type CheckStarted struct {
 	CheckPendingDuration  time.Duration
 }
 
-func (event CheckStarted) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("check-started"),
+func (event CheckStarted) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "check started",
 			Value: ms(event.CheckPendingDuration),
@@ -528,7 +578,11 @@ func (event CheckStarted) Emit(logger lager.Logger) {
 				"check_status": string(event.CheckStatus),
 			},
 		},
-	)
+	}
+}
+
+func (event CheckStarted) Name() string {
+	return "check-started"
 }
 
 type CheckFinished struct {
@@ -538,9 +592,8 @@ type CheckFinished struct {
 	CheckDuration         time.Duration
 }
 
-func (event CheckFinished) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("check-finished"),
+func (event CheckFinished) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "check finished",
 			Value: ms(event.CheckDuration),
@@ -551,7 +604,11 @@ func (event CheckFinished) Emit(logger lager.Logger) {
 				"check_status": string(event.CheckStatus),
 			},
 		},
-	)
+	}
+}
+
+func (event CheckFinished) Name() string {
+	return "check-finished"
 }
 
 type CheckEnqueue struct {
@@ -666,9 +723,10 @@ type WorkersState struct {
 	WorkerStateByName map[string]db.WorkerState
 }
 
-func (event WorkersState) Emit(logger lager.Logger) {
+func (event WorkersState) Events() []Event {
 	var eventState EventState
 
+	events := []Event{}
 	for _, state := range db.AllWorkerStates() {
 		count := 0
 		for _, workerState := range event.WorkerStateByName {
@@ -683,8 +741,7 @@ func (event WorkersState) Emit(logger lager.Logger) {
 			eventState = EventStateOK
 		}
 
-		emit(
-			logger.Session("worker-state"),
+		events = append(events,
 			Event{
 				Name:  "worker state",
 				Value: count,
@@ -695,4 +752,9 @@ func (event WorkersState) Emit(logger lager.Logger) {
 			},
 		)
 	}
+	return events
+}
+
+func (event WorkersState) Name() string {
+	return "worker-state"
 }
