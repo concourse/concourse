@@ -667,28 +667,22 @@ type WorkersState struct {
 }
 
 func (event WorkersState) Emit(logger lager.Logger) {
-	var (
-		perStateCounter = map[db.WorkerState]int{}
-		eventState      EventState
-	)
-
-	for _, workerState := range event.WorkerStateByName {
-		_, exists := perStateCounter[workerState]
-		if !exists {
-			perStateCounter[workerState] = 1
-			continue
-		}
-
-		perStateCounter[workerState] += 1
-	}
+	var eventState EventState
 
 	for _, state := range db.AllWorkerStates() {
-		count := perStateCounter[state]
+		count := 0
+		for _, workerState := range event.WorkerStateByName {
+			if workerState == state {
+				count += 1
+			}
+		}
+
 		if state == db.WorkerStateStalled && count > 0 {
 			eventState = EventStateWarning
 		} else {
 			eventState = EventStateOK
 		}
+
 		emit(
 			logger.Session("worker-state"),
 			Event{
