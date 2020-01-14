@@ -1,6 +1,8 @@
 resources:
 - name: resource
   type: mock
+  version:
+    version: version
   source:
     mirror_self: true
     force_version: version

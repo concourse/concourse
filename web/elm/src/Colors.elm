@@ -34,6 +34,7 @@ module Colors exposing
     , pendingFaded
     , pinHighlight
     , pinIconHover
+    , pinTools
     , pinned
     , resourceError
     , retryTabText
@@ -88,6 +89,11 @@ tooltipBackground =
 pinIconHover : String
 pinIconHover =
     "#1e1d1d"
+
+
+pinTools : String
+pinTools =
+    "#2e2c2c"
 
 
 white : String

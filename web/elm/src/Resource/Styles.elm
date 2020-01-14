@@ -9,7 +9,6 @@ module Resource.Styles exposing
     , commentBarHeader
     , commentBarIconContainer
     , commentBarMessageIcon
-    , commentBarPinIcon
     , commentSaveButton
     , commentText
     , commentTextArea
@@ -24,6 +23,7 @@ module Resource.Styles exposing
     , pinButton
     , pinButtonTooltip
     , pinIcon
+    , pinTools
     , versionHeader
     )
 
@@ -50,11 +50,10 @@ pinBar isPinned =
                 Colors.background
     in
     [ style "flex-grow" "1"
-    , style "margin" "10px"
-    , style "padding-left" "7px"
     , style "display" "flex"
     , style "align-items" "center"
     , style "position" "relative"
+    , style "background-color" Colors.pinTools
     , style "border" <| "1px solid " ++ pinBarBorderColor
     ]
 
@@ -94,6 +93,25 @@ pinBarTooltip =
     , style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "2"
+    ]
+
+
+pinTools : Bool -> List (Html.Attribute msg)
+pinTools pinErrorred =
+    [ style "background-color" Colors.pinTools
+    , style "height" "28px"
+    , style "margin-bottom" "24px"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "border" <|
+        "1px solid "
+            ++ (if pinErrorred then
+                    Colors.failure
+
+                else
+                    Colors.pinned
+               )
+    , style "box-sizing" "border-box"
     ]
 
 
@@ -208,9 +226,7 @@ borderColor pinnedState =
 commentBar : List (Html.Attribute msg)
 commentBar =
     [ style "background-color" Colors.frame
-    , style "height" "300px"
     , style "display" "flex"
-    , style "justify-content" "center"
     , style "flex-shrink" "0"
     ]
 
@@ -237,11 +253,6 @@ commentBarMessageIcon =
     [ style "background-size" "contain"
     , style "margin-right" "10px"
     ]
-
-
-commentBarPinIcon : List (Html.Attribute msg)
-commentBarPinIcon =
-    [ style "margin-right" "10px" ]
 
 
 commentTextArea : List (Html.Attribute msg)
@@ -350,6 +361,7 @@ pagination : List (Html.Attribute msg)
 pagination =
     [ style "display" "flex"
     , style "align-items" "stretch"
+    , style "margin-left" "auto"
     ]
 
 

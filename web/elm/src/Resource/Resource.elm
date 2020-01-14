@@ -108,6 +108,7 @@ init flags =
             , checkSetupError = ""
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
+            , pinErrorred = False
             , currentPage = flags.paging
             , versions =
                 { content = []
@@ -395,6 +396,7 @@ handleCallback callback session ( model, effects ) =
                                         }
                                     )
                                 |> Maybe.withDefault NotPinned
+                        , pinErrorred = False
                       }
                     , effects
                         ++ [ SetPinComment
@@ -407,17 +409,17 @@ handleCallback callback session ( model, effects ) =
                     ( model, effects )
 
         VersionPinned (Err _) ->
-            ( { model | pinnedVersion = NotPinned }
+            ( { model | pinnedVersion = NotPinned, pinErrorred = True }
             , effects
             )
 
         VersionUnpinned (Ok ()) ->
-            ( { model | pinnedVersion = NotPinned }
+            ( { model | pinnedVersion = NotPinned, pinErrorred = False }
             , effects ++ [ FetchResource model.resourceIdentifier ]
             )
 
         VersionUnpinned (Err _) ->
-            ( { model | pinnedVersion = Pinned.quitUnpinning model.pinnedVersion }
+            ( { model | pinnedVersion = Pinned.quitUnpinning model.pinnedVersion, pinErrorred = True }
             , effects
             )
 
@@ -845,7 +847,6 @@ view session model =
                     ]
                     [ header session model
                     , body session model
-                    , commentBar session model
                     ]
             ]
         ]
@@ -888,7 +889,6 @@ header session model =
         , Html.div
             Resource.Styles.headerLastCheckedSection
             [ lastCheckedView ]
-        , pinBar session model
         , paginationMenu session model
         ]
 
@@ -910,9 +910,14 @@ body session model =
     in
     Html.div
         (id "body" :: Resource.Styles.body)
-        [ checkSection sectionModel
-        , viewVersionedResources session model
-        ]
+    <|
+        (if model.pinnedVersion == NotPinned && model.pinErrorred == False then
+            [ checkSection sectionModel ]
+
+         else
+            [ pinTools session model ]
+        )
+            ++ [ viewVersionedResources session model ]
 
 
 paginationMenu :
@@ -1026,6 +1031,28 @@ paginationMenu { hovered } model =
                         []
                     ]
         ]
+
+
+concourseVersion : Models.PinnedVersion -> Maybe Concourse.Version
+concourseVersion pinnedVersion =
+    case pinnedVersion of
+        NotPinned ->
+            Nothing
+
+        PinningTo _ ->
+            Nothing
+
+        PinnedDynamicallyTo _ version ->
+            Just version
+
+        UnpinningFrom _ version ->
+            Just version
+
+        PinnedStaticallyTo version ->
+            Just version
+
+        Switching _ version _ ->
+            Just version
 
 
 checkSection :
@@ -1210,7 +1237,6 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                                         { sizePx = 20
                                         , image = "pin-ic-white.svg"
                                         }
-                                        Resource.Styles.commentBarPinIcon
                                     ]
                                 , version
                                 ]
@@ -1273,6 +1299,29 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
 
         _ ->
             Html.text ""
+
+
+pinTools :
+    { s | hovered : HoverState.HoverState, userState : UserState }
+    ->
+        { b
+            | pinnedVersion : Models.PinnedVersion
+            , resourceIdentifier : Concourse.ResourceIdentifier
+            , pinCommentLoading : Bool
+            , pinErrorred : Bool
+        }
+    -> Html Message
+pinTools session model =
+    Html.div
+        (id "pin-tools" :: Resource.Styles.pinTools model.pinErrorred)
+        (if model.pinErrorred then
+            []
+
+         else
+            [ pinBar session model
+              , commentBar session model
+            ]
+        )
 
 
 pinBar :
