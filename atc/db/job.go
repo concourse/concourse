@@ -807,7 +807,11 @@ func (j *job) isMaxInFlightReached(tx Tx, buildID int) (bool, error) {
 		return true, nil
 	}
 
-	return nextMostPendingBuild.ID() != buildID, nil
+	if nextMostPendingBuild.ID() != buildID {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (j *job) getSerialGroups(tx Tx) ([]string, error) {

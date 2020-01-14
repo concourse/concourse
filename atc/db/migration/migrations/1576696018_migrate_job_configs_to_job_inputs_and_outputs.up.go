@@ -263,7 +263,34 @@ func (self *migrations) Up_1574452410() error {
 			jobNameToID[name] = id
 		}
 
+		_, err = tx.Exec(`
+			DELETE FROM jobs_serial_groups
+			WHERE job_id in (
+				SELECT j.id
+				FROM jobs j
+				WHERE j.pipeline_id = $1
+			)`, pipelineID)
+		if err != nil {
+			return err
+		}
+
 		for _, jobConfig := range jobConfigs {
+			if len(jobConfig.SerialGroups) != 0 {
+				for _, sg := range jobConfig.SerialGroups {
+					err = registerSerialGroup(tx, sg, jobNameToID[jobConfig.Name])
+					if err != nil {
+						return err
+					}
+				}
+			} else {
+				if jobConfig.Serial || jobConfig.RawMaxInFlight > 0 {
+					err = registerSerialGroup(tx, jobConfig.Name, jobNameToID[jobConfig.Name])
+					if err != nil {
+						return err
+					}
+				}
+			}
+
 			for _, plan := range jobConfig.Plans() {
 				if plan.Get != "" {
 					err = insertJobInput(tx, plan, jobConfig.Name, resourceNameToID, jobNameToID)
@@ -363,4 +390,9 @@ func updateJob(tx *sql.Tx, jobConfig V5JobConfig, jobNameToID map[string]int) er
 	}
 
 	return nil
+}
+
+func registerSerialGroup(tx *sql.Tx, serialGroup string, jobID int) error {
+	_, err := tx.Exec("INSERT INTO jobs_serial_groups (serial_group, job_id) VALUES ($1, $2)", serialGroup, jobID)
+	return err
 }

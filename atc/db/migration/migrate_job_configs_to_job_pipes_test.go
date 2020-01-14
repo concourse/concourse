@@ -44,6 +44,14 @@ var _ = Describe("Migrate existing job configs into job pipes", func() {
 			`)
 			Expect(err).NotTo(HaveOccurred())
 
+			_, err = db.Exec(`
+			INSERT INTO jobs_serial_groups(serial_group, job_id) VALUES
+			('serial-group-1', 1),
+			('serial-1', 2),
+			('serial-5', 5)
+			`)
+			Expect(err).NotTo(HaveOccurred())
+
 			var resource1ID, resource2ID, resource3ID, resource4ID int
 
 			err = db.QueryRow(`INSERT INTO resources(name, pipeline_id, config, active, type) VALUES('resource-1', 1, '{"type": "some-type"}', true, 'some-type') RETURNING id`).Scan(&resource1ID)
@@ -217,8 +225,6 @@ var _ = Describe("Migrate existing job configs into job pipes", func() {
 				jobOutputs = append(jobOutputs, jo)
 			}
 
-			_ = db.Close()
-
 			expectedJobOutputs := []jobOutput{
 				{
 					name:       "resource-3",
@@ -234,6 +240,52 @@ var _ = Describe("Migrate existing job configs into job pipes", func() {
 
 			Expect(jobOutputs).To(HaveLen(2))
 			Expect(jobOutputs).To(ConsistOf(expectedJobOutputs))
+
+			rows, err = db.Query(`SELECT job_id, serial_group FROM jobs_serial_groups`)
+			Expect(err).NotTo(HaveOccurred())
+
+			type serialGroup struct {
+				jobID       int
+				serialGroup string
+			}
+
+			var serialGroups []serialGroup
+			for rows.Next() {
+				sg := serialGroup{}
+
+				err := rows.Scan(&sg.jobID, &sg.serialGroup)
+				Expect(err).NotTo(HaveOccurred())
+
+				serialGroups = append(serialGroups, sg)
+			}
+
+			_ = db.Close()
+
+			expectedSerialGroups := []serialGroup{
+				{
+					jobID:       2,
+					serialGroup: "serial-1",
+				},
+				{
+					jobID:       2,
+					serialGroup: "serial-2",
+				},
+				{
+					jobID:       3,
+					serialGroup: "job3",
+				},
+				{
+					jobID:       4,
+					serialGroup: "job1",
+				},
+				{
+					jobID:       5,
+					serialGroup: "serial-1",
+				},
+			}
+
+			Expect(serialGroups).To(HaveLen(5))
+			Expect(serialGroups).To(ConsistOf(expectedSerialGroups))
 		})
 	})
 
