@@ -16,6 +16,7 @@ module Resource.Resource exposing
     )
 
 import Application.Models exposing (Session)
+import Colors
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -910,9 +911,14 @@ body session model =
     in
     Html.div
         (id "body" :: Resource.Styles.body)
-        [ checkSection sectionModel
-        , viewVersionedResources session model
-        ]
+    <|
+        (if model.pinnedVersion == NotPinned then
+            [ checkSection sectionModel ]
+
+         else
+            [ pinTools session model.pinnedVersion ]
+        )
+            ++ [ viewVersionedResources session model ]
 
 
 paginationMenu :
@@ -1025,6 +1031,59 @@ paginationMenu { hovered } model =
                         )
                         []
                     ]
+        ]
+
+
+concourseVersion : Models.PinnedVersion -> Maybe Concourse.Version
+concourseVersion pinnedVersion =
+    case pinnedVersion of
+        NotPinned ->
+            Nothing
+
+        PinningTo _ ->
+            Nothing
+
+        PinnedDynamicallyTo _ version ->
+            Just version
+
+        UnpinningFrom _ version ->
+            Just version
+
+        PinnedStaticallyTo version ->
+            Just version
+
+        Switching _ version _ ->
+            Just version
+
+
+pinTools : { s | hovered : HoverState.HoverState } -> Models.PinnedVersion -> Html Message
+pinTools session pinnedVersion =
+    let
+        hovered =
+            session.hovered == HoverState.Hovered UnpinButton
+    in
+    Html.div
+        ([ id "pin-tools" ]
+            ++ Resource.Styles.pinTools
+        )
+        [ Icon.icon { sizePx = 25, image = "pin-ic-white.svg" }
+            [ onMouseEnter <| Hover <| Just <| UnpinButton
+            , onMouseLeave <| Hover Nothing
+            , style "margin-right" "10px"
+            , style "background-color" <|
+                if hovered then
+                    Colors.frame
+
+                else
+                    Colors.pinTools
+            , style "cursor" "pointer"
+            ]
+        , case concourseVersion pinnedVersion of
+            Nothing ->
+                Html.text ""
+
+            Just v ->
+                viewVersion [] v
         ]
 
 

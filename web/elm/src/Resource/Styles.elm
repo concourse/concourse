@@ -24,6 +24,7 @@ module Resource.Styles exposing
     , pinButton
     , pinButtonTooltip
     , pinIcon
+    , pinTools
     , versionHeader
     )
 
@@ -94,6 +95,18 @@ pinBarTooltip =
     , style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "2"
+    ]
+
+
+pinTools : List (Html.Attribute msg)
+pinTools =
+    [ style "background-color" Colors.pinTools
+    , style "height" "28px"
+    , style "margin-bottom" "24px"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "border" <| "1px solid " ++ Colors.pinned
+    , style "box-sizing" "border-box"
     ]
 
 
