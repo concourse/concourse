@@ -20,7 +20,11 @@ type JobConfig struct {
 	Ensure  *PlanConfig `json:"ensure,omitempty"`
 	Success *PlanConfig `json:"on_success,omitempty"`
 
-	Plan PlanSequence `json:"plan"`
+	// The parent plan is only the TOP LEVEL plan in the job config. If there are
+	// any nested plans in the job config, the parent plan does not cover it!
+	//
+	// Use Plans() if you need all the plans within the job config.
+	ParentPlan PlanSequence `json:"plan"`
 }
 
 type BuildLogRetention struct {
@@ -53,7 +57,7 @@ func (config JobConfig) MaxInFlight() int {
 
 func (config JobConfig) Plans() []PlanConfig {
 	plan := collectPlans(PlanConfig{
-		Do:      &config.Plan,
+		Do:      &config.ParentPlan,
 		Abort:   config.Abort,
 		Error:   config.Error,
 		Ensure:  config.Ensure,

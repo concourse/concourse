@@ -54,7 +54,7 @@ var _ = Describe("Factory Task", func() {
 				}
 
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Task:   "some-task",
 							Params: params,
@@ -79,7 +79,7 @@ var _ = Describe("Factory Task", func() {
 		Context("when input mapping is specified", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Task: "some-task",
 							InputMapping: map[string]string{
@@ -132,7 +132,7 @@ var _ = Describe("Factory Task", func() {
 		Context("when output mapping is specified", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Task: "some-task",
 							OutputMapping: map[string]string{

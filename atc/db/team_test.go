@@ -1572,7 +1572,7 @@ var _ = Describe("Team", func() {
 						Serial:       true,
 						SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-						Plan: atc.PlanSequence{
+						ParentPlan: atc.PlanSequence{
 							{
 								Get:      "some-input",
 								Resource: "some-resource",
@@ -1863,7 +1863,7 @@ var _ = Describe("Team", func() {
 					Serial:       true,
 					SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Task:       "some-task",
 							Privileged: true,
@@ -1998,7 +1998,7 @@ var _ = Describe("Team", func() {
 					Serial:       true,
 					SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Get:      "some-input",
 							Resource: "some-resource",
@@ -2127,7 +2127,7 @@ var _ = Describe("Team", func() {
 			config.Jobs = []atc.JobConfig{
 				{
 					Name: "some-job",
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Task:       "some-other-task",
 							ConfigPath: "some/config/path.yml",
@@ -2176,7 +2176,7 @@ var _ = Describe("Team", func() {
 			config.Jobs = []atc.JobConfig{
 				{
 					Name: "some-job",
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Task:       "some-other-task",
 							ConfigPath: "some/config/path.yml",
@@ -2312,7 +2312,7 @@ var _ = Describe("Team", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "job-1",
-						Plan: atc.PlanSequence{
+						ParentPlan: atc.PlanSequence{
 							{
 								Get: "some-resource",
 							},
@@ -2320,7 +2320,7 @@ var _ = Describe("Team", func() {
 					},
 					{
 						Name: "job-2",
-						Plan: atc.PlanSequence{
+						ParentPlan: atc.PlanSequence{
 							{
 								Get: "some-resource",
 							},
@@ -2334,7 +2334,7 @@ var _ = Describe("Team", func() {
 						Serial:       true,
 						SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-						Plan: atc.PlanSequence{
+						ParentPlan: atc.PlanSequence{
 							{
 								Do: &atc.PlanSequence{
 									{
@@ -2476,7 +2476,7 @@ var _ = Describe("Team", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "job-2",
-						Plan: atc.PlanSequence{
+						ParentPlan: atc.PlanSequence{
 							{
 								Get: "some-resource",
 							},
@@ -2490,7 +2490,7 @@ var _ = Describe("Team", func() {
 						Serial:       true,
 						SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-						Plan: atc.PlanSequence{
+						ParentPlan: atc.PlanSequence{
 							{
 								Get:      "some-input",
 								Resource: "some-resource",
@@ -2717,7 +2717,7 @@ var _ = Describe("Team", func() {
 
 			updatedConfig.Jobs = append(config.Jobs, atc.JobConfig{
 				Name: "new-job",
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Get:      "new-input",
 						Resource: "new-resource",

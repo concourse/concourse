@@ -38,7 +38,7 @@ var _ = Describe("Factory Try Step", func() {
 	Context("when there is a task wrapped in a try", func() {
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Try: &atc.PlanConfig{
 							Task: "first task",
@@ -71,7 +71,7 @@ var _ = Describe("Factory Try Step", func() {
 	Context("when the try also has a hook", func() {
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Try: &atc.PlanConfig{
 							Task: "first task",

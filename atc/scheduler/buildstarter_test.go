@@ -75,7 +75,7 @@ var _ = Describe("BuildStarter", func() {
 				job.GetPendingBuildsReturns(pendingBuilds, nil)
 				job.NameReturns("some-job")
 				job.IDReturns(1)
-				job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}}, nil)
+				job.ConfigReturns(atc.JobConfig{ParentPlan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}}, nil)
 
 				relatedJobs = algorithm.NameToIDMap{"some-job": 1}
 
@@ -254,7 +254,7 @@ var _ = Describe("BuildStarter", func() {
 
 							fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeDBResourceType}, nil)
 
-							job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "other-resource"}}}, nil)
+							job.ConfigReturns(atc.JobConfig{ParentPlan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "other-resource"}}}, nil)
 
 							createdBuild.IsNewerThanLastCheckOfReturns(false)
 

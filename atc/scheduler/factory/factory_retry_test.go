@@ -38,7 +38,7 @@ var _ = Describe("Factory Retry Step", func() {
 	Context("when there is a task annotated with 'attempts'", func() {
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task:     "second task",
 						Attempts: 3,
@@ -69,7 +69,7 @@ var _ = Describe("Factory Retry Step", func() {
 	Context("when there is a task annotated with 'attempts' and 'on_success'", func() {
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task:     "second task",
 						Attempts: 3,

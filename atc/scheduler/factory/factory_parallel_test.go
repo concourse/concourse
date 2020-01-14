@@ -46,7 +46,7 @@ var _ = Describe("Factory Parallel", func() {
 	Context("when I have a parallel step", func() {
 		It("returns the correct plan", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						InParallel: &atc.InParallelConfig{
 							Steps: atc.PlanSequence{

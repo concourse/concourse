@@ -80,7 +80,7 @@ var _ = Describe("JobConfig", func() {
 		Context("with a build plan", func() {
 			Context("with an empty plan", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{}
+					jobConfig.ParentPlan = atc.PlanSequence{}
 				})
 
 				It("returns an empty set of inputs", func() {
@@ -90,7 +90,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("with two serial gets", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get:     "some-get-plan",
 							Passed:  []string{"a", "b"},
@@ -126,7 +126,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has a version on a get", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 							Version: &atc.VersionConfig{
@@ -155,7 +155,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has an ensure hook", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 						},
@@ -186,7 +186,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has a success hook", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 						},
@@ -218,7 +218,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has a failure hook", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 						},
@@ -250,7 +250,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has an abort hook", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 						},
@@ -282,7 +282,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has an error hook", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 						},
@@ -314,7 +314,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has an ensure hook on a get", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 							Ensure: &atc.PlanConfig{
@@ -345,7 +345,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has a success hook on a get", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 							Success: &atc.PlanConfig{
@@ -376,7 +376,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has a failure hook on a get", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 							Failure: &atc.PlanConfig{
@@ -407,7 +407,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has an abort hook on a get", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 							Abort: &atc.PlanConfig{
@@ -438,7 +438,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has an error hook on a get", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "a",
 							Error: &atc.PlanConfig{
@@ -469,7 +469,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a resource is specified", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get:      "some-get-plan",
 							Resource: "some-get-resource",
@@ -493,7 +493,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a simple aggregate plan is the first step", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Aggregate: &atc.PlanSequence{
 								{Get: "a"},
@@ -536,7 +536,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when an overly complicated aggregate plan is the first step", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Aggregate: &atc.PlanSequence{
 								{
@@ -582,7 +582,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a simple parallel plan is the first step", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							InParallel: &atc.InParallelConfig{
 								Steps: atc.PlanSequence{
@@ -629,7 +629,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when an overly complicated parallel plan is the first step", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							InParallel: &atc.InParallelConfig{
 								Steps: atc.PlanSequence{
@@ -682,7 +682,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when there are not gets in the plan", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "some-put-plan",
 						},
@@ -714,7 +714,7 @@ var _ = Describe("JobConfig", func() {
 		Context("with a build plan", func() {
 			Context("with an empty plan", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{}
+					jobConfig.ParentPlan = atc.PlanSequence{}
 				})
 
 				It("returns an empty set of outputs", func() {
@@ -724,7 +724,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when an overly complicated plan is configured", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Aggregate: &atc.PlanSequence{
 								{
@@ -766,7 +766,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has an ensure hook", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "a",
 						},
@@ -793,7 +793,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has a success hook", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "a",
 						},
@@ -821,7 +821,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has a failure hook", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "a",
 						},
@@ -849,7 +849,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has an abort hook", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "a",
 						},
@@ -877,7 +877,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has an error hook", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "a",
 						},
@@ -905,7 +905,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has an ensure on a put", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "a",
 							Ensure: &atc.PlanConfig{
@@ -932,7 +932,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has a success hook on a put", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "a",
 							Success: &atc.PlanConfig{
@@ -959,7 +959,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has a failure hook on a put", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "a",
 							Failure: &atc.PlanConfig{
@@ -986,7 +986,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has an abort hook on a put", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "a",
 							Abort: &atc.PlanConfig{
@@ -1013,7 +1013,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has an error hook on a put", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Put: "a",
 							Error: &atc.PlanConfig{
@@ -1040,7 +1040,7 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when the plan contains no puts steps", func() {
 				BeforeEach(func() {
-					jobConfig.Plan = atc.PlanSequence{
+					jobConfig.ParentPlan = atc.PlanSequence{
 						{
 							Get: "some-put-plan",
 						},

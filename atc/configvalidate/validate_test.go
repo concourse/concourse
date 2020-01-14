@@ -61,7 +61,7 @@ var _ = Describe("ValidateConfig", func() {
 					Name:   "some-job",
 					Public: true,
 					Serial: true,
-					Plan: PlanSequence{
+					ParentPlan: PlanSequence{
 						{
 							Get:      "some-input",
 							Resource: "some-resource",
@@ -447,7 +447,7 @@ var _ = Describe("ValidateConfig", func() {
 				Jobs: JobConfigs{
 					{
 						Name: "some-job",
-						Plan: PlanSequence{
+						ParentPlan: PlanSequence{
 							{
 								Get: "get",
 							},
@@ -535,7 +535,7 @@ var _ = Describe("ValidateConfig", func() {
 					},
 					{
 						Name: "another-job",
-						Plan: PlanSequence{
+						ParentPlan: PlanSequence{
 							{
 								Get: "another-job",
 							},
@@ -656,10 +656,10 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job has duplicate inputs", func() {
 			BeforeEach(func() {
-				job.Plan = append(job.Plan, PlanConfig{
+				job.ParentPlan = append(job.ParentPlan, PlanConfig{
 					Get: "some-resource",
 				})
-				job.Plan = append(job.Plan, PlanConfig{
+				job.ParentPlan = append(job.ParentPlan, PlanConfig{
 					Get: "some-resource",
 				})
 
@@ -675,11 +675,11 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job has duplicate inputs with different resources", func() {
 			BeforeEach(func() {
-				job.Plan = append(job.Plan, PlanConfig{
+				job.ParentPlan = append(job.ParentPlan, PlanConfig{
 					Get:      "some-resource",
 					Resource: "a",
 				})
-				job.Plan = append(job.Plan, PlanConfig{
+				job.ParentPlan = append(job.ParentPlan, PlanConfig{
 					Get:      "some-resource",
 					Resource: "b",
 				})
@@ -696,11 +696,11 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job gets the same resource multiple times but with different names", func() {
 			BeforeEach(func() {
-				job.Plan = append(job.Plan, PlanConfig{
+				job.ParentPlan = append(job.ParentPlan, PlanConfig{
 					Get:      "a",
 					Resource: "some-resource",
 				})
-				job.Plan = append(job.Plan, PlanConfig{
+				job.ParentPlan = append(job.ParentPlan, PlanConfig{
 					Get:      "b",
 					Resource: "some-resource",
 				})
@@ -715,10 +715,10 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job has duplicate inputs via aggregate", func() {
 			BeforeEach(func() {
-				job.Plan = append(job.Plan, PlanConfig{
+				job.ParentPlan = append(job.ParentPlan, PlanConfig{
 					Get: "some-resource",
 				})
-				job.Plan = append(job.Plan, PlanConfig{
+				job.ParentPlan = append(job.ParentPlan, PlanConfig{
 					Aggregate: &PlanSequence{
 						{
 							Get: "some-resource",
@@ -738,10 +738,10 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job has duplicate inputs via parallel", func() {
 			BeforeEach(func() {
-				job.Plan = append(job.Plan, PlanConfig{
+				job.ParentPlan = append(job.ParentPlan, PlanConfig{
 					Get: "some-resource",
 				})
-				job.Plan = append(job.Plan, PlanConfig{
+				job.ParentPlan = append(job.ParentPlan, PlanConfig{
 					InParallel: &InParallelConfig{
 						Steps: PlanSequence{
 							{
@@ -767,7 +767,7 @@ var _ = Describe("ValidateConfig", func() {
 			Context("when multiple actions are specified in the same plan", func() {
 				Context("when it's not just Get and Put", func() {
 					BeforeEach(func() {
-						job.Plan = append(job.Plan, PlanConfig{
+						job.ParentPlan = append(job.ParentPlan, PlanConfig{
 							Get:        "some-resource",
 							Put:        "some-resource",
 							Task:       "some-resource",
@@ -788,7 +788,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				Context("when it's just Get and Put (this was valid at one point)", func() {
 					BeforeEach(func() {
-						job.Plan = append(job.Plan, PlanConfig{
+						job.ParentPlan = append(job.ParentPlan, PlanConfig{
 							Get:        "some-resource",
 							Put:        "some-resource",
 							Task:       "",
@@ -810,7 +810,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when no actions are specified in the plan", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{})
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{})
 
 					config.Jobs = append(config.Jobs, job)
 				})
@@ -824,7 +824,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a get plan has task-only fields specified", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get:        "lol",
 						Privileged: true,
 						ConfigPath: "task.yml",
@@ -842,7 +842,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a task plan has invalid fields specified", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Task:     "lol",
 						Resource: "some-resource",
 						Passed:   []string{"hi"},
@@ -861,7 +861,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a task plan has neither a config or a path set", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Task:              "lol",
 						ImageArtifactName: "some-image",
 					})
@@ -878,7 +878,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a task plan has config path and config specified", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Task:       "lol",
 						ConfigPath: "task.yml",
 						TaskConfig: &TaskConfig{
@@ -900,7 +900,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a task plan is invalid", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Task: "some-resource",
 						TaskConfig: &TaskConfig{
 							Params: TaskEnv{
@@ -922,7 +922,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a put plan has invalid fields specified", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Put:        "lol",
 						Passed:     []string{"get", "only"},
 						Trigger:    true,
@@ -942,7 +942,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a put plan has refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Put: "some-resource",
 					})
 
@@ -956,7 +956,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a get plan has refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get: "some-nonexistent-resource",
 					})
 
@@ -972,7 +972,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a put plan has refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Put: "some-nonexistent-resource",
 					})
 
@@ -988,7 +988,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a get plan has a custom name but refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get:      "custom-name",
 						Resource: "some-resource",
 					})
@@ -1003,7 +1003,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a get plan has a custom name but refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get:      "custom-name",
 						Resource: "some-missing-resource",
 					})
@@ -1020,7 +1020,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a put plan has a custom name but refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Put:      "custom-name",
 						Resource: "some-resource",
 					})
@@ -1076,7 +1076,7 @@ var _ = Describe("ValidateConfig", func() {
 						Name: "job-two",
 					}
 
-					job1.Plan = append(job1.Plan, PlanConfig{
+					job1.ParentPlan = append(job1.ParentPlan, PlanConfig{
 						Task: "job-one",
 						Success: &PlanConfig{
 							Put: "some-resource",
@@ -1084,7 +1084,7 @@ var _ = Describe("ValidateConfig", func() {
 						ConfigPath: "job-one-config-path",
 					})
 
-					job2.Plan = append(job2.Plan, PlanConfig{
+					job2.ParentPlan = append(job2.ParentPlan, PlanConfig{
 						Get:    "some-resource",
 						Passed: []string{"job-one"},
 					})
@@ -1109,7 +1109,7 @@ var _ = Describe("ValidateConfig", func() {
 						Name: "job-two",
 					}
 
-					job1.Plan = append(job1.Plan, PlanConfig{
+					job1.ParentPlan = append(job1.ParentPlan, PlanConfig{
 						Task: "job-one",
 						Success: &PlanConfig{
 							Get: "some-resource",
@@ -1117,7 +1117,7 @@ var _ = Describe("ValidateConfig", func() {
 						ConfigPath: "job-one-config-path",
 					})
 
-					job2.Plan = append(job2.Plan, PlanConfig{
+					job2.ParentPlan = append(job2.ParentPlan, PlanConfig{
 						Get:    "some-resource",
 						Passed: []string{"job-one"},
 					})
@@ -1142,14 +1142,14 @@ var _ = Describe("ValidateConfig", func() {
 						Name: "job-two",
 					}
 
-					job1.Plan = append(job1.Plan, PlanConfig{
+					job1.ParentPlan = append(job1.ParentPlan, PlanConfig{
 						Try: &PlanConfig{
 							Put: "some-resource",
 						},
 						ConfigPath: "job-one-config-path",
 					})
 
-					job2.Plan = append(job2.Plan, PlanConfig{
+					job2.ParentPlan = append(job2.ParentPlan, PlanConfig{
 						Get:    "some-resource",
 						Passed: []string{"job-one"},
 					})
@@ -1175,14 +1175,14 @@ var _ = Describe("ValidateConfig", func() {
 						Name: "job-two",
 					}
 
-					job1.Plan = append(job1.Plan, PlanConfig{
+					job1.ParentPlan = append(job1.ParentPlan, PlanConfig{
 						Try: &PlanConfig{
 							Get: "some-resource",
 						},
 						ConfigPath: "job-one-config-path",
 					})
 
-					job2.Plan = append(job2.Plan, PlanConfig{
+					job2.ParentPlan = append(job2.ParentPlan, PlanConfig{
 						Get:    "some-resource",
 						Passed: []string{"job-one"},
 					})
@@ -1197,7 +1197,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a plan has an invalid step within an abort", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get: "some-resource",
 						Abort: &PlanConfig{
 							Put:      "custom-name",
@@ -1216,7 +1216,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a plan has an invalid step within an error", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get: "some-resource",
 						Error: &PlanConfig{
 							Put:      "custom-name",
@@ -1235,7 +1235,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a plan has an invalid step within an ensure", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get: "some-resource",
 						Ensure: &PlanConfig{
 							Put:      "custom-name",
@@ -1254,7 +1254,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a plan has an invalid step within a success", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get: "some-resource",
 						Success: &PlanConfig{
 							Put:      "custom-name",
@@ -1273,7 +1273,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a plan has an invalid step within a failure", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get: "some-resource",
 						Failure: &PlanConfig{
 							Put:      "custom-name",
@@ -1292,7 +1292,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a plan has an invalid timeout in a step", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get:     "some-resource",
 						Timeout: "nope",
 					})
@@ -1308,7 +1308,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a plan has an invalid step within a try", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Try: &PlanConfig{
 							Put:      "custom-name",
 							Resource: "some-missing-resource",
@@ -1326,7 +1326,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a retry plan has a negative attempts number", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Put:      "some-resource",
 						Attempts: -1,
 					})
@@ -1342,7 +1342,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a put plan has a custom name but refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Put:      "custom-name",
 						Resource: "some-missing-resource",
 					})
@@ -1358,7 +1358,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a set_pipeline step has no file configured", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						SetPipeline: "other-pipeline",
 					})
 
@@ -1373,7 +1373,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints reference a bogus job", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get:    "lol",
 						Passed: []string{"bogus-job"},
 					})
@@ -1389,12 +1389,12 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints references a valid job that has the resource as an output", func() {
 				BeforeEach(func() {
-					config.Jobs[0].Plan = append(config.Jobs[0].Plan, PlanConfig{
+					config.Jobs[0].ParentPlan = append(config.Jobs[0].ParentPlan, PlanConfig{
 						Put:      "custom-name",
 						Resource: "some-resource",
 					})
 
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get:    "some-resource",
 						Passed: []string{"some-job"},
 					})
@@ -1409,7 +1409,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints references a valid job that has the resource as an input", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get:    "some-resource",
 						Passed: []string{"some-job"},
 					})
@@ -1424,7 +1424,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints references a valid job that has the resource (with a custom name) as an input", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get:      "custom-name",
 						Resource: "some-resource",
 						Passed:   []string{"some-job"},
@@ -1440,7 +1440,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints references a valid job that does not have the resource as an input or output", func() {
 				BeforeEach(func() {
-					job.Plan = append(job.Plan, PlanConfig{
+					job.ParentPlan = append(job.ParentPlan, PlanConfig{
 						Get:    "some-resource",
 						Passed: []string{"some-empty-job"},
 					})

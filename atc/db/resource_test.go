@@ -53,7 +53,7 @@ var _ = Describe("Resource", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "job-using-resource",
-						Plan: atc.PlanSequence{
+						ParentPlan: atc.PlanSequence{
 							{
 								Get: "some-other-resource",
 							},
@@ -372,7 +372,7 @@ var _ = Describe("Resource", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "job-using-resource",
-						Plan: atc.PlanSequence{
+						ParentPlan: atc.PlanSequence{
 							{
 								Get: "some-resource",
 							},

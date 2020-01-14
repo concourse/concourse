@@ -450,8 +450,8 @@ func (example Example) Run() {
 	jobs := atc.JobConfigs{}
 	for jobName, _ := range setup.jobIDs {
 		jobs = append(jobs, atc.JobConfig{
-			Name: jobName,
-			Plan: inputs,
+			Name:       jobName,
+			ParentPlan: inputs,
 		})
 	}
 

@@ -276,7 +276,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			}
 		}
 
-		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", PlanConfig{Do: &job.Plan})
+		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", PlanConfig{Do: &job.ParentPlan})
 		warnings = append(warnings, planWarnings...)
 		errorMessages = append(errorMessages, planErrMessages...)
 

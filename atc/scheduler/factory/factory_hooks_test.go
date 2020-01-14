@@ -58,7 +58,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Failure: &atc.PlanConfig{
@@ -102,7 +102,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Do: &atc.PlanSequence{
 							{
@@ -157,7 +157,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Do: &atc.PlanSequence{
 							{
@@ -215,7 +215,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "some-task",
 						Success: &atc.PlanConfig{
@@ -269,7 +269,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "some-task",
 						Success: &atc.PlanConfig{
@@ -310,7 +310,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "some-task",
 						Success: &atc.PlanConfig{
@@ -380,7 +380,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "some-task",
 						Success: &atc.PlanConfig{
@@ -436,7 +436,7 @@ var _ = Describe("Factory Hooks", func() {
 		It("can build a job with one abort hook", func() {
 			var input atc.JobConfig
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Abort: &atc.PlanConfig{
@@ -463,7 +463,7 @@ var _ = Describe("Factory Hooks", func() {
 		It("can build a job with one error hook", func() {
 			var input atc.JobConfig
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Error: &atc.PlanConfig{
@@ -489,7 +489,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("can build a job with one error hook that has a timeout", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Error: &atc.PlanConfig{
@@ -526,7 +526,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("can build a job with multiple error hooks", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Error: &atc.PlanConfig{
@@ -568,7 +568,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("can build a job with one failure hook", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Failure: &atc.PlanConfig{
@@ -601,7 +601,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("can build a job with one failure hook that has a timeout", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Failure: &atc.PlanConfig{
@@ -638,7 +638,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("can build a job with multiple failure hooks", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Failure: &atc.PlanConfig{
@@ -680,7 +680,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("can build a job with multiple ensure and failure hooks", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Failure: &atc.PlanConfig{
@@ -722,7 +722,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("can build a job with failure, success and ensure hooks at the same level", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Failure: &atc.PlanConfig{
@@ -767,7 +767,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		It("can build a job with multiple ensure, failure and success hooks", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
 						Failure: &atc.PlanConfig{
@@ -825,7 +825,7 @@ var _ = Describe("Factory Hooks", func() {
 		Context("and multiple steps in my plan", func() {
 			It("can build a job with a task with hooks then 2 more tasks", func() {
 				actual, err := buildFactory.Create(atc.JobConfig{
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Task: "those who resist our will",
 							Failure: &atc.PlanConfig{
@@ -876,7 +876,7 @@ var _ = Describe("Factory Hooks", func() {
 
 			It("can build a job with a task then a do", func() {
 				actual, err := buildFactory.Create(atc.JobConfig{
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Task: "those who start resisting our will",
 						},
@@ -933,7 +933,7 @@ var _ = Describe("Factory Hooks", func() {
 
 			It("can build a job with a do then a task", func() {
 				actual, err := buildFactory.Create(atc.JobConfig{
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Do: &atc.PlanSequence{
 								{

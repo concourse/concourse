@@ -1758,7 +1758,7 @@ var _ = Describe("Jobs API", func() {
 								BeforeEach(func() {
 									fakeJob.ConfigReturns(atc.JobConfig{
 										Name: "some-job",
-										Plan: atc.PlanSequence{
+										ParentPlan: atc.PlanSequence{
 											{
 												Get:      "some-input",
 												Resource: "some-resource",

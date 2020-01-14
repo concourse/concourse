@@ -48,7 +48,7 @@ var _ = Describe("Factory Get", func() {
 	Context("with a get at the top-level", func() {
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Get:      "some-get",
 						Resource: "some-resource",
@@ -85,7 +85,7 @@ var _ = Describe("Factory Get", func() {
 	Context("with a get for a non-existent resource", func() {
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Get:      "some-get",
 						Resource: "not-a-resource",
@@ -103,7 +103,7 @@ var _ = Describe("Factory Get", func() {
 	Context("with a get for an input with a non-existant version", func() {
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Get:      "some-get",
 						Resource: "some-resource",

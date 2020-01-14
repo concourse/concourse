@@ -60,7 +60,7 @@ func (factory *buildFactory) constructPlanFromJob(
 	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
-	planSequence := job.Plan
+	planSequence := job.ParentPlan
 
 	if len(planSequence) == 1 {
 		return factory.constructPlanFromConfig(

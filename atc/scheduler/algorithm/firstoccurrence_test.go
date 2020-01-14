@@ -71,7 +71,7 @@ var _ = Describe("Resolve", func() {
 			Jobs: atc.JobConfigs{
 				{
 					Name: "j1",
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Get:      "some-input",
 							Resource: "r1",
@@ -220,7 +220,7 @@ var _ = Describe("Resolve", func() {
 			Jobs: atc.JobConfigs{
 				{
 					Name: "j1",
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Get:      "some-input",
 							Resource: "r1",

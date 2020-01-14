@@ -40,7 +40,7 @@ var _ = Describe("Resource Config Scope", func() {
 			Jobs: atc.JobConfigs{
 				{
 					Name: "some-job",
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Get: "some-resource",
 						},
@@ -48,7 +48,7 @@ var _ = Describe("Resource Config Scope", func() {
 				},
 				{
 					Name: "downstream-job",
-					Plan: atc.PlanSequence{
+					ParentPlan: atc.PlanSequence{
 						{
 							Get:    "some-resource",
 							Passed: []string{"some-job"},

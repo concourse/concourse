@@ -48,7 +48,7 @@ var _ = Describe("Factory Do", func() {
 	Context("when I have a nested do ", func() {
 		It("returns the correct plan", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Do: &atc.PlanSequence{
 							{
@@ -93,7 +93,7 @@ var _ = Describe("Factory Do", func() {
 	Context("when I have an aggregate inside a do", func() {
 		It("returns the correct plan", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Do: &atc.PlanSequence{
 							{
@@ -138,7 +138,7 @@ var _ = Describe("Factory Do", func() {
 	Context("when i have a do inside an aggregate inside a hook", func() {
 		It("returns the correct plan", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task: "starting-task",
 						Success: &atc.PlanConfig{
@@ -186,7 +186,7 @@ var _ = Describe("Factory Do", func() {
 	Context("when I have a do inside an aggregate", func() {
 		It("returns the correct plan", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
 							{

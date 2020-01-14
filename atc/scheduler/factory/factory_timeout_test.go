@@ -37,7 +37,7 @@ var _ = Describe("Factory Timeout Step", func() {
 	Context("When there is a task with a timeout", func() {
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						Task:    "first task",
 						Timeout: "10s",

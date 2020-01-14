@@ -39,7 +39,7 @@ var _ = Describe("Factory SetPipeline Step", func() {
 	Context("when set other pipeline", func() {
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				ParentPlan: atc.PlanSequence{
 					{
 						SetPipeline: "some-pipeline",
 						ConfigPath:  "some-file",
