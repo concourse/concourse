@@ -15,7 +15,7 @@ var _ = Describe("Wall API", func() {
 	var response *http.Response
 	Context("Gets a wall message", func() {
 		BeforeEach(func() {
-			dbWall.GetMessageReturns("test message", nil)
+			dbWall.GetWallReturns(atc.Wall{Message: "test message"}, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -37,7 +37,7 @@ var _ = Describe("Wall API", func() {
 		Context("the message does not expire", func() {
 
 			It("returns only message", func() {
-				Expect(dbWall.GetMessageCallCount()).To(Equal(1))
+				Expect(dbWall.GetWallCallCount()).To(Equal(1))
 
 				Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"message":"test message"}`))
 			})
@@ -45,42 +45,41 @@ var _ = Describe("Wall API", func() {
 
 		Context("and the message does expire", func() {
 			var (
-				expectedDuration string
+				expectedDuration time.Duration
 			)
 			BeforeEach(func() {
 				expiresAt := time.Now().Add(time.Minute)
-				expectedDuration = time.Until(expiresAt).Round(time.Second).String()
-				dbWall.GetExpirationReturns(expiresAt, nil)
+				expectedDuration = time.Until(expiresAt)
+				dbWall.GetWallReturns(atc.Wall{Message: "test message", TTL: expectedDuration}, nil)
 			})
 
 			It("returns the expiration with the message", func() {
-				Expect(dbWall.GetMessageCallCount()).To(Equal(1))
-				Expect(dbWall.GetExpirationCallCount()).To(Equal(1))
+				Expect(dbWall.GetWallCallCount()).To(Equal(1))
 
 				var msg atc.Wall
-				json.NewDecoder(response.Body).Decode(&msg)
+				err := json.NewDecoder(response.Body).Decode(&msg)
+				Expect(err).ToNot(HaveOccurred())
 				Expect(msg).To(Equal(atc.Wall{
-					Message:   "test message",
-					ExpiresIn: expectedDuration,
+					Message: "test message",
+					TTL:     expectedDuration,
 				}))
 			})
 		})
 	})
 
 	Context("Sets a wall message", func() {
-		var message atc.Wall
+		var expectedWall atc.Wall
 		BeforeEach(func() {
-			message = atc.Wall{
-				Message:   "test message",
-				ExpiresIn: "1m",
+			expectedWall = atc.Wall{
+				Message: "test message",
+				TTL:     time.Minute,
 			}
 
-			dbWall.SetMessageReturns(nil)
-			dbWall.SetExpirationReturns(nil)
+			dbWall.SetWallReturns(nil)
 		})
 
 		JustBeforeEach(func() {
-			payload, err := json.Marshal(message)
+			payload, err := json.Marshal(expectedWall)
 			Expect(err).NotTo(HaveOccurred())
 
 			req, err := http.NewRequest("PUT", server.URL+"/api/v1/wall",
@@ -106,13 +105,12 @@ var _ = Describe("Wall API", func() {
 				})
 
 				It("sets the message and expiration", func() {
-					Expect(dbWall.SetMessageCallCount()).To(Equal(1), "message")
-					Expect(dbWall.SetExpirationCallCount()).To(Equal(1), "expires_in")
+					Expect(dbWall.SetWallCallCount()).To(Equal(1))
 
-					Expect(dbWall.SetMessageArgsForCall(0)).To(Equal("test message"))
-					Expect(dbWall.SetExpirationArgsForCall(0)).To(Equal(time.Minute))
+					Expect(dbWall.SetWallArgsForCall(0)).To(Equal(expectedWall))
 				})
 			})
+
 			Context("and is not admin", func() {
 				BeforeEach(func() {
 					fakeAccess.IsAdminReturns(false)
@@ -123,6 +121,7 @@ var _ = Describe("Wall API", func() {
 				})
 			})
 		})
+
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(false)
@@ -182,123 +181,5 @@ var _ = Describe("Wall API", func() {
 
 		})
 
-	})
-
-	Context("Gets the expiration", func() {
-		JustBeforeEach(func() {
-			req, err := http.NewRequest("GET", server.URL+"/api/v1/wall/expiration", nil)
-			Expect(err).NotTo(HaveOccurred())
-
-			response, err = client.Do(req)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("returns 200", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-		})
-
-		It("returns Content-Type 'application/json'", func() {
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-		})
-
-		Context("when a message is set", func() {
-			Context("and has an expiration", func() {
-				var expectedTime time.Time
-
-				BeforeEach(func() {
-					expectedTime = time.Now().Add(time.Minute)
-					dbWall.GetExpirationReturns(expectedTime, nil)
-				})
-
-				It("returns only the expiration", func() {
-					Expect(dbWall.GetExpirationCallCount()).To(Equal(1))
-
-					var expires atc.Wall
-					json.NewDecoder(response.Body).Decode(&expires)
-					Expect(expires).To(Equal(atc.Wall{
-						ExpiresIn: time.Until(expectedTime).Round(time.Second).String(),
-					}))
-				})
-			})
-
-			Context("and has no expiration", func() {
-				BeforeEach(func() {
-					dbWall.GetExpirationReturns(time.Time{}, nil)
-				})
-
-				It("an empty json block", func() {
-					Expect(dbWall.GetExpirationCallCount()).To(Equal(1))
-					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{}`))
-				})
-			})
-		})
-
-		Context("when a message is not set", func() {
-			BeforeEach(func() {
-				dbWall.GetExpirationReturns(time.Time{}, nil)
-			})
-
-			It("an empty json block", func() {
-				Expect(dbWall.GetExpirationCallCount()).To(Equal(1))
-				Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{}`))
-			})
-		})
-	})
-
-	Context("Sets the expiration", func() {
-		var message atc.Wall
-		BeforeEach(func() {
-			message = atc.Wall{
-				ExpiresIn: "1m",
-			}
-
-			dbWall.SetExpirationReturns(nil)
-		})
-
-		JustBeforeEach(func() {
-			payload, err := json.Marshal(message)
-			Expect(err).NotTo(HaveOccurred())
-
-			req, err := http.NewRequest("PUT", server.URL+"/api/v1/wall/expiration",
-				ioutil.NopCloser(bytes.NewBuffer(payload)))
-			Expect(err).NotTo(HaveOccurred())
-
-			response, err = client.Do(req)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		Context("when authenticated", func() {
-			BeforeEach(func() {
-				fakeAccess.IsAuthenticatedReturns(true)
-			})
-
-			It("returns 403", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-			})
-
-			Context("and are an admin", func() {
-				BeforeEach(func() {
-					fakeAccess.IsAdminReturns(true)
-				})
-
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("updates the expiration", func() {
-					Expect(dbWall.SetExpirationCallCount()).To(Equal(1))
-				})
-			})
-		})
-
-		Context("when not authenticated", func() {
-			BeforeEach(func() {
-				fakeAccess.IsAuthenticatedReturns(false)
-			})
-
-			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-			})
-		})
 	})
 })

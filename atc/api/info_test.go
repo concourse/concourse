@@ -68,25 +68,6 @@ var _ = Describe("Pipelines API", func() {
 				"cluster_name": "Test Cluster"
 			}`))
 		})
-
-		Context("wall message is set", func() {
-			BeforeEach(func() {
-				dbWall.GetMessageReturns("test message", nil)
-			})
-			It("contains the wall message", func() {
-
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(body).To(MatchJSON(`{
-				"version": "1.2.3",
-				"worker_version": "4.5.6",
-				"external_url": "https://example.com",
-				"cluster_name": "Test Cluster",
-				"wall_message": "test message"
-			}`))
-			})
-		})
 	})
 
 	Describe("GET /api/v1/info/creds", func() {

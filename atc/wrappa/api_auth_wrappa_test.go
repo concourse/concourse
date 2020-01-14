@@ -212,7 +212,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListTeams:            authenticateIfTokenProvided(inputHandlers[atc.ListTeams]),
 				atc.MainJobBadge:         authenticateIfTokenProvided(inputHandlers[atc.MainJobBadge]),
 				atc.GetWall:              authenticateIfTokenProvided(inputHandlers[atc.GetWall]),
-				atc.GetWallExpiration:    authenticateIfTokenProvided(inputHandlers[atc.GetWallExpiration]),
 
 				// authenticated and is admin
 				atc.GetLogLevel:          authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),
@@ -221,7 +220,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListActiveUsersSince: authenticatedAndAdmin(inputHandlers[atc.ListActiveUsersSince]),
 				atc.SetWall:              authenticatedAndAdmin(inputHandlers[atc.SetWall]),
 				atc.ClearWall:            authenticatedAndAdmin(inputHandlers[atc.ClearWall]),
-				atc.SetWallExpiration:    authenticatedAndAdmin(inputHandlers[atc.SetWallExpiration]),
 
 				// authorized (requested team matches resource team)
 				atc.CheckResource:           authorized(inputHandlers[atc.CheckResource]),

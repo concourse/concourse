@@ -108,8 +108,6 @@ const (
 	SetWall           = "SetWall"
 	GetWall           = "GetWall"
 	ClearWall         = "ClearWall"
-	GetWallExpiration = "GetWallExpiration"
-	SetWallExpiration = "SetWallExpiration"
 )
 
 const (
@@ -224,6 +222,4 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/wall", Method: "GET", Name: GetWall},
 	{Path: "/api/v1/wall", Method: "PUT", Name: SetWall},
 	{Path: "/api/v1/wall", Method: "DELETE", Name: ClearWall},
-	{Path: "/api/v1/wall/expiration", Method: "GET", Name: GetWallExpiration},
-	{Path: "/api/v1/wall/expiration", Method: "PUT", Name: SetWallExpiration},
 })

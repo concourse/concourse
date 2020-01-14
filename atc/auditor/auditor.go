@@ -132,9 +132,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.ListActiveUsersSince,
 		atc.GetWall,
 		atc.SetWall,
-		atc.ClearWall,
-		atc.GetWallExpiration,
-		atc.SetWallExpiration:
+		atc.ClearWall:
 		return a.EnableSystemAuditLog
 	case atc.ListTeams,
 		atc.SetTeam,
