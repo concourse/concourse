@@ -1,3 +1,7 @@
+// Package worker will eventually evolve to becoming a concrete implementation of a runtime
+// As such, Concourse core shouldn't depend on abstractions defined in this package or its child packages
+// General Runtime abstractions will be ported over to the Runtime package
+// The Client interface is the main interface that is consumed by Concourse core that will be shifted to the Runtime package
 package worker
 
 import (
