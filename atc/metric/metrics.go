@@ -29,7 +29,7 @@ type SchedulingFullDuration struct {
 	Duration     time.Duration
 }
 
-func (event SchedulingFullDuration) Emit(logger lager.Logger) {
+func (event SchedulingFullDuration) Events() []Event {
 	state := EventStateOK
 
 	if event.Duration > time.Second {
@@ -40,8 +40,7 @@ func (event SchedulingFullDuration) Emit(logger lager.Logger) {
 		state = EventStateCritical
 	}
 
-	emit(
-		logger.Session("full-scheduling-duration"),
+	return []Event{
 		Event{
 			Name:  "scheduling: full duration (ms)",
 			Value: ms(event.Duration),
@@ -50,7 +49,11 @@ func (event SchedulingFullDuration) Emit(logger lager.Logger) {
 				"pipeline": event.PipelineName,
 			},
 		},
-	)
+	}
+}
+
+func (event SchedulingFullDuration) Name() string {
+	return "full-scheduling-duration"
 }
 
 type SchedulingLoadVersionsDuration struct {
@@ -58,7 +61,7 @@ type SchedulingLoadVersionsDuration struct {
 	Duration     time.Duration
 }
 
-func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
+func (event SchedulingLoadVersionsDuration) Events() []Event {
 	state := EventStateOK
 
 	if event.Duration > time.Second {
@@ -69,8 +72,7 @@ func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 		state = EventStateCritical
 	}
 
-	emit(
-		logger.Session("loading-versions-duration"),
+	return []Event{
 		Event{
 			Name:  "scheduling: loading versions duration (ms)",
 			Value: ms(event.Duration),
@@ -79,7 +81,11 @@ func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 				"pipeline": event.PipelineName,
 			},
 		},
-	)
+	}
+}
+
+func (event SchedulingLoadVersionsDuration) Name() string {
+	return "loading-versions-duration"
 }
 
 type SchedulingJobDuration struct {
@@ -88,7 +94,7 @@ type SchedulingJobDuration struct {
 	Duration     time.Duration
 }
 
-func (event SchedulingJobDuration) Emit(logger lager.Logger) {
+func (event SchedulingJobDuration) Events() []Event {
 	state := EventStateOK
 
 	if event.Duration > time.Second {
@@ -99,8 +105,7 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 		state = EventStateCritical
 	}
 
-	emit(
-		logger.Session("job-scheduling-duration"),
+	return []Event{
 		Event{
 			Name:  "scheduling: job duration (ms)",
 			Value: ms(event.Duration),
@@ -110,7 +115,11 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 				"job":      event.JobName,
 			},
 		},
-	)
+	}
+}
+
+func (event SchedulingJobDuration) Name() string {
+	return "job-scheduling-duration"
 }
 
 type WorkerContainers struct {
@@ -539,13 +548,12 @@ type ResourceCheck struct {
 	Success      bool
 }
 
-func (event ResourceCheck) Emit(logger lager.Logger) {
+func (event ResourceCheck) Events() []Event {
 	state := EventStateOK
 	if !event.Success {
 		state = EventStateWarning
 	}
-	emit(
-		logger.Session("resource-check"),
+	return []Event{
 		Event{
 			Name:  "resource checked",
 			Value: 1,
@@ -556,7 +564,11 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 				"team_name": event.TeamName,
 			},
 		},
-	)
+	}
+}
+
+func (event ResourceCheck) Name() string {
+	return "resource-check"
 }
 
 type CheckStarted struct {
@@ -616,9 +628,8 @@ type CheckEnqueue struct {
 	ResourceConfigScopeID int
 }
 
-func (event CheckEnqueue) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("check-enqueued"),
+func (event CheckEnqueue) Events() []Event {
+	return []Event{
 		Event{
 			Name:  "check enqueued",
 			Value: 1,
@@ -628,23 +639,30 @@ func (event CheckEnqueue) Emit(logger lager.Logger) {
 				"check_name": event.CheckName,
 			},
 		},
-	)
+	}
+}
+
+func (event CheckEnqueue) Name() string {
+	return "check-enqueued"
 }
 
 type CheckQueueSize struct {
 	Checks int
 }
 
-func (event CheckQueueSize) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("check-queue-size"),
+func (event CheckQueueSize) Events() []Event {
+	return []Event{
 		Event{
 			Name:       "check queue size",
 			Value:      event.Checks,
 			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
-	)
+	}
+}
+
+func (event CheckQueueSize) Name() string {
+	return "check-queue-size"
 }
 
 var lockTypeNames = map[int]string{

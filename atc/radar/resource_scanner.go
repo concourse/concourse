@@ -409,12 +409,15 @@ func (scanner *resourceScanner) check(
 	}
 
 	resourceConfigScope.SetCheckError(err)
-	metric.ResourceCheck{
-		PipelineName: scanner.dbPipeline.Name(),
-		ResourceName: savedResource.Name(),
-		TeamName:     scanner.dbPipeline.TeamName(),
-		Success:      err == nil,
-	}.Emit(logger)
+
+	metric.NewMonitor(logger).Measure(
+		metric.ResourceCheck{
+			PipelineName: scanner.dbPipeline.Name(),
+			ResourceName: savedResource.Name(),
+			TeamName:     scanner.dbPipeline.TeamName(),
+			Success:      err == nil,
+		},
+	)
 
 	if err != nil {
 		if rErr, ok := err.(runtime.ErrResourceScriptFailed); ok {

@@ -42,9 +42,11 @@ func (c *checker) Run(ctx context.Context) error {
 		return err
 	}
 
-	metric.CheckQueueSize{
-		Checks: len(checks),
-	}.Emit(c.logger)
+	metric.NewMonitor(c.logger).Measure(
+		metric.CheckQueueSize{
+			Checks: len(checks),
+		},
+	)
 
 	for _, ck := range checks {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
