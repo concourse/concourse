@@ -57,6 +57,16 @@ type FakeVolume struct {
 	handleReturnsOnCall map[int]struct {
 		result1 string
 	}
+	ImportStrategyStub        func() baggageclaim.ImportStrategy
+	importStrategyMutex       sync.RWMutex
+	importStrategyArgsForCall []struct {
+	}
+	importStrategyReturns struct {
+		result1 baggageclaim.ImportStrategy
+	}
+	importStrategyReturnsOnCall map[int]struct {
+		result1 baggageclaim.ImportStrategy
+	}
 	InitializeArtifactStub        func(string, int) (db.WorkerArtifact, error)
 	initializeArtifactMutex       sync.RWMutex
 	initializeArtifactArgsForCall []struct {
@@ -96,6 +106,16 @@ type FakeVolume struct {
 	}
 	initializeTaskCacheReturnsOnCall map[int]struct {
 		result1 error
+	}
+	ParentHandleStub        func() string
+	parentHandleMutex       sync.RWMutex
+	parentHandleArgsForCall []struct {
+	}
+	parentHandleReturns struct {
+		result1 string
+	}
+	parentHandleReturnsOnCall map[int]struct {
+		result1 string
 	}
 	PathStub        func() string
 	pathMutex       sync.RWMutex
@@ -403,6 +423,58 @@ func (fake *FakeVolume) HandleReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeVolume) ImportStrategy() baggageclaim.ImportStrategy {
+	fake.importStrategyMutex.Lock()
+	ret, specificReturn := fake.importStrategyReturnsOnCall[len(fake.importStrategyArgsForCall)]
+	fake.importStrategyArgsForCall = append(fake.importStrategyArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ImportStrategy", []interface{}{})
+	fake.importStrategyMutex.Unlock()
+	if fake.ImportStrategyStub != nil {
+		return fake.ImportStrategyStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.importStrategyReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeVolume) ImportStrategyCallCount() int {
+	fake.importStrategyMutex.RLock()
+	defer fake.importStrategyMutex.RUnlock()
+	return len(fake.importStrategyArgsForCall)
+}
+
+func (fake *FakeVolume) ImportStrategyCalls(stub func() baggageclaim.ImportStrategy) {
+	fake.importStrategyMutex.Lock()
+	defer fake.importStrategyMutex.Unlock()
+	fake.ImportStrategyStub = stub
+}
+
+func (fake *FakeVolume) ImportStrategyReturns(result1 baggageclaim.ImportStrategy) {
+	fake.importStrategyMutex.Lock()
+	defer fake.importStrategyMutex.Unlock()
+	fake.ImportStrategyStub = nil
+	fake.importStrategyReturns = struct {
+		result1 baggageclaim.ImportStrategy
+	}{result1}
+}
+
+func (fake *FakeVolume) ImportStrategyReturnsOnCall(i int, result1 baggageclaim.ImportStrategy) {
+	fake.importStrategyMutex.Lock()
+	defer fake.importStrategyMutex.Unlock()
+	fake.ImportStrategyStub = nil
+	if fake.importStrategyReturnsOnCall == nil {
+		fake.importStrategyReturnsOnCall = make(map[int]struct {
+			result1 baggageclaim.ImportStrategy
+		})
+	}
+	fake.importStrategyReturnsOnCall[i] = struct {
+		result1 baggageclaim.ImportStrategy
+	}{result1}
+}
+
 func (fake *FakeVolume) InitializeArtifact(arg1 string, arg2 int) (db.WorkerArtifact, error) {
 	fake.initializeArtifactMutex.Lock()
 	ret, specificReturn := fake.initializeArtifactReturnsOnCall[len(fake.initializeArtifactArgsForCall)]
@@ -588,6 +660,58 @@ func (fake *FakeVolume) InitializeTaskCacheReturnsOnCall(i int, result1 error) {
 	}
 	fake.initializeTaskCacheReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeVolume) ParentHandle() string {
+	fake.parentHandleMutex.Lock()
+	ret, specificReturn := fake.parentHandleReturnsOnCall[len(fake.parentHandleArgsForCall)]
+	fake.parentHandleArgsForCall = append(fake.parentHandleArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ParentHandle", []interface{}{})
+	fake.parentHandleMutex.Unlock()
+	if fake.ParentHandleStub != nil {
+		return fake.ParentHandleStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.parentHandleReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeVolume) ParentHandleCallCount() int {
+	fake.parentHandleMutex.RLock()
+	defer fake.parentHandleMutex.RUnlock()
+	return len(fake.parentHandleArgsForCall)
+}
+
+func (fake *FakeVolume) ParentHandleCalls(stub func() string) {
+	fake.parentHandleMutex.Lock()
+	defer fake.parentHandleMutex.Unlock()
+	fake.ParentHandleStub = stub
+}
+
+func (fake *FakeVolume) ParentHandleReturns(result1 string) {
+	fake.parentHandleMutex.Lock()
+	defer fake.parentHandleMutex.Unlock()
+	fake.ParentHandleStub = nil
+	fake.parentHandleReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeVolume) ParentHandleReturnsOnCall(i int, result1 string) {
+	fake.parentHandleMutex.Lock()
+	defer fake.parentHandleMutex.Unlock()
+	fake.ParentHandleStub = nil
+	if fake.parentHandleReturnsOnCall == nil {
+		fake.parentHandleReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.parentHandleReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
 }
 
@@ -1008,12 +1132,16 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.destroyMutex.RUnlock()
 	fake.handleMutex.RLock()
 	defer fake.handleMutex.RUnlock()
+	fake.importStrategyMutex.RLock()
+	defer fake.importStrategyMutex.RUnlock()
 	fake.initializeArtifactMutex.RLock()
 	defer fake.initializeArtifactMutex.RUnlock()
 	fake.initializeResourceCacheMutex.RLock()
 	defer fake.initializeResourceCacheMutex.RUnlock()
 	fake.initializeTaskCacheMutex.RLock()
 	defer fake.initializeTaskCacheMutex.RUnlock()
+	fake.parentHandleMutex.RLock()
+	defer fake.parentHandleMutex.RUnlock()
 	fake.pathMutex.RLock()
 	defer fake.pathMutex.RUnlock()
 	fake.propertiesMutex.RLock()
