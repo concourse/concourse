@@ -14,6 +14,7 @@ import (
 type Volume interface {
 	Handle() string
 	Path() string
+	ParentHandle() string
 
 	SetProperty(key string, value string) error
 	Properties() (baggageclaim.VolumeProperties, error)
@@ -24,6 +25,7 @@ type Volume interface {
 	StreamOut(ctx context.Context, path string) (io.ReadCloser, error)
 
 	COWStrategy() baggageclaim.COWStrategy
+	ImportStrategy() baggageclaim.ImportStrategy
 
 	InitializeResourceCache(db.UsedResourceCache) error
 	InitializeTaskCache(logger lager.Logger, jobID int, stepName string, path string, privileged bool) error
@@ -76,6 +78,10 @@ func (v *volume) Handle() string { return v.bcVolume.Handle() }
 
 func (v *volume) Path() string { return v.bcVolume.Path() }
 
+func (v *volume) ParentHandle() string {
+	return v.dbVolume.ParentHandle()
+}
+
 func (v *volume) SetProperty(key string, value string) error {
 	return v.bcVolume.SetProperty(key, value)
 }
@@ -107,6 +113,13 @@ func (v *volume) Destroy() error {
 func (v *volume) COWStrategy() baggageclaim.COWStrategy {
 	return baggageclaim.COWStrategy{
 		Parent: v.bcVolume,
+	}
+}
+
+func (v *volume) ImportStrategy() baggageclaim.ImportStrategy {
+	return baggageclaim.ImportStrategy{
+		Path: v.bcVolume.Path(),
+		FollowSymlinks: true,
 	}
 }
 
