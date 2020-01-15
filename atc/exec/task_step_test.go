@@ -783,7 +783,7 @@ var _ = Describe("TaskStep", func() {
 				BeforeEach(func() {
 					taskStepStatus = 0
 					taskResult := worker.TaskResult{
-						ExitStatus:       taskStepStatus,
+						ExitStatus:   taskStepStatus,
 						VolumeMounts: []worker.VolumeMount{},
 					}
 					fakeClient.RunTaskStepReturns(taskResult, nil)
@@ -911,7 +911,7 @@ var _ = Describe("TaskStep", func() {
 			BeforeEach(func() {
 				fakeClient.RunTaskStepReturns(
 					worker.TaskResult{
-						ExitStatus:       -1,
+						ExitStatus:   -1,
 						VolumeMounts: []worker.VolumeMount{},
 					}, context.Canceled)
 				cancel()
@@ -944,6 +944,9 @@ var _ = Describe("TaskStep", func() {
 				fakeVolume1 *workerfakes.FakeVolume
 				fakeVolume2 *workerfakes.FakeVolume
 				fakeVolume3 *workerfakes.FakeVolume
+
+				runTaskStepError error
+				taskResult       worker.TaskResult
 			)
 
 			BeforeEach(func() {
@@ -969,7 +972,7 @@ var _ = Describe("TaskStep", func() {
 				fakeVolume3 = new(workerfakes.FakeVolume)
 				fakeVolume3.HandleReturns("some-handle-3")
 
-				taskResult := worker.TaskResult{
+				taskResult = worker.TaskResult{
 					ExitStatus: 0,
 					VolumeMounts: []worker.VolumeMount{
 						{
@@ -986,21 +989,58 @@ var _ = Describe("TaskStep", func() {
 						},
 					},
 				}
-				fakeClient.RunTaskStepReturns(taskResult, nil)
 			})
 
-			It("re-registers the outputs as artifacts", func() {
-				artifact1, found := repo.ArtifactFor("some-output")
-				Expect(found).To(BeTrue())
+			var outputsAreRegistered = func() {
+				It("registers the outputs as artifacts", func() {
+					artifact1, found := repo.ArtifactFor("some-output")
+					Expect(found).To(BeTrue())
 
-				artifact2, found := repo.ArtifactFor("some-other-output")
-				Expect(found).To(BeTrue())
+					artifact2, found := repo.ArtifactFor("some-other-output")
+					Expect(found).To(BeTrue())
 
-				artifact3, found := repo.ArtifactFor("some-trailing-slash-output")
-				Expect(found).To(BeTrue())
+					artifact3, found := repo.ArtifactFor("some-trailing-slash-output")
+					Expect(found).To(BeTrue())
 
-				artifactMap := repo.AsMap()
-				Expect(artifactMap).To(ConsistOf(artifact1, artifact2, artifact3))
+					artifactMap := repo.AsMap()
+					Expect(artifactMap).To(ConsistOf(artifact1, artifact2, artifact3))
+				})
+
+			}
+
+			Context("when RunTaskStep succeeds", func() {
+				BeforeEach(func() {
+					runTaskStepError = nil
+					fakeClient.RunTaskStepReturns(taskResult, runTaskStepError)
+				})
+				outputsAreRegistered()
+			})
+
+			Context("when RunTaskStep returns a context Canceled error", func() {
+				BeforeEach(func() {
+					runTaskStepError = context.Canceled
+					fakeClient.RunTaskStepReturns(taskResult, runTaskStepError)
+				})
+				outputsAreRegistered()
+			})
+			Context("when RunTaskStep returns a context DeadlineExceeded error", func() {
+				BeforeEach(func() {
+					runTaskStepError = context.DeadlineExceeded
+					fakeClient.RunTaskStepReturns(taskResult, runTaskStepError)
+				})
+				outputsAreRegistered()
+			})
+
+			Context("when RunTaskStep returns a unexpected error", func() {
+				BeforeEach(func() {
+					runTaskStepError = errors.New("some unexpected error")
+					fakeClient.RunTaskStepReturns(taskResult, runTaskStepError)
+				})
+				It("re-registers the outputs as artifacts", func() {
+					artifactMap := repo.AsMap()
+					Expect(artifactMap).To(BeEmpty())
+				})
+
 			})
 		})
 

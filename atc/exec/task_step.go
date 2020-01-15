@@ -239,12 +239,9 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	)
 
 	if err != nil {
-		switch err {
-		case context.Canceled:
-		case context.DeadlineExceeded:
+		if err == context.Canceled || err == context.DeadlineExceeded {
 			step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 		}
-
 		return err
 	}
 
