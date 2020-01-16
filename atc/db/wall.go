@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"time"
 )
 
 //go:generate counterfeiter . Wall
@@ -16,11 +15,15 @@ type Wall interface {
 }
 
 type wall struct {
-	conn Conn
+	conn  Conn
+	clock Clock
 }
 
-func NewWall(conn Conn) Wall {
-	return &wall{conn: conn}
+func NewWall(conn Conn, clock Clock) Wall {
+	return &wall{
+		conn: conn,
+		clock: clock,
+	}
 }
 
 func (w wall) SetWall(wall atc.Wall) error {
@@ -40,7 +43,7 @@ func (w wall) SetWall(wall atc.Wall) error {
 		Columns("message")
 
 	if wall.TTL != 0 {
-		expiresAt := time.Now().Add(wall.TTL)
+		expiresAt := w.clock.Now().Add(wall.TTL)
 		query = query.Columns("expires_at").Values(wall.Message, expiresAt)
 	} else {
 		query = query.Values(wall.Message)
@@ -65,12 +68,12 @@ func (w wall) GetWall() (atc.Wall, error) {
 	row := psql.Select("message", "expires_at").
 		From("wall").
 		Where(sq.Or{
-			sq.Gt{"expires_at": time.Now()},
+			sq.Gt{"expires_at": w.clock.Now()},
 			sq.Eq{"expires_at": nil},
 		}).
 		RunWith(w.conn).QueryRow()
 
-	err := scanWall(&wall, row)
+	err := w.scanWall(&wall, row)
 	if err != nil && err != sql.ErrNoRows {
 		return atc.Wall{}, err
 	}
@@ -78,7 +81,7 @@ func (w wall) GetWall() (atc.Wall, error) {
 	return wall, nil
 }
 
-func scanWall(wall *atc.Wall, scan scannable) error {
+func (w *wall) scanWall(wall *atc.Wall, scan scannable) error {
 	var expiresAt sql.NullTime
 
 	err := scan.Scan(&wall.Message, &expiresAt)
@@ -87,7 +90,7 @@ func scanWall(wall *atc.Wall, scan scannable) error {
 	}
 
 	if expiresAt.Valid {
-		wall.TTL = time.Until(expiresAt.Time)
+		wall.TTL = w.clock.Until(expiresAt.Time)
 	}
 
 	return nil
