@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"os"
 	"testing"
 	"time"
@@ -48,6 +49,7 @@ var (
 	workerTaskCacheFactory              db.WorkerTaskCacheFactory
 	userFactory                         db.UserFactory
 	dbWall                              db.Wall
+	fakeClock                           dbfakes.FakeClock
 
 	defaultWorkerResourceType atc.WorkerResourceType
 	defaultTeam               db.Team
@@ -117,7 +119,7 @@ var _ = BeforeEach(func() {
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)
-	dbWall = db.NewWall(dbConn)
+	dbWall = db.NewWall(dbConn, &fakeClock)
 
 	var err error
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
