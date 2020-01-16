@@ -546,17 +546,10 @@ func (worker *gardenWorker) cloneLocalVolumes(
 	mounts := make([]VolumeMount, len(locals))
 
 	for i, localInput := range locals {
-
-		// NOTE (runtime/#4964): in Linux kernel 5.x and greater,
-		// We lose the ability the make a COW of a COW. Overlay will return an error.
-		// The only time we do this is when the output of a prev step a COW and the
-		// input we clone here tries to become a COW of it.
-		duplicateStrategy := avoidCOWCOWVolume(localInput)
-
 		inputVolume, err := worker.volumeClient.FindOrCreateCOWVolumeForContainer(
 			logger,
 			VolumeSpec{
-				Strategy:   duplicateStrategy,
+				Strategy:   localInput.desiredParent.CopyStrategy(),
 				Privileged: privileged,
 			},
 			container,
@@ -575,15 +568,6 @@ func (worker *gardenWorker) cloneLocalVolumes(
 	}
 
 	return mounts, nil
-}
-
-func avoidCOWCOWVolume(input mountableLocalInput) baggageclaim.Strategy {
-	// desired parent volume is a COW
-	if input.desiredParent.ParentHandle() != "" {
-		return input.desiredParent.ImportStrategy()
-	}
-
-	return input.desiredParent.COWStrategy()
 }
 
 func (worker *gardenWorker) cloneRemoteVolumes(

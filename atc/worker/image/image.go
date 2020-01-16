@@ -30,7 +30,7 @@ func (i *imageProvidedByPreviousStepOnSameWorker) FetchForContainer(
 	imageVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
 		logger,
 		worker.VolumeSpec{
-			Strategy:   i.artifactVolume.COWStrategy(),
+			Strategy:   i.artifactVolume.CopyStrategy(),
 			Privileged: i.imageSpec.Privileged,
 		},
 		container,
@@ -213,7 +213,7 @@ func (i *imageFromBaseResourceType) FetchForContainer(
 			cowVolume, err := i.volumeClient.FindOrCreateCOWVolumeForContainer(
 				logger,
 				worker.VolumeSpec{
-					Strategy:   importVolume.COWStrategy(),
+					Strategy:   importVolume.CopyStrategy(),
 					Privileged: t.Privileged,
 				},
 				container,

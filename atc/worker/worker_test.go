@@ -120,7 +120,7 @@ var _ = Describe("Worker", func() {
 		fakeLocalInputAS := new(workerfakes.FakeArtifactSource)
 		fakeLocalVolume = new(workerfakes.FakeVolume)
 		fakeLocalVolume.PathReturns("/fake/local/volume")
-		fakeLocalVolume.COWStrategyReturns(baggageclaim.COWStrategy{
+		fakeLocalVolume.CopyStrategyReturns(baggageclaim.COWStrategy{
 			Parent: new(baggageclaimfakes.FakeVolume),
 		})
 		fakeLocalInputAS.ExistsOnReturns(fakeLocalVolume, true, nil)
@@ -1358,7 +1358,7 @@ var _ = Describe("Worker", func() {
 						"/scratch":                    {Strategy: baggageclaim.EmptyStrategy{}},
 						"/some/work-dir":              {Strategy: baggageclaim.EmptyStrategy{}},
 						"/some/work-dir/output":       {Strategy: baggageclaim.EmptyStrategy{}},
-						"/some/work-dir/local-input":  {Strategy: fakeLocalVolume.COWStrategy()},
+						"/some/work-dir/local-input":  {Strategy: fakeLocalVolume.CopyStrategy()},
 						"/some/work-dir/remote-input": {Strategy: baggageclaim.EmptyStrategy{}},
 					}))
 				})
@@ -1404,7 +1404,7 @@ var _ = Describe("Worker", func() {
 							"/scratch":                    {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 							"/some/work-dir":              {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 							"/some/work-dir/output":       {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-							"/some/work-dir/local-input":  {Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
+							"/some/work-dir/local-input":  {Privileged: true, Strategy: fakeLocalVolume.CopyStrategy()},
 							"/some/work-dir/remote-input": {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 						}))
 					})

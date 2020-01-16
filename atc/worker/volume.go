@@ -14,7 +14,6 @@ import (
 type Volume interface {
 	Handle() string
 	Path() string
-	ParentHandle() string
 
 	SetProperty(key string, value string) error
 	Properties() (baggageclaim.VolumeProperties, error)
@@ -24,8 +23,7 @@ type Volume interface {
 	StreamIn(ctx context.Context, path string, tarStream io.Reader) error
 	StreamOut(ctx context.Context, path string) (io.ReadCloser, error)
 
-	COWStrategy() baggageclaim.COWStrategy
-	ImportStrategy() baggageclaim.ImportStrategy
+	CopyStrategy() baggageclaim.Strategy
 
 	InitializeResourceCache(db.UsedResourceCache) error
 	InitializeTaskCache(logger lager.Logger, jobID int, stepName string, path string, privileged bool) error
@@ -110,16 +108,19 @@ func (v *volume) Destroy() error {
 	return v.bcVolume.Destroy()
 }
 
-func (v *volume) COWStrategy() baggageclaim.COWStrategy {
+// NOTE (runtime/#4964): in Linux kernel 5.x and greater,
+// We lose the ability the make a COW of a COW. Overlay will return an error.
+// The only time we do this is when the output of a prev step a COW and the
+// input we clone here tries to become a COW of it.
+func (v *volume) CopyStrategy() baggageclaim.Strategy {
+	if v.ParentHandle() != "" {
+		return baggageclaim.ImportStrategy{
+			Path:           v.bcVolume.Path(),
+			FollowSymlinks: true,
+		}
+	}
 	return baggageclaim.COWStrategy{
 		Parent: v.bcVolume,
-	}
-}
-
-func (v *volume) ImportStrategy() baggageclaim.ImportStrategy {
-	return baggageclaim.ImportStrategy{
-		Path: v.bcVolume.Path(),
-		FollowSymlinks: true,
 	}
 }
 

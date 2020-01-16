@@ -58,7 +58,7 @@ var _ = Describe("Image", func() {
 			cowStrategy = baggageclaim.COWStrategy{
 				Parent: new(baggageclaimfakes.FakeVolume),
 			}
-			fakeArtifactVolume.COWStrategyReturns(cowStrategy)
+			fakeArtifactVolume.CopyStrategyReturns(cowStrategy)
 
 			fakeImageArtifactSource := new(workerfakes.FakeStreamableArtifactSource)
 			fakeImageArtifactSource.ExistsOnReturns(fakeArtifactVolume, true, nil)
@@ -231,7 +231,7 @@ var _ = Describe("Image", func() {
 			cowStrategy = baggageclaim.COWStrategy{
 				Parent: new(baggageclaimfakes.FakeVolume),
 			}
-			fakeResourceImageVolume.COWStrategyReturns(cowStrategy)
+			fakeResourceImageVolume.CopyStrategyReturns(cowStrategy)
 
 			fakeContainerRootfsVolume = new(workerfakes.FakeVolume)
 			fakeContainerRootfsVolume.PathReturns("some-path")
@@ -513,7 +513,7 @@ var _ = Describe("Image", func() {
 			cowStrategy = baggageclaim.COWStrategy{
 				Parent: new(baggageclaimfakes.FakeVolume),
 			}
-			fakeImportVolume.COWStrategyReturns(cowStrategy)
+			fakeImportVolume.CopyStrategyReturns(cowStrategy)
 			fakeVolumeClient.FindOrCreateVolumeForBaseResourceTypeReturns(fakeImportVolume, nil)
 
 			workerResourceType = atc.WorkerResourceType{

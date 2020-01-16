@@ -13,15 +13,15 @@ import (
 )
 
 type FakeVolume struct {
-	COWStrategyStub        func() baggageclaim.COWStrategy
-	cOWStrategyMutex       sync.RWMutex
-	cOWStrategyArgsForCall []struct {
+	CopyStrategyStub        func() baggageclaim.Strategy
+	copyStrategyMutex       sync.RWMutex
+	copyStrategyArgsForCall []struct {
 	}
-	cOWStrategyReturns struct {
-		result1 baggageclaim.COWStrategy
+	copyStrategyReturns struct {
+		result1 baggageclaim.Strategy
 	}
-	cOWStrategyReturnsOnCall map[int]struct {
-		result1 baggageclaim.COWStrategy
+	copyStrategyReturnsOnCall map[int]struct {
+		result1 baggageclaim.Strategy
 	}
 	CreateChildForContainerStub        func(db.CreatingContainer, string) (db.CreatingVolume, error)
 	createChildForContainerMutex       sync.RWMutex
@@ -56,16 +56,6 @@ type FakeVolume struct {
 	}
 	handleReturnsOnCall map[int]struct {
 		result1 string
-	}
-	ImportStrategyStub        func() baggageclaim.ImportStrategy
-	importStrategyMutex       sync.RWMutex
-	importStrategyArgsForCall []struct {
-	}
-	importStrategyReturns struct {
-		result1 baggageclaim.ImportStrategy
-	}
-	importStrategyReturnsOnCall map[int]struct {
-		result1 baggageclaim.ImportStrategy
 	}
 	InitializeArtifactStub        func(string, int) (db.WorkerArtifact, error)
 	initializeArtifactMutex       sync.RWMutex
@@ -106,16 +96,6 @@ type FakeVolume struct {
 	}
 	initializeTaskCacheReturnsOnCall map[int]struct {
 		result1 error
-	}
-	ParentHandleStub        func() string
-	parentHandleMutex       sync.RWMutex
-	parentHandleArgsForCall []struct {
-	}
-	parentHandleReturns struct {
-		result1 string
-	}
-	parentHandleReturnsOnCall map[int]struct {
-		result1 string
 	}
 	PathStub        func() string
 	pathMutex       sync.RWMutex
@@ -203,55 +183,55 @@ type FakeVolume struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeVolume) COWStrategy() baggageclaim.COWStrategy {
-	fake.cOWStrategyMutex.Lock()
-	ret, specificReturn := fake.cOWStrategyReturnsOnCall[len(fake.cOWStrategyArgsForCall)]
-	fake.cOWStrategyArgsForCall = append(fake.cOWStrategyArgsForCall, struct {
+func (fake *FakeVolume) CopyStrategy() baggageclaim.Strategy {
+	fake.copyStrategyMutex.Lock()
+	ret, specificReturn := fake.copyStrategyReturnsOnCall[len(fake.copyStrategyArgsForCall)]
+	fake.copyStrategyArgsForCall = append(fake.copyStrategyArgsForCall, struct {
 	}{})
-	fake.recordInvocation("COWStrategy", []interface{}{})
-	fake.cOWStrategyMutex.Unlock()
-	if fake.COWStrategyStub != nil {
-		return fake.COWStrategyStub()
+	fake.recordInvocation("CopyStrategy", []interface{}{})
+	fake.copyStrategyMutex.Unlock()
+	if fake.CopyStrategyStub != nil {
+		return fake.CopyStrategyStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cOWStrategyReturns
+	fakeReturns := fake.copyStrategyReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeVolume) COWStrategyCallCount() int {
-	fake.cOWStrategyMutex.RLock()
-	defer fake.cOWStrategyMutex.RUnlock()
-	return len(fake.cOWStrategyArgsForCall)
+func (fake *FakeVolume) CopyStrategyCallCount() int {
+	fake.copyStrategyMutex.RLock()
+	defer fake.copyStrategyMutex.RUnlock()
+	return len(fake.copyStrategyArgsForCall)
 }
 
-func (fake *FakeVolume) COWStrategyCalls(stub func() baggageclaim.COWStrategy) {
-	fake.cOWStrategyMutex.Lock()
-	defer fake.cOWStrategyMutex.Unlock()
-	fake.COWStrategyStub = stub
+func (fake *FakeVolume) CopyStrategyCalls(stub func() baggageclaim.Strategy) {
+	fake.copyStrategyMutex.Lock()
+	defer fake.copyStrategyMutex.Unlock()
+	fake.CopyStrategyStub = stub
 }
 
-func (fake *FakeVolume) COWStrategyReturns(result1 baggageclaim.COWStrategy) {
-	fake.cOWStrategyMutex.Lock()
-	defer fake.cOWStrategyMutex.Unlock()
-	fake.COWStrategyStub = nil
-	fake.cOWStrategyReturns = struct {
-		result1 baggageclaim.COWStrategy
+func (fake *FakeVolume) CopyStrategyReturns(result1 baggageclaim.Strategy) {
+	fake.copyStrategyMutex.Lock()
+	defer fake.copyStrategyMutex.Unlock()
+	fake.CopyStrategyStub = nil
+	fake.copyStrategyReturns = struct {
+		result1 baggageclaim.Strategy
 	}{result1}
 }
 
-func (fake *FakeVolume) COWStrategyReturnsOnCall(i int, result1 baggageclaim.COWStrategy) {
-	fake.cOWStrategyMutex.Lock()
-	defer fake.cOWStrategyMutex.Unlock()
-	fake.COWStrategyStub = nil
-	if fake.cOWStrategyReturnsOnCall == nil {
-		fake.cOWStrategyReturnsOnCall = make(map[int]struct {
-			result1 baggageclaim.COWStrategy
+func (fake *FakeVolume) CopyStrategyReturnsOnCall(i int, result1 baggageclaim.Strategy) {
+	fake.copyStrategyMutex.Lock()
+	defer fake.copyStrategyMutex.Unlock()
+	fake.CopyStrategyStub = nil
+	if fake.copyStrategyReturnsOnCall == nil {
+		fake.copyStrategyReturnsOnCall = make(map[int]struct {
+			result1 baggageclaim.Strategy
 		})
 	}
-	fake.cOWStrategyReturnsOnCall[i] = struct {
-		result1 baggageclaim.COWStrategy
+	fake.copyStrategyReturnsOnCall[i] = struct {
+		result1 baggageclaim.Strategy
 	}{result1}
 }
 
@@ -420,58 +400,6 @@ func (fake *FakeVolume) HandleReturnsOnCall(i int, result1 string) {
 	}
 	fake.handleReturnsOnCall[i] = struct {
 		result1 string
-	}{result1}
-}
-
-func (fake *FakeVolume) ImportStrategy() baggageclaim.ImportStrategy {
-	fake.importStrategyMutex.Lock()
-	ret, specificReturn := fake.importStrategyReturnsOnCall[len(fake.importStrategyArgsForCall)]
-	fake.importStrategyArgsForCall = append(fake.importStrategyArgsForCall, struct {
-	}{})
-	fake.recordInvocation("ImportStrategy", []interface{}{})
-	fake.importStrategyMutex.Unlock()
-	if fake.ImportStrategyStub != nil {
-		return fake.ImportStrategyStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.importStrategyReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeVolume) ImportStrategyCallCount() int {
-	fake.importStrategyMutex.RLock()
-	defer fake.importStrategyMutex.RUnlock()
-	return len(fake.importStrategyArgsForCall)
-}
-
-func (fake *FakeVolume) ImportStrategyCalls(stub func() baggageclaim.ImportStrategy) {
-	fake.importStrategyMutex.Lock()
-	defer fake.importStrategyMutex.Unlock()
-	fake.ImportStrategyStub = stub
-}
-
-func (fake *FakeVolume) ImportStrategyReturns(result1 baggageclaim.ImportStrategy) {
-	fake.importStrategyMutex.Lock()
-	defer fake.importStrategyMutex.Unlock()
-	fake.ImportStrategyStub = nil
-	fake.importStrategyReturns = struct {
-		result1 baggageclaim.ImportStrategy
-	}{result1}
-}
-
-func (fake *FakeVolume) ImportStrategyReturnsOnCall(i int, result1 baggageclaim.ImportStrategy) {
-	fake.importStrategyMutex.Lock()
-	defer fake.importStrategyMutex.Unlock()
-	fake.ImportStrategyStub = nil
-	if fake.importStrategyReturnsOnCall == nil {
-		fake.importStrategyReturnsOnCall = make(map[int]struct {
-			result1 baggageclaim.ImportStrategy
-		})
-	}
-	fake.importStrategyReturnsOnCall[i] = struct {
-		result1 baggageclaim.ImportStrategy
 	}{result1}
 }
 
@@ -660,58 +588,6 @@ func (fake *FakeVolume) InitializeTaskCacheReturnsOnCall(i int, result1 error) {
 	}
 	fake.initializeTaskCacheReturnsOnCall[i] = struct {
 		result1 error
-	}{result1}
-}
-
-func (fake *FakeVolume) ParentHandle() string {
-	fake.parentHandleMutex.Lock()
-	ret, specificReturn := fake.parentHandleReturnsOnCall[len(fake.parentHandleArgsForCall)]
-	fake.parentHandleArgsForCall = append(fake.parentHandleArgsForCall, struct {
-	}{})
-	fake.recordInvocation("ParentHandle", []interface{}{})
-	fake.parentHandleMutex.Unlock()
-	if fake.ParentHandleStub != nil {
-		return fake.ParentHandleStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.parentHandleReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeVolume) ParentHandleCallCount() int {
-	fake.parentHandleMutex.RLock()
-	defer fake.parentHandleMutex.RUnlock()
-	return len(fake.parentHandleArgsForCall)
-}
-
-func (fake *FakeVolume) ParentHandleCalls(stub func() string) {
-	fake.parentHandleMutex.Lock()
-	defer fake.parentHandleMutex.Unlock()
-	fake.ParentHandleStub = stub
-}
-
-func (fake *FakeVolume) ParentHandleReturns(result1 string) {
-	fake.parentHandleMutex.Lock()
-	defer fake.parentHandleMutex.Unlock()
-	fake.ParentHandleStub = nil
-	fake.parentHandleReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeVolume) ParentHandleReturnsOnCall(i int, result1 string) {
-	fake.parentHandleMutex.Lock()
-	defer fake.parentHandleMutex.Unlock()
-	fake.ParentHandleStub = nil
-	if fake.parentHandleReturnsOnCall == nil {
-		fake.parentHandleReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.parentHandleReturnsOnCall[i] = struct {
-		result1 string
 	}{result1}
 }
 
@@ -1124,24 +1000,20 @@ func (fake *FakeVolume) WorkerNameReturnsOnCall(i int, result1 string) {
 func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.cOWStrategyMutex.RLock()
-	defer fake.cOWStrategyMutex.RUnlock()
+	fake.copyStrategyMutex.RLock()
+	defer fake.copyStrategyMutex.RUnlock()
 	fake.createChildForContainerMutex.RLock()
 	defer fake.createChildForContainerMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
 	fake.handleMutex.RLock()
 	defer fake.handleMutex.RUnlock()
-	fake.importStrategyMutex.RLock()
-	defer fake.importStrategyMutex.RUnlock()
 	fake.initializeArtifactMutex.RLock()
 	defer fake.initializeArtifactMutex.RUnlock()
 	fake.initializeResourceCacheMutex.RLock()
 	defer fake.initializeResourceCacheMutex.RUnlock()
 	fake.initializeTaskCacheMutex.RLock()
 	defer fake.initializeTaskCacheMutex.RUnlock()
-	fake.parentHandleMutex.RLock()
-	defer fake.parentHandleMutex.RUnlock()
 	fake.pathMutex.RLock()
 	defer fake.pathMutex.RUnlock()
 	fake.propertiesMutex.RLock()
