@@ -76,7 +76,7 @@ type CFTeamFlags struct {
 	SpacesDeveloper  []string `long:"space-with-developer-role" description:"A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_developer_role"`
 	SpacesAuditor    []string `long:"space-with-auditor-role" description:"A whitelisted CloudFoundry space for users with the 'auditor' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_auditor_role"`
 	SpacesManager    []string `long:"space-with-manager-role" description:"A whitelisted CloudFoundry space for users with the 'manager' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_manager_role"`
-	SpaceGuids       []string `long:"space-guid" description:"(Deprecated) A whitelisted CloudFoundry space guid" value-name:"SPACE_GUID" mapstructure:"space_guids"`
+	SpaceGuids       []string `long:"space-guid" description:"A whitelisted CloudFoundry space guid" value-name:"SPACE_GUID" mapstructure:"space_guids"`
 	SpaceGuidsLegacy []string `mapstructure:"spaceguids"`
 }
 
