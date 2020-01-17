@@ -1585,7 +1585,7 @@ var _ = Describe("Team", func() {
 							{
 								Task:       "some-task",
 								Privileged: true,
-								ConfigPath: "some/config/path.yml",
+								File:       "some/config/path.yml",
 								TaskConfig: &atc.TaskConfig{
 									RootfsURI: "some-image",
 								},
@@ -2011,7 +2011,7 @@ var _ = Describe("Team", func() {
 						{
 							Task:       "some-task",
 							Privileged: true,
-							ConfigPath: "some/config/path.yml",
+							File:       "some/config/path.yml",
 							TaskConfig: &atc.TaskConfig{
 								RootfsURI: "some-image",
 							},
@@ -2129,8 +2129,8 @@ var _ = Describe("Team", func() {
 					Name: "some-job",
 					Plan: atc.PlanSequence{
 						{
-							Task:       "some-other-task",
-							ConfigPath: "some/config/path.yml",
+							Task: "some-other-task",
+							File: "some/config/path.yml",
 						},
 					},
 				},
@@ -2178,8 +2178,8 @@ var _ = Describe("Team", func() {
 					Name: "some-job",
 					Plan: atc.PlanSequence{
 						{
-							Task:       "some-other-task",
-							ConfigPath: "some/config/path.yml",
+							Task: "some-other-task",
+							File: "some/config/path.yml",
 						},
 					},
 				},
@@ -2726,8 +2726,8 @@ var _ = Describe("Team", func() {
 						},
 					},
 					{
-						Task:       "some-task",
-						ConfigPath: "new/config/path.yml",
+						Task: "some-task",
+						File: "new/config/path.yml",
 					},
 				},
 			})

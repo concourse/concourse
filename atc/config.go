@@ -428,7 +428,7 @@ type PlanConfig struct {
 	VarFiles    []string `json:"var_files,omitempty"`
 
 	// config path, e.g. foo/build.yml. Multiple steps might have this field, e.g. Task step and SetPipeline step.
-	ConfigPath string `json:"file,omitempty"`
+	File string `json:"file,omitempty"`
 	// variables, Multiple steps might have this field, e.g. Task step and SetPipeline step.
 	Vars Params `json:"vars,omitempty"`
 

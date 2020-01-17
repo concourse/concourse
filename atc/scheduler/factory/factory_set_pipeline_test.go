@@ -42,7 +42,7 @@ var _ = Describe("Factory SetPipeline Step", func() {
 				Plan: atc.PlanSequence{
 					{
 						SetPipeline: "some-pipeline",
-						ConfigPath:  "some-file",
+						File:        "some-file",
 						VarFiles:    []string{"vf1", "vf2"},
 						Vars:        map[string]interface{}{"k1": "v1"},
 					},

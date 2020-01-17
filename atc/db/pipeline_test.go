@@ -78,14 +78,14 @@ var _ = Describe("Pipeline", func() {
 						{
 							Task:       "some-task",
 							Privileged: true,
-							ConfigPath: "some/config/path.yml",
+							File:       "some/config/path.yml",
 							TaskConfig: &atc.TaskConfig{
 								RootfsURI: "some-image",
 							},
 						},
 						{
 							SetPipeline: "some-pipeline",
-							ConfigPath:  "some-file",
+							File:        "some-file",
 							VarFiles:    []string{"var-file1", "var-file2"},
 							Vars: map[string]interface{}{
 								"k1": "v1",
@@ -441,7 +441,7 @@ var _ = Describe("Pipeline", func() {
 							{
 								Task:       "some-task",
 								Privileged: true,
-								ConfigPath: "some/config/path.yml",
+								File:       "some/config/path.yml",
 								TaskConfig: &atc.TaskConfig{
 									RootfsURI: "some-image",
 								},
