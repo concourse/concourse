@@ -63,7 +63,20 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 		return false, fmt.Errorf("get pending builds: %w", err)
 	}
 
-	schedulableBuilds := s.constructBuilds(job, jobInputs, resources, relatedJobs, nextPendingBuilds)
+	schedulableBuilds, rerunBuilds := s.constructBuilds(job, jobInputs, resources, relatedJobs, nextPendingBuilds)
+
+	// try to schedule the rerun builds separately from the scheduler builds in
+	// order to continue to schedule if the rerun builds do not start
+	for _, rerunBuild := range rerunBuilds {
+		results, err := s.tryStartNextPendingBuild(logger, pipeline, rerunBuild, job, resources)
+		if err != nil {
+			return false, err
+		}
+
+		if results.needsRetry {
+			return true, nil
+		}
+	}
 
 	for _, nextSchedulableBuild := range schedulableBuilds {
 		results, err := s.tryStartNextPendingBuild(logger, pipeline, nextSchedulableBuild, job, resources)
@@ -84,8 +97,9 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	return false, nil
 }
 
-func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
-	schedulableBuilds := []Build{}
+func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) ([]Build, []Build) {
+	var schedulableBuilds []Build
+	var rerunBuilds []Build
 
 	for _, nextPendingBuild := range builds {
 		if nextPendingBuild.IsManuallyTriggered() {
@@ -98,7 +112,7 @@ func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, res
 				relatedJobIDs: relatedJobIDs,
 			})
 		} else if nextPendingBuild.RerunOf() != 0 {
-			schedulableBuilds = append(schedulableBuilds, &rerunBuild{
+			rerunBuilds = append(rerunBuilds, &rerunBuild{
 				Build: nextPendingBuild,
 			})
 		} else {
@@ -108,7 +122,7 @@ func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, res
 		}
 	}
 
-	return schedulableBuilds
+	return schedulableBuilds, rerunBuilds
 }
 
 type startResults struct {

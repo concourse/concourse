@@ -1228,6 +1228,9 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 			QueryRow().
 			Scan(&versionBlob)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, false, nil
+			}
 			return nil, false, err
 		}
 
