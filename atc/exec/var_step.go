@@ -79,7 +79,7 @@ func (step *VarStep) Run(ctx context.Context, state RunState) error {
 
 	fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the var step is experimental and subject to change!\x1b[0m")
 	fmt.Fprintln(stderr, "")
-	fmt.Fprintln(stderr, "\x1b[33mfollow RFC #42 for updates: https://github.com/concourse/rfcs/pull/42\x1b[0m")
+	fmt.Fprintln(stderr, "\x1b[33mfollow RFC #27 for updates: https://github.com/concourse/rfcs/pull/27\x1b[0m")
 	fmt.Fprintln(stderr, "")
 
 	step.delegate.Starting(logger)
