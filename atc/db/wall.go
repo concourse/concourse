@@ -2,8 +2,10 @@ package db
 
 import (
 	"database/sql"
-	sq "github.com/Masterminds/squirrel"
+
 	"github.com/concourse/concourse/atc"
+
+	sq "github.com/Masterminds/squirrel"
 )
 
 //go:generate counterfeiter . Wall

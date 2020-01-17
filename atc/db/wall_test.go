@@ -1,11 +1,13 @@
 package db_test
 
 import (
+	"time"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"time"
 )
 
 var _ = Describe("Wall", func() {
@@ -28,7 +30,7 @@ var _ = Describe("Wall", func() {
 			})
 
 			It("successfully gets the wall", func() {
-				_  = dbWall.SetWall(msgOnly)
+				_ = dbWall.SetWall(msgOnly)
 				actualWall, err := dbWall.GetWall()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakeClock.NowCallCount()).To(Equal(1))
