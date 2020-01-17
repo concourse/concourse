@@ -105,9 +105,9 @@ const (
 
 	ListActiveUsersSince = "ListActiveUsersSince"
 
-	SetWall           = "SetWall"
-	GetWall           = "GetWall"
-	ClearWall         = "ClearWall"
+	SetWall   = "SetWall"
+	GetWall   = "GetWall"
+	ClearWall = "ClearWall"
 )
 
 const (

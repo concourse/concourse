@@ -3,12 +3,14 @@ package api_test
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/concourse/concourse/atc"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/concourse/concourse/atc"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Wall API", func() {
@@ -38,7 +40,6 @@ var _ = Describe("Wall API", func() {
 
 			It("returns only message", func() {
 				Expect(dbWall.GetWallCallCount()).To(Equal(1))
-
 				Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"message":"test message"}`))
 			})
 		})
@@ -106,7 +107,6 @@ var _ = Describe("Wall API", func() {
 
 				It("sets the message and expiration", func() {
 					Expect(dbWall.SetWallCallCount()).To(Equal(1))
-
 					Expect(dbWall.SetWallArgsForCall(0)).To(Equal(expectedWall))
 				})
 			})

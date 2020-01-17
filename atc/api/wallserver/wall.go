@@ -2,8 +2,9 @@ package wallserver
 
 import (
 	"encoding/json"
-	"github.com/concourse/concourse/atc"
 	"net/http"
+
+	"github.com/concourse/concourse/atc"
 )
 
 func (s *Server) GetWall(w http.ResponseWriter, r *http.Request) {

@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"github.com/concourse/concourse/atc/db/dbfakes"
 	"os"
 	"testing"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
