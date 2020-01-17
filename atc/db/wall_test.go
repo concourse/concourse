@@ -20,74 +20,98 @@ var _ = Describe("Wall", func() {
 			fakeClock = dbfakes.FakeClock{}
 			fakeClock.NowReturns(startTime)
 		})
-		It("with no expiration", func() {
-			err := dbWall.SetWall(msgOnly)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(fakeClock.NowCallCount()).To(Equal(0))
-
-			wall, err := dbWall.GetWall()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(fakeClock.NowCallCount()).To(Equal(1))
-			Expect(wall.Message).To(Equal(msgOnly.Message))
-			Expect(wall.TTL).To(Equal(time.Duration(0)))
-		})
-		Context("with an expiration", func() {
-			It("the message has not expired", func() {
-				err := dbWall.SetWall(msgWithTTL)
+		Context("with no expiration", func() {
+			It("successfully sets the wall", func() {
+				err := dbWall.SetWall(msgOnly)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(fakeClock.NowCallCount()).To(Equal(1))
-
-				fakeClock.NowReturns(startTime.Add(time.Second))
-				fakeClock.UntilReturns(30 * time.Second)
-				wall, err := dbWall.GetWall()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fakeClock.NowCallCount()).To(Equal(2))
-				Expect(fakeClock.UntilCallCount()).To(Equal(1))
-				Expect(wall.Message).To(Equal(msgWithTTL.Message))
-				Expect(wall.TTL > 0).To(Equal(true), "TTL is set")
+				Expect(fakeClock.NowCallCount()).To(Equal(0))
 			})
 
-			It("the message has expired", func() {
+			It("successfully gets the wall", func() {
+				_  = dbWall.SetWall(msgOnly)
+				actualWall, err := dbWall.GetWall()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fakeClock.NowCallCount()).To(Equal(1))
+				Expect(actualWall).To(Equal(msgOnly))
+			})
+
+		})
+		Context("with an expiration", func() {
+			It("successfully sets the wall", func() {
 				err := dbWall.SetWall(msgWithTTL)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakeClock.NowCallCount()).To(Equal(1))
+			})
 
-				fakeClock.NowReturns(startTime.Add(time.Hour))
-				wall, err := dbWall.GetWall()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fakeClock.NowCallCount()).To(Equal(2))
-				Expect(wall.Message).To(Equal(""))
-				Expect(wall.TTL).To(Equal(time.Duration(0)))
+			Context("the message has not expired", func() {
+				Context("and gets a wall", func() {
+					BeforeEach(func() {
+						fakeClock.NowReturns(startTime.Add(time.Second))
+						fakeClock.UntilReturns(30 * time.Second)
+					})
+
+					Specify("successfully", func() {
+						_ = dbWall.SetWall(msgWithTTL)
+						_, err := dbWall.GetWall()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(fakeClock.NowCallCount()).To(Equal(2))
+						Expect(fakeClock.UntilCallCount()).To(Equal(1))
+					})
+
+					Specify("with the TTL field set", func() {
+						_ = dbWall.SetWall(msgWithTTL)
+
+						actualWall, _ := dbWall.GetWall()
+						msgWithTTL.TTL = 30 * time.Second
+						Expect(actualWall).To(Equal(msgWithTTL))
+					})
+				})
+			})
+
+			Context("the message has expired", func() {
+				It("returns no message", func() {
+					_ = dbWall.SetWall(msgWithTTL)
+					fakeClock.NowReturns(startTime.Add(time.Hour))
+
+					actualWall, err := dbWall.GetWall()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(fakeClock.NowCallCount()).To(Equal(2))
+					Expect(actualWall).To(Equal(atc.Wall{}))
+				})
 			})
 		})
 	})
 
 	Context("multiple messages are set", func() {
 		It("returns the last message that was set", func() {
+			expectedWall := atc.Wall{Message: "test 3"}
 			dbWall.SetWall(atc.Wall{Message: "test 1"})
 			dbWall.SetWall(atc.Wall{Message: "test 2"})
-			dbWall.SetWall(atc.Wall{Message: "test 3"})
+			dbWall.SetWall(expectedWall)
 
-			wall, err := dbWall.GetWall()
+			actualWall, err := dbWall.GetWall()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(wall.Message).To(Equal("test 3"))
-			Expect(wall.TTL).To(Equal(time.Duration(0)))
+			Expect(actualWall).To(Equal(expectedWall))
 		})
 	})
 
-	Context("clear the message", func() {
-		It("returns no message", func() {
+	Context("clearing the wall", func() {
+		BeforeEach(func() {
 			dbWall.SetWall(msgOnly)
-			wall, err := dbWall.GetWall()
+			actualWall, err := dbWall.GetWall()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(wall).To(Equal(msgOnly), "check: ensure the message has been set before proceeding")
+			Expect(actualWall).To(Equal(msgOnly), "ensure the message has been set before proceeding")
+		})
+		It("returns no error", func() {
+			err := dbWall.Clear()
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("GetWall returns no message after clearing the wall", func() {
+			_ = dbWall.Clear()
 
-			err = dbWall.Clear()
+			actualWall, err := dbWall.GetWall()
 			Expect(err).ToNot(HaveOccurred())
-			wall, err = dbWall.GetWall()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(wall.Message).To(Equal(""))
-			Expect(wall.TTL).To(Equal(time.Duration(0)))
+			Expect(actualWall).To(Equal(atc.Wall{}))
 		})
 	})
 })
