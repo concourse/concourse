@@ -1,0 +1,34 @@
+---
+resources:
+- name: resource-using-vars
+  type: mock
+  source:
+    create_files:
+      data: hello-world
+
+jobs:
+- name: use-var
+  plan:
+  - get: resource-using-vars
+
+  - var: local-var
+    file: resource-using-vars/data
+    format: raw
+
+  - task: use-vars
+    config:
+      platform: linux
+
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+
+      inputs:
+      - name: resource-using-vars
+
+      run:
+        path: sh
+        args:
+        - -exc
+        - |
+          test "((local-var))" = "hello-world"
