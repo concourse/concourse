@@ -326,6 +326,20 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 				)
 			}
 		}
+
+		// Within a job, each "var" step should have a unique name.
+		varStepNames := map[string]interface{}{}
+		for _, plan := range job.Plan {
+			if plan.Var != "" {
+				if _, ok := varStepNames[plan.Var]; ok {
+					errorMessages = append(
+						errorMessages,
+						fmt.Sprintf("%s has var steps with the same name: %s", identifier, plan.Var),
+					)
+				}
+				varStepNames[plan.Var] = true
+			}
+		}
 	}
 
 	return warnings, compositeErr(errorMessages)
@@ -382,6 +396,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		foundTypes.Find("set_pipeline")
 	}
 
+	if plan.Var != "" {
+		foundTypes.Find("var")
+	}
+
 	if plan.Do != nil {
 		foundTypes.Find("do")
 	}
@@ -396,10 +414,6 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 
 	if plan.Try != nil {
 		foundTypes.Find("try")
-	}
-
-	if plan.Var != "" {
-		foundTypes.Find("var")
 	}
 
 	if valid, message := foundTypes.IsValid(); !valid {

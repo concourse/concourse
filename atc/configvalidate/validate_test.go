@@ -70,6 +70,10 @@ var _ = Describe("ValidateConfig", func() {
 							},
 						},
 						{
+							Var:        "some-var",
+							ConfigPath: "some-input/some-file.json",
+						},
+						{
 							Task:       "some-task",
 							Privileged: true,
 							ConfigPath: "some/config/path.yml",
@@ -1451,6 +1455,40 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.passed references a job ('some-empty-job') which doesn't interact with the resource ('some-resource')"))
+				})
+			})
+
+			Context("when a var has not defined 'File'", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, PlanConfig{
+						Var: "a-var",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].var.a-var does not specify any file"))
+				})
+			})
+
+			Context("when two var steps have same name", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, PlanConfig{
+						Var: "a-var",
+						ConfigPath: "file1",
+					}, PlanConfig {
+						Var: "a-var",
+						ConfigPath: "file1",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job has var steps with the same name: a-var"))
 				})
 			})
 		})

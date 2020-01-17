@@ -30,6 +30,7 @@ all =
     describe "StepTree"
         [ initTask
         , initSetPipeline
+        , initVar
         , initGet
         , initPut
         , initAggregate
@@ -123,6 +124,31 @@ initSetPipeline =
                     (Models.SetPipeline (someStep "some-id" "some-name" Models.StepStateSucceeded))
         ]
 
+
+initVar : Test
+initVar =
+    let
+        { tree, foci } =
+            StepTree.init Routes.HighlightNothing
+                emptyResources
+                { id = "some-id"
+                , step = BuildStepVar "some-name"
+                }
+    in
+    describe "init with Var"
+        [ test "the tree" <|
+            \_ ->
+                Expect.equal
+                    (Models.Var (someStep "some-id" "some-name" Models.StepStatePending))
+                    tree
+        , test "using the focus" <|
+            \_ ->
+                assertFocus "some-id"
+                    foci
+                    tree
+                    (\s -> { s | state = Models.StepStateSucceeded })
+                    (Models.Var (someStep "some-id" "some-name" Models.StepStateSucceeded))
+        ]
 
 initGet : Test
 initGet =
@@ -614,6 +640,9 @@ updateStep f tree =
 
         Models.SetPipeline step ->
             Models.SetPipeline (f step)
+
+        Models.Var step ->
+            Models.Var (f step)
 
         Models.Get step ->
             Models.Get (f step)

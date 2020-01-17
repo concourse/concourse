@@ -221,6 +221,13 @@ all =
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeThePipelineName
             ]
+        , describe "var step"
+            [ test "should show var name" <|
+                given iVisitABuildWithAVarStep
+                    >> given theVarStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeTheVarName
+            ]
         ]
 
 
@@ -248,6 +255,10 @@ iVisitABuildWithASetPipelineStep =
         >> myBrowserFetchedTheBuild
         >> thePlanContainsASetPipelineStep
 
+iVisitABuildWithAVarStep =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsAVarStep
 
 theGetStepIsExpanded =
     Tuple.first
@@ -263,6 +274,9 @@ theSetPipelineStepIsExpanded =
     Tuple.first
         >> Application.update (Update <| Message.Click <| StepHeader setPipelineStepId)
 
+theVarStepIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeader setVarStepId)
 
 thePlanContainsARetryStep =
     Tuple.first
@@ -330,6 +344,22 @@ thePlanContainsASetPipelineStep =
 setPipelineStepId =
     "setPipelineStep"
 
+thePlanContainsAVarStep =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = setVarStepId
+                      , step = Concourse.BuildStepVar "var-name"
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+setVarStepId =
+    "varStep"
 
 thePlanContainsAGetStep =
     Tuple.first
@@ -515,6 +545,8 @@ iSeeATimestamp =
 iSeeThePipelineName =
     Query.has [ text "pipeline-name" ]
 
+iSeeTheVarName =
+    Query.has [ text "var-name" ]
 
 iAmLookingAtTheSecondTab =
     iAmLookingAtTheTabList >> Query.children [] >> Query.index 1

@@ -46,9 +46,29 @@ func NewVarStep(
 	}
 }
 
+type UnspecifiedVarStepFileError struct {
+	File string
+}
+
+// Error returns a human-friendly error message.
+func (err UnspecifiedVarStepFileError) Error() string {
+	return fmt.Sprintf("file '%s' does not specify where the file lives", err.File)
+}
+
+type InvalidLocalVarFile struct {
+	File string
+	Format string
+	Err error
+}
+
+func (err InvalidLocalVarFile) Error() string {
+	return fmt.Sprintf("failed to parse %s in format %s: %s", err.File, err.Format, err.Err.Error())
+}
+
+
 func (step *VarStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
-	logger = logger.Session("put-step", lager.Data{
+	logger = logger.Session("var-step", lager.Data{
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
 	})
@@ -66,10 +86,7 @@ func (step *VarStep) Run(ctx context.Context, state RunState) error {
 
 	varFromFile, err := step.fetchVars(ctx, logger, step.plan.Name, step.plan.File, state)
 	if err != nil {
-		logger.Error("failed to fetch var file", err)
-		fmt.Fprintf(stderr, "failed to fetch var file %s: %s.\n", step.plan.File, err.Error())
-		step.delegate.Finished(logger, false)
-		return nil
+		return err
 	}
 	fmt.Fprintf(stdout, "var %s fetched.\n", step.plan.Name)
 
@@ -96,7 +113,7 @@ func (step *VarStep) fetchVars(
 
 	segs := strings.SplitN(file, "/", 2)
 	if len(segs) != 2 {
-		return nil, UnspecifiedArtifactSourceError{file}
+		return nil, UnspecifiedVarStepFileError{file}
 	}
 
 	artifactName := segs[0]
@@ -106,6 +123,7 @@ func (step *VarStep) fetchVars(
 	if err != nil {
 		return nil, err
 	}
+	logger.Debug("figure-out-format", lager.Data{"format": format})
 
 	art, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(artifactName))
 	if !found {
@@ -141,14 +159,14 @@ func (step *VarStep) fetchVars(
 		value := map[string]interface{}{}
 		err = json.Unmarshal(byteConfig, &value)
 		if err != nil {
-			return nil, err
+			return nil, InvalidLocalVarFile{file, "json", err}
 		}
 		varFromFile[varName] = value
 	case "yml", "yaml":
 		value := map[string]interface{}{}
 		err = yaml.Unmarshal(byteConfig, &value)
 		if err != nil {
-			return nil, err
+			return nil, InvalidLocalVarFile{file, "yaml", err}
 		}
 		varFromFile[varName] = value
 	case "raw":
