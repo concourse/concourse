@@ -20,8 +20,7 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
-// SetPipelineStep sets a pipeline to current team. This step takes pipeline
-// configure file and var files from some resource in the pipeline, like git.
+// VarStep loads a value from a file and sets it as a build-local var.
 type VarStep struct {
 	planID    atc.PlanID
 	plan      atc.VarPlan
@@ -58,12 +57,17 @@ func (step *VarStep) Run(ctx context.Context, state RunState) error {
 	stdout := step.delegate.Stdout()
 	stderr := step.delegate.Stderr()
 
+	fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the var step is experimental and subject to change!\x1b[0m")
+	fmt.Fprintln(stderr, "")
+	fmt.Fprintln(stderr, "\x1b[33mfollow RFC #42 for updates: https://github.com/concourse/rfcs/pull/42\x1b[0m")
+	fmt.Fprintln(stderr, "")
+
 	step.delegate.Starting(logger)
 
 	varFromFile, err := step.fetchVars(ctx, logger, step.plan.Name, step.plan.File, state)
 	if err != nil {
 		logger.Error("failed to fetch var file", err)
-		fmt.Fprint(stderr, "failed to fetch var file %s: %s.\n", step.plan.File, err.Error())
+		fmt.Fprintf(stderr, "failed to fetch var file %s: %s.\n", step.plan.File, err.Error())
 		step.delegate.Finished(logger, false)
 		return nil
 	}
@@ -82,7 +86,14 @@ func (step *VarStep) Succeeded() bool {
 	return step.succeeded
 }
 
-func (step *VarStep) fetchVars(ctx context.Context, logger lager.Logger, varName string, file string, state RunState) (vars.Variables, error) {
+func (step *VarStep) fetchVars(
+	ctx context.Context,
+	logger lager.Logger,
+	varName string,
+	file string,
+	state RunState,
+) (vars.Variables, error) {
+
 	segs := strings.SplitN(file, "/", 2)
 	if len(segs) != 2 {
 		return nil, UnspecifiedArtifactSourceError{file}
@@ -90,6 +101,11 @@ func (step *VarStep) fetchVars(ctx context.Context, logger lager.Logger, varName
 
 	artifactName := segs[0]
 	filePath := segs[1]
+
+	format, err := step.fileFormat(file)
+	if err != nil {
+		return nil, err
+	}
 
 	art, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(artifactName))
 	if !found {
@@ -113,25 +129,57 @@ func (step *VarStep) fetchVars(ctx context.Context, logger lager.Logger, varName
 		return nil, err
 	}
 
+	if step.plan.Dump {
+		fmt.Fprintf(step.delegate.Stdout(),
+			"=== begin dump input file %s ===\n%s\n=== end dump ===\n\n",
+			step.plan.File, string(byteConfig))
+	}
+
 	varFromFile := vars.StaticVariables{}
-	switch filepath.Ext(filePath) {
-	case ".json":
+	switch format {
+	case "json":
 		value := map[string]interface{}{}
 		err = json.Unmarshal(byteConfig, &value)
 		if err != nil {
 			return nil, err
 		}
 		varFromFile[varName] = value
-	case ".yml", ".yaml":
+	case "yml", "yaml":
 		value := map[string]interface{}{}
 		err = yaml.Unmarshal(byteConfig, &value)
 		if err != nil {
 			return nil, err
 		}
 		varFromFile[varName] = value
-	default:
+	case "raw":
 		varFromFile[varName] = string(byteConfig)
+	default:
+		return nil, fmt.Errorf("unknown format %s, should never happen, ", format)
 	}
 
 	return varFromFile, nil
+}
+
+func (step *VarStep) fileFormat(file string) (string, error) {
+	if step.isValidFormat(step.plan.Format) {
+		return step.plan.Format, nil
+	} else if step.plan.Format != "" {
+		return "", fmt.Errorf("invalid format %s", step.plan.Format)
+	}
+
+	fileExt := filepath.Ext(file)
+	format := strings.TrimPrefix(fileExt, ".")
+	if step.isValidFormat(format) {
+		return format, nil
+	}
+
+	return "raw", nil
+}
+
+func (step *VarStep) isValidFormat(format string) bool {
+	switch format {
+	case "raw", "yml", "yaml", "json":
+		return true
+	}
+	return false
 }

@@ -839,7 +839,7 @@ viewStepHeaderLabel headerType stepID =
                     "set_pipeline:"
 
                 StepHeaderVar ->
-                    "var"
+                    "var:"
         ]
 
 

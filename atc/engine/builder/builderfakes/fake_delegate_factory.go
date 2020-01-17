@@ -90,6 +90,19 @@ type FakeDelegateFactory struct {
 	taskDelegateReturnsOnCall map[int]struct {
 		result1 exec.TaskDelegate
 	}
+	VarDelegateStub        func(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate
+	varDelegateMutex       sync.RWMutex
+	varDelegateArgsForCall []struct {
+		arg1 db.Build
+		arg2 atc.PlanID
+		arg3 vars.CredVarsTracker
+	}
+	varDelegateReturns struct {
+		result1 exec.BuildStepDelegate
+	}
+	varDelegateReturnsOnCall map[int]struct {
+		result1 exec.BuildStepDelegate
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -466,6 +479,68 @@ func (fake *FakeDelegateFactory) TaskDelegateReturnsOnCall(i int, result1 exec.T
 	}{result1}
 }
 
+func (fake *FakeDelegateFactory) VarDelegate(arg1 db.Build, arg2 atc.PlanID, arg3 vars.CredVarsTracker) exec.BuildStepDelegate {
+	fake.varDelegateMutex.Lock()
+	ret, specificReturn := fake.varDelegateReturnsOnCall[len(fake.varDelegateArgsForCall)]
+	fake.varDelegateArgsForCall = append(fake.varDelegateArgsForCall, struct {
+		arg1 db.Build
+		arg2 atc.PlanID
+		arg3 vars.CredVarsTracker
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("VarDelegate", []interface{}{arg1, arg2, arg3})
+	fake.varDelegateMutex.Unlock()
+	if fake.VarDelegateStub != nil {
+		return fake.VarDelegateStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.varDelegateReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeDelegateFactory) VarDelegateCallCount() int {
+	fake.varDelegateMutex.RLock()
+	defer fake.varDelegateMutex.RUnlock()
+	return len(fake.varDelegateArgsForCall)
+}
+
+func (fake *FakeDelegateFactory) VarDelegateCalls(stub func(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate) {
+	fake.varDelegateMutex.Lock()
+	defer fake.varDelegateMutex.Unlock()
+	fake.VarDelegateStub = stub
+}
+
+func (fake *FakeDelegateFactory) VarDelegateArgsForCall(i int) (db.Build, atc.PlanID, vars.CredVarsTracker) {
+	fake.varDelegateMutex.RLock()
+	defer fake.varDelegateMutex.RUnlock()
+	argsForCall := fake.varDelegateArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeDelegateFactory) VarDelegateReturns(result1 exec.BuildStepDelegate) {
+	fake.varDelegateMutex.Lock()
+	defer fake.varDelegateMutex.Unlock()
+	fake.VarDelegateStub = nil
+	fake.varDelegateReturns = struct {
+		result1 exec.BuildStepDelegate
+	}{result1}
+}
+
+func (fake *FakeDelegateFactory) VarDelegateReturnsOnCall(i int, result1 exec.BuildStepDelegate) {
+	fake.varDelegateMutex.Lock()
+	defer fake.varDelegateMutex.Unlock()
+	fake.VarDelegateStub = nil
+	if fake.varDelegateReturnsOnCall == nil {
+		fake.varDelegateReturnsOnCall = make(map[int]struct {
+			result1 exec.BuildStepDelegate
+		})
+	}
+	fake.varDelegateReturnsOnCall[i] = struct {
+		result1 exec.BuildStepDelegate
+	}{result1}
+}
+
 func (fake *FakeDelegateFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -481,6 +556,8 @@ func (fake *FakeDelegateFactory) Invocations() map[string][][]interface{} {
 	defer fake.setPipelineDelegateMutex.RUnlock()
 	fake.taskDelegateMutex.RLock()
 	defer fake.taskDelegateMutex.RUnlock()
+	fake.varDelegateMutex.RLock()
+	defer fake.varDelegateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

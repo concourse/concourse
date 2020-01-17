@@ -106,6 +106,19 @@ type FakeStepFactory struct {
 	taskStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
+	VarStepStub        func(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
+	varStepMutex       sync.RWMutex
+	varStepArgsForCall []struct {
+		arg1 atc.Plan
+		arg2 exec.StepMetadata
+		arg3 exec.BuildStepDelegate
+	}
+	varStepReturns struct {
+		result1 exec.Step
+	}
+	varStepReturnsOnCall map[int]struct {
+		result1 exec.Step
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -548,6 +561,68 @@ func (fake *FakeStepFactory) TaskStepReturnsOnCall(i int, result1 exec.Step) {
 	}{result1}
 }
 
+func (fake *FakeStepFactory) VarStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 exec.BuildStepDelegate) exec.Step {
+	fake.varStepMutex.Lock()
+	ret, specificReturn := fake.varStepReturnsOnCall[len(fake.varStepArgsForCall)]
+	fake.varStepArgsForCall = append(fake.varStepArgsForCall, struct {
+		arg1 atc.Plan
+		arg2 exec.StepMetadata
+		arg3 exec.BuildStepDelegate
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("VarStep", []interface{}{arg1, arg2, arg3})
+	fake.varStepMutex.Unlock()
+	if fake.VarStepStub != nil {
+		return fake.VarStepStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.varStepReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeStepFactory) VarStepCallCount() int {
+	fake.varStepMutex.RLock()
+	defer fake.varStepMutex.RUnlock()
+	return len(fake.varStepArgsForCall)
+}
+
+func (fake *FakeStepFactory) VarStepCalls(stub func(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step) {
+	fake.varStepMutex.Lock()
+	defer fake.varStepMutex.Unlock()
+	fake.VarStepStub = stub
+}
+
+func (fake *FakeStepFactory) VarStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) {
+	fake.varStepMutex.RLock()
+	defer fake.varStepMutex.RUnlock()
+	argsForCall := fake.varStepArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeStepFactory) VarStepReturns(result1 exec.Step) {
+	fake.varStepMutex.Lock()
+	defer fake.varStepMutex.Unlock()
+	fake.VarStepStub = nil
+	fake.varStepReturns = struct {
+		result1 exec.Step
+	}{result1}
+}
+
+func (fake *FakeStepFactory) VarStepReturnsOnCall(i int, result1 exec.Step) {
+	fake.varStepMutex.Lock()
+	defer fake.varStepMutex.Unlock()
+	fake.VarStepStub = nil
+	if fake.varStepReturnsOnCall == nil {
+		fake.varStepReturnsOnCall = make(map[int]struct {
+			result1 exec.Step
+		})
+	}
+	fake.varStepReturnsOnCall[i] = struct {
+		result1 exec.Step
+	}{result1}
+}
+
 func (fake *FakeStepFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -565,6 +640,8 @@ func (fake *FakeStepFactory) Invocations() map[string][][]interface{} {
 	defer fake.setPipelineStepMutex.RUnlock()
 	fake.taskStepMutex.RLock()
 	defer fake.taskStepMutex.RUnlock()
+	fake.varStepMutex.RLock()
+	defer fake.varStepMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -480,6 +480,12 @@ type PlanConfig struct {
 
 	// name of 'var' step
 	Var string `json:"var,omitempty"`
+
+	// format of input file.
+	Format string `json:"format,omitempty"`
+
+	// if or not dump local vars in 'var' step.
+	Dump bool `json:"dump,omitempty"`
 }
 
 func (config PlanConfig) Name() string {

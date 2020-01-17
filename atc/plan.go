@@ -147,8 +147,10 @@ type SetPipelinePlan struct {
 }
 
 type VarPlan struct {
-	Name string `json:"name"`
-	File string `json:"file"`
+	Name   string `json:"name"`
+	File   string `json:"file"`
+	Format string `json:"format,omitempty"`
+	Dump   bool   `json:"dump,omitempty"`
 }
 
 type RetryPlan []Plan
