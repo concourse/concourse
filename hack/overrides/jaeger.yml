@@ -1,0 +1,30 @@
+# jaeger.yml - a docker-compose override that adds 'jaeger to the stack.
+#
+# once running, head to `localhost:25000` to get access to the Jaeger UI.
+#
+# ref: https://www.jaegertracing.io/
+# ref: https://docs.docker.com/compose/extends/
+#
+version: '3'
+
+services:
+  web:
+    environment:
+      CONCOURSE_TRACING_JAEGER_COMPONENT: atc
+      CONCOURSE_TRACING_JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.14
+    command:
+      - --sampling.strategies-file=/etc/jaeger/sampling_strategies.json
+      - --log-level=debug
+    environment:
+      COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+    ports:
+      - '14268:14268'
+      - '25000:16686'
+      - '5775:5775/udp'
+      - '5778:5778'
+      - '6831:6831/udp'
+      - '6832:6832/udp'
+      - '9411:9411'
