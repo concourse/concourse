@@ -214,8 +214,8 @@ For GoLand you can do so by going to Run | Edit Configurations… | + | Go Remot
 ### Trying out distributed tracing with Jaeger
 
 Under `./hack`, a docker-compose override file named `jaeger.yml` provides the
-essentials to get [Jaeger] running alongside the other components, as well tying
-Concourse to it through the right environment variables.
+essentials to get [Jaeger] running alongside the other components, as well as
+tying Concourse to it through the right environment variables.
 
 [Jaeger]: https://jaegertracing.io
 
