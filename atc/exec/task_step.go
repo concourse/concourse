@@ -107,6 +107,21 @@ func NewTaskStep(
 	}
 }
 
+// Run will first select the worker based on the TaskConfig's platform and the
+// TaskStep's tags, and prioritize it by availability of volumes for the TaskConfig's
+// inputs. Inputs that did not have volumes available on the worker will be streamed
+// in to the container.
+//
+// If any inputs are not available in the artifact.Repository, MissingInputsError
+// is returned.
+//
+// Once all the inputs are satisfied, the task's script will be executed. If
+// the task is canceled via the context, the script will be interrupted.
+//
+// If the script exits successfully, the outputs specified in the TaskConfig
+// are registered with the artifact.Repository. If no outputs are specified, the
+// task's entire working directory is registered as an StreamableArtifactSource under the
+// name of the task.
 func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	ctx, span := tracing.StartSpan(ctx, "task", tracing.Attrs{
 		"team":     step.metadata.TeamName,
@@ -122,21 +137,6 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	return err
 }
 
-// run will first select the worker based on the TaskConfig's platform and the
-// TaskStep's tags, and prioritize it by availability of volumes for the TaskConfig's
-// inputs. Inputs that did not have volumes available on the worker will be streamed
-// in to the container.
-//
-// If any inputs are not available in the artifact.Repository, MissingInputsError
-// is returned.
-//
-// Once all the inputs are satisfied, the task's script will be executed. If
-// the task is canceled via the context, the script will be interrupted.
-//
-// If the script exits successfully, the outputs specified in the TaskConfig
-// are registered with the artifact.Repository. If no outputs are specified, the
-// task's entire working directory is registered as an StreamableArtifactSource under the
-// name of the task.
 func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("task-step", lager.Data{
