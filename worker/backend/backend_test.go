@@ -369,7 +369,7 @@ func (s *BackendSuite) TestDestroyKillTaskSIGTERMFailedError() {
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 	fakeTask := new(libcontainerdfakes.FakeTask)
 
-	fakeTask.WaitStub = func(ctx context.Context) (<- chan containerd.ExitStatus, error) {
+	fakeTask.WaitStub = func(ctx context.Context) (<-chan containerd.ExitStatus, error) {
 		c := make(chan containerd.ExitStatus, 1)
 		go func() {
 			es := containerd.NewExitStatus(0, time.Now(), errors.New("sigterm error"))
@@ -392,7 +392,7 @@ func (s *BackendSuite) TestDestroyKillTaskSIGTERMFailedError() {
 
 func (s *BackendSuite) TestDestroyKillTaskTimeoutError() {
 	// so we don't have to wait 10 seconds for the default timeout
-	s.backend = backend.NewWithTimeout(s.client, testNamespace, 10 * time.Millisecond)
+	s.backend = backend.NewWithTimeout(s.client, testNamespace, 10*time.Millisecond)
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 	fakeTask := new(libcontainerdfakes.FakeTask)
 
@@ -517,7 +517,7 @@ func TestSuite(t *testing.T) {
 	})
 }
 
-func exitBeforeTimeout(ctx context.Context) (<- chan containerd.ExitStatus, error) {
+func exitBeforeTimeout(ctx context.Context) (<-chan containerd.ExitStatus, error) {
 	c := make(chan containerd.ExitStatus, 1)
 	go func() {
 		es := containerd.NewExitStatus(0, time.Now(), nil)
