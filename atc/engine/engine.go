@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -185,6 +186,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 		"pipeline": b.build.PipelineName(),
 		"job":      b.build.JobName(),
 		"build":    b.build.Name(),
+		"build_id": strconv.Itoa(b.build.ID()),
 	})
 	defer span.End()
 
