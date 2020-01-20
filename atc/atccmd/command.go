@@ -48,6 +48,7 @@ import (
 	"github.com/concourse/concourse/skymarshal"
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/concourse/concourse/skymarshal/storage"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
@@ -153,6 +154,11 @@ type RunCommand struct {
 		BufferSize          uint32            `long:"metrics-buffer-size" default:"1000" description:"The size of the buffer used in emitting event metrics."`
 		CaptureErrorMetrics bool              `long:"capture-error-metrics" description:"Enable capturing of error log metrics"`
 	} `group:"Metrics & Diagnostics"`
+
+	Tracing struct {
+		Jaeger      tracing.Jaeger
+		Stackdriver tracing.Stackdriver
+	} `group:"Tracing" namespace:"tracing"`
 
 	Server struct {
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
@@ -410,6 +416,24 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	if cmd.Metrics.CaptureErrorMetrics {
 		errorSinkCollector := metric.NewErrorSinkCollector(logger)
 		logger.RegisterSink(&errorSinkCollector)
+	}
+
+	// Prepare distributed tracing facilities
+	switch {
+	case cmd.Tracing.Jaeger.IsConfigured():
+		exp, err := cmd.Tracing.Jaeger.Exporter()
+		if err != nil {
+			return nil, err
+		}
+
+		tracing.ConfigureTracer(exp)
+	case cmd.Tracing.Stackdriver.IsConfigured():
+		exp, err := cmd.Tracing.Stackdriver.Exporter()
+		if err != nil {
+			return nil, err
+		}
+
+		tracing.ConfigureTracer(exp)
 	}
 
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
