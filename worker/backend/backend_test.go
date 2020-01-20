@@ -1,9 +1,13 @@
 package backend_test
 
 import (
-	"code.cloudfoundry.org/garden"
 	"context"
 	"errors"
+	"syscall"
+	"testing"
+	"time"
+
+	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/backend"
 	"github.com/concourse/concourse/worker/backend/libcontainerd/libcontainerdfakes"
 	"github.com/containerd/containerd"
@@ -11,9 +15,6 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"syscall"
-	"testing"
-	"time"
 )
 
 type BackendSuite struct {
