@@ -49,6 +49,7 @@ var _ = Describe("Scheduler", func() {
 		)
 
 		BeforeEach(func() {
+			fakeJob = new(dbfakes.FakeJob)
 			fakePipeline = new(dbfakes.FakePipeline)
 			fakePipeline.NameReturns("fake-pipeline")
 
@@ -76,7 +77,6 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has no inputs", func() {
 			BeforeEach(func() {
-				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("some-job-1")
 
 				fakeJob.InputsReturns(nil, nil)
@@ -222,7 +222,6 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the job has one trigger: true input", func() {
 			BeforeEach(func() {
-				fakeJob = new(dbfakes.FakeJob)
 				fakeJob.NameReturns("some-job")
 				fakeJob.InputsReturns([]atc.JobInput{
 					{Name: "a", Trigger: true},
