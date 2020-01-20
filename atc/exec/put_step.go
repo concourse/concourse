@@ -4,8 +4,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/concourse/concourse/vars"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
@@ -14,6 +12,8 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 )
 
 //go:generate counterfeiter . PutDelegate
@@ -73,7 +73,23 @@ func NewPutStep(
 	}
 }
 
-// Run chooses a worker that supports the step's resource type and creates a
+func (step *PutStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "put", tracing.Attrs{
+		"team":     step.metadata.TeamName,
+		"pipeline": step.metadata.PipelineName,
+		"job":      step.metadata.JobName,
+		"build":    step.metadata.BuildName,
+		"resource": step.plan.Resource,
+		"name":     step.plan.Name,
+	})
+
+	err := step.run(ctx, state)
+	tracing.End(span, err)
+
+	return err
+}
+
+// run chooses a worker that supports the step's resource type and creates a
 // container.
 //
 // All worker.ArtifactSources present in the worker.ArtifactRepository are then brought into
@@ -81,7 +97,7 @@ func NewPutStep(
 //
 // The resource's put script is then invoked. If the context is canceled, the
 // script will be interrupted.
-func (step *PutStep) Run(ctx context.Context, state RunState) error {
+func (step *PutStep) run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("put-step", lager.Data{
 		"step-name": step.plan.Name,
