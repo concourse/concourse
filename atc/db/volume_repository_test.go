@@ -683,86 +683,142 @@ var _ = Describe("VolumeRepository", func() {
 			err          error
 		)
 
-		BeforeEach(func() {
-			today = time.Now()
-
-			_, err = psql.Insert("volumes").SetMap(map[string]interface{}{
-				"handle":      "some-handle-1",
-				"state":       db.VolumeStateCreated,
-				"worker_name": defaultWorker.Name(),
-			}).RunWith(dbConn).Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = psql.Insert("volumes").SetMap(map[string]interface{}{
-				"handle":        "some-handle-2",
-				"state":         db.VolumeStateCreated,
-				"worker_name":   otherWorker.Name(),
-				"missing_since": today,
-			}).RunWith(dbConn).Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = psql.Insert("volumes").SetMap(map[string]interface{}{
-				"handle":        "some-handle-3",
-				"state":         db.VolumeStateFailed,
-				"worker_name":   otherWorker.Name(),
-				"missing_since": today.Add(-5 * time.Minute),
-			}).RunWith(dbConn).Exec()
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = psql.Insert("volumes").SetMap(map[string]interface{}{
-				"handle":        "some-handle-4",
-				"state":         db.VolumeStateDestroying,
-				"worker_name":   defaultWorker.Name(),
-				"missing_since": today.Add(-10 * time.Minute),
-			}).RunWith(dbConn).Exec()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		JustBeforeEach(func() {
 			rowsAffected, err = volumeRepository.RemoveMissingVolumes(gracePeriod)
 		})
 
-		Context("when no created/failed volumes have expired", func() {
+		Context("when there are multiple volumes with varying missing since times", func() {
 			BeforeEach(func() {
-				gracePeriod = 7 * time.Minute
+				today = time.Now()
+
+				_, err = psql.Insert("volumes").SetMap(map[string]interface{}{
+					"handle":      "some-handle-1",
+					"state":       db.VolumeStateCreated,
+					"worker_name": defaultWorker.Name(),
+				}).RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = psql.Insert("volumes").SetMap(map[string]interface{}{
+					"handle":        "some-handle-2",
+					"state":         db.VolumeStateCreated,
+					"worker_name":   otherWorker.Name(),
+					"missing_since": today,
+				}).RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = psql.Insert("volumes").SetMap(map[string]interface{}{
+					"handle":        "some-handle-3",
+					"state":         db.VolumeStateFailed,
+					"worker_name":   otherWorker.Name(),
+					"missing_since": today.Add(-5 * time.Minute),
+				}).RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = psql.Insert("volumes").SetMap(map[string]interface{}{
+					"handle":        "some-handle-4",
+					"state":         db.VolumeStateDestroying,
+					"worker_name":   defaultWorker.Name(),
+					"missing_since": today.Add(-10 * time.Minute),
+				}).RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("affects no volumes", func() {
-				Expect(err).ToNot(HaveOccurred())
-				Expect(rowsAffected).To(Equal(0))
+			Context("when no created/failed volumes have expired", func() {
+				BeforeEach(func() {
+					gracePeriod = 7 * time.Minute
+				})
+
+				It("affects no volumes", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(rowsAffected).To(Equal(0))
+				})
+			})
+
+			Context("when some created/failed volumes have expired", func() {
+				BeforeEach(func() {
+					gracePeriod = 3 * time.Minute
+				})
+
+				It("affects some volumes", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(rowsAffected).To(Equal(1))
+				})
+
+				It("affects the right volumes", func() {
+					result, err := psql.Select("*").From("volumes").
+						RunWith(dbConn).Exec()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(3)))
+
+					result, err = psql.Select("*").From("volumes").
+						Where(sq.Eq{"handle": "some-handle-1"}).RunWith(dbConn).Exec()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+					result, err = psql.Select("*").From("volumes").
+						Where(sq.Eq{"handle": "some-handle-2"}).RunWith(dbConn).Exec()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+					result, err = psql.Select("*").From("volumes").
+						Where(sq.Eq{"handle": "some-handle-4"}).RunWith(dbConn).Exec()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.RowsAffected()).To(Equal(int64(1)))
+				})
 			})
 		})
 
-		Context("when some created/failed volumes have expired", func() {
+		Context("when there is a missing parent volume", func() {
 			BeforeEach(func() {
+				today = time.Now()
+
+				_, err = psql.Insert("volumes").SetMap(map[string]interface{}{
+					"handle":      "alive-handle",
+					"state":       db.VolumeStateCreated,
+					"worker_name": defaultWorker.Name(),
+				}).RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
+
+				var parentID int
+				err = psql.Insert("volumes").SetMap(map[string]interface{}{
+					"handle":        "parent-handle",
+					"state":         db.VolumeStateCreated,
+					"worker_name":   defaultWorker.Name(),
+					"missing_since": today.Add(-10 * time.Minute),
+				}).Suffix("RETURNING id").RunWith(dbConn).QueryRow().Scan(&parentID)
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = psql.Insert("volumes").SetMap(map[string]interface{}{
+					"handle":      "child-handle",
+					"state":       db.VolumeStateCreated,
+					"worker_name": defaultWorker.Name(),
+					"parent_id":   parentID,
+				}).RunWith(dbConn).Exec()
+				Expect(err).NotTo(HaveOccurred())
+
 				gracePeriod = 3 * time.Minute
 			})
 
 			It("affects some volumes", func() {
 				Expect(err).ToNot(HaveOccurred())
-				Expect(rowsAffected).To(Equal(1))
+				Expect(rowsAffected).To(Equal(2))
 			})
 
-			It("affects the right volumes", func() {
+			It("removes the child and missing parent volume", func() {
+				var volumeCount int
+				err = psql.Select("COUNT(id)").From("volumes").RunWith(dbConn).QueryRow().Scan(&volumeCount)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(volumeCount).To(Equal(1))
+
 				result, err := psql.Select("*").From("volumes").
-					RunWith(dbConn).Exec()
+					Where(sq.Eq{"handle": "parent-handle"}).RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(3)))
+				Expect(result.RowsAffected()).To(Equal(int64(0)))
 
 				result, err = psql.Select("*").From("volumes").
-					Where(sq.Eq{"handle": "some-handle-1"}).RunWith(dbConn).Exec()
+					Where(sq.Eq{"handle": "child-handle"}).RunWith(dbConn).Exec()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(1)))
-
-				result, err = psql.Select("*").From("volumes").
-					Where(sq.Eq{"handle": "some-handle-2"}).RunWith(dbConn).Exec()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(1)))
-
-				result, err = psql.Select("*").From("volumes").
-					Where(sq.Eq{"handle": "some-handle-4"}).RunWith(dbConn).Exec()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(result.RowsAffected()).To(Equal(int64(1)))
+				Expect(result.RowsAffected()).To(Equal(int64(0)))
 			})
 		})
 	})

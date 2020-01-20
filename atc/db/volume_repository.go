@@ -142,20 +142,35 @@ func (repository *volumeRepository) UpdateVolumesMissingSince(workerName string,
 	return tx.Commit()
 }
 
+// Removes any volumes that exist in the database but are missing on the worker
+// for over the designated grace time period.
 func (repository *volumeRepository) RemoveMissingVolumes(gracePeriod time.Duration) (int, error) {
-	result, err := psql.Delete("volumes").
-		Where(
-			sq.And{
-				sq.Eq{
-					"state": []VolumeState{VolumeStateCreated, VolumeStateFailed},
-				},
-				sq.Gt{
-					"NOW() - missing_since": fmt.Sprintf("%.0f seconds", gracePeriod.Seconds()),
-				},
-			},
-		).RunWith(repository.conn).
-		Exec()
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
 
+	// Setting the foreign key constraint to deferred, meaning that the foreign
+	// key constraint will not be executed until the end of the transaction. This
+	// allows the gc query to remove any parent volumes as long as the child
+	// volume that references it is also removed within the same transaction.
+	_, err = tx.Exec("SET CONSTRAINTS volumes_parent_id_fkey DEFERRED")
+	if err != nil {
+		return 0, err
+	}
+
+	result, err := tx.Exec(`
+	WITH RECURSIVE missing(id) AS (
+		SELECT id FROM volumes WHERE missing_since IS NOT NULL and NOW() - missing_since > $1 AND state IN ($2, $3)
+	UNION ALL
+		SELECT v.id FROM missing m, volumes v WHERE v.parent_id = m.id
+	)
+	DELETE FROM volumes v USING missing m WHERE m.id = v.id`, fmt.Sprintf("%.0f seconds", gracePeriod.Seconds()), VolumeStateCreated, VolumeStateFailed)
+	if err != nil {
+		return 0, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return 0, err
 	}
