@@ -1,5 +1,6 @@
 module Dashboard.Filter exposing (filterGroups)
 
+import Concourse
 import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
@@ -8,6 +9,8 @@ import Concourse.PipelineStatus
         , isRunning
         )
 import Dashboard.Group.Models exposing (Group, Pipeline)
+import Dashboard.Pipeline as Pipeline
+import Dict
 import Parser
     exposing
         ( (|.)
@@ -36,14 +39,31 @@ type alias Filter =
     }
 
 
-filterGroups : String -> List Group -> List Group
-filterGroups query groups =
-    filters query
-        |> List.foldr runFilter groups
+filterGroups : List Concourse.Job -> String -> List Concourse.Team -> List Pipeline -> List Group
+filterGroups existingJobs query teams pipelines =
+    let
+        groupsToFilter =
+            pipelines
+                |> List.foldr
+                    (\p ->
+                        Dict.update p.teamName
+                            (Maybe.withDefault []
+                                >> (::) p
+                                >> Just
+                            )
+                    )
+                    (teams
+                        |> List.map (\team -> ( team.name, [] ))
+                        |> Dict.fromList
+                    )
+                |> Dict.toList
+                |> List.map (\( k, v ) -> { teamName = k, pipelines = v })
+    in
+    parseFilters query |> List.foldr (runFilter existingJobs) groupsToFilter
 
 
-runFilter : Filter -> List Group -> List Group
-runFilter f =
+runFilter : List Concourse.Job -> Filter -> List Group -> List Group
+runFilter existingJobs f =
     let
         negater =
             if f.negate then
@@ -62,29 +82,29 @@ runFilter f =
                     { g
                         | pipelines =
                             g.pipelines
-                                |> List.filter (pipelineFilter pf >> negater)
+                                |> List.filter (pipelineFilter pf existingJobs >> negater)
                     }
                 )
                 >> List.filter (.pipelines >> List.isEmpty >> not)
 
 
-pipelineFilter : PipelineFilter -> Pipeline -> Bool
-pipelineFilter pf =
+pipelineFilter : PipelineFilter -> List Concourse.Job -> Pipeline -> Bool
+pipelineFilter pf existingJobs =
     case pf of
         Status sf ->
             case sf of
                 PipelineStatus ps ->
-                    .status >> equal ps
+                    Pipeline.pipelineStatus existingJobs >> equal ps
 
                 PipelineRunning ->
-                    .status >> isRunning
+                    Pipeline.pipelineStatus existingJobs >> isRunning
 
         FuzzyName term ->
             .name >> Simple.Fuzzy.match term
 
 
-filters : String -> List Filter
-filters =
+parseFilters : String -> List Filter
+parseFilters =
     run
         (loop [] <|
             \revFilters ->

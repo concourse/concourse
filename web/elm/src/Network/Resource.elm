@@ -32,15 +32,16 @@ fetchAllResources =
 
 fetchResource : Concourse.ResourceIdentifier -> Task Http.Error Concourse.Resource
 fetchResource rid =
-    Http.toTask
-        << (\a -> Http.get a Concourse.decodeResource)
-    <|
-        "/api/v1/teams/"
-            ++ rid.teamName
-            ++ "/pipelines/"
-            ++ rid.pipelineName
-            ++ "/resources/"
-            ++ rid.resourceName
+    Http.toTask <|
+        Http.get
+            ("/api/v1/teams/"
+                ++ rid.teamName
+                ++ "/pipelines/"
+                ++ rid.pipelineName
+                ++ "/resources/"
+                ++ rid.resourceName
+            )
+            Concourse.decodeResource
 
 
 fetchResourcesRaw : Concourse.PipelineIdentifier -> Task Http.Error Json.Decode.Value

@@ -692,6 +692,7 @@ sampleSession =
     , timeZone = Time.utc
     , turbulenceImgSrc = ""
     , userState = UserState.UserStateLoggedOut
+    , version = ""
     }
 
 

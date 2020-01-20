@@ -2,6 +2,7 @@ module Network.Pipeline exposing
     ( changeVisibility
     , fetchPipeline
     , fetchPipelines
+    , fetchPipelinesForTeam
     , order
     , togglePause
     )
@@ -41,6 +42,14 @@ fetchPipelines =
     Http.toTask <|
         Http.get
             "/api/v1/pipelines"
+            (Json.Decode.list Concourse.decodePipeline)
+
+
+fetchPipelinesForTeam : String -> Task Http.Error (List Concourse.Pipeline)
+fetchPipelinesForTeam teamName =
+    Http.toTask <|
+        Http.get
+            ("/api/v1/teams/" ++ teamName ++ "/pipelines")
             (Json.Decode.list Concourse.decodePipeline)
 
 

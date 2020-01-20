@@ -88,7 +88,7 @@ update message model =
 handleCallback : Callback -> WebData (PipelineScoped a) -> ET (Model m)
 handleCallback callback currentPipeline ( model, effects ) =
     case callback of
-        PipelinesFetched (Ok pipelines) ->
+        AllPipelinesFetched (Ok pipelines) ->
             ( { model
                 | pipelines = Success pipelines
                 , expandedTeams =
