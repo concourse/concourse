@@ -62,7 +62,7 @@ require (
 	github.com/json-iterator/go v1.1.7 // indirect
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
-	github.com/lib/pq v1.2.0
+	github.com/lib/pq v1.3.0
 	github.com/mattn/go-colorable v0.1.4
 	github.com/mattn/go-isatty v0.0.10
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
