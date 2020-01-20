@@ -10,12 +10,12 @@
 
 * Add experimental support for exposing traces to [Jaeger] or [Stackdriver].
 
-With this feature enaled (via `--tracing-(jaeger|stackdriver)-*` variables in
+With this feature enabled (via `--tracing-(jaeger|stackdriver)-*` variables in
 `concourse web`), the `web` node starts recording traces that represent the
 various steps that a build goes through, sending them to the configured trace
 collector. #4607
 
-As ths feature is being built using [OpenTelemetry], expect to have support for
+As this feature is being built using [OpenTelemetry], expect to have support for
 other systems soon.
 
 [OpenTelemetry]: https://opentelemetry.io/
