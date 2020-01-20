@@ -104,11 +104,11 @@ func (r *rerunBuild) PrepareInputs(logger lager.Logger) bool {
 func (r *rerunBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
 	buildInputs, inputsReady, err := r.AdoptRerunInputsAndPipes()
 	if err != nil {
-		return nil, false, fmt.Errorf("adopt inputs and pipes: %w", err)
+		return nil, false, fmt.Errorf("adopt rerun inputs and pipes: %w", err)
 	}
 
 	if !inputsReady {
-		return nil, false, fmt.Errorf("adopt inputs and pipes: %w", db.ErrAdoptRerunBuildHasNoInputs)
+		return nil, false, nil
 	}
 
 	return buildInputs, true, nil
