@@ -12,6 +12,7 @@ import (
 	. "github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -228,7 +229,12 @@ var _ = Describe("Runner", func() {
 									})
 
 									It("does not update last scheduled", func() {
-										Expect(schedulerErr).ToNot(HaveOccurred())
+										Expect(schedulerErr).To(HaveOccurred())
+										Expect(schedulerErr).To(Equal(&multierror.Error{
+											Errors: []error{
+												fmt.Errorf("schedule job: %w", errors.New("error")),
+											},
+										}))
 										Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 										Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
 									})
@@ -254,7 +260,12 @@ var _ = Describe("Runner", func() {
 								})
 
 								It("does not update last schedule", func() {
-									Expect(schedulerErr).ToNot(HaveOccurred())
+									Expect(schedulerErr).To(HaveOccurred())
+									Expect(schedulerErr).To(Equal(&multierror.Error{
+										Errors: []error{
+											fmt.Errorf("reload job: %w", errors.New("disappointment")),
+										},
+									}))
 									Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 									Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
 								})
@@ -267,7 +278,7 @@ var _ = Describe("Runner", func() {
 
 								It("updates last schedule", func() {
 									Expect(schedulerErr).ToNot(HaveOccurred())
-									Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(1))
+									Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 									Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
 								})
 							})
@@ -430,11 +441,37 @@ var _ = Describe("Runner", func() {
 				})
 
 				It("second pipeline still successfully schedules and updates last scheduled", func() {
-					Expect(schedulerErr).ToNot(HaveOccurred())
+					Expect(schedulerErr).NotTo(HaveOccurred())
 					Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(2))
 					Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 					Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
 					Eventually(fakeJob3.UpdateLastScheduledCallCount).Should(Equal(1))
+				})
+			})
+
+			Context("when the two jobs fail to schedule", func() {
+				BeforeEach(func() {
+					fakePipeline.JobsReturns([]db.Job{fakeJob1}, nil)
+					fakePipeline.ResourcesReturns(db.Resources{fakeResource1}, nil)
+					fakeJob1.AcquireSchedulingLockReturns(lock, true, nil)
+					fakeJob1.ReloadReturns(false, errors.New("error-1"))
+
+					fakePipeline2.JobsReturns([]db.Job{fakeJob2, fakeJob3}, nil)
+					fakePipeline2.ResourcesReturns(db.Resources{fakeResource2}, nil)
+					fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
+					fakeJob3.AcquireSchedulingLockReturns(lock, true, nil)
+					fakeJob3.ReloadReturns(false, errors.New("error-3"))
+				})
+
+				It("schedules the remaining job", func() {
+					Expect(schedulerErr).To(HaveOccurred())
+					Expect(schedulerErr.Error()).To(ContainSubstring("error-1"))
+					Expect(schedulerErr.Error()).To(ContainSubstring("error-3"))
+					Expect(schedulerErr.Error()).ToNot(ContainSubstring("error-2"))
+					Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(1))
+					Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
+					Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+					Eventually(fakeJob3.UpdateLastScheduledCallCount).Should(Equal(0))
 				})
 			})
 		})
