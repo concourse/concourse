@@ -73,6 +73,14 @@ func NewPutStep(
 	}
 }
 
+// Run chooses a worker that supports the step's resource type and creates a
+// container.
+//
+// All worker.ArtifactSources present in the worker.ArtifactRepository are then brought into
+// the container, using volumes if possible, and streaming content over if not.
+//
+// The resource's put script is then invoked. If the context is canceled, the
+// script will be interrupted.
 func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	ctx, span := tracing.StartSpan(ctx, "put", tracing.Attrs{
 		"team":     step.metadata.TeamName,
@@ -89,14 +97,6 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 	return err
 }
 
-// run chooses a worker that supports the step's resource type and creates a
-// container.
-//
-// All worker.ArtifactSources present in the worker.ArtifactRepository are then brought into
-// the container, using volumes if possible, and streaming content over if not.
-//
-// The resource's put script is then invoked. If the context is canceled, the
-// script will be interrupted.
 func (step *PutStep) run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("put-step", lager.Data{
