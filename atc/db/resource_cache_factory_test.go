@@ -117,7 +117,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 	Describe("FindOrCreateResourceCache", func() {
 		It("creates resource cache in database", func() {
-			_, err := resourceCacheFactory.FindOrCreateResourceCache(
+			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				db.ForBuild(build.ID()),
 				"some-type",
 				atc.Version{"some": "version"},
@@ -132,8 +132,9 @@ var _ = Describe("ResourceCacheFactory", func() {
 				},
 			)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(usedResourceCache.Version()).To(Equal(atc.Version{"some": "version"}))
 
-			rows, err := psql.Select("a.version_md5, a.params_hash, o.source_hash, b.name").
+			rows, err := psql.Select("a.version, a.version_md5, a.params_hash, o.source_hash, b.name").
 				From("resource_caches a").
 				LeftJoin("resource_configs o ON a.resource_config_id = o.id").
 				LeftJoin("base_resource_types b ON o.base_resource_type_id = b.id").
@@ -142,12 +143,13 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			resourceCaches := []resourceCache{}
 			for rows.Next() {
+				var version string
 				var versionMd5 string
 				var paramsHash string
 				var sourceHash sql.NullString
 				var baseResourceTypeName sql.NullString
 
-				err := rows.Scan(&versionMd5, &paramsHash, &sourceHash, &baseResourceTypeName)
+				err := rows.Scan(&version, &versionMd5, &paramsHash, &sourceHash, &baseResourceTypeName)
 				Expect(err).NotTo(HaveOccurred())
 
 				var sourceHashString string
@@ -161,6 +163,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 				}
 
 				resourceCaches = append(resourceCaches, resourceCache{
+					Version:          version,
 					VersionMd5:       versionMd5,
 					ParamsHash:       paramsHash,
 					SourceHash:       sourceHashString,
@@ -178,17 +181,20 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 			Expect(resourceCaches).To(ConsistOf(
 				resourceCache{
+					Version:          `{"some-type-type": "version"}`,
 					VersionMd5:       toMd5(`{"some-type-type":"version"}`),
 					ParamsHash:       toHash(`{}`),
 					BaseResourceName: "some-base-type",
 					SourceHash:       toHash(`{"some-type-type":"some-secret-sauce"}`),
 				},
 				resourceCache{
+					Version:    `{"some-type": "version"}`,
 					VersionMd5: toMd5(`{"some-type":"version"}`),
 					ParamsHash: toHash(`{}`),
 					SourceHash: toHash(`{"some-type":"source"}`),
 				},
 				resourceCache{
+					Version:    `{"some": "version"}`,
 					VersionMd5: toMd5(`{"some":"version"}`),
 					ParamsHash: toHash(`{"some":"params"}`),
 					SourceHash: toHash(`{"some":"source"}`),
@@ -293,6 +299,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 })
 
 type resourceCache struct {
+	Version          string
 	VersionMd5       string
 	ParamsHash       string
 	SourceHash       string
