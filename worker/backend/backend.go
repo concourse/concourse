@@ -49,6 +49,29 @@ func New(client libcontainerd.Client, namespace string) Backend {
 	}
 }
 
+// TODO - could we get this configuration easier to pass?
+// 	  either use functional opts or a config struct
+//		- both would allow configuration while still providing defaults
+//
+// const defaultOpts = Config{
+//   RequestTimeout:        10 * time.Second,	// timeout for individual requests ?
+//   GracefulKillTimeout :  10 * time.Second,
+//   UngracefulKillTimeout: 1 * time.Second,
+// }
+//
+//
+//  New(client, namespace,
+//  	WithRequestTimeout(),
+//  	WithGracefulTaskKillTimeout(),
+//	WithUngracefulTaskKillTimeout(),
+//  )
+//
+//
+//  options:
+//  	per-request max timeout
+//	timeout for graceful task kills
+//	timeout for ungraceful task kills
+//
 func NewWithTimeout(client libcontainerd.Client, namespace string, clientTimeout time.Duration) Backend {
 	return Backend{
 		namespace:     namespace,
@@ -161,13 +184,21 @@ func (b *Backend) Destroy(handle string) error {
 	if err != nil {
 		return ClientError{InnerError: err}
 	}
-
 	task, err := container.Task(ctxWithTimeout, nil)
 	if err != nil {
 		if !errdefs.IsNotFound(err) {
 			return ClientError{InnerError: err}
 		}
 	} else {
+		//
+		// GracefulKiller
+		//
+		//  - in the tests: ensure that the killer is called for the
+		//                  task when the task exists.
+		//
+		//			- the details of "killing" can be tested
+		//			  somewhere else.
+		//
 		err = killTasks(ctxWithTimeout, task)
 		if err != nil {
 			return ClientError{InnerError: err}
@@ -178,6 +209,7 @@ func (b *Backend) Destroy(handle string) error {
 	if err != nil {
 		return ClientError{InnerError: err}
 	}
+
 	return nil
 }
 
@@ -213,6 +245,9 @@ func GracefullyKill(ctx context.Context,
 	return nil
 }
 
+// Kill delivers a signal to the task, waiting for a maximum period for it to
+// respond back with an exit status.
+//
 func Kill(ctx context.Context, task containerd.Task, signal syscall.Signal, gracePeriod time.Duration) error {
 	exitStatusC, err := task.Wait(ctx)
 	if err != nil {

@@ -33,7 +33,15 @@ func (c *Container) Handle() (handle string) { return c.handle }
 //
 // Errors:
 // * None.
-func (c *Container) Stop(kill bool) (err error) { return }
+func (c *Container) Stop(kill bool) (err error) {
+	// if kill == true
+	// 	==> use SingleKill
+	//
+	// if kill == false
+	// 	==> use GracefulKiller
+
+	return
+}
 
 // Returns information about a container.
 func (c *Container) Info() (info garden.ContainerInfo, err error) { return }
