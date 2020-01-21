@@ -11,8 +11,6 @@ import (
 
 	"io/ioutil"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/skymarshal/token"
@@ -25,6 +23,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
+	"sigs.k8s.io/yaml"
 )
 
 type TSACommand struct {
@@ -61,8 +60,8 @@ type TeamAuthKeys struct {
 }
 
 type yamlTeamAuthorizedKey struct {
-	Team string   `yaml:"team"`
-	Keys []string `yaml:"ssh_keys,flow"`
+	Team string   `json:"team"`
+	Keys []string `json:"ssh_keys"`
 }
 
 func (cmd *TSACommand) Execute(args []string) error {

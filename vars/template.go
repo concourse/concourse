@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 )
 
 type Template struct {
