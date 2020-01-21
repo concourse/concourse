@@ -68,6 +68,7 @@ view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pip
                                 [ pipelineDropAreaView dragState dropState g.teamName pipeline.ordering
                                 , Html.div
                                     ([ class "card"
+                                     , id <| Effects.toHtmlID <| PipelineCard pipeline.id
                                      , attribute "data-pipeline-name" pipeline.name
                                      , attribute
                                         "ondragstart"
