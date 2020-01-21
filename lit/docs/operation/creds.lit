@@ -46,3 +46,4 @@ backend you want to use.
 \include-section{creds/caching.lit}
 \include-section{creds/redacting.lit}
 \include-section{creds/retry.lit}
+\include-section{creds/cyberark-conjur.lit}
