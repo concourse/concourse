@@ -224,7 +224,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 
 	done := make(chan error)
 	go func() {
-		ctx = lagerctx.NewContext(ctx, logger)
+		ctx := lagerctx.NewContext(ctx, logger)
 		done <- step.Run(ctx, state)
 	}()
 
