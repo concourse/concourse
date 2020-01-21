@@ -615,6 +615,8 @@ func (cmd *RunCommand) constructAPIMembers(
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbClock := db.NewClock()
+	dbWall := db.NewWall(dbConn, &dbClock)
 
 	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
 	customActionRoleMap := accessor.CustomActionRoleMap{}
@@ -646,6 +648,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		secretManager,
 		credsManagers,
 		accessFactory,
+		dbWall,
 	)
 
 	if err != nil {
@@ -1537,6 +1540,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
+	dbWall db.Wall,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -1603,6 +1607,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.varSourcePool,
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
+		dbWall,
 	)
 }
 

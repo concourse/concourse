@@ -211,12 +211,15 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListAllResources:     authenticateIfTokenProvided(inputHandlers[atc.ListAllResources]),
 				atc.ListTeams:            authenticateIfTokenProvided(inputHandlers[atc.ListTeams]),
 				atc.MainJobBadge:         authenticateIfTokenProvided(inputHandlers[atc.MainJobBadge]),
+				atc.GetWall:              authenticateIfTokenProvided(inputHandlers[atc.GetWall]),
 
 				// authenticated and is admin
 				atc.GetLogLevel:          authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),
 				atc.SetLogLevel:          authenticatedAndAdmin(inputHandlers[atc.SetLogLevel]),
 				atc.GetInfoCreds:         authenticatedAndAdmin(inputHandlers[atc.GetInfoCreds]),
 				atc.ListActiveUsersSince: authenticatedAndAdmin(inputHandlers[atc.ListActiveUsersSince]),
+				atc.SetWall:              authenticatedAndAdmin(inputHandlers[atc.SetWall]),
+				atc.ClearWall:            authenticatedAndAdmin(inputHandlers[atc.ClearWall]),
 
 				// authorized (requested team matches resource team)
 				atc.CheckResource:           authorized(inputHandlers[atc.CheckResource]),

@@ -104,6 +104,10 @@ const (
 	ListBuildArtifacts = "ListBuildArtifacts"
 
 	ListActiveUsersSince = "ListActiveUsersSince"
+
+	SetWall   = "SetWall"
+	GetWall   = "GetWall"
+	ClearWall = "ClearWall"
 )
 
 const (
@@ -214,4 +218,8 @@ var Routes = rata.Routes([]rata.Route{
 
 	{Path: "/api/v1/teams/:team_name/artifacts", Method: "POST", Name: CreateArtifact},
 	{Path: "/api/v1/teams/:team_name/artifacts/:artifact_id", Method: "GET", Name: GetArtifact},
+
+	{Path: "/api/v1/wall", Method: "GET", Name: GetWall},
+	{Path: "/api/v1/wall", Method: "PUT", Name: SetWall},
+	{Path: "/api/v1/wall", Method: "DELETE", Name: ClearWall},
 })

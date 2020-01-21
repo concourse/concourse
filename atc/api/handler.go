@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/concourse/concourse/atc/api/usersserver"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/artifactserver"
@@ -22,7 +20,9 @@ import (
 	"github.com/concourse/concourse/atc/api/resourceserver"
 	"github.com/concourse/concourse/atc/api/resourceserver/versionserver"
 	"github.com/concourse/concourse/atc/api/teamserver"
+	"github.com/concourse/concourse/atc/api/usersserver"
 	"github.com/concourse/concourse/atc/api/volumeserver"
+	"github.com/concourse/concourse/atc/api/wallserver"
 	"github.com/concourse/concourse/atc/api/workerserver"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -69,6 +69,7 @@ func NewHandler(
 	varSourcePool creds.VarSourcePool,
 	credsManagers creds.Managers,
 	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
+	dbWall db.Wall,
 ) (http.Handler, error) {
 
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
@@ -98,6 +99,7 @@ func NewHandler(
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
 	artifactServer := artifactserver.NewServer(logger, workerClient)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
+	wallServer := wallserver.NewServer(dbWall, logger)
 
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
@@ -204,6 +206,10 @@ func NewHandler(
 
 		atc.CreateArtifact: teamHandlerFactory.HandlerFor(artifactServer.CreateArtifact),
 		atc.GetArtifact:    teamHandlerFactory.HandlerFor(artifactServer.GetArtifact),
+
+		atc.GetWall:   http.HandlerFunc(wallServer.GetWall),
+		atc.SetWall:   http.HandlerFunc(wallServer.SetWall),
+		atc.ClearWall: http.HandlerFunc(wallServer.ClearWall),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))
