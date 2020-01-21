@@ -3,17 +3,18 @@ package engine
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/tracing"
 )
 
 //go:generate counterfeiter . Engine
@@ -180,6 +181,15 @@ func (b *engineBuild) Run(logger lager.Logger) {
 
 	defer notifier.Close()
 
+	ctx, span := tracing.StartSpan(b.ctx, "build", tracing.Attrs{
+		"team":     b.build.TeamName(),
+		"pipeline": b.build.PipelineName(),
+		"job":      b.build.JobName(),
+		"build":    b.build.Name(),
+		"build_id": strconv.Itoa(b.build.ID()),
+	})
+	defer span.End()
+
 	step, err := b.builder.BuildStep(logger, b.build)
 	if err != nil {
 		logger.Error("failed-to-build-step", err)
@@ -214,7 +224,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 
 	done := make(chan error)
 	go func() {
-		ctx := lagerctx.NewContext(b.ctx, logger)
+		ctx := lagerctx.NewContext(ctx, logger)
 		done <- step.Run(ctx, state)
 	}()
 

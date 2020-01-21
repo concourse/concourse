@@ -211,6 +211,25 @@ After this is done, the final step is to connect your IDE to the debugger with t
 For GoLand you can do so by going to Run | Edit Configurations… | + | Go Remote and fill in the parameters.
 
 
+### Trying out distributed tracing with Jaeger
+
+Under `./hack`, a docker-compose override file named `jaeger.yml` provides the
+essentials to get [Jaeger] running alongside the other components, as well as
+tying Concourse to it through the right environment variables.
+
+[Jaeger]: https://jaegertracing.io
+
+To leverage that extension, run `docker-compose up` specifying where all the
+yaml files are:
+
+```sh
+$ docker-compose \
+  -f ./docker-compose.yml \
+  -f ./hack/overrides/jaeger.yml \
+  up -d
+```
+
+
 ### Connecting to Postgres
 
 If you want to poke around the database, you can connect to the `db` node using
