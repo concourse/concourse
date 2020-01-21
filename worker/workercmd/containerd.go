@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
@@ -23,7 +24,12 @@ func containerdGardenServerRunner(logger lager.Logger, bindAddr, containerdAddr 
 		namespace = "concourse"
 	)
 
-	backend := backend.New(libcontainerd.New(containerdAddr), namespace)
+	backend := backend.New(libcontainerd.New(containerdAddr), backend.Config{
+		// TODO make this a variable
+		//
+		RequestTimeout: 10 * time.Second,
+		Namespace:      namespace,
+	})
 
 	server := server.New("tcp", bindAddr,
 		graceTime,

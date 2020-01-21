@@ -20,63 +20,30 @@ import (
 var _ garden.Backend = (*Backend)(nil)
 
 type Backend struct {
-	client        libcontainerd.Client
-	namespace     string
-	clientTimeout time.Duration
+	client libcontainerd.Client
+	config Config
 }
 
-type InputValidationError struct {
-	Message string
+type Config struct {
+	// Namespace is the containerd namespace to use for all actions
+	// containerd-specific.
+	//
+	Namespace string
+
+	// RequestTimeout is the timeout applied to every request to containerd
+	// that is supposed to terminate in a timely manner.
+	//
+	RequestTimeout time.Duration
 }
 
-func (e InputValidationError) Error() string {
-	return "input validation error: " + e.Message
-}
+func New(client libcontainerd.Client, config Config) Backend {
+	// TODO put some defaults here (or, at least, ensure that we got the
+	// 	variable we need passed in)
+	//
 
-type ClientError struct {
-	InnerError error
-}
-
-func (e ClientError) Error() string {
-	return "client error: " + e.InnerError.Error()
-}
-
-func New(client libcontainerd.Client, namespace string) Backend {
 	return Backend{
-		namespace:     namespace,
-		client:        client,
-		clientTimeout: 10 * time.Second,
-	}
-}
-
-// TODO - could we get this configuration easier to pass?
-// 	  either use functional opts or a config struct
-//		- both would allow configuration while still providing defaults
-//
-// const defaultOpts = Config{
-//   RequestTimeout:        10 * time.Second,	// timeout for individual requests ?
-//   GracefulKillTimeout :  10 * time.Second,
-//   UngracefulKillTimeout: 1 * time.Second,
-// }
-//
-//
-//  New(client, namespace,
-//  	WithRequestTimeout(),
-//  	WithGracefulTaskKillTimeout(),
-//	WithUngracefulTaskKillTimeout(),
-//  )
-//
-//
-//  options:
-//  	per-request max timeout
-//	timeout for graceful task kills
-//	timeout for ungraceful task kills
-//
-func NewWithTimeout(client libcontainerd.Client, namespace string, clientTimeout time.Duration) Backend {
-	return Backend{
-		namespace:     namespace,
-		client:        client,
-		clientTimeout: clientTimeout,
+		client: client,
+		config: config,
 	}
 }
 
@@ -126,8 +93,8 @@ func (b *Backend) Capacity() (capacity garden.Capacity, err error) { return }
 //
 func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Container, err error) {
 	var oci *specs.Spec
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
-	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
+	ctx := namespaces.WithNamespace(context.Background(), b.config.Namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.config.RequestTimeout)
 
 	oci, err = bespec.OciSpec(gdnSpec)
 	if err != nil {
@@ -177,8 +144,8 @@ func (b *Backend) Destroy(handle string) error {
 		return InputValidationError{Message: "handle is empty"}
 	}
 
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
-	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
+	ctx := namespaces.WithNamespace(context.Background(), b.config.Namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.config.RequestTimeout)
 
 	container, err := b.client.GetContainer(ctxWithTimeout, handle)
 	if err != nil {
@@ -317,8 +284,8 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 // Errors:
 // * Problems communicating with containerd client
 func (b *Backend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
-	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
+	ctx := namespaces.WithNamespace(context.Background(), b.config.Namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.config.RequestTimeout)
 
 	filters, err := propertiesToFilterList(properties)
 	if err != nil {
@@ -358,8 +325,8 @@ func (b *Backend) BulkMetrics(handles []string) (metrics map[string]garden.Conta
 // Errors:
 // * Container not found.
 func (b *Backend) Lookup(handle string) (garden.Container, error) {
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
-	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
+	ctx := namespaces.WithNamespace(context.Background(), b.config.Namespace)
+	ctxWithTimeout, _ := context.WithTimeout(ctx, b.config.RequestTimeout)
 
 	if handle == "" {
 		return nil, InputValidationError{Message: "handle is empty"}
