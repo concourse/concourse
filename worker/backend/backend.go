@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"syscall"
 	"time"
@@ -177,6 +178,66 @@ func (b *Backend) Destroy(handle string) error {
 	if err != nil {
 		return ClientError{InnerError: err}
 	}
+	return nil
+}
+
+var GracePeriodTimeout = errors.New("grace-period-timeout")
+
+const (
+	GracefulSignal   = syscall.SIGTERM
+	UngracefulSignal = syscall.SIGKILL
+
+	GracefulPeriod   = 10 * time.Second
+	UngracefulPeriod = 1 * time.Second
+)
+
+func GracefullyKill(ctx context.Context,
+	task containerd.Task,
+	gracefulSignal syscall.Signal,
+	gracefulPeriod time.Duration,
+	ungracefulSignal syscall.Signal,
+	ungracefulPeriod time.Duration,
+) error {
+	err := Kill(ctx, task, gracefulSignal, gracefulPeriod)
+	if err != nil {
+		if err == GracePeriodTimeout {
+			err = Kill(ctx, task, ungracefulSignal, ungracefulPeriod)
+			if err != nil {
+				return fmt.Errorf("failed to ungracefully kill: %w", err)
+			}
+		}
+
+		return fmt.Errorf("failed trying to gracefully kill: %w", err)
+	}
+
+	return nil
+}
+
+func Kill(ctx context.Context, task containerd.Task, signal syscall.Signal, gracePeriod time.Duration) error {
+	exitStatusC, err := task.Wait(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = task.Kill(ctx, signal)
+	if err != nil {
+		return err
+	}
+
+	timerC := time.After(gracePeriod)
+
+	select {
+	case <-timerC:
+		return GracePeriodTimeout
+	case status := <-exitStatusC:
+		err = status.Error()
+		if err != nil {
+			return err
+		}
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	return nil
 }
 

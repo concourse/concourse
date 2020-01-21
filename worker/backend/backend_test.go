@@ -364,7 +364,7 @@ func (s *BackendSuite) TestDestroyTaskWaitError() {
 	s.Equal(testNamespace, namespace)
 }
 
-func (s *BackendSuite) TestDestroyKillTaskSIGTERMFailedError() {
+func (s *BackendSuite) TestDestroyKillSIGTERMFailedError() {
 	// in this test case, the exit status is returned before the timeout but with an error,
 	// indicating an edge case where SIGTERM did not successfully stop the process but isn't hanging.
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
@@ -391,7 +391,7 @@ func (s *BackendSuite) TestDestroyKillTaskSIGTERMFailedError() {
 	s.EqualError(err, "client error: sigterm error")
 }
 
-func (s *BackendSuite) TestDestroyKillTaskTimeoutError() {
+func (s *BackendSuite) TestDestroyKillTimeoutError() {
 	// so we don't have to wait 10 seconds for the default timeout
 	s.backend = backend.NewWithTimeout(s.client, testNamespace, 10*time.Millisecond)
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
@@ -511,6 +511,112 @@ func (s *BackendSuite) TestStop() {
 	s.backend.Stop()
 	s.Equal(1, s.client.StopCallCount())
 }
+
+var (
+	defaultGracefulSignal   = syscall.SIGTERM
+	defaultUngracefulSignal = syscall.SIGKILL
+	defaultGracefulPeriod   = 10 * time.Second
+	defaultUngracefulPeriod = 1 * time.Second
+)
+
+func (s *BackendSuite) TestKillWithWaitFailingFails() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeTask.WaitReturns(nil, errors.New("err"))
+
+	err := backend.Kill(context.TODO(),
+		fakeTask, defaultGracefulSignal, defaultGracefulPeriod,
+	)
+	s.EqualError(err, "err")
+
+	s.Equal(1, fakeTask.WaitCallCount())
+}
+
+func (s *BackendSuite) TestKillSIGTERMFail() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeTask.WaitReturns(nil, nil)
+	fakeTask.KillReturns(errors.New("kill-failure"))
+
+	err := backend.Kill(context.TODO(),
+		fakeTask, defaultGracefulSignal, defaultGracefulPeriod,
+	)
+	s.Equal(1, fakeTask.WaitCallCount())
+	s.Equal(1, fakeTask.KillCallCount())
+
+	_, signal, _ := fakeTask.KillArgsForCall(0)
+	s.Equal(syscall.SIGTERM, signal)
+
+	s.EqualError(err, "kill-failure")
+}
+
+func (s *BackendSuite) TestKillContextCancelledAfterSignal() {
+	ctx, cancel := context.WithCancel(context.TODO())
+	cancel()
+
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeTask.WaitReturns(nil, nil)
+	fakeTask.KillReturns(nil)
+
+	err := backend.Kill(ctx,
+		fakeTask, defaultGracefulSignal, defaultGracefulPeriod,
+	)
+	s.Equal(1, fakeTask.WaitCallCount())
+	s.Equal(1, fakeTask.KillCallCount())
+	s.EqualError(err, "context canceled")
+}
+
+func (s *BackendSuite) TestKillExitsAfterSIGTERMWithError() {
+	exitStatusC := make(chan containerd.ExitStatus, 1)
+	exitStatusC <- *containerd.NewExitStatus(0, time.Time{}, errors.New("exit-status-err"))
+
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	fakeTask.WaitReturns(exitStatusC, nil)
+	fakeTask.KillReturns(nil)
+
+	err := backend.Kill(context.TODO(),
+		fakeTask, defaultGracefulSignal, defaultGracefulPeriod,
+	)
+	s.Equal(1, fakeTask.WaitCallCount())
+	s.Equal(1, fakeTask.KillCallCount())
+	s.EqualError(err, "exit-status-err")
+}
+
+func (s *BackendSuite) TestKillExitsSuccessfullyAfterSIGTERM() {
+	exitStatusC := make(chan containerd.ExitStatus, 1)
+	exitStatusC <- *containerd.NewExitStatus(0, time.Time{}, nil)
+
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	fakeTask.WaitReturns(exitStatusC, nil)
+	fakeTask.KillReturns(nil)
+
+	err := backend.Kill(context.TODO(),
+		fakeTask, defaultGracefulSignal, defaultGracefulPeriod,
+	)
+	s.Equal(1, fakeTask.WaitCallCount())
+	s.Equal(1, fakeTask.KillCallCount())
+	s.NoError(err)
+}
+
+func (s *BackendSuite) TestKillTimesOutAfterGracePeriod() {
+	const gracePeriod = 1 * time.Microsecond
+
+	exitStatusC := make(chan containerd.ExitStatus, 1)
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	fakeTask.WaitReturns(exitStatusC, nil)
+	fakeTask.KillReturns(nil)
+
+	err := backend.Kill(context.TODO(),
+		fakeTask, defaultGracefulSignal, gracePeriod,
+	)
+	s.Equal(1, fakeTask.WaitCallCount())
+	s.Equal(1, fakeTask.KillCallCount())
+	s.EqualError(err, backend.GracePeriodTimeout.Error())
+
+}
+
+//// -------------
 
 func TestSuite(t *testing.T) {
 	suite.Run(t, &BackendSuite{
