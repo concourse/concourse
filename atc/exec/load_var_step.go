@@ -17,27 +17,26 @@ import (
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/vars"
 )
 
-// VarStep loads a value from a file and sets it as a build-local var.
-type VarStep struct {
+// LoadVarStep loads a value from a file and sets it as a build-local var.
+type LoadVarStep struct {
 	planID    atc.PlanID
-	plan      atc.VarPlan
+	plan      atc.LoadVarPlan
 	metadata  StepMetadata
 	delegate  BuildStepDelegate
 	client    worker.Client
 	succeeded bool
 }
 
-func NewVarStep(
+func NewLoadVarStep(
 	planID atc.PlanID,
-	plan atc.VarPlan,
+	plan atc.LoadVarPlan,
 	metadata StepMetadata,
 	delegate BuildStepDelegate,
 	client worker.Client,
 ) Step {
-	return &VarStep{
+	return &LoadVarStep{
 		planID:   planID,
 		plan:     plan,
 		metadata: metadata,
@@ -56,17 +55,16 @@ func (err UnspecifiedVarStepFileError) Error() string {
 }
 
 type InvalidLocalVarFile struct {
-	File string
+	File   string
 	Format string
-	Err error
+	Err    error
 }
 
 func (err InvalidLocalVarFile) Error() string {
 	return fmt.Sprintf("failed to parse %s in format %s: %s", err.File, err.Format, err.Err.Error())
 }
 
-
-func (step *VarStep) Run(ctx context.Context, state RunState) error {
+func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("var-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -84,13 +82,13 @@ func (step *VarStep) Run(ctx context.Context, state RunState) error {
 
 	step.delegate.Starting(logger)
 
-	varFromFile, err := step.fetchVars(ctx, logger, step.plan.Name, step.plan.File, state)
+	value, err := step.fetchVars(ctx, logger, step.plan.File, state)
 	if err != nil {
 		return err
 	}
 	fmt.Fprintf(stdout, "var %s fetched.\n", step.plan.Name)
 
-	step.delegate.Variables().AddVar(varFromFile)
+	step.delegate.Variables().AddLocalVar(step.plan.Name, value, step.plan.Insensitive)
 	fmt.Fprintf(stdout, "added var %s to build.\n", step.plan.Name)
 
 	step.succeeded = true
@@ -99,17 +97,16 @@ func (step *VarStep) Run(ctx context.Context, state RunState) error {
 	return nil
 }
 
-func (step *VarStep) Succeeded() bool {
+func (step *LoadVarStep) Succeeded() bool {
 	return step.succeeded
 }
 
-func (step *VarStep) fetchVars(
+func (step *LoadVarStep) fetchVars(
 	ctx context.Context,
 	logger lager.Logger,
-	varName string,
 	file string,
 	state RunState,
-) (vars.Variables, error) {
+) (interface{}, error) {
 
 	segs := strings.SplitN(file, "/", 2)
 	if len(segs) != 2 {
@@ -142,43 +139,35 @@ func (step *VarStep) fetchVars(
 		return nil, err
 	}
 
-	byteConfig, err := ioutil.ReadAll(stream)
+	fileContent, err := ioutil.ReadAll(stream)
 	if err != nil {
 		return nil, err
 	}
 
-	if step.plan.Dump {
-		fmt.Fprintf(step.delegate.Stdout(),
-			"=== begin dump input file %s ===\n%s\n=== end dump ===\n\n",
-			step.plan.File, string(byteConfig))
-	}
-
-	varFromFile := vars.StaticVariables{}
+	var value interface{}
 	switch format {
 	case "json":
-		value := map[string]interface{}{}
-		err = json.Unmarshal(byteConfig, &value)
+		value = map[string]interface{}{}
+		err = json.Unmarshal(fileContent, &value)
 		if err != nil {
 			return nil, InvalidLocalVarFile{file, "json", err}
 		}
-		varFromFile[varName] = value
 	case "yml", "yaml":
-		value := map[string]interface{}{}
-		err = yaml.Unmarshal(byteConfig, &value)
+		value = map[string]interface{}{}
+		err = yaml.Unmarshal(fileContent, &value)
 		if err != nil {
 			return nil, InvalidLocalVarFile{file, "yaml", err}
 		}
-		varFromFile[varName] = value
 	case "raw":
-		varFromFile[varName] = string(byteConfig)
+		value = string(fileContent)
 	default:
 		return nil, fmt.Errorf("unknown format %s, should never happen, ", format)
 	}
 
-	return varFromFile, nil
+	return value, nil
 }
 
-func (step *VarStep) fileFormat(file string) (string, error) {
+func (step *LoadVarStep) fileFormat(file string) (string, error) {
 	if step.isValidFormat(step.plan.Format) {
 		return step.plan.Format, nil
 	} else if step.plan.Format != "" {
@@ -194,7 +183,7 @@ func (step *VarStep) fileFormat(file string) (string, error) {
 	return "raw", nil
 }
 
-func (step *VarStep) isValidFormat(format string) bool {
+func (step *LoadVarStep) isValidFormat(format string) bool {
 	switch format {
 	case "raw", "yml", "yaml", "json":
 		return true

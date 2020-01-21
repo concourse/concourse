@@ -47,6 +47,58 @@ var _ = Describe("vars_tracker", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})
+
+		Describe("AddLocalVar", func() {
+			Describe("sensitive", func() {
+				BeforeEach(func() {
+					tracker.AddLocalVar("foo", "bar", false)
+				})
+
+				It("should get local value", func() {
+					var (
+						val   interface{}
+						found bool
+						err   error
+					)
+					val, found, err = tracker.Get(VariableDefinition{Name: ".:foo"})
+					Expect(err).To(BeNil())
+					Expect(found).To(BeTrue())
+					Expect(val).To(Equal("bar"))
+				})
+
+				It("fetched variables are tracked", func() {
+					tracker.Get(VariableDefinition{Name: ".:foo"})
+					mapit := NewMapCredVarsTrackerIterator()
+					tracker.IterateInterpolatedCreds(mapit)
+					Expect(mapit.Data["foo"]).To(Equal("bar"))
+				})
+			})
+		})
+
+		Describe("insensitive", func() {
+			BeforeEach(func() {
+				tracker.AddLocalVar("foo", "bar", true)
+			})
+
+			It("should get local value", func() {
+				var (
+					val   interface{}
+					found bool
+					err   error
+				)
+				val, found, err = tracker.Get(VariableDefinition{Name: ".:foo"})
+				Expect(err).To(BeNil())
+				Expect(found).To(BeTrue())
+				Expect(val).To(Equal("bar"))
+			})
+
+			It("fetched variables are not tracked", func() {
+				tracker.Get(VariableDefinition{Name: ".:foo"})
+				mapit := NewMapCredVarsTrackerIterator()
+				tracker.IterateInterpolatedCreds(mapit)
+				Expect(mapit.Data["foo"]).To(BeNil())
+			})
+		})
 	})
 
 	Describe("turn off track", func() {

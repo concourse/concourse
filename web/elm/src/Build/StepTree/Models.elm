@@ -40,7 +40,7 @@ type alias StepTreeModel =
 type StepTree
     = Task Step
     | SetPipeline Step
-    | Var Step
+    | LoadVar Step
     | ArtifactInput Step
     | Get Step
     | ArtifactOutput Step
@@ -188,8 +188,8 @@ map f tree =
         SetPipeline step ->
             SetPipeline (f step)
 
-        Var step ->
-            Var (f step)
+        LoadVar step ->
+            LoadVar (f step)
 
         _ ->
             tree
@@ -342,8 +342,8 @@ finishTree root =
         SetPipeline step ->
             SetPipeline (finishStep step)
 
-        Var step ->
-            Var (finishStep step)
+        LoadVar step ->
+            LoadVar (finishStep step)
 
         Aggregate trees ->
             Aggregate (Array.map finishTree trees)

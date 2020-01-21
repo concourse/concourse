@@ -221,12 +221,12 @@ all =
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeThePipelineName
             ]
-        , describe "var step"
+        , describe "load_var step"
             [ test "should show var name" <|
-                given iVisitABuildWithAVarStep
-                    >> given theVarStepIsExpanded
+                given iVisitABuildWithALoadVarStep
+                    >> given theLoadVarStepIsExpanded
                     >> when iAmLookingAtTheStepBody
-                    >> then_ iSeeTheVarName
+                    >> then_ iSeeTheLoadVarName
             ]
         ]
 
@@ -255,10 +255,10 @@ iVisitABuildWithASetPipelineStep =
         >> myBrowserFetchedTheBuild
         >> thePlanContainsASetPipelineStep
 
-iVisitABuildWithAVarStep =
+iVisitABuildWithALoadVarStep =
     iOpenTheBuildPage
         >> myBrowserFetchedTheBuild
-        >> thePlanContainsAVarStep
+        >> thePlanContainsALoadVarStep
 
 theGetStepIsExpanded =
     Tuple.first
@@ -274,9 +274,9 @@ theSetPipelineStepIsExpanded =
     Tuple.first
         >> Application.update (Update <| Message.Click <| StepHeader setPipelineStepId)
 
-theVarStepIsExpanded =
+theLoadVarStepIsExpanded =
     Tuple.first
-        >> Application.update (Update <| Message.Click <| StepHeader setVarStepId)
+        >> Application.update (Update <| Message.Click <| StepHeader setLoadVarStepId)
 
 thePlanContainsARetryStep =
     Tuple.first
@@ -344,13 +344,13 @@ thePlanContainsASetPipelineStep =
 setPipelineStepId =
     "setPipelineStep"
 
-thePlanContainsAVarStep =
+thePlanContainsALoadVarStep =
     Tuple.first
         >> Application.handleCallback
             (Callback.PlanAndResourcesFetched 1 <|
                 Ok
-                    ( { id = setVarStepId
-                      , step = Concourse.BuildStepVar "var-name"
+                    ( { id = setLoadVarStepId
+                      , step = Concourse.BuildStepLoadVar "var-name"
                       }
                     , { inputs = []
                       , outputs = []
@@ -358,8 +358,8 @@ thePlanContainsAVarStep =
                     )
             )
 
-setVarStepId =
-    "varStep"
+setLoadVarStepId =
+    "loadVarStep"
 
 thePlanContainsAGetStep =
     Tuple.first
@@ -545,7 +545,7 @@ iSeeATimestamp =
 iSeeThePipelineName =
     Query.has [ text "pipeline-name" ]
 
-iSeeTheVarName =
+iSeeTheLoadVarName =
     Query.has [ text "var-name" ]
 
 iAmLookingAtTheSecondTab =

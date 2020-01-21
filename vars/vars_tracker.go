@@ -2,6 +2,7 @@ package vars
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -18,32 +19,57 @@ type CredVarsTracker interface {
 	IterateInterpolatedCreds(iter CredVarsTrackerIterator)
 	Enabled() bool
 
-	AddVar(Variables)
+	AddLocalVar(string, interface{}, bool)
 }
 
 func NewCredVarsTracker(credVars Variables, on bool) CredVarsTracker {
 	return &credVarsTracker{
-		credVars:          credVars,
-		enabled:           on,
-		interpolatedCreds: map[string]string{},
-		lock:              sync.RWMutex{},
+		localVars:           StaticVariables{},
+		credVars:            credVars,
+		enabled:             on,
+		interpolatedCreds:   map[string]string{},
+		insensitiveVarNames: map[string]bool{},
+		lock:                sync.RWMutex{},
 	}
 }
 
 type credVarsTracker struct {
-	credVars Variables
+	credVars  Variables
+	localVars StaticVariables
 
 	enabled bool
 
 	interpolatedCreds map[string]string
+
+	insensitiveVarNames map[string]bool
 
 	// Considering in-parallel steps, a lock is need.
 	lock sync.RWMutex
 }
 
 func (t *credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	val, found, err := t.credVars.Get(varDef)
-	if t.enabled && found {
+	var (
+		val   interface{}
+		found bool
+		err   error
+	)
+
+	insensitive := false
+	parts := strings.Split(varDef.Name, ":")
+	if len(parts) == 2 && parts[0] == "." {
+		varDef.Name = parts[1]
+		val, found, err = t.localVars.Get(varDef)
+		if found {
+			parts = strings.Split(varDef.Name, ".")
+			if _, ok := t.insensitiveVarNames[parts[0]]; ok {
+				insensitive = true
+			}
+		}
+	} else {
+		val, found, err = t.credVars.Get(varDef)
+	}
+
+	if t.enabled && found && !insensitive {
 		t.lock.Lock()
 		t.track(varDef.Name, val)
 		t.lock.Unlock()
@@ -87,8 +113,11 @@ func (t *credVarsTracker) Enabled() bool {
 	return t.enabled
 }
 
-func (t *credVarsTracker) AddVar(v Variables) {
-	t.credVars = NewMultiVars([]Variables{v, t.credVars})
+func (t *credVarsTracker) AddLocalVar(name string, value interface{}, insensitive bool) {
+	t.localVars[name] = value
+	if insensitive {
+		t.insensitiveVarNames[name] = true
+	}
 }
 
 // MapCredVarsTrackerIterator implements a simple CredVarsTrackerIterator which just

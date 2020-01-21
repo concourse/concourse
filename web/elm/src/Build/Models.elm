@@ -70,4 +70,4 @@ type StepHeaderType
     | StepHeaderGet Bool
     | StepHeaderTask
     | StepHeaderSetPipeline
-    | StepHeaderVar
+    | StepHeaderLoadVar

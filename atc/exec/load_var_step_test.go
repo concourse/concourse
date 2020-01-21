@@ -18,31 +18,30 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
+const plainString = "pv"
 
-	const plainString = "pv"
-
-	const yamlString = `
+const yamlString = `
 k1: yv1
 k2: yv2
 `
 
-	const jsonString = `
+const jsonString = `
 {
   "k1": "jv1", "k2": "jv2"
 }
 `
 
-var _ = Describe("VarStep", func() {
+var _ = Describe("LoadVarStep", func() {
 
 	var (
 		ctx        context.Context
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate    *execfakes.FakeBuildStepDelegate
+		fakeDelegate     *execfakes.FakeBuildStepDelegate
 		fakeWorkerClient *workerfakes.FakeClient
 
-		varPlan            *atc.VarPlan
+		varPlan            *atc.LoadVarPlan
 		artifactRepository *build.Repository
 		state              *execfakes.FakeRunState
 		fakeSource         *buildfakes.FakeRegisterableArtifact
@@ -102,7 +101,7 @@ var _ = Describe("VarStep", func() {
 			Var: varPlan,
 		}
 
-		spStep = exec.NewVarStep(
+		spStep = exec.NewLoadVarStep(
 			plan.ID,
 			*plan.Var,
 			stepMetadata,
@@ -116,7 +115,7 @@ var _ = Describe("VarStep", func() {
 	Context("when format is specified", func() {
 		Context("when format is invalid", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
+				varPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Format: "diff",
@@ -131,7 +130,7 @@ var _ = Describe("VarStep", func() {
 
 		Context("when format is raw", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
+				varPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Format: "raw",
@@ -145,7 +144,7 @@ var _ = Describe("VarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("pv\n"))
 			})
@@ -153,7 +152,7 @@ var _ = Describe("VarStep", func() {
 
 		Context("when format is json", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
+				varPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Format: "json",
@@ -167,7 +166,7 @@ var _ = Describe("VarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((some-var.k1))((some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("jv1jv2\n"))
 			})
@@ -175,7 +174,7 @@ var _ = Describe("VarStep", func() {
 
 		Context("when format is yml", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
+				varPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Format: "yml",
@@ -189,7 +188,7 @@ var _ = Describe("VarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((some-var.k1))((some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("yv1yv2\n"))
 			})
@@ -197,7 +196,7 @@ var _ = Describe("VarStep", func() {
 
 		Context("when format is yaml", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
+				varPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Format: "yaml",
@@ -211,7 +210,7 @@ var _ = Describe("VarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((some-var.k1))((some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("yv1yv2\n"))
 			})
@@ -221,9 +220,9 @@ var _ = Describe("VarStep", func() {
 	Context("when format is not specified", func() {
 		Context("when file extension is other than json, yml and yaml", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
-					Name:   "some-var",
-					File:   "some-resource/a.diff",
+				varPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+					File: "some-resource/a.diff",
 				}
 
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
@@ -234,7 +233,7 @@ var _ = Describe("VarStep", func() {
 			})
 
 			It("should var parsed correctly as raw", func() {
-				value, err := vars.NewTemplate([]byte("((some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("pv\n"))
 			})
@@ -242,9 +241,9 @@ var _ = Describe("VarStep", func() {
 
 		Context("when format is json", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
-					Name:   "some-var",
-					File:   "some-resource/a.json",
+				varPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+					File: "some-resource/a.json",
 				}
 
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: jsonString}, nil)
@@ -255,7 +254,7 @@ var _ = Describe("VarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((some-var.k1))((some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("jv1jv2\n"))
 			})
@@ -263,9 +262,9 @@ var _ = Describe("VarStep", func() {
 
 		Context("when format is yml", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
-					Name:   "some-var",
-					File:   "some-resource/a.yml",
+				varPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+					File: "some-resource/a.yml",
 				}
 
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
@@ -276,7 +275,7 @@ var _ = Describe("VarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((some-var.k1))((some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("yv1yv2\n"))
 			})
@@ -284,9 +283,9 @@ var _ = Describe("VarStep", func() {
 
 		Context("when format is yaml", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
-					Name:   "some-var",
-					File:   "some-resource/a.yaml",
+				varPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+					File: "some-resource/a.yaml",
 				}
 
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
@@ -297,7 +296,7 @@ var _ = Describe("VarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((some-var.k1))((some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("yv1yv2\n"))
 			})
@@ -307,15 +306,15 @@ var _ = Describe("VarStep", func() {
 	Context("when file is bad", func() {
 		Context("when json file is bad", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
-					Name:   "some-var",
-					File:   "some-resource/a.json",
+				varPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+					File: "some-resource/a.json",
 				}
 
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("step should fail", func() {
 				Expect(stepErr).To(HaveOccurred())
 				Expect(stepErr).To(MatchError(ContainSubstring("failed to parse some-resource/a.json in format json")))
 			})
@@ -323,15 +322,15 @@ var _ = Describe("VarStep", func() {
 
 		Context("when yaml file is bad", func() {
 			BeforeEach(func() {
-				varPlan = &atc.VarPlan{
-					Name:   "some-var",
-					File:   "some-resource/a.yaml",
+				varPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+					File: "some-resource/a.yaml",
 				}
 
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: "a:\nb"}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("step should fail", func() {
 				Expect(stepErr).To(HaveOccurred())
 				Expect(stepErr).To(MatchError(ContainSubstring("failed to parse some-resource/a.yaml in format yaml")))
 			})

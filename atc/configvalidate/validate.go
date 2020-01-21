@@ -330,14 +330,14 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 		// Within a job, each "var" step should have a unique name.
 		varStepNames := map[string]interface{}{}
 		for _, plan := range job.Plan {
-			if plan.Var != "" {
-				if _, ok := varStepNames[plan.Var]; ok {
+			if plan.LoadVar != "" {
+				if _, ok := varStepNames[plan.LoadVar]; ok {
 					errorMessages = append(
 						errorMessages,
-						fmt.Sprintf("%s has var steps with the same name: %s", identifier, plan.Var),
+						fmt.Sprintf("%s has var steps with the same name: %s", identifier, plan.LoadVar),
 					)
 				}
-				varStepNames[plan.Var] = true
+				varStepNames[plan.LoadVar] = true
 			}
 		}
 	}
@@ -396,7 +396,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		foundTypes.Find("set_pipeline")
 	}
 
-	if plan.Var != "" {
+	if plan.LoadVar != "" {
 		foundTypes.Find("var")
 	}
 
@@ -599,8 +599,8 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 			errorMessages = append(errorMessages, identifier+" does not specify any pipeline configuration")
 		}
 
-	case plan.Var != "":
-		identifier = fmt.Sprintf("%s.var.%s", identifier, plan.Var)
+	case plan.LoadVar != "":
+		identifier = fmt.Sprintf("%s.var.%s", identifier, plan.LoadVar)
 
 		if plan.File == "" {
 			errorMessages = append(errorMessages, identifier+" does not specify any file")

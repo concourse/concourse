@@ -554,14 +554,14 @@ var _ = Describe("Builder", func() {
 
 					Context("that contains a var step", func() {
 						BeforeEach(func() {
-							expectedPlan = planFactory.NewPlan(atc.VarPlan{
+							expectedPlan = planFactory.NewPlan(atc.LoadVarPlan{
 								Name: "some-var",
 								File: "some-input/data.yml",
 							})
 						})
 
 						It("constructs var correctly", func() {
-							plan, stepMetadata, _ := fakeStepFactory.VarStepArgsForCall(0)
+							plan, stepMetadata, _ := fakeStepFactory.LoadVarStepArgsForCall(0)
 							Expect(plan).To(Equal(expectedPlan))
 							Expect(stepMetadata).To(Equal(expectedMetadata))
 						})

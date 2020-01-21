@@ -11,7 +11,7 @@ jobs:
   plan:
   - get: resource-using-vars
 
-  - var: local-var
+  - load_var: local-var
     file: resource-using-vars/data
     format: raw
 

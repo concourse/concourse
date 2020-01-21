@@ -158,12 +158,12 @@ func (factory *stepFactory) SetPipelineStep(
 	return exec.LogError(spStep, delegate)
 }
 
-func (factory *stepFactory) VarStep(
+func (factory *stepFactory) LoadVarStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	delegate exec.BuildStepDelegate,
 ) exec.Step {
-	varStep := exec.NewVarStep(
+	varStep := exec.NewLoadVarStep(
 		plan.ID,
 		*plan.Var,
 		stepMetadata,

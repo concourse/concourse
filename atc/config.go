@@ -479,13 +479,13 @@ type PlanConfig struct {
 	Version *VersionConfig `json:"version,omitempty"`
 
 	// name of 'var' step
-	Var string `json:"var,omitempty"`
+	LoadVar string `json:"load_var,omitempty"`
 
 	// format of input file.
 	Format string `json:"format,omitempty"`
 
-	// if or not dump local vars in 'var' step.
-	Dump bool `json:"dump,omitempty"`
+	// if a var is sensitive. If not, then it will not be redacted.
+	Insensitive bool `json:"insensitive,omitempty"`
 }
 
 func (config PlanConfig) Name() string {

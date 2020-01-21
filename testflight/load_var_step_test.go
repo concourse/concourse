@@ -6,7 +6,7 @@ import (
 
 var _ = Describe("Var Step", func() {
 	BeforeEach(func() {
-		setAndUnpausePipeline("fixtures/var-step.yml")
+		setAndUnpausePipeline("fixtures/load-var-step.yml")
 	})
 
 	It("uses the var step build execution", func() {

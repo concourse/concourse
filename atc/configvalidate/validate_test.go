@@ -70,8 +70,8 @@ var _ = Describe("ValidateConfig", func() {
 							},
 						},
 						{
-							Var:  "some-var",
-							File: "some-input/some-file.json",
+							LoadVar: "some-var",
+							File:    "some-input/some-file.json",
 						},
 						{
 							Task:       "some-task",
@@ -1461,7 +1461,7 @@ var _ = Describe("ValidateConfig", func() {
 			Context("when a var has not defined 'File'", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
-						Var: "a-var",
+						LoadVar: "a-var",
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1476,11 +1476,11 @@ var _ = Describe("ValidateConfig", func() {
 			Context("when two var steps have same name", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
-						Var:  "a-var",
-						File: "file1",
+						LoadVar: "a-var",
+						File:    "file1",
 					}, PlanConfig{
-						Var:  "a-var",
-						File: "file1",
+						LoadVar: "a-var",
+						File:    "file1",
 					})
 
 					config.Jobs = append(config.Jobs, job)

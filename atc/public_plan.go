@@ -267,7 +267,7 @@ func (plan SetPipelinePlan) Public() *json.RawMessage {
 	})
 }
 
-func (plan VarPlan) Public() *json.RawMessage {
+func (plan LoadVarPlan) Public() *json.RawMessage {
 	return enc(struct {
 		Name string `json:"name"`
 	}{
