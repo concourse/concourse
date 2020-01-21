@@ -4,7 +4,6 @@ package workerfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
@@ -59,13 +58,12 @@ type FakeWorkerProvider struct {
 		result1 []worker.Worker
 		result2 error
 	}
-	NewGardenWorkerStub        func(lager.Logger, clock.Clock, db.Worker, int) worker.Worker
+	NewGardenWorkerStub        func(lager.Logger, db.Worker, int) worker.Worker
 	newGardenWorkerMutex       sync.RWMutex
 	newGardenWorkerArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 clock.Clock
-		arg3 db.Worker
-		arg4 int
+		arg2 db.Worker
+		arg3 int
 	}
 	newGardenWorkerReturns struct {
 		result1 worker.Worker
@@ -290,19 +288,18 @@ func (fake *FakeWorkerProvider) FindWorkersForContainerByOwnerReturnsOnCall(i in
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerProvider) NewGardenWorker(arg1 lager.Logger, arg2 clock.Clock, arg3 db.Worker, arg4 int) worker.Worker {
+func (fake *FakeWorkerProvider) NewGardenWorker(arg1 lager.Logger, arg2 db.Worker, arg3 int) worker.Worker {
 	fake.newGardenWorkerMutex.Lock()
 	ret, specificReturn := fake.newGardenWorkerReturnsOnCall[len(fake.newGardenWorkerArgsForCall)]
 	fake.newGardenWorkerArgsForCall = append(fake.newGardenWorkerArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 clock.Clock
-		arg3 db.Worker
-		arg4 int
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("NewGardenWorker", []interface{}{arg1, arg2, arg3, arg4})
+		arg2 db.Worker
+		arg3 int
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("NewGardenWorker", []interface{}{arg1, arg2, arg3})
 	fake.newGardenWorkerMutex.Unlock()
 	if fake.NewGardenWorkerStub != nil {
-		return fake.NewGardenWorkerStub(arg1, arg2, arg3, arg4)
+		return fake.NewGardenWorkerStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -317,17 +314,17 @@ func (fake *FakeWorkerProvider) NewGardenWorkerCallCount() int {
 	return len(fake.newGardenWorkerArgsForCall)
 }
 
-func (fake *FakeWorkerProvider) NewGardenWorkerCalls(stub func(lager.Logger, clock.Clock, db.Worker, int) worker.Worker) {
+func (fake *FakeWorkerProvider) NewGardenWorkerCalls(stub func(lager.Logger, db.Worker, int) worker.Worker) {
 	fake.newGardenWorkerMutex.Lock()
 	defer fake.newGardenWorkerMutex.Unlock()
 	fake.NewGardenWorkerStub = stub
 }
 
-func (fake *FakeWorkerProvider) NewGardenWorkerArgsForCall(i int) (lager.Logger, clock.Clock, db.Worker, int) {
+func (fake *FakeWorkerProvider) NewGardenWorkerArgsForCall(i int) (lager.Logger, db.Worker, int) {
 	fake.newGardenWorkerMutex.RLock()
 	defer fake.newGardenWorkerMutex.RUnlock()
 	argsForCall := fake.newGardenWorkerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeWorkerProvider) NewGardenWorkerReturns(result1 worker.Worker) {

@@ -66,6 +66,7 @@ init flags url =
             { userState = UserStateUnknown
             , hovered = HoverState.NoHover
             , clusterName = ""
+            , version = ""
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
@@ -154,22 +155,7 @@ handleCallback callback model =
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
-        APIDataFetched (Ok ( _, data )) ->
-            let
-                session =
-                    model.session
-
-                newSession =
-                    { session
-                        | userState =
-                            data.user
-                                |> Maybe.map UserStateLoggedIn
-                                |> Maybe.withDefault UserStateLoggedOut
-                    }
-            in
-            subpageHandleCallback callback ( { model | session = newSession }, [] )
-
-        APIDataFetched (Err err) ->
+        AllTeamsFetched (Err err) ->
             let
                 session =
                     model.session
@@ -200,13 +186,13 @@ handleCallback callback model =
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
-        ClusterInfoFetched (Ok { clusterName }) ->
+        ClusterInfoFetched (Ok { clusterName, version }) ->
             let
                 session =
                     model.session
 
                 newSession =
-                    { session | clusterName = clusterName }
+                    { session | clusterName = clusterName, version = version }
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
@@ -261,16 +247,12 @@ sideBarHandleCallback callback ( model, effects ) =
 
                         SubPage.BuildModel buildModel ->
                             SideBar.handleCallback callback
-                                (buildModel.build
-                                    |> RemoteData.andThen
-                                        (\b ->
-                                            case b.job of
-                                                Just j ->
-                                                    RemoteData.Success j
+                                (case buildModel.job of
+                                    Just j ->
+                                        RemoteData.Success j
 
-                                                Nothing ->
-                                                    RemoteData.NotAsked
-                                        )
+                                    Nothing ->
+                                        RemoteData.NotAsked
                                 )
 
                         _ ->

@@ -2,7 +2,7 @@ module Dashboard.Footer exposing (handleDelivery, view)
 
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
-import Dashboard.Group.Models exposing (Group)
+import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
 import HoverState
@@ -32,8 +32,7 @@ handleDelivery delivery ( model, effects ) =
                         ( { model
                             | showHelp =
                                 if
-                                    model.groups
-                                        |> List.concatMap .pipelines
+                                    model.pipelines
                                         |> List.isEmpty
                                 then
                                     False
@@ -69,7 +68,11 @@ handleDelivery delivery ( model, effects ) =
 
 
 view :
-    { a | hovered : HoverState.HoverState, screenSize : ScreenSize.ScreenSize }
+    { a
+        | hovered : HoverState.HoverState
+        , screenSize : ScreenSize.ScreenSize
+        , version : String
+    }
     -> FooterModel r
     -> Html Message
 view session model =
@@ -114,12 +117,15 @@ keyboardHelp =
 
 
 infoBar :
-    { a | hovered : HoverState.HoverState, screenSize : ScreenSize.ScreenSize }
+    { a
+        | hovered : HoverState.HoverState
+        , screenSize : ScreenSize.ScreenSize
+        , version : String
+    }
     ->
         { b
-            | version : String
-            , highDensity : Bool
-            , groups : List Group
+            | highDensity : Bool
+            , pipelines : List Pipeline
         }
     -> Html Message
 infoBar session model =
@@ -131,7 +137,7 @@ infoBar session model =
                 }
         )
         [ legend session model
-        , concourseInfo session model
+        , concourseInfo session
         ]
 
 
@@ -139,7 +145,7 @@ legend :
     { a | screenSize : ScreenSize.ScreenSize }
     ->
         { b
-            | groups : List Group
+            | pipelines : List Pipeline
             , highDensity : Bool
         }
     -> Html Message
@@ -176,10 +182,9 @@ legend session model =
 
 
 concourseInfo :
-    { a | hovered : HoverState.HoverState }
-    -> { b | version : String }
+    { a | hovered : HoverState.HoverState, version : String }
     -> Html Message
-concourseInfo { hovered } { version } =
+concourseInfo { hovered, version } =
     Html.div (id "concourse-info" :: Styles.info)
         [ Html.div
             Styles.infoItem
@@ -193,9 +198,9 @@ concourseInfo { hovered } { version } =
         ]
 
 
-hideLegend : { a | groups : List Group } -> Bool
-hideLegend { groups } =
-    List.isEmpty (groups |> List.concatMap .pipelines)
+hideLegend : { a | pipelines : List Pipeline } -> Bool
+hideLegend { pipelines } =
+    List.isEmpty pipelines
 
 
 legendItem : PipelineStatus -> Html Message

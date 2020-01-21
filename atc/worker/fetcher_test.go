@@ -1,9 +1,14 @@
-package fetcher_test
+package worker_test
 
 import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/worker"
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
@@ -12,13 +17,8 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
-	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
-	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-
-	. "github.com/concourse/concourse/atc/fetcher"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -27,42 +27,50 @@ var _ = Describe("Fetcher", func() {
 	var (
 		fakeClock             *fakeclock.FakeClock
 		fakeLockFactory       *lockfakes.FakeLockFactory
-		fetcher               Fetcher
+		fetcher               worker.Fetcher
 		ctx                   context.Context
 		cancel                func()
-		fakeVersionedSource   *resourcefakes.FakeVersionedSource
 		fakeBuildStepDelegate *workerfakes.FakeImageFetchingDelegate
 
 		fakeWorker             *workerfakes.FakeWorker
-		fakeFetchSourceFactory *fetcherfakes.FakeFetchSourceFactory
+		fakeVolume             *workerfakes.FakeVolume
+		fakeFetchSourceFactory *workerfakes.FakeFetchSourceFactory
+		fakeResource           *resourcefakes.FakeResource
+		fakeUsedResourceCache  *dbfakes.FakeUsedResourceCache
 
-		versionedSource resource.VersionedSource
-		fetchErr        error
-		teamID          = 123
+		getResult worker.GetResult
+		fetchErr  error
+		teamID    = 123
+
+		volume worker.Volume
 	)
 
 	BeforeEach(func() {
 		fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
-		fakeFetchSourceFactory = new(fetcherfakes.FakeFetchSourceFactory)
+		fakeFetchSourceFactory = new(workerfakes.FakeFetchSourceFactory)
 
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeWorker.NameReturns("some-worker")
 
-		fetcher = NewFetcher(
+		fakeVolume = new(workerfakes.FakeVolume)
+		fakeVolume.HandleReturns("some-handle")
+		fakeResource = new(resourcefakes.FakeResource)
+		fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
+
+		fetcher = worker.NewFetcher(
 			fakeClock,
 			fakeLockFactory,
 			fakeFetchSourceFactory,
 		)
 
 		ctx, cancel = context.WithCancel(context.Background())
-		fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
 
 		fakeBuildStepDelegate = new(workerfakes.FakeImageFetchingDelegate)
 	})
 
 	JustBeforeEach(func() {
-		versionedSource, fetchErr = fetcher.Fetch(
+		getResult, volume, fetchErr = fetcher.Fetch(
 			ctx,
 			lagertest.NewTestLogger("test"),
 			db.ContainerMetadata{},
@@ -70,21 +78,28 @@ var _ = Describe("Fetcher", func() {
 			worker.ContainerSpec{
 				TeamID: teamID,
 			},
-			atc.VersionedResourceTypes{},
-			new(resourcefakes.FakeResourceInstance),
-			fakeBuildStepDelegate,
+			runtime.ProcessSpec{
+				Args: []string{resource.ResourcesDir("get")},
+			},
+			fakeResource,
+			db.NewBuildStepContainerOwner(0, "some-plan-id", 0),
+			worker.ImageFetcherSpec{
+				atc.VersionedResourceTypes{},
+				fakeBuildStepDelegate,
+			},
+			fakeUsedResourceCache,
+			"fake-lock-name",
 		)
 	})
 
 	Context("when getting source", func() {
-		var fakeFetchSource *fetcherfakes.FakeFetchSource
+		var fakeFetchSource *workerfakes.FakeFetchSource
 
 		BeforeEach(func() {
-			fakeFetchSource = new(fetcherfakes.FakeFetchSource)
+			fakeFetchSource = new(workerfakes.FakeFetchSource)
 			fakeFetchSourceFactory.NewFetchSourceReturns(fakeFetchSource)
 
-			fakeFetchSource.FindReturns(nil, false, nil)
-			fakeFetchSource.LockNameReturns("fake-lock-name", nil)
+			fakeFetchSource.FindReturns(worker.GetResult{}, fakeVolume, false, nil)
 		})
 
 		Describe("failing to get a lock", func() {
@@ -94,7 +109,7 @@ var _ = Describe("Fetcher", func() {
 					callCount := 0
 					fakeLockFactory.AcquireStub = func(lager.Logger, lock.LockID) (lock.Lock, bool, error) {
 						callCount++
-						fakeClock.Increment(GetResourceLockInterval)
+						fakeClock.Increment(worker.GetResourceLockInterval)
 						if callCount == 1 {
 							return nil, false, nil
 						}
@@ -117,7 +132,7 @@ var _ = Describe("Fetcher", func() {
 					callCount := 0
 					fakeLockFactory.AcquireStub = func(lager.Logger, lock.LockID) (lock.Lock, bool, error) {
 						callCount++
-						fakeClock.Increment(GetResourceLockInterval)
+						fakeClock.Increment(worker.GetResourceLockInterval)
 						if callCount == 1 {
 							return nil, false, errors.New("disaster")
 						}
@@ -141,7 +156,7 @@ var _ = Describe("Fetcher", func() {
 			BeforeEach(func() {
 				fakeLock = new(lockfakes.FakeLock)
 				fakeLockFactory.AcquireReturns(fakeLock, true, nil)
-				fakeFetchSource.CreateReturns(fakeVersionedSource, nil)
+				fakeFetchSource.CreateReturns(worker.GetResult{}, fakeVolume, nil)
 			})
 
 			It("acquires a lock with source lock name", func() {
@@ -158,8 +173,9 @@ var _ = Describe("Fetcher", func() {
 				Expect(fakeFetchSource.CreateCallCount()).To(Equal(1))
 			})
 
-			It("returns the source", func() {
-				Expect(versionedSource).To(Equal(fakeVersionedSource))
+			It("returns the result and volume", func() {
+				Expect(getResult).To(Equal(worker.GetResult{}))
+				Expect(volume).ToNot(BeNil())
 			})
 		})
 
@@ -168,7 +184,7 @@ var _ = Describe("Fetcher", func() {
 
 			BeforeEach(func() {
 				disaster = errors.New("fail")
-				fakeFetchSource.FindReturns(nil, false, disaster)
+				fakeFetchSource.FindReturns(worker.GetResult{}, nil, false, disaster)
 			})
 
 			It("returns an error", func() {

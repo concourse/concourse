@@ -46,9 +46,9 @@ contains x xs =
 
     else
         Expect.fail <|
-            "Expected "
-                ++ Debug.toString xs
-                ++ " to contain "
+            "Expected \n[ "
+                ++ String.join "\n, " (List.map Debug.toString xs)
+                ++ "\n] to contain "
                 ++ Debug.toString x
 
 

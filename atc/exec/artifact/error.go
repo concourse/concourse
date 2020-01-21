@@ -18,7 +18,7 @@ func (err UnspecifiedArtifactSourceError) Error() string {
 // UnknownArtifactSourceError is returned when the artifact.Name specified by the
 // path does not exist in the artifact.Repository.
 type UnknownArtifactSourceError struct {
-	Name Name
+	Name string
 	Path string
 }
 
@@ -30,7 +30,7 @@ func (err UnknownArtifactSourceError) Error() string {
 // FileNotFoundError is returned when the specified file path does not
 // exist within its artifact source.
 type FileNotFoundError struct {
-	Name     Name
+	Name     string
 	FilePath string
 }
 

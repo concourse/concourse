@@ -1,3 +1,7 @@
+// Package worker will eventually evolve to becoming a concrete implementation of a runtime
+// As such, Concourse core shouldn't depend on abstractions defined in this package or its child packages
+// General Runtime abstractions will be ported over to the Runtime package
+// The Client interface is the main interface that is consumed by Concourse core that will be shifted to the Runtime package
 package worker
 
 import (
@@ -9,16 +13,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/worker/gclient"
-	"golang.org/x/sync/errgroup"
-
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/cppforlife/go-semi-semantic/version"
+	"golang.org/x/sync/errgroup"
 )
 
 const userPropertyName = "user"
@@ -53,6 +58,19 @@ type Worker interface {
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
+	Fetch(
+		context.Context,
+		lager.Logger,
+		db.ContainerMetadata,
+		Worker,
+		ContainerSpec,
+		runtime.ProcessSpec,
+		resource.Resource,
+		db.ContainerOwner,
+		ImageFetcherSpec,
+		db.UsedResourceCache,
+		string,
+	) (GetResult, Volume, error)
 
 	CertsVolume(lager.Logger) (volume Volume, found bool, err error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
@@ -65,9 +83,10 @@ type Worker interface {
 }
 
 type gardenWorker struct {
-	gardenClient    gclient.Client
-	volumeClient    VolumeClient
-	imageFactory    ImageFactory
+	gardenClient gclient.Client
+	volumeClient VolumeClient
+	imageFactory ImageFactory
+	Fetcher
 	dbWorker        db.Worker
 	buildContainers int
 	helper          workerHelper
@@ -81,6 +100,7 @@ func NewGardenWorker(
 	volumeRepository db.VolumeRepository,
 	volumeClient VolumeClient,
 	imageFactory ImageFactory,
+	fetcher Fetcher,
 	dbTeamFactory db.TeamFactory,
 	dbWorker db.Worker,
 	numBuildContainers int,
@@ -100,6 +120,7 @@ func NewGardenWorker(
 		gardenClient:    gardenClient,
 		volumeClient:    volumeClient,
 		imageFactory:    imageFactory,
+		Fetcher:         fetcher,
 		dbWorker:        dbWorker,
 		buildContainers: numBuildContainers,
 		helper:          workerHelper,
@@ -437,7 +458,7 @@ func (worker *gardenWorker) createVolumes(
 	nonlocalInputs := make([]mountableRemoteInput, 0)
 
 	for _, inputSource := range spec.Inputs {
-		inputSourceVolume, found, err := inputSource.Source().VolumeOn(logger, worker)
+		inputSourceVolume, found, err := inputSource.Source().ExistsOn(logger, worker)
 		if err != nil {
 			return nil, err
 		}
@@ -457,6 +478,8 @@ func (worker *gardenWorker) createVolumes(
 		}
 	}
 
+	// we create COW volumes for task caches too, in case multiple builds
+	// are running the same task
 	cowMounts, err := worker.cloneLocalVolumes(
 		logger,
 		spec.TeamID,
@@ -584,9 +607,11 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 		}
 
 		g.Go(func() error {
-			err = nonLocalInput.desiredArtifact.StreamTo(groupCtx, logger.Session("stream-to", destData), inputVolume)
-			if err != nil {
-				return err
+			if streamable, ok := nonLocalInput.desiredArtifact.(StreamableArtifactSource); ok {
+				err = streamable.StreamTo(groupCtx, logger.Session("stream-to", destData), inputVolume)
+				if err != nil {
+					return err
+				}
 			}
 
 			mounts[i] = VolumeMount{

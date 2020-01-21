@@ -7,7 +7,7 @@ import (
 	"code.cloudfoundry.org/garden"
 )
 
-type Container struct{
+type Container struct {
 	handle string
 }
 

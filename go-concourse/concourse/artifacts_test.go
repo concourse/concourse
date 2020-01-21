@@ -11,7 +11,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("Artifacts", func() {
+var _ = Describe("ArtifactRepository", func() {
 
 	Describe("CreateArtifact", func() {
 		Context("when creating the artifact fails", func() {

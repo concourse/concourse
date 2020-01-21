@@ -4,12 +4,15 @@ import Application.Models exposing (Session)
 import Build.Header.Header as Header
 import Build.Header.Models as Models
 import Build.Header.Views as Views
+import Build.Shortcuts as Shortcuts
 import Build.StepTree.Models as STModels
 import Common
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Expect
 import HoverState
+import Keyboard
+import List.Extra
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message as Message
@@ -211,7 +214,7 @@ all =
                         (Callback.BuildHistoryFetched <|
                             Ok
                                 { content =
-                                    [ build
+                                    [ { build | name = "4" }
                                     , { build | id = 1, name = "0" }
                                     ]
                                 , pagination =
@@ -227,6 +230,44 @@ all =
                     |> .tabs
                     |> List.map .name
                     |> Expect.equal [ "4", "0.1", "0" ]
+        , test "updates duration on finishing status event" <|
+            \_ ->
+                ( model, [] )
+                    |> Header.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                { build
+                                    | status = BuildStatusStarted
+                                    , duration =
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                }
+                        )
+                    |> Header.handleDelivery
+                        (Subscription.EventsReceived <|
+                            Ok
+                                [ { data =
+                                        STModels.BuildStatus BuildStatusSucceeded <|
+                                            Time.millisToPosix 1000
+                                  , url = "http://localhost:8080/api/v1/builds/0/events"
+                                  }
+                                ]
+                        )
+                    |> Tuple.first
+                    |> Header.header session
+                    |> .leftWidgets
+                    |> Common.contains
+                        (Views.Duration <|
+                            Views.Finished
+                                { started =
+                                    Views.Absolute "Jan 1 1970 12:00:00 AM" Nothing
+                                , finished =
+                                    Views.Absolute "Jan 1 1970 12:00:01 AM" Nothing
+                                , duration = Views.JustSeconds 1
+                                }
+                        )
         , test "status event from wrong build is discarded" <|
             \_ ->
                 ( model, [] )
@@ -244,6 +285,61 @@ all =
                     |> Header.header session
                     |> .backgroundColor
                     |> Expect.equal BuildStatusPending
+        , test "updates when route changes" <|
+            \_ ->
+                ( model, [] )
+                    |> Header.handleCallback
+                        (Callback.BuildFetched <| Ok build)
+                    |> Header.handleCallback
+                        (Callback.BuildHistoryFetched <|
+                            Ok
+                                { content =
+                                    [ build
+                                    , { build
+                                        | id = 1
+                                        , name = "1"
+                                        , status = BuildStatusStarted
+                                        , duration =
+                                            { startedAt =
+                                                Just <|
+                                                    Time.millisToPosix 0
+                                            , finishedAt = Nothing
+                                            }
+                                      }
+                                    ]
+                                , pagination =
+                                    { previousPage = Nothing
+                                    , nextPage = Nothing
+                                    }
+                                }
+                        )
+                    |> Header.changeToBuild
+                        (Models.JobBuildPage
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , jobName = "job"
+                            , buildName = "1"
+                            }
+                        )
+                    |> Tuple.first
+                    |> Header.header session
+                    |> Expect.all
+                        [ .backgroundColor
+                            >> Expect.equal BuildStatusStarted
+                        , .leftWidgets
+                            >> Expect.equal
+                                [ Views.Title "1" (Just jobId)
+                                , Views.Duration <|
+                                    Views.Running <|
+                                        Views.Absolute
+                                            "Jan 1 1970 12:00:00 AM"
+                                            Nothing
+                                ]
+                        , .tabs
+                            >> List.Extra.last
+                            >> Maybe.map .isCurrent
+                            >> Expect.equal (Just True)
+                        ]
         ]
 
 
@@ -256,6 +352,7 @@ session =
     , screenSize = ScreenSize.Desktop
     , userState = UserState.UserStateLoggedOut
     , clusterName = ""
+    , version = ""
     , turbulenceImgSrc = ""
     , notFoundImgSrc = ""
     , csrfToken = ""
@@ -278,13 +375,14 @@ model =
     , now = Nothing
     , fetchingHistory = False
     , nextPage = Nothing
+    , hasLoadedYet = False
     }
 
 
 build : Concourse.Build
 build =
     { id = 0
-    , name = "4"
+    , name = "0"
     , job = Just jobId
     , status = model.status
     , duration = model.duration

@@ -8,6 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"io/ioutil"
+	yaml "gopkg.in/yaml.v2"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
@@ -29,9 +32,10 @@ type TSACommand struct {
 	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16  `long:"debug-bind-port" default:"2221"      description:"Port on which to listen for the pprof debugger endpoints."`
 
-	HostKey            *flag.PrivateKey               `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
-	AuthorizedKeys     flag.AuthorizedKeys            `long:"authorized-keys" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
-	TeamAuthorizedKeys map[string]flag.AuthorizedKeys `long:"team-authorized-keys" value-name:"NAME:PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	HostKey                *flag.PrivateKey               `long:"host-key"        required:"true" description:"Path to private key to use for the SSH server."`
+	AuthorizedKeys         flag.AuthorizedKeys            `long:"authorized-keys" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	TeamAuthorizedKeys     map[string]flag.AuthorizedKeys `long:"team-authorized-keys" value-name:"NAME:PATH" description:"Path to file containing keys to authorize, in SSH authorized_keys format (one public key per line)."`
+	TeamAuthorizedKeysFile flag.File                      `long:"team-authorized-keys-file" description:"Path to file containing a YAML array of teams and their authorized SSH keys, e.g. [{team:foo,ssh_keys:[key1,key2]}]."`
 
 	ATCURLs []flag.URL `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
 
@@ -46,6 +50,11 @@ type TSACommand struct {
 type TeamAuthKeys struct {
 	Team     string
 	AuthKeys []ssh.PublicKey
+}
+
+type yamlTeamAuthorizedKey struct {
+	Team string   `yaml:"team"`
+	Keys []string `yaml:"ssh_keys,flow"`
 }
 
 func (cmd *TSACommand) Execute(args []string) error {
@@ -141,6 +150,35 @@ func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
 			Team:     teamName,
 			AuthKeys: keys.Keys,
 		})
+	}
+
+	// load TeamAuthorizedKeysFile
+	if cmd.TeamAuthorizedKeysFile != "" {
+		logger, _ := cmd.constructLogger()
+		var rawTeamAuthorizedKeys []yamlTeamAuthorizedKey
+
+		authorizedKeysBytes, err := ioutil.ReadFile(cmd.TeamAuthorizedKeysFile.Path())
+		if err != nil {
+			return nil, fmt.Errorf("failed to read yaml authorized keys file: %s", err)
+		}
+		err = yaml.Unmarshal([]byte(authorizedKeysBytes), &rawTeamAuthorizedKeys)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse yaml authorized keys file: %s", err)
+		}
+
+		for _, t := range rawTeamAuthorizedKeys {
+			var teamAuthorizedKeys []ssh.PublicKey
+			for _, k := range t.Keys {
+				key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(k))
+				if err != nil {
+					logger.Error("load-team-authorized-keys-parse", fmt.Errorf("Invalid format, ignoring (%s): %s", k, err.Error()))
+					continue
+				}
+				logger.Info("load-team-authorized-keys-loaded", lager.Data{"team": t.Team, "key": k})
+				teamAuthorizedKeys = append(teamAuthorizedKeys, key)
+			}
+			teamKeys = append(teamKeys, TeamAuthKeys{Team: t.Team, AuthKeys: teamAuthorizedKeys})
+		}
 	}
 
 	return teamKeys, nil

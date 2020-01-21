@@ -124,7 +124,7 @@ init flags =
     , [ FetchResource flags.resourceId
       , FetchVersionedResources flags.resourceId flags.paging
       , GetCurrentTimeZone
-      , FetchPipelines
+      , FetchAllPipelines
       ]
     )
 
@@ -531,7 +531,7 @@ handleDelivery delivery ( model, effects ) =
             , effects
                 ++ [ FetchResource model.resourceIdentifier
                    , FetchVersionedResources model.resourceIdentifier model.currentPage
-                   , FetchPipelines
+                   , FetchAllPipelines
                    ]
                 ++ fetchDataForExpandedVersions model
             )

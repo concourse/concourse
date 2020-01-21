@@ -11,8 +11,8 @@ import Concourse
 import Concourse.BuildStatus as BuildStatus
 import Keyboard
 import Login.Login as Login
-import RemoteData
 import Routes exposing (Highlight)
+import Time
 
 
 
@@ -23,13 +23,15 @@ type alias Model =
     Login.Model
         (Build.Header.Models.Model
             (ShortcutsModel
-                { build : RemoteData.WebData Concourse.Build
-                , shiftDown : Bool
+                { shiftDown : Bool
                 , highlight : Highlight
                 , authorized : Bool
                 , output : CurrentOutput
                 , prep : Maybe Concourse.BuildPrep
                 , page : BuildPageType
+                , hasLoadedYet : Bool
+                , notFound : Bool
+                , reapTime : Maybe Time.Posix
                 }
             )
         )
@@ -46,6 +48,7 @@ type alias ShortcutsModel r =
         , job : Maybe Concourse.JobIdentifier
         , status : BuildStatus.BuildStatus
         , isTriggerBuildKeyDown : Bool
+        , duration : Concourse.BuildDuration
     }
 
 

@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"time"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/db"
@@ -37,7 +36,6 @@ type WorkerProvider interface {
 
 	NewGardenWorker(
 		logger lager.Logger,
-		tikTok clock.Clock,
 		savedWorker db.Worker,
 		numBuildWorkers int,
 	) Worker

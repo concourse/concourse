@@ -67,7 +67,6 @@ type alias Model =
         , fetchedResources : Maybe Json.Encode.Value
         , renderedJobs : Maybe Json.Encode.Value
         , renderedResources : Maybe Json.Encode.Value
-        , concourseVersion : String
         , turbulenceImgSrc : String
         , experiencingTurbulence : Bool
         , selectedGroups : List String
@@ -89,8 +88,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     let
         model =
-            { concourseVersion = ""
-            , turbulenceImgSrc = flags.turbulenceImgSrc
+            { turbulenceImgSrc = flags.turbulenceImgSrc
             , pipelineLocator = flags.pipelineLocator
             , pipeline = RemoteData.NotAsked
             , fetchedJobs = Nothing
@@ -108,9 +106,8 @@ init flags =
     in
     ( model
     , [ FetchPipeline flags.pipelineLocator
-      , FetchClusterInfo
       , ResetPipelineFocus
-      , FetchPipelines
+      , FetchAllPipelines
       ]
     )
 
@@ -258,10 +255,9 @@ handleCallback callback ( model, effects ) =
                         , effects
                         )
 
-        ClusterInfoFetched (Ok { version }) ->
+        ClusterInfoFetched (Ok _) ->
             ( { model
-                | concourseVersion = version
-                , experiencingTurbulence = False
+                | experiencingTurbulence = False
               }
             , effects
             )
@@ -269,7 +265,7 @@ handleCallback callback ( model, effects ) =
         ClusterInfoFetched (Err _) ->
             ( { model | experiencingTurbulence = True }, effects )
 
-        PipelinesFetched (Err _) ->
+        AllPipelinesFetched (Err _) ->
             ( { model | experiencingTurbulence = True }, effects )
 
         _ ->
@@ -304,7 +300,7 @@ handleDelivery delivery ( model, effects ) =
             ( model
             , effects
                 ++ [ FetchPipeline model.pipelineLocator
-                   , FetchPipelines
+                   , FetchAllPipelines
                    ]
             )
 
@@ -434,7 +430,10 @@ isPaused p =
     RemoteData.withDefault False (RemoteData.map .paused p)
 
 
-viewSubPage : { a | hovered : HoverState.HoverState } -> Model -> Html Message
+viewSubPage :
+    { a | hovered : HoverState.HoverState, version : String }
+    -> Model
+    -> Html Message
 viewSubPage session model =
     Html.div
         [ class "pipeline-view"
@@ -519,7 +518,7 @@ viewSubPage session model =
                             [ Html.text "v"
                             , Html.span
                                 [ class "number" ]
-                                [ Html.text model.concourseVersion ]
+                                [ Html.text session.version ]
                             ]
                         ]
                     ]

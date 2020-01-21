@@ -185,7 +185,7 @@ all =
                             , fragment = Nothing
                             }
                             |> Tuple.second
-                            |> Common.contains Effects.FetchPipelines
+                            |> Common.contains Effects.FetchAllPipelines
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
                         Common.init "/teams/team/pipelines/pipeline/jobs/job"

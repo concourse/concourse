@@ -554,7 +554,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.BuildPrepFetched <|
+                        (Callback.BuildPrepFetched 1 <|
                             Err <|
                                 Http.BadStatus
                                     { status =
@@ -645,6 +645,130 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.hasNot [ text "bad message" ]
+        , test "output does not change when the wrong build is fetched" <|
+            \_ ->
+                Common.init "/teams/main/pipelines/pipeline/jobs/job/builds/1"
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                { id = 1
+                                , name = "1"
+                                , job = Nothing
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt =
+                                        Just <| Time.millisToPosix 0
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 1 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "my-step-name"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                { id = 2
+                                , name = "2"
+                                , job = Nothing
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt =
+                                        Just <| Time.millisToPosix 0
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ text "my-step-name" ]
+        , test "build name does not change when the wrong build is fetched" <|
+            \_ ->
+                Common.init "/teams/main/pipelines/pipeline/jobs/job/builds/1"
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                { id = 1
+                                , name = "1"
+                                , job = Nothing
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt =
+                                        Just <| Time.millisToPosix 0
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                { id = 2
+                                , name = "2"
+                                , job = Nothing
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt =
+                                        Just <| Time.millisToPosix 0
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "build #2" ]
+        , test "build prep does not appear when wrong prep is fetched" <|
+            \_ ->
+                Common.init "/teams/main/pipelines/pipeline/jobs/job/builds/1"
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <|
+                            Ok
+                                { id = 1
+                                , name = "1"
+                                , job =
+                                    Just
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        , jobName = "job"
+                                        }
+                                , status = BuildStatusStarted
+                                , duration =
+                                    { startedAt =
+                                        Just <| Time.millisToPosix 0
+                                    , finishedAt = Nothing
+                                    }
+                                , reapTime = Nothing
+                                }
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.BuildPrepFetched 2 <|
+                            Ok
+                                { pausedPipeline = BuildPrepStatusUnknown
+                                , pausedJob = BuildPrepStatusUnknown
+                                , maxRunningBuilds = BuildPrepStatusUnknown
+                                , inputs = Dict.empty
+                                , inputsSatisfied = BuildPrepStatusUnknown
+                                , missingInputReasons = Dict.empty
+                                }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "preparing" ]
         , test "log lines have timestamps in current zone" <|
             \_ ->
                 Common.init "/builds/1"
@@ -1432,7 +1556,7 @@ all =
                             , style "flex-direction" "column"
                             , style "overflow" "hidden"
                             ]
-                , test "pressing 'L' switches to the next build" <|
+                , test "pressing 'L' updates the URL" <|
                     givenBuildFetched
                         >> Tuple.first
                         >> Application.handleCallback
@@ -1481,6 +1605,115 @@ all =
                             [ Effects.NavigateTo
                                 "/teams/t/pipelines/p/jobs/j/builds/2"
                             ]
+                , test "can use keyboard to switch builds after status change event" <|
+                    givenBuildFetched
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ Data.jobBuild BuildStatusSucceeded
+                                        , { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "t"
+                                                    , pipelineName = "p"
+                                                    , jobName = "j"
+                                                    }
+                                          , status = BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Just <| Time.millisToPosix 0
+                                                , finishedAt = Just <| Time.millisToPosix 0
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (Subscription.EventsReceived <|
+                                Ok
+                                    [ { data =
+                                            STModels.BuildStatus BuildStatusSucceeded <|
+                                                Time.millisToPosix 0
+                                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (Subscription.KeyDown
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.L
+                                }
+                            )
+                        >> Tuple.second
+                        >> Common.contains
+                            (Effects.NavigateTo "/teams/t/pipelines/p/jobs/j/builds/2")
+                , test "switching tabs updates the build name" <|
+                    givenBuildFetched
+                        >> Tuple.first
+                        >> Application.handleCallback
+                            (Callback.BuildHistoryFetched
+                                (Ok
+                                    { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage =
+                                            Just
+                                                { direction = Until 1
+                                                , limit = 100
+                                                }
+                                        }
+                                    , content =
+                                        [ Data.jobBuild BuildStatusSucceeded
+                                        , { id = 2
+                                          , name = "2"
+                                          , job =
+                                                Just
+                                                    { teamName = "t"
+                                                    , pipelineName = "p"
+                                                    , jobName = "j"
+                                                    }
+                                          , status = BuildStatusSucceeded
+                                          , duration =
+                                                { startedAt = Just <| Time.millisToPosix 0
+                                                , finishedAt = Just <| Time.millisToPosix 0
+                                                }
+                                          , reapTime = Nothing
+                                          }
+                                        ]
+                                    }
+                                )
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (RouteChanged <|
+                                Routes.Build
+                                    { id =
+                                        { teamName = "t"
+                                        , pipelineName = "p"
+                                        , jobName = "j"
+                                        , buildName = "2"
+                                        }
+                                    , highlight = Routes.HighlightNothing
+                                    }
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.has [ text " #2" ]
                 , test "pressing Command-L does nothing" <|
                     givenBuildFetched
                         >> Tuple.first
@@ -2072,7 +2305,7 @@ all =
                     givenBuildStarted
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.BuildPrepFetched <| Ok prep)
+                            (Callback.BuildPrepFetched 1 <| Ok prep)
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ class "prep-status-list" ]
@@ -2093,7 +2326,7 @@ all =
                                 , style "background-size" "contain"
                                 , style "width" "12px"
                                 , style "height" "12px"
-                                , style "margin-right" "5px"
+                                , style "margin-right" "8px"
                                 , attribute <| Attr.title "not blocking"
                                 ]
                             ]
@@ -2111,7 +2344,7 @@ all =
                     givenBuildStarted
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.BuildPrepFetched <| Ok prep)
+                            (Callback.BuildPrepFetched 1 <| Ok prep)
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ class "prep-status-list" ]
@@ -2130,7 +2363,7 @@ all =
                                     "container-rotate 1568ms linear infinite"
                                 , style "height" "12px"
                                 , style "width" "12px"
-                                , style "margin" "0 5px 0 0"
+                                , style "margin" "0 8px 0 0"
                                 ]
                             , Query.has [ attribute <| Attr.title "blocking" ]
                             ]
@@ -2148,7 +2381,7 @@ all =
                     givenBuildStarted
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.BuildPrepFetched <| Ok prep)
+                            (Callback.BuildPrepFetched 1 <| Ok prep)
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ class "prep-status-list" ]
@@ -2167,7 +2400,7 @@ all =
                                     "container-rotate 1568ms linear infinite"
                                 , style "height" "12px"
                                 , style "width" "12px"
-                                , style "margin" "0 5px 0 0"
+                                , style "margin" "0 8px 0 0"
                                 ]
                             , Query.has [ attribute <| Attr.title "thinking..." ]
                             ]
@@ -3422,12 +3655,14 @@ taskStepLabel =
     , containing [ text "task:" ]
     ]
 
+
 setPipelineStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
     , style "padding-left" "6px"
     , containing [ text "set_pipeline:" ]
     ]
+
 
 firstOccurrenceLabelID =
     Message.Message.FirstOccurrenceGetStepLabel

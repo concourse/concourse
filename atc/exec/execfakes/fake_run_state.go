@@ -6,19 +6,19 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
 )
 
 type FakeRunState struct {
-	ArtifactsStub        func() *artifact.Repository
-	artifactsMutex       sync.RWMutex
-	artifactsArgsForCall []struct {
+	ArtifactRepositoryStub        func() *build.Repository
+	artifactRepositoryMutex       sync.RWMutex
+	artifactRepositoryArgsForCall []struct {
 	}
-	artifactsReturns struct {
-		result1 *artifact.Repository
+	artifactRepositoryReturns struct {
+		result1 *build.Repository
 	}
-	artifactsReturnsOnCall map[int]struct {
-		result1 *artifact.Repository
+	artifactRepositoryReturnsOnCall map[int]struct {
+		result1 *build.Repository
 	}
 	ResultStub        func(atc.PlanID, interface{}) bool
 	resultMutex       sync.RWMutex
@@ -42,55 +42,55 @@ type FakeRunState struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRunState) Artifacts() *artifact.Repository {
-	fake.artifactsMutex.Lock()
-	ret, specificReturn := fake.artifactsReturnsOnCall[len(fake.artifactsArgsForCall)]
-	fake.artifactsArgsForCall = append(fake.artifactsArgsForCall, struct {
+func (fake *FakeRunState) ArtifactRepository() *build.Repository {
+	fake.artifactRepositoryMutex.Lock()
+	ret, specificReturn := fake.artifactRepositoryReturnsOnCall[len(fake.artifactRepositoryArgsForCall)]
+	fake.artifactRepositoryArgsForCall = append(fake.artifactRepositoryArgsForCall, struct {
 	}{})
-	fake.recordInvocation("Artifacts", []interface{}{})
-	fake.artifactsMutex.Unlock()
-	if fake.ArtifactsStub != nil {
-		return fake.ArtifactsStub()
+	fake.recordInvocation("ArtifactRepository", []interface{}{})
+	fake.artifactRepositoryMutex.Unlock()
+	if fake.ArtifactRepositoryStub != nil {
+		return fake.ArtifactRepositoryStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.artifactsReturns
+	fakeReturns := fake.artifactRepositoryReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeRunState) ArtifactsCallCount() int {
-	fake.artifactsMutex.RLock()
-	defer fake.artifactsMutex.RUnlock()
-	return len(fake.artifactsArgsForCall)
+func (fake *FakeRunState) ArtifactRepositoryCallCount() int {
+	fake.artifactRepositoryMutex.RLock()
+	defer fake.artifactRepositoryMutex.RUnlock()
+	return len(fake.artifactRepositoryArgsForCall)
 }
 
-func (fake *FakeRunState) ArtifactsCalls(stub func() *artifact.Repository) {
-	fake.artifactsMutex.Lock()
-	defer fake.artifactsMutex.Unlock()
-	fake.ArtifactsStub = stub
+func (fake *FakeRunState) ArtifactRepositoryCalls(stub func() *build.Repository) {
+	fake.artifactRepositoryMutex.Lock()
+	defer fake.artifactRepositoryMutex.Unlock()
+	fake.ArtifactRepositoryStub = stub
 }
 
-func (fake *FakeRunState) ArtifactsReturns(result1 *artifact.Repository) {
-	fake.artifactsMutex.Lock()
-	defer fake.artifactsMutex.Unlock()
-	fake.ArtifactsStub = nil
-	fake.artifactsReturns = struct {
-		result1 *artifact.Repository
+func (fake *FakeRunState) ArtifactRepositoryReturns(result1 *build.Repository) {
+	fake.artifactRepositoryMutex.Lock()
+	defer fake.artifactRepositoryMutex.Unlock()
+	fake.ArtifactRepositoryStub = nil
+	fake.artifactRepositoryReturns = struct {
+		result1 *build.Repository
 	}{result1}
 }
 
-func (fake *FakeRunState) ArtifactsReturnsOnCall(i int, result1 *artifact.Repository) {
-	fake.artifactsMutex.Lock()
-	defer fake.artifactsMutex.Unlock()
-	fake.ArtifactsStub = nil
-	if fake.artifactsReturnsOnCall == nil {
-		fake.artifactsReturnsOnCall = make(map[int]struct {
-			result1 *artifact.Repository
+func (fake *FakeRunState) ArtifactRepositoryReturnsOnCall(i int, result1 *build.Repository) {
+	fake.artifactRepositoryMutex.Lock()
+	defer fake.artifactRepositoryMutex.Unlock()
+	fake.ArtifactRepositoryStub = nil
+	if fake.artifactRepositoryReturnsOnCall == nil {
+		fake.artifactRepositoryReturnsOnCall = make(map[int]struct {
+			result1 *build.Repository
 		})
 	}
-	fake.artifactsReturnsOnCall[i] = struct {
-		result1 *artifact.Repository
+	fake.artifactRepositoryReturnsOnCall[i] = struct {
+		result1 *build.Repository
 	}{result1}
 }
 
@@ -190,8 +190,8 @@ func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, interface{}
 func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.artifactsMutex.RLock()
-	defer fake.artifactsMutex.RUnlock()
+	fake.artifactRepositoryMutex.RLock()
+	defer fake.artifactRepositoryMutex.RUnlock()
 	fake.resultMutex.RLock()
 	defer fake.resultMutex.RUnlock()
 	fake.storeResultMutex.RLock()

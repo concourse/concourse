@@ -3908,6 +3908,7 @@ session =
             }
     , hovered = HoverState.NoHover
     , clusterName = ""
+    , version = ""
     , turbulenceImgSrc = flags.turbulenceImgSrc
     , notFoundImgSrc = flags.notFoundImgSrc
     , csrfToken = flags.csrfToken

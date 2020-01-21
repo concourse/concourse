@@ -1,44 +1,35 @@
 module Dashboard.Models exposing
-    ( DashboardError(..)
-    , DragState(..)
+    ( DragState(..)
     , DropState(..)
     , Dropdown(..)
     , FooterModel
     , Model
-    , SubState
-    , tick
     )
 
 import Concourse
 import Dashboard.Group.Models
+import Dict exposing (Dict)
 import Login.Login as Login
-import RemoteData
 import Time
-import UserState
-
-
-type DashboardError
-    = Turbulence String
 
 
 type alias Model =
     FooterModel
         (Login.Model
-            { state : RemoteData.RemoteData DashboardError SubState
-            , turbulencePath : String
-            , pipelineRunningKeyframes : String
-            , userState : UserState.UserState
+            { showTurbulence : Bool
+            , now : Maybe Time.Posix
             , highDensity : Bool
             , query : String
+            , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+            , existingJobs : List Concourse.Job
+            , dragState : DragState
+            , dropState : DropState
+            , isJobsRequestFinished : Bool
+            , isTeamsRequestFinished : Bool
+            , isPipelinesRequestFinished : Bool
+            , isResourcesRequestFinished : Bool
             }
         )
-
-
-type alias SubState =
-    { now : Time.Posix
-    , dragState : DragState
-    , dropState : DropState
-    }
 
 
 type DragState
@@ -49,15 +40,11 @@ type DragState
 type DropState
     = NotDropping
     | Dropping PipelineIndex
+    | DroppingWhileApiRequestInFlight Concourse.TeamName
 
 
 type alias PipelineIndex =
     Int
-
-
-tick : Time.Posix -> SubState -> SubState
-tick now substate =
-    { substate | now = now }
 
 
 type alias FooterModel r =
@@ -65,8 +52,9 @@ type alias FooterModel r =
         | hideFooter : Bool
         , hideFooterCounter : Int
         , showHelp : Bool
+        , teams : List Concourse.Team
         , groups : List Dashboard.Group.Models.Group
-        , version : String
+        , pipelines : List Dashboard.Group.Models.Pipeline
         , dropdown : Dropdown
         , highDensity : Bool
     }

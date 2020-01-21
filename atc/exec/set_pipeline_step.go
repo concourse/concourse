@@ -4,16 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"sigs.k8s.io/yaml"
 
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -25,6 +30,7 @@ type SetPipelineStep struct {
 	metadata    StepMetadata
 	delegate    BuildStepDelegate
 	teamFactory db.TeamFactory
+	client      worker.Client
 	succeeded   bool
 }
 
@@ -34,6 +40,7 @@ func NewSetPipelineStep(
 	metadata StepMetadata,
 	delegate BuildStepDelegate,
 	teamFactory db.TeamFactory,
+	client worker.Client,
 ) Step {
 	return &SetPipelineStep{
 		planID:      planID,
@@ -41,6 +48,7 @@ func NewSetPipelineStep(
 		metadata:    metadata,
 		delegate:    delegate,
 		teamFactory: teamFactory,
+		client:      client,
 	}
 }
 
@@ -65,7 +73,8 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 		ctx:    ctx,
 		logger: logger,
 		step:   step,
-		repo:   state.Artifacts(),
+		repo:   state.ArtifactRepository(),
+		client: step.client,
 	}
 
 	err := source.Validate()
@@ -73,7 +82,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	atcConfig, err := source.FetchConfig()
+	atcConfig, err := source.FetchPipelineConfig()
 	if err != nil {
 		return err
 	}
@@ -146,40 +155,33 @@ func (step *SetPipelineStep) Succeeded() bool {
 type setPipelineSource struct {
 	ctx    context.Context
 	logger lager.Logger
-	repo   *artifact.Repository
+	repo   *build.Repository
 	step   *SetPipelineStep
+	client worker.Client
 }
 
-// streamInBytes streams a file from other resource and returns a byte array.
-func (s setPipelineSource) streamInBytes(path string) ([]byte, error) {
-	stream, err := s.repo.StreamFile(s.ctx, s.logger, path)
-	if err != nil {
-		return nil, err
-	}
-	defer stream.Close()
-
-	byteConfig, err := ioutil.ReadAll(stream)
-	if err != nil {
-		return nil, err
+func (s setPipelineSource) Validate() error {
+	if s.step.plan.File == "" {
+		return errors.New("file is not specified")
 	}
 
-	return byteConfig, nil
+	return nil
 }
 
-// FetchConfig streams pipeline configure file and var files from other resources
-// and construct an atc.Config object.
-func (s setPipelineSource) FetchConfig() (atc.Config, error) {
-	config, err := s.streamInBytes(s.step.plan.File)
+// FetchConfig streams pipeline config file and var files from other resources
+// and construct an atc.Config object
+func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
+	config, err := s.fetchPipelineBits(s.step.plan.File)
 	if err != nil {
 		return atc.Config{}, err
 	}
 
-	staticVarss := []vars.Variables{}
+	staticVars := []vars.Variables{}
 	if len(s.step.plan.Vars) > 0 {
-		staticVarss = append(staticVarss, vars.StaticVariables(s.step.plan.Vars))
+		staticVars = append(staticVars, vars.StaticVariables(s.step.plan.Vars))
 	}
 	for _, lvf := range s.step.plan.VarFiles {
-		bytes, err := s.streamInBytes(lvf)
+		bytes, err := s.fetchPipelineBits(lvf)
 		if err != nil {
 			return atc.Config{}, err
 		}
@@ -190,11 +192,11 @@ func (s setPipelineSource) FetchConfig() (atc.Config, error) {
 			return atc.Config{}, err
 		}
 
-		staticVarss = append(staticVarss, sv)
+		staticVars = append(staticVars, sv)
 	}
 
-	if len(staticVarss) > 0 {
-		config, err = vars.NewTemplateResolver(config, staticVarss).Resolve(false, false)
+	if len(staticVars) > 0 {
+		config, err = vars.NewTemplateResolver(config, staticVars).Resolve(false, false)
 		if err != nil {
 			return atc.Config{}, err
 		}
@@ -209,10 +211,46 @@ func (s setPipelineSource) FetchConfig() (atc.Config, error) {
 	return atcConfig, nil
 }
 
-func (s setPipelineSource) Validate() error {
-	if s.step.plan.File == "" {
-		return errors.New("file is not specified")
+func (s setPipelineSource) fetchPipelineBits(path string) ([]byte, error) {
+	segs := strings.SplitN(path, "/", 2)
+	if len(segs) != 2 {
+		return nil, UnspecifiedArtifactSourceError{path}
 	}
 
-	return nil
+	artifactName := segs[0]
+	filePath := segs[1]
+
+	stream, err := s.retrieveFromArtifact(artifactName, filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer stream.Close()
+
+	byteConfig, err := ioutil.ReadAll(stream)
+	if err != nil {
+		return nil, err
+	}
+
+	return byteConfig, nil
+}
+
+func (s setPipelineSource) retrieveFromArtifact(name, file string) (io.ReadCloser, error) {
+	art, found := s.repo.ArtifactFor(build.ArtifactName(name))
+	if !found {
+		return nil, UnknownArtifactSourceError{build.ArtifactName(name), file}
+	}
+
+	stream, err := s.client.StreamFileFromArtifact(s.ctx, s.logger, art, file)
+	if err != nil {
+		if err == baggageclaim.ErrFileNotFound {
+			return nil, artifact.FileNotFoundError{
+				Name:     name,
+				FilePath: file,
+			}
+		}
+
+		return nil, err
+	}
+
+	return stream, nil
 }

@@ -1,7 +1,6 @@
 module Build.Build exposing
     ( bodyId
     , changeToBuild
-    , currentJob
     , documentTitle
     , getScrollBehavior
     , getUpdateMessage
@@ -51,7 +50,6 @@ import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
-import RemoteData
 import Routes
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onScroll)
@@ -102,7 +100,6 @@ init flags =
           , history = []
           , nextPage = Nothing
           , prep = Nothing
-          , build = RemoteData.NotAsked
           , duration = { startedAt = Nothing, finishedAt = Nothing }
           , status = BuildStatusPending
           , output = Empty
@@ -116,8 +113,14 @@ init flags =
           , scrolledToCurrentBuild = False
           , shiftDown = False
           , isUserMenuExpanded = False
+          , hasLoadedYet = False
+          , notFound = False
+          , reapTime = Nothing
           }
-        , [ GetCurrentTime, GetCurrentTimeZone, FetchPipelines ]
+        , [ GetCurrentTime
+          , GetCurrentTimeZone
+          , FetchAllPipelines
+          ]
         )
 
 
@@ -162,13 +165,14 @@ changeToBuild { highlight, pageType } ( model, effects ) =
             effects
                 ++ [ CloseBuildEventStream, FetchJobBuild jbi ]
     )
+        |> Header.changeToBuild pageType
 
 
 extractTitle : Model -> String
 extractTitle model =
-    case ( model.build, currentJob model, model.page ) of
-        ( RemoteData.Success build, Just { jobName }, _ ) ->
-            jobName ++ " #" ++ build.name
+    case ( model.hasLoadedYet, model.job, model.page ) of
+        ( True, Just { jobName }, _ ) ->
+            jobName ++ " #" ++ model.name
 
         ( _, _, JobBuildPage { jobName, buildName } ) ->
             jobName ++ " #" ++ buildName
@@ -177,21 +181,13 @@ extractTitle model =
             "#" ++ String.fromInt id
 
 
-currentJob : Model -> Maybe Concourse.JobIdentifier
-currentJob =
-    .build
-        >> RemoteData.toMaybe
-        >> Maybe.andThen .job
-
-
 getUpdateMessage : Model -> UpdateMsg
 getUpdateMessage model =
-    case model.build of
-        RemoteData.Failure _ ->
-            UpdateMsg.NotFound
+    if model.notFound then
+        UpdateMsg.NotFound
 
-        _ ->
-            UpdateMsg.AOK
+    else
+        UpdateMsg.AOK
 
 
 handleCallback : Callback -> ET Model
@@ -209,7 +205,7 @@ handleCallback action ( model, effects ) =
                     else if status.code == 404 then
                         ( { model
                             | prep = Nothing
-                            , build = RemoteData.Failure err
+                            , notFound = True
                           }
                         , effects
                         )
@@ -223,10 +219,14 @@ handleCallback action ( model, effects ) =
         BuildAborted (Ok ()) ->
             ( model, effects )
 
-        BuildPrepFetched (Ok buildPrep) ->
-            handleBuildPrepFetched buildPrep ( model, effects )
+        BuildPrepFetched buildId (Ok buildPrep) ->
+            if buildId == model.id then
+                handleBuildPrepFetched buildPrep ( model, effects )
 
-        BuildPrepFetched (Err err) ->
+            else
+                ( model, effects )
+
+        BuildPrepFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 401 then
@@ -261,10 +261,7 @@ handleCallback action ( model, effects ) =
                 Http.BadStatus { status } ->
                     let
                         isAborted =
-                            model.build
-                                |> RemoteData.map
-                                    (.status >> (==) BuildStatusAborted)
-                                |> RemoteData.withDefault False
+                            model.status == BuildStatusAborted
                     in
                     if status.code == 404 && isAborted then
                         ( { model | output = Cancelled }
@@ -317,7 +314,7 @@ handleDelivery session delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ Effects.FetchPipelines ] )
+            ( model, effects ++ [ Effects.FetchAllPipelines ] )
 
         EventsReceived (Ok envelopes) ->
             let
@@ -367,14 +364,10 @@ handleDelivery session delivery ( model, effects ) =
                                 effects
                         )
             in
-            case ( newModel.build, buildStatus ) of
-                ( RemoteData.Success build, Just ( status, date ) ) ->
-                    ( { newModel
-                        | build =
-                            RemoteData.Success <|
-                                Concourse.receiveStatus status date build
-                      }
-                    , if Concourse.BuildStatus.isRunning build.status then
+            case ( model.hasLoadedYet, buildStatus ) of
+                ( True, Just ( status, _ ) ) ->
+                    ( newModel
+                    , if Concourse.BuildStatus.isRunning model.status then
                         newEffects ++ [ SetFavIcon (Just status) ]
 
                       else
@@ -404,20 +397,14 @@ update msg ( model, effects ) =
             )
 
         Click TriggerBuildButton ->
-            (currentJob model
+            (model.job
                 |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
                 |> Maybe.withDefault identity
             )
                 ( model, effects )
 
         Click AbortBuildButton ->
-            (model.build
-                |> RemoteData.toMaybe
-                |> Maybe.map
-                    (.id >> DoAbortBuild >> (::) >> Tuple.mapSecond)
-                |> Maybe.withDefault identity
-            )
-                ( model, effects )
+            ( model, DoAbortBuild model.id :: effects )
 
         Click (StepHeader id) ->
             updateOutput
@@ -468,20 +455,19 @@ getScrollBehavior model =
 
         Routes.HighlightNothing ->
             if model.autoScroll then
-                case model.build of
-                    RemoteData.Success build ->
-                        case build.status of
-                            BuildStatusSucceeded ->
-                                NoScroll
+                if model.hasLoadedYet then
+                    case model.status of
+                        BuildStatusSucceeded ->
+                            NoScroll
 
-                            BuildStatusPending ->
-                                NoScroll
+                        BuildStatusPending ->
+                            NoScroll
 
-                            _ ->
-                                ScrollWindow
+                        _ ->
+                            ScrollWindow
 
-                    _ ->
-                        NoScroll
+                else
+                    NoScroll
 
             else
                 NoScroll
@@ -519,24 +505,19 @@ updateOutput updater ( model, effects ) =
 handleBuildFetched : Concourse.Build -> ET Model
 handleBuildFetched build ( model, effects ) =
     let
-        output =
-            case model.build of
-                RemoteData.Success _ ->
-                    model.output
-
-                _ ->
-                    Empty
-
         withBuild =
             { model
-                | build = RemoteData.Success build
-                , duration = build.duration
-                , status = build.status
-                , output = output
+                | reapTime = build.reapTime
+                , output =
+                    if model.hasLoadedYet then
+                        model.output
+
+                    else
+                        Empty
             }
 
         fetchJobAndHistory =
-            case ( currentJob model, build.job ) of
+            case ( model.job, build.job ) of
                 ( Nothing, Just buildJob ) ->
                     [ FetchBuildJobDetails buildJob
                     , FetchBuildHistory buildJob Nothing
@@ -567,9 +548,15 @@ handleBuildFetched build ( model, effects ) =
             else
                 ( withBuild, effects )
     in
-    ( newModel
-    , cmd ++ fetchJobAndHistory ++ [ SetFavIcon (Just build.status), Focus bodyId ]
-    )
+    if not model.hasLoadedYet || build.id == model.id then
+        ( newModel
+        , cmd
+            ++ fetchJobAndHistory
+            ++ [ SetFavIcon (Just build.status), Focus bodyId ]
+        )
+
+    else
+        ( model, effects )
 
 
 pollUntilStarted : Int -> List Effect
@@ -637,7 +624,7 @@ view session model =
                 , isSideBarOpen = session.isSideBarOpen
                 , screenSize = session.screenSize
                 }
-                (currentJob model
+                (model.job
                     |> Maybe.map
                         (\j ->
                             { pipelineName = j.pipelineName
@@ -652,7 +639,7 @@ view session model =
 
 breadcrumbs : Model -> Html Message
 breadcrumbs model =
-    case ( currentJob model, model.page ) of
+    case ( model.job, model.page ) of
         ( Just jobId, _ ) ->
             TopBar.breadcrumbs <|
                 Routes.Job
@@ -673,42 +660,40 @@ breadcrumbs model =
 
 viewBuildPage : Session -> Model -> Html Message
 viewBuildPage session model =
-    case model.build of
-        RemoteData.Success build ->
-            Html.div
-                [ class "with-fixed-header"
-                , attribute "data-build-name" build.name
-                , style "flex-grow" "1"
-                , style "display" "flex"
-                , style "flex-direction" "column"
-                , style "overflow" "hidden"
-                ]
-                [ Header.view session model
-                , body
-                    session
-                    { prep = model.prep
-                    , build = build
-                    , output = model.output
-                    , authorized = model.authorized
-                    , showHelp = model.showHelp
-                    }
-                ]
+    if model.hasLoadedYet then
+        Html.div
+            [ class "with-fixed-header"
+            , attribute "data-build-name" model.name
+            , style "flex-grow" "1"
+            , style "display" "flex"
+            , style "flex-direction" "column"
+            , style "overflow" "hidden"
+            ]
+            [ Header.view session model
+            , body session model
+            ]
 
-        _ ->
-            LoadingIndicator.view
+    else
+        LoadingIndicator.view
 
 
 body :
     Session
     ->
-        { prep : Maybe Concourse.BuildPrep
-        , build : Concourse.Build
-        , output : CurrentOutput
-        , authorized : Bool
-        , showHelp : Bool
+        { a
+            | prep : Maybe Concourse.BuildPrep
+            , job : Maybe Concourse.JobIdentifier
+            , status : BuildStatus
+            , duration : Concourse.BuildDuration
+            , reapTime : Maybe Time.Posix
+            , id : Int
+            , name : String
+            , output : CurrentOutput
+            , authorized : Bool
+            , showHelp : Bool
         }
     -> Html Message
-body session { prep, build, output, authorized, showHelp } =
+body session ({ prep, output, authorized, showHelp } as params) =
     Html.div
         ([ class "scrollable-body build-body"
          , id bodyId
@@ -727,7 +712,7 @@ body session { prep, build, output, authorized, showHelp } =
                 output
             , Shortcuts.keyboardHelp showHelp
             ]
-                ++ tombstone session.timeZone build
+                ++ tombstone session.timeZone params
 
         else
             [ NotAuthorized.view ]
@@ -767,37 +752,38 @@ projectOntoBuildPage hovered =
             HoverState.NoHover
 
 
-tombstone : Time.Zone -> Concourse.Build -> List (Html Message)
-tombstone timeZone build =
+tombstone :
+    Time.Zone
+    ->
+        { a
+            | job : Maybe Concourse.JobIdentifier
+            , status : BuildStatus
+            , duration : Concourse.BuildDuration
+            , reapTime : Maybe Time.Posix
+            , id : Int
+            , name : String
+        }
+    -> List (Html Message)
+tombstone timeZone model =
     let
         maybeBirthDate =
-            Maybe.Extra.or build.duration.startedAt build.duration.finishedAt
+            Maybe.Extra.or model.duration.startedAt model.duration.finishedAt
     in
-    case ( maybeBirthDate, build.reapTime ) of
+    case ( maybeBirthDate, model.reapTime ) of
         ( Just birthDate, Just reapTime ) ->
             [ Html.div
                 [ class "tombstone" ]
                 [ Html.div [ class "heading" ] [ Html.text "RIP" ]
                 , Html.div
                     [ class "job-name" ]
-                    [ Html.text <|
-                        Maybe.withDefault
-                            "one-off build"
-                        <|
-                            Maybe.map .jobName build.job
+                    [ model.job
+                        |> Maybe.map .jobName
+                        |> Maybe.withDefault "one-off build"
+                        |> Html.text
                     ]
                 , Html.div
                     [ class "build-name" ]
-                    [ Html.text <|
-                        "build #"
-                            ++ (case build.job of
-                                    Nothing ->
-                                        String.fromInt build.id
-
-                                    Just _ ->
-                                        build.name
-                               )
-                    ]
+                    [ Html.text <| "build #" ++ model.name ]
                 , Html.div
                     [ class "date" ]
                     [ Html.text <|
@@ -808,7 +794,7 @@ tombstone timeZone build =
                 , Html.div
                     [ class "epitaph" ]
                     [ Html.text <|
-                        case build.status of
+                        case model.status of
                             BuildStatusSucceeded ->
                                 "It passed, and now it has passed on."
 
@@ -885,7 +871,10 @@ viewBuildPrep buildPrep =
                     , Html.h3 [] [ Html.text "preparing build" ]
                     ]
                 , Html.div []
-                    [ Html.ul [ class "prep-status-list" ]
+                    [ Html.ul
+                        [ class "prep-status-list"
+                        , style "font-size" "14px"
+                        ]
                         ([ viewBuildPrepLi "checking pipeline is not paused" prep.pausedPipeline Dict.empty
                          , viewBuildPrepLi "checking job is not paused" prep.pausedJob Dict.empty
                          ]
@@ -955,7 +944,7 @@ viewBuildPrepStatus status =
                 [ title "thinking..." ]
                 [ Spinner.spinner
                     { sizePx = 12
-                    , margin = "0 5px 0 0"
+                    , margin = "0 8px 0 0"
                     }
                 ]
 
@@ -964,7 +953,7 @@ viewBuildPrepStatus status =
                 [ title "blocking" ]
                 [ Spinner.spinner
                     { sizePx = 12
-                    , margin = "0 5px 0 0"
+                    , margin = "0 8px 0 0"
                     }
                 ]
 
@@ -973,7 +962,7 @@ viewBuildPrepStatus status =
                 { sizePx = 12
                 , image = "ic-not-blocking-check.svg"
                 }
-                [ style "margin-right" "5px"
+                [ style "margin-right" "8px"
                 , style "background-size" "contain"
                 , title "not blocking"
                 ]

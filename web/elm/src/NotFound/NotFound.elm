@@ -93,7 +93,7 @@ handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchPipelines ] )
+            ( model, effects ++ [ FetchAllPipelines ] )
 
         _ ->
             ( model, effects )

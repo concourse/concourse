@@ -10,6 +10,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
+// TODO-Later Move this to a testflight test as there is no relevant IaaS state
 var _ = Describe("Container scope", func() {
 	Context("when the container is scoped to a team", func() {
 		BeforeEach(func() {
@@ -63,15 +64,18 @@ var _ = Describe("Container scope", func() {
 			Fly.Run("login", "-n", "main", "-u", AtcUsername, "-p", AtcPassword)
 
 			By("stopping the build")
-			hijackSession := Fly.Start(
-				"hijack",
-				"-b", "1",
-				"-s", "simple-task",
-				"touch", "/tmp/stop-waiting",
-			)
+			Eventually(func() int {
+				hijackSession := Fly.Start(
+					"hijack",
+					"-b", "1",
+					"-s", "simple-task",
+					"touch", "/tmp/stop-waiting",
+				)
 
-			<-hijackSession.Exited
-			Expect(hijackSession.ExitCode()).To(Equal(0))
+				<-hijackSession.Exited
+				return hijackSession.ExitCode()
+
+			}).Should(Equal(0))
 
 			Eventually(buildSession).Should(gbytes.Say("done"))
 			<-buildSession.Exited

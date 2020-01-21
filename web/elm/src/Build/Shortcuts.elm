@@ -59,6 +59,7 @@ historyItem model =
     { id = model.id
     , name = model.name
     , status = model.status
+    , duration = model.duration
     }
 
 

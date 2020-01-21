@@ -11,22 +11,17 @@ module Dashboard.Dashboard exposing
 import Application.Models exposing (Session)
 import Concourse
 import Concourse.Cli as Cli
-import Concourse.PipelineStatus exposing (PipelineStatus(..))
-import Dashboard.Details as Details
+import Dashboard.Drag as Drag
 import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
-import Dashboard.Group.Models exposing (Group, Pipeline)
-import Dashboard.Models as Models
-    exposing
-        ( DashboardError(..)
-        , Dropdown(..)
-        , Model
-        , SubState
-        )
+import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Models as Models exposing (DragState(..), DropState(..), Dropdown(..), Model)
+import Dashboard.RequestBuffer as RequestBuffer exposing (Buffer(..))
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
 import Dashboard.Text as Text
+import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
@@ -61,133 +56,200 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import Message.TopLevelMessage exposing (TopLevelMessage(..))
-import Monocle.Compose exposing (optionalWithLens, optionalWithOptional)
-import Monocle.Lens
-import Monocle.Optional
-import MonocleHelpers exposing (bind, modifyWithEffect)
-import RemoteData
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import SideBar.SideBar as SideBar
+import Time
 import UserState
 import Views.Styles
 
 
-type alias Flags =
-    { turbulencePath : String
-    , searchType : Routes.SearchType
-    , pipelineRunningKeyframes : String
-    }
-
-
-substateOptional : Monocle.Optional.Optional Model SubState
-substateOptional =
-    Monocle.Optional.Optional (.state >> RemoteData.toMaybe) (\s m -> { m | state = RemoteData.Success s })
-
-
-init : Flags -> ( Model, List Effect )
-init flags =
-    ( { state = RemoteData.NotAsked
-      , turbulencePath = flags.turbulencePath
-      , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
+init : Routes.SearchType -> ( Model, List Effect )
+init searchType =
+    ( { showTurbulence = False
+      , now = Nothing
       , groups = []
-      , version = ""
-      , userState = UserState.UserStateUnknown
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
-      , highDensity = flags.searchType == Routes.HighDensity
-      , query = Routes.extractQuery flags.searchType
+      , highDensity = searchType == Routes.HighDensity
+      , query = Routes.extractQuery searchType
+      , pipelinesWithResourceErrors = Dict.empty
+      , existingJobs = []
+      , pipelines = []
+      , teams = []
       , isUserMenuExpanded = False
       , dropdown = Hidden
+      , dragState = Models.NotDragging
+      , dropState = Models.NotDropping
+      , isJobsRequestFinished = False
+      , isTeamsRequestFinished = False
+      , isResourcesRequestFinished = False
+      , isPipelinesRequestFinished = False
       }
-    , [ FetchData
+    , [ FetchAllTeams
       , PinTeamNames Message.Effects.stickyHeaderConfig
       , GetScreenSize
-      , FetchPipelines
+      , FetchAllResources
+      , FetchAllJobs
+      , FetchAllPipelines
       ]
     )
 
 
+buffers : List (Buffer Model)
+buffers =
+    [ Buffer FetchAllTeams
+        (\c ->
+            case c of
+                AllTeamsFetched _ ->
+                    True
+
+                _ ->
+                    False
+        )
+        (.dragState >> (/=) NotDragging)
+        { get = \m -> m.isTeamsRequestFinished
+        , set = \f m -> { m | isTeamsRequestFinished = f }
+        }
+    , Buffer FetchAllResources
+        (\c ->
+            case c of
+                AllResourcesFetched _ ->
+                    True
+
+                _ ->
+                    False
+        )
+        (.dragState >> (/=) NotDragging)
+        { get = \m -> m.isResourcesRequestFinished
+        , set = \f m -> { m | isResourcesRequestFinished = f }
+        }
+    , Buffer FetchAllJobs
+        (\c ->
+            case c of
+                AllJobsFetched _ ->
+                    True
+
+                _ ->
+                    False
+        )
+        (.dragState >> (/=) NotDragging)
+        { get = \m -> m.isJobsRequestFinished
+        , set = \f m -> { m | isJobsRequestFinished = f }
+        }
+    , Buffer FetchAllPipelines
+        (\c ->
+            case c of
+                AllPipelinesFetched _ ->
+                    True
+
+                _ ->
+                    False
+        )
+        (.dragState >> (/=) NotDragging)
+        { get = \m -> m.isPipelinesRequestFinished
+        , set = \f m -> { m | isPipelinesRequestFinished = f }
+        }
+    ]
+
+
 handleCallback : Callback -> ET Model
-handleCallback msg ( model, effects ) =
-    case msg of
-        APIDataFetched (Err _) ->
+handleCallback callback ( model, effects ) =
+    (case callback of
+        AllTeamsFetched (Err _) ->
+            ( { model | showTurbulence = True }, effects )
+
+        AllTeamsFetched (Ok teams) ->
             ( { model
-                | state =
-                    RemoteData.Failure (Turbulence model.turbulencePath)
+                | groups =
+                    List.map
+                        (\team ->
+                            { pipelines = []
+                            , teamName = team.name
+                            }
+                        )
+                        teams
+                , teams = teams
               }
             , effects
             )
 
-        APIDataFetched (Ok ( now, apiData )) ->
-            let
-                groups =
-                    Group.groups apiData
+        AllJobsFetched (Ok allJobsInEntireCluster) ->
+            ( { model | existingJobs = allJobsInEntireCluster }, effects )
 
-                newModel =
-                    case model.state of
-                        RemoteData.Success substate ->
-                            { model
-                                | state =
-                                    RemoteData.Success (Models.tick now substate)
-                            }
+        AllJobsFetched (Err _) ->
+            ( { model | showTurbulence = True }, effects )
 
-                        _ ->
-                            { model
-                                | state =
-                                    RemoteData.Success
-                                        { now = now
-                                        , dragState = Models.NotDragging
-                                        , dropState = Models.NotDropping
-                                        }
-                            }
+        AllResourcesFetched (Ok resources) ->
+            ( { model
+                | pipelinesWithResourceErrors =
+                    resources
+                        |> List.foldr
+                            (\r ->
+                                Dict.update ( r.teamName, r.pipelineName )
+                                    (Maybe.withDefault False
+                                        >> (||) r.failingToCheck
+                                        >> Just
+                                    )
+                            )
+                            model.pipelinesWithResourceErrors
+              }
+            , effects
+            )
 
-                userState =
-                    case apiData.user of
-                        Just u ->
-                            UserState.UserStateLoggedIn u
+        AllResourcesFetched (Err _) ->
+            ( { model | showTurbulence = True }, effects )
 
-                        Nothing ->
-                            UserState.UserStateLoggedOut
-            in
-            if model.highDensity && noPipelines { groups = groups } then
-                ( { newModel
-                    | groups = groups
-                    , highDensity = False
-                    , version = apiData.version
-                    , userState = userState
-                  }
-                , effects
-                    ++ [ ModifyUrl <|
-                            Routes.toString <|
-                                Routes.dashboardRoute False
-                       ]
-                )
+        AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
+            ( { model
+                | pipelines =
+                    allPipelinesInEntireCluster
+                        |> List.indexedMap
+                            (\idx p ->
+                                { id = p.id
+                                , ordering = idx
+                                , name = p.name
+                                , teamName = p.teamName
+                                , public = p.public
+                                , isToggleLoading = False
+                                , isVisibilityLoading = False
+                                , paused = p.paused
+                                }
+                            )
+              }
+            , if List.isEmpty allPipelinesInEntireCluster then
+                effects ++ [ ModifyUrl "/" ]
 
-            else
-                ( { newModel
-                    | groups = groups
-                    , version = apiData.version
-                    , userState = userState
-                  }
-                , effects
-                )
+              else
+                effects
+            )
+
+        AllPipelinesFetched (Err _) ->
+            ( { model | showTurbulence = True }, effects )
+
+        PipelinesOrdered teamName _ ->
+            ( model, effects ++ [ FetchPipelines teamName ] )
+
+        PipelinesFetched (Ok _) ->
+            ( { model | dropState = NotDropping }, effects )
+
+        PipelinesFetched (Err _) ->
+            ( { model | showTurbulence = True }, effects )
 
         LoggedOut (Ok ()) ->
-            ( { model | userState = UserState.UserStateLoggedOut }
+            ( model
             , effects
                 ++ [ NavigateTo <|
                         Routes.toString <|
                             Routes.dashboardRoute <|
                                 model.highDensity
-                   , FetchData
+                   , FetchAllTeams
                    ]
             )
 
         PipelineToggled _ (Ok ()) ->
-            ( model, effects ++ [ FetchData ] )
+            ( model, effects ++ [ FetchAllPipelines ] )
 
         VisibilityChanged Hide pipelineId (Ok ()) ->
             ( updatePipeline
@@ -223,6 +285,8 @@ handleCallback msg ( model, effects ) =
 
         _ ->
             ( model, effects )
+    )
+        |> RequestBuffer.handleCallback callback buffers
 
 
 updatePipeline :
@@ -231,29 +295,22 @@ updatePipeline :
     -> Model
     -> Model
 updatePipeline updater pipelineId model =
-    let
-        newGroups =
-            model.groups
+    { model
+        | pipelines =
+            model.pipelines
                 |> List.Extra.updateIf
-                    (.teamName >> (==) pipelineId.teamName)
-                    (\g ->
-                        let
-                            newPipelines =
-                                g.pipelines
-                                    |> List.Extra.updateIf
-                                        (.name >> (==) pipelineId.pipelineName)
-                                        updater
-                        in
-                        { g | pipelines = newPipelines }
+                    (\p ->
+                        p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
                     )
-    in
-    { model | groups = newGroups }
+                    updater
+    }
 
 
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery =
     SearchBar.handleDelivery delivery
         >> Footer.handleDelivery delivery
+        >> RequestBuffer.handleDelivery delivery buffers
         >> handleDeliveryBody delivery
 
 
@@ -261,12 +318,7 @@ handleDeliveryBody : Delivery -> ET Model
 handleDeliveryBody delivery ( model, effects ) =
     case delivery of
         ClockTicked OneSecond time ->
-            ( { model | state = RemoteData.map (Models.tick time) model.state }
-            , effects
-            )
-
-        ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchData, FetchPipelines ] )
+            ( { model | now = Just time }, effects )
 
         _ ->
             ( model, effects )
@@ -281,18 +333,10 @@ updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
         DragStart teamName index ->
-            let
-                newModel =
-                    { model | state = RemoteData.map (\s -> { s | dragState = Models.Dragging teamName index }) model.state }
-            in
-            ( newModel, effects )
+            ( { model | dragState = Models.Dragging teamName index }, effects )
 
         DragOver _ index ->
-            let
-                newModel =
-                    { model | state = RemoteData.map (\s -> { s | dropState = Models.Dropping index }) model.state }
-            in
-            ( newModel, effects )
+            ( { model | dropState = Models.Dropping index }, effects )
 
         TooltipHd pipelineName teamName ->
             ( model, effects ++ [ ShowTooltipHd ( pipelineName, teamName ) ] )
@@ -301,95 +345,46 @@ updateBody msg ( model, effects ) =
             ( model, effects ++ [ ShowTooltip ( pipelineName, teamName ) ] )
 
         DragEnd ->
-            let
-                updatePipelines :
-                    ( Group.PipelineIndex, Group.PipelineIndex )
-                    -> Group
-                    -> ( Group, List Effect )
-                updatePipelines ( dragIndex, dropIndex ) group =
+            case model.dragState of
+                Dragging teamName dragIdx ->
                     let
-                        newGroup =
-                            Group.shiftPipelines dragIndex dropIndex group
+                        pipelines =
+                            Drag.drag dragIdx
+                                (case model.dropState of
+                                    Dropping dropIdx ->
+                                        dropIdx
+
+                                    _ ->
+                                        dragIdx
+                                )
+                                model.pipelines
                     in
-                    ( newGroup
-                    , [ SendOrderPipelinesRequest newGroup.teamName newGroup.pipelines ]
+                    ( { model
+                        | pipelines = pipelines
+                        , dragState = NotDragging
+                        , dropState = DroppingWhileApiRequestInFlight teamName
+                      }
+                    , effects
+                        ++ [ pipelines
+                                |> List.filter (.teamName >> (==) teamName)
+                                |> List.map .name
+                                |> SendOrderPipelinesRequest teamName
+                           ]
                     )
 
-                dragDropOptional : Monocle.Optional.Optional Model ( Models.DragState, Models.DropState )
-                dragDropOptional =
-                    substateOptional
-                        |> optionalWithLens
-                            (Monocle.Lens.tuple
-                                Details.dragStateLens
-                                Details.dropStateLens
-                            )
-
-                dragDropIndexOptional : Monocle.Optional.Optional Model ( Group.PipelineIndex, Group.PipelineIndex )
-                dragDropIndexOptional =
-                    dragDropOptional
-                        |> optionalWithOptional
-                            (Monocle.Optional.zip
-                                Group.dragIndexOptional
-                                Group.dropIndexOptional
-                            )
-
-                groupsLens : Monocle.Lens.Lens Model (List Group)
-                groupsLens =
-                    Monocle.Lens.Lens .groups (\b a -> { a | groups = b })
-
-                groupOptional : Monocle.Optional.Optional Model Group
-                groupOptional =
-                    -- the point of this optional is to find the group whose
-                    -- name matches the name name in the dragstate
-                    (substateOptional
-                        |> optionalWithLens Details.dragStateLens
-                        |> optionalWithOptional Group.teamNameOptional
-                    )
-                        |> bind
-                            (\teamName ->
-                                groupsLens
-                                    |> Monocle.Optional.fromLens
-                                    |> optionalWithOptional
-                                        (Group.findGroupOptional teamName)
-                            )
-
-                bigOptional : Monocle.Optional.Optional Model ( ( Group.PipelineIndex, Group.PipelineIndex ), Group )
-                bigOptional =
-                    Monocle.Optional.tuple
-                        dragDropIndexOptional
-                        groupOptional
-
-                ( newModel, unAccumulatedEffects ) =
-                    model
-                        |> modifyWithEffect bigOptional
-                            (\( t, g ) ->
-                                let
-                                    ( newG, newMsg ) =
-                                        updatePipelines t g
-                                in
-                                ( ( t, newG ), newMsg )
-                            )
-                        |> Tuple.mapFirst (dragDropOptional.set ( Models.NotDragging, Models.NotDropping ))
-            in
-            ( newModel, effects ++ unAccumulatedEffects )
+                _ ->
+                    ( model, effects )
 
         Click LogoutButton ->
-            ( { model | state = RemoteData.NotAsked }, effects )
+            ( { model | teams = [], pipelines = [] }, effects )
 
         Click (PipelineButton pipelineId) ->
             let
                 isPaused =
-                    model.groups
+                    model.pipelines
                         |> List.Extra.find
-                            (.teamName >> (==) pipelineId.teamName)
-                        |> Maybe.andThen
-                            (\g ->
-                                g.pipelines
-                                    |> List.Extra.find
-                                        (.name >> (==) pipelineId.pipelineName)
-                                    |> Maybe.map
-                                        (.status >> (==) PipelineStatusPaused)
-                            )
+                            (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
+                        |> Maybe.map .paused
             in
             case isPaused of
                 Just ip ->
@@ -407,16 +402,10 @@ updateBody msg ( model, effects ) =
         Click (VisibilityButton pipelineId) ->
             let
                 isPublic =
-                    model.groups
+                    model.pipelines
                         |> List.Extra.find
-                            (.teamName >> (==) pipelineId.teamName)
-                        |> Maybe.andThen
-                            (\g ->
-                                g.pipelines
-                                    |> List.Extra.find
-                                        (.name >> (==) pipelineId.pipelineName)
-                                    |> Maybe.map .public
-                            )
+                            (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
+                        |> Maybe.map .public
             in
             case isPublic of
                 Just public ->
@@ -525,48 +514,49 @@ clusterNameView session =
 
 
 dashboardView :
-    { a | hovered : HoverState.HoverState, screenSize : ScreenSize }
+    { a
+        | hovered : HoverState.HoverState
+        , screenSize : ScreenSize
+        , userState : UserState.UserState
+        , turbulenceImgSrc : String
+        , pipelineRunningKeyframes : String
+    }
     -> Model
     -> Html Message
 dashboardView session model =
-    case model.state of
-        RemoteData.NotAsked ->
-            Html.text ""
+    if model.showTurbulence then
+        turbulenceView session.turbulenceImgSrc
 
-        RemoteData.Loading ->
-            Html.text ""
-
-        RemoteData.Failure (Turbulence path) ->
-            turbulenceView path
-
-        RemoteData.Success substate ->
-            Html.div
-                (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
-                    :: Styles.content model.highDensity
-                )
-            <|
-                welcomeCard session model
-                    :: pipelinesView
-                        { groups = model.groups
-                        , substate = substate
-                        , query = model.query
-                        , hovered = session.hovered
-                        , pipelineRunningKeyframes =
-                            model.pipelineRunningKeyframes
-                        , userState = model.userState
-                        , highDensity = model.highDensity
-                        }
+    else
+        Html.div
+            (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
+                :: Styles.content model.highDensity
+            )
+        <|
+            welcomeCard session model
+                :: pipelinesView
+                    session
+                    { teams = model.teams
+                    , query = model.query
+                    , hovered = session.hovered
+                    , pipelineRunningKeyframes =
+                        session.pipelineRunningKeyframes
+                    , highDensity = model.highDensity
+                    , pipelinesWithResourceErrors =
+                        model.pipelinesWithResourceErrors
+                    , existingJobs = model.existingJobs
+                    , pipelines = model.pipelines
+                    , dragState = model.dragState
+                    , dropState = model.dropState
+                    , now = model.now
+                    }
 
 
 welcomeCard :
-    { a | hovered : HoverState.HoverState }
-    ->
-        { b
-            | groups : List Group
-            , userState : UserState.UserState
-        }
+    { a | hovered : HoverState.HoverState, userState : UserState.UserState }
+    -> { b | pipelines : List Pipeline }
     -> Html Message
-welcomeCard { hovered } { groups, userState } =
+welcomeCard session { pipelines } =
     let
         cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
         cliIcon hoverable cli =
@@ -588,7 +578,7 @@ welcomeCard { hovered } { groups, userState } =
                 )
                 []
     in
-    if noPipelines { groups = groups } then
+    if List.isEmpty pipelines then
         Html.div
             (id "welcome-card" :: Styles.welcomeCard)
             [ Html.div
@@ -606,12 +596,12 @@ welcomeCard { hovered } { groups, userState } =
                         [ style "margin-right" "10px" ]
                         [ Html.text Text.cliInstructions ]
                     ]
-                        ++ List.map (cliIcon hovered) Cli.clis
+                        ++ List.map (cliIcon session.hovered) Cli.clis
                 , Html.div
                     []
                     [ Html.text Text.setPipelineInstructions ]
                 ]
-                    ++ loginInstruction userState
+                    ++ loginInstruction session.userState
             , Html.pre
                 Styles.asciiArt
                 [ Html.text Text.asciiArt ]
@@ -619,11 +609,6 @@ welcomeCard { hovered } { groups, userState } =
 
     else
         Html.text ""
-
-
-noPipelines : { a | groups : List Group } -> Bool
-noPipelines { groups } =
-    List.isEmpty (groups |> List.concatMap .pipelines)
 
 
 loginInstruction : UserState.UserState -> List (Html Message)
@@ -674,40 +659,58 @@ turbulenceView path =
 
 
 pipelinesView :
-    { groups : List Group
-    , substate : Models.SubState
-    , hovered : HoverState.HoverState
-    , pipelineRunningKeyframes : String
-    , query : String
-    , userState : UserState.UserState
-    , highDensity : Bool
-    }
+    { a | userState : UserState.UserState }
+    ->
+        { teams : List Concourse.Team
+        , hovered : HoverState.HoverState
+        , pipelineRunningKeyframes : String
+        , query : String
+        , highDensity : Bool
+        , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+        , existingJobs : List Concourse.Job
+        , pipelines : List Pipeline
+        , dragState : DragState
+        , dropState : DropState
+        , now : Maybe Time.Posix
+        }
     -> List (Html Message)
-pipelinesView { groups, substate, hovered, pipelineRunningKeyframes, query, userState, highDensity } =
+pipelinesView session params =
     let
         filteredGroups =
-            groups |> Filter.filterGroups query |> List.sortWith Group.ordering
+            Filter.filterGroups params.existingJobs params.query params.teams params.pipelines
+                |> List.sortWith (Group.ordering session)
 
         groupViews =
-            if highDensity then
-                filteredGroups
-                    |> List.concatMap (Group.hdView pipelineRunningKeyframes)
+            filteredGroups
+                |> (if params.highDensity then
+                        List.concatMap
+                            (Group.hdView
+                                { pipelineRunningKeyframes = params.pipelineRunningKeyframes
+                                , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                , existingJobs = params.existingJobs
+                                , pipelines = params.pipelines
+                                }
+                                session
+                            )
 
-            else
-                filteredGroups
-                    |> List.map
-                        (Group.view
-                            { dragState = substate.dragState
-                            , dropState = substate.dropState
-                            , now = substate.now
-                            , hovered = hovered
-                            , pipelineRunningKeyframes = pipelineRunningKeyframes
-                            , userState = userState
-                            }
-                        )
+                    else
+                        List.map
+                            (Group.view
+                                session
+                                { dragState = params.dragState
+                                , dropState = params.dropState
+                                , now = params.now
+                                , hovered = params.hovered
+                                , pipelineRunningKeyframes = params.pipelineRunningKeyframes
+                                , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                , existingJobs = params.existingJobs
+                                , pipelines = params.pipelines
+                                }
+                            )
+                   )
     in
-    if List.isEmpty groupViews && not (String.isEmpty query) then
-        [ noResultsView query ]
+    if List.isEmpty groupViews && not (String.isEmpty params.query) then
+        [ noResultsView params.query ]
 
     else
         groupViews

@@ -1,7 +1,9 @@
 package commands_test
 
 import (
+	"errors"
 	"fmt"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"strconv"
 
 	"github.com/concourse/concourse/atc"
@@ -35,99 +37,128 @@ var _ = Describe("Helper Functions", func() {
 		})
 
 		Context("when passed a build id", func() {
-			Context("when build exists", func() {
-				BeforeEach(func() {
-					client.BuildReturns(expectedBuild, true, nil)
+			Context("when no error is encountered while fetching build", func() {
+				Context("when build exists", func() {
+					BeforeEach(func() {
+						client.BuildReturns(expectedBuild, true, nil)
+					})
+
+					It("returns the build", func() {
+						build, err := GetBuild(client, nil, "", expectedBuildID, "")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(build).To(Equal(expectedBuild))
+						Expect(client.BuildCallCount()).To(Equal(1))
+						Expect(client.BuildArgsForCall(0)).To(Equal(expectedBuildID))
+					})
 				})
 
-				It("returns the build", func() {
-					build, err := GetBuild(client, nil, "", expectedBuildID, "")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(build).To(Equal(expectedBuild))
-					Expect(client.BuildCallCount()).To(Equal(1))
-					Expect(client.BuildArgsForCall(0)).To(Equal(expectedBuildID))
+				Context("when a build does not exist", func() {
+					BeforeEach(func() {
+						client.BuildReturns(atc.Build{}, false, nil)
+					})
+
+					It("returns an error", func() {
+						_, err := GetBuild(client, nil, "", expectedBuildID, "")
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("build not found"))
+					})
 				})
 			})
 
-			Context("when a build does not exist", func() {
+			Context("when an error is encountered while fetching build", func() {
 				BeforeEach(func() {
-					client.BuildReturns(atc.Build{}, false, nil)
+					client.BuildReturns(atc.Build{}, false, errors.New("some-error"))
 				})
 
-				It("returns an error", func() {
+				It("return an error", func() {
 					_, err := GetBuild(client, nil, "", expectedBuildID, "")
-					Expect(err).To(MatchError("build not found"))
+					Expect(err).To(MatchError("failed to get build some-error"))
 				})
 			})
 		})
 
 		Context("when passed a pipeline and job name", func() {
-			Context("when job exists", func() {
-				Context("when the next build exists", func() {
-					BeforeEach(func() {
-						job := atc.Job{
-							Name:      expectedJobName,
-							NextBuild: &expectedBuild,
-						}
-						team.JobReturns(job, true, nil)
+			Context("when no error was encountered while looking up for team job", func() {
+				Context("when job exists", func() {
+					Context("when the next build exists", func() {
+						BeforeEach(func() {
+							job := atc.Job{
+								Name:      expectedJobName,
+								NextBuild: &expectedBuild,
+							}
+							team.JobReturns(job, true, nil)
+						})
+
+						It("returns the next build for that job", func() {
+							build, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(build).To(Equal(expectedBuild))
+							Expect(team.JobCallCount()).To(Equal(1))
+							pipelineName, jobName := team.JobArgsForCall(0)
+							Expect(pipelineName).To(Equal(expectedPipelineName))
+							Expect(jobName).To(Equal(expectedJobName))
+						})
 					})
 
-					It("returns the next build for that job", func() {
-						build, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(build).To(Equal(expectedBuild))
-						Expect(team.JobCallCount()).To(Equal(1))
-						pipelineName, jobName := team.JobArgsForCall(0)
-						Expect(pipelineName).To(Equal(expectedPipelineName))
-						Expect(jobName).To(Equal(expectedJobName))
+					Context("when the only the finished build exists", func() {
+						BeforeEach(func() {
+							job := atc.Job{
+								Name:          expectedJobName,
+								FinishedBuild: &expectedBuild,
+							}
+							team.JobReturns(job, true, nil)
+						})
+
+						It("returns the finished build for that job", func() {
+							build, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(build).To(Equal(expectedBuild))
+							Expect(team.JobCallCount()).To(Equal(1))
+							pipelineName, jobName := team.JobArgsForCall(0)
+							Expect(pipelineName).To(Equal(expectedPipelineName))
+							Expect(jobName).To(Equal(expectedJobName))
+						})
+					})
+
+					Context("when no builds exist", func() {
+						BeforeEach(func() {
+							job := atc.Job{
+								Name: expectedJobName,
+							}
+							team.JobReturns(job, true, nil)
+						})
+
+						It("returns an error", func() {
+							_, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
+							Expect(err).To(HaveOccurred())
+						})
 					})
 				})
 
-				Context("when the only the finished build exists", func() {
+				Context("when job does not exists", func() {
 					BeforeEach(func() {
-						job := atc.Job{
-							Name:          expectedJobName,
-							FinishedBuild: &expectedBuild,
-						}
-						team.JobReturns(job, true, nil)
-					})
-
-					It("returns the finished build for that job", func() {
-						build, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(build).To(Equal(expectedBuild))
-						Expect(team.JobCallCount()).To(Equal(1))
-						pipelineName, jobName := team.JobArgsForCall(0)
-						Expect(pipelineName).To(Equal(expectedPipelineName))
-						Expect(jobName).To(Equal(expectedJobName))
-					})
-				})
-
-				Context("when no builds exist", func() {
-					BeforeEach(func() {
-						job := atc.Job{
-							Name: expectedJobName,
-						}
-						team.JobReturns(job, true, nil)
+						team.JobReturns(atc.Job{}, false, nil)
 					})
 
 					It("returns an error", func() {
 						_, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
-						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("job not found"))
 					})
 				})
 			})
 
-			Context("when job does not exists", func() {
+			Context("when an error was encountered while looking up for team job", func() {
 				BeforeEach(func() {
-					team.JobReturns(atc.Job{}, false, nil)
+					team.JobReturns(atc.Job{}, false, errors.New("some-error"))
 				})
 
-				It("returns an error", func() {
-					_, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
-					Expect(err).To(MatchError("job not found"))
+				It("should return an error", func() {
+					_, err := GetBuild(client, team, expectedJobName, "", "")
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(MatchError("failed to get job some-error"))
 				})
 			})
+
 		})
 
 		Context("when passed pipeline, job, and build names", func() {
@@ -161,56 +192,133 @@ var _ = Describe("Helper Functions", func() {
 		})
 
 		Context("when nothing is passed", func() {
-			var allBuilds [300]atc.Build
+			Context("when client.Builds does not return an error", func() {
+				var allBuilds [300]atc.Build
 
-			expectedOneOffBuild := atc.Build{
-				ID:      150,
-				Name:    expectedBuildName,
-				Status:  "success",
-				JobName: "",
-				APIURL:  fmt.Sprintf("api/v1/builds/%s", expectedBuildID),
-			}
-
-			BeforeEach(func() {
-				for i := 300 - 1; i >= 0; i-- {
-					allBuilds[i] = atc.Build{
-						ID:      i,
-						Name:    strconv.Itoa(i),
-						JobName: "some-job",
-						APIURL:  fmt.Sprintf("api/v1/builds/%d", i),
-					}
+				expectedOneOffBuild := atc.Build{
+					ID:      150,
+					Name:    expectedBuildName,
+					Status:  "success",
+					JobName: "",
+					APIURL:  fmt.Sprintf("api/v1/builds/%s", expectedBuildID),
 				}
 
-				allBuilds[150] = expectedOneOffBuild
+				Context("when a build was found", func() {
+					BeforeEach(func() {
+						for i := 300 - 1; i >= 0; i-- {
+							allBuilds[i] = atc.Build{
+								ID:      i,
+								Name:    strconv.Itoa(i),
+								JobName: "some-job",
+								APIURL:  fmt.Sprintf("api/v1/builds/%d", i),
+							}
+						}
 
-				client.BuildsStub = func(page concourse.Page) ([]atc.Build, concourse.Pagination, error) {
-					var builds []atc.Build
-					if page.Since != 0 {
-						builds = allBuilds[page.Since : page.Since+page.Limit]
-					} else {
-						builds = allBuilds[0:page.Limit]
-					}
+						allBuilds[150] = expectedOneOffBuild
 
-					pagination := concourse.Pagination{
-						Previous: &concourse.Page{
-							Limit: page.Limit,
-							Until: builds[0].ID,
-						},
-						Next: &concourse.Page{
-							Limit: page.Limit,
-							Since: builds[len(builds)-1].ID,
-						},
-					}
+						client.BuildsStub = func(page concourse.Page) ([]atc.Build, concourse.Pagination, error) {
+							var builds []atc.Build
+							if page.Since != 0 {
+								builds = allBuilds[page.Since : page.Since+page.Limit]
+							} else {
+								builds = allBuilds[0:page.Limit]
+							}
 
-					return builds, pagination, nil
-				}
+							pagination := concourse.Pagination{
+								Previous: &concourse.Page{
+									Limit: page.Limit,
+									Until: builds[0].ID,
+								},
+								Next: &concourse.Page{
+									Limit: page.Limit,
+									Since: builds[len(builds)-1].ID,
+								},
+							}
+
+							return builds, pagination, nil
+						}
+					})
+
+					It("returns latest one off build", func() {
+						build, err := GetBuild(client, nil, "", "", "")
+						Expect(err).NotTo(HaveOccurred())
+						Expect(build).To(Equal(expectedOneOffBuild))
+						Expect(client.BuildsCallCount()).To(Equal(2))
+					})
+				})
+
+				Context("when no builds were found ", func() {
+					BeforeEach(func() {
+						client.BuildsReturns([]atc.Build{}, concourse.Pagination{Next: nil}, nil)
+					})
+
+					It("returns an error", func() {
+						_, err := GetBuild(client, nil, "", "", "")
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("no builds match job"))
+					})
+				})
 			})
 
-			It("returns latest one off build", func() {
-				build, err := GetBuild(client, nil, "", "", "")
+			Context("when client.Builds returns an error", func() {
+				BeforeEach(func() {
+					client.BuildsReturns(nil, concourse.Pagination{}, errors.New("some-error"))
+				})
+
+				It("should return an error", func() {
+					_, err := GetBuild(client, nil, "", "", "")
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(MatchError("failed to get builds some-error"))
+				})
+			})
+		})
+	})
+	Describe("#GetLatestResourceVersions", func() {
+		var team *fakes.FakeTeam
+		var resourceVersions []atc.ResourceVersion
+
+		resource := flaghelpers.ResourceFlag{
+			PipelineName: "mypipeline",
+			ResourceName: "myresource",
+		}
+
+		BeforeEach(func() {
+			team = new(fakes.FakeTeam)
+			resourceVersions = []atc.ResourceVersion{
+				{
+					ID:      1,
+					Version: atc.Version{"version": "v1"},
+				},
+				{
+					ID:      2,
+					Version: atc.Version{"version": "v1"},
+				},
+			}
+		})
+
+		When("resource versions exist", func() {
+			It("returns latest resource version", func() {
+				team.ResourceVersionsReturns(resourceVersions, concourse.Pagination{}, true, nil)
+				latestResourceVersion, err := GetLatestResourceVersion(team, resource, atc.Version{"version": "v1"})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(build).To(Equal(expectedOneOffBuild))
-				Expect(client.BuildsCallCount()).To(Equal(2))
+				Expect(latestResourceVersion.Version).To(Equal(atc.Version{"version": "v1"}))
+				Expect(latestResourceVersion.ID).To(Equal(1))
+			})
+		})
+
+		When("call to resource versions returns an error", func() {
+			It("returns an error", func() {
+				team.ResourceVersionsReturns(nil, concourse.Pagination{}, false, errors.New("fake error"))
+				_, err := GetLatestResourceVersion(team, resource, atc.Version{"version": "v1"})
+				Expect(err).To(MatchError("fake error"))
+			})
+		})
+
+		When("call to resource versions returns an empty array", func() {
+			It("returns an error", func() {
+				team.ResourceVersionsReturns([]atc.ResourceVersion{}, concourse.Pagination{}, true, nil)
+				_, err := GetLatestResourceVersion(team, resource, atc.Version{"version": "v2"})
+				Expect(err).To(MatchError("could not find version matching {\"version\":\"v2\"}"))
 			})
 		})
 	})

@@ -9,9 +9,12 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/onsi/gomega/gbytes"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -213,10 +216,179 @@ var _ = Describe("Client", func() {
 		})
 	})
 
+	Describe("RunGetStep", func() {
+
+		var (
+			ctx                   context.Context
+			owner                 db.ContainerOwner
+			containerSpec         worker.ContainerSpec
+			workerSpec            worker.WorkerSpec
+			metadata              db.ContainerMetadata
+			imageSpec             worker.ImageFetcherSpec
+			fakeChosenWorker      *workerfakes.FakeWorker
+			fakeStrategy          *workerfakes.FakeContainerPlacementStrategy
+			fakeDelegate          *workerfakes.FakeImageFetchingDelegate
+			fakeEventDelegate     *runtimefakes.FakeStartingEventDelegate
+			fakeResourceTypes     atc.VersionedResourceTypes
+			fakeContainer         *workerfakes.FakeContainer
+			fakeProcessSpec       runtime.ProcessSpec
+			fakeResource          *resourcefakes.FakeResource
+			fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
+
+			err error
+
+			disasterErr error
+
+			result worker.GetResult
+		)
+
+		BeforeEach(func() {
+			ctx, _ = context.WithCancel(context.Background())
+			owner = new(dbfakes.FakeContainerOwner)
+			containerSpec = worker.ContainerSpec{}
+			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+			workerSpec = worker.WorkerSpec{}
+			fakeChosenWorker = new(workerfakes.FakeWorker)
+			fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
+			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
+			fakeResourceTypes = atc.VersionedResourceTypes{}
+			imageSpec = worker.ImageFetcherSpec{
+				Delegate:      fakeDelegate,
+				ResourceTypes: fakeResourceTypes,
+			}
+
+			fakeResource = new(resourcefakes.FakeResource)
+			fakeContainer = new(workerfakes.FakeContainer)
+			disasterErr = errors.New("oh no")
+			stdout := new(gbytes.Buffer)
+			stderr := new(gbytes.Buffer)
+			fakeProcessSpec = runtime.ProcessSpec{
+				Path:         "/opt/resource/out",
+				StdoutWriter: stdout,
+				StderrWriter: stderr,
+			}
+			fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
+
+			fakeChosenWorker = new(workerfakes.FakeWorker)
+			fakeChosenWorker.NameReturns("some-worker")
+			fakeChosenWorker.SatisfiesReturns(true)
+			fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeChosenWorker, nil)
+
+		})
+
+		JustBeforeEach(func() {
+			result, err = client.RunGetStep(
+				ctx,
+				logger,
+				owner,
+				containerSpec,
+				workerSpec,
+				fakeStrategy,
+				metadata,
+				imageSpec,
+				fakeProcessSpec,
+				fakeEventDelegate,
+				fakeUsedResourceCache,
+				fakeResource,
+			)
+		})
+
+		It("finds/chooses a worker", func() {
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+
+			_, _, actualOwner, actualContainerSpec, actualWorkerSpec, actualStrategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+			Expect(actualOwner).To(Equal(owner))
+			Expect(actualContainerSpec).To(Equal(containerSpec))
+			Expect(actualWorkerSpec).To(Equal(workerSpec))
+			Expect(actualStrategy).To(Equal(fakeStrategy))
+		})
+
+		Context("worker is chosen", func() {
+			BeforeEach(func() {
+				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
+			})
+
+			It("invokes the Starting Event on the delegate", func() {
+				Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
+			})
+
+			It("calls Fetch on the worker", func() {
+				Expect(fakeChosenWorker.FetchCallCount()).To(Equal(1))
+				_, _, actualMetadata, actualChosenWorker, actualContainerSpec, actualProcessSpec, actualResource, actualOwner, actualImageFetcherSpec, actualResourceCache, actualLockName := fakeChosenWorker.FetchArgsForCall(0)
+
+				Expect(actualMetadata).To(Equal(metadata))
+				Expect(actualChosenWorker).To(Equal(fakeChosenWorker))
+				Expect(actualContainerSpec).To(Equal(containerSpec))
+				Expect(actualProcessSpec).To(Equal(fakeProcessSpec))
+				Expect(actualResource).To(Equal(fakeResource))
+				Expect(actualOwner).To(Equal(owner))
+				Expect(actualImageFetcherSpec).To(Equal(imageSpec))
+				Expect(actualResourceCache).To(Equal(fakeUsedResourceCache))
+				// Computed SHA
+				Expect(actualLockName).To(Equal("18c3de3f8ea112ba52e01f279b6cc62335b4bec2f359b9be7636a5ad7bf98f8c"))
+			})
+		})
+
+		Context("Worker selection returns an error", func() {
+			BeforeEach(func() {
+				fakePool.FindOrChooseWorkerForContainerReturns(nil, disasterErr)
+			})
+
+			It("Returns the error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(disasterErr))
+
+				Expect(result).To(Equal(worker.GetResult{}))
+			})
+		})
+
+		Context("Worker.Fetch returns an error", func() {
+			BeforeEach(func() {
+				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
+				fakeChosenWorker.FetchReturns(worker.GetResult{}, nil, disasterErr)
+			})
+
+			It("Returns the error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(disasterErr))
+
+				Expect(result).To(Equal(worker.GetResult{}))
+			})
+		})
+
+		Context("worker.Fetch is successful", func() {
+			var (
+				fakeVolume    *workerfakes.FakeVolume
+				someGetResult worker.GetResult
+			)
+			BeforeEach(func() {
+				someGetResult = worker.GetResult{
+					Status: 0,
+					VersionResult: runtime.VersionResult{
+						atc.Version{"some-version": "some-value"},
+						[]atc.MetadataField{{"foo", "bar"}},
+					},
+				}
+				fakeVolume = new(workerfakes.FakeVolume)
+				fakeChosenWorker.FetchReturns(someGetResult, fakeVolume, nil)
+			})
+
+			It("returns getResult from worker->Fetch", func() {
+				Expect(result).To(Equal(someGetResult))
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+		})
+	})
+
 	Describe("RunTaskStep", func() {
 		var (
 			status       int
 			volumeMounts []worker.VolumeMount
+			inputSources []worker.InputSource
 			err          error
 
 			fakeWorker           *workerfakes.FakeWorker
@@ -227,30 +399,13 @@ var _ = Describe("Client", func() {
 			fakeMetadata         db.ContainerMetadata
 			fakeDelegate         *execfakes.FakeTaskDelegate
 			fakeImageFetcherSpec worker.ImageFetcherSpec
-			fakeTaskProcessSpec  worker.TaskProcessSpec
+			fakeTaskProcessSpec  runtime.ProcessSpec
 			fakeContainer        *workerfakes.FakeContainer
-			eventChan            chan runtime.Event
-			ctx                  context.Context
-			cancel               func()
+			fakeEventDelegate    *runtimefakes.FakeStartingEventDelegate
+
+			ctx    context.Context
+			cancel func()
 		)
-		JustBeforeEach(func() {
-			taskResult := client.RunTaskStep(
-				ctx,
-				logger,
-				fakeLockFactory,
-				fakeContainerOwner,
-				fakeContainerSpec,
-				fakeWorkerSpec,
-				fakeStrategy,
-				fakeMetadata,
-				fakeImageFetcherSpec,
-				fakeTaskProcessSpec,
-				eventChan,
-			)
-			status = taskResult.Status
-			volumeMounts = taskResult.VolumeMounts
-			err = taskResult.Err
-		})
 
 		BeforeEach(func() {
 			cpu := uint64(1024)
@@ -274,8 +429,8 @@ var _ = Describe("Client", func() {
 					ImageResource: &worker.ImageResource{
 						Type:    "docker",
 						Source:  atc.Source{"some": "secret-source-param"},
-						Params:  &atc.Params{"some": "params"},
-						Version: &atc.Version{"some": "version"},
+						Params:  atc.Params{"some": "params"},
+						Version: atc.Version{"some": "version"},
 					},
 					Privileged: false,
 				},
@@ -283,10 +438,11 @@ var _ = Describe("Client", func() {
 					CPU:    &cpu,
 					Memory: &memory,
 				},
-				Dir:     "some-artifact-root",
-				Env:     []string{"SECURE=secret-task-param"},
-				Inputs:  []worker.InputSource{},
-				Outputs: worker.OutputPaths{},
+				Dir:            "some-artifact-root",
+				Env:            []string{"SECURE=secret-task-param"},
+				ArtifactByPath: map[string]runtime.Artifact{},
+				Inputs:         inputSources,
+				Outputs:        worker.OutputPaths{},
 			}
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 			fakeMetadata = db.ContainerMetadata{
@@ -298,7 +454,7 @@ var _ = Describe("Client", func() {
 				Delegate:      fakeDelegate,
 				ResourceTypes: atc.VersionedResourceTypes{},
 			}
-			fakeTaskProcessSpec = worker.TaskProcessSpec{
+			fakeTaskProcessSpec = runtime.ProcessSpec{
 				Path: "/some/path",
 				Args: []string{"some", "args"},
 				Dir:  "/some/dir",
@@ -321,13 +477,33 @@ var _ = Describe("Client", func() {
 				return nil
 			}
 
+			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
+
 			fakeLockFactory = new(lockfakes.FakeLockFactory)
 			fakeLock = new(lockfakes.FakeLock)
 			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 
 			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
-			eventChan = make(chan runtime.Event, 1)
 			ctx, cancel = context.WithCancel(context.Background())
+		})
+
+		JustBeforeEach(func() {
+			taskResult := client.RunTaskStep(
+				ctx,
+				logger,
+				fakeContainerOwner,
+				fakeContainerSpec,
+				fakeWorkerSpec,
+				fakeStrategy,
+				fakeMetadata,
+				fakeImageFetcherSpec,
+				fakeTaskProcessSpec,
+				fakeEventDelegate,
+				fakeLockFactory,
+			)
+			status = taskResult.Status
+			volumeMounts = taskResult.VolumeMounts
+			err = taskResult.Err
 		})
 
 		Context("choosing a worker", func() {
@@ -406,6 +582,8 @@ var _ = Describe("Client", func() {
 		It("finds or creates a container", func() {
 			Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 			_, cancel, delegate, owner, createdMetadata, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+			Expect(containerSpec.Inputs).To(Equal(fakeContainerSpec.Inputs))
+			Expect(containerSpec).To(Equal(fakeContainerSpec))
 			Expect(cancel).ToNot(BeNil())
 			Expect(owner).To(Equal(fakeContainerOwner))
 			Expect(delegate).To(Equal(fakeDelegate))
@@ -414,7 +592,7 @@ var _ = Describe("Client", func() {
 				Type:             db.ContainerTypeTask,
 				StepName:         "some-step",
 			}))
-			Expect(containerSpec).To(Equal(fakeContainerSpec))
+
 		})
 
 		Context("found a container that has already exited", func() {
@@ -443,9 +621,9 @@ var _ = Describe("Client", func() {
 
 			Context("when volumes are configured and present on the container", func() {
 				var (
-					fakeMountPath1 string = "some-artifact-root/some-output-configured-path/"
-					fakeMountPath2 string = "some-artifact-root/some-other-output/"
-					fakeMountPath3 string = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
+					fakeMountPath1 = "some-artifact-root/some-output-configured-path/"
+					fakeMountPath2 = "some-artifact-root/some-other-output/"
+					fakeMountPath3 = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
 
 					fakeVolume1 *workerfakes.FakeVolume
 					fakeVolume2 *workerfakes.FakeVolume
@@ -461,15 +639,15 @@ var _ = Describe("Client", func() {
 					fakeVolume3.HandleReturns("some-handle-3")
 
 					fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume1,
 							MountPath: fakeMountPath1,
 						},
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume2,
 							MountPath: fakeMountPath2,
 						},
-						worker.VolumeMount{
+						{
 							Volume:    fakeVolume3,
 							MountPath: fakeMountPath3,
 						},
@@ -500,9 +678,9 @@ var _ = Describe("Client", func() {
 				fakeProcess         *gardenfakes.FakeProcess
 				fakeProcessExitCode int
 
-				fakeMountPath1 string = "some-artifact-root/some-output-configured-path/"
-				fakeMountPath2 string = "some-artifact-root/some-other-output/"
-				fakeMountPath3 string = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
+				fakeMountPath1 = "some-artifact-root/some-output-configured-path/"
+				fakeMountPath2 = "some-artifact-root/some-other-output/"
+				fakeMountPath3 = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
 
 				fakeVolume1 *workerfakes.FakeVolume
 				fakeVolume2 *workerfakes.FakeVolume
@@ -525,15 +703,15 @@ var _ = Describe("Client", func() {
 				fakeVolume3.HandleReturns("some-handle-3")
 
 				fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-					worker.VolumeMount{
+					{
 						Volume:    fakeVolume1,
 						MountPath: fakeMountPath1,
 					},
-					worker.VolumeMount{
+					{
 						Volume:    fakeVolume2,
 						MountPath: fakeMountPath2,
 					},
-					worker.VolumeMount{
+					{
 						Volume:    fakeVolume3,
 						MountPath: fakeMountPath3,
 					},
@@ -546,14 +724,10 @@ var _ = Describe("Client", func() {
 
 					stdoutBuf = new(gbytes.Buffer)
 					stderrBuf = new(gbytes.Buffer)
-					fakeTaskProcessSpec = worker.TaskProcessSpec{
+					fakeTaskProcessSpec = runtime.ProcessSpec{
 						StdoutWriter: stdoutBuf,
 						StderrWriter: stderrBuf,
 					}
-				})
-
-				It("does not send a Starting event", func() {
-					Expect(eventChan).ToNot(Receive(Equal(runtime.Event{runtime.StartingEvent, 0})))
 				})
 
 				It("does not create a new container", func() {
@@ -696,14 +870,10 @@ var _ = Describe("Client", func() {
 
 					stdoutBuf = new(gbytes.Buffer)
 					stderrBuf = new(gbytes.Buffer)
-					fakeTaskProcessSpec = worker.TaskProcessSpec{
+					fakeTaskProcessSpec = runtime.ProcessSpec{
 						StdoutWriter: stdoutBuf,
 						StderrWriter: stderrBuf,
 					}
-				})
-
-				It("sends a Starting event", func() {
-					Expect(eventChan).To(Receive(Equal(runtime.Event{"Starting", 0})))
 				})
 
 				It("runs a new process in the container", func() {
@@ -717,6 +887,10 @@ var _ = Describe("Client", func() {
 					Expect(gardenProcessSpec.TTY).To(Equal(&garden.TTYSpec{WindowSize: &garden.WindowSize{Columns: 500, Rows: 500}}))
 					Expect(actualProcessIO.Stdout).To(Equal(stdoutBuf))
 					Expect(actualProcessIO.Stderr).To(Equal(stderrBuf))
+				})
+
+				It("invokes the Starting Event on the delegate", func() {
+					Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
 				})
 
 				Context("when the process is interrupted", func() {
@@ -809,9 +983,9 @@ var _ = Describe("Client", func() {
 
 					Context("when volumes are configured and present on the container", func() {
 						var (
-							fakeMountPath1 string = "some-artifact-root/some-output-configured-path/"
-							fakeMountPath2 string = "some-artifact-root/some-other-output/"
-							fakeMountPath3 string = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
+							fakeMountPath1 = "some-artifact-root/some-output-configured-path/"
+							fakeMountPath2 = "some-artifact-root/some-other-output/"
+							fakeMountPath3 = "some-artifact-root/some-output-configured-path-with-trailing-slash/"
 
 							fakeVolume1 *workerfakes.FakeVolume
 							fakeVolume2 *workerfakes.FakeVolume
@@ -827,15 +1001,15 @@ var _ = Describe("Client", func() {
 							fakeVolume3.HandleReturns("some-handle-3")
 
 							fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-								worker.VolumeMount{
+								{
 									Volume:    fakeVolume1,
 									MountPath: fakeMountPath1,
 								},
-								worker.VolumeMount{
+								{
 									Volume:    fakeVolume2,
 									MountPath: fakeMountPath2,
 								},
-								worker.VolumeMount{
+								{
 									Volume:    fakeVolume3,
 									MountPath: fakeMountPath3,
 								},
@@ -969,6 +1143,230 @@ var _ = Describe("Client", func() {
 						})
 					})
 				})
+			})
+		})
+	})
+
+	Describe("RunPutStep", func() {
+
+		var (
+			ctx               context.Context
+			owner             db.ContainerOwner
+			containerSpec     worker.ContainerSpec
+			workerSpec        worker.WorkerSpec
+			metadata          db.ContainerMetadata
+			imageSpec         worker.ImageFetcherSpec
+			fakeChosenWorker  *workerfakes.FakeWorker
+			fakeStrategy      *workerfakes.FakeContainerPlacementStrategy
+			fakeDelegate      *workerfakes.FakeImageFetchingDelegate
+			fakeEventDelegate *runtimefakes.FakeStartingEventDelegate
+			fakeResourceTypes atc.VersionedResourceTypes
+			fakeContainer     *workerfakes.FakeContainer
+			fakeProcessSpec   runtime.ProcessSpec
+			fakeResource      *resourcefakes.FakeResource
+
+			versionResult runtime.VersionResult
+			status        int
+			err           error
+
+			disasterErr error
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			owner = new(dbfakes.FakeContainerOwner)
+			containerSpec = worker.ContainerSpec{}
+			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+			workerSpec = worker.WorkerSpec{}
+			fakeChosenWorker = new(workerfakes.FakeWorker)
+			fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
+			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
+			fakeResourceTypes = atc.VersionedResourceTypes{}
+			imageSpec = worker.ImageFetcherSpec{
+				Delegate:      fakeDelegate,
+				ResourceTypes: fakeResourceTypes,
+			}
+
+			fakeContainer = new(workerfakes.FakeContainer)
+			disasterErr = errors.New("oh no")
+			stdout := new(gbytes.Buffer)
+			stderr := new(gbytes.Buffer)
+			fakeProcessSpec = runtime.ProcessSpec{
+				Path:         "/opt/resource/out",
+				StdoutWriter: stdout,
+				StderrWriter: stderr,
+			}
+			fakeResource = new(resourcefakes.FakeResource)
+
+			fakeChosenWorker = new(workerfakes.FakeWorker)
+			fakeChosenWorker.NameReturns("some-worker")
+			fakeChosenWorker.SatisfiesReturns(true)
+			fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+			fakePool.FindOrChooseWorkerForContainerReturns(fakeChosenWorker, nil)
+
+		})
+
+		JustBeforeEach(func() {
+			result := client.RunPutStep(
+				ctx,
+				logger,
+				owner,
+				containerSpec,
+				workerSpec,
+				fakeStrategy,
+				metadata,
+				imageSpec,
+				fakeProcessSpec,
+				fakeEventDelegate,
+				fakeResource,
+			)
+			versionResult = result.VersionResult
+			err = result.Err
+			status = result.Status
+		})
+
+		It("finds/chooses a worker", func() {
+			Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+
+			_, _, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
+			Expect(actualOwner).To(Equal(owner))
+			Expect(actualContainerSpec).To(Equal(containerSpec))
+			Expect(actualWorkerSpec).To(Equal(workerSpec))
+			Expect(strategy).To(Equal(fakeStrategy))
+		})
+
+		Context("worker is chosen", func() {
+			BeforeEach(func() {
+				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
+			})
+			It("finds or creates a put container on that worker", func() {
+				Expect(fakeChosenWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+				_, _, actualDelegate, actualOwner, actualMetadata, actualContainerSpec, actualResourceTypes := fakeChosenWorker.FindOrCreateContainerArgsForCall(0)
+
+				Expect(actualContainerSpec).To(Equal(containerSpec))
+				Expect(actualDelegate).To(Equal(fakeDelegate))
+				Expect(actualOwner).To(Equal(owner))
+				Expect(actualMetadata).To(Equal(metadata))
+				Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
+			})
+		})
+
+		Context("worker selection returns an error", func() {
+			BeforeEach(func() {
+				fakePool.FindOrChooseWorkerForContainerReturns(nil, disasterErr)
+			})
+
+			It("returns the error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(disasterErr))
+				Expect(versionResult).To(Equal(runtime.VersionResult{}))
+			})
+		})
+
+		Context("found a container that has run resource.Put and exited", func() {
+			BeforeEach(func() {
+				fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+				fakeContainer.PropertyStub = func(prop string) (result string, err error) {
+					if prop == "concourse:exit-status" {
+						return "8", nil
+					}
+					return "", errors.New("unhandled property")
+				}
+			})
+
+			It("does not invoke resource.Put", func() {
+				Expect(fakeResource.PutCallCount()).To(Equal(0))
+			})
+
+			It("returns result of container process", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(status).To(Equal(8))
+			})
+		})
+
+		Context("calling resource.Put", func() {
+			BeforeEach(func() {
+				fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+				fakeContainer.PropertyReturns("0", fmt.Errorf("property not found"))
+			})
+
+			It("invokes the Starting Event on the delegate", func() {
+				Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
+			})
+
+			It("calls resource.Put with the correct ctx, processSpec and container", func() {
+				actualCtx, actualProcessSpec, actualContainer := fakeResource.PutArgsForCall(0)
+				Expect(actualCtx).To(Equal(ctx))
+				Expect(actualProcessSpec).To(Equal(fakeProcessSpec))
+				Expect(actualContainer).To(Equal(fakeContainer))
+			})
+
+			Context("when PUT returns an error", func() {
+
+				Context("when the error is ErrResourceScriptFailed", func() {
+					var (
+						scriptFailErr runtime.ErrResourceScriptFailed
+					)
+					BeforeEach(func() {
+						scriptFailErr = runtime.ErrResourceScriptFailed{
+							ExitStatus: 10,
+						}
+
+						fakeResource.PutReturns(
+							runtime.VersionResult{},
+							scriptFailErr,
+						)
+					})
+
+					It("returns a PutResult with the exit status from ErrResourceScriptFailed", func() {
+						Expect(status).To(Equal(10))
+						Expect(err).To(Equal(scriptFailErr))
+					})
+				})
+
+				Context("when the error is NOT ErrResourceScriptFailed", func() {
+					BeforeEach(func() {
+						fakeResource.PutReturns(
+							runtime.VersionResult{},
+							disasterErr,
+						)
+					})
+
+					It("returns a PutResult with status -1 and the error", func() {
+						Expect(status).To(Equal(-1))
+						Expect(err).To(Equal(disasterErr))
+					})
+
+				})
+			})
+
+			Context("when PUT succeeds", func() {
+				var expectedVersionResult runtime.VersionResult
+				BeforeEach(func() {
+					expectedVersionResult = runtime.VersionResult{
+						Version:  atc.Version(map[string]string{"foo": "bar"}),
+						Metadata: nil,
+					}
+
+					fakeResource.PutReturns(expectedVersionResult, nil)
+				})
+				It("returns the correct VersionResult and Status", func() {
+					Expect(err).To(BeNil())
+					Expect(status).To(Equal(0))
+					Expect(versionResult).To(Equal(expectedVersionResult))
+				})
+			})
+		})
+
+		Context("worker.FindOrCreateContainer errored", func() {
+			BeforeEach(func() {
+				fakeChosenWorker.FindOrCreateContainerReturns(nil, disasterErr)
+			})
+
+			It("returns the error immediately", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(disasterErr))
+				Expect(versionResult).To(Equal(runtime.VersionResult{}))
 			})
 		})
 	})

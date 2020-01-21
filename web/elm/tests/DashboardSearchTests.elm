@@ -38,62 +38,62 @@ all =
     describe "dashboard search"
         (Common.init "/"
             |> Application.handleCallback
-                (Callback.APIDataFetched
-                    (Ok
-                        ( Time.millisToPosix 0
-                        , { teams =
-                                [ Concourse.Team 1 "team1"
-                                , Concourse.Team 2 "team2"
-                                ]
-                          , pipelines =
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team1"
-                                  , groups = []
-                                  }
-                                ]
-                          , jobs =
-                                [ { pipeline =
-                                        { teamName = "team1"
-                                        , pipelineName = "pipeline"
-                                        }
-                                  , name = "job"
-                                  , pipelineName = "pipeline"
-                                  , teamName = "team1"
-                                  , nextBuild =
+                (Callback.AllJobsFetched <|
+                    Ok
+                        [ { pipeline =
+                                { teamName = "team1"
+                                , pipelineName = "pipeline"
+                                }
+                          , name = "job"
+                          , pipelineName = "pipeline"
+                          , teamName = "team1"
+                          , nextBuild =
+                                Just
+                                    { id = 1
+                                    , name = "1"
+                                    , job =
                                         Just
-                                            { id = 1
-                                            , name = "1"
-                                            , job =
-                                                Just
-                                                    { teamName = "team1"
-                                                    , pipelineName = "pipeline"
-                                                    , jobName = "job"
-                                                    }
-                                            , status = BuildStatusStarted
-                                            , duration =
-                                                { startedAt = Nothing
-                                                , finishedAt = Nothing
-                                                }
-                                            , reapTime = Nothing
+                                            { teamName = "team1"
+                                            , pipelineName = "pipeline"
+                                            , jobName = "job"
                                             }
-                                  , finishedBuild = Nothing
-                                  , transitionBuild = Nothing
-                                  , paused = False
-                                  , disableManualTrigger = False
-                                  , inputs = []
-                                  , outputs = []
-                                  , groups = []
-                                  }
-                                ]
-                          , resources = []
-                          , user = Nothing
-                          , version = ""
+                                    , status = BuildStatusStarted
+                                    , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                    , reapTime = Nothing
+                                    }
+                          , finishedBuild = Nothing
+                          , transitionBuild = Nothing
+                          , paused = False
+                          , disableManualTrigger = False
+                          , inputs = []
+                          , outputs = []
+                          , groups = []
                           }
-                        )
-                    )
+                        ]
+                )
+            |> Tuple.first
+            |> Application.handleCallback
+                (Callback.AllTeamsFetched <|
+                    Ok
+                        [ Concourse.Team 1 "team1"
+                        , Concourse.Team 2 "team2"
+                        ]
+                )
+            |> Tuple.first
+            |> Application.handleCallback
+                (Callback.AllPipelinesFetched <|
+                    Ok
+                        [ { id = 0
+                          , name = "pipeline"
+                          , paused = False
+                          , public = True
+                          , teamName = "team1"
+                          , groups = []
+                          }
+                        ]
                 )
             |> Tuple.first
         )
@@ -175,27 +175,23 @@ all =
                     ]
         , it "centers 'no results' message when typing a string with no hits" <|
             Application.handleCallback
-                (Callback.APIDataFetched
-                    (Ok
-                        ( Time.millisToPosix 0
-                        , { teams = [ { name = "team", id = 0 } ]
-                          , pipelines =
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team"
-                                  , groups = []
-                                  }
-                                ]
-                          , jobs = []
-                          , resources = []
-                          , user = Nothing
-                          , version = "0.0.0-dev"
-                          }
-                        )
-                    )
+                (Callback.AllTeamsFetched <|
+                    Ok
+                        [ { name = "team", id = 0 } ]
                 )
+                >> Tuple.first
+                >> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team"
+                              , groups = []
+                              }
+                            ]
+                    )
                 >> Tuple.first
                 >> Application.update
                     (Msgs.Update <|
