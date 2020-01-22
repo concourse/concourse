@@ -12,7 +12,7 @@ type Plan struct {
 	Check       *CheckPlan       `json:"check,omitempty"`
 	Task        *TaskPlan        `json:"task,omitempty"`
 	SetPipeline *SetPipelinePlan `json:"set_pipeline,omitempty"`
-	Var         *LoadVarPlan     `json:"load_var,omitempty"`
+	LoadVar     *LoadVarPlan     `json:"load_var,omitempty"`
 	OnAbort     *OnAbortPlan     `json:"on_abort,omitempty"`
 	OnError     *OnErrorPlan     `json:"on_error,omitempty"`
 	Ensure      *EnsurePlan      `json:"ensure,omitempty"`
@@ -147,10 +147,10 @@ type SetPipelinePlan struct {
 }
 
 type LoadVarPlan struct {
-	Name        string `json:"name"`
-	File        string `json:"file"`
-	Format      string `json:"format,omitempty"`
-	Insensitive bool   `json:"insensitive,omitempty"`
+	Name   string `json:"name"`
+	File   string `json:"file"`
+	Format string `json:"format,omitempty"`
+	Reveal bool   `json:"reveal,omitempty"`
 }
 
 type RetryPlan []Plan

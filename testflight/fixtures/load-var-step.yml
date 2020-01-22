@@ -31,4 +31,4 @@ jobs:
         args:
         - -exc
         - |
-          test "((local-var))" = "hello-world"
+          test "((.:local-var))" = "hello-world"

@@ -179,7 +179,7 @@ func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, credVarsTra
 		return builder.buildSetPipelineStep(build, plan, credVarsTracker)
 	}
 
-	if plan.Var != nil {
+	if plan.LoadVar != nil {
 		return builder.buildVarStep(build, plan, credVarsTracker)
 	}
 

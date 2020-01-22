@@ -484,8 +484,8 @@ type PlanConfig struct {
 	// format of input file.
 	Format string `json:"format,omitempty"`
 
-	// if a var is sensitive. If not, then it will not be redacted.
-	Insensitive bool `json:"insensitive,omitempty"`
+	// if true, then it will not be redacted.
+	Reveal bool `json:"reveal,omitempty"`
 }
 
 func (config PlanConfig) Name() string {

@@ -14,6 +14,8 @@ type CredVarsTrackerIterator interface {
 	YieldCred(string, string)
 }
 
+//go:generate counterfeiter . CredVarsTracker
+
 type CredVarsTracker interface {
 	Variables
 	IterateInterpolatedCreds(iter CredVarsTrackerIterator)
@@ -24,12 +26,12 @@ type CredVarsTracker interface {
 
 func NewCredVarsTracker(credVars Variables, on bool) CredVarsTracker {
 	return &credVarsTracker{
-		localVars:           StaticVariables{},
-		credVars:            credVars,
-		enabled:             on,
-		interpolatedCreds:   map[string]string{},
-		insensitiveVarNames: map[string]bool{},
-		lock:                sync.RWMutex{},
+		localVars:         StaticVariables{},
+		credVars:          credVars,
+		enabled:           on,
+		interpolatedCreds: map[string]string{},
+		noRedactVarNames:  map[string]bool{},
+		lock:              sync.RWMutex{},
 	}
 }
 
@@ -41,7 +43,7 @@ type credVarsTracker struct {
 
 	interpolatedCreds map[string]string
 
-	insensitiveVarNames map[string]bool
+	noRedactVarNames map[string]bool
 
 	// Considering in-parallel steps, a lock is need.
 	lock sync.RWMutex
@@ -54,22 +56,22 @@ func (t *credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, err
 		err   error
 	)
 
-	insensitive := false
+	redact := true
 	parts := strings.Split(varDef.Name, ":")
 	if len(parts) == 2 && parts[0] == "." {
 		varDef.Name = parts[1]
 		val, found, err = t.localVars.Get(varDef)
 		if found {
 			parts = strings.Split(varDef.Name, ".")
-			if _, ok := t.insensitiveVarNames[parts[0]]; ok {
-				insensitive = true
+			if _, ok := t.noRedactVarNames[parts[0]]; ok {
+				redact = false
 			}
 		}
 	} else {
 		val, found, err = t.credVars.Get(varDef)
 	}
 
-	if t.enabled && found && !insensitive {
+	if t.enabled && found && redact {
 		t.lock.Lock()
 		t.track(varDef.Name, val)
 		t.lock.Unlock()
@@ -113,10 +115,10 @@ func (t *credVarsTracker) Enabled() bool {
 	return t.enabled
 }
 
-func (t *credVarsTracker) AddLocalVar(name string, value interface{}, insensitive bool) {
+func (t *credVarsTracker) AddLocalVar(name string, value interface{}, redact bool) {
 	t.localVars[name] = value
-	if insensitive {
-		t.insensitiveVarNames[name] = true
+	if !redact {
+		t.noRedactVarNames[name] = true
 	}
 }
 

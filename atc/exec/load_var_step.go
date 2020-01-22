@@ -66,7 +66,7 @@ func (err InvalidLocalVarFile) Error() string {
 
 func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
-	logger = logger.Session("var-step", lager.Data{
+	logger = logger.Session("load-var-step", lager.Data{
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
 	})
@@ -88,7 +88,7 @@ func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
 	}
 	fmt.Fprintf(stdout, "var %s fetched.\n", step.plan.Name)
 
-	step.delegate.Variables().AddLocalVar(step.plan.Name, value, step.plan.Insensitive)
+	step.delegate.Variables().AddLocalVar(step.plan.Name, value, !step.plan.Reveal)
 	fmt.Fprintf(stdout, "added var %s to build.\n", step.plan.Name)
 
 	step.succeeded = true

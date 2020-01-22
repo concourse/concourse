@@ -165,7 +165,7 @@ func (factory *stepFactory) LoadVarStep(
 ) exec.Step {
 	varStep := exec.NewLoadVarStep(
 		plan.ID,
-		*plan.Var,
+		*plan.LoadVar,
 		stepMetadata,
 		delegate,
 		factory.client,

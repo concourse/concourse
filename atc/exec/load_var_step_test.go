@@ -3,11 +3,11 @@ package exec_test
 import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	"context"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/build/buildfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars/varsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -97,13 +97,13 @@ var _ = Describe("LoadVarStep", func() {
 
 	JustBeforeEach(func() {
 		plan := atc.Plan{
-			ID:  atc.PlanID(planID),
-			Var: varPlan,
+			ID:      atc.PlanID(planID),
+			LoadVar: varPlan,
 		}
 
 		spStep = exec.NewLoadVarStep(
 			plan.ID,
-			*plan.Var,
+			*plan.LoadVar,
 			stepMetadata,
 			fakeDelegate,
 			fakeWorkerClient,
@@ -333,6 +333,62 @@ var _ = Describe("LoadVarStep", func() {
 			It("step should fail", func() {
 				Expect(stepErr).To(HaveOccurred())
 				Expect(stepErr).To(MatchError(ContainSubstring("failed to parse some-resource/a.yaml in format yaml")))
+			})
+		})
+	})
+
+	Context("reveal", func() {
+		var fakeCredVarsTracker *varsfakes.FakeCredVarsTracker
+
+		BeforeEach(func() {
+			fakeCredVarsTracker = new(varsfakes.FakeCredVarsTracker)
+			fakeDelegate.VariablesReturns(fakeCredVarsTracker)
+		})
+
+		Context("when reveal is not specified", func() {
+			BeforeEach(func() {
+				varPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+					File: "some-resource/a.diff",
+				}
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+			})
+
+			It("local var should be redacted", func() {
+				_, _, redact := fakeCredVarsTracker.AddLocalVarArgsForCall(0)
+				Expect(redact).To(BeTrue())
+			})
+		})
+
+		Context("when reveal is false", func() {
+			BeforeEach(func() {
+				varPlan = &atc.LoadVarPlan{
+					Name:   "some-var",
+					File:   "some-resource/a.diff",
+					Reveal: false,
+				}
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+			})
+
+			It("local var should be redacted", func() {
+				_, _, redact := fakeCredVarsTracker.AddLocalVarArgsForCall(0)
+				Expect(redact).To(BeTrue())
+			})
+		})
+
+		Context("when reveal is true", func() {
+			BeforeEach(func() {
+				varPlan = &atc.LoadVarPlan{
+					Name:   "some-var",
+					File:   "some-resource/a.diff",
+					Reveal: true,
+				}
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+			})
+
+			It("local var should not be redacted", func() {
+				_, _, redact := fakeCredVarsTracker.AddLocalVarArgsForCall(0)
+				Expect(redact).To(BeFalse())
 			})
 		})
 	})

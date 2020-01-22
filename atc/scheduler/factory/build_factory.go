@@ -274,10 +274,10 @@ func (factory *buildFactory) constructUnhookedPlan(
 	case planConfig.LoadVar != "":
 		name := planConfig.LoadVar
 		plan = factory.planFactory.NewPlan(atc.LoadVarPlan{
-			Name:        name,
-			File:        planConfig.File,
-			Format:      planConfig.Format,
-			Insensitive: planConfig.Insensitive,
+			Name:   name,
+			File:   planConfig.File,
+			Format: planConfig.Format,
+			Reveal: planConfig.Reveal,
 		})
 
 	case planConfig.Try != nil:

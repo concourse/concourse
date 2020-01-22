@@ -1458,7 +1458,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a var has not defined 'File'", func() {
+			Context("when a load_var has not defined 'File'", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
 						LoadVar: "a-var",
@@ -1469,11 +1469,11 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].var.a-var does not specify any file"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].load_var.a-var does not specify any file"))
 				})
 			})
 
-			Context("when two var steps have same name", func() {
+			Context("when two load_var steps have same name", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, PlanConfig{
 						LoadVar: "a-var",
@@ -1488,7 +1488,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job has var steps with the same name: a-var"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job has load_var steps with the same name: a-var"))
 				})
 			})
 		})

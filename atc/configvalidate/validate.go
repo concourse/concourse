@@ -334,7 +334,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 				if _, ok := varStepNames[plan.LoadVar]; ok {
 					errorMessages = append(
 						errorMessages,
-						fmt.Sprintf("%s has var steps with the same name: %s", identifier, plan.LoadVar),
+						fmt.Sprintf("%s has load_var steps with the same name: %s", identifier, plan.LoadVar),
 					)
 				}
 				varStepNames[plan.LoadVar] = true
@@ -397,7 +397,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 	}
 
 	if plan.LoadVar != "" {
-		foundTypes.Find("var")
+		foundTypes.Find("load_var")
 	}
 
 	if plan.Do != nil {
@@ -600,7 +600,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		}
 
 	case plan.LoadVar != "":
-		identifier = fmt.Sprintf("%s.var.%s", identifier, plan.LoadVar)
+		identifier = fmt.Sprintf("%s.load_var.%s", identifier, plan.LoadVar)
 
 		if plan.File == "" {
 			errorMessages = append(errorMessages, identifier+" does not specify any file")

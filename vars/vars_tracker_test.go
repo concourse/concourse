@@ -49,9 +49,9 @@ var _ = Describe("vars_tracker", func() {
 		})
 
 		Describe("AddLocalVar", func() {
-			Describe("sensitive", func() {
+			Describe("redact", func() {
 				BeforeEach(func() {
-					tracker.AddLocalVar("foo", "bar", false)
+					tracker.AddLocalVar("foo", "bar", true)
 				})
 
 				It("should get local value", func() {
@@ -75,9 +75,9 @@ var _ = Describe("vars_tracker", func() {
 			})
 		})
 
-		Describe("insensitive", func() {
+		Describe("not redact", func() {
 			BeforeEach(func() {
-				tracker.AddLocalVar("foo", "bar", true)
+				tracker.AddLocalVar("foo", "bar", false)
 			})
 
 			It("should get local value", func() {

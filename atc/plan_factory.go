@@ -40,7 +40,7 @@ func (factory PlanFactory) NewPlan(step Step) Plan {
 	case SetPipelinePlan:
 		plan.SetPipeline = &t
 	case LoadVarPlan:
-		plan.Var = &t
+		plan.LoadVar = &t
 	case CheckPlan:
 		plan.Check = &t
 	case OnAbortPlan:
