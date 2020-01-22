@@ -163,7 +163,7 @@ func (factory *stepFactory) LoadVarStep(
 	stepMetadata exec.StepMetadata,
 	delegate exec.BuildStepDelegate,
 ) exec.Step {
-	varStep := exec.NewLoadVarStep(
+	loadVarStep := exec.NewLoadVarStep(
 		plan.ID,
 		*plan.LoadVar,
 		stepMetadata,
@@ -171,7 +171,7 @@ func (factory *stepFactory) LoadVarStep(
 		factory.client,
 	)
 
-	return exec.LogError(varStep, delegate)
+	return exec.LogError(loadVarStep, delegate)
 }
 
 func (factory *stepFactory) ArtifactInputStep(

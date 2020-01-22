@@ -45,12 +45,12 @@ func NewLoadVarStep(
 	}
 }
 
-type UnspecifiedVarStepFileError struct {
+type UnspecifiedLoadVarStepFileError struct {
 	File string
 }
 
 // Error returns a human-friendly error message.
-func (err UnspecifiedVarStepFileError) Error() string {
+func (err UnspecifiedLoadVarStepFileError) Error() string {
 	return fmt.Sprintf("file '%s' does not specify where the file lives", err.File)
 }
 
@@ -75,7 +75,7 @@ func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
 	stdout := step.delegate.Stdout()
 	stderr := step.delegate.Stderr()
 
-	fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the var step is experimental and subject to change!\x1b[0m")
+	fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the load_var step is experimental and subject to change!\x1b[0m")
 	fmt.Fprintln(stderr, "")
 	fmt.Fprintln(stderr, "\x1b[33mfollow RFC #27 for updates: https://github.com/concourse/rfcs/pull/27\x1b[0m")
 	fmt.Fprintln(stderr, "")
@@ -110,7 +110,7 @@ func (step *LoadVarStep) fetchVars(
 
 	segs := strings.SplitN(file, "/", 2)
 	if len(segs) != 2 {
-		return nil, UnspecifiedVarStepFileError{file}
+		return nil, UnspecifiedLoadVarStepFileError{file}
 	}
 
 	artifactName := segs[0]

@@ -180,7 +180,7 @@ func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, credVarsTra
 	}
 
 	if plan.LoadVar != nil {
-		return builder.buildVarStep(build, plan, credVarsTracker)
+		return builder.buildLoadVarStep(build, plan, credVarsTracker)
 	}
 
 	if plan.Get != nil {
@@ -418,7 +418,7 @@ func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan, 
 	)
 }
 
-func (builder *stepBuilder) buildVarStep(build db.Build, plan atc.Plan, credVarsTracker vars.CredVarsTracker) exec.Step {
+func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan, credVarsTracker vars.CredVarsTracker) exec.Step {
 
 	stepMetadata := builder.stepMetadata(
 		build,

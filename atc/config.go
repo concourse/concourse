@@ -478,7 +478,7 @@ type PlanConfig struct {
 
 	Version *VersionConfig `json:"version,omitempty"`
 
-	// name of 'var' step
+	// name of 'load_var' step
 	LoadVar string `json:"load_var,omitempty"`
 
 	// format of input file.

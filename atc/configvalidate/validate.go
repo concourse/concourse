@@ -327,17 +327,17 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			}
 		}
 
-		// Within a job, each "var" step should have a unique name.
-		varStepNames := map[string]interface{}{}
+		// Within a job, each "load_var" step should have a unique name.
+		loadVarStepNames := map[string]interface{}{}
 		for _, plan := range job.Plan {
 			if plan.LoadVar != "" {
-				if _, ok := varStepNames[plan.LoadVar]; ok {
+				if _, ok := loadVarStepNames[plan.LoadVar]; ok {
 					errorMessages = append(
 						errorMessages,
 						fmt.Sprintf("%s has load_var steps with the same name: %s", identifier, plan.LoadVar),
 					)
 				}
-				varStepNames[plan.LoadVar] = true
+				loadVarStepNames[plan.LoadVar] = true
 			}
 		}
 	}

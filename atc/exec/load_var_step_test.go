@@ -41,7 +41,7 @@ var _ = Describe("LoadVarStep", func() {
 		fakeDelegate     *execfakes.FakeBuildStepDelegate
 		fakeWorkerClient *workerfakes.FakeClient
 
-		varPlan            *atc.LoadVarPlan
+		loadVarPlan        *atc.LoadVarPlan
 		artifactRepository *build.Repository
 		state              *execfakes.FakeRunState
 		fakeSource         *buildfakes.FakeRegisterableArtifact
@@ -98,7 +98,7 @@ var _ = Describe("LoadVarStep", func() {
 	JustBeforeEach(func() {
 		plan := atc.Plan{
 			ID:      atc.PlanID(planID),
-			LoadVar: varPlan,
+			LoadVar: loadVarPlan,
 		}
 
 		spStep = exec.NewLoadVarStep(
@@ -115,7 +115,7 @@ var _ = Describe("LoadVarStep", func() {
 	Context("when format is specified", func() {
 		Context("when format is invalid", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Format: "diff",
@@ -130,7 +130,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when format is raw", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Format: "raw",
@@ -152,7 +152,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when format is json", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Format: "json",
@@ -174,7 +174,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when format is yml", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Format: "yml",
@@ -196,7 +196,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when format is yaml", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Format: "yaml",
@@ -220,7 +220,7 @@ var _ = Describe("LoadVarStep", func() {
 	Context("when format is not specified", func() {
 		Context("when file extension is other than json, yml and yaml", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name: "some-var",
 					File: "some-resource/a.diff",
 				}
@@ -241,7 +241,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when format is json", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name: "some-var",
 					File: "some-resource/a.json",
 				}
@@ -262,7 +262,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when format is yml", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name: "some-var",
 					File: "some-resource/a.yml",
 				}
@@ -283,7 +283,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when format is yaml", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name: "some-var",
 					File: "some-resource/a.yaml",
 				}
@@ -306,7 +306,7 @@ var _ = Describe("LoadVarStep", func() {
 	Context("when file is bad", func() {
 		Context("when json file is bad", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name: "some-var",
 					File: "some-resource/a.json",
 				}
@@ -322,7 +322,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when yaml file is bad", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name: "some-var",
 					File: "some-resource/a.yaml",
 				}
@@ -347,7 +347,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when reveal is not specified", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name: "some-var",
 					File: "some-resource/a.diff",
 				}
@@ -362,7 +362,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when reveal is false", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Reveal: false,
@@ -378,7 +378,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		Context("when reveal is true", func() {
 			BeforeEach(func() {
-				varPlan = &atc.LoadVarPlan{
+				loadVarPlan = &atc.LoadVarPlan{
 					Name:   "some-var",
 					File:   "some-resource/a.diff",
 					Reveal: true,
