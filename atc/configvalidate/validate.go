@@ -23,8 +23,8 @@ func formatErr(groupName string, err error) string {
 }
 
 func Validate(c Config) ([]ConfigWarning, []string) {
-	warnings := []ConfigWarning{}
-	errorMessages := []string{}
+	var warnings []ConfigWarning
+	var errorMessages []string
 
 	groupsErr := validateGroups(c)
 	if groupsErr != nil {
@@ -191,7 +191,7 @@ func validateResourcesUnused(c Config) []ConfigWarning {
 		if _, used := usedResources[resource.Name]; !used {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "resources",
-				Message: resource.Name + " : is not used in pipeline",
+				Message: "resource '" + resource.Name + "' is not used in pipeline",
 			})
 		}
 	}

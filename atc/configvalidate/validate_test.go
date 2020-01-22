@@ -1,8 +1,9 @@
 package configvalidate_test
 
 import (
-	"github.com/concourse/concourse/atc/configvalidate"
 	"strings"
+
+	"github.com/concourse/concourse/atc/configvalidate"
 
 	. "github.com/concourse/concourse/atc"
 
@@ -18,6 +19,7 @@ var _ = Describe("ValidateConfig", func() {
 		config Config
 
 		errorMessages []string
+		warnings      []ConfigWarning
 	)
 
 	BeforeEach(func() {
@@ -94,7 +96,7 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		_, errorMessages = configvalidate.Validate(config)
+		warnings, errorMessages = configvalidate.Validate(config)
 	})
 
 	Context("when the config is valid", func() {
@@ -387,7 +389,7 @@ var _ = Describe("ValidateConfig", func() {
 						Type: "some-type",
 					},
 					{
-						Name: "get-alias",
+						Name: "unused-get-alias",
 						Type: "some-type",
 					},
 					{
@@ -399,15 +401,11 @@ var _ = Describe("ValidateConfig", func() {
 						Type: "some-type",
 					},
 					{
-						Name: "put-alias",
+						Name: "unused-put-alias",
 						Type: "some-type",
 					},
 					{
 						Name: "do",
-						Type: "some-type",
-					},
-					{
-						Name: "aggregate",
 						Type: "some-type",
 					},
 					{
@@ -466,13 +464,6 @@ var _ = Describe("ValidateConfig", func() {
 								Do: &PlanSequence{
 									{
 										Get: "do",
-									},
-								},
-							},
-							{
-								Aggregate: &PlanSequence{
-									{
-										Get: "aggregate",
 									},
 								},
 							},
@@ -550,11 +541,11 @@ var _ = Describe("ValidateConfig", func() {
 		})
 
 		Context("when a resource is not used in any jobs", func() {
-			It("returns an error", func() {
-				Expect(errorMessages).To(HaveLen(1))
-				Expect(errorMessages[0]).To(ContainSubstring("resource 'unused-resource' is not used"))
-				Expect(errorMessages[0]).To(ContainSubstring("resource 'get-alias' is not used"))
-				Expect(errorMessages[0]).To(ContainSubstring("resource 'put-alias' is not used"))
+			It("returns a separate warning for every unused resource", func() {
+				Expect(warnings).To(HaveLen(3))
+				Expect(warnings[0].Message).To(ContainSubstring("resource 'unused-resource' is not used"))
+				Expect(warnings[1].Message).To(ContainSubstring("resource 'unused-get-alias' is not used"))
+				Expect(warnings[2].Message).To(ContainSubstring("resource 'unused-put-alias' is not used"))
 			})
 		})
 	})
@@ -733,6 +724,11 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
+			})
+
+			It("returns a warning because 'aggregate' will be deprecated soon", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("aggregate is deprecated and will be removed in a future version"))
 			})
 		})
 
