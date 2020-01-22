@@ -87,6 +87,7 @@ func (cache *ResourceCacheDescriptor) findOrCreate(
 
 		rc = &usedResourceCache{
 			id:             id,
+			version:        cache.Version,
 			resourceConfig: resourceConfig,
 			lockFactory:    lockFactory,
 			conn:           conn,
@@ -152,6 +153,7 @@ func (cache *ResourceCacheDescriptor) findWithResourceConfig(tx Tx, resourceConf
 
 	return &usedResourceCache{
 		id:             id,
+		version:        cache.Version,
 		resourceConfig: resourceConfig,
 		lockFactory:    lockFactory,
 		conn:           conn,
@@ -187,6 +189,7 @@ func paramsHash(p atc.Params) string {
 
 type UsedResourceCache interface {
 	ID() int
+	Version() atc.Version
 
 	ResourceConfig() ResourceConfig
 
@@ -197,6 +200,7 @@ type UsedResourceCache interface {
 type usedResourceCache struct {
 	id             int
 	resourceConfig ResourceConfig
+	version        atc.Version
 
 	lockFactory lock.LockFactory
 	conn        Conn
@@ -204,6 +208,7 @@ type usedResourceCache struct {
 
 func (cache *usedResourceCache) ID() int                        { return cache.id }
 func (cache *usedResourceCache) ResourceConfig() ResourceConfig { return cache.resourceConfig }
+func (cache *usedResourceCache) Version() atc.Version           { return cache.version }
 
 func (cache *usedResourceCache) Destroy(tx Tx) (bool, error) {
 	rows, err := psql.Delete("resource_caches").

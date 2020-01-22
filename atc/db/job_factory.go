@@ -175,7 +175,7 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 		dashboard = append(dashboard, j)
 	}
 
-	rows, err = psql.Select("j.id", "i.name", "r.name", "array_agg(jp.name)", "i.trigger").
+	rows, err = psql.Select("j.id", "i.name", "r.name", "array_agg(jp.name ORDER BY jp.id)", "i.trigger").
 		From("job_inputs i").
 		Join("jobs j ON j.id = i.job_id").
 		Join("pipelines p ON p.id = j.pipeline_id").
