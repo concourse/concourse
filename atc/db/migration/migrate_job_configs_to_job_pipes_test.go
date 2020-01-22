@@ -9,8 +9,8 @@ import (
 )
 
 var _ = Describe("Migrate existing job configs into job pipes", func() {
-	const preMigrationVersion = 1576696017
-	const postMigrationVersion = 1576696018
+	const preMigrationVersion = 1579713198
+	const postMigrationVersion = 1579713199
 
 	var (
 		db *sql.DB
