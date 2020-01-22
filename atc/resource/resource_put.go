@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/concourse/concourse/atc/runtime"
 )
@@ -22,7 +23,7 @@ func (resource *resource) Put(
 	err = runnable.RunScript(
 		ctx,
 		spec.Path,
-		[]string{spec.Dir},
+		spec.Args,
 		input,
 		&vr,
 		spec.StderrWriter,
@@ -32,7 +33,7 @@ func (resource *resource) Put(
 		return runtime.VersionResult{}, err
 	}
 	if vr.Version == nil {
-		return runtime.VersionResult{}, fmt.Errorf("resource script (%s %s) output a null version", spec.Path, spec.Dir)
+		return runtime.VersionResult{}, fmt.Errorf("resource script (%s %s) output a null version", spec.Path, strings.Join(spec.Args, " "))
 	}
 
 	return vr, nil
