@@ -65,7 +65,7 @@ func (r *resourceConfigScope) CheckError() error              { return r.checkEr
 //
 // In the case of a check resource from an older version, the versions
 // that already exist in the DB will be re-ordered using
-// incrementCheckOrderWhenNewerVersion to input the correct check order
+// incrementCheckOrder to input the correct check order
 func (r *resourceConfigScope) SaveVersions(versions []atc.Version) error {
 	return saveVersions(r.conn, r.ID(), versions)
 }
@@ -79,7 +79,6 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
 	defer Rollback(tx)
 
 	var bumpCache bool
-
 	for _, version := range versions {
 		newVersion, err := saveResourceVersion(tx, rcsID, version, nil)
 		if err != nil {
@@ -99,16 +98,16 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
 		bumpCache = bumpCache || newVersion
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
 	if bumpCache {
-		err = bumpCacheIndexForPipelinesUsingResourceConfigScope(conn, rcsID)
+		err = requestScheduleForJobsUsingResourceConfigScope(tx, rcsID)
 		if err != nil {
 			return err
 		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -308,42 +307,47 @@ func incrementCheckOrder(tx Tx, rcsID int, version string) error {
 		SET check_order = mc.co + 1
 		FROM max_checkorder mc
 		WHERE resource_config_scope_id = $1
-		AND version = $2
+		AND version_md5 = md5($2)
 		AND check_order <= mc.co;`, rcsID, version)
 	return err
 }
 
-func bumpCacheIndexForPipelinesUsingResourceConfigScope(conn Conn, rcsID int) error {
-	rows, err := psql.Select("p.id").
-		From("pipelines p").
-		Join("resources r ON r.pipeline_id = p.id").
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
+func requestScheduleForJobsUsingResourceConfigScope(tx Tx, rcsID int) error {
+	rows, err := psql.Select("DISTINCT j.job_id").
+		From("job_inputs j").
+		Join("resources r ON r.id = j.resource_id").
 		Where(sq.Eq{
 			"r.resource_config_scope_id": rcsID,
+			"j.passed_job_id":            nil,
 		}).
-		RunWith(conn).
+		OrderBy("j.job_id DESC").
+		RunWith(tx).
 		Query()
 	if err != nil {
 		return err
 	}
 
-	var pipelines []int
+	var jobIDs []int
 	for rows.Next() {
-		var pid int
-		err = rows.Scan(&pid)
+		var id int
+		err = rows.Scan(&id)
 		if err != nil {
 			return err
 		}
 
-		pipelines = append(pipelines, pid)
+		jobIDs = append(jobIDs, id)
 	}
 
-	for _, p := range pipelines {
-		_, err := psql.Update("pipelines").
-			Set("cache_index", sq.Expr("cache_index + 1")).
+	for _, jID := range jobIDs {
+		_, err := psql.Update("jobs").
+			Set("schedule_requested", sq.Expr("now()")).
 			Where(sq.Eq{
-				"id": p,
+				"id": jID,
 			}).
-			RunWith(conn).
+			RunWith(tx).
 			Exec()
 		if err != nil {
 			return err

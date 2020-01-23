@@ -97,11 +97,12 @@ func (r *runner) run(ctx context.Context, force bool) error {
 
 	lock, acquired, err := r.lockFactory.Acquire(r.logger, lock.NewTaskLockID(r.componentName))
 	if err != nil {
+		r.logger.Error("failed-to-acquire-lock", err)
 		return err
 	}
 
 	if !acquired {
-		r.logger.Debug("failed-to-acquire-lock", lager.Data{"name": r.componentName})
+		r.logger.Debug("lock-cannot-be-acquired", lager.Data{"name": r.componentName})
 		return nil
 	}
 

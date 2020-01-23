@@ -32,6 +32,13 @@ func (vc *volumeCollector) Run(ctx context.Context) error {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
+	start := time.Now()
+	defer func() {
+		metric.VolumeCollectorDuration{
+			Duration: time.Since(start),
+		}.Emit(logger)
+	}()
+
 	var errs error
 
 	err := vc.cleanupFailedVolumes(logger.Session("failed-volumes"))

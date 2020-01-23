@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"crypto/md5"
 	"crypto/sha256"
 	"database/sql"
 	"fmt"
@@ -133,7 +134,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(usedResourceCache.Version()).To(Equal(atc.Version{"some": "version"}))
 
-			rows, err := psql.Select("a.version, a.params_hash, o.source_hash, b.name").
+			rows, err := psql.Select("a.version, a.version_md5, a.params_hash, o.source_hash, b.name").
 				From("resource_caches a").
 				LeftJoin("resource_configs o ON a.resource_config_id = o.id").
 				LeftJoin("base_resource_types b ON o.base_resource_type_id = b.id").
@@ -143,11 +144,12 @@ var _ = Describe("ResourceCacheFactory", func() {
 			resourceCaches := []resourceCache{}
 			for rows.Next() {
 				var version string
+				var versionMd5 string
 				var paramsHash string
 				var sourceHash sql.NullString
 				var baseResourceTypeName sql.NullString
 
-				err := rows.Scan(&version, &paramsHash, &sourceHash, &baseResourceTypeName)
+				err := rows.Scan(&version, &versionMd5, &paramsHash, &sourceHash, &baseResourceTypeName)
 				Expect(err).NotTo(HaveOccurred())
 
 				var sourceHashString string
@@ -162,6 +164,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 				resourceCaches = append(resourceCaches, resourceCache{
 					Version:          version,
+					VersionMd5:       versionMd5,
 					ParamsHash:       paramsHash,
 					SourceHash:       sourceHashString,
 					BaseResourceName: baseResourceTypeNameString,
@@ -172,20 +175,27 @@ var _ = Describe("ResourceCacheFactory", func() {
 				return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 			}
 
+			var toMd5 = func(s string) string {
+				return fmt.Sprintf("%x", md5.Sum([]byte(s)))
+			}
+
 			Expect(resourceCaches).To(ConsistOf(
 				resourceCache{
 					Version:          `{"some-type-type": "version"}`,
+					VersionMd5:       toMd5(`{"some-type-type":"version"}`),
 					ParamsHash:       toHash(`{}`),
 					BaseResourceName: "some-base-type",
 					SourceHash:       toHash(`{"some-type-type":"some-secret-sauce"}`),
 				},
 				resourceCache{
 					Version:    `{"some-type": "version"}`,
+					VersionMd5: toMd5(`{"some-type":"version"}`),
 					ParamsHash: toHash(`{}`),
 					SourceHash: toHash(`{"some-type":"source"}`),
 				},
 				resourceCache{
 					Version:    `{"some": "version"}`,
+					VersionMd5: toMd5(`{"some":"version"}`),
 					ParamsHash: toHash(`{"some":"params"}`),
 					SourceHash: toHash(`{"some":"source"}`),
 				},
@@ -225,8 +235,6 @@ var _ = Describe("ResourceCacheFactory", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(usedResourceCache.Version()).To(Equal(atc.Version{"some": "version"}))
-			Expect(usedResourceCache.ResourceConfig().CreatedByResourceCache().Version()).To(Equal(atc.Version{"some-image-type": "version"}))
 			Expect(usedResourceCache.ResourceConfig().CreatedByResourceCache().ResourceConfig().CreatedByBaseResourceType().ID).To(Equal(usedImageBaseResourceType.ID))
 		})
 
@@ -292,6 +300,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 type resourceCache struct {
 	Version          string
+	VersionMd5       string
 	ParamsHash       string
 	SourceHash       string
 	BaseResourceName string

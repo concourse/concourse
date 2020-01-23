@@ -2,12 +2,21 @@ package factory
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
 var ErrResourceNotFound = errors.New("resource not found")
+
+type VersionNotFoundError struct {
+	Input string
+}
+
+func (e VersionNotFoundError) Error() string {
+	return fmt.Sprintf("version for input %s not found", e.Input)
+}
 
 //go:generate counterfeiter . BuildFactory
 
@@ -219,6 +228,10 @@ func (factory *buildFactory) constructUnhookedPlan(
 				version = atc.Version(input.Version)
 				break
 			}
+		}
+
+		if version == nil {
+			return atc.Plan{}, VersionNotFoundError{name}
 		}
 
 		plan = factory.planFactory.NewPlan(atc.GetPlan{

@@ -58,6 +58,7 @@ func (a *auditor) ValidateAction(action string) bool {
 	case atc.GetBuild,
 		atc.GetBuildPlan,
 		atc.CreateBuild,
+		atc.RerunJobBuild,
 		atc.ListBuilds,
 		atc.BuildEvents,
 		atc.BuildResources,
@@ -84,6 +85,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.GetJobBuild,
 		atc.PauseJob,
 		atc.UnpauseJob,
+		atc.ScheduleJob,
 		atc.JobBadge,
 		atc.MainJobBadge:
 		return a.EnableJobAuditLog

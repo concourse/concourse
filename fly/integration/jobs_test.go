@@ -99,8 +99,6 @@ var _ = Describe("Fly CLI", func() {
                   "status": "succeeded",
                   "api_url": ""
                 },
-                "inputs": null,
-                "outputs": null,
                 "groups": null
               },
               {
@@ -117,8 +115,6 @@ var _ = Describe("Fly CLI", func() {
                   "status": "failed",
                   "api_url": ""
                 },
-                "inputs": null,
-                "outputs": null,
                 "groups": null
               },
               {
@@ -128,8 +124,6 @@ var _ = Describe("Fly CLI", func() {
                 "team_name": "",
                 "next_build": null,
                 "finished_build": null,
-                "inputs": null,
-                "outputs": null,
                 "groups": null
               }
             ]`))

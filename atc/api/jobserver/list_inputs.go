@@ -34,7 +34,7 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		buildInputs, found, err := job.GetNextBuildInputs()
+		buildInputs, found, err := job.GetFullNextBuildInputs()
 		if err != nil {
 			logger.Error("failed-to-get-next-build-inputs", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -46,18 +46,32 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		jobInputs := job.Config().Inputs()
+		jobConfig, err := job.Config()
+		if err != nil {
+			logger.Error("failed-to-get-job-config", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		jobInputs := jobConfig.Inputs()
+
 		inputs := make([]atc.BuildInput, len(buildInputs))
 
 		for i, input := range buildInputs {
-			var config atc.JobInput
+			var config atc.JobInputParams
 			for _, jobInput := range jobInputs {
 				if jobInput.Name == input.Name {
 					config = jobInput
 					break
 				}
 			}
-			resource, _ := resources.Lookup(config.Resource)
+
+			resource, found := resources.Lookup(config.Resource)
+			if !found {
+				logger.Debug("resource-is-not-found")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
 			inputs[i] = present.BuildInput(input, config, resource)
 		}

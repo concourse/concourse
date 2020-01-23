@@ -454,6 +454,72 @@ var _ = Describe("ATC Handler Jobs", func() {
 		})
 	})
 
+	Describe("ScheduleJob", func() {
+		var (
+			expectedStatus int
+			pipelineName   = "banana"
+			jobName        = "disjob"
+			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/jobs/%s/schedule", pipelineName, jobName)
+		)
+
+		JustBeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.RespondWith(expectedStatus, nil),
+				),
+			)
+		})
+
+		Context("when the job exists and there are no issues", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusOK
+			})
+
+			It("calls the schedule job and returns no error", func() {
+				Expect(func() {
+					requested, err := team.ScheduleJob(pipelineName, jobName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(requested).To(BeTrue())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+
+		Context("when the schedule job call fails", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusInternalServerError
+			})
+
+			It("calls the schedule job and returns an error", func() {
+				Expect(func() {
+					requested, err := team.ScheduleJob(pipelineName, jobName)
+					Expect(err).To(HaveOccurred())
+					Expect(requested).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+
+		Context("when the job does not exist", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusNotFound
+			})
+
+			It("calls the schedule job and returns an error", func() {
+				Expect(func() {
+					requested, err := team.ScheduleJob(pipelineName, jobName)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(requested).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
+		})
+	})
+
 	Describe("Clear Job Task Cache", func() {
 		var (
 			expectedURL   string

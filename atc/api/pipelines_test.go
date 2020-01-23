@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -1319,18 +1318,18 @@ var _ = Describe("Pipelines API", func() {
 				fakeTeam.PipelineReturns(dbPipeline, true, nil)
 				//construct Version db
 
-				dbPipeline.LoadVersionsDBReturns(
-					&algorithm.VersionsDB{
-						ResourceVersions: []algorithm.ResourceVersion{
+				dbPipeline.LoadDebugVersionsDBReturns(
+					&atc.DebugVersionsDB{
+						ResourceVersions: []atc.DebugResourceVersion{
 							{
 								VersionID:  73,
 								ResourceID: 127,
 								CheckOrder: 123,
 							},
 						},
-						BuildOutputs: []algorithm.BuildOutput{
+						BuildOutputs: []atc.DebugBuildOutput{
 							{
-								ResourceVersion: algorithm.ResourceVersion{
+								DebugResourceVersion: atc.DebugResourceVersion{
 									VersionID:  73,
 									ResourceID: 127,
 									CheckOrder: 123,
@@ -1339,9 +1338,9 @@ var _ = Describe("Pipelines API", func() {
 								JobID:   13,
 							},
 						},
-						BuildInputs: []algorithm.BuildInput{
+						BuildInputs: []atc.DebugBuildInput{
 							{
-								ResourceVersion: algorithm.ResourceVersion{
+								DebugResourceVersion: atc.DebugResourceVersion{
 									VersionID:  66,
 									ResourceID: 77,
 									CheckOrder: 88,

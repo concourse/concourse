@@ -2,12 +2,11 @@ package gc_test
 
 import (
 	"context"
-	"time"
-
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/gc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"time"
 )
 
 var _ = Describe("CheckCollector", func() {

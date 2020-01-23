@@ -24,28 +24,153 @@ var ContainersDeleted = Meter(0)
 var VolumesDeleted = Meter(0)
 var ChecksDeleted = Meter(0)
 
+type BuildCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event BuildCollectorDuration) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-build-collector-duration"),
+		Event{
+			Name:  "gc: build collector duration (ms)",
+			Value: ms(event.Duration),
+			State: EventStateOK,
+		},
+	)
+}
+
+type WorkerCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event WorkerCollectorDuration) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-worker-collector-duration"),
+		Event{
+			Name:  "gc: worker collector duration (ms)",
+			Value: ms(event.Duration),
+			State: EventStateOK,
+		},
+	)
+}
+
+type ResourceCacheUseCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event ResourceCacheUseCollectorDuration) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-resource-cache-use-collector-duration"),
+		Event{
+			Name:  "gc: resource cache use collector duration (ms)",
+			Value: ms(event.Duration),
+			State: EventStateOK,
+		},
+	)
+}
+
+type ResourceConfigCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event ResourceConfigCollectorDuration) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-resource-config-collector-duration"),
+		Event{
+			Name:  "gc: resource config collector duration (ms)",
+			Value: ms(event.Duration),
+			State: EventStateOK,
+		},
+	)
+}
+
+type ResourceCacheCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event ResourceCacheCollectorDuration) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-resource-cache-collector-duration"),
+		Event{
+			Name:  "gc: resource cache collector duration (ms)",
+			Value: ms(event.Duration),
+			State: EventStateOK,
+		},
+	)
+}
+
+type ResourceConfigCheckSessionCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event ResourceConfigCheckSessionCollectorDuration) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-resource-config-check-session-collector-duration"),
+		Event{
+			Name:  "gc: resource config check session collector duration (ms)",
+			Value: ms(event.Duration),
+			State: EventStateOK,
+		},
+	)
+}
+
+type ArtifactCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event ArtifactCollectorDuration) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-artifact-collector-duration"),
+		Event{
+			Name:  "gc: artifact collector duration (ms)",
+			Value: ms(event.Duration),
+			State: EventStateOK,
+		},
+	)
+}
+
+type ContainerCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event ContainerCollectorDuration) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-container-collector-duration"),
+		Event{
+			Name:  "gc: container collector duration (ms)",
+			Value: ms(event.Duration),
+			State: EventStateOK,
+		},
+	)
+}
+
+type VolumeCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event VolumeCollectorDuration) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("gc-volume-collector-duration"),
+		Event{
+			Name:  "gc: volume collector duration (ms)",
+			Value: ms(event.Duration),
+			State: EventStateOK,
+		},
+	)
+}
+
 type SchedulingFullDuration struct {
 	PipelineName string
 	Duration     time.Duration
 }
 
 func (event SchedulingFullDuration) Emit(logger lager.Logger) {
-	state := EventStateOK
-
-	if event.Duration > time.Second {
-		state = EventStateWarning
-	}
-
-	if event.Duration > 5*time.Second {
-		state = EventStateCritical
-	}
-
 	emit(
 		logger.Session("full-scheduling-duration"),
 		Event{
 			Name:  "scheduling: full duration (ms)",
 			Value: ms(event.Duration),
-			State: state,
+			State: EventStateOK,
 			Attributes: map[string]string{
 				"pipeline": event.PipelineName,
 			},
@@ -85,29 +210,21 @@ func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
 type SchedulingJobDuration struct {
 	PipelineName string
 	JobName      string
+	JobID        int
 	Duration     time.Duration
 }
 
 func (event SchedulingJobDuration) Emit(logger lager.Logger) {
-	state := EventStateOK
-
-	if event.Duration > time.Second {
-		state = EventStateWarning
-	}
-
-	if event.Duration > 5*time.Second {
-		state = EventStateCritical
-	}
-
 	emit(
 		logger.Session("job-scheduling-duration"),
 		Event{
 			Name:  "scheduling: job duration (ms)",
 			Value: ms(event.Duration),
-			State: state,
+			State: EventStateOK,
 			Attributes: map[string]string{
 				"pipeline": event.PipelineName,
 				"job":      event.JobName,
+				"job_id":   strconv.Itoa(event.JobID),
 			},
 		},
 	)
@@ -593,7 +710,7 @@ func (event CheckQueueSize) Emit(logger lager.Logger) {
 var lockTypeNames = map[int]string{
 	lock.LockTypeResourceConfigChecking: "ResourceConfigChecking",
 	lock.LockTypeBuildTracking:          "BuildTracking",
-	lock.LockTypePipelineScheduling:     "PipelineScheduling",
+	lock.LockTypeJobScheduling:          "JobScheduling",
 	lock.LockTypeBatch:                  "Batch",
 	lock.LockTypeVolumeCreating:         "VolumeCreating",
 	lock.LockTypeContainerCreating:      "ContainerCreating",

@@ -38,9 +38,10 @@ type FlyCommand struct {
 	Containers ContainersCommand `command:"containers" alias:"cs" description:"Print the active containers"`
 	Hijack     HijackCommand     `command:"hijack"     alias:"intercept" alias:"i" description:"Execute a command in a container"`
 
-	Jobs       JobsCommand       `command:"jobs"      alias:"js" description:"List the jobs in the pipelines"`
-	PauseJob   PauseJobCommand   `command:"pause-job" alias:"pj" description:"Pause a job"`
-	UnpauseJob UnpauseJobCommand `command:"unpause-job" alias:"uj" description:"Unpause a job"`
+	Jobs        JobsCommand        `command:"jobs"      alias:"js" description:"List the jobs in the pipelines"`
+	PauseJob    PauseJobCommand    `command:"pause-job" alias:"pj" description:"Pause a job"`
+	UnpauseJob  UnpauseJobCommand  `command:"unpause-job" alias:"uj" description:"Unpause a job"`
+	ScheduleJob ScheduleJobCommand `command:"schedule-job" alias:"sj" description:"Request the scheduler to run for a job. Introduced as a recovery command for the v6.0 scheduler."`
 
 	Pipelines        PipelinesCommand        `command:"pipelines"           alias:"ps"   description:"List the configured pipelines"`
 	DestroyPipeline  DestroyPipelineCommand  `command:"destroy-pipeline"    alias:"dp"   description:"Destroy a pipeline"`
@@ -69,6 +70,7 @@ type FlyCommand struct {
 
 	Builds     BuildsCommand     `command:"builds"      alias:"bs" description:"List builds data"`
 	AbortBuild AbortBuildCommand `command:"abort-build" alias:"ab" description:"Abort a build"`
+	RerunBuild RerunBuildCommand `command:"rerun-build" alias:"rb" description:"Rerun a build"`
 
 	TriggerJob TriggerJobCommand `command:"trigger-job" alias:"tj" description:"Start a job in a pipeline"`
 

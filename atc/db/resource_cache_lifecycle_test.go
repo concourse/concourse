@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -319,12 +318,17 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				err = defaultJob.SaveNextInputMapping(algorithm.InputMapping{
-					"some-resource": algorithm.InputVersion{
-						VersionID:  resourceConfigVersion.ID(),
-						ResourceID: defaultResource.ID(),
+				err = defaultJob.SaveNextInputMapping(db.InputMapping{
+					"some-resource": db.InputResult{
+						Input: &db.AlgorithmInput{
+							AlgorithmVersion: db.AlgorithmVersion{
+								Version:    db.ResourceVersion(convertToMD5(atc.Version(resourceConfigVersion.Version()))),
+								ResourceID: defaultResource.ID(),
+							},
+						},
+						PassedBuildIDs: []int{},
 					},
-				})
+				}, true)
 				Expect(err).ToNot(HaveOccurred())
 
 				createdContainer, err := container.Created()

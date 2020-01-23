@@ -41,6 +41,34 @@ type FakeBuild struct {
 		result2 bool
 		result3 error
 	}
+	AdoptInputsAndPipesStub        func() ([]db.BuildInput, bool, error)
+	adoptInputsAndPipesMutex       sync.RWMutex
+	adoptInputsAndPipesArgsForCall []struct {
+	}
+	adoptInputsAndPipesReturns struct {
+		result1 []db.BuildInput
+		result2 bool
+		result3 error
+	}
+	adoptInputsAndPipesReturnsOnCall map[int]struct {
+		result1 []db.BuildInput
+		result2 bool
+		result3 error
+	}
+	AdoptRerunInputsAndPipesStub        func() ([]db.BuildInput, bool, error)
+	adoptRerunInputsAndPipesMutex       sync.RWMutex
+	adoptRerunInputsAndPipesArgsForCall []struct {
+	}
+	adoptRerunInputsAndPipesReturns struct {
+		result1 []db.BuildInput
+		result2 bool
+		result3 error
+	}
+	adoptRerunInputsAndPipesReturnsOnCall map[int]struct {
+		result1 []db.BuildInput
+		result2 bool
+		result3 error
+	}
 	ArtifactStub        func(int) (db.WorkerArtifact, error)
 	artifactMutex       sync.RWMutex
 	artifactArgsForCall []struct {
@@ -131,6 +159,16 @@ type FakeBuild struct {
 	}
 	iDReturnsOnCall map[int]struct {
 		result1 int
+	}
+	InputsReadyStub        func() bool
+	inputsReadyMutex       sync.RWMutex
+	inputsReadyArgsForCall []struct {
+	}
+	inputsReadyReturns struct {
+		result1 bool
+	}
+	inputsReadyReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	InterceptibleStub        func() (bool, error)
 	interceptibleMutex       sync.RWMutex
@@ -345,6 +383,36 @@ type FakeBuild struct {
 		result1 bool
 		result2 error
 	}
+	RerunNumberStub        func() int
+	rerunNumberMutex       sync.RWMutex
+	rerunNumberArgsForCall []struct {
+	}
+	rerunNumberReturns struct {
+		result1 int
+	}
+	rerunNumberReturnsOnCall map[int]struct {
+		result1 int
+	}
+	RerunOfStub        func() int
+	rerunOfMutex       sync.RWMutex
+	rerunOfArgsForCall []struct {
+	}
+	rerunOfReturns struct {
+		result1 int
+	}
+	rerunOfReturnsOnCall map[int]struct {
+		result1 int
+	}
+	RerunOfNameStub        func() string
+	rerunOfNameMutex       sync.RWMutex
+	rerunOfNameArgsForCall []struct {
+	}
+	rerunOfNameReturns struct {
+		result1 string
+	}
+	rerunOfNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	ResourcesStub        func() ([]db.BuildInput, []db.BuildOutput, error)
 	resourcesMutex       sync.RWMutex
 	resourcesArgsForCall []struct {
@@ -397,18 +465,6 @@ type FakeBuild struct {
 	}
 	saveOutputReturnsOnCall map[int]struct {
 		result1 error
-	}
-	ScheduleStub        func() (bool, error)
-	scheduleMutex       sync.RWMutex
-	scheduleArgsForCall []struct {
-	}
-	scheduleReturns struct {
-		result1 bool
-		result2 error
-	}
-	scheduleReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
 	}
 	SchemaStub        func() string
 	schemaMutex       sync.RWMutex
@@ -494,17 +550,6 @@ type FakeBuild struct {
 	}
 	teamNameReturnsOnCall map[int]struct {
 		result1 string
-	}
-	UseInputsStub        func([]db.BuildInput) error
-	useInputsMutex       sync.RWMutex
-	useInputsArgsForCall []struct {
-		arg1 []db.BuildInput
-	}
-	useInputsReturns struct {
-		result1 error
-	}
-	useInputsReturnsOnCall map[int]struct {
-		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -627,6 +672,122 @@ func (fake *FakeBuild) AcquireTrackingLockReturnsOnCall(i int, result1 lock.Lock
 	}
 	fake.acquireTrackingLockReturnsOnCall[i] = struct {
 		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) AdoptInputsAndPipes() ([]db.BuildInput, bool, error) {
+	fake.adoptInputsAndPipesMutex.Lock()
+	ret, specificReturn := fake.adoptInputsAndPipesReturnsOnCall[len(fake.adoptInputsAndPipesArgsForCall)]
+	fake.adoptInputsAndPipesArgsForCall = append(fake.adoptInputsAndPipesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("AdoptInputsAndPipes", []interface{}{})
+	fake.adoptInputsAndPipesMutex.Unlock()
+	if fake.AdoptInputsAndPipesStub != nil {
+		return fake.AdoptInputsAndPipesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.adoptInputsAndPipesReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeBuild) AdoptInputsAndPipesCallCount() int {
+	fake.adoptInputsAndPipesMutex.RLock()
+	defer fake.adoptInputsAndPipesMutex.RUnlock()
+	return len(fake.adoptInputsAndPipesArgsForCall)
+}
+
+func (fake *FakeBuild) AdoptInputsAndPipesCalls(stub func() ([]db.BuildInput, bool, error)) {
+	fake.adoptInputsAndPipesMutex.Lock()
+	defer fake.adoptInputsAndPipesMutex.Unlock()
+	fake.AdoptInputsAndPipesStub = stub
+}
+
+func (fake *FakeBuild) AdoptInputsAndPipesReturns(result1 []db.BuildInput, result2 bool, result3 error) {
+	fake.adoptInputsAndPipesMutex.Lock()
+	defer fake.adoptInputsAndPipesMutex.Unlock()
+	fake.AdoptInputsAndPipesStub = nil
+	fake.adoptInputsAndPipesReturns = struct {
+		result1 []db.BuildInput
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) AdoptInputsAndPipesReturnsOnCall(i int, result1 []db.BuildInput, result2 bool, result3 error) {
+	fake.adoptInputsAndPipesMutex.Lock()
+	defer fake.adoptInputsAndPipesMutex.Unlock()
+	fake.AdoptInputsAndPipesStub = nil
+	if fake.adoptInputsAndPipesReturnsOnCall == nil {
+		fake.adoptInputsAndPipesReturnsOnCall = make(map[int]struct {
+			result1 []db.BuildInput
+			result2 bool
+			result3 error
+		})
+	}
+	fake.adoptInputsAndPipesReturnsOnCall[i] = struct {
+		result1 []db.BuildInput
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) AdoptRerunInputsAndPipes() ([]db.BuildInput, bool, error) {
+	fake.adoptRerunInputsAndPipesMutex.Lock()
+	ret, specificReturn := fake.adoptRerunInputsAndPipesReturnsOnCall[len(fake.adoptRerunInputsAndPipesArgsForCall)]
+	fake.adoptRerunInputsAndPipesArgsForCall = append(fake.adoptRerunInputsAndPipesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("AdoptRerunInputsAndPipes", []interface{}{})
+	fake.adoptRerunInputsAndPipesMutex.Unlock()
+	if fake.AdoptRerunInputsAndPipesStub != nil {
+		return fake.AdoptRerunInputsAndPipesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.adoptRerunInputsAndPipesReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeBuild) AdoptRerunInputsAndPipesCallCount() int {
+	fake.adoptRerunInputsAndPipesMutex.RLock()
+	defer fake.adoptRerunInputsAndPipesMutex.RUnlock()
+	return len(fake.adoptRerunInputsAndPipesArgsForCall)
+}
+
+func (fake *FakeBuild) AdoptRerunInputsAndPipesCalls(stub func() ([]db.BuildInput, bool, error)) {
+	fake.adoptRerunInputsAndPipesMutex.Lock()
+	defer fake.adoptRerunInputsAndPipesMutex.Unlock()
+	fake.AdoptRerunInputsAndPipesStub = stub
+}
+
+func (fake *FakeBuild) AdoptRerunInputsAndPipesReturns(result1 []db.BuildInput, result2 bool, result3 error) {
+	fake.adoptRerunInputsAndPipesMutex.Lock()
+	defer fake.adoptRerunInputsAndPipesMutex.Unlock()
+	fake.AdoptRerunInputsAndPipesStub = nil
+	fake.adoptRerunInputsAndPipesReturns = struct {
+		result1 []db.BuildInput
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) AdoptRerunInputsAndPipesReturnsOnCall(i int, result1 []db.BuildInput, result2 bool, result3 error) {
+	fake.adoptRerunInputsAndPipesMutex.Lock()
+	defer fake.adoptRerunInputsAndPipesMutex.Unlock()
+	fake.AdoptRerunInputsAndPipesStub = nil
+	if fake.adoptRerunInputsAndPipesReturnsOnCall == nil {
+		fake.adoptRerunInputsAndPipesReturnsOnCall = make(map[int]struct {
+			result1 []db.BuildInput
+			result2 bool
+			result3 error
+		})
+	}
+	fake.adoptRerunInputsAndPipesReturnsOnCall[i] = struct {
+		result1 []db.BuildInput
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -1081,6 +1242,58 @@ func (fake *FakeBuild) IDReturnsOnCall(i int, result1 int) {
 	}
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) InputsReady() bool {
+	fake.inputsReadyMutex.Lock()
+	ret, specificReturn := fake.inputsReadyReturnsOnCall[len(fake.inputsReadyArgsForCall)]
+	fake.inputsReadyArgsForCall = append(fake.inputsReadyArgsForCall, struct {
+	}{})
+	fake.recordInvocation("InputsReady", []interface{}{})
+	fake.inputsReadyMutex.Unlock()
+	if fake.InputsReadyStub != nil {
+		return fake.InputsReadyStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.inputsReadyReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) InputsReadyCallCount() int {
+	fake.inputsReadyMutex.RLock()
+	defer fake.inputsReadyMutex.RUnlock()
+	return len(fake.inputsReadyArgsForCall)
+}
+
+func (fake *FakeBuild) InputsReadyCalls(stub func() bool) {
+	fake.inputsReadyMutex.Lock()
+	defer fake.inputsReadyMutex.Unlock()
+	fake.InputsReadyStub = stub
+}
+
+func (fake *FakeBuild) InputsReadyReturns(result1 bool) {
+	fake.inputsReadyMutex.Lock()
+	defer fake.inputsReadyMutex.Unlock()
+	fake.InputsReadyStub = nil
+	fake.inputsReadyReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) InputsReadyReturnsOnCall(i int, result1 bool) {
+	fake.inputsReadyMutex.Lock()
+	defer fake.inputsReadyMutex.Unlock()
+	fake.InputsReadyStub = nil
+	if fake.inputsReadyReturnsOnCall == nil {
+		fake.inputsReadyReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.inputsReadyReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
@@ -2150,6 +2363,162 @@ func (fake *FakeBuild) ReloadReturnsOnCall(i int, result1 bool, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeBuild) RerunNumber() int {
+	fake.rerunNumberMutex.Lock()
+	ret, specificReturn := fake.rerunNumberReturnsOnCall[len(fake.rerunNumberArgsForCall)]
+	fake.rerunNumberArgsForCall = append(fake.rerunNumberArgsForCall, struct {
+	}{})
+	fake.recordInvocation("RerunNumber", []interface{}{})
+	fake.rerunNumberMutex.Unlock()
+	if fake.RerunNumberStub != nil {
+		return fake.RerunNumberStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.rerunNumberReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) RerunNumberCallCount() int {
+	fake.rerunNumberMutex.RLock()
+	defer fake.rerunNumberMutex.RUnlock()
+	return len(fake.rerunNumberArgsForCall)
+}
+
+func (fake *FakeBuild) RerunNumberCalls(stub func() int) {
+	fake.rerunNumberMutex.Lock()
+	defer fake.rerunNumberMutex.Unlock()
+	fake.RerunNumberStub = stub
+}
+
+func (fake *FakeBuild) RerunNumberReturns(result1 int) {
+	fake.rerunNumberMutex.Lock()
+	defer fake.rerunNumberMutex.Unlock()
+	fake.RerunNumberStub = nil
+	fake.rerunNumberReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) RerunNumberReturnsOnCall(i int, result1 int) {
+	fake.rerunNumberMutex.Lock()
+	defer fake.rerunNumberMutex.Unlock()
+	fake.RerunNumberStub = nil
+	if fake.rerunNumberReturnsOnCall == nil {
+		fake.rerunNumberReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.rerunNumberReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) RerunOf() int {
+	fake.rerunOfMutex.Lock()
+	ret, specificReturn := fake.rerunOfReturnsOnCall[len(fake.rerunOfArgsForCall)]
+	fake.rerunOfArgsForCall = append(fake.rerunOfArgsForCall, struct {
+	}{})
+	fake.recordInvocation("RerunOf", []interface{}{})
+	fake.rerunOfMutex.Unlock()
+	if fake.RerunOfStub != nil {
+		return fake.RerunOfStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.rerunOfReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) RerunOfCallCount() int {
+	fake.rerunOfMutex.RLock()
+	defer fake.rerunOfMutex.RUnlock()
+	return len(fake.rerunOfArgsForCall)
+}
+
+func (fake *FakeBuild) RerunOfCalls(stub func() int) {
+	fake.rerunOfMutex.Lock()
+	defer fake.rerunOfMutex.Unlock()
+	fake.RerunOfStub = stub
+}
+
+func (fake *FakeBuild) RerunOfReturns(result1 int) {
+	fake.rerunOfMutex.Lock()
+	defer fake.rerunOfMutex.Unlock()
+	fake.RerunOfStub = nil
+	fake.rerunOfReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) RerunOfReturnsOnCall(i int, result1 int) {
+	fake.rerunOfMutex.Lock()
+	defer fake.rerunOfMutex.Unlock()
+	fake.RerunOfStub = nil
+	if fake.rerunOfReturnsOnCall == nil {
+		fake.rerunOfReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.rerunOfReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) RerunOfName() string {
+	fake.rerunOfNameMutex.Lock()
+	ret, specificReturn := fake.rerunOfNameReturnsOnCall[len(fake.rerunOfNameArgsForCall)]
+	fake.rerunOfNameArgsForCall = append(fake.rerunOfNameArgsForCall, struct {
+	}{})
+	fake.recordInvocation("RerunOfName", []interface{}{})
+	fake.rerunOfNameMutex.Unlock()
+	if fake.RerunOfNameStub != nil {
+		return fake.RerunOfNameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.rerunOfNameReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) RerunOfNameCallCount() int {
+	fake.rerunOfNameMutex.RLock()
+	defer fake.rerunOfNameMutex.RUnlock()
+	return len(fake.rerunOfNameArgsForCall)
+}
+
+func (fake *FakeBuild) RerunOfNameCalls(stub func() string) {
+	fake.rerunOfNameMutex.Lock()
+	defer fake.rerunOfNameMutex.Unlock()
+	fake.RerunOfNameStub = stub
+}
+
+func (fake *FakeBuild) RerunOfNameReturns(result1 string) {
+	fake.rerunOfNameMutex.Lock()
+	defer fake.rerunOfNameMutex.Unlock()
+	fake.RerunOfNameStub = nil
+	fake.rerunOfNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) RerunOfNameReturnsOnCall(i int, result1 string) {
+	fake.rerunOfNameMutex.Lock()
+	defer fake.rerunOfNameMutex.Unlock()
+	fake.RerunOfNameStub = nil
+	if fake.rerunOfNameReturnsOnCall == nil {
+		fake.rerunOfNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.rerunOfNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeBuild) Resources() ([]db.BuildInput, []db.BuildOutput, error) {
 	fake.resourcesMutex.Lock()
 	ret, specificReturn := fake.resourcesReturnsOnCall[len(fake.resourcesArgsForCall)]
@@ -2392,61 +2761,6 @@ func (fake *FakeBuild) SaveOutputReturnsOnCall(i int, result1 error) {
 	fake.saveOutputReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeBuild) Schedule() (bool, error) {
-	fake.scheduleMutex.Lock()
-	ret, specificReturn := fake.scheduleReturnsOnCall[len(fake.scheduleArgsForCall)]
-	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Schedule", []interface{}{})
-	fake.scheduleMutex.Unlock()
-	if fake.ScheduleStub != nil {
-		return fake.ScheduleStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.scheduleReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeBuild) ScheduleCallCount() int {
-	fake.scheduleMutex.RLock()
-	defer fake.scheduleMutex.RUnlock()
-	return len(fake.scheduleArgsForCall)
-}
-
-func (fake *FakeBuild) ScheduleCalls(stub func() (bool, error)) {
-	fake.scheduleMutex.Lock()
-	defer fake.scheduleMutex.Unlock()
-	fake.ScheduleStub = stub
-}
-
-func (fake *FakeBuild) ScheduleReturns(result1 bool, result2 error) {
-	fake.scheduleMutex.Lock()
-	defer fake.scheduleMutex.Unlock()
-	fake.ScheduleStub = nil
-	fake.scheduleReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) ScheduleReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.scheduleMutex.Lock()
-	defer fake.scheduleMutex.Unlock()
-	fake.ScheduleStub = nil
-	if fake.scheduleReturnsOnCall == nil {
-		fake.scheduleReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
-		})
-	}
-	fake.scheduleReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeBuild) Schema() string {
@@ -2892,71 +3206,6 @@ func (fake *FakeBuild) TeamNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeBuild) UseInputs(arg1 []db.BuildInput) error {
-	var arg1Copy []db.BuildInput
-	if arg1 != nil {
-		arg1Copy = make([]db.BuildInput, len(arg1))
-		copy(arg1Copy, arg1)
-	}
-	fake.useInputsMutex.Lock()
-	ret, specificReturn := fake.useInputsReturnsOnCall[len(fake.useInputsArgsForCall)]
-	fake.useInputsArgsForCall = append(fake.useInputsArgsForCall, struct {
-		arg1 []db.BuildInput
-	}{arg1Copy})
-	fake.recordInvocation("UseInputs", []interface{}{arg1Copy})
-	fake.useInputsMutex.Unlock()
-	if fake.UseInputsStub != nil {
-		return fake.UseInputsStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.useInputsReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuild) UseInputsCallCount() int {
-	fake.useInputsMutex.RLock()
-	defer fake.useInputsMutex.RUnlock()
-	return len(fake.useInputsArgsForCall)
-}
-
-func (fake *FakeBuild) UseInputsCalls(stub func([]db.BuildInput) error) {
-	fake.useInputsMutex.Lock()
-	defer fake.useInputsMutex.Unlock()
-	fake.UseInputsStub = stub
-}
-
-func (fake *FakeBuild) UseInputsArgsForCall(i int) []db.BuildInput {
-	fake.useInputsMutex.RLock()
-	defer fake.useInputsMutex.RUnlock()
-	argsForCall := fake.useInputsArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeBuild) UseInputsReturns(result1 error) {
-	fake.useInputsMutex.Lock()
-	defer fake.useInputsMutex.Unlock()
-	fake.UseInputsStub = nil
-	fake.useInputsReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuild) UseInputsReturnsOnCall(i int, result1 error) {
-	fake.useInputsMutex.Lock()
-	defer fake.useInputsMutex.Unlock()
-	fake.UseInputsStub = nil
-	if fake.useInputsReturnsOnCall == nil {
-		fake.useInputsReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.useInputsReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -2964,6 +3213,10 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.abortNotifierMutex.RUnlock()
 	fake.acquireTrackingLockMutex.RLock()
 	defer fake.acquireTrackingLockMutex.RUnlock()
+	fake.adoptInputsAndPipesMutex.RLock()
+	defer fake.adoptInputsAndPipesMutex.RUnlock()
+	fake.adoptRerunInputsAndPipesMutex.RLock()
+	defer fake.adoptRerunInputsAndPipesMutex.RUnlock()
 	fake.artifactMutex.RLock()
 	defer fake.artifactMutex.RUnlock()
 	fake.artifactsMutex.RLock()
@@ -2980,6 +3233,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.hasPlanMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.inputsReadyMutex.RLock()
+	defer fake.inputsReadyMutex.RUnlock()
 	fake.interceptibleMutex.RLock()
 	defer fake.interceptibleMutex.RUnlock()
 	fake.isAbortedMutex.RLock()
@@ -3020,6 +3275,12 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.reapTimeMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
+	fake.rerunNumberMutex.RLock()
+	defer fake.rerunNumberMutex.RUnlock()
+	fake.rerunOfMutex.RLock()
+	defer fake.rerunOfMutex.RUnlock()
+	fake.rerunOfNameMutex.RLock()
+	defer fake.rerunOfNameMutex.RUnlock()
 	fake.resourcesMutex.RLock()
 	defer fake.resourcesMutex.RUnlock()
 	fake.saveEventMutex.RLock()
@@ -3028,8 +3289,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.saveImageResourceVersionMutex.RUnlock()
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
-	fake.scheduleMutex.RLock()
-	defer fake.scheduleMutex.RUnlock()
 	fake.schemaMutex.RLock()
 	defer fake.schemaMutex.RUnlock()
 	fake.setDrainedMutex.RLock()
@@ -3046,8 +3305,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.teamIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
-	fake.useInputsMutex.RLock()
-	defer fake.useInputsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -12,16 +12,23 @@ const (
 )
 
 type Build struct {
-	ID           int    `json:"id"`
-	TeamName     string `json:"team_name"`
-	Name         string `json:"name"`
-	Status       string `json:"status"`
-	JobName      string `json:"job_name,omitempty"`
-	APIURL       string `json:"api_url"`
-	PipelineName string `json:"pipeline_name,omitempty"`
-	StartTime    int64  `json:"start_time,omitempty"`
-	EndTime      int64  `json:"end_time,omitempty"`
-	ReapTime     int64  `json:"reap_time,omitempty"`
+	ID           int           `json:"id"`
+	TeamName     string        `json:"team_name"`
+	Name         string        `json:"name"`
+	Status       string        `json:"status"`
+	JobName      string        `json:"job_name,omitempty"`
+	APIURL       string        `json:"api_url"`
+	PipelineName string        `json:"pipeline_name,omitempty"`
+	StartTime    int64         `json:"start_time,omitempty"`
+	EndTime      int64         `json:"end_time,omitempty"`
+	ReapTime     int64         `json:"reap_time,omitempty"`
+	RerunNumber  int           `json:"rerun_number,omitempty"`
+	RerunOf      *RerunOfBuild `json:"rerun_of,omitempty"`
+}
+
+type RerunOfBuild struct {
+	ID   int    `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 func (b Build) IsRunning() bool {

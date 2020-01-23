@@ -31,6 +31,7 @@ var requiredRoles = map[string]string{
 	atc.GetJobBuild:                   "viewer",
 	atc.PauseJob:                      "pipeline-operator",
 	atc.UnpauseJob:                    "pipeline-operator",
+	atc.ScheduleJob:                   "pipeline-operator",
 	atc.GetVersionsDB:                 "viewer",
 	atc.JobBadge:                      "viewer",
 	atc.MainJobBadge:                  "viewer",

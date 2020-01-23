@@ -1,4 +1,4 @@
-module WelcomeCardTests exposing (..)
+module WelcomeCardTests exposing (all, hasWelcomeCard)
 
 import Application.Application as Application
 import Common exposing (defineHoverBehaviour)

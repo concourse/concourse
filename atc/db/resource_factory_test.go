@@ -14,12 +14,14 @@ var _ = Describe("Resource Factory", func() {
 		resourceFactory = db.NewResourceFactory(dbConn, lockFactory)
 	})
 
-	Describe("VisibleResources", func() {
+	Describe("Public And Private Resources", func() {
+		var publicPipeline db.Pipeline
+
 		BeforeEach(func() {
 			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "other-team"})
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err := otherTeam.SavePipeline("public-pipeline", atc.Config{
+			publicPipeline, _, err = otherTeam.SavePipeline("public-pipeline", atc.Config{
 				Resources: atc.ResourceConfigs{
 					{Name: "public-pipeline-resource"},
 				},

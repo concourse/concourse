@@ -37,10 +37,10 @@ import (
 	"github.com/concourse/concourse/atc/lidar"
 	"github.com/concourse/concourse/atc/lockrunner"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/pipelines"
-	"github.com/concourse/concourse/atc/radar"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/scheduler"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
+	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/syslog"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
@@ -53,8 +53,9 @@ import (
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
-	"github.com/hashicorp/go-multierror"
-	"github.com/jessevdk/go-flags"
+	multierror "github.com/hashicorp/go-multierror"
+	flags "github.com/jessevdk/go-flags"
+	gocache "github.com/patrickmn/go-cache"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -74,6 +75,10 @@ import (
 	_ "github.com/concourse/concourse/atc/creds/ssm"
 	_ "github.com/concourse/concourse/atc/creds/vault"
 )
+
+const algorithmLimitRows = 100
+
+var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
 
 var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
@@ -106,7 +111,8 @@ type RunCommand struct {
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
-	MaxOpenConnections int `long:"max-conns" description:"The maximum number of open connections for a connection pool." default:"32"`
+	APIMaxOpenConnections     int `long:"api-max-conns" description:"The maximum number of open connections for the api connection pool." default:"10"`
+	BackendMaxOpenConnections int `long:"backend-max-conns" description:"The maximum number of open connections for the backend connection pool." default:"50"`
 
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
@@ -119,10 +125,10 @@ type RunCommand struct {
 
 	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
-	EnableGlobalResources bool          `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
-	EnableLidar           bool          `long:"enable-lidar" description:"The Future™ of resource checking."`
-	LidarScannerInterval  time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
-	LidarCheckerInterval  time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
+	EnableGlobalResources bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
+
+	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
+	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
 	GlobalResourceCheckTimeout   time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -135,10 +141,6 @@ type RunCommand struct {
 	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
-
-	Developer struct {
-		Noop bool `short:"n" long:"noop"              description:"Don't actually do any automatic scheduling or checking."`
-	} `group:"Developer Options"`
 
 	Worker struct {
 		GardenURL       flag.URL          `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
@@ -183,6 +185,8 @@ type RunCommand struct {
 
 	DefaultDaysToRetainBuildLogs uint64 `long:"default-days-to-retain-build-logs" description:"Default days to retain build logs. 0 means unlimited"`
 	MaxDaysToRetainBuildLogs     uint64 `long:"max-days-to-retain-build-logs" description:"Maximum days to retain build logs, 0 means not specified. Will override values configured in jobs"`
+
+	JobSchedulingMaxInFlight uint64 `long:"job-scheduling-max-in-flight" default:"32" description:"Maximum number of jobs to be scheduling at the same time"`
 
 	DefaultCpuLimit    *int    `long:"default-task-cpu-limit" description:"Default max number of cpu shares per task, 0 means unlimited"`
 	DefaultMemoryLimit *string `long:"default-task-memory-limit" description:"Default maximum memory per task, 0 means unlimited"`
@@ -400,7 +404,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	atc.EnableGlobalResources = cmd.EnableGlobalResources
 
-	radar.GlobalResourceCheckTimeout = cmd.GlobalResourceCheckTimeout
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
 	db.SetupConnectionRetryingDriver(
@@ -450,12 +453,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
-	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.MaxOpenConnections, "api", lockFactory)
+	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.MaxOpenConnections, "backend", lockFactory)
+	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.BackendMaxOpenConnections, "backend", lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -822,7 +825,6 @@ func (cmd *RunCommand) constructBackendMembers(
 	if err != nil {
 		return nil, err
 	}
-	checkContainerStrategy := worker.NewRandomPlacementStrategy()
 
 	engine := cmd.constructEngine(
 		pool,
@@ -837,17 +839,11 @@ func (cmd *RunCommand) constructBackendMembers(
 		lockFactory,
 	)
 
-	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
-		pool,
-		dbResourceConfigFactory,
-		cmd.ResourceTypeCheckingInterval,
-		cmd.ResourceCheckingInterval,
-		checkContainerStrategy,
-	)
-
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
+
 	componentFactory := db.NewComponentFactory(dbConn)
 
 	err = cmd.configureComponentIntervals(componentFactory)
@@ -855,21 +851,50 @@ func (cmd *RunCommand) constructBackendMembers(
 		return nil, err
 	}
 
+	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
 	bus := dbConn.Bus()
 
 	members := []grouper.Member{
-		{Name: "pipelines", Runner: pipelines.SyncRunner{
-			Syncer: cmd.constructPipelineSyncer(
-				logger.Session("pipelines"),
-				dbPipelineFactory,
-				componentFactory,
-				radarSchedulerFactory,
+		{Name: "lidar", Runner: lidar.NewRunner(
+			logger.Session("lidar"),
+			clock.NewClock(),
+			lidar.NewScanner(
+				logger.Session(atc.ComponentLidarScanner),
+				dbCheckFactory,
 				secretManager,
-				bus,
+				cmd.GlobalResourceCheckTimeout,
+				cmd.ResourceCheckingInterval,
 			),
-			Interval: runnerInterval,
-			Clock:    clock.NewClock(),
-		}},
+			lidar.NewChecker(
+				logger.Session(atc.ComponentLidarChecker),
+				dbCheckFactory,
+				engine,
+			),
+			runnerInterval,
+			bus,
+			lockFactory,
+			componentFactory,
+		)},
+		{Name: atc.ComponentScheduler, Runner: scheduler.NewIntervalRunner(
+			logger.Session("scheduler-interval-runner"),
+			clock.NewClock(),
+			lockFactory,
+			componentFactory,
+			scheduler.NewRunner(
+				logger.Session("scheduler"),
+				dbJobFactory,
+				&scheduler.Scheduler{
+					Algorithm: alg,
+					BuildStarter: scheduler.NewBuildStarter(
+						factory.NewBuildFactory(
+							atc.NewPlanFactory(time.Now().Unix()),
+						),
+						alg),
+				},
+				cmd.JobSchedulingMaxInFlight,
+			),
+			10*time.Second,
+		)},
 		{Name: atc.ComponentBuildTracker, Runner: builds.NewRunner(
 			logger.Session("tracker-runner"),
 			clock.NewClock(),
@@ -905,49 +930,6 @@ func (cmd *RunCommand) constructBackendMembers(
 		)},
 	}
 
-	var lidarRunner ifrit.Runner
-
-	if cmd.EnableLidar {
-		lidarRunner = lidar.NewRunner(
-			logger.Session("lidar"),
-			clock.NewClock(),
-			lidar.NewScanner(
-				logger.Session(atc.ComponentLidarScanner),
-				dbCheckFactory,
-				secretManager,
-				cmd.GlobalResourceCheckTimeout,
-				cmd.ResourceCheckingInterval,
-			),
-			lidar.NewChecker(
-				logger.Session(atc.ComponentLidarChecker),
-				dbCheckFactory,
-				engine,
-			),
-			runnerInterval,
-			bus,
-			lockFactory,
-			componentFactory,
-		)
-	} else {
-		lidarRunner = lidar.NewCheckerRunner(
-			logger.Session("lidar"),
-			clock.NewClock(),
-			lidar.NewChecker(
-				logger.Session(atc.ComponentLidarChecker),
-				dbCheckFactory,
-				engine,
-			),
-			runnerInterval,
-			bus,
-			lockFactory,
-			componentFactory,
-		)
-	}
-
-	members = append(members, grouper.Member{
-		Name: "lidar", Runner: lidarRunner,
-	})
-
 	if syslogDrainConfigured {
 		members = append(members, grouper.Member{
 			Name: atc.ComponentSyslogDrainer, Runner: lockrunner.NewRunner(
@@ -978,7 +960,6 @@ func (cmd *RunCommand) constructGCMember(
 	gcConn db.Conn,
 	lockFactory lock.LockFactory,
 ) ([]grouper.Member, error) {
-
 	var members []grouper.Member
 
 	componentFactory := db.NewComponentFactory(gcConn)
@@ -1654,51 +1635,6 @@ func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		h.baseHandler.ServeHTTP(w, r)
 	}
-}
-
-func (cmd *RunCommand) constructPipelineSyncer(
-	logger lager.Logger,
-	pipelineFactory db.PipelineFactory,
-	componentFactory db.ComponentFactory,
-	radarSchedulerFactory pipelines.RadarSchedulerFactory,
-	secretManager creds.Secrets,
-	bus db.NotificationsBus,
-) *pipelines.Syncer {
-	return pipelines.NewSyncer(
-		logger,
-		pipelineFactory,
-		componentFactory,
-		func(pipeline db.Pipeline) ifrit.Runner {
-			return grouper.NewParallel(os.Interrupt, grouper.Members{
-				{
-					Name: fmt.Sprintf("radar:%d", pipeline.ID()),
-					Runner: radar.NewRunner(
-						logger.Session("radar").WithData(lager.Data{
-							"team":     pipeline.TeamName(),
-							"pipeline": pipeline.Name(),
-						}),
-						(cmd.Developer.Noop || cmd.EnableLidar),
-						radarSchedulerFactory.BuildScanRunnerFactory(pipeline, cmd.ExternalURL.String(), secretManager, cmd.varSourcePool, bus),
-						pipeline,
-						1*time.Minute,
-					),
-				},
-				{
-					Name: fmt.Sprintf("scheduler:%d", pipeline.ID()),
-					Runner: &scheduler.Runner{
-						Logger: logger.Session("scheduler", lager.Data{
-							"team":     pipeline.TeamName(),
-							"pipeline": pipeline.Name(),
-						}),
-						Pipeline:  pipeline,
-						Scheduler: radarSchedulerFactory.BuildScheduler(pipeline),
-						Noop:      cmd.Developer.Noop,
-						Interval:  10 * time.Second,
-					},
-				},
-			})
-		},
-	)
 }
 
 func (cmd *RunCommand) appendStaticWorker(

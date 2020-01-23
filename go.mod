@@ -9,7 +9,7 @@ require (
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/DataDog/datadog-go v3.2.0+incompatible
 	github.com/DataDog/zstd v1.4.0
-	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
+	github.com/Masterminds/squirrel v1.1.0
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/The-Cloud-Source/goryman v0.0.0-20150410173800-c22b6e4a7ac1
@@ -50,7 +50,7 @@ require (
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v1.6.2 // indirect
 	github.com/gorilla/websocket v1.4.0
-	github.com/hashicorp/go-multierror v1.0.0
+	github.com/hashicorp/go-multierror v1.0.1-0.20191120192120-72917a1559e1
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hashicorp/vault/api v1.0.5-0.20191108163347-bdd38fca2cff

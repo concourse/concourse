@@ -376,6 +376,7 @@ func (c *engineCheck) Run(logger lager.Logger) {
 	step, err := c.builder.CheckStep(logger, c.check)
 	if err != nil {
 		logger.Error("failed-to-create-check-step", err)
+		c.check.FinishWithError(fmt.Errorf("create check step: %w", err))
 		return
 	}
 
@@ -397,7 +398,7 @@ func (c *engineCheck) Run(logger lager.Logger) {
 	case err = <-done:
 		if err != nil {
 			logger.Info("errored", lager.Data{"error": err.Error()})
-			c.check.FinishWithError(err)
+			c.check.FinishWithError(fmt.Errorf("run check step: %w", err))
 		} else {
 			logger.Info("succeeded")
 			if err = c.check.Finish(); err != nil {
