@@ -36,6 +36,16 @@ const (
 	WorkerStateRetiring = WorkerState("retiring")
 )
 
+func AllWorkerStates() []WorkerState {
+	return []WorkerState{
+		WorkerStateRunning,
+		WorkerStateStalled,
+		WorkerStateLanding,
+		WorkerStateLanded,
+		WorkerStateRetiring,
+	}
+}
+
 //go:generate counterfeiter . Worker
 
 type Worker interface {
