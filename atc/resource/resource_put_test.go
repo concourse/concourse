@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/resource"
@@ -41,7 +42,7 @@ var _ = Describe("Resource Put", func() {
 		params = atc.Params{"some": "params"}
 
 		someProcessSpec.Path = "some/fake/path"
-		someProcessSpec.Dir = "some/other-dir"
+		someProcessSpec.Args = []string{"some/foo-dir"}
 		someProcessSpec.StderrWriter = gbytes.NewBuffer()
 
 		resource = resourceFactory.NewResource(source, params, version)
@@ -74,7 +75,7 @@ var _ = Describe("Resource Put", func() {
 
 			Expect(actualCtx).To(Equal(ctx))
 			Expect(actualSpecPath).To(Equal(someProcessSpec.Path))
-			Expect(actualArgs).To(Equal([]string{someProcessSpec.Dir}))
+			Expect(actualArgs).To(Equal(someProcessSpec.Args))
 			Expect(actualInput).To(Equal(signature))
 			Expect(actualVersionResultRef).To(Equal(&putVersionResult))
 			Expect(actualSpecStdErrWriter).To(Equal(someProcessSpec.StderrWriter))
@@ -90,7 +91,7 @@ var _ = Describe("Resource Put", func() {
 			fakeRunnable.RunScriptReturns(nil)
 		})
 		It("returns a corresponding error", func() {
-			Expect(putErr).To(MatchError("resource script (" + someProcessSpec.Path + " " + someProcessSpec.Dir + ") output a null version"))
+			Expect(putErr).To(MatchError("resource script (" + someProcessSpec.Path + " " + strings.Join(someProcessSpec.Args, " ") + ") output a null version"))
 		})
 	})
 
