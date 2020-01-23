@@ -230,6 +230,27 @@ $ docker-compose \
 ```
 
 
+
+### Running Prometheus locally
+
+Just like for Jaeger, we have a docker-compose override file that enhances the
+base `docker-compose.yml` with the [Prometheus] service, bringing with it the
+necessary configuraton for collecting Concourse metrics.
+
+[Prometheus]: https://prometheus.io
+
+
+```sh
+$ docker-compose \
+  -f ./docker-compose.yml \
+  -f ./hack/overrides/prometheus.yml \
+  up -d
+```
+
+Now head to http://localhost:9090, and you'll be able to graph `concourse_`
+Prometheus metrics.
+
+
 ### Connecting to Postgres
 
 If you want to poke around the database, you can connect to the `db` node using
