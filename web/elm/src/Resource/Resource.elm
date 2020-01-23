@@ -1063,12 +1063,13 @@ pinTools session pinnedVersion =
             session.hovered == HoverState.Hovered UnpinButton
     in
     Html.div
-        ([ id "pin-tools" ]
-            ++ Resource.Styles.pinTools
+        (id "pin-tools"
+            :: Resource.Styles.pinTools
         )
         [ Icon.icon { sizePx = 25, image = "pin-ic-white.svg" }
             [ onMouseEnter <| Hover <| Just <| UnpinButton
             , onMouseLeave <| Hover Nothing
+            , onClick <| Click <| UnpinButton
             , style "margin-right" "10px"
             , style "background-color" <|
                 if hovered then

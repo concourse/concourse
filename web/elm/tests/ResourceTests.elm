@@ -2900,7 +2900,7 @@ all =
                                 }
                             )
                         |> Query.has [ style "cursor" "pointer" ]
-            , test "unpin button has a click handler" <|
+            , test "unpin button has click handler" <|
                 \_ ->
                     init
                         |> givenResourcePinnedDynamically
@@ -2913,7 +2913,11 @@ all =
                                 }
                             )
                         |> Event.simulate Event.click
-                        |> Event.expect (Msgs.Update <| Click UnpinButton)
+                        |> Event.expect
+                            (Msgs.Update <|
+                                Message.Message.Click <|
+                                    UnpinButton
+                            )
             ]
         , describe "check status" <|
             let
