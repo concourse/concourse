@@ -62,8 +62,12 @@ var _ = Describe("Syncing", func() {
 			flyVersion = fmt.Sprintf("%d.%d.%d", major, minor, patch+1)
 		})
 
-		It("downloads and replaces the currently running executable", func() {
-			downloadAndReplaceExecutable(flyPath,"sync", "-c", atcServer.URL())
+		It("downloads and replaces the currently running executable with target", func() {
+			downloadAndReplaceExecutable(flyPath, "-t", targetName, "sync")
+		})
+
+		It("downloads and replaces the currently running executable with target URL", func() {
+			downloadAndReplaceExecutable(flyPath, "sync", "-c", atcServer.URL())
 		})
 
 		Context("When the user running sync doesn't have write permissions for the target directory", func() {
@@ -106,7 +110,7 @@ var _ = Describe("Syncing", func() {
 		It("informs the user, and doesn't download/replace the executable", func() {
 			expectedBinary := readBinary(flyPath)
 
-			flyCmd := exec.Command(flyPath,"sync", "-c", atcServer.URL())
+			flyCmd := exec.Command(flyPath, "sync", "-c", atcServer.URL())
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
