@@ -85,9 +85,11 @@ var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 			})
 
 			It("fly login succeeds when using the correct CA and host", func() {
-				fly.Run("login", "-u", "test", "-p", "test",
+				fly.Login(
+					"test",
+					"test",
+					"https://"+atc.Address(),
 					"--ca-cert", caCertFile.Name(),
-					"-c", "https://"+atc.Address(),
 				)
 			})
 
