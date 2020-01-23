@@ -58,5 +58,6 @@ the "big picture" as the mental model sets in.
 \include-section{./docs/builds.lit}
 \include-section{./docs/operation.lit}
 \include-section{./docs/observation.lit}
+\include-section{./docs/internals.lit}
 
 \split-sections
