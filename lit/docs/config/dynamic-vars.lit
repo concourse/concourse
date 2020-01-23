@@ -127,8 +127,16 @@ limited lifetime and tight rotation policies.
       \italic{Optional. Default \code{/concourse}.} A prefix under which to
       look for all credential values.
 
-      See \reference{vault-credential-lookup-rules} for more information.
+      See \reference{vault-path-prefix} for more information.
     }{vault-var-source-path-prefix}
+
+    \define-attribute{lookup_templates: [string]}{
+      \italic{Optional. Default \code{["/\{\{.Team\}\}/\{\{.Pipeline\}\}/\{\{.Secret\}\}", "/\{\{.Team\}\}/\{\{.Secret\}\}}"]}
+      A list of path templates to be expanded in a team and pipeline context
+      subject to the \code{path_prefix} and \code{namespace}.
+
+      See \reference{vault-lookup-templates} for more information.
+    }{vault-var-source-lookup-templates}
 
     \define-attribute{shared_path: string}{
       \italic{Optional.} An additional path under which credentials will be
