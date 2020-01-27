@@ -111,6 +111,7 @@ var _ = BeforeEach(func() {
 
 	authServer.AppendHandlers(ghttp.CombineHandlers(
 		ghttp.VerifyRequest("POST", "/token"),
+		ghttp.VerifyBasicAuth("some-client", "some-client-secret"),
 		ghttp.RespondWithJSONEncoded(200, map[string]string{
 			"token_type":   "bearer",
 			"access_token": "access-token",
