@@ -57,6 +57,8 @@ github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/vito/booklit v0.10.0 h1:rUq343K8TJWzrHFAAEHXw1C8W+AGkYjk3ivVoxJIQHU=
 github.com/vito/booklit v0.10.0/go.mod h1:fBSh6OM4RYkT2k3hQ2jilLu5vUNkuBE4RhLnjKxZ0mQ=
+github.com/vito/booklit v0.10.1-0.20200103175736-8741a4ca3116 h1:/uptv8gEF5RbhevrP5cW8CZDjl+mKLCe2YUr+Z1gJYQ=
+github.com/vito/booklit v0.10.1-0.20200103175736-8741a4ca3116/go.mod h1:wsut2H9mMm9ekavrsmyHzBhZY1/jll7YMPNesIpk1pw=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20190108225652-1e06a53dbb7e/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
