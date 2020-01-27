@@ -1,6 +1,8 @@
 package builds_test
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,14 +38,24 @@ var _ = Describe("Tracker", func() {
 
 	Describe("Track", func() {
 		var inFlightBuilds []*dbfakes.FakeBuild
-		var engineBuilds []*enginefakes.FakeRunnable
+		var engineBuilds chan *enginefakes.FakeRunnable
+
+		var trackErr error
 
 		BeforeEach(func() {
+			fakeBuild1 := new(dbfakes.FakeBuild)
+			fakeBuild1.IDReturns(1)
+			fakeBuild2 := new(dbfakes.FakeBuild)
+			fakeBuild2.IDReturns(2)
+			fakeBuild3 := new(dbfakes.FakeBuild)
+			fakeBuild3.IDReturns(3)
+
 			inFlightBuilds = []*dbfakes.FakeBuild{
-				new(dbfakes.FakeBuild),
-				new(dbfakes.FakeBuild),
-				new(dbfakes.FakeBuild),
+				fakeBuild1,
+				fakeBuild2,
+				fakeBuild3,
 			}
+
 			returnedBuilds := []db.Build{
 				inFlightBuilds[0],
 				inFlightBuilds[1],
@@ -52,20 +64,51 @@ var _ = Describe("Tracker", func() {
 
 			fakeBuildFactory.GetAllStartedBuildsReturns(returnedBuilds, nil)
 
-			engineBuilds = []*enginefakes.FakeRunnable{}
+			engineBuilds = make(chan *enginefakes.FakeRunnable, 3)
 			fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
 				engineBuild := new(enginefakes.FakeRunnable)
-				engineBuilds = append(engineBuilds, engineBuild)
+				engineBuilds <- engineBuild
 				return engineBuild
 			}
 		})
 
-		It("resumes all currently in-flight builds", func() {
-			tracker.Track()
+		JustBeforeEach(func() {
+			trackErr = tracker.Track()
+		})
 
-			Eventually(engineBuilds[0].RunCallCount).Should(Equal(1))
-			Eventually(engineBuilds[1].RunCallCount).Should(Equal(1))
-			Eventually(engineBuilds[2].RunCallCount).Should(Equal(1))
+		It("succeeds", func() {
+			Expect(trackErr).NotTo(HaveOccurred())
+		})
+
+		It("runs all currently in-flight builds", func() {
+			Eventually((<-engineBuilds).RunCallCount).Should(Equal(1))
+			Eventually((<-engineBuilds).RunCallCount).Should(Equal(1))
+			Eventually((<-engineBuilds).RunCallCount).Should(Equal(1))
+		})
+
+		Context("when a build is already being tracked", func() {
+			BeforeEach(func() {
+				fakeBuild := new(dbfakes.FakeBuild)
+				fakeBuild.IDReturns(1)
+
+				fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
+					time.Sleep(time.Second)
+					return new(enginefakes.FakeRunnable)
+				}
+
+				fakeBuildFactory.GetAllStartedBuildsReturns([]db.Build{
+					fakeBuild,
+					fakeBuild,
+				}, nil)
+			})
+
+			It("succeeds", func() {
+				Expect(trackErr).NotTo(HaveOccurred())
+			})
+
+			It("runs only one pending build", func() {
+				Eventually(fakeEngine.NewBuildCallCount).Should(Equal(1))
+			})
 		})
 	})
 
