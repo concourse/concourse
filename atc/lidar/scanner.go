@@ -105,7 +105,9 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) 
 
 	_, created, err := s.checkFactory.TryCreateCheck(s.logger, checkable, resourceTypes, version, false)
 	if err != nil {
-		s.logger.Error("failed-to-create-check", err)
+		s.logger.Error("failed-to-create-check", err, lager.Data{
+			"pipeline-id": checkable.PipelineID(),
+		})
 		return err
 	}
 
