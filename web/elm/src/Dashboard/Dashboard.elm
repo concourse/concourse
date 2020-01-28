@@ -11,6 +11,7 @@ module Dashboard.Dashboard exposing
 import Application.Models exposing (Session)
 import Concourse
 import Concourse.Cli as Cli
+import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Drag as Drag
 import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
@@ -42,8 +43,8 @@ import Html.Events
         )
 import List.Extra
 import Login.Login as Login
-import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..))
+import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message
     exposing
         ( DomID(..)
@@ -59,6 +60,7 @@ import Message.Subscription
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import SideBar.SideBar as SideBar
+import StrictEvents exposing (onScroll)
 import Time
 import UserState
 import Views.Styles
@@ -77,6 +79,7 @@ init searchType =
       , pipelinesWithResourceErrors = Dict.empty
       , existingJobs = []
       , pipelines = []
+      , pipelineLayers = Dict.empty
       , teams = []
       , isUserMenuExpanded = False
       , dropdown = Hidden
@@ -86,6 +89,9 @@ init searchType =
       , isTeamsRequestFinished = False
       , isResourcesRequestFinished = False
       , isPipelinesRequestFinished = False
+      , viewportWidth = 0
+      , viewportHeight = 0
+      , scrollTop = 0
       }
     , [ FetchAllTeams
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -93,6 +99,7 @@ init searchType =
       , FetchAllResources
       , FetchAllJobs
       , FetchAllPipelines
+      , GetViewportOf Dashboard AlwaysShow
       ]
     )
 
@@ -176,7 +183,25 @@ handleCallback callback ( model, effects ) =
             )
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
-            ( { model | existingJobs = allJobsInEntireCluster }, effects )
+            ( { model
+                | existingJobs = allJobsInEntireCluster
+                , pipelineLayers =
+                    if model.existingJobs == allJobsInEntireCluster then
+                        model.pipelineLayers
+
+                    else
+                        model.pipelines
+                            |> List.map
+                                (\p ->
+                                    allJobsInEntireCluster
+                                        |> List.filter (\j -> (j.pipelineName == p.name) && (j.teamName == p.teamName))
+                                        |> DashboardPreview.groupByRank
+                                        |> (\layers -> ( ( p.name, p.teamName ), layers ))
+                                )
+                            |> Dict.fromList
+              }
+            , effects
+            )
 
         AllJobsFetched (Err _) ->
             ( { model | showTurbulence = True }, effects )
@@ -202,8 +227,8 @@ handleCallback callback ( model, effects ) =
             ( { model | showTurbulence = True }, effects )
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
-            ( { model
-                | pipelines =
+            let
+                pipelines =
                     allPipelinesInEntireCluster
                         |> List.indexedMap
                             (\idx p ->
@@ -217,6 +242,23 @@ handleCallback callback ( model, effects ) =
                                 , paused = p.paused
                                 }
                             )
+            in
+            ( { model
+                | pipelines = pipelines
+                , pipelineLayers =
+                    if pipelines == model.pipelines then
+                        model.pipelineLayers
+
+                    else
+                        allPipelinesInEntireCluster
+                            |> List.map
+                                (\p ->
+                                    model.existingJobs
+                                        |> List.filter (\j -> (j.pipelineName == p.name) && (j.teamName == p.teamName))
+                                        |> DashboardPreview.groupByRank
+                                        |> (\layers -> ( ( p.name, p.teamName ), layers ))
+                                )
+                            |> Dict.fromList
               }
             , if List.isEmpty allPipelinesInEntireCluster then
                 effects ++ [ ModifyUrl "/" ]
@@ -283,6 +325,15 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
+        GotViewport _ (Ok viewport) ->
+            ( { model
+                | viewportWidth = viewport.viewport.width
+                , viewportHeight = viewport.viewport.height
+                , scrollTop = viewport.viewport.y
+              }
+            , effects
+            )
+
         _ ->
             ( model, effects )
     )
@@ -319,6 +370,9 @@ handleDeliveryBody delivery ( model, effects ) =
     case delivery of
         ClockTicked OneSecond time ->
             ( { model | now = Just time }, effects )
+
+        WindowResized _ _ ->
+            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
 
         _ ->
             ( model, effects )
@@ -425,6 +479,9 @@ updateBody msg ( model, effects ) =
                 Nothing ->
                     ( model, effects )
 
+        Scrolled scrollState ->
+            ( { model | scrollTop = scrollState.scrollTop }, effects )
+
         _ ->
             ( model, effects )
 
@@ -530,6 +587,8 @@ dashboardView session model =
     else
         Html.div
             (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
+                :: id (toHtmlID Dashboard)
+                :: onScroll Scrolled
                 :: Styles.content model.highDensity
             )
             (welcomeCard session model :: pipelinesView session model)
@@ -653,11 +712,15 @@ pipelinesView :
             , query : String
             , highDensity : Bool
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+            , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
             , existingJobs : List Concourse.Job
             , pipelines : List Pipeline
             , dragState : DragState
             , dropState : DropState
             , now : Maybe Time.Posix
+            , viewportWidth : Float
+            , viewportHeight : Float
+            , scrollTop : Float
         }
     -> List (Html Message)
 pipelinesView session params =
@@ -679,18 +742,28 @@ pipelinesView session params =
                             )
 
                     else
-                        List.map
-                            (Group.view
-                                session
-                                { dragState = params.dragState
-                                , dropState = params.dropState
-                                , now = params.now
-                                , hovered = session.hovered
-                                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
-                                , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
-                                , existingJobs = params.existingJobs
-                                }
+                        List.foldl
+                            (\g ( htmlList, totalOffset ) ->
+                                Group.view
+                                    session
+                                    { dragState = params.dragState
+                                    , dropState = params.dropState
+                                    , now = params.now
+                                    , hovered = session.hovered
+                                    , pipelineRunningKeyframes = session.pipelineRunningKeyframes
+                                    , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                    , existingJobs = params.existingJobs
+                                    , pipelineLayers = params.pipelineLayers
+                                    , viewportWidth = params.viewportWidth
+                                    , viewportHeight = params.viewportHeight
+                                    , scrollTop = params.scrollTop - totalOffset
+                                    }
+                                    g
+                                    |> (\( html, curOffset ) -> ( html :: htmlList, totalOffset + curOffset ))
                             )
+                            ( [], 0 )
+                            >> Tuple.first
+                            >> List.reverse
                    )
     in
     if List.isEmpty groupViews && not (String.isEmpty params.query) then

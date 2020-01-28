@@ -13,13 +13,9 @@ import Message.Message exposing (DomID(..), Message(..))
 import Routes
 
 
-view : HoverState.HoverState -> List Concourse.Job -> Html Message
-view hovered jobs =
+view : HoverState.HoverState -> List (List Concourse.Job) -> Html Message
+view hovered layers =
     let
-        layers : List (List Concourse.Job)
-        layers =
-            groupByRank jobs
-
         width : Int
         width =
             List.length layers
@@ -32,14 +28,7 @@ view hovered jobs =
                 |> Maybe.withDefault 0
     in
     Html.div
-        [ classList
-            [ ( "pipeline-grid", True )
-            , ( "pipeline-grid-wide", width > 12 )
-            , ( "pipeline-grid-tall", height > 12 )
-            , ( "pipeline-grid-super-wide", width > 24 )
-            , ( "pipeline-grid-super-tall", height > 24 )
-            ]
-        ]
+        (class "pipeline-grid" :: Styles.pipelinePreviewGrid)
         (List.map (viewJobLayer hovered) layers)
 
 

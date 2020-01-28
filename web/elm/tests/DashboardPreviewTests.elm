@@ -179,7 +179,6 @@ dashboardWithJob j =
                 Ok
                     [ j
                     , { j | pipelineName = "other" }
-                    , { j | teamName = "banana" }
                     ]
             )
         |> Tuple.first
@@ -187,7 +186,6 @@ dashboardWithJob j =
             (Callback.AllTeamsFetched <|
                 Ok
                     [ { id = 0, name = "team" }
-                    , { id = 1, name = "banana" }
                     ]
             )
         |> Tuple.first
@@ -206,13 +204,6 @@ dashboardWithJob j =
                       , paused = False
                       , public = True
                       , teamName = "team"
-                      , groups = []
-                      }
-                    , { id = 2
-                      , name = "pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "banana"
                       , groups = []
                       }
                     ]

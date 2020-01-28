@@ -483,6 +483,12 @@ toHtmlID domId =
         PipelineCard databaseID ->
             "pipeline-" ++ String.fromInt databaseID
 
+        Dashboard ->
+            "dashboard"
+
+        DashboardGroup teamName ->
+            teamName
+
         _ ->
             ""
 

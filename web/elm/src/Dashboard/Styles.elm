@@ -17,6 +17,7 @@ module Dashboard.Styles exposing
     , legend
     , legendItem
     , legendSeparator
+    , noPipelineCard
     , noPipelineCardHd
     , noPipelineCardHeader
     , noPipelineCardTextHd
@@ -31,6 +32,7 @@ module Dashboard.Styles exposing
     , pipelineCardHeader
     , pipelineCardTransitionAge
     , pipelineName
+    , pipelinePreviewGrid
     , previewPlaceholder
     , resourceErrorTriangle
     , searchButton
@@ -93,7 +95,9 @@ content highDensity =
 pipelineCard : List (Html.Attribute msg)
 pipelineCard =
     [ style "cursor" "move"
-    , style "margin" "25px"
+    , style "height" "100%"
+    , style "display" "flex"
+    , style "flex-direction" "column"
     ]
 
 
@@ -111,6 +115,13 @@ pipelineCardBanner { status, pipelineRunningKeyframes } =
             Concourse.PipelineStatus.isRunning status
     in
     style "height" "7px" :: texture pipelineRunningKeyframes isRunning color
+
+
+noPipelineCard : List (Html.Attribute msg)
+noPipelineCard =
+    [ style "display" "flex"
+    , style "flex-direction" "column"
+    ]
 
 
 noPipelineCardHd : List (Html.Attribute msg)
@@ -166,12 +177,11 @@ pipelineName =
 
 cardBody : List (Html.Attribute msg)
 cardBody =
-    [ style "width" "200px"
-    , style "height" "120px"
-    , style "padding" "20px 36px"
+    [ style "padding" "20px 36px"
     , style "background-color" Colors.card
     , style "margin" "2px 0"
     , style "display" "flex"
+    , style "flex-grow" "1"
     ]
 
 
@@ -179,6 +189,15 @@ pipelineCardBody : List (Html.Attribute msg)
 pipelineCardBody =
     [ style "background-color" Colors.card
     , style "margin" "2px 0"
+    , style "flex-grow" "1"
+    ]
+
+
+pipelinePreviewGrid : List (Html.Attribute msg)
+pipelinePreviewGrid =
+    [ style "box-sizing" "border-box"
+    , style "width" "100%"
+    , style "height" "100%"
     ]
 
 
