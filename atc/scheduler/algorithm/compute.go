@@ -12,17 +12,17 @@ type Resolver interface {
 	InputConfigs() InputConfigs
 }
 
-func New(versionsDB db.VersionsDB) *algorithm {
-	return &algorithm{
+func New(versionsDB db.VersionsDB) *Algorithm {
+	return &Algorithm{
 		versionsDB: versionsDB,
 	}
 }
 
-type algorithm struct {
+type Algorithm struct {
 	versionsDB db.VersionsDB
 }
 
-func (a *algorithm) Compute(
+func (a *Algorithm) Compute(
 	job db.Job,
 	inputs []atc.JobInput,
 	resources db.Resources,
@@ -41,7 +41,7 @@ func (a *algorithm) Compute(
 	return a.computeResolvers(resolvers, inputMapper)
 }
 
-func (a *algorithm) computeResolvers(resolvers []Resolver, inputMapper inputMapper) (db.InputMapping, bool, bool, error) {
+func (a *Algorithm) computeResolvers(resolvers []Resolver, inputMapper inputMapper) (db.InputMapping, bool, bool, error) {
 	finalHasNext := false
 	finalResolved := true
 	finalMapping := db.InputMapping{}
@@ -70,7 +70,7 @@ func (a *algorithm) computeResolvers(resolvers []Resolver, inputMapper inputMapp
 	return finalMapping, finalResolved, finalHasNext, nil
 }
 
-func (a *algorithm) finalizeHasNext(versionCandidates map[string]*versionCandidate) bool {
+func (a *Algorithm) finalizeHasNext(versionCandidates map[string]*versionCandidate) bool {
 	hasNextCombined := false
 	for _, candidate := range versionCandidates {
 		hasNextCombined = hasNextCombined || candidate.HasNextEveryVersion

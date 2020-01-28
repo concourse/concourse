@@ -165,6 +165,11 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 	return outputs, nil
 }
 
+type resourceOutputs struct {
+	ResourceID int
+	Versions   []string
+}
+
 func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersion, error) {
 	cacheKey := fmt.Sprintf("o%d", buildID)
 
@@ -197,24 +202,32 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersi
 		return nil, err
 	}
 
-	algorithmOutputs := []AlgorithmVersion{}
-	for resID, v := range outputs {
-		for _, version := range v {
-			resourceID, err := strconv.Atoi(resID)
-			if err != nil {
-				return nil, err
-			}
+	byResourceID := []resourceOutputs{}
+	for resourceIDStr, versions := range outputs {
+		resourceID, err := strconv.Atoi(resourceIDStr)
+		if err != nil {
+			return nil, err
+		}
 
+		byResourceID = append(byResourceID, resourceOutputs{
+			ResourceID: resourceID,
+			Versions:   versions,
+		})
+	}
+
+	sort.Slice(byResourceID, func(i, j int) bool {
+		return byResourceID[i].ResourceID < byResourceID[j].ResourceID
+	})
+
+	algorithmOutputs := []AlgorithmVersion{}
+	for _, outputs := range byResourceID {
+		for _, version := range outputs.Versions {
 			algorithmOutputs = append(algorithmOutputs, AlgorithmVersion{
-				ResourceID: resourceID,
+				ResourceID: outputs.ResourceID,
 				Version:    ResourceVersion(version),
 			})
 		}
 	}
-
-	sort.Slice(algorithmOutputs, func(i, j int) bool {
-		return algorithmOutputs[i].ResourceID < algorithmOutputs[j].ResourceID
-	})
 
 	versions.cache.Set(cacheKey, algorithmOutputs, time.Hour)
 
