@@ -64,10 +64,11 @@ var _ = Describe("Tracker", func() {
 
 			fakeBuildFactory.GetAllStartedBuildsReturns(returnedBuilds, nil)
 
-			engineBuilds = make(chan *enginefakes.FakeRunnable, 3)
+			builds := make(chan *enginefakes.FakeRunnable, 3)
+			engineBuilds = builds
 			fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
 				engineBuild := new(enginefakes.FakeRunnable)
-				engineBuilds <- engineBuild
+				builds <- engineBuild
 				return engineBuild
 			}
 		})
