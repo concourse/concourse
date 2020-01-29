@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 
@@ -45,6 +46,7 @@ type Pipeline interface {
 	Config() (atc.Config, error)
 	Public() bool
 	Paused() bool
+	LastUpdated() time.Time
 
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
@@ -99,6 +101,7 @@ type pipeline struct {
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
+	lastUpdated   time.Time
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -117,7 +120,8 @@ var pipelinesQuery = psql.Select(`
 		p.team_id,
 		t.name,
 		p.paused,
-		p.public
+		p.public,
+		p.last_updated
 	`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
@@ -139,6 +143,7 @@ func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
+func (p *pipeline) LastUpdated() time.Time           { return p.lastUpdated }
 
 // IMPORTANT: This method is broken with the new resource config versions changes
 func (p *pipeline) Causality(versionedResourceID int) ([]Cause, error) {

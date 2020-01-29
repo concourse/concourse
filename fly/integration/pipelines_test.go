@@ -3,6 +3,7 @@ package integration_test
 import (
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/ui"
@@ -28,9 +29,9 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-								{Name: "pipeline-1-longer", Paused: false, Public: false},
-								{Name: "pipeline-2", Paused: true, Public: false},
-								{Name: "pipeline-3", Paused: false, Public: true},
+								{Name: "pipeline-1-longer", Paused: false, Public: false, LastUpdated: 1},
+								{Name: "pipeline-2", Paused: true, Public: false, LastUpdated: 1},
+								{Name: "pipeline-3", Paused: false, Public: true, LastUpdated: 1},
 							}),
 						),
 					)
@@ -52,21 +53,24 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-1-longer",
                   "paused": false,
                   "public": false,
-                  "team_name": ""
+                  "team_name": "",
+                  "last_updated": 1
                 },
                 {
                   "id": 0,
                   "name": "pipeline-2",
                   "paused": true,
                   "public": false,
-                  "team_name": ""
+                  "team_name": "",
+                  "last_updated": 1
                 },
                 {
                   "id": 0,
                   "name": "pipeline-3",
                   "paused": false,
                   "public": true,
-                  "team_name": ""
+                  "team_name": "",
+                  "last_updated": 1
                 }
               ]`))
 					})
@@ -82,11 +86,12 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "name", Color: color.New(color.Bold)},
 							{Contents: "paused", Color: color.New(color.Bold)},
 							{Contents: "public", Color: color.New(color.Bold)},
+							{Contents: "last updated", Color: color.New(color.Bold)},
 						},
 						Data: []ui.TableRow{
-							{{Contents: "pipeline-1-longer"}, {Contents: "no"}, {Contents: "no"}},
-							{{Contents: "pipeline-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}},
-							{{Contents: "pipeline-3"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+							{{Contents: "pipeline-1-longer"}, {Contents: "no"}, {Contents: "no"}, {Contents: time.Unix(1, 0).String()}},
+							{{Contents: "pipeline-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}, {Contents: time.Unix(1, 0).String()}},
+							{{Contents: "pipeline-3"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: time.Unix(1, 0).String()}},
 						},
 					}))
 				})
@@ -99,11 +104,11 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-								{Name: "pipeline-1-longer", Paused: false, Public: false, TeamName: "main"},
-								{Name: "pipeline-2", Paused: true, Public: false, TeamName: "main"},
-								{Name: "pipeline-3", Paused: false, Public: true, TeamName: "main"},
-								{Name: "foreign-pipeline-1", Paused: false, Public: true, TeamName: "other"},
-								{Name: "foreign-pipeline-2", Paused: false, Public: true, TeamName: "other"},
+								{Name: "pipeline-1-longer", Paused: false, Public: false, TeamName: "main", LastUpdated: 1},
+								{Name: "pipeline-2", Paused: true, Public: false, TeamName: "main", LastUpdated: 1},
+								{Name: "pipeline-3", Paused: false, Public: true, TeamName: "main", LastUpdated: 1},
+								{Name: "foreign-pipeline-1", Paused: false, Public: true, TeamName: "other", LastUpdated: 1},
+								{Name: "foreign-pipeline-2", Paused: false, Public: true, TeamName: "other", LastUpdated: 1},
 							}),
 						),
 					)
@@ -125,35 +130,40 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-1-longer",
                   "paused": false,
                   "public": false,
-                  "team_name": "main"
+                  "team_name": "main",
+                  "last_updated": 1
                 },
                 {
                   "id": 0,
                   "name": "pipeline-2",
                   "paused": true,
                   "public": false,
-                  "team_name": "main"
+                  "team_name": "main",
+                  "last_updated": 1
                 },
                 {
                   "id": 0,
                   "name": "pipeline-3",
                   "paused": false,
                   "public": true,
-                  "team_name": "main"
+                  "team_name": "main",
+                  "last_updated": 1
                 },
                 {
                   "id": 0,
                   "name": "foreign-pipeline-1",
                   "paused": false,
                   "public": true,
-                  "team_name": "other"
+                  "team_name": "other",
+                  "last_updated": 1
                 },
                 {
                   "id": 0,
                   "name": "foreign-pipeline-2",
                   "paused": false,
                   "public": true,
-                  "team_name": "other"
+                  "team_name": "other",
+                  "last_updated": 1
                 }
               ]`))
 					})
@@ -170,13 +180,14 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "team", Color: color.New(color.Bold)},
 							{Contents: "paused", Color: color.New(color.Bold)},
 							{Contents: "public", Color: color.New(color.Bold)},
+							{Contents: "last updated", Color: color.New(color.Bold)},
 						},
 						Data: []ui.TableRow{
-							{{Contents: "pipeline-1-longer"}, {Contents: "main"}, {Contents: "no"}, {Contents: "no"}},
-							{{Contents: "pipeline-2"}, {Contents: "main"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}},
-							{{Contents: "pipeline-3"}, {Contents: "main"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
-							{{Contents: "foreign-pipeline-1"}, {Contents: "other"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
-							{{Contents: "foreign-pipeline-2"}, {Contents: "other"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+							{{Contents: "pipeline-1-longer"}, {Contents: "main"}, {Contents: "no"}, {Contents: "no"}, {Contents: time.Unix(1, 0).String()}},
+							{{Contents: "pipeline-2"}, {Contents: "main"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}, {Contents: time.Unix(1, 0).String()}},
+							{{Contents: "pipeline-3"}, {Contents: "main"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: time.Unix(1, 0).String()}},
+							{{Contents: "foreign-pipeline-1"}, {Contents: "other"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: time.Unix(1, 0).String()}},
+							{{Contents: "foreign-pipeline-2"}, {Contents: "other"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: time.Unix(1, 0).String()}},
 						},
 					}))
 				})
@@ -190,9 +201,9 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-								{Name: "some-pipeline-1", Paused: false, Public: false},
-								{Name: "some-pipeline-2", Paused: false, Public: false},
-								{Name: "another-pipeline", Paused: false, Public: false},
+								{Name: "some-pipeline-1", Paused: false, Public: false, LastUpdated: 1},
+								{Name: "some-pipeline-2", Paused: false, Public: false, LastUpdated: 1},
+								{Name: "another-pipeline", Paused: false, Public: false, LastUpdated: 1},
 							}),
 						),
 					)

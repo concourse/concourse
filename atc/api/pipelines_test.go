@@ -47,6 +47,7 @@ var _ = Describe("Pipelines API", func() {
 				Resources: []string{"resource3", "resource4"},
 			},
 		})
+		publicPipeline.LastUpdatedReturns(time.Unix(1, 0))
 
 		anotherPublicPipeline = new(dbfakes.FakePipeline)
 		anotherPublicPipeline.IDReturns(2)
@@ -54,6 +55,7 @@ var _ = Describe("Pipelines API", func() {
 		anotherPublicPipeline.PublicReturns(true)
 		anotherPublicPipeline.TeamNameReturns("another")
 		anotherPublicPipeline.NameReturns("another-pipeline")
+		anotherPublicPipeline.LastUpdatedReturns(time.Unix(1, 0))
 
 		privatePipeline = new(dbfakes.FakePipeline)
 		privatePipeline.IDReturns(3)
@@ -68,6 +70,7 @@ var _ = Describe("Pipelines API", func() {
 				Resources: []string{"resource1", "resource2"},
 			},
 		})
+		privatePipeline.LastUpdatedReturns(time.Unix(1, 0))
 
 		privatePipelineFromAnotherTeam = new(dbfakes.FakePipeline)
 		privatePipelineFromAnotherTeam.IDReturns(3)
@@ -75,6 +78,7 @@ var _ = Describe("Pipelines API", func() {
 		privatePipelineFromAnotherTeam.PublicReturns(false)
 		privatePipelineFromAnotherTeam.TeamNameReturns("main")
 		privatePipelineFromAnotherTeam.NameReturns("private-pipeline")
+		privatePipelineFromAnotherTeam.LastUpdatedReturns(time.Unix(1, 0))
 
 		fakeTeam.PipelinesReturns([]db.Pipeline{
 			privatePipeline,
@@ -134,6 +138,7 @@ var _ = Describe("Pipelines API", func() {
 					"paused": true,
 					"public": true,
 					"team_name": "main",
+					"last_updated": 1,
 					"groups": [
 						{
 							"name": "group2",
@@ -147,7 +152,8 @@ var _ = Describe("Pipelines API", func() {
 					"name": "another-pipeline",
 					"paused": true,
 					"public": true,
-					"team_name": "another"
+					"team_name": "another",
+					"last_updated": 1
 				}]`))
 			})
 			It("populates pipeline factory with no team names", func() {
@@ -175,6 +181,7 @@ var _ = Describe("Pipelines API", func() {
 					"paused": false,
 					"public": false,
 					"team_name": "main",
+					"last_updated": 1,
 					"groups": [
 						{
 							"name": "group1",
@@ -189,6 +196,7 @@ var _ = Describe("Pipelines API", func() {
 					"paused": true,
 					"public": true,
 					"team_name": "main",
+					"last_updated": 1,
 					"groups": [
 						{
 							"name": "group2",
@@ -202,7 +210,8 @@ var _ = Describe("Pipelines API", func() {
 					"name": "another-pipeline",
 					"paused": true,
 					"public": true,
-					"team_name": "another"
+					"team_name": "another",
+					"last_updated": 1
 				}]`))
 			})
 
@@ -283,6 +292,7 @@ var _ = Describe("Pipelines API", func() {
 						"paused": false,
 						"public": false,
 						"team_name": "main",
+						"last_updated": 1,
 						"groups": [
 							{
 								"name": "group1",
@@ -297,6 +307,7 @@ var _ = Describe("Pipelines API", func() {
 						"paused": true,
 						"public": true,
 						"team_name": "main",
+						"last_updated": 1,
 						"groups": [
 							{
 								"name": "group2",
@@ -335,6 +346,7 @@ var _ = Describe("Pipelines API", func() {
 						"paused": true,
 						"public": true,
 						"team_name": "main",
+						"last_updated": 1,
 						"groups": [
 							{
 								"name": "group2",
@@ -363,6 +375,7 @@ var _ = Describe("Pipelines API", func() {
 						"paused": true,
 						"public": true,
 						"team_name": "main",
+						"last_updated": 1,
 						"groups": [
 							{
 								"name": "group2",
@@ -398,6 +411,7 @@ var _ = Describe("Pipelines API", func() {
 					Resources: []string{"resource3", "resource4"},
 				},
 			})
+			fakePipeline.LastUpdatedReturns(time.Unix(1, 0))
 		})
 
 		JustBeforeEach(func() {
@@ -446,6 +460,7 @@ var _ = Describe("Pipelines API", func() {
 						"paused": false,
 						"public": true,
 						"team_name": "a-team",
+						"last_updated": 1,
 						"groups": [
 							{
 								"name": "group1",
