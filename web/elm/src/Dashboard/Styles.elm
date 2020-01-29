@@ -56,6 +56,7 @@ import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
+import Dashboard.PipelineGridLayout as PipelineGridLayout
 import Html
 import Html.Attributes exposing (style)
 import ScreenSize exposing (ScreenSize(..))
@@ -121,6 +122,8 @@ noPipelineCard : List (Html.Attribute msg)
 noPipelineCard =
     [ style "display" "flex"
     , style "flex-direction" "column"
+    , style "width" <| String.fromInt PipelineGridLayout.cardWidth ++ "px"
+    , style "height" <| String.fromInt PipelineGridLayout.cardHeight ++ "px"
     ]
 
 

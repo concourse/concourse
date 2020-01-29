@@ -114,6 +114,12 @@ all =
                             [ style "display" "flex"
                             , style "flex-direction" "column"
                             ]
+                , test "card has width 272px and height 268px" <|
+                    noPipelinesCard
+                        >> Query.has
+                            [ style "width" "272px"
+                            , style "height" "268px"
+                            ]
                 ]
             , describe "header" <|
                 let

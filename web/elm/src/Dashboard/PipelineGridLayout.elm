@@ -1,4 +1,25 @@
-module Dashboard.PipelineGridLayout exposing (cardSize, layout)
+module Dashboard.PipelineGridLayout exposing
+    ( cardHeight
+    , cardSize
+    , cardWidth
+    , layout
+    , padding
+    )
+
+
+cardWidth : number
+cardWidth =
+    272
+
+
+cardHeight : number
+cardHeight =
+    268
+
+
+padding : number
+padding =
+    25
 
 
 type alias GridSpan =

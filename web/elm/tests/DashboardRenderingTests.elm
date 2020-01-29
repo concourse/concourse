@@ -32,9 +32,30 @@ all =
                 , y = 0
                 }
             }
+
+        hasPipelineCard name { x, y, width, height } =
+            Query.find [ class "pipeline-wrapper", containing [ text name ] ]
+                >> Query.has
+                    [ style "position" "absolute"
+                    , style "transform"
+                        ("translate("
+                            ++ String.fromInt x
+                            ++ "px,"
+                            ++ String.fromInt y
+                            ++ "px)"
+                        )
+                    , style "width" (String.fromInt width ++ "px")
+                    , style "height" (String.fromInt height ++ "px")
+                    ]
+
+        containerHasHeight height =
+            Query.has
+                [ class "dashboard-team-pipelines"
+                , style "height" <| String.fromInt height ++ "px"
+                ]
     in
     describe "dashboard rendering"
-        [ test "renders pipeline cards in a grid" <|
+        [ test "renders the pipelines container as position relative" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
@@ -42,21 +63,12 @@ all =
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
                         )
                     |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
-                            Ok <|
-                                viewportWithSize 300 600
-                        )
-                    |> Tuple.first
                     |> Common.queryView
-                    |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Query.has
-                        [ style "display" "grid"
-                        , style "grid-template-columns" "repeat(1,272px)"
-                        , style "grid-template-rows" "repeat(2,268px)"
-                        , style "grid-gap" "25px"
+                        [ class "dashboard-team-pipelines"
+                        , style "position" "relative"
                         ]
-        , test "number of grid columns respects viewport size" <|
+        , test "sets the container height to the height of the cards" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
@@ -64,20 +76,8 @@ all =
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
                         )
                     |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
-                            Ok <|
-                                viewportWithSize 650 200
-                        )
-                    |> Tuple.first
                     |> Common.queryView
-                    |> Query.find [ class "dashboard-team-pipelines" ]
-                    |> Query.has
-                        [ style "display" "grid"
-                        , style "grid-template-columns" "repeat(2,272px)"
-                        , style "grid-template-rows" "repeat(1,268px)"
-                        , style "grid-gap" "25px"
-                        ]
+                    |> containerHasHeight 268
         , test "fetches the viewport of the scrollable area on load" <|
             \_ ->
                 Application.init
@@ -103,7 +103,7 @@ all =
                         (Subscription.WindowResized 800 600)
                     |> Tuple.second
                     |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
-        , test "positions cards filling available columns" <|
+        , test "renders pipeline cards in a single column grid when the viewport is narrow" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
@@ -114,28 +114,54 @@ all =
                     |> Application.handleCallback
                         (Callback.GotViewport Callback.AlwaysShow <|
                             Ok <|
-                                viewportWithSize 600 300
+                                viewportWithSize 300 600
                         )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ Query.find
-                            [ class "pipeline-wrapper"
-                            , containing [ text "pipeline-0" ]
-                            ]
-                            >> Query.has
-                                [ style "grid-column" "1 / span 1"
-                                , style "grid-row" "1 / span 1"
-                                ]
-                        , Query.find
-                            [ class "pipeline-wrapper"
-                            , containing [ text "pipeline-1" ]
-                            ]
-                            >> Query.has
-                                [ style "grid-column" "2 / span 1"
-                                , style "grid-row" "1 / span 1"
-                                ]
+                        [ hasPipelineCard "pipeline-0"
+                            { x = 25
+                            , y = 0
+                            , width = 272
+                            , height = 268
+                            }
+                        , hasPipelineCard "pipeline-1"
+                            { x = 25
+                            , y = 268 + 25
+                            , width = 272
+                            , height = 268
+                            }
+                        ]
+        , test "renders pipeline cards in a multi-column grid when the viewport is wide" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.GotViewport Callback.AlwaysShow <|
+                            Ok <|
+                                viewportWithSize 650 200
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ class "dashboard-team-pipelines" ]
+                    |> Expect.all
+                        [ hasPipelineCard "pipeline-0"
+                            { x = 25
+                            , y = 0
+                            , width = 272
+                            , height = 268
+                            }
+                        , hasPipelineCard "pipeline-1"
+                            { x = 25 * 2 + 272
+                            , y = 0
+                            , width = 272
+                            , height = 268
+                            }
                         ]
         , test "pipelines with many jobs are rendered as cards spanning several rows" <|
             \_ ->
@@ -160,26 +186,19 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ Query.has
-                            [ style "grid-template-columns" "repeat(2,272px)"
-                            , style "grid-template-rows" "repeat(2,268px)"
-                            ]
-                        , Query.find
-                            [ class "pipeline-wrapper"
-                            , containing [ text "pipeline-0" ]
-                            ]
-                            >> Query.has
-                                [ style "grid-column" "1 / span 1"
-                                , style "grid-row" "1 / span 2"
-                                ]
-                        , Query.find
-                            [ class "pipeline-wrapper"
-                            , containing [ text "pipeline-1" ]
-                            ]
-                            >> Query.has
-                                [ style "grid-column" "2 / span 1"
-                                , style "grid-row" "1 / span 1"
-                                ]
+                        [ hasPipelineCard "pipeline-0"
+                            { x = 25
+                            , y = 0
+                            , width = 272
+                            , height = 268 * 2 + 25
+                            }
+                        , hasPipelineCard "pipeline-1"
+                            { x = 25 * 2 + 272
+                            , y = 0
+                            , width = 272
+                            , height = 268
+                            }
+                        , containerHasHeight <| 268 * 2 + 25
                         ]
         , test "wraps cards to the next row" <|
             \_ ->
@@ -198,30 +217,25 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ Query.find
-                            [ class "pipeline-wrapper"
-                            , containing [ text "pipeline-0" ]
-                            ]
-                            >> Query.has
-                                [ style "grid-column" "1 / span 1"
-                                , style "grid-row" "1 / span 1"
-                                ]
-                        , Query.find
-                            [ class "pipeline-wrapper"
-                            , containing [ text "pipeline-1" ]
-                            ]
-                            >> Query.has
-                                [ style "grid-column" "2 / span 1"
-                                , style "grid-row" "1 / span 1"
-                                ]
-                        , Query.find
-                            [ class "pipeline-wrapper"
-                            , containing [ text "pipeline-2" ]
-                            ]
-                            >> Query.has
-                                [ style "grid-column" "1 / span 1"
-                                , style "grid-row" "2 / span 1"
-                                ]
+                        [ hasPipelineCard "pipeline-0"
+                            { x = 25
+                            , y = 0
+                            , width = 272
+                            , height = 268
+                            }
+                        , hasPipelineCard "pipeline-1"
+                            { x = 25 * 2 + 272
+                            , y = 0
+                            , width = 272
+                            , height = 268
+                            }
+                        , hasPipelineCard "pipeline-2"
+                            { x = 25
+                            , y = 268 + 25
+                            , width = 272
+                            , height = 268
+                            }
+                        , containerHasHeight <| 268 * 2 + 25
                         ]
         , test "doesn't render rows below the viewport" <|
             \_ ->
@@ -328,23 +342,6 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
-        , test "renders an element that spans all rows to prevent scrolling jank" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
-                            Ok <|
-                                viewportWithSize 300 300
-                        )
-                    |> Tuple.first
-                    |> Common.queryView
-                    |> Query.find [ class "dashboard-team-pipelines" ]
-                    |> Query.has [ style "grid-row" "1 / span 3" ]
         , test "considers a group's y-offset when determining visibility" <|
             \_ ->
                 Common.init "/"
