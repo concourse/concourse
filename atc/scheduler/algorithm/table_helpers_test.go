@@ -14,7 +14,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	a "github.com/concourse/concourse/atc/scheduler/algorithm"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/lib/pq"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
@@ -45,11 +45,12 @@ type DBRow struct {
 }
 
 type Example struct {
-	LoadDB string
-	DB     DB
-	Inputs Inputs
-	Result Result
-	Error  error
+	LoadDB     string
+	DB         DB
+	Inputs     Inputs
+	Result     Result
+	Iterations int
+	Error      error
 }
 
 type Inputs []Input
@@ -131,9 +132,11 @@ func (example Example) Run() {
 
 	resources := map[string]atc.ResourceConfig{}
 
+	cache := gocache.New(10*time.Second, 10*time.Second)
+
 	var versionsDB db.VersionsDB
 	if example.LoadDB != "" {
-		versionsDB = db.NewVersionsDB(dbConn, 100, gocache.New(10*time.Second, 10*time.Second))
+		versionsDB = db.NewVersionsDB(dbConn, 100, cache)
 
 		dbFile, err := os.Open(example.LoadDB)
 		Expect(err).ToNot(HaveOccurred())
@@ -280,7 +283,7 @@ func (example Example) Run() {
 
 		log.Println("DONE IMPORTING")
 	} else {
-		versionsDB = db.NewVersionsDB(dbConn, 2, gocache.New(10*time.Second, 10*time.Second))
+		versionsDB = db.NewVersionsDB(dbConn, 2, cache)
 
 		for _, row := range example.DB.Resources {
 			setup.insertRowVersion(resources, row)
@@ -389,7 +392,7 @@ func (example Example) Run() {
 		}
 	}
 
-	inputConfigs := make(a.InputConfigs, len(example.Inputs))
+	inputConfigs := make(algorithm.InputConfigs, len(example.Inputs))
 	for i, input := range example.Inputs {
 		passed := db.JobSet{}
 		for _, jobName := range input.Passed {
@@ -397,7 +400,7 @@ func (example Example) Run() {
 			passed[setup.jobIDs.ID(jobName)] = true
 		}
 
-		inputConfigs[i] = a.InputConfig{
+		inputConfigs[i] = algorithm.InputConfig{
 			Name:            input.Name,
 			Passed:          passed,
 			ResourceID:      setup.resourceIDs.ID(input.Resource),
@@ -476,8 +479,27 @@ func (example Example) Run() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(found).To(BeTrue())
 
-	algorithm := a.New(versionsDB)
-	resolved, ok, hasNext, resolvedErr := algorithm.Compute(job, jobInputs, dbResources, a.NameToIDMap(setup.jobIDs))
+	alg := algorithm.New(versionsDB)
+
+	iterations := 1
+	if example.Iterations != 0 {
+		iterations = example.Iterations
+	}
+
+	for i := 0; i < iterations; i++ {
+		example.assert(setup, alg, job, jobInputs, dbResources)
+		cache.Flush()
+	}
+}
+
+func (example Example) assert(
+	setup setupDB,
+	alg *algorithm.Algorithm,
+	job db.Job,
+	jobInputs []atc.JobInput,
+	resources db.Resources,
+) {
+	resolved, ok, hasNext, resolvedErr := alg.Compute(job, jobInputs, resources, algorithm.NameToIDMap(setup.jobIDs))
 	if example.Error != nil {
 		Expect(resolvedErr).To(Equal(example.Error))
 	} else {

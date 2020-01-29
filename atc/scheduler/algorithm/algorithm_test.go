@@ -2426,39 +2426,129 @@ var _ = DescribeTable("Input resolving",
 	Entry("only uses the first build output/input to set a version candidate and disregards the other (it should use the output version first)", Example{
 		DB: DB{
 			BuildInputs: []DBRow{
-				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 1, Resource: "version", Version: "5.5.6-rc.23", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-1", Version: "r1v1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-2", Version: "r2v1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-3", Version: "r3v1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-4", Version: "r4v1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-5", Version: "r5v1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-6", Version: "r6v1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-7", Version: "r7v1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-8", Version: "r8v1", CheckOrder: 1},
+
+				{Job: "simple-a", BuildID: 2, Resource: "version", Version: "5.5.7-rc.23", CheckOrder: 3},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-1", Version: "r1v2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-2", Version: "r2v2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-3", Version: "r3v2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-4", Version: "r4v2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-5", Version: "r5v2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-6", Version: "r6v2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-7", Version: "r7v2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-8", Version: "r8v2", CheckOrder: 2},
 			},
 
 			BuildOutputs: []DBRow{
-				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
-
-				{Job: "simple-b", BuildID: 5, Resource: "resource-x", Version: "rxv3", CheckOrder: 4},
+				{Job: "simple-a", BuildID: 1, Resource: "version", Version: "5.5.6", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 2, Resource: "version", Version: "5.5.7", CheckOrder: 4},
 			},
 
 			Resources: []DBRow{
-				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
-				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Resource: "resource-1", Version: "r1v1", CheckOrder: 1},
+				{Resource: "resource-1", Version: "r1v2", CheckOrder: 2},
+
+				{Resource: "resource-2", Version: "r2v1", CheckOrder: 1},
+				{Resource: "resource-2", Version: "r2v2", CheckOrder: 2},
+
+				{Resource: "resource-3", Version: "r3v1", CheckOrder: 1},
+				{Resource: "resource-3", Version: "r3v2", CheckOrder: 2},
+
+				{Resource: "resource-4", Version: "r4v1", CheckOrder: 1},
+				{Resource: "resource-4", Version: "r4v2", CheckOrder: 2},
+
+				{Resource: "resource-5", Version: "r5v1", CheckOrder: 1},
+				{Resource: "resource-5", Version: "r5v2", CheckOrder: 2},
+
+				{Resource: "resource-6", Version: "r6v1", CheckOrder: 1},
+				{Resource: "resource-6", Version: "r6v2", CheckOrder: 2},
+
+				{Resource: "resource-7", Version: "r7v1", CheckOrder: 1},
+				{Resource: "resource-7", Version: "r7v2", CheckOrder: 2},
+
+				{Resource: "resource-8", Version: "r7v1", CheckOrder: 1},
+				{Resource: "resource-8", Version: "r7v2", CheckOrder: 2},
+
+				{Resource: "version", Version: "5.5.6-rc.22", CheckOrder: 1},
+				{Resource: "version", Version: "5.5.6", CheckOrder: 2},
+				{Resource: "version", Version: "5.5.7-rc.23", CheckOrder: 3},
+				{Resource: "version", Version: "5.5.7", CheckOrder: 4},
 			},
 		},
 
 		Inputs: Inputs{
 			{
-				Name:     "resource-x",
-				Resource: "resource-x",
-				Passed:   []string{"simple-a", "simple-b"},
+				Name:     "version",
+				Resource: "version",
+				Passed:   []string{"simple-a"},
+			},
+			{
+				Name:     "resource-1",
+				Resource: "resource-1",
+				Passed:   []string{"simple-a"},
+			},
+			{
+				Name:     "resource-2",
+				Resource: "resource-2",
+				Passed:   []string{"simple-a"},
+			},
+			{
+				Name:     "resource-3",
+				Resource: "resource-3",
+				Passed:   []string{"simple-a"},
+			},
+			{
+				Name:     "resource-4",
+				Resource: "resource-4",
+				Passed:   []string{"simple-a"},
+			},
+			{
+				Name:     "resource-5",
+				Resource: "resource-5",
+				Passed:   []string{"simple-a"},
+			},
+			{
+				Name:     "resource-6",
+				Resource: "resource-6",
+				Passed:   []string{"simple-a"},
+			},
+			{
+				Name:     "resource-7",
+				Resource: "resource-7",
+				Passed:   []string{"simple-a"},
+			},
+			{
+				Name:     "resource-8",
+				Resource: "resource-8",
+				Passed:   []string{"simple-a"},
 			},
 		},
 
 		Result: Result{
 			OK: true,
 			Values: map[string]string{
-				"resource-x": "rxv3",
+				"version":    "5.5.7",
+				"resource-1": "r1v2",
+				"resource-2": "r2v2",
+				"resource-3": "r3v2",
+				"resource-4": "r4v2",
+				"resource-5": "r5v2",
+				"resource-6": "r6v2",
+				"resource-7": "r7v2",
+				"resource-8": "r8v2",
 			},
 		},
+
+		// run this test enough times to shake out any non-deterministic ordering issues
+		Iterations: 100,
 	}),
 
 	Entry("with very every and passed, it does not use retrigger builds as latest build", Example{
