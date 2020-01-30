@@ -28,8 +28,9 @@ type Certs struct {
 }
 
 type GardenBackend struct {
-	UseHoudini    bool `long:"use-houdini"    description:"Use the insecure Houdini Garden backend."`
-	UseContainerd bool `long:"use-containerd" description:"Use the containerd backend."`
+	UseHoudini          bool   `long:"use-houdini"    description:"Use the insecure Houdini Garden backend."`
+	UseContainerd       bool   `long:"use-containerd" description:"Use the containerd backend."`
+	ContainerdNamespace string `long:"containerd-namespace" default:"concourse" description:"namespace to target"`
 
 	Bin    string    `long:"bin"    description:"Path to a garden backend executable (non-absolute names get resolved from $PATH)."`
 	Config flag.File `long:"config" description:"Path to a config file to use for the Garden backend. Guardian flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`

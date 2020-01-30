@@ -70,19 +70,20 @@ type Client interface {
 }
 
 type client struct {
-	addr string
+	addr      string
+	namespace string
 
 	containerd *containerd.Client
 }
 
 var _ Client = (*client)(nil)
 
-func New(addr string) *client {
-	return &client{addr: addr}
+func New(addr, namespace string) *client {
+	return &client{addr: addr, namespace: namespace}
 }
 
 func (c *client) Init() (err error) {
-	c.containerd, err = containerd.New(c.addr)
+	c.containerd, err = containerd.New(c.addr, containerd.WithDefaultNamespace(c.namespace))
 	if err != nil {
 		err = fmt.Errorf("failed to connect to addr %s: %w", c.addr, err)
 		return

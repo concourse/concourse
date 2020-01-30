@@ -12,7 +12,6 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/errdefs"
-	"github.com/containerd/containerd/namespaces"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -102,8 +101,8 @@ func (b *Backend) Capacity() (capacity garden.Capacity, err error) { return }
 //
 func (b *Backend) Create(gdnSpec garden.ContainerSpec) (container garden.Container, err error) {
 	var oci *specs.Spec
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
-	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
+
+	ctxWithTimeout, _ := context.WithTimeout(context.Background(), b.clientTimeout)
 
 	oci, err = bespec.OciSpec(gdnSpec)
 	if err != nil {
@@ -153,7 +152,6 @@ func (b *Backend) Destroy(handle string) error {
 		return InputValidationError{Message: "handle is empty"}
 	}
 
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	container, err := b.client.GetContainer(ctxWithTimeout, handle)
@@ -221,7 +219,6 @@ func killTasks(ctx context.Context, task containerd.Task) error {
 // Errors:
 // * Problems communicating with containerd client
 func (b *Backend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	filters, err := propertiesToFilterList(properties)
@@ -262,7 +259,6 @@ func (b *Backend) BulkMetrics(handles []string) (metrics map[string]garden.Conta
 // Errors:
 // * Container not found.
 func (b *Backend) Lookup(handle string) (garden.Container, error) {
-	ctx := namespaces.WithNamespace(context.Background(), b.namespace)
 	ctxWithTimeout, _ := context.WithTimeout(ctx, b.clientTimeout)
 
 	if handle == "" {

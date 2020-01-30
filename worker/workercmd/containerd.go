@@ -23,7 +23,10 @@ func containerdGardenServerRunner(logger lager.Logger, bindAddr, containerdAddr 
 		namespace = "concourse"
 	)
 
-	backend := backend.New(libcontainerd.New(containerdAddr), namespace)
+	backend := backend.New(
+		libcontainerd.New(containerdAddr, namespace),
+		namespace,
+	)
 
 	server := server.New("tcp", bindAddr,
 		graceTime,
