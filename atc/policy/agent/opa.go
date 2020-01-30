@@ -67,23 +67,6 @@ func (c opa) Check(input policy.PolicyCheckInput) (bool, error) {
 		return false, err
 	}
 
-	//result := map[string]interface{}{}
-	//err = json.Unmarshal(body, &result)
-	//if err != nil {
-	//	return false, err
-	//}
-	//
-	//// If no result returned, meaning that the requested policy decision is
-	//// undefined OPA, then consider as pass.
-	//if result["result"] == nil {
-	//	return true, nil
-	//}
-	//
-	//var pass, ok bool
-	//if pass, ok = result["result"].(bool); !ok {
-	//	return false, fmt.Errorf("bad result returned from opa: %s", result["result"])
-	//}
-
 	result := &opaResult{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
