@@ -458,7 +458,7 @@ runEffect effect key csrfToken =
 
         GetViewportOf domID tooltipPolicy ->
             Browser.Dom.getViewportOf (toHtmlID domID)
-                |> Task.attempt (GotViewport tooltipPolicy)
+                |> Task.attempt (GotViewport domID tooltipPolicy)
 
         GetElement domID ->
             Browser.Dom.getElement (toHtmlID domID)

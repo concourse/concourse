@@ -13,117 +13,55 @@ import Tooltip
 
 all : Test
 all =
-    describe ".handleCallback"
+    describe ".handleCallback" <|
         [ describe "OnlyShowWhenOverflowing policy"
             [ test "callback with overflowing viewport turns hover -> pending" <|
                 \_ ->
-                    ( { hovered =
-                            HoverState.Hovered <|
-                                SideBarPipeline
-                                    { teamName = "team"
-                                    , pipelineName = "pipeline"
-                                    }
-                      }
-                    , []
-                    )
+                    ( { hovered = HoverState.Hovered domID }, [] )
                         |> Tooltip.handleCallback
-                            (Callback.GotViewport Callback.OnlyShowWhenOverflowing <|
+                            (Callback.GotViewport domID Callback.OnlyShowWhenOverflowing <|
                                 Ok overflowingViewport
                             )
                         |> Tuple.first
                         |> .hovered
-                        |> Expect.equal
-                            (HoverState.TooltipPending
-                                (SideBarPipeline
-                                    { teamName = "team"
-                                    , pipelineName = "pipeline"
-                                    }
-                                )
-                            )
+                        |> Expect.equal (HoverState.TooltipPending domID)
             , test "callback with overflowing viewport gets element position" <|
                 \_ ->
-                    ( { hovered =
-                            HoverState.Hovered <|
-                                SideBarPipeline
-                                    { teamName = "team"
-                                    , pipelineName = "pipeline"
-                                    }
-                      }
-                    , []
-                    )
+                    ( { hovered = HoverState.Hovered domID }, [] )
                         |> Tooltip.handleCallback
-                            (Callback.GotViewport Callback.OnlyShowWhenOverflowing <|
+                            (Callback.GotViewport domID Callback.OnlyShowWhenOverflowing <|
                                 Ok overflowingViewport
                             )
                         |> Tuple.second
                         |> Common.contains (Effects.GetElement domID)
             , test "callback with non-overflowing does nothing" <|
                 \_ ->
-                    ( { hovered =
-                            HoverState.Hovered <|
-                                SideBarPipeline
-                                    { teamName = "team"
-                                    , pipelineName = "pipeline"
-                                    }
-                      }
-                    , []
-                    )
+                    ( { hovered = HoverState.Hovered domID }, [] )
                         |> Tooltip.handleCallback
-                            (Callback.GotViewport Callback.OnlyShowWhenOverflowing <|
+                            (Callback.GotViewport domID Callback.OnlyShowWhenOverflowing <|
                                 Ok nonOverflowingViewport
                             )
                         |> Tuple.first
                         |> .hovered
-                        |> Expect.equal
-                            (HoverState.Hovered <|
-                                SideBarPipeline
-                                    { teamName = "team"
-                                    , pipelineName = "pipeline"
-                                    }
-                            )
+                        |> Expect.equal (HoverState.Hovered domID)
             ]
         , test "AlwaysShow callback with non-overflowing viewport gets element" <|
             \_ ->
-                ( { hovered =
-                        HoverState.Hovered <|
-                            SideBarPipeline
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                }
-                  }
-                , []
-                )
+                ( { hovered = HoverState.Hovered domID }, [] )
                     |> Tooltip.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
+                        (Callback.GotViewport domID Callback.AlwaysShow <|
                             Ok nonOverflowingViewport
                         )
                     |> Tuple.second
                     |> Common.contains (Effects.GetElement domID)
         , test "callback with tooltip position turns pending -> tooltip" <|
             \_ ->
-                ( { hovered =
-                        HoverState.TooltipPending
-                            (SideBarPipeline
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                }
-                            )
-                  }
-                , []
-                )
+                ( { hovered = HoverState.TooltipPending domID }, [] )
                     |> Tooltip.handleCallback
                         (Callback.GotElement <| Ok elementPosition)
                     |> Tuple.first
                     |> .hovered
-                    |> Expect.equal
-                        (HoverState.Tooltip
-                            (SideBarPipeline
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                }
-                            )
-                            (Top 0.5 1)
-                        )
+                    |> Expect.equal (HoverState.Tooltip domID (Top 0.5 1))
         ]
 
 

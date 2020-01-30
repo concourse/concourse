@@ -325,7 +325,7 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        GotViewport _ (Ok viewport) ->
+        GotViewport Dashboard _ (Ok viewport) ->
             ( { model
                 | viewportWidth = viewport.viewport.width
                 , viewportHeight = viewport.viewport.height
@@ -372,6 +372,9 @@ handleDeliveryBody delivery ( model, effects ) =
             ( { model | now = Just time }, effects )
 
         WindowResized _ _ ->
+            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+
+        SideBarStateReceived _ ->
             ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
 
         _ ->
@@ -478,6 +481,9 @@ updateBody msg ( model, effects ) =
 
                 Nothing ->
                     ( model, effects )
+
+        Click HamburgerMenu ->
+            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
 
         Scrolled scrollState ->
             ( { model | scrollTop = scrollState.scrollTop }, effects )

@@ -13,6 +13,7 @@ import Message.Message
         ( VersionId
         , VersionToggleAction
         , VisibilityAction
+        , DomID
         )
 import Time
 
@@ -60,7 +61,7 @@ type Callback
     | BuildAborted (Fetched ())
     | VisibilityChanged VisibilityAction Concourse.PipelineIdentifier (Fetched ())
     | AllPipelinesFetched (Fetched (List Concourse.Pipeline))
-    | GotViewport TooltipPolicy (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | GotViewport DomID TooltipPolicy (Result Browser.Dom.Error Browser.Dom.Viewport)
     | GotElement (Result Browser.Dom.Error Browser.Dom.Element)
 
 

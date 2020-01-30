@@ -8,7 +8,7 @@ import Json.Encode as Encode
 import Message.Callback as Callback
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
-import Message.Subscription as Subscription
+import Message.Subscription as Subscription exposing (Delivery(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
@@ -96,11 +96,23 @@ all =
                     }
                     |> Tuple.second
                     |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
-        , test "requests the dashboard viewport when the window is resized" <|
+        , test "fetches the viewport of the scrollable area when the window is resized" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleDelivery
                         (Subscription.WindowResized 800 600)
+                    |> Tuple.second
+                    |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
+        , test "fetches the viewport of the scrollable area when the sidebar is opened" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.update (Update <| Click HamburgerMenu)
+                    |> Tuple.second
+                    |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
+        , test "fetches the viewport of the scrollable area when the sidebar state is loaded" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleDelivery (SideBarStateReceived Nothing)
                     |> Tuple.second
                     |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
         , test "renders pipeline cards in a single column grid when the viewport is narrow" <|
@@ -112,7 +124,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
                             Ok <|
                                 viewportWithSize 300 600
                         )
@@ -142,9 +154,45 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
                             Ok <|
                                 viewportWithSize 650 200
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ class "dashboard-team-pipelines" ]
+                    |> Expect.all
+                        [ hasPipelineCard "pipeline-0"
+                            { x = 25
+                            , y = 0
+                            , width = 272
+                            , height = 268
+                            }
+                        , hasPipelineCard "pipeline-1"
+                            { x = 25 * 2 + 272
+                            , y = 0
+                            , width = 272
+                            , height = 268
+                            }
+                        ]
+        , test "ignores viewport updates for DOM elements other than the dashboard" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                            Ok <|
+                                viewportWithSize 650 200
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.GotViewport LoginButton Callback.AlwaysShow <|
+                            Ok <|
+                                viewportWithSize 100 50
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -178,7 +226,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
                             Ok <|
                                 viewportWithSize 600 300
                         )
@@ -209,7 +257,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
                             Ok <|
                                 viewportWithSize 600 500
                         )
@@ -246,7 +294,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
                             Ok <|
                                 viewportWithSize 600 200
                         )
@@ -293,7 +341,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
                             Ok <|
                                 viewportWithSize 600 250
                         )
@@ -325,7 +373,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
                             Ok <|
                                 viewportWithSize 600 250
                         )
@@ -351,7 +399,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
                             Ok <|
                                 viewportWithSize 300 300
                         )
