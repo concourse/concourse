@@ -18,14 +18,14 @@ type OpaConfig struct {
 }
 
 func init() {
-	policy.RegisterChecker(&OpaConfig{})
+	policy.RegisterAgent(&OpaConfig{})
 }
 
 func (c *OpaConfig) Description() string { return "Open Policy Agent" }
 func (c *OpaConfig) IsConfigured() bool  { return c.URL != "" }
 
-func (c *OpaConfig) NewChecker() (policy.Checker, error) {
-	return opaChecker{*c}, nil
+func (c *OpaConfig) NewAgent() (policy.Agent, error) {
+	return opa{*c}, nil
 }
 
 type opaInput struct {
@@ -36,11 +36,11 @@ type opaResult struct {
 	Result *bool `json:"result,omitempty"`
 }
 
-type opaChecker struct {
+type opa struct {
 	config OpaConfig
 }
 
-func (c opaChecker) Check(input policy.PolicyCheckInput) (bool, error) {
+func (c opa) Check(input policy.PolicyCheckInput) (bool, error) {
 	data := opaInput{input}
 	jsonBytes, err := json.Marshal(data)
 

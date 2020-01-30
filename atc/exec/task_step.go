@@ -68,7 +68,7 @@ type TaskDelegate interface {
 	Finished(lager.Logger, ExitStatus)
 	Errored(lager.Logger, string)
 
-	PolicyCheck(atc.TaskConfig) (bool, error)
+	PolicyCheck() (bool, error)
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -212,7 +212,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 
 	step.delegate.Initializing(logger)
 
-	pass, err := step.delegate.PolicyCheck(config)
+	pass, err := step.delegate.PolicyCheck()
 	if err != nil {
 		return err
 	}

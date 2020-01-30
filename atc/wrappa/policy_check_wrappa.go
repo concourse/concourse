@@ -9,14 +9,14 @@ import (
 
 func NewPolicyCheckWrappa(
 	logger lager.Logger,
-	checker policy.PreChecker,
+	checker policy.Checker,
 ) *PolicyCheckWrappa {
 	return &PolicyCheckWrappa{logger, checker}
 }
 
 type PolicyCheckWrappa struct {
 	logger  lager.Logger
-	checker policy.PreChecker
+	checker policy.Checker
 }
 
 func (w *PolicyCheckWrappa) Wrap(handlers rata.Handlers) rata.Handlers {

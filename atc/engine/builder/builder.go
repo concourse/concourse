@@ -35,7 +35,7 @@ type StepFactory interface {
 type DelegateFactory interface {
 	GetDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.GetDelegate
 	PutDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.PutDelegate
-	TaskDelegate(db.Build, atc.PlanID, vars.CredVarsTracker, policy.PreChecker) exec.TaskDelegate
+	TaskDelegate(db.Build, atc.PlanID, vars.CredVarsTracker, policy.Checker) exec.TaskDelegate
 	CheckDelegate(db.Check, atc.PlanID, vars.CredVarsTracker) exec.CheckDelegate
 	BuildStepDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate
 }
@@ -47,7 +47,7 @@ func NewStepBuilder(
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	redactSecrets bool,
-	policyChecker policy.PreChecker,
+	policyChecker policy.Checker,
 ) *stepBuilder {
 	return &stepBuilder{
 		stepFactory:     stepFactory,
@@ -67,7 +67,7 @@ type stepBuilder struct {
 	globalSecrets   creds.Secrets
 	varSourcePool   creds.VarSourcePool
 	redactSecrets   bool
-	policyChecker   policy.PreChecker
+	policyChecker   policy.Checker
 }
 
 func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {

@@ -32,7 +32,7 @@ func (delegate *delegateFactory) PutDelegate(build db.Build, planID atc.PlanID, 
 	return NewPutDelegate(build, planID, credVarsTracker, clock.NewClock())
 }
 
-func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, policyChecker policy.PreChecker) exec.TaskDelegate {
+func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, policyChecker policy.Checker) exec.TaskDelegate {
 	return NewTaskDelegate(build, planID, credVarsTracker, policyChecker, clock.NewClock())
 }
 
@@ -233,7 +233,7 @@ func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.
 	}
 }
 
-func NewTaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, policyChecker policy.PreChecker, clock clock.Clock) exec.TaskDelegate {
+func NewTaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, policyChecker policy.Checker, clock clock.Clock) exec.TaskDelegate {
 	return &taskDelegate{
 		BuildStepDelegate: NewBuildStepDelegate(build, planID, credVarsTracker, clock),
 
@@ -250,7 +250,7 @@ type taskDelegate struct {
 	build       db.Build
 	eventOrigin event.Origin
 
-	policyChecker policy.PreChecker
+	policyChecker policy.Checker
 }
 
 func (d *taskDelegate) SetTaskConfig(config atc.TaskConfig) {
@@ -303,8 +303,8 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func (d *taskDelegate) PolicyCheck(config atc.TaskConfig) (bool, error) {
-	return d.policyChecker.CheckTask(d.build, config)
+func (d *taskDelegate) PolicyCheck() (bool, error) {
+	return d.policyChecker.CheckTask(d.build, d.config)
 }
 
 func NewCheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.CheckDelegate {

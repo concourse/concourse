@@ -3,6 +3,7 @@ package policy
 import (
 	"bytes"
 	"fmt"
+	"github.com/concourse/concourse/atc/api/accessor"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -18,18 +19,18 @@ import (
 const ActionRunTask = "RunTask"
 
 type Filter struct {
-	HttpMethods     []string `long:"policy-check-filter-http-methods" description:"API http method to go through policy check"`
-	ActionWhiteList []string `long:"policy-check-filter-action-white-list" description:"Actions in white list will go through policy check"`
-	ActionBlackList []string `long:"policy-check-filter-action-black-list" default:"RunTask" description:"Actions in black list will not go through policy check"`
+	HttpMethods   []string `long:"policy-check-filter-http-methods" description:"API http method to go through policy check"`
+	Actions       []string `long:"policy-check-filter-action" description:"Actions in the list will go through policy check"`
+	ActionsToSkip []string `long:"policy-check-filter-action-skip" default:"RunTask" description:"Actions the list will not go through policy check"`
 }
 
 func (f Filter) normalize() Filter {
-	if len(f.ActionWhiteList) == 1 {
-		f.ActionWhiteList = strings.Split(f.ActionWhiteList[0], ",")
+	if len(f.Actions) == 1 {
+		f.Actions = strings.Split(f.Actions[0], ",")
 	}
 
-	if len(f.ActionBlackList) == 1 {
-		f.ActionBlackList = strings.Split(f.ActionBlackList[0], ",")
+	if len(f.ActionsToSkip) == 1 {
+		f.ActionsToSkip = strings.Split(f.ActionsToSkip[0], ",")
 	}
 
 	return f
@@ -47,37 +48,37 @@ type PolicyCheckInput struct {
 	Data           interface{} `json:"data,omitempty"`
 }
 
-// PreChecker runs filters first, then calls underlying policy agent.
-type PreChecker interface {
+// Checker runs filters first, then calls underlying policy agent.
+type Checker interface {
 	// CheckHttpApi returns true if passes policy check. If not goes through
 	// policy check, just return true.
-	CheckHttpApi(string, string, *http.Request) (bool, error)
+	CheckHttpApi(string, accessor.Access, *http.Request) (bool, error)
 
 	CheckTask(db.Build, atc.TaskConfig) (bool, error)
 }
 
-// Checker should be implemented by policy agents.
-type Checker interface {
+// Agent should be implemented by policy agents.
+type Agent interface {
 	// Check returns true if passes policy check. If not goes through policy
 	// check, just return true.
 	Check(PolicyCheckInput) (bool, error)
 }
 
-type CheckerFactory interface {
+type AgentFactory interface {
 	Description() string
 	IsConfigured() bool
-	NewChecker() (Checker, error)
+	NewAgent() (Agent, error)
 }
 
-var checkerFactories []CheckerFactory
+var agentFactories []AgentFactory
 
-func RegisterChecker(factory CheckerFactory) {
-	checkerFactories = append(checkerFactories, factory)
+func RegisterAgent(factory AgentFactory) {
+	agentFactories = append(agentFactories, factory)
 }
 
 func WireCheckers(group *flags.Group) {
-	for _, factory := range checkerFactories {
-		_, err := group.AddGroup(fmt.Sprintf("Policy Checker (%s)", factory.Description()), "", factory)
+	for _, factory := range agentFactories {
+		_, err := group.AddGroup(fmt.Sprintf("Policy Check Agent (%s)", factory.Description()), "", factory)
 		if err != nil {
 			panic(err)
 		}
@@ -89,14 +90,14 @@ var (
 	clusterVersion string
 )
 
-func Initialize(logger lager.Logger, cluster string, version string, filter Filter) (PreChecker, error) {
+func Initialize(logger lager.Logger, cluster string, version string, filter Filter) (Checker, error) {
 	logger.Debug("policy-checker-initialize")
 
 	clusterName = cluster
 	clusterVersion = version
 
 	var checkerDescriptions []string
-	for _, factory := range checkerFactories {
+	for _, factory := range agentFactories {
 		if factory.IsConfigured() {
 			checkerDescriptions = append(checkerDescriptions, factory.Description())
 		}
@@ -105,15 +106,15 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 		return nil, fmt.Errorf("Multiple emitters configured: %s", strings.Join(checkerDescriptions, ", "))
 	}
 
-	for _, factory := range checkerFactories {
+	for _, factory := range agentFactories {
 		if factory.IsConfigured() {
-			realChecker, err := factory.NewChecker()
+			agent, err := factory.NewAgent()
 			if err != nil {
 				return nil, err
 			}
-			return &preChecker{
-				filter:      filter.normalize(),
-				realChecker: realChecker,
+			return &checker{
+				filter: filter.normalize(),
+				agent:  agent,
 			}, nil
 		}
 	}
@@ -122,29 +123,29 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 	return nil, nil
 }
 
-type preChecker struct {
-	filter      Filter
-	realChecker Checker
+type checker struct {
+	filter Filter
+	agent  Agent
 }
 
-func (c *preChecker) CheckHttpApi(action string, user string, req *http.Request) (bool, error) {
+func (c *checker) CheckHttpApi(action string, acc accessor.Access, req *http.Request) (bool, error) {
 	if c == nil {
 		return true, nil
 	}
 
 	// Ignore self invoked API calls.
-	if user == "system" {
+	if acc.IsSystem() {
 		return true, nil
 	}
 
 	// Actions in black will not go through policy check.
-	if c.actionInBlackList(action) {
+	if c.actionToSkip(action) {
 		return true, nil
 	}
 
 	// Only actions with specified http method will go through policy check.
 	// But actions in white list will always go through policy check.
-	if !c.httpMethodShouldCheck(req) && !c.actionInWhiteList(action) {
+	if !c.httpMethodShouldCheck(req) && !c.actionToCheck(action) {
 		return true, nil
 	}
 
@@ -154,7 +155,7 @@ func (c *preChecker) CheckHttpApi(action string, user string, req *http.Request)
 		ClusterVersion: clusterVersion,
 		HttpMethod:     req.Method,
 		Action:         action,
-		User:           user,
+		User:           acc.UserName(),
 		Team:           req.FormValue(":team_name"),
 		Pipeline:       req.FormValue(":pipeline_name"),
 	}
@@ -174,19 +175,19 @@ func (c *preChecker) CheckHttpApi(action string, user string, req *http.Request)
 		}
 	}
 
-	return c.realChecker.Check(input)
+	return c.agent.Check(input)
 }
 
-func (c *preChecker) httpMethodShouldCheck(req *http.Request) bool {
+func (c *checker) httpMethodShouldCheck(req *http.Request) bool {
 	return inArray(c.filter.HttpMethods, req.Method)
 }
 
-func (c *preChecker) actionInWhiteList(action string) bool {
-	return inArray(c.filter.ActionWhiteList, action)
+func (c *checker) actionToCheck(action string) bool {
+	return inArray(c.filter.Actions, action)
 }
 
-func (c *preChecker) actionInBlackList(action string) bool {
-	return inArray(c.filter.ActionBlackList, action)
+func (c *checker) actionToSkip(action string) bool {
+	return inArray(c.filter.ActionsToSkip, action)
 }
 
 func inArray(array []string, target string) bool {
@@ -200,13 +201,13 @@ func inArray(array []string, target string) bool {
 	return found
 }
 
-func (c *preChecker) CheckTask(build db.Build, config atc.TaskConfig) (bool, error) {
+func (c *checker) CheckTask(build db.Build, config atc.TaskConfig) (bool, error) {
 	if c == nil {
 		return true, nil
 	}
 
 	// Actions in black will not go through policy check.
-	if c.actionInBlackList(ActionRunTask) {
+	if c.actionToSkip(ActionRunTask) {
 		return true, nil
 	}
 
@@ -220,5 +221,5 @@ func (c *preChecker) CheckTask(build db.Build, config atc.TaskConfig) (bool, err
 		Data:           config,
 	}
 
-	return c.realChecker.Check(input)
+	return c.agent.Check(input)
 }

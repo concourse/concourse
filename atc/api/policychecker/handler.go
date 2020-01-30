@@ -13,35 +13,36 @@ func NewHandler(
 	logger lager.Logger,
 	handler http.Handler,
 	action string,
-	policyChecker policy.PreChecker,
+	policyChecker policy.Checker,
 ) http.Handler {
-	return policyCheckerHandler{
+	return policyCheckingHandler{
+		logger:        logger,
 		handler:       handler,
 		action:        action,
 		policyChecker: policyChecker,
 	}
 }
 
-type policyCheckerHandler struct {
+type policyCheckingHandler struct {
 	logger        lager.Logger
 	handler       http.Handler
 	action        string
-	policyChecker policy.PreChecker
+	policyChecker policy.Checker
 }
 
-func (h policyCheckerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h policyCheckingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	acc := accessor.GetAccessor(r)
 	ctx := context.WithValue(r.Context(), "accessor", acc)
 
-	pass, err := h.policyChecker.CheckHttpApi(h.action, acc.UserName(), r)
+	pass, err := h.policyChecker.CheckHttpApi(h.action, acc, r)
 	if err != nil {
 		rejector := NotPassRejector{msg: err.Error()}
-		rejector.Fail(w, r)
+		rejector.Error(w, r)
 		return
 	}
 	if !pass {
 		rejector := NotPassRejector{}
-		rejector.NotPass(w, r)
+		rejector.Reject(w, r)
 		return
 	}
 
