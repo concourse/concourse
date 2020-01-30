@@ -13,3 +13,5 @@ ci/deployments/*/.terraform/
 ci/deployments/*/keys/gcp.json
 ci/deployments/*/keys/id_rsa
 ci/deployments/*/keys/id_rsa.pub
+
+hack/vault/certs
