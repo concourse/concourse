@@ -93,12 +93,12 @@ type client struct {
 }
 
 type TaskResult struct {
-	ExitStatus       int
+	ExitStatus   int
 	VolumeMounts []VolumeMount
 }
 
 type PutResult struct {
-	ExitStatus        int
+	ExitStatus    int
 	VersionResult runtime.VersionResult
 }
 
@@ -225,7 +225,7 @@ func (client *client) RunTaskStep(
 		}
 
 		return TaskResult{
-			ExitStatus:       status,
+			ExitStatus:   status,
 			VolumeMounts: container.VolumeMounts(),
 		}, err
 	}
@@ -285,14 +285,14 @@ func (client *client) RunTaskStep(
 
 		status := <-exitStatusChan
 		return TaskResult{
-			ExitStatus:       status.processStatus,
+			ExitStatus:   status.processStatus,
 			VolumeMounts: container.VolumeMounts(),
 		}, ctx.Err()
 
 	case status := <-exitStatusChan:
 		if status.processErr != nil {
 			return TaskResult{
-				ExitStatus:       status.processStatus,
+				ExitStatus: status.processStatus,
 			}, status.processErr
 		}
 
@@ -303,7 +303,7 @@ func (client *client) RunTaskStep(
 			}, err
 		}
 		return TaskResult{
-			ExitStatus: status.processStatus,
+			ExitStatus:   status.processStatus,
 			VolumeMounts: container.VolumeMounts(),
 		}, err
 	}
@@ -541,7 +541,7 @@ func (client *client) RunPutStep(
 		}
 
 		return PutResult{
-			ExitStatus: status,
+			ExitStatus:    status,
 			VersionResult: runtime.VersionResult{},
 		}, nil
 	}
@@ -552,7 +552,7 @@ func (client *client) RunPutStep(
 	if err != nil {
 		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
 			return PutResult{
-				ExitStatus:        failErr.ExitStatus,
+				ExitStatus:    failErr.ExitStatus,
 				VersionResult: runtime.VersionResult{},
 			}, nil
 		} else {
@@ -560,7 +560,7 @@ func (client *client) RunPutStep(
 		}
 	}
 	return PutResult{
-		ExitStatus: 0,
+		ExitStatus:    0,
 		VersionResult: vr,
 	}, nil
 }

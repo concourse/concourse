@@ -345,13 +345,13 @@ var _ = Describe("Client", func() {
 			})
 		})
 
-		Context("Calling chosenWorker.Fetch", func(){
+		Context("Calling chosenWorker.Fetch", func() {
 			var (
-				someError error
+				someError     error
 				someGetResult worker.GetResult
-				fakeVolume *workerfakes.FakeVolume
+				fakeVolume    *workerfakes.FakeVolume
 			)
-			BeforeEach(func(){
+			BeforeEach(func() {
 				someGetResult = worker.GetResult{
 					ExitStatus: 0,
 					VersionResult: runtime.VersionResult{
@@ -375,7 +375,7 @@ var _ = Describe("Client", func() {
 			status       int
 			volumeMounts []worker.VolumeMount
 			inputSources []worker.InputSource
-			taskResult worker.TaskResult
+			taskResult   worker.TaskResult
 			err          error
 
 			fakeWorker           *workerfakes.FakeWorker
@@ -1152,7 +1152,7 @@ var _ = Describe("Client", func() {
 			versionResult runtime.VersionResult
 			status        int
 			err           error
-			result worker.PutResult
+			result        worker.PutResult
 
 			disasterErr error
 		)

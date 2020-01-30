@@ -71,8 +71,8 @@ var _ = Describe("PutStep", func() {
 
 		planID atc.PlanID
 
-		versionResult runtime.VersionResult
-		clientErr     error
+		versionResult  runtime.VersionResult
+		clientErr      error
 		someExitStatus int
 	)
 
@@ -167,8 +167,8 @@ var _ = Describe("PutStep", func() {
 
 		fakeClient.RunPutStepReturns(
 			worker.PutResult{ExitStatus: someExitStatus, VersionResult: versionResult},
-		clientErr,
-			)
+			clientErr,
+		)
 
 		putStep = exec.NewPutStep(
 			plan.ID,
