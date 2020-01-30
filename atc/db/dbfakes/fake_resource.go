@@ -102,6 +102,16 @@ type FakeResource struct {
 	enableVersionReturnsOnCall map[int]struct {
 		result1 error
 	}
+	HasWebhookStub        func() bool
+	hasWebhookMutex       sync.RWMutex
+	hasWebhookArgsForCall []struct {
+	}
+	hasWebhookReturns struct {
+		result1 bool
+	}
+	hasWebhookReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
 	iDArgsForCall []struct {
@@ -915,6 +925,58 @@ func (fake *FakeResource) EnableVersionReturnsOnCall(i int, result1 error) {
 	}
 	fake.enableVersionReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) HasWebhook() bool {
+	fake.hasWebhookMutex.Lock()
+	ret, specificReturn := fake.hasWebhookReturnsOnCall[len(fake.hasWebhookArgsForCall)]
+	fake.hasWebhookArgsForCall = append(fake.hasWebhookArgsForCall, struct {
+	}{})
+	fake.recordInvocation("HasWebhook", []interface{}{})
+	fake.hasWebhookMutex.Unlock()
+	if fake.HasWebhookStub != nil {
+		return fake.HasWebhookStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.hasWebhookReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) HasWebhookCallCount() int {
+	fake.hasWebhookMutex.RLock()
+	defer fake.hasWebhookMutex.RUnlock()
+	return len(fake.hasWebhookArgsForCall)
+}
+
+func (fake *FakeResource) HasWebhookCalls(stub func() bool) {
+	fake.hasWebhookMutex.Lock()
+	defer fake.hasWebhookMutex.Unlock()
+	fake.HasWebhookStub = stub
+}
+
+func (fake *FakeResource) HasWebhookReturns(result1 bool) {
+	fake.hasWebhookMutex.Lock()
+	defer fake.hasWebhookMutex.Unlock()
+	fake.HasWebhookStub = nil
+	fake.hasWebhookReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeResource) HasWebhookReturnsOnCall(i int, result1 bool) {
+	fake.hasWebhookMutex.Lock()
+	defer fake.hasWebhookMutex.Unlock()
+	fake.HasWebhookStub = nil
+	if fake.hasWebhookReturnsOnCall == nil {
+		fake.hasWebhookReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.hasWebhookReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
@@ -2553,6 +2615,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.disableVersionMutex.RUnlock()
 	fake.enableVersionMutex.RLock()
 	defer fake.enableVersionMutex.RUnlock()
+	fake.hasWebhookMutex.RLock()
+	defer fake.hasWebhookMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.iconMutex.RLock()
