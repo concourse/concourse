@@ -3,7 +3,6 @@ package exec_test
 import (
 	"context"
 	"errors"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -233,7 +232,7 @@ var _ = Describe("PutStep", func() {
 		}))
 		Expect(actualContainerSpec.Tags).To(Equal([]string{"some", "tags"}))
 		Expect(actualContainerSpec.TeamID).To(Equal(123))
-		Expect(actualContainerSpec.Env).To(Equal(stepMetadata.Env()))
+		Expect(actualContainerSpec.Env).To(Equal(append(stepMetadata.Env(),"RESOURCE_NAME=some-name")))
 		Expect(actualContainerSpec.Dir).To(Equal("/tmp/build/put"))
 
 		Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))

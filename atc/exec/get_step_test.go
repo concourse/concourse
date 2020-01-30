@@ -182,7 +182,7 @@ var _ = Describe("GetStep", func() {
 					ResourceType: "some-resource-type",
 				},
 				TeamID: stepMetadata.TeamID,
-				Env:    stepMetadata.Env(),
+				Env:    append(stepMetadata.Env(), "RESOURCE_NAME=some-name"),
 			},
 		))
 	})

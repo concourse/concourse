@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -141,17 +142,17 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	env := step.metadata.Env()
+	env = append(env, fmt.Sprintf("RESOURCE_NAME=%s", step.plan.Name))
+
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.plan.Type,
 		},
-		Tags:   step.plan.Tags,
-		TeamID: step.metadata.TeamID,
-
-		Dir: step.containerMetadata.WorkingDirectory,
-
-		Env: step.metadata.Env(),
-
+		Tags:           step.plan.Tags,
+		TeamID:         step.metadata.TeamID,
+		Dir:            step.containerMetadata.WorkingDirectory,
+		Env:            env,
 		ArtifactByPath: containerInputs,
 	}
 

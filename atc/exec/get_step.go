@@ -137,12 +137,15 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	env := step.metadata.Env()
+	env = append(env, fmt.Sprintf("RESOURCE_NAME=%s", step.plan.Name))
+
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.plan.Type,
 		},
 		TeamID: step.metadata.TeamID,
-		Env:    step.metadata.Env(),
+		Env:    env,
 	}
 
 	workerSpec := worker.WorkerSpec{
