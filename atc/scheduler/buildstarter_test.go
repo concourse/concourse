@@ -278,7 +278,7 @@ var _ = Describe("BuildStarter", func() {
 
 							It("computes the next inputs for the right job and versions", func() {
 								Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
-								actualJob, actualInputs, _, actualRelatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
+								_, actualJob, actualInputs, _, actualRelatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
 								Expect(actualJob.Name()).To(Equal(job.Name()))
 								Expect(actualRelatedJobs).To(Equal(relatedJobs))
 								Expect(actualInputs).To(Equal(jobInputs))

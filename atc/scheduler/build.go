@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
@@ -42,8 +43,8 @@ func (m *manualTriggerBuild) PrepareInputs(logger lager.Logger) bool {
 	return true
 }
 
-func (m *manualTriggerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
-	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(m.job, m.jobInputs, m.resources, m.relatedJobIDs)
+func (m *manualTriggerBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool, error) {
+	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(ctx, m.job, m.jobInputs, m.resources, m.relatedJobIDs)
 	if err != nil {
 		return nil, false, fmt.Errorf("compute inputs: %w", err)
 	}
@@ -80,7 +81,7 @@ func (s *schedulerBuild) PrepareInputs(logger lager.Logger) bool {
 	return true
 }
 
-func (s *schedulerBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
+func (s *schedulerBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool, error) {
 	buildInputs, satisfableInputs, err := s.AdoptInputsAndPipes()
 	if err != nil {
 		return nil, false, fmt.Errorf("adopt inputs and pipes: %w", err)
@@ -101,7 +102,7 @@ func (r *rerunBuild) PrepareInputs(logger lager.Logger) bool {
 	return true
 }
 
-func (r *rerunBuild) BuildInputs(logger lager.Logger) ([]db.BuildInput, bool, error) {
+func (r *rerunBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool, error) {
 	buildInputs, inputsReady, err := r.AdoptRerunInputsAndPipes()
 	if err != nil {
 		return nil, false, fmt.Errorf("adopt rerun inputs and pipes: %w", err)

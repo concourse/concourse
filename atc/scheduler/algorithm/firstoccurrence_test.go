@@ -1,6 +1,7 @@
 package algorithm_test
 
 import (
+	"context"
 	"crypto/md5"
 	"database/sql"
 	"encoding/hex"
@@ -255,7 +256,7 @@ var _ = Describe("Resolve", func() {
 		algorithm := algorithm.New(versionsDB)
 
 		var ok bool
-		inputMapping, ok, _, err = algorithm.Compute(job, jobInputs, dbResources, map[string]int{"j1": 1})
+		inputMapping, ok, _, err = algorithm.Compute(context.Background(), job, jobInputs, dbResources, map[string]int{"j1": 1})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ok).To(BeTrue())
 	})

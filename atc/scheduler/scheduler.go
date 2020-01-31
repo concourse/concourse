@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
@@ -12,7 +13,13 @@ import (
 //go:generate counterfeiter . Algorithm
 
 type Algorithm interface {
-	Compute(db.Job, []atc.JobInput, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, bool, error)
+	Compute(
+		context.Context,
+		db.Job,
+		[]atc.JobInput,
+		db.Resources,
+		algorithm.NameToIDMap,
+	) (db.InputMapping, bool, bool, error)
 }
 
 type Scheduler struct {
@@ -21,6 +28,7 @@ type Scheduler struct {
 }
 
 func (s *Scheduler) Schedule(
+	ctx context.Context,
 	logger lager.Logger,
 	pipeline db.Pipeline,
 	job db.Job,
@@ -32,7 +40,7 @@ func (s *Scheduler) Schedule(
 		return false, fmt.Errorf("inputs: %w", err)
 	}
 
-	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(job, jobInputs, resources, relatedJobs)
+	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(ctx, job, jobInputs, resources, relatedJobs)
 	if err != nil {
 		return false, fmt.Errorf("compute inputs: %w", err)
 	}

@@ -2,14 +2,29 @@ package algorithm
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
 )
 
 type NameToIDMap map[string]int
 
 type InputConfigs []InputConfig
+
+func (cfgs InputConfigs) String() string {
+	if !tracing.Configured {
+		return ""
+	}
+
+	names := make([]string, len(cfgs))
+	for i, cfg := range cfgs {
+		names[i] = cfg.Name
+	}
+
+	return strings.Join(names, ",")
+}
 
 type InputConfig struct {
 	Name            string

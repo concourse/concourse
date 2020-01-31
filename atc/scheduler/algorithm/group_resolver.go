@@ -1,10 +1,15 @@
 package algorithm
 
 import (
+	"context"
 	"sort"
 	"strconv"
 
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
+	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/api/trace"
+	"google.golang.org/grpc/codes"
 )
 
 type versionCandidate struct {
@@ -25,19 +30,21 @@ func newCandidateVersion(version db.ResourceVersion) *versionCandidate {
 type groupResolver struct {
 	vdb          db.VersionsDB
 	inputConfigs InputConfigs
-	candidates   []*versionCandidate
+
+	pins        []db.ResourceVersion
+	orderedJobs [][]int
+	candidates  []*versionCandidate
 
 	lastUsedPassedBuilds map[int]int
-
-	debug debugger
 }
 
 func NewGroupResolver(vdb db.VersionsDB, inputConfigs InputConfigs) Resolver {
 	return &groupResolver{
 		vdb:          vdb,
 		inputConfigs: inputConfigs,
+		pins:         make([]db.ResourceVersion, len(inputConfigs)),
+		orderedJobs:  make([][]int, len(inputConfigs)),
 		candidates:   make([]*versionCandidate, len(inputConfigs)),
-		debug:        debugger{},
 	}
 }
 
@@ -45,132 +52,42 @@ func (r *groupResolver) InputConfigs() InputConfigs {
 	return r.inputConfigs
 }
 
-func (r *groupResolver) Resolve(depth int) (map[string]*versionCandidate, db.ResolutionFailure, error) {
-	defer func() { r.debug.depth-- }()
+func (r *groupResolver) Resolve(ctx context.Context) (map[string]*versionCandidate, db.ResolutionFailure, error) {
+	ctx, span := tracing.StartSpan(ctx, "groupResolver.Resolve", tracing.Attrs{
+		"inputs": r.inputConfigs.String(),
+	})
+	defer span.End()
 
-	for i, inputConfig := range r.inputConfigs {
-		r.debug.reset(depth, inputConfig.Name)
-
-		// deterministically order the passed jobs for this input
-		orderedJobs := r.orderJobs(inputConfig.Passed)
-
-		for _, jobID := range orderedJobs {
-			if r.candidates[i] != nil {
-				r.debug.log(i, "has a candidate")
-
-				// coming from recursive call; we've already got a candidate
-				if r.candidates[i].VouchedForBy[jobID] {
-					r.debug.log("job", jobID, i, "already vouched for", r.candidates[i].Version)
-					// we've already been here; continue to the next job
-					continue
-				} else {
-					r.debug.log("job", jobID, i, "has not vouched for", r.candidates[i].Version)
-				}
-			} else {
-				r.debug.log(i, "has no candidate yet")
-			}
-
-			paginatedBuilds, skip, err := r.paginatedBuilds(inputConfig, r.candidates[i], inputConfig.JobID, jobID)
-			if err != nil {
-				return nil, "", err
-			}
-
-			if skip {
-				continue
-			}
-
-			for {
-				buildID, ok, err := paginatedBuilds.Next()
-				if err != nil {
-					return nil, "", err
-				}
-
-				if !ok {
-					r.debug.log("reached end")
-					break
-				}
-
-				r.debug.log("job", jobID, "trying build", buildID)
-
-				outputs, err := r.vdb.SuccessfulBuildOutputs(buildID)
-				if err != nil {
-					return nil, "", err
-				}
-
-				restore := map[int]*versionCandidate{}
-				var mismatch bool
-
-				// loop over the resource versions that came out of this build set
-			outputs:
-				for _, output := range outputs {
-					r.debug.log("build", buildID, "output", output.ResourceID, output.Version)
-
-					// try to pin each candidate to the versions from this build
-					for c, candidate := range r.candidates {
-						if _, ok := restore[c]; ok {
-							// have already set a new version for this candidate within this build, so skip
-							r.debug.log("have already set this candidate", c, "with a version", candidate.Version)
-							continue
-						}
-
-						var satisfied bool
-						var resolveErr db.ResolutionFailure
-						satisfied, mismatch, resolveErr, err = r.outputSatisfyCandidateConstraints(output, r.inputConfigs[c], candidate, jobID)
-						if err != nil {
-							return nil, "", err
-						}
-
-						if resolveErr != "" {
-							return nil, resolveErr, nil
-						}
-
-						if mismatch {
-							// if mismatch is returned, that means this build contained a
-							// different version than the one we already have for that
-							// candidate, so let's try a different build
-							break outputs
-						} else if !satisfied {
-							continue
-						}
-
-						// if this doesn't work out, restore it to either nil or the
-						// candidate *without* the job vouching for it
-						restore[c] = candidate
-
-						r.debug.log("setting candidate", c, "to", output.Version, "vouched resource", output.ResourceID, "by job", jobID)
-						r.candidates[c] = r.vouchForCandidate(candidate, output.Version, jobID, buildID, paginatedBuilds.HasNext())
-					}
-				}
-
-				// we found a candidate for ourselves and the rest are OK too - recurse
-				if r.candidates[i] != nil && r.candidates[i].VouchedForBy[jobID] && !mismatch {
-					r.debug.log("recursing")
-
-					candidates, _, err := r.Resolve(depth + 1)
-					if err != nil {
-						return nil, "", err
-					}
-
-					if len(candidates) != 0 {
-						// we've attempted to resolve all of the inputs!
-						return candidates, "", nil
-					}
-				}
-
-				r.debug.log("restoring")
-
-				for c, candidate := range restore {
-					// either there was a mismatch or resolving didn't work; go on to the
-					// next output set
-					r.debug.log("restoring candidate", c, "to", candidate)
-					r.candidates[c] = candidate
-				}
-			}
-
-			// reached the end of the builds
-			r.debug.log("returning with no satisfiable builds")
-			return nil, db.NoSatisfiableBuilds, nil
+	for i, cfg := range r.inputConfigs {
+		if cfg.PinnedVersion == nil {
+			continue
 		}
+
+		version, found, err := r.vdb.FindVersionOfResource(ctx, cfg.ResourceID, cfg.PinnedVersion)
+		if err != nil {
+			tracing.End(span, err)
+			return nil, "", err
+		}
+
+		if !found {
+			notFoundErr := db.PinnedVersionNotFound{PinnedVersion: cfg.PinnedVersion}
+			span.SetStatus(codes.InvalidArgument)
+			return nil, notFoundErr.String(), nil
+		}
+
+		r.pins[i] = version
+	}
+
+	resolved, failure, err := r.tryResolve(ctx)
+	if err != nil {
+		tracing.End(span, err)
+		return nil, "", err
+	}
+
+	if !resolved {
+		span.SetAttributes(key.New("failure").String(string(failure)))
+		span.SetStatus(codes.NotFound)
+		return nil, failure, nil
 	}
 
 	finalCandidates := map[string]*versionCandidate{}
@@ -178,26 +95,218 @@ func (r *groupResolver) Resolve(depth int) (map[string]*versionCandidate, db.Res
 		finalCandidates[input.Name] = r.candidates[i]
 	}
 
-	// go to the end of all the inputs
+	span.SetStatus(codes.OK)
 	return finalCandidates, "", nil
 }
 
-func (r *groupResolver) paginatedBuilds(currentInputConfig InputConfig, currentCandidate *versionCandidate, currentJobID int, passedJobID int) (db.PaginatedBuilds, bool, error) {
+func (r *groupResolver) tryResolve(ctx context.Context) (bool, db.ResolutionFailure, error) {
+	ctx, span := tracing.StartSpan(ctx, "groupResolver.tryResolve", tracing.Attrs{
+		"inputs": r.inputConfigs.String(),
+	})
+	defer span.End()
+
+	for inputIndex := range r.inputConfigs {
+		worked, failure, err := r.trySatisfyPassedConstraintsForInput(ctx, inputIndex)
+		if err != nil {
+			tracing.End(span, err)
+			return false, "", err
+		}
+
+		if !worked {
+			// input was not satisfiable
+			span.SetStatus(codes.NotFound)
+			return false, failure, nil
+		}
+	}
+
+	// got to the end of all the inputs
+	span.SetStatus(codes.OK)
+	return true, "", nil
+}
+
+func (r *groupResolver) trySatisfyPassedConstraintsForInput(ctx context.Context, inputIndex int) (bool, db.ResolutionFailure, error) {
+	inputConfig := r.inputConfigs[inputIndex]
+	currentJobID := inputConfig.JobID
+
+	ctx, span := tracing.StartSpan(ctx, "groupResolver.trySatisfyPassedConstraintsForInput", tracing.Attrs{
+		"input": inputConfig.Name,
+	})
+	defer span.End()
+
+	// current candidate, if coming from a recursive call
+	currentCandidate := r.candidates[inputIndex]
+
+	// deterministically order the passed jobs for this input
+	orderedJobs := r.orderJobs(inputConfig.Passed)
+
+	for _, passedJobID := range orderedJobs {
+		if currentCandidate != nil {
+			// coming from recursive call; we've already got a candidate
+			if currentCandidate.VouchedForBy[passedJobID] {
+				// we've already been here; continue to the next job
+				continue
+			}
+		}
+
+		builds, skip, err := r.paginatedBuilds(ctx, inputConfig, currentCandidate, currentJobID, passedJobID)
+		if err != nil {
+			tracing.End(span, err)
+			return false, "", err
+		}
+
+		if skip {
+			span.AddEvent(ctx, "deferring selection to other jobs", key.New("passedJobID").Int(passedJobID))
+			continue
+		}
+
+		worked, err := r.tryJobBuilds(ctx, inputIndex, passedJobID, builds)
+		if err != nil {
+			tracing.End(span, err)
+			return false, "", err
+		}
+
+		if worked {
+			// resolving recursively worked!
+			break
+		} else {
+			span.SetStatus(codes.NotFound)
+			return false, db.NoSatisfiableBuilds, nil
+		}
+	}
+
+	// all passed constraints were satisfied
+	span.SetStatus(codes.OK)
+	return true, "", nil
+}
+
+func (r *groupResolver) tryJobBuilds(ctx context.Context, inputIndex int, passedJobID int, builds db.PaginatedBuilds) (bool, error) {
+	ctx, span := tracing.StartSpan(ctx, "groupResolver.tryJobBuilds", tracing.Attrs{})
+	defer span.End()
+
+	span.SetAttributes(key.New("passedJobID").Int(passedJobID))
+
+	for {
+		buildID, ok, err := builds.Next(ctx)
+		if err != nil {
+			tracing.End(span, err)
+			return false, err
+		}
+
+		if !ok {
+			// reached the end of the builds
+			span.SetStatus(codes.ResourceExhausted)
+			return false, nil
+		}
+
+		worked, err := r.tryBuildOutputs(ctx, inputIndex, passedJobID, buildID, builds.HasNext())
+		if err != nil {
+			tracing.End(span, err)
+			return false, err
+		}
+
+		if worked {
+			span.SetStatus(codes.OK)
+			return true, nil
+		}
+	}
+}
+
+func (r *groupResolver) tryBuildOutputs(ctx context.Context, resolvingIdx, jobID, buildID int, hasNext bool) (bool, error) {
+	ctx, span := tracing.StartSpan(ctx, "groupResolver.tryBuildOutputs", tracing.Attrs{})
+	defer span.End()
+
+	span.SetAttributes(key.New("buildID").Int(buildID))
+
+	outputs, err := r.vdb.SuccessfulBuildOutputs(ctx, buildID)
+	if err != nil {
+		tracing.End(span, err)
+		return false, err
+	}
+
+	restore := map[int]*versionCandidate{}
+	var mismatch bool
+
+	// loop over the resource versions that came out of this build set
+outputs:
+	for _, output := range outputs {
+		// try to pin each candidate to the versions from this build
+		for c, candidate := range r.candidates {
+			if _, ok := restore[c]; ok {
+				// we have already set a new version for this candidate within this
+				// build, so continue attempting the existing version
+				continue
+			}
+
+			var related bool
+			related, mismatch, err = r.outputIsRelatedAndMatches(ctx, span, output, c, jobID)
+			if err != nil {
+				tracing.End(span, err)
+				return false, err
+			}
+
+			if mismatch {
+				// build contained a different version than the one we already have for
+				// that candidate, so let's try a different build
+				break outputs
+			} else if !related {
+				// output is not even relevant to this candidate; move on
+				continue
+			}
+
+			// if this doesn't work out, restore it to either nil or the
+			// candidate *without* the job vouching for it
+			restore[c] = candidate
+
+			span.AddEvent(
+				ctx,
+				"vouching for candidate",
+				key.New("resourceID").Int(output.ResourceID),
+				key.New("version").String(string(output.Version)),
+			)
+
+			r.candidates[c] = r.vouchForCandidate(candidate, output.Version, jobID, buildID, hasNext)
+		}
+	}
+
+	// we found a candidate for ourselves and the rest are OK too - recurse
+	if r.candidates[resolvingIdx] != nil && r.candidates[resolvingIdx].VouchedForBy[jobID] && !mismatch {
+		worked, _, err := r.tryResolve(ctx)
+		if err != nil {
+			tracing.End(span, err)
+			return false, err
+		}
+
+		if worked {
+			// this build's candidates satisfied everything else!
+			span.SetStatus(codes.OK)
+			return true, nil
+		}
+	}
+
+	for c, candidate := range restore {
+		// either there was a mismatch or resolving didn't work; go on to the
+		// next output set
+		r.candidates[c] = candidate
+	}
+
+	span.SetStatus(codes.InvalidArgument)
+	return false, nil
+}
+
+func (r *groupResolver) paginatedBuilds(ctx context.Context, currentInputConfig InputConfig, currentCandidate *versionCandidate, currentJobID int, passedJobID int) (db.PaginatedBuilds, bool, error) {
 	constraints := r.constrainingCandidates(passedJobID)
 
 	if currentInputConfig.UseEveryVersion {
 		if r.lastUsedPassedBuilds == nil {
 			lastUsedBuildIDs := map[int]int{}
 
-			r.debug.log("querying for latest build for job", currentJobID)
-			buildID, found, err := r.vdb.LatestBuildID(currentJobID)
+			buildID, found, err := r.vdb.LatestBuildID(ctx, currentJobID)
 			if err != nil {
 				return db.PaginatedBuilds{}, false, err
 			}
 
 			if found {
-				r.debug.log("querying for latest build pipes for job", currentJobID)
-				lastUsedBuildIDs, err = r.vdb.LatestBuildPipes(buildID)
+				lastUsedBuildIDs, err = r.vdb.LatestBuildPipes(ctx, buildID)
 				if err != nil {
 					return db.PaginatedBuilds{}, false, err
 				}
@@ -219,9 +328,9 @@ func (r *groupResolver) paginatedBuilds(currentInputConfig InputConfig, currentC
 			var err error
 
 			if currentCandidate != nil {
-				paginatedBuilds, err = r.vdb.UnusedBuildsVersionConstrained(lastUsedBuildID, passedJobID, constraints)
+				paginatedBuilds, err = r.vdb.UnusedBuildsVersionConstrained(ctx, lastUsedBuildID, passedJobID, constraints)
 			} else {
-				paginatedBuilds, err = r.vdb.UnusedBuilds(lastUsedBuildID, passedJobID)
+				paginatedBuilds, err = r.vdb.UnusedBuilds(ctx, lastUsedBuildID, passedJobID)
 			}
 
 			return paginatedBuilds, false, err
@@ -233,7 +342,6 @@ func (r *groupResolver) paginatedBuilds(currentInputConfig InputConfig, currentC
 			//
 			// this job will eventually vouch for it during the recursive resolve
 			// call
-			r.debug.log("skipping passed job", passedJobID)
 			return db.PaginatedBuilds{}, true, nil
 		}
 	}
@@ -241,9 +349,9 @@ func (r *groupResolver) paginatedBuilds(currentInputConfig InputConfig, currentC
 	var paginatedBuilds db.PaginatedBuilds
 	var err error
 	if currentCandidate != nil {
-		paginatedBuilds, err = r.vdb.SuccessfulBuildsVersionConstrained(passedJobID, constraints)
+		paginatedBuilds, err = r.vdb.SuccessfulBuildsVersionConstrained(ctx, passedJobID, constraints)
 	} else {
-		paginatedBuilds = r.vdb.SuccessfulBuilds(passedJobID)
+		paginatedBuilds = r.vdb.SuccessfulBuilds(ctx, passedJobID)
 	}
 
 	return paginatedBuilds, false, err
@@ -261,55 +369,58 @@ func (r *groupResolver) constrainingCandidates(passedJobID int) map[string][]str
 	return constrainingCandidates
 }
 
-func (r *groupResolver) outputSatisfyCandidateConstraints(output db.AlgorithmVersion, inputConfig InputConfig, candidate *versionCandidate, passedJobID int) (bool, bool, db.ResolutionFailure, error) {
+func (r *groupResolver) outputIsRelatedAndMatches(ctx context.Context, span trace.Span, output db.AlgorithmVersion, candidateIdx int, passedJobID int) (bool, bool, error) {
+	inputConfig := r.inputConfigs[candidateIdx]
+	candidate := r.candidates[candidateIdx]
+
 	if inputConfig.ResourceID != output.ResourceID {
-		// unrelated to this output because it is a different resource
-		return false, false, "", nil
+		// unrelated; different resource
+		return false, false, nil
 	}
 
 	if !inputConfig.Passed[passedJobID] {
-		// this candidate is unaffected by the current job
-		r.debug.log("independent", inputConfig.Passed, passedJobID)
-		return false, false, "", nil
+		// unrelated; this input is unaffected by the current job
+		return false, false, nil
 	}
 
-	disabled, err := r.vdb.VersionIsDisabled(output.ResourceID, output.Version)
+	if candidate != nil && candidate.Version != output.Version {
+		// we have already chosen a version for the candidate but it's different
+		// from the version provided by this output
+		return false, true, nil
+	}
+
+	disabled, err := r.vdb.VersionIsDisabled(ctx, output.ResourceID, output.Version)
 	if err != nil {
-		return false, false, "", err
+		return false, false, err
 	}
 
 	if disabled {
 		// this version is disabled so it cannot be used
-		r.debug.log("disabled", output.Version, passedJobID)
-		return false, false, "", nil
+		span.AddEvent(
+			ctx,
+			"version disabled",
+			key.New("resourceID").Int(output.ResourceID),
+			key.New("version").String(string(output.Version)),
+		)
+		return false, false, nil
 	}
 
-	if inputConfig.PinnedVersion != nil {
-		version, found, err := r.vdb.FindVersionOfResource(inputConfig.ResourceID, inputConfig.PinnedVersion)
-		if err != nil {
-			return false, false, "", err
-		}
+	if inputConfig.PinnedVersion != nil && r.pins[candidateIdx] != output.Version {
+		// input is both pinned and assigned a 'passed' constraint, but the pinned
+		// version doesn't match the job's output version
 
-		if !found {
-			return false, false, db.PinnedVersionNotFound{PinnedVersion: inputConfig.PinnedVersion}.String(), nil
-		}
+		span.AddEvent(
+			ctx,
+			"pin mismatch",
+			key.New("resourceID").Int(output.ResourceID),
+			key.New("outputHas").String(string(output.Version)),
+			key.New("pinHas").String(string(r.pins[candidateIdx])),
+		)
 
-		if version != output.Version {
-			// this input has a pinned constraint and this version does not match the
-			// required pinned version
-			r.debug.log("mismatch pinned version", output.Version, passedJobID)
-			return false, true, "", nil
-		}
+		return false, false, nil
 	}
 
-	if candidate != nil && candidate.Version != output.Version {
-		// don't return here! just try the next output set. it's possible
-		// we just need to use an older output set.
-		r.debug.log("mismatch candidate version", candidate.Version, "comparing to output version", output.Version)
-		return false, true, "", nil
-	}
-
-	return true, false, "", nil
+	return true, false, nil
 }
 
 func (r *groupResolver) vouchForCandidate(oldCandidate *versionCandidate, version db.ResourceVersion, passedJobID int, passedBuildID int, hasNext bool) *versionCandidate {

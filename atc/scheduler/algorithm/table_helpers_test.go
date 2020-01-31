@@ -2,6 +2,7 @@ package algorithm_test
 
 import (
 	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
@@ -15,9 +16,12 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
+	"github.com/concourse/concourse/tracing"
 	"github.com/lib/pq"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
+	"go.opentelemetry.io/otel/api/key"
 )
 
 type DB struct {
@@ -499,7 +503,14 @@ func (example Example) assert(
 	jobInputs []atc.JobInput,
 	resources db.Resources,
 ) {
-	resolved, ok, hasNext, resolvedErr := alg.Compute(job, jobInputs, resources, algorithm.NameToIDMap(setup.jobIDs))
+	currentTest := ginkgo.CurrentGinkgoTestDescription()
+
+	ctx, span := tracing.StartSpan(context.Background(), currentTest.TestText, tracing.Attrs{})
+	defer span.End()
+
+	span.SetAttributes(key.New("seed").Int64(ginkgo.GinkgoRandomSeed()))
+
+	resolved, ok, hasNext, resolvedErr := alg.Compute(ctx, job, jobInputs, resources, algorithm.NameToIDMap(setup.jobIDs))
 	if example.Error != nil {
 		Expect(resolvedErr).To(Equal(example.Error))
 	} else {
