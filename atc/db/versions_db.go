@@ -72,7 +72,7 @@ func (versions VersionsDB) LatestVersionOfResource(ctx context.Context, resource
 }
 
 func (versions VersionsDB) SuccessfulBuilds(ctx context.Context, jobID int) PaginatedBuilds {
-	builder := psql.Select("id").
+	builder := psql.Select("id", "rerun_of").
 		From("builds").
 		Where(sq.Eq{
 			"job_id": jobID,
@@ -100,7 +100,7 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(
 		return PaginatedBuilds{}, err
 	}
 
-	builder := psql.Select("build_id").
+	builder := psql.Select("build_id", "rerun_of").
 		From("successful_build_outputs").
 		Where(sq.Expr("outputs @> ?::jsonb", versionsJSON)).
 		Where(sq.Eq{
@@ -428,8 +428,7 @@ func (versions VersionsDB) LatestBuildPipes(ctx context.Context, buildID int) (m
 }
 
 func (versions VersionsDB) UnusedBuilds(ctx context.Context, buildID int, jobID int) (PaginatedBuilds, error) {
-	var buildIDs []int
-	rows, err := psql.Select("id").
+	rows, err := psql.Select("id", "rerun_of").
 		From("builds").
 		Where(sq.And{
 			sq.Eq{
@@ -462,18 +461,18 @@ func (versions VersionsDB) UnusedBuilds(ctx context.Context, buildID int, jobID 
 		return PaginatedBuilds{}, err
 	}
 
+	var builds []pagedBuild
 	for rows.Next() {
-		var buildID int
-
-		err = rows.Scan(&buildID)
+		var build pagedBuild
+		err = rows.Scan(&build.id, &build.rerunOf)
 		if err != nil {
 			return PaginatedBuilds{}, err
 		}
 
-		buildIDs = append(buildIDs, buildID)
+		builds = append(builds, build)
 	}
 
-	builder := psql.Select("id").
+	builder := psql.Select("id", "rerun_of").
 		From("builds").
 		Where(sq.And{
 			sq.LtOrEq{"id": buildID},
@@ -486,7 +485,7 @@ func (versions VersionsDB) UnusedBuilds(ctx context.Context, buildID int, jobID 
 
 	return PaginatedBuilds{
 		builder:      builder,
-		buildIDs:     buildIDs,
+		builds:       builds,
 		unusedBuilds: true,
 
 		column: "id",
@@ -498,13 +497,12 @@ func (versions VersionsDB) UnusedBuilds(ctx context.Context, buildID int, jobID 
 }
 
 func (versions VersionsDB) UnusedBuildsVersionConstrained(ctx context.Context, buildID int, jobID int, constrainingCandidates map[string][]string) (PaginatedBuilds, error) {
-	var buildIDs []int
 	versionsJSON, err := json.Marshal(constrainingCandidates)
 	if err != nil {
 		return PaginatedBuilds{}, err
 	}
 
-	rows, err := psql.Select("id").
+	rows, err := psql.Select("id", "rerun_of").
 		From("builds").
 		Where(sq.And{
 			sq.Eq{
@@ -537,18 +535,18 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(ctx context.Context, b
 		return PaginatedBuilds{}, err
 	}
 
+	var builds []pagedBuild
 	for rows.Next() {
-		var buildID int
-
-		err = rows.Scan(&buildID)
+		var build pagedBuild
+		err = rows.Scan(&build.id, &build.rerunOf)
 		if err != nil {
 			return PaginatedBuilds{}, err
 		}
 
-		buildIDs = append(buildIDs, buildID)
+		builds = append(builds, build)
 	}
 
-	builder := psql.Select("build_id").
+	builder := psql.Select("build_id", "rerun_of").
 		From("successful_build_outputs").
 		Where(sq.Expr("outputs @> ?::jsonb", versionsJSON)).
 		Where(sq.Eq{
@@ -561,7 +559,7 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(ctx context.Context, b
 
 	return PaginatedBuilds{
 		builder:      builder,
-		buildIDs:     buildIDs,
+		builds:       builds,
 		unusedBuilds: true,
 
 		column: "build_id",
@@ -646,12 +644,17 @@ func (versions VersionsDB) migrateSingle(ctx context.Context, buildID int) (stri
 	return outputs, nil
 }
 
+type pagedBuild struct {
+	id      int
+	rerunOf sql.NullInt64
+}
+
 type PaginatedBuilds struct {
 	builder sq.SelectBuilder
 	column  string
 
 	unusedBuilds bool
-	buildIDs     []int
+	builds       []pagedBuild
 	offset       int
 
 	jobID int
@@ -661,29 +664,26 @@ type PaginatedBuilds struct {
 }
 
 func (bs *PaginatedBuilds) Next(ctx context.Context) (int, bool, error) {
-	if bs.offset+1 > len(bs.buildIDs) {
+	if bs.offset+1 > len(bs.builds) {
 		for {
 			builder := bs.builder
 
-			if len(bs.buildIDs) > 0 {
-				builder = bs.builder.Where(sq.Or{
-					sq.And{
-						sq.Lt{
-							"rerun_of": bs.buildIDs[len(bs.buildIDs)-1],
+			if len(bs.builds) > 0 {
+				pageBoundary := bs.builds[len(bs.builds)-1]
+
+				if pageBoundary.rerunOf.Valid {
+					builder = bs.builder.Where(sq.Or{
+						sq.Expr("COALESCE(rerun_of, "+bs.column+") < ?", pageBoundary.rerunOf.Int64),
+						sq.And{
+							sq.Eq{"rerun_of": pageBoundary.rerunOf.Int64},
+							sq.Lt{bs.column: pageBoundary.id},
 						},
-						sq.NotEq{
-							"rerun_of": nil,
-						},
-					},
-					sq.And{
-						sq.Lt{
-							bs.column: bs.buildIDs[len(bs.buildIDs)-1],
-						},
-						sq.Eq{
-							"rerun_of": nil,
-						},
-					},
-				})
+					})
+				} else {
+					builder = bs.builder.Where(
+						sq.Expr("COALESCE(rerun_of, "+bs.column+") < ?", pageBoundary.id),
+					)
+				}
 			}
 
 			rows, err := builder.
@@ -694,19 +694,18 @@ func (bs *PaginatedBuilds) Next(ctx context.Context) (int, bool, error) {
 				return 0, false, err
 			}
 
-			buildIDs := []int{}
+			builds := []pagedBuild{}
 			for rows.Next() {
-				var buildID int
-
-				err = rows.Scan(&buildID)
+				var build pagedBuild
+				err = rows.Scan(&build.id, &build.rerunOf)
 				if err != nil {
 					return 0, false, err
 				}
 
-				buildIDs = append(buildIDs, buildID)
+				builds = append(builds, build)
 			}
 
-			if len(buildIDs) == 0 {
+			if len(builds) == 0 {
 				migrated, err := bs.migrateLimit(ctx)
 				if err != nil {
 					return 0, false, err
@@ -716,7 +715,7 @@ func (bs *PaginatedBuilds) Next(ctx context.Context) (int, bool, error) {
 					return 0, false, nil
 				}
 			} else {
-				bs.buildIDs = buildIDs
+				bs.builds = builds
 				bs.offset = 0
 				bs.unusedBuilds = false
 				break
@@ -724,14 +723,14 @@ func (bs *PaginatedBuilds) Next(ctx context.Context) (int, bool, error) {
 		}
 	}
 
-	id := bs.buildIDs[bs.offset]
+	build := bs.builds[bs.offset]
 	bs.offset++
 
-	return id, true, nil
+	return build.id, true, nil
 }
 
 func (bs *PaginatedBuilds) HasNext() bool {
-	return bs.unusedBuilds && len(bs.buildIDs)-bs.offset+1 > 0
+	return bs.unusedBuilds && len(bs.builds)-bs.offset+1 > 0
 }
 
 // Migrates a fixed limit of builds for a job
