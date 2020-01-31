@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/metrics"
 )
 
 // volumeSweeper is an ifrit.Runner that periodically reports and
@@ -88,6 +89,12 @@ func (sweeper *volumeSweeper) sweep(logger lager.Logger) {
 				if err != nil {
 					logger.WithData(lager.Data{"handle": handle}).Error("failed-to-destroy-volume", err)
 				}
+
+				metrics.Counter("volumes_swept").Add(
+					context.Background(),
+					int64(1),
+					nil,
+				)
 
 				<-maxInFlight
 				wg.Done()

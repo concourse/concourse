@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/worker/gclient"
+	"github.com/concourse/concourse/metrics"
 )
 
 // ContainerSweeper is an ifrit.Runner that periodically reports and
@@ -90,6 +91,13 @@ func (sweeper *ContainerSweeper) sweep(logger lager.Logger) {
 					logger.WithData(lager.Data{"handle": handle}).Error("failed-to-destroy-container", err)
 				}
 				<-maxInFlight
+
+				metrics.Counter("containers_swept").Add(
+					context.Background(),
+					int64(1),
+					nil,
+				)
+
 				wg.Done()
 			}(handle)
 		}
