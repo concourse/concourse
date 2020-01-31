@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	concourseCmd "github.com/concourse/concourse/cmd"
+	"github.com/concourse/concourse/metrics"
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
@@ -56,6 +57,12 @@ type WorkerCommand struct {
 
 	Containerd ContainerdRuntime `group:"Containerd Configuration" namespace:"containerd"`
 
+	Metric struct {
+		Prometheus metrics.Prometheus
+		Dogstatsd  metrics.Dogstatsd
+		Stdout     metrics.Stdout
+	} `group:"metrics" namespace:"metrics"`
+
 	ExternalGardenURL flag.URL `long:"external-garden-url" description:"API endpoint of an externally managed Garden server to use instead of running the embedded Garden server."`
 
 	Baggageclaim baggageclaimcmd.BaggageclaimCommand `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
@@ -91,6 +98,18 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	baggageclaimRunner, err := cmd.baggageclaimRunner(logger.Session("baggageclaim"))
 	if err != nil {
 		return nil, err
+	}
+
+	switch {
+	case cmd.Metric.Prometheus.IsConfigured():
+		err = cmd.Metric.Prometheus.Init()
+	case cmd.Metric.Dogstatsd.IsConfigured():
+		err = cmd.Metric.Dogstatsd.Init()
+	case cmd.Metric.Stdout.IsConfigured():
+		err = cmd.Metric.Stdout.Init()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("configuring metrics exporter: %w", err)
 	}
 
 	healthChecker := worker.NewHealthChecker(
