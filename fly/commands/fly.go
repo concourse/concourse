@@ -55,6 +55,7 @@ type FlyCommand struct {
 	ValidatePipeline ValidatePipelineCommand `command:"validate-pipeline"   alias:"vp"   description:"Validate a pipeline config"`
 	FormatPipeline   FormatPipelineCommand   `command:"format-pipeline"     alias:"fp"   description:"Format a pipeline config"`
 	OrderPipelines   OrderPipelinesCommand   `command:"order-pipelines"     alias:"op"   description:"Orders pipelines"`
+	PipelineOverview PipelineOverviewCommand `command:"pipeline-overview"   alias:"po"   description:"Gives a GUI esq pipeline overview"`
 
 	Resources              ResourcesCommand              `command:"resources"                  alias:"rs"   description:"List the resources in the pipeline"`
 	ResourceVersions       ResourceVersionsCommand       `command:"resource-versions"          alias:"rvs"  description:"List the versions of a resource"`
