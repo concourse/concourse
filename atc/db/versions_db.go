@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -28,7 +29,7 @@ func NewVersionsDB(conn Conn, limitRows int, cache *gocache.Cache) VersionsDB {
 	}
 }
 
-func (versions VersionsDB) VersionIsDisabled(resourceID int, versionMD5 ResourceVersion) (bool, error) {
+func (versions VersionsDB) VersionIsDisabled(ctx context.Context, resourceID int, versionMD5 ResourceVersion) (bool, error) {
 	var exists bool
 	err := versions.conn.QueryRow(`
 		SELECT EXISTS (
@@ -45,7 +46,7 @@ func (versions VersionsDB) VersionIsDisabled(resourceID int, versionMD5 Resource
 	return exists, nil
 }
 
-func (versions VersionsDB) LatestVersionOfResource(resourceID int) (ResourceVersion, bool, error) {
+func (versions VersionsDB) LatestVersionOfResource(ctx context.Context, resourceID int) (ResourceVersion, bool, error) {
 	tx, err := versions.conn.Begin()
 	if err != nil {
 		return "", false, err
@@ -53,7 +54,7 @@ func (versions VersionsDB) LatestVersionOfResource(resourceID int) (ResourceVers
 
 	defer tx.Rollback()
 
-	version, found, err := versions.latestVersionOfResource(tx, resourceID)
+	version, found, err := versions.latestVersionOfResource(ctx, tx, resourceID)
 	if err != nil {
 		return "", false, err
 	}
@@ -70,7 +71,7 @@ func (versions VersionsDB) LatestVersionOfResource(resourceID int) (ResourceVers
 	return version, true, nil
 }
 
-func (versions VersionsDB) SuccessfulBuilds(jobID int) PaginatedBuilds {
+func (versions VersionsDB) SuccessfulBuilds(ctx context.Context, jobID int) PaginatedBuilds {
 	builder := psql.Select("id").
 		From("builds").
 		Where(sq.Eq{
@@ -89,7 +90,11 @@ func (versions VersionsDB) SuccessfulBuilds(jobID int) PaginatedBuilds {
 	}
 }
 
-func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, constrainingCandidates map[string][]string) (PaginatedBuilds, error) {
+func (versions VersionsDB) SuccessfulBuildsVersionConstrained(
+	ctx context.Context,
+	jobID int,
+	constrainingCandidates map[string][]string,
+) (PaginatedBuilds, error) {
 	versionsJSON, err := json.Marshal(constrainingCandidates)
 	if err != nil {
 		return PaginatedBuilds{}, err
@@ -113,13 +118,13 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(jobID int, constra
 	}, nil
 }
 
-func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) {
+func (versions VersionsDB) BuildOutputs(ctx context.Context, buildID int) ([]AlgorithmOutput, error) {
 	uniqOutputs := map[string]AlgorithmOutput{}
 	rows, err := psql.Select("name", "resource_id", "version_md5").
 		From("build_resource_config_version_inputs").
 		Where(sq.Eq{"build_id": buildID}).
 		RunWith(versions.conn).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +143,7 @@ func (versions VersionsDB) BuildOutputs(buildID int) ([]AlgorithmOutput, error) 
 		From("build_resource_config_version_outputs").
 		Where(sq.Eq{"build_id": buildID}).
 		RunWith(versions.conn).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +175,7 @@ type resourceOutputs struct {
 	Versions   []string
 }
 
-func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersion, error) {
+func (versions VersionsDB) SuccessfulBuildOutputs(ctx context.Context, buildID int) ([]AlgorithmVersion, error) {
 	cacheKey := fmt.Sprintf("o%d", buildID)
 
 	c, found := versions.cache.Get(cacheKey)
@@ -183,11 +188,11 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersi
 		From("successful_build_outputs").
 		Where(sq.Eq{"build_id": buildID}).
 		RunWith(versions.conn).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&outputsJSON)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			outputsJSON, err = versions.migrateSingle(buildID)
+			outputsJSON, err = versions.migrateSingle(ctx, buildID)
 			if err != nil {
 				return nil, err
 			}
@@ -234,7 +239,7 @@ func (versions VersionsDB) SuccessfulBuildOutputs(buildID int) ([]AlgorithmVersi
 	return algorithmOutputs, nil
 }
 
-func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) (ResourceVersion, bool, error) {
+func (versions VersionsDB) FindVersionOfResource(ctx context.Context, resourceID int, v atc.Version) (ResourceVersion, bool, error) {
 	versionJSON, err := json.Marshal(v)
 	if err != nil {
 		return "", false, nil
@@ -256,7 +261,7 @@ func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) 
 		}).
 		Where(sq.Expr("rcv.version_md5 = md5(?)", versionJSON)).
 		RunWith(versions.conn).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&version)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -270,7 +275,7 @@ func (versions VersionsDB) FindVersionOfResource(resourceID int, v atc.Version) 
 	return version, true, err
 }
 
-func (versions VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
+func (versions VersionsDB) LatestBuildID(ctx context.Context, jobID int) (int, bool, error) {
 	var buildID int
 	err := psql.Select("b.id").
 		From("builds b").
@@ -282,7 +287,7 @@ func (versions VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
 		OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
 		Limit(100).
 		RunWith(versions.conn).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&buildID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -294,7 +299,7 @@ func (versions VersionsDB) LatestBuildID(jobID int) (int, bool, error) {
 	return buildID, true, nil
 }
 
-func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (ResourceVersion, bool, bool, error) {
+func (versions VersionsDB) NextEveryVersion(ctx context.Context, buildID int, resourceID int) (ResourceVersion, bool, bool, error) {
 	tx, err := versions.conn.Begin()
 	if err != nil {
 		return "", false, false, err
@@ -309,11 +314,11 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 		Where(sq.Expr("i.version_md5 = rcv.version_md5")).
 		Where(sq.Eq{"i.build_id": buildID}).
 		RunWith(tx).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&checkOrder)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			version, found, err := versions.latestVersionOfResource(tx, resourceID)
+			version, found, err := versions.latestVersionOfResource(ctx, tx, resourceID)
 			if err != nil {
 				return "", false, false, err
 			}
@@ -342,7 +347,7 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 		OrderBy("rcv.check_order ASC").
 		Limit(2).
 		RunWith(tx).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return "", false, false, err
 	}
@@ -376,7 +381,7 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 		OrderBy("rcv.check_order DESC").
 		Limit(1).
 		RunWith(tx).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&nextVersion)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -393,7 +398,7 @@ func (versions VersionsDB) NextEveryVersion(buildID int, resourceID int) (Resour
 	return nextVersion, false, true, nil
 }
 
-func (versions VersionsDB) LatestBuildPipes(buildID int) (map[int]int, error) {
+func (versions VersionsDB) LatestBuildPipes(ctx context.Context, buildID int) (map[int]int, error) {
 	rows, err := psql.Select("p.from_build_id", "b.job_id").
 		From("build_pipes p").
 		Join("builds b ON b.id = p.from_build_id").
@@ -401,7 +406,7 @@ func (versions VersionsDB) LatestBuildPipes(buildID int) (map[int]int, error) {
 			"p.to_build_id": buildID,
 		}).
 		RunWith(versions.conn).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -422,7 +427,7 @@ func (versions VersionsDB) LatestBuildPipes(buildID int) (map[int]int, error) {
 	return jobToBuildPipes, nil
 }
 
-func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds, error) {
+func (versions VersionsDB) UnusedBuilds(ctx context.Context, buildID int, jobID int) (PaginatedBuilds, error) {
 	var buildIDs []int
 	rows, err := psql.Select("id").
 		From("builds").
@@ -452,7 +457,7 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 		}).
 		OrderBy("COALESCE(rerun_of, id) ASC, id ASC").
 		RunWith(versions.conn).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return PaginatedBuilds{}, err
 	}
@@ -492,7 +497,7 @@ func (versions VersionsDB) UnusedBuilds(buildID int, jobID int) (PaginatedBuilds
 	}, nil
 }
 
-func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int, constrainingCandidates map[string][]string) (PaginatedBuilds, error) {
+func (versions VersionsDB) UnusedBuildsVersionConstrained(ctx context.Context, buildID int, jobID int, constrainingCandidates map[string][]string) (PaginatedBuilds, error) {
 	var buildIDs []int
 	versionsJSON, err := json.Marshal(constrainingCandidates)
 	if err != nil {
@@ -527,7 +532,7 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 		}).
 		OrderBy("COALESCE(rerun_of, id) ASC, id ASC").
 		RunWith(versions.conn).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return PaginatedBuilds{}, err
 	}
@@ -568,13 +573,13 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(buildID int, jobID int
 
 }
 
-func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (ResourceVersion, bool, error) {
+func (versions VersionsDB) latestVersionOfResource(ctx context.Context, tx Tx, resourceID int) (ResourceVersion, bool, error) {
 	var scopeID sql.NullInt64
 	err := psql.Select("resource_config_scope_id").
 		From("resources").
 		Where(sq.Eq{"id": resourceID}).
 		RunWith(tx).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&scopeID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -595,7 +600,7 @@ func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (Resou
 		OrderBy("check_order DESC").
 		Limit(1).
 		RunWith(tx).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&version)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -608,9 +613,9 @@ func (versions VersionsDB) latestVersionOfResource(tx Tx, resourceID int) (Resou
 }
 
 // Migrates a single build into the successful build outputs table.
-func (versions VersionsDB) migrateSingle(buildID int) (string, error) {
+func (versions VersionsDB) migrateSingle(ctx context.Context, buildID int) (string, error) {
 	var outputs string
-	err := versions.conn.QueryRow(`
+	err := versions.conn.QueryRowContext(ctx, `
 		WITH builds_to_migrate AS (
 			UPDATE builds
 			SET needs_v6_migration = false
@@ -655,7 +660,7 @@ type PaginatedBuilds struct {
 	conn      Conn
 }
 
-func (bs *PaginatedBuilds) Next() (int, bool, error) {
+func (bs *PaginatedBuilds) Next(ctx context.Context) (int, bool, error) {
 	if bs.offset+1 > len(bs.buildIDs) {
 		for {
 			builder := bs.builder
@@ -684,7 +689,7 @@ func (bs *PaginatedBuilds) Next() (int, bool, error) {
 			rows, err := builder.
 				Limit(uint64(bs.limitRows)).
 				RunWith(bs.conn).
-				Query()
+				QueryContext(ctx)
 			if err != nil {
 				return 0, false, err
 			}
@@ -702,7 +707,7 @@ func (bs *PaginatedBuilds) Next() (int, bool, error) {
 			}
 
 			if len(buildIDs) == 0 {
-				migrated, err := bs.migrateLimit()
+				migrated, err := bs.migrateLimit(ctx)
 				if err != nil {
 					return 0, false, err
 				}
@@ -714,7 +719,6 @@ func (bs *PaginatedBuilds) Next() (int, bool, error) {
 				bs.buildIDs = buildIDs
 				bs.offset = 0
 				bs.unusedBuilds = false
-
 				break
 			}
 		}
@@ -731,7 +735,7 @@ func (bs *PaginatedBuilds) HasNext() bool {
 }
 
 // Migrates a fixed limit of builds for a job
-func (bs *PaginatedBuilds) migrateLimit() (bool, error) {
+func (bs *PaginatedBuilds) migrateLimit(ctx context.Context) (bool, error) {
 	buildsToMigrateQueryBuilder := psql.Select("id", "job_id", "rerun_of").
 		From("builds").
 		Where(sq.Eq{
@@ -742,16 +746,16 @@ func (bs *PaginatedBuilds) migrateLimit() (bool, error) {
 		OrderBy("COALESCE(rerun_of, id) DESC, id DESC").
 		Limit(uint64(bs.limitRows))
 
-	return migrate(bs.conn, buildsToMigrateQueryBuilder)
+	return migrate(ctx, bs.conn, buildsToMigrateQueryBuilder)
 }
 
-func migrate(conn Conn, buildsToMigrateQueryBuilder sq.SelectBuilder) (bool, error) {
+func migrate(ctx context.Context, conn Conn, buildsToMigrateQueryBuilder sq.SelectBuilder) (bool, error) {
 	buildsToMigrateQuery, params, err := buildsToMigrateQueryBuilder.ToSql()
 	if err != nil {
 		return false, err
 	}
 
-	results, err := conn.Exec(`
+	results, err := conn.ExecContext(ctx, `
 		WITH builds_to_migrate AS (`+buildsToMigrateQuery+`), migrated_outputs AS (
 			INSERT INTO successful_build_outputs (
 				SELECT bm.id, bm.job_id, json_object_agg(sp.resource_id, sp.v), bm.rerun_of
