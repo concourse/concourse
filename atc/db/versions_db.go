@@ -11,7 +11,10 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/tracing"
 	gocache "github.com/patrickmn/go-cache"
+	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 type VersionsDB struct {
@@ -567,8 +570,12 @@ func (versions VersionsDB) latestVersionOfResource(ctx context.Context, tx Tx, r
 	return version, true, nil
 }
 
-// Migrates a single build into the successful build outputs table.
 func (versions VersionsDB) migrateSingle(ctx context.Context, buildID int) (string, error) {
+	ctx, span := tracing.StartSpan(ctx, "VersionsDB.migrateSingle", tracing.Attrs{})
+	defer span.End()
+
+	span.SetAttributes(key.New("buildID").Int(buildID))
+
 	var outputs string
 	err := versions.conn.QueryRowContext(ctx, `
 		WITH builds_to_migrate AS (
@@ -583,20 +590,30 @@ func (versions VersionsDB) migrateSingle(ctx context.Context, buildID int) (stri
 					SELECT build_id, resource_id, json_agg(version_md5) AS v
 					FROM (
 						(
-							SELECT build_id, resource_id, version_md5 FROM build_resource_config_version_outputs o WHERE o.build_id = $1
+							SELECT build_id, resource_id, version_md5
+							FROM build_resource_config_version_outputs o
+							WHERE o.build_id = $1
 						)
 						UNION ALL
 						(
-							SELECT build_id, resource_id, version_md5 FROM build_resource_config_version_inputs i WHERE i.build_id = $1
+							SELECT build_id, resource_id, version_md5
+							FROM build_resource_config_version_inputs i
+							WHERE i.build_id = $1
 						)
 				) AS agg GROUP BY build_id, resource_id) sp ON sp.build_id = b.id
 				WHERE b.id = $1
 				GROUP BY b.id, b.job_id, b.rerun_of
-			) ON CONFLICT (build_id) DO UPDATE SET outputs = EXCLUDED.outputs RETURNING outputs`, buildID).
+			)
+			ON CONFLICT (build_id) DO UPDATE SET outputs = EXCLUDED.outputs
+			RETURNING outputs
+		`, buildID).
 		Scan(&outputs)
 	if err != nil {
+		tracing.End(span, err)
 		return "", err
 	}
+
+	span.AddEvent(ctx, "build migrated")
 
 	return outputs, nil
 }
@@ -705,8 +722,12 @@ func (bs *PaginatedBuilds) HasNext() bool {
 	return bs.unusedBuilds && len(bs.builds)-bs.offset+1 > 0
 }
 
-// Migrates a fixed limit of builds for a job
 func (bs *PaginatedBuilds) migrateLimit(ctx context.Context) (bool, error) {
+	ctx, span := tracing.StartSpan(ctx, "PaginatedBuilds.migrateLimit", tracing.Attrs{})
+	defer span.End()
+
+	span.SetAttributes(key.New("jobID").Int(bs.jobID))
+
 	buildsToMigrateQueryBuilder := psql.Select("id", "job_id", "rerun_of").
 		From("builds").
 		Where(sq.Eq{
@@ -717,16 +738,13 @@ func (bs *PaginatedBuilds) migrateLimit(ctx context.Context) (bool, error) {
 		OrderBy("COALESCE(rerun_of, id) DESC, id DESC").
 		Limit(uint64(bs.limitRows))
 
-	return migrate(ctx, bs.conn, buildsToMigrateQueryBuilder)
-}
-
-func migrate(ctx context.Context, conn Conn, buildsToMigrateQueryBuilder sq.SelectBuilder) (bool, error) {
 	buildsToMigrateQuery, params, err := buildsToMigrateQueryBuilder.ToSql()
 	if err != nil {
+		tracing.End(span, err)
 		return false, err
 	}
 
-	results, err := conn.ExecContext(ctx, `
+	results, err := bs.conn.ExecContext(ctx, `
 		WITH builds_to_migrate AS (`+buildsToMigrateQuery+`), migrated_outputs AS (
 			INSERT INTO successful_build_outputs (
 				SELECT bm.id, bm.job_id, json_object_agg(sp.resource_id, sp.v), bm.rerun_of
@@ -735,11 +753,15 @@ func migrate(ctx context.Context, conn Conn, buildsToMigrateQueryBuilder sq.Sele
 					SELECT build_id, resource_id, json_agg(version_md5) AS v
 					FROM (
 						(
-							SELECT build_id, resource_id, version_md5 FROM build_resource_config_version_outputs o JOIN builds_to_migrate bm ON bm.id = o.build_id
+							SELECT build_id, resource_id, version_md5
+							FROM build_resource_config_version_outputs o
+							JOIN builds_to_migrate bm ON bm.id = o.build_id
 						)
 						UNION ALL
 						(
-							SELECT build_id, resource_id, version_md5 FROM build_resource_config_version_inputs i JOIN builds_to_migrate bm ON bm.id = i.build_id
+							SELECT build_id, resource_id, version_md5
+							FROM build_resource_config_version_inputs i
+							JOIN builds_to_migrate bm ON bm.id = i.build_id
 						)
 				) AS agg GROUP BY build_id, resource_id) sp ON sp.build_id = bm.id
 				GROUP BY bm.id, bm.job_id, bm.rerun_of
@@ -747,15 +769,24 @@ func migrate(ctx context.Context, conn Conn, buildsToMigrateQueryBuilder sq.Sele
 		)
 		UPDATE builds
 		SET needs_v6_migration = false
-		WHERE id IN (SELECT id FROM builds_to_migrate)`, params...)
+		WHERE id IN (SELECT id FROM builds_to_migrate)
+	`, params...)
 	if err != nil {
+		tracing.End(span, err)
 		return false, err
 	}
 
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
+		tracing.End(span, err)
 		return false, err
 	}
+
+	trace.SpanFromContext(ctx).AddEvent(
+		ctx,
+		"builds migrated",
+		key.New("rows").Int64(rowsAffected),
+	)
 
 	if rowsAffected == 0 {
 		return false, nil
