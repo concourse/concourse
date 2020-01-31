@@ -9,6 +9,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/metrics"
 	"github.com/concourse/concourse/tsa"
 )
 
@@ -197,11 +198,25 @@ func (beacon *Beacon) registerWorker(
 
 			RegisteredFunc: func() {
 				logger.Info("registered")
+
+				metrics.Counter("registrations").Add(
+					context.Background(),
+					int64(1),
+					nil,
+				)
+
 				once.Do(func() { close(registeredOrFailed) })
 			},
 
 			HeartbeatedFunc: func() {
 				logger.Debug("heartbeated")
+
+				metrics.Counter("heartbeats").Add(
+					context.Background(),
+					int64(1),
+					nil,
+				)
+
 			},
 		})
 
