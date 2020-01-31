@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
+
+	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/policy"
 )
@@ -24,8 +25,8 @@ func init() {
 func (c *OpaConfig) Description() string { return "Open Policy Agent" }
 func (c *OpaConfig) IsConfigured() bool  { return c.URL != "" }
 
-func (c *OpaConfig) NewAgent() (policy.Agent, error) {
-	return opa{*c}, nil
+func (c *OpaConfig) NewAgent(logger lager.Logger) (policy.Agent, error) {
+	return opa{*c, logger}, nil
 }
 
 type opaInput struct {
@@ -38,13 +39,14 @@ type opaResult struct {
 
 type opa struct {
 	config OpaConfig
+	logger lager.Logger
 }
 
 func (c opa) Check(input policy.PolicyCheckInput) (bool, error) {
 	data := opaInput{input}
 	jsonBytes, err := json.Marshal(data)
 
-	fmt.Fprintf(os.Stderr, "EVAN: policy_input: %s\n", string(jsonBytes))
+	c.logger.Debug("opa-check", lager.Data{"input": string(jsonBytes)})
 
 	req, err := http.NewRequest("POST", c.config.URL, bytes.NewBuffer(jsonBytes))
 	req.Header.Set("Content-Type", "application/json")

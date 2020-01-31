@@ -48,6 +48,8 @@ type PolicyCheckInput struct {
 	Data           interface{} `json:"data,omitempty"`
 }
 
+//go:generate counterfeiter . Checker
+
 // Checker runs filters first, then calls underlying policy agent.
 type Checker interface {
 	// CheckHttpApi returns true if passes policy check. If not goes through
@@ -67,7 +69,7 @@ type Agent interface {
 type AgentFactory interface {
 	Description() string
 	IsConfigured() bool
-	NewAgent() (Agent, error)
+	NewAgent(lager.Logger) (Agent, error)
 }
 
 var agentFactories []AgentFactory
@@ -103,12 +105,12 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 		}
 	}
 	if len(checkerDescriptions) > 1 {
-		return nil, fmt.Errorf("Multiple emitters configured: %s", strings.Join(checkerDescriptions, ", "))
+		return nil, fmt.Errorf("Multiple policy checker configured: %s", strings.Join(checkerDescriptions, ", "))
 	}
 
 	for _, factory := range agentFactories {
 		if factory.IsConfigured() {
-			agent, err := factory.NewAgent()
+			agent, err := factory.NewAgent(logger.Session("policy-checker"))
 			if err != nil {
 				return nil, err
 			}
@@ -129,10 +131,6 @@ type checker struct {
 }
 
 func (c *checker) CheckHttpApi(action string, acc accessor.Access, req *http.Request) (bool, error) {
-	if c == nil {
-		return true, nil
-	}
-
 	// Ignore self invoked API calls.
 	if acc.IsSystem() {
 		return true, nil

@@ -65,13 +65,13 @@ type FakeDelegateFactory struct {
 	putDelegateReturnsOnCall map[int]struct {
 		result1 exec.PutDelegate
 	}
-	TaskDelegateStub        func(db.Build, atc.PlanID, vars.CredVarsTracker, policy.PreChecker) exec.TaskDelegate
+	TaskDelegateStub        func(db.Build, atc.PlanID, vars.CredVarsTracker, policy.Checker) exec.TaskDelegate
 	taskDelegateMutex       sync.RWMutex
 	taskDelegateArgsForCall []struct {
 		arg1 db.Build
 		arg2 atc.PlanID
 		arg3 vars.CredVarsTracker
-		arg4 policy.PreChecker
+		arg4 policy.Checker
 	}
 	taskDelegateReturns struct {
 		result1 exec.TaskDelegate
@@ -331,14 +331,14 @@ func (fake *FakeDelegateFactory) PutDelegateReturnsOnCall(i int, result1 exec.Pu
 	}{result1}
 }
 
-func (fake *FakeDelegateFactory) TaskDelegate(arg1 db.Build, arg2 atc.PlanID, arg3 vars.CredVarsTracker, arg4 policy.PreChecker) exec.TaskDelegate {
+func (fake *FakeDelegateFactory) TaskDelegate(arg1 db.Build, arg2 atc.PlanID, arg3 vars.CredVarsTracker, arg4 policy.Checker) exec.TaskDelegate {
 	fake.taskDelegateMutex.Lock()
 	ret, specificReturn := fake.taskDelegateReturnsOnCall[len(fake.taskDelegateArgsForCall)]
 	fake.taskDelegateArgsForCall = append(fake.taskDelegateArgsForCall, struct {
 		arg1 db.Build
 		arg2 atc.PlanID
 		arg3 vars.CredVarsTracker
-		arg4 policy.PreChecker
+		arg4 policy.Checker
 	}{arg1, arg2, arg3, arg4})
 	fake.recordInvocation("TaskDelegate", []interface{}{arg1, arg2, arg3, arg4})
 	fake.taskDelegateMutex.Unlock()
@@ -358,13 +358,13 @@ func (fake *FakeDelegateFactory) TaskDelegateCallCount() int {
 	return len(fake.taskDelegateArgsForCall)
 }
 
-func (fake *FakeDelegateFactory) TaskDelegateCalls(stub func(db.Build, atc.PlanID, vars.CredVarsTracker, policy.PreChecker) exec.TaskDelegate) {
+func (fake *FakeDelegateFactory) TaskDelegateCalls(stub func(db.Build, atc.PlanID, vars.CredVarsTracker, policy.Checker) exec.TaskDelegate) {
 	fake.taskDelegateMutex.Lock()
 	defer fake.taskDelegateMutex.Unlock()
 	fake.TaskDelegateStub = stub
 }
 
-func (fake *FakeDelegateFactory) TaskDelegateArgsForCall(i int) (db.Build, atc.PlanID, vars.CredVarsTracker, policy.PreChecker) {
+func (fake *FakeDelegateFactory) TaskDelegateArgsForCall(i int) (db.Build, atc.PlanID, vars.CredVarsTracker, policy.Checker) {
 	fake.taskDelegateMutex.RLock()
 	defer fake.taskDelegateMutex.RUnlock()
 	argsForCall := fake.taskDelegateArgsForCall[i]

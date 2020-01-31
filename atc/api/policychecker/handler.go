@@ -34,16 +34,18 @@ func (h policyCheckingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	acc := accessor.GetAccessor(r)
 	ctx := context.WithValue(r.Context(), "accessor", acc)
 
-	pass, err := h.policyChecker.CheckHttpApi(h.action, acc, r)
-	if err != nil {
-		rejector := NotPassRejector{msg: err.Error()}
-		rejector.Error(w, r)
-		return
-	}
-	if !pass {
-		rejector := NotPassRejector{}
-		rejector.Reject(w, r)
-		return
+	if h.policyChecker != nil {
+		pass, err := h.policyChecker.CheckHttpApi(h.action, acc, r)
+		if err != nil {
+			rejector := NotPassRejector{msg: err.Error()}
+			rejector.Error(w, r)
+			return
+		}
+		if !pass {
+			rejector := NotPassRejector{}
+			rejector.Reject(w, r)
+			return
+		}
 	}
 
 	h.handler.ServeHTTP(w, r.WithContext(ctx))

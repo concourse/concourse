@@ -84,6 +84,7 @@ var _ = Describe("TaskStep", func() {
 		fakeDelegate.VariablesReturns(credVarsTracker)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
+		fakeDelegate.PolicyCheckReturns(true, nil)
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)

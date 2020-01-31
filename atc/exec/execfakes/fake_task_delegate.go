@@ -41,6 +41,18 @@ type FakeTaskDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
+	PolicyCheckStub        func() (bool, error)
+	policyCheckMutex       sync.RWMutex
+	policyCheckArgsForCall []struct {
+	}
+	policyCheckReturns struct {
+		result1 bool
+		result2 error
+	}
+	policyCheckReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	SetTaskConfigStub        func(atc.TaskConfig)
 	setTaskConfigMutex       sync.RWMutex
 	setTaskConfigArgsForCall []struct {
@@ -238,6 +250,61 @@ func (fake *FakeTaskDelegate) InitializingArgsForCall(i int) lager.Logger {
 	defer fake.initializingMutex.RUnlock()
 	argsForCall := fake.initializingArgsForCall[i]
 	return argsForCall.arg1
+}
+
+func (fake *FakeTaskDelegate) PolicyCheck() (bool, error) {
+	fake.policyCheckMutex.Lock()
+	ret, specificReturn := fake.policyCheckReturnsOnCall[len(fake.policyCheckArgsForCall)]
+	fake.policyCheckArgsForCall = append(fake.policyCheckArgsForCall, struct {
+	}{})
+	fake.recordInvocation("PolicyCheck", []interface{}{})
+	fake.policyCheckMutex.Unlock()
+	if fake.PolicyCheckStub != nil {
+		return fake.PolicyCheckStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.policyCheckReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTaskDelegate) PolicyCheckCallCount() int {
+	fake.policyCheckMutex.RLock()
+	defer fake.policyCheckMutex.RUnlock()
+	return len(fake.policyCheckArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) PolicyCheckCalls(stub func() (bool, error)) {
+	fake.policyCheckMutex.Lock()
+	defer fake.policyCheckMutex.Unlock()
+	fake.PolicyCheckStub = stub
+}
+
+func (fake *FakeTaskDelegate) PolicyCheckReturns(result1 bool, result2 error) {
+	fake.policyCheckMutex.Lock()
+	defer fake.policyCheckMutex.Unlock()
+	fake.PolicyCheckStub = nil
+	fake.policyCheckReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTaskDelegate) PolicyCheckReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.policyCheckMutex.Lock()
+	defer fake.policyCheckMutex.Unlock()
+	fake.PolicyCheckStub = nil
+	if fake.policyCheckReturnsOnCall == nil {
+		fake.policyCheckReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.policyCheckReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTaskDelegate) SetTaskConfig(arg1 atc.TaskConfig) {
@@ -469,6 +536,8 @@ func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
+	fake.policyCheckMutex.RLock()
+	defer fake.policyCheckMutex.RUnlock()
 	fake.setTaskConfigMutex.RLock()
 	defer fake.setTaskConfigMutex.RUnlock()
 	fake.startingMutex.RLock()

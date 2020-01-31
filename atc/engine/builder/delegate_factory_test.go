@@ -3,6 +3,7 @@ package builder_test
 import (
 	"encoding/json"
 	"errors"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"io"
 	"time"
 
@@ -24,12 +25,13 @@ import (
 
 var _ = Describe("DelegateFactory", func() {
 	var (
-		logger          *lagertest.TestLogger
-		fakeBuild       *dbfakes.FakeBuild
-		fakePipeline    *dbfakes.FakePipeline
-		fakeResource    *dbfakes.FakeResource
-		fakeClock       *fakeclock.FakeClock
-		credVarsTracker vars.CredVarsTracker
+		logger            *lagertest.TestLogger
+		fakeBuild         *dbfakes.FakeBuild
+		fakePipeline      *dbfakes.FakePipeline
+		fakeResource      *dbfakes.FakeResource
+		fakeClock         *fakeclock.FakeClock
+		credVarsTracker   vars.CredVarsTracker
+		fakePolicyChecker *policyfakes.FakeChecker
 	)
 
 	BeforeEach(func() {
@@ -38,6 +40,11 @@ var _ = Describe("DelegateFactory", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeResource = new(dbfakes.FakeResource)
+		fakePolicyChecker = new(policyfakes.FakeChecker)
+
+		fakePolicyChecker.CheckHttpApiReturns(true, nil)
+		fakePolicyChecker.CheckTaskReturns(true, nil)
+
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123456789, 0))
 		credVars := vars.StaticVariables{
 			"source-param": "super-secret-source",
@@ -228,7 +235,7 @@ var _ = Describe("DelegateFactory", func() {
 		)
 
 		BeforeEach(func() {
-			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakePolicyChecker, fakeClock)
 			someConfig = atc.TaskConfig{
 				Platform: "some-platform",
 				Run: atc.TaskRunConfig{

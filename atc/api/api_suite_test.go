@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -56,6 +57,7 @@ var (
 	dbWall                  *dbfakes.FakeWall
 	fakeSecretManager       *credsfakes.FakeSecrets
 	fakeVarSourcePool       *credsfakes.FakeVarSourcePool
+	fakePolicyChecker       *policyfakes.FakeChecker
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
@@ -154,18 +156,27 @@ var _ = BeforeEach(func() {
 
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
-	handler, err := api.NewHandler(
-		logger,
+	fakePolicyChecker = new(policyfakes.FakeChecker)
+	fakePolicyChecker.CheckHttpApiReturns(true, nil)
+	fakePolicyChecker.CheckTaskReturns(true, nil)
 
-		externalURL,
-		clusterName,
-
+	apiWrapper := wrappa.MultiWrappa{
+		wrappa.NewPolicyCheckWrappa(logger, fakePolicyChecker),
 		wrappa.NewAPIAuthWrappa(
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
 			checkBuildWriteAccessHandlerFactory,
 			checkWorkerTeamAccessHandlerFactory,
 		),
+	}
+
+	handler, err := api.NewHandler(
+		logger,
+
+		externalURL,
+		clusterName,
+
+		apiWrapper,
 
 		dbTeamFactory,
 		dbPipelineFactory,
