@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
@@ -32,7 +33,7 @@ type Build interface {
 	db.Build
 
 	PrepareInputs(lager.Logger) bool
-	BuildInputs(lager.Logger) ([]db.BuildInput, bool, error)
+	BuildInputs(context.Context) ([]db.BuildInput, bool, error)
 }
 
 func NewBuildStarter(
@@ -201,7 +202,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}, nil
 	}
 
-	buildInputs, found, err := nextPendingBuild.BuildInputs(logger)
+	buildInputs, found, err := nextPendingBuild.BuildInputs(context.TODO())
 	if err != nil {
 		return startResults{}, fmt.Errorf("get build inputs: %w", err)
 	}

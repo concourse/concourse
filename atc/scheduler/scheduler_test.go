@@ -1,6 +1,7 @@
 package scheduler_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -64,6 +65,7 @@ var _ = Describe("Scheduler", func() {
 			var waiter interface{ Wait() }
 
 			_, scheduleErr = scheduler.Schedule(
+				context.TODO(),
 				lagertest.NewTestLogger("test"),
 				fakePipeline,
 				fakeJob,
@@ -113,7 +115,7 @@ var _ = Describe("Scheduler", func() {
 
 				It("computed the inputs", func() {
 					Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
-					actualJob, actualInputs, resources, relatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
+					_, actualJob, actualInputs, resources, relatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
 					Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
 					Expect(resources).To(Equal(expectedResources))
 					Expect(relatedJobs).To(Equal(expectedJobIDs))

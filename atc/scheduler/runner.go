@@ -10,13 +10,13 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
-	"github.com/hashicorp/go-multierror"
 )
 
 //go:generate counterfeiter . BuildScheduler
 
 type BuildScheduler interface {
 	Schedule(
+		ctx context.Context,
 		logger lager.Logger,
 		pipeline db.Pipeline,
 		job db.Job,
@@ -60,7 +60,7 @@ func (s *schedulerRunner) Run(ctx context.Context) error {
 	for pipelineID, jobsToSchedule := range pipelineIDToJobs {
 		pipeline := pipelineIDToPipeline[pipelineID]
 
-		err := s.schedulePipeline(errGroup, pipeline, jobsToSchedule)
+		err := s.schedulePipeline(ctx, errGroup, pipeline, jobsToSchedule)
 		if err != nil {
 			s.logger.Error("failed-to-schedule-pipeline", err, lager.Data{"pipeline": pipeline.Name()})
 		}
@@ -69,7 +69,7 @@ func (s *schedulerRunner) Run(ctx context.Context) error {
 	return errGroup.Wait().ErrorOrNil()
 }
 
-func (s *schedulerRunner) schedulePipeline(errGroup *multierror.Group, pipeline db.Pipeline, jobsToSchedule db.Jobs) error {
+func (s *schedulerRunner) schedulePipeline(ctx context.Context, errGroup *multierror.Group, pipeline db.Pipeline, jobsToSchedule db.Jobs) error {
 	logger := s.logger.Session("pipeline", lager.Data{"pipeline": pipeline.Name()})
 
 	resources, err := pipeline.Resources()
@@ -106,14 +106,14 @@ func (s *schedulerRunner) schedulePipeline(errGroup *multierror.Group, pipeline 
 				<-s.guardJobScheduling
 			}()
 
-			return s.scheduleJob(logger, schedulingLock, pipeline, job, resources, jobsMap)
+			return s.scheduleJob(ctx, logger, schedulingLock, pipeline, job, resources, jobsMap)
 		})
 	}
 
 	return nil
 }
 
-func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.Lock, pipeline db.Pipeline, job db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
+func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, schedulingLock lock.Lock, pipeline db.Pipeline, job db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
 	logger = logger.Session("schedule-job", lager.Data{"job": job.Name()})
 
 	logger.Debug("schedule")
@@ -138,6 +138,7 @@ func (s *schedulerRunner) scheduleJob(logger lager.Logger, schedulingLock lock.L
 	jStart := time.Now()
 
 	needsRetry, err := s.scheduler.Schedule(
+		ctx,
 		logger,
 		pipeline,
 		job,
