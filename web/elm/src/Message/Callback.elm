@@ -10,10 +10,10 @@ import Http
 import Json.Encode
 import Message.Message
     exposing
-        ( VersionId
+        ( DomID
+        , VersionId
         , VersionToggleAction
         , VisibilityAction
-        , DomID
         )
 import Time
 

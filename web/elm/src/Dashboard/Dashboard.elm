@@ -412,9 +412,10 @@ updateBody msg ( model, effects ) =
                                         dropIdx
 
                                     _ ->
-                                        dragIdx
+                                        dragIdx + 1
                                 )
                                 model.pipelines
+                                |> List.indexedMap (\i p -> { p | ordering = i })
                     in
                     ( { model
                         | pipelines = pipelines
@@ -763,6 +764,7 @@ pipelinesView session params =
                                     , viewportWidth = params.viewportWidth
                                     , viewportHeight = params.viewportHeight
                                     , scrollTop = params.scrollTop - totalOffset
+                                    , query = params.query
                                     }
                                     g
                                     |> (\( html, curOffset ) -> ( html :: htmlList, totalOffset + curOffset ))

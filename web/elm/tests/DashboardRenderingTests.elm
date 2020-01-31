@@ -2,6 +2,7 @@ module DashboardRenderingTests exposing (all)
 
 import Application.Application as Application
 import Common
+import Concourse
 import Data
 import Expect
 import Json.Encode as Encode
@@ -33,20 +34,22 @@ all =
                 }
             }
 
-        hasPipelineCard name { x, y, width, height } =
+        findPipelineCard name =
             Query.find [ class "pipeline-wrapper", containing [ text name ] ]
-                >> Query.has
-                    [ style "position" "absolute"
-                    , style "transform"
-                        ("translate("
-                            ++ String.fromInt x
-                            ++ "px,"
-                            ++ String.fromInt y
-                            ++ "px)"
-                        )
-                    , style "width" (String.fromInt width ++ "px")
-                    , style "height" (String.fromInt height ++ "px")
-                    ]
+
+        hasBounds { x, y, width, height } =
+            Query.has
+                [ style "position" "absolute"
+                , style "transform"
+                    ("translate("
+                        ++ String.fromInt x
+                        ++ "px,"
+                        ++ String.fromInt y
+                        ++ "px)"
+                    )
+                , style "width" (String.fromInt width ++ "px")
+                , style "height" (String.fromInt height ++ "px")
+                ]
 
         containerHasHeight height =
             Query.has
@@ -132,18 +135,20 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ hasPipelineCard "pipeline-0"
-                            { x = 25
-                            , y = 0
-                            , width = 272
-                            , height = 268
-                            }
-                        , hasPipelineCard "pipeline-1"
-                            { x = 25
-                            , y = 268 + 25
-                            , width = 272
-                            , height = 268
-                            }
+                        [ findPipelineCard "pipeline-0"
+                            >> hasBounds
+                                { x = 25
+                                , y = 0
+                                , width = 272
+                                , height = 268
+                                }
+                        , findPipelineCard "pipeline-1"
+                            >> hasBounds
+                                { x = 25
+                                , y = 268 + 25
+                                , width = 272
+                                , height = 268
+                                }
                         ]
         , test "renders pipeline cards in a multi-column grid when the viewport is wide" <|
             \_ ->
@@ -162,18 +167,20 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ hasPipelineCard "pipeline-0"
-                            { x = 25
-                            , y = 0
-                            , width = 272
-                            , height = 268
-                            }
-                        , hasPipelineCard "pipeline-1"
-                            { x = 25 * 2 + 272
-                            , y = 0
-                            , width = 272
-                            , height = 268
-                            }
+                        [ findPipelineCard "pipeline-0"
+                            >> hasBounds
+                                { x = 25
+                                , y = 0
+                                , width = 272
+                                , height = 268
+                                }
+                        , findPipelineCard "pipeline-1"
+                            >> hasBounds
+                                { x = 25 * 2 + 272
+                                , y = 0
+                                , width = 272
+                                , height = 268
+                                }
                         ]
         , test "ignores viewport updates for DOM elements other than the dashboard" <|
             \_ ->
@@ -198,18 +205,20 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ hasPipelineCard "pipeline-0"
-                            { x = 25
-                            , y = 0
-                            , width = 272
-                            , height = 268
-                            }
-                        , hasPipelineCard "pipeline-1"
-                            { x = 25 * 2 + 272
-                            , y = 0
-                            , width = 272
-                            , height = 268
-                            }
+                        [ findPipelineCard "pipeline-0"
+                            >> hasBounds
+                                { x = 25
+                                , y = 0
+                                , width = 272
+                                , height = 268
+                                }
+                        , findPipelineCard "pipeline-1"
+                            >> hasBounds
+                                { x = 25 * 2 + 272
+                                , y = 0
+                                , width = 272
+                                , height = 268
+                                }
                         ]
         , test "pipelines with many jobs are rendered as cards spanning several rows" <|
             \_ ->
@@ -234,19 +243,59 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ hasPipelineCard "pipeline-0"
-                            { x = 25
-                            , y = 0
-                            , width = 272
-                            , height = 268 * 2 + 25
-                            }
-                        , hasPipelineCard "pipeline-1"
-                            { x = 25 * 2 + 272
-                            , y = 0
-                            , width = 272
-                            , height = 268
-                            }
+                        [ findPipelineCard "pipeline-0"
+                            >> hasBounds
+                                { x = 25
+                                , y = 0
+                                , width = 272
+                                , height = 268 * 2 + 25
+                                }
+                        , findPipelineCard "pipeline-1"
+                            >> hasBounds
+                                { x = 25 * 2 + 272
+                                , y = 0
+                                , width = 272
+                                , height = 268
+                                }
                         , containerHasHeight <| 268 * 2 + 25
+                        ]
+        , test "pipelines with many dependant jobs are rendered as spanning multiple columns" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <|
+                            Ok <|
+                                jobsWithDepth 0 15
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                            Ok <|
+                                viewportWithSize 950 300
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ class "dashboard-team-pipelines" ]
+                    |> Expect.all
+                        [ findPipelineCard "pipeline-0"
+                            >> hasBounds
+                                { x = 25
+                                , y = 0
+                                , width = 272 * 2 + 25
+                                , height = 268
+                                }
+                        , findPipelineCard "pipeline-1"
+                            >> hasBounds
+                                { x = 25 + 2 * (272 + 25)
+                                , y = 0
+                                , width = 272
+                                , height = 268
+                                }
                         ]
         , test "wraps cards to the next row" <|
             \_ ->
@@ -265,24 +314,27 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ hasPipelineCard "pipeline-0"
-                            { x = 25
-                            , y = 0
-                            , width = 272
-                            , height = 268
-                            }
-                        , hasPipelineCard "pipeline-1"
-                            { x = 25 * 2 + 272
-                            , y = 0
-                            , width = 272
-                            , height = 268
-                            }
-                        , hasPipelineCard "pipeline-2"
-                            { x = 25
-                            , y = 268 + 25
-                            , width = 272
-                            , height = 268
-                            }
+                        [ findPipelineCard "pipeline-0"
+                            >> hasBounds
+                                { x = 25
+                                , y = 0
+                                , width = 272
+                                , height = 268
+                                }
+                        , findPipelineCard "pipeline-1"
+                            >> hasBounds
+                                { x = 25 * 2 + 272
+                                , y = 0
+                                , width = 272
+                                , height = 268
+                                }
+                        , findPipelineCard "pipeline-2"
+                            >> hasBounds
+                                { x = 25
+                                , y = 268 + 25
+                                , width = 272
+                                , height = 268
+                                }
                         , containerHasHeight <| 268 * 2 + 25
                         ]
         , test "doesn't render rows below the viewport" <|
@@ -407,4 +459,139 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "team-2" ]
                     |> Query.hasNot [ class "pipeline-wrapper" ]
+        , describe "drop areas" <|
+            [ test "renders a drop area over each pipeline card" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                                Ok <|
+                                    viewportWithSize 600 500
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ class "dashboard-team-pipelines" ]
+                        |> Query.findAll [ class "drop-area" ]
+                        |> Expect.all
+                            [ Query.index 0
+                                >> hasBounds
+                                    { x = 0
+                                    , y = 0
+                                    , width = 272 + 25
+                                    , height = 268
+                                    }
+                            , Query.index 1
+                                >> hasBounds
+                                    { x = 272 + 25
+                                    , y = 0
+                                    , width = 272 + 25
+                                    , height = 268
+                                    }
+                            , Query.index 2
+                                >> hasBounds
+                                    { x = 0
+                                    , y = 268 + 25
+                                    , width = 272 + 25
+                                    , height = 268
+                                    }
+                            ]
+            , test "does not render drop areas for rows that are not visible" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                                Ok <|
+                                    viewportWithSize 300 200
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ class "dashboard-team-pipelines" ]
+                        |> Query.findAll [ class "drop-area" ]
+                        |> Query.count (Expect.equal 1)
+            , test "renders the drop area up one row when the card breaks the row, but there is space for a smaller card" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllJobsFetched <|
+                                Ok <|
+                                    jobsWithDepth 1 15
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                                Ok <|
+                                    viewportWithSize 600 500
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ class "dashboard-team-pipelines" ]
+                        |> Query.findAll [ class "drop-area" ]
+                        |> Expect.all
+                            [ Query.index 0
+                                >> hasBounds
+                                    { x = 0
+                                    , y = 0
+                                    , width = 272 + 25
+                                    , height = 268
+                                    }
+                            , Query.index 1
+                                >> hasBounds
+                                    { x = 272 + 25
+                                    , y = 0
+                                    , width = 272 + 25
+                                    , height = 268
+                                    }
+                            ]
+            ]
         ]
+
+
+jobsWithDepth : Int -> Int -> List Concourse.Job
+jobsWithDepth pipelineID depth =
+    let
+        job =
+            Data.job pipelineID
+    in
+    if depth < 1 then
+        []
+
+    else if depth == 1 then
+        [ { job
+            | name = "1"
+            , inputs =
+                [ { name = ""
+                  , resource = ""
+                  , passed = []
+                  , trigger = False
+                  }
+                ]
+          }
+        ]
+
+    else
+        { job
+            | name = String.fromInt depth
+            , inputs =
+                [ { name = ""
+                  , resource = ""
+                  , passed = [ String.fromInt <| depth - 1 ]
+                  , trigger = False
+                  }
+                ]
+        }
+            :: (jobsWithDepth pipelineID <| depth - 1)

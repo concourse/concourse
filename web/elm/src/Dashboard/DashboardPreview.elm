@@ -6,7 +6,7 @@ import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, href)
+import Html.Attributes exposing (attribute, class, href)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Message exposing (DomID(..), Message(..))
@@ -15,18 +15,6 @@ import Routes
 
 view : HoverState.HoverState -> List (List Concourse.Job) -> Html Message
 view hovered layers =
-    let
-        width : Int
-        width =
-            List.length layers
-
-        height : Int
-        height =
-            layers
-                |> List.map List.length
-                |> List.maximum
-                |> Maybe.withDefault 0
-    in
     Html.div
         (class "pipeline-grid" :: Styles.pipelinePreviewGrid)
         (List.map (viewJobLayer hovered) layers)

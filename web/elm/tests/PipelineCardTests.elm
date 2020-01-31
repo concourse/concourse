@@ -193,7 +193,7 @@ all =
                         , style "height" "47px"
                         ]
             ]
-        , test "has 'move' cursor" <|
+        , test "has 'move' cursor when not searching" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -217,6 +217,33 @@ all =
                         , containing [ text "pipeline" ]
                         ]
                     |> Query.has [ style "cursor" "move" ]
+        , test "does not have 'move' cursor when searching" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (ApplicationMsgs.Update <| Msgs.FilterMsg "pipeline")
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find
+                        [ class "card"
+                        , containing [ text "pipeline" ]
+                        ]
+                    |> Query.hasNot [ style "cursor" "move" ]
         , test "fills available space" <|
             \_ ->
                 whenOnDashboard { highDensity = False }

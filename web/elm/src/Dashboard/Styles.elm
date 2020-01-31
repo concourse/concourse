@@ -95,8 +95,7 @@ content highDensity =
 
 pipelineCard : List (Html.Attribute msg)
 pipelineCard =
-    [ style "cursor" "move"
-    , style "height" "100%"
+    [ style "height" "100%"
     , style "display" "flex"
     , style "flex-direction" "column"
     ]

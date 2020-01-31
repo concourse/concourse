@@ -33,12 +33,12 @@ all =
                 >> given iAmDraggingTheFirstPipelineCard
                 >> when iAmLookingAtTheFirstPipelineCard
                 >> then_ itIsInvisible
-        , test "initial drop area grows when dragging starts" <|
+        , test "pipeline cards wrappers transition their transform when dragging" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
                 >> given iAmDraggingTheFirstPipelineCard
-                >> when iAmLookingAtTheInitialDropArea
-                >> then_ itIsWide
+                >> when iAmLookingAtTheFirstPipelineCardWrapper
+                >> then_ itHasTransformTransition
         , test "final drop area has dragenter listener" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
@@ -49,26 +49,12 @@ all =
                 >> given myBrowserFetchedOnePipeline
                 >> when iAmLookingAtTheFinalDropArea
                 >> then_ itListensForDragOverPreventingDefault
-        , test "initial drop area shrinks when dragging over final drop area" <|
-            given iVisitedTheDashboard
-                >> given myBrowserFetchedOnePipeline
-                >> given iAmDraggingTheFirstPipelineCard
-                >> given iAmDraggingOverTheSecondDropArea
-                >> when iAmLookingAtTheInitialDropArea
-                >> then_ itIsNarrow
         , test "pipeline card has dragend listener" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
                 >> given iAmDraggingTheFirstPipelineCard
                 >> when iAmLookingAtTheFirstPipelineCard
                 >> then_ itListensForDragEnd
-        , test "initial drop area shrinks when pipeline card is dropped" <|
-            given iVisitedTheDashboard
-                >> given myBrowserFetchedOnePipeline
-                >> given iAmDraggingTheFirstPipelineCard
-                >> given iDropThePipelineCard
-                >> when iAmLookingAtTheInitialDropArea
-                >> then_ itIsNarrow
         , test "pipeline card becomes visible when it is dropped" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedOnePipeline
@@ -268,6 +254,13 @@ iAmLookingAtTheFirstPipelineCard =
         >> Query.first
 
 
+iAmLookingAtTheFirstPipelineCardWrapper =
+    Tuple.first
+        >> Common.queryView
+        >> Query.findAll [ class "pipeline-wrapper" ]
+        >> Query.first
+
+
 iAmLookingAtTheInitialDropArea =
     Tuple.first
         >> Common.queryView
@@ -311,12 +304,8 @@ itIsVisible =
         ]
 
 
-itIsWide =
-    Query.has [ style "padding" "0 198.5px" ]
-
-
-itIsNarrow =
-    Query.has [ style "padding" "0 50px" ]
+itHasTransformTransition =
+    Query.has [ style "transition" "transform 0.2s ease-in-out" ]
 
 
 theyAreClickable =
@@ -337,7 +326,7 @@ iAmLookingAtTheFinalDropArea =
 itListensForDragEnter =
     Event.simulate (Event.custom "dragenter" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver "team" 1)
+            (TopLevelMessage.Update <| Message.DragOver "team" 2)
 
 
 
@@ -351,19 +340,19 @@ itListensForDragEnter =
 itListensForDragOverPreventingDefault =
     Event.simulate (Event.custom "dragover" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver "team" 1)
+            (TopLevelMessage.Update <| Message.DragOver "team" 2)
 
 
 iAmDraggingOverTheSecondDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver "team" 1)
+            (TopLevelMessage.Update <| Message.DragOver "team" 2)
 
 
 iAmDraggingOverTheThirdDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver "team" 2)
+            (TopLevelMessage.Update <| Message.DragOver "team" 3)
 
 
 iAmLookingAtTheTeamHeader =

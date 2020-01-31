@@ -87,11 +87,19 @@ pipelineView :
     , resourceError : Bool
     , existingJobs : List Concourse.Job
     , layers : List (List Concourse.Job)
+    , query : String
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query } =
     Html.div
-        Styles.pipelineCard
+        (Styles.pipelineCard
+            ++ (if String.isEmpty query then
+                    [ style "cursor" "move" ]
+
+                else
+                    []
+               )
+        )
         [ Html.div
             (class "banner"
                 :: Styles.pipelineCardBanner
