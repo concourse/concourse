@@ -398,8 +398,8 @@ func (versions VersionsDB) NextEveryVersion(ctx context.Context, buildID int, re
 	return nextVersion, false, true, nil
 }
 
-func (versions VersionsDB) LatestBuildPipes(ctx context.Context, buildID int) (map[int]int, error) {
-	rows, err := psql.Select("p.from_build_id", "b.job_id").
+func (versions VersionsDB) LatestBuildPipes(ctx context.Context, buildID int) (map[int]BuildCursor, error) {
+	rows, err := psql.Select("p.from_build_id", "b.rerun_of", "b.job_id").
 		From("build_pipes p").
 		Join("builds b ON b.id = p.from_build_id").
 		Where(sq.Eq{
@@ -411,24 +411,29 @@ func (versions VersionsDB) LatestBuildPipes(ctx context.Context, buildID int) (m
 		return nil, err
 	}
 
-	jobToBuildPipes := map[int]int{}
+	jobToBuildPipes := map[int]BuildCursor{}
 	for rows.Next() {
-		var buildID int
+		var build BuildCursor
 		var jobID int
 
-		err = rows.Scan(&buildID, &jobID)
+		err = rows.Scan(&build.ID, &build.RerunOf, &jobID)
 		if err != nil {
 			return nil, err
 		}
 
-		jobToBuildPipes[jobID] = buildID
+		jobToBuildPipes[jobID] = build
 	}
 
 	return jobToBuildPipes, nil
 }
 
-func (versions VersionsDB) UnusedBuilds(ctx context.Context, buildID int, jobID int) (PaginatedBuilds, error) {
-	rows, err := psql.Select("id", "rerun_of").
+func (versions VersionsDB) UnusedBuilds(ctx context.Context, jobID int, lastUsedBuild BuildCursor) (PaginatedBuilds, error) {
+	builds, err := versions.newerBuilds(ctx, jobID, lastUsedBuild)
+	if err != nil {
+		return PaginatedBuilds{}, err
+	}
+
+	builder := psql.Select("id", "rerun_of").
 		From("builds").
 		Where(sq.And{
 			sq.Eq{
@@ -436,49 +441,8 @@ func (versions VersionsDB) UnusedBuilds(ctx context.Context, buildID int, jobID 
 				"status": "succeeded",
 			},
 			sq.Or{
-				sq.And{
-					sq.Gt{
-						"rerun_of": buildID,
-					},
-					sq.NotEq{
-						"rerun_of": nil,
-					},
-				},
-				sq.And{
-					sq.Gt{
-						"id": buildID,
-					},
-					sq.Eq{
-						"rerun_of": nil,
-					},
-				},
-			},
-		}).
-		OrderBy("COALESCE(rerun_of, id) ASC, id ASC").
-		RunWith(versions.conn).
-		QueryContext(ctx)
-	if err != nil {
-		return PaginatedBuilds{}, err
-	}
-
-	var builds []pagedBuild
-	for rows.Next() {
-		var build pagedBuild
-		err = rows.Scan(&build.id, &build.rerunOf)
-		if err != nil {
-			return PaginatedBuilds{}, err
-		}
-
-		builds = append(builds, build)
-	}
-
-	builder := psql.Select("id", "rerun_of").
-		From("builds").
-		Where(sq.And{
-			sq.LtOrEq{"id": buildID},
-			sq.Eq{
-				"job_id": jobID,
-				"status": "succeeded",
+				sq.Eq{"id": lastUsedBuild.ID},
+				lastUsedBuild.OlderBuilds("id"),
 			},
 		}).
 		OrderBy("COALESCE(rerun_of, id) DESC, id DESC")
@@ -496,54 +460,15 @@ func (versions VersionsDB) UnusedBuilds(ctx context.Context, buildID int, jobID 
 	}, nil
 }
 
-func (versions VersionsDB) UnusedBuildsVersionConstrained(ctx context.Context, buildID int, jobID int, constrainingCandidates map[string][]string) (PaginatedBuilds, error) {
+func (versions VersionsDB) UnusedBuildsVersionConstrained(ctx context.Context, jobID int, lastUsedBuild BuildCursor, constrainingCandidates map[string][]string) (PaginatedBuilds, error) {
+	builds, err := versions.newerBuilds(ctx, jobID, lastUsedBuild)
+	if err != nil {
+		return PaginatedBuilds{}, err
+	}
+
 	versionsJSON, err := json.Marshal(constrainingCandidates)
 	if err != nil {
 		return PaginatedBuilds{}, err
-	}
-
-	rows, err := psql.Select("id", "rerun_of").
-		From("builds").
-		Where(sq.And{
-			sq.Eq{
-				"job_id": jobID,
-				"status": "succeeded",
-			},
-			sq.Or{
-				sq.And{
-					sq.Gt{
-						"rerun_of": buildID,
-					},
-					sq.NotEq{
-						"rerun_of": nil,
-					},
-				},
-				sq.And{
-					sq.Gt{
-						"id": buildID,
-					},
-					sq.Eq{
-						"rerun_of": nil,
-					},
-				},
-			},
-		}).
-		OrderBy("COALESCE(rerun_of, id) ASC, id ASC").
-		RunWith(versions.conn).
-		QueryContext(ctx)
-	if err != nil {
-		return PaginatedBuilds{}, err
-	}
-
-	var builds []pagedBuild
-	for rows.Next() {
-		var build pagedBuild
-		err = rows.Scan(&build.id, &build.rerunOf)
-		if err != nil {
-			return PaginatedBuilds{}, err
-		}
-
-		builds = append(builds, build)
 	}
 
 	builder := psql.Select("build_id", "rerun_of").
@@ -552,8 +477,9 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(ctx context.Context, b
 		Where(sq.Eq{
 			"job_id": jobID,
 		}).
-		Where(sq.LtOrEq{
-			"build_id": buildID,
+		Where(sq.Or{
+			sq.Eq{"build_id": lastUsedBuild.ID},
+			lastUsedBuild.OlderBuilds("build_id"),
 		}).
 		OrderBy("COALESCE(rerun_of, build_id) DESC, build_id DESC")
 
@@ -569,6 +495,37 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(ctx context.Context, b
 		conn:      versions.conn,
 	}, nil
 
+}
+
+func (versions VersionsDB) newerBuilds(ctx context.Context, jobID int, lastUsedBuild BuildCursor) ([]BuildCursor, error) {
+	rows, err := psql.Select("id", "rerun_of").
+		From("builds").
+		Where(sq.And{
+			sq.Eq{
+				"job_id": jobID,
+				"status": "succeeded",
+			},
+			lastUsedBuild.NewerBuilds("id"),
+		}).
+		OrderBy("COALESCE(rerun_of, id) ASC, id ASC").
+		RunWith(versions.conn).
+		QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var builds []BuildCursor
+	for rows.Next() {
+		var build BuildCursor
+		err = rows.Scan(&build.ID, &build.RerunOf)
+		if err != nil {
+			return nil, err
+		}
+
+		builds = append(builds, build)
+	}
+
+	return builds, nil
 }
 
 func (versions VersionsDB) latestVersionOfResource(ctx context.Context, tx Tx, resourceID int) (ResourceVersion, bool, error) {
@@ -644,9 +601,37 @@ func (versions VersionsDB) migrateSingle(ctx context.Context, buildID int) (stri
 	return outputs, nil
 }
 
-type pagedBuild struct {
-	id      int
-	rerunOf sql.NullInt64
+type BuildCursor struct {
+	ID      int
+	RerunOf sql.NullInt64
+}
+
+func (cursor BuildCursor) OlderBuilds(idCol string) sq.Sqlizer {
+	if cursor.RerunOf.Valid {
+		return sq.Or{
+			sq.Expr("COALESCE(rerun_of, "+idCol+") < ?", cursor.RerunOf.Int64),
+			sq.And{
+				sq.Eq{"rerun_of": cursor.RerunOf.Int64},
+				sq.Lt{idCol: cursor.ID},
+			},
+		}
+	} else {
+		return sq.Expr("COALESCE(rerun_of, "+idCol+") < ?", cursor.ID)
+	}
+}
+
+func (cursor BuildCursor) NewerBuilds(idCol string) sq.Sqlizer {
+	if cursor.RerunOf.Valid {
+		return sq.Or{
+			sq.Expr("COALESCE(rerun_of, "+idCol+") > ?", cursor.RerunOf.Int64),
+			sq.And{
+				sq.Eq{"rerun_of": cursor.RerunOf.Int64},
+				sq.Gt{idCol: cursor.ID},
+			},
+		}
+	} else {
+		return sq.Expr("COALESCE(rerun_of, "+idCol+") > ?", cursor.ID)
+	}
 }
 
 type PaginatedBuilds struct {
@@ -654,7 +639,7 @@ type PaginatedBuilds struct {
 	column  string
 
 	unusedBuilds bool
-	builds       []pagedBuild
+	builds       []BuildCursor
 	offset       int
 
 	jobID int
@@ -670,20 +655,7 @@ func (bs *PaginatedBuilds) Next(ctx context.Context) (int, bool, error) {
 
 			if len(bs.builds) > 0 {
 				pageBoundary := bs.builds[len(bs.builds)-1]
-
-				if pageBoundary.rerunOf.Valid {
-					builder = bs.builder.Where(sq.Or{
-						sq.Expr("COALESCE(rerun_of, "+bs.column+") < ?", pageBoundary.rerunOf.Int64),
-						sq.And{
-							sq.Eq{"rerun_of": pageBoundary.rerunOf.Int64},
-							sq.Lt{bs.column: pageBoundary.id},
-						},
-					})
-				} else {
-					builder = bs.builder.Where(
-						sq.Expr("COALESCE(rerun_of, "+bs.column+") < ?", pageBoundary.id),
-					)
-				}
+				builder = builder.Where(pageBoundary.OlderBuilds(bs.column))
 			}
 
 			rows, err := builder.
@@ -694,10 +666,10 @@ func (bs *PaginatedBuilds) Next(ctx context.Context) (int, bool, error) {
 				return 0, false, err
 			}
 
-			builds := []pagedBuild{}
+			builds := []BuildCursor{}
 			for rows.Next() {
-				var build pagedBuild
-				err = rows.Scan(&build.id, &build.rerunOf)
+				var build BuildCursor
+				err = rows.Scan(&build.ID, &build.RerunOf)
 				if err != nil {
 					return 0, false, err
 				}
@@ -726,7 +698,7 @@ func (bs *PaginatedBuilds) Next(ctx context.Context) (int, bool, error) {
 	build := bs.builds[bs.offset]
 	bs.offset++
 
-	return build.id, true, nil
+	return build.ID, true, nil
 }
 
 func (bs *PaginatedBuilds) HasNext() bool {

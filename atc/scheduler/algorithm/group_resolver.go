@@ -35,7 +35,7 @@ type groupResolver struct {
 	orderedJobs [][]int
 	candidates  []*versionCandidate
 
-	lastUsedPassedBuilds map[int]int
+	lastUsedPassedBuilds map[int]db.BuildCursor
 }
 
 func NewGroupResolver(vdb db.VersionsDB, inputConfigs InputConfigs) Resolver {
@@ -298,7 +298,7 @@ func (r *groupResolver) paginatedBuilds(ctx context.Context, currentInputConfig 
 
 	if currentInputConfig.UseEveryVersion {
 		if r.lastUsedPassedBuilds == nil {
-			lastUsedBuildIDs := map[int]int{}
+			lastUsedBuildIDs := map[int]db.BuildCursor{}
 
 			buildID, found, err := r.vdb.LatestBuildID(ctx, currentJobID)
 			if err != nil {
@@ -315,22 +315,22 @@ func (r *groupResolver) paginatedBuilds(ctx context.Context, currentInputConfig 
 			}
 		}
 
-		relatedPassedBuilds := map[int]int{}
-		for jobID, buildID := range r.lastUsedPassedBuilds {
+		relatedPassedBuilds := map[int]db.BuildCursor{}
+		for jobID, build := range r.lastUsedPassedBuilds {
 			if currentInputConfig.Passed[jobID] {
-				relatedPassedBuilds[jobID] = buildID
+				relatedPassedBuilds[jobID] = build
 			}
 		}
 
-		lastUsedBuildID, hasUsedJob := relatedPassedBuilds[passedJobID]
+		lastUsedBuild, hasUsedJob := relatedPassedBuilds[passedJobID]
 		if hasUsedJob {
 			var paginatedBuilds db.PaginatedBuilds
 			var err error
 
 			if currentCandidate != nil {
-				paginatedBuilds, err = r.vdb.UnusedBuildsVersionConstrained(ctx, lastUsedBuildID, passedJobID, constraints)
+				paginatedBuilds, err = r.vdb.UnusedBuildsVersionConstrained(ctx, passedJobID, lastUsedBuild, constraints)
 			} else {
-				paginatedBuilds, err = r.vdb.UnusedBuilds(ctx, lastUsedBuildID, passedJobID)
+				paginatedBuilds, err = r.vdb.UnusedBuilds(ctx, passedJobID, lastUsedBuild)
 			}
 
 			return paginatedBuilds, false, err
