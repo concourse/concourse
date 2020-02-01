@@ -95,10 +95,10 @@ view session params g =
             max 1 (floor (params.viewportWidth / (cardWidth + padding)))
 
         numRowsVisible =
-            max 1 (ceiling ((params.viewportHeight - headerHeight) / (cardHeight + padding)))
+            ceiling (params.viewportHeight / (cardHeight + padding)) + 1
 
         numRowsOffset =
-            floor ((params.scrollTop + headerHeight) / (cardHeight + padding))
+            floor (params.scrollTop / (cardHeight + padding))
 
         isVisible { row, height } =
             (numRowsOffset < row + height)

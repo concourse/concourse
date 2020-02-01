@@ -348,7 +348,7 @@ all =
                     |> Application.handleCallback
                         (Callback.GotViewport Dashboard Callback.AlwaysShow <|
                             Ok <|
-                                viewportWithSize 600 200
+                                viewportWithSize 300 200
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -453,7 +453,7 @@ all =
                     |> Application.handleCallback
                         (Callback.GotViewport Dashboard Callback.AlwaysShow <|
                             Ok <|
-                                viewportWithSize 300 300
+                                viewportWithSize 300 200
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -505,7 +505,7 @@ all =
                     Common.init "/"
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                             )
                         |> Tuple.first
                         |> Application.handleCallback
@@ -517,7 +517,7 @@ all =
                         |> Common.queryView
                         |> Query.find [ class "dashboard-team-pipelines" ]
                         |> Query.findAll [ class "drop-area" ]
-                        |> Query.count (Expect.equal 1)
+                        |> Query.count (Expect.equal 2)
             , test "renders the drop area up one row when the card breaks the row, but there is space for a smaller card" <|
                 \_ ->
                     Common.init "/"
