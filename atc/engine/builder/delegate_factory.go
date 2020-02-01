@@ -35,10 +35,6 @@ func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID,
 	return NewTaskDelegate(build, planID, credVarsTracker, clock.NewClock())
 }
 
-func (delegate *delegateFactory) SetPipelineDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.BuildStepDelegate {
-	return NewBuildStepDelegate(build, planID, credVarsTracker, clock.NewClock())
-}
-
 func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.CheckDelegate {
 	return NewCheckDelegate(check, planID, credVarsTracker, clock.NewClock())
 }

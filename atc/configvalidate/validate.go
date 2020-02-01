@@ -326,6 +326,20 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 				)
 			}
 		}
+
+		// Within a job, each "load_var" step should have a unique name.
+		loadVarStepNames := map[string]interface{}{}
+		for _, plan := range job.Plan {
+			if plan.LoadVar != "" {
+				if _, ok := loadVarStepNames[plan.LoadVar]; ok {
+					errorMessages = append(
+						errorMessages,
+						fmt.Sprintf("%s has load_var steps with the same name: %s", identifier, plan.LoadVar),
+					)
+				}
+				loadVarStepNames[plan.LoadVar] = true
+			}
+		}
 	}
 
 	return warnings, compositeErr(errorMessages)
@@ -380,6 +394,10 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 
 	if plan.SetPipeline != "" {
 		foundTypes.Find("set_pipeline")
+	}
+
+	if plan.LoadVar != "" {
+		foundTypes.Find("load_var")
 	}
 
 	if plan.Do != nil {
@@ -545,7 +563,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 	case plan.Task != "":
 		identifier = fmt.Sprintf("%s.task.%s", identifier, plan.Task)
 
-		if plan.TaskConfig == nil && plan.ConfigPath == "" {
+		if plan.TaskConfig == nil && plan.File == "" {
 			errorMessages = append(errorMessages, identifier+" does not specify any task configuration")
 		}
 
@@ -556,7 +574,7 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 			})
 		}
 
-		if plan.TaskConfig != nil && plan.ConfigPath != "" {
+		if plan.TaskConfig != nil && plan.File != "" {
 			errorMessages = append(errorMessages, identifier+" specifies both `file` and `config` in a task step")
 		}
 
@@ -577,8 +595,15 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 	case plan.SetPipeline != "":
 		identifier = fmt.Sprintf("%s.set_pipeline.%s", identifier, plan.SetPipeline)
 
-		if plan.ConfigPath == "" {
+		if plan.File == "" {
 			errorMessages = append(errorMessages, identifier+" does not specify any pipeline configuration")
+		}
+
+	case plan.LoadVar != "":
+		identifier = fmt.Sprintf("%s.load_var.%s", identifier, plan.LoadVar)
+
+		if plan.File == "" {
+			errorMessages = append(errorMessages, identifier+" does not specify any file")
 		}
 
 	case plan.Try != nil:
@@ -666,7 +691,7 @@ func validateInapplicableFields(inapplicableFields []string, plan PlanConfig, id
 				foundInapplicableFields = append(foundInapplicableFields, field)
 			}
 		case "file":
-			if plan.ConfigPath != "" {
+			if plan.File != "" {
 				foundInapplicableFields = append(foundInapplicableFields, field)
 			}
 		}

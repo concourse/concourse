@@ -552,6 +552,21 @@ var _ = Describe("Builder", func() {
 						})
 					})
 
+					Context("that contains a load_var step", func() {
+						BeforeEach(func() {
+							expectedPlan = planFactory.NewPlan(atc.LoadVarPlan{
+								Name: "some-var",
+								File: "some-input/data.yml",
+							})
+						})
+
+						It("constructs load_var correctly", func() {
+							plan, stepMetadata, _ := fakeStepFactory.LoadVarStepArgsForCall(0)
+							Expect(plan).To(Equal(expectedPlan))
+							Expect(stepMetadata).To(Equal(expectedMetadata))
+						})
+					})
+
 					Context("that contains outputs", func() {
 						var (
 							putPlan          atc.Plan

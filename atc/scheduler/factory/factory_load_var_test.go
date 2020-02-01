@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Factory SetPipeline Step", func() {
+var _ = Describe("Factory LoadVar Step", func() {
 	var (
 		resourceTypes atc.VersionedResourceTypes
 
@@ -36,15 +36,14 @@ var _ = Describe("Factory SetPipeline Step", func() {
 		}
 	})
 
-	Context("when set other pipeline", func() {
+	Context("when load var", func() {
 		BeforeEach(func() {
 			input = atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
-						SetPipeline: "some-pipeline",
-						File:        "some-file",
-						VarFiles:    []string{"vf1", "vf2"},
-						Vars:        map[string]interface{}{"k1": "v1"},
+						LoadVar: "some-var",
+						File:    "some-file",
+						Reveal:  false,
 					},
 				},
 			}
@@ -53,11 +52,10 @@ var _ = Describe("Factory SetPipeline Step", func() {
 			actual, err := buildFactory.Create(input, nil, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
-			expected := expectedPlanFactory.NewPlan(atc.SetPipelinePlan{
-				Name:     "some-pipeline",
-				File:     "some-file",
-				VarFiles: []string{"vf1", "vf2"},
-				Vars:     map[string]interface{}{"k1": "v1"},
+			expected := expectedPlanFactory.NewPlan(atc.LoadVarPlan{
+				Name:   "some-var",
+				File:   "some-file",
+				Reveal: false,
 			})
 
 			Expect(actual).To(testhelpers.MatchPlan(expected))

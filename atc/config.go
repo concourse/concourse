@@ -428,7 +428,7 @@ type PlanConfig struct {
 	VarFiles    []string `json:"var_files,omitempty"`
 
 	// config path, e.g. foo/build.yml. Multiple steps might have this field, e.g. Task step and SetPipeline step.
-	ConfigPath string `json:"file,omitempty"`
+	File string `json:"file,omitempty"`
 	// variables, Multiple steps might have this field, e.g. Task step and SetPipeline step.
 	Vars Params `json:"vars,omitempty"`
 
@@ -477,6 +477,15 @@ type PlanConfig struct {
 	Attempts int `json:"attempts,omitempty"`
 
 	Version *VersionConfig `json:"version,omitempty"`
+
+	// name of 'load_var' step
+	LoadVar string `json:"load_var,omitempty"`
+
+	// format of input file.
+	Format string `json:"format,omitempty"`
+
+	// if true, then it will not be redacted.
+	Reveal bool `json:"reveal,omitempty"`
 }
 
 func (config PlanConfig) Name() string {
