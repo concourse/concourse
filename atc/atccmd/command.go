@@ -78,7 +78,7 @@ import (
 	_ "github.com/concourse/concourse/atc/metric/emitter"
 
 	// dynamically registered policy checkers
-	_ "github.com/concourse/concourse/atc/policy/agent"
+	_ "github.com/concourse/concourse/atc/policy/opa"
 
 	// dynamically registered credential managers
 	_ "github.com/concourse/concourse/atc/creds/conjur"

@@ -3,7 +3,6 @@ package policy
 import (
 	"bytes"
 	"fmt"
-	"github.com/concourse/concourse/atc/api/accessor"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -11,9 +10,11 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/jessevdk/go-flags"
 	"sigs.k8s.io/yaml"
+	"encoding/json"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/api/accessor"
 )
 
 const ActionRunTask = "RunTask"
@@ -25,6 +26,10 @@ type Filter struct {
 }
 
 func (f Filter) normalize() Filter {
+	if len(f.HttpMethods) == 1 {
+		f.HttpMethods = strings.Split(f.HttpMethods[0], ",")
+	}
+
 	if len(f.Actions) == 1 {
 		f.Actions = strings.Split(f.Actions[0], ",")
 	}
@@ -59,12 +64,16 @@ type Checker interface {
 	CheckTask(db.Build, atc.TaskConfig) (bool, error)
 }
 
+//go:generate counterfeiter . Agent
+
 // Agent should be implemented by policy agents.
 type Agent interface {
 	// Check returns true if passes policy check. If not goes through policy
 	// check, just return true.
 	Check(PolicyCheckInput) (bool, error)
 }
+
+//go:generate counterfeiter . AgentFactory
 
 type AgentFactory interface {
 	Description() string
@@ -158,13 +167,17 @@ func (c *checker) CheckHttpApi(action string, acc accessor.Access, req *http.Req
 		Pipeline:       req.FormValue(":pipeline_name"),
 	}
 
-	switch req.Header.Get("Content-type") {
-	case "application/json", "application/x-yaml":
+	switch ct := req.Header.Get("Content-type"); ct {
+	case "application/json", "text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml":
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return false, err
 		} else if body != nil && len(body) > 0 {
-			err = yaml.Unmarshal(body, &input.Data)
+			if ct == "application/json" {
+				err = json.Unmarshal(body, &input.Data)
+			} else {
+				err = yaml.Unmarshal(body, &input.Data)
+			}
 			if err != nil {
 				return false, err
 			}
@@ -200,11 +213,7 @@ func inArray(array []string, target string) bool {
 }
 
 func (c *checker) CheckTask(build db.Build, config atc.TaskConfig) (bool, error) {
-	if c == nil {
-		return true, nil
-	}
-
-	// Actions in black will not go through policy check.
+	// Actions in skip list will not go through policy check.
 	if c.actionToSkip(ActionRunTask) {
 		return true, nil
 	}

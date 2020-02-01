@@ -1,4 +1,4 @@
-package agent
+package opa
 
 import (
 	"bytes"
@@ -61,18 +61,18 @@ func (c opa) Check(input policy.PolicyCheckInput) (bool, error) {
 
 	statusCode := resp.StatusCode
 	if statusCode != http.StatusOK {
-		return false, fmt.Errorf("status: %d", statusCode)
+		return false, fmt.Errorf("opa returned status: %d", statusCode)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("opa returned no response: %s", err.Error())
 	}
 
 	result := &opaResult{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("opa returned bad response: %s", err.Error())
 	}
 
 	// If no result returned, meaning that the requested policy decision is
