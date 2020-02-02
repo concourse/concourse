@@ -1,6 +1,6 @@
 module PipelineGridLayoutTests exposing (all)
 
-import Dashboard.PipelineGridLayout exposing (cardSize, layout)
+import Dashboard.PipelineGrid.Layout exposing (cardSize, layout)
 import Expect
 import Test exposing (Test, describe, test, todo)
 
