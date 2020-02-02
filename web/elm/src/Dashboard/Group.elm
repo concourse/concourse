@@ -269,6 +269,20 @@ view session params g =
                                         else
                                             []
                                        )
+                                    ++ (case HoverState.hoveredElement params.hovered of
+                                            Just (JobPreview jobID) ->
+                                                if
+                                                    (jobID.teamName == pipeline.teamName)
+                                                        && (jobID.pipelineName == pipeline.name)
+                                                then
+                                                    [ style "z-index" "1" ]
+
+                                                else
+                                                    []
+
+                                            _ ->
+                                                []
+                                       )
                                 )
                                 [ Html.div
                                     ([ class "card"

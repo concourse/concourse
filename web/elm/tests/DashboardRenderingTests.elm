@@ -459,6 +459,28 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "team-2" ]
                     |> Query.hasNot [ class "pipeline-wrapper" ]
+        , test "pipeline wrapper has a z-index of 1 when hovering over it" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok [ Data.pipeline "team" 0 ]
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Update <|
+                            Hover <|
+                                Just <|
+                                    JobPreview
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline-0"
+                                        , jobName = "job"
+                                        }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ class "dashboard-team-pipelines" ]
+                    |> Query.has [ class "pipeline-wrapper", style "z-index" "1" ]
         , describe "drop areas" <|
             [ test "renders a drop area over each pipeline card" <|
                 \_ ->

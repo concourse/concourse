@@ -1262,6 +1262,27 @@ all =
                             [ style "display" "flex"
                             , style "justify-content" "space-between"
                             ]
+            , test "has a z-index of 2" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "dashboard-info" ]
+                        |> Query.has [ style "z-index" "2" ]
             , test "two children are legend and concourse-info" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }

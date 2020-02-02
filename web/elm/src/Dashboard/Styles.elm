@@ -345,6 +345,7 @@ infoBar :
     -> List (Html.Attribute msg)
 infoBar { hideLegend, screenSize } =
     [ style "position" "fixed"
+    , style "z-index" "2"
     , style "bottom" "0"
     , style "line-height" "35px"
     , style "padding" "7.5px 30px"
