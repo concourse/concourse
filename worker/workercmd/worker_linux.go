@@ -178,7 +178,7 @@ func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 		Name: "gdn",
 		Runner: concourseCmd.NewLoggingRunner(
 			logger.Session("gdn-runner"),
-			cmdRunner{gdnCmd},
+			CmdRunner{gdnCmd},
 		),
 	})
 
