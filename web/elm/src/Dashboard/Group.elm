@@ -48,11 +48,10 @@ view :
         , pipelineRunningKeyframes : String
         , pipelinesWithResourceErrors : Dict ( String, String ) Bool
         , existingJobs : List Concourse.Job
-        , pipelines : List Pipeline
         }
     -> Group
     -> Html Message
-view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs, pipelines } g =
+view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } g =
     let
         pipelinesForGroup =
             g.pipelines
@@ -169,12 +168,11 @@ hdView :
     { pipelineRunningKeyframes : String
     , pipelinesWithResourceErrors : Dict ( String, String ) Bool
     , existingJobs : List Concourse.Job
-    , pipelines : List Pipeline
     }
     -> { a | userState : UserState }
     -> Group
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs, pipelines } session g =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } session g =
     let
         pipelinesForGroup =
             g.pipelines

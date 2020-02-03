@@ -532,24 +532,7 @@ dashboardView session model =
             (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
                 :: Styles.content model.highDensity
             )
-        <|
-            welcomeCard session model
-                :: pipelinesView
-                    session
-                    { teams = model.teams
-                    , query = model.query
-                    , hovered = session.hovered
-                    , pipelineRunningKeyframes =
-                        session.pipelineRunningKeyframes
-                    , highDensity = model.highDensity
-                    , pipelinesWithResourceErrors =
-                        model.pipelinesWithResourceErrors
-                    , existingJobs = model.existingJobs
-                    , pipelines = model.pipelines
-                    , dragState = model.dragState
-                    , dropState = model.dropState
-                    , now = model.now
-                    }
+            (welcomeCard session model :: pipelinesView session model)
 
 
 welcomeCard :
@@ -659,19 +642,22 @@ turbulenceView path =
 
 
 pipelinesView :
-    { a | userState : UserState.UserState }
-    ->
-        { teams : List Concourse.Team
+    { a
+        | userState : UserState.UserState
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
-        , query : String
-        , highDensity : Bool
-        , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-        , existingJobs : List Concourse.Job
-        , pipelines : List Pipeline
-        , dragState : DragState
-        , dropState : DropState
-        , now : Maybe Time.Posix
+    }
+    ->
+        { b
+            | teams : List Concourse.Team
+            , query : String
+            , highDensity : Bool
+            , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+            , existingJobs : List Concourse.Job
+            , pipelines : List Pipeline
+            , dragState : DragState
+            , dropState : DropState
+            , now : Maybe Time.Posix
         }
     -> List (Html Message)
 pipelinesView session params =
@@ -685,10 +671,9 @@ pipelinesView session params =
                 |> (if params.highDensity then
                         List.concatMap
                             (Group.hdView
-                                { pipelineRunningKeyframes = params.pipelineRunningKeyframes
+                                { pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                 , existingJobs = params.existingJobs
-                                , pipelines = params.pipelines
                                 }
                                 session
                             )
@@ -700,11 +685,10 @@ pipelinesView session params =
                                 { dragState = params.dragState
                                 , dropState = params.dropState
                                 , now = params.now
-                                , hovered = params.hovered
-                                , pipelineRunningKeyframes = params.pipelineRunningKeyframes
+                                , hovered = session.hovered
+                                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                 , existingJobs = params.existingJobs
-                                , pipelines = params.pipelines
                                 }
                             )
                    )
