@@ -2059,7 +2059,9 @@ var _ = Describe("Build", func() {
 
 				buildPipes, err := versionsDB.LatestBuildPipes(ctx, build.ID())
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildPipes[otherJob.ID()]).To(Equal(otherBuild.ID()))
+				Expect(buildPipes[otherJob.ID()]).To(Equal(db.BuildCursor{
+					ID: otherBuild.ID(),
+				}))
 
 				Expect(build.InputsReady()).To(BeTrue())
 			})
@@ -2294,7 +2296,9 @@ var _ = Describe("Build", func() {
 				buildPipes, err := versionsDB.LatestBuildPipes(ctx, retriggerBuild.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes).To(HaveLen(1))
-				Expect(buildPipes[otherJob.ID()]).To(Equal(otherBuild.ID()))
+				Expect(buildPipes[otherJob.ID()]).To(Equal(db.BuildCursor{
+					ID: otherBuild.ID(),
+				}))
 
 				reloaded, err := retriggerBuild.Reload()
 				Expect(err).ToNot(HaveOccurred())
