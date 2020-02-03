@@ -627,6 +627,11 @@ func (cursor BuildCursor) OlderBuilds(idCol string) sq.Sqlizer {
 	if cursor.RerunOf.Valid {
 		return sq.Or{
 			sq.Expr("COALESCE(rerun_of, "+idCol+") < ?", cursor.RerunOf.Int64),
+
+			// include original build of the rerun
+			sq.Eq{idCol: cursor.RerunOf.Int64},
+
+			// include earlier reruns of the same build
 			sq.And{
 				sq.Eq{"rerun_of": cursor.RerunOf.Int64},
 				sq.Lt{idCol: cursor.ID},
@@ -647,7 +652,12 @@ func (cursor BuildCursor) NewerBuilds(idCol string) sq.Sqlizer {
 			},
 		}
 	} else {
-		return sq.Expr("COALESCE(rerun_of, "+idCol+") > ?", cursor.ID)
+		return sq.Or{
+			sq.Expr("COALESCE(rerun_of, "+idCol+") > ?", cursor.ID),
+
+			// include reruns of the build
+			sq.Eq{"rerun_of": cursor.ID},
+		}
 	}
 }
 

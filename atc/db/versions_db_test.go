@@ -186,7 +186,7 @@ var _ = Describe("VersionsDB", func() {
 			})
 		})
 
-		Context("with rerun builds created after their original builds", func() {
+		Context("with rerun builds created after their original (failing) build", func() {
 			var build1Succeeded db.Build
 			var build2Failed db.Build
 			var build3Succeeded db.Build
@@ -260,7 +260,7 @@ var _ = Describe("VersionsDB", func() {
 			})
 		})
 
-		Context("with a rerun build on the page limit boundary", func() {
+		Context("with a rerun build of a failed build on the page limit boundary", func() {
 			var build1Failed db.Build
 			var fillerBuilds []db.Build
 			var build6Rerun1Succeeded db.Build
@@ -302,6 +302,61 @@ var _ = Describe("VersionsDB", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(ok).To(BeTrue())
 				Expect(buildID).To(Equal(build6Rerun1Succeeded.ID()))
+
+				buildID, ok, err = paginatedBuilds.Next(ctx)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ok).To(BeFalse())
+				Expect(buildID).To(BeZero())
+			})
+		})
+
+		Context("with a rerun build of a succeeded build on the page limit boundary", func() {
+			var build1Succeeded db.Build
+			var fillerBuilds []db.Build
+			var build6Rerun1Succeeded db.Build
+
+			BeforeEach(func() {
+				var err error
+				build1Succeeded, err = defaultJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+				err = build1Succeeded.Finish(db.BuildStatusSucceeded)
+				Expect(err).ToNot(HaveOccurred())
+
+				fillerBuilds = []db.Build{}
+
+				for i := 0; i < pageLimit-1; i++ {
+					build, err := defaultJob.CreateBuild()
+					Expect(err).ToNot(HaveOccurred())
+
+					err = build.Finish(db.BuildStatusSucceeded)
+					Expect(err).ToNot(HaveOccurred())
+
+					fillerBuilds = append(fillerBuilds, build)
+				}
+
+				build6Rerun1Succeeded, err = defaultJob.RerunBuild(build1Succeeded)
+				Expect(err).ToNot(HaveOccurred())
+				err = build6Rerun1Succeeded.Finish(db.BuildStatusSucceeded)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the original build after the rerun", func() {
+				for i := len(fillerBuilds) - 1; i >= 0; i-- {
+					buildID, ok, err := paginatedBuilds.Next(ctx)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(ok).To(BeTrue())
+					Expect(buildID).To(Equal(fillerBuilds[i].ID()))
+				}
+
+				buildID, ok, err := paginatedBuilds.Next(ctx)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ok).To(BeTrue())
+				Expect(buildID).To(Equal(build6Rerun1Succeeded.ID()))
+
+				buildID, ok, err = paginatedBuilds.Next(ctx)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ok).To(BeTrue())
+				Expect(buildID).To(Equal(build1Succeeded.ID()))
 
 				buildID, ok, err = paginatedBuilds.Next(ctx)
 				Expect(err).ToNot(HaveOccurred())
@@ -467,6 +522,92 @@ var _ = Describe("VersionsDB", func() {
 			})
 
 			It("returns newer builds, oldest to newest, followed by the cursor build and older builds, newest to oldest", func() {
+				for i := 0; i < len(newerBuilds); i++ {
+					buildID, ok, err := paginatedBuilds.Next(ctx)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(ok).To(BeTrue())
+					Expect(buildID).To(Equal(newerBuilds[i].ID()))
+				}
+
+				buildID, ok, err := paginatedBuilds.Next(ctx)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ok).To(BeTrue())
+				Expect(buildID).To(Equal(cursorBuild.ID()))
+
+				for i := len(olderBuilds) - 1; i >= 0; i-- {
+					buildID, ok, err := paginatedBuilds.Next(ctx)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(ok).To(BeTrue())
+					Expect(buildID).To(Equal(olderBuilds[i].ID()))
+				}
+
+				buildID, ok, err = paginatedBuilds.Next(ctx)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ok).To(BeFalse())
+				Expect(buildID).To(BeZero())
+			})
+		})
+
+		Context("with some older builds and some newer builds and some reruns of the cursor", func() {
+			var olderBuilds []db.Build
+			var cursorBuild db.Build
+			var newerBuilds []db.Build
+			var rerunBuilds []db.Build
+
+			BeforeEach(func() {
+				olderBuilds = []db.Build{}
+				for i := 0; i < pageLimit; i++ {
+					build, err := defaultJob.CreateBuild()
+					Expect(err).ToNot(HaveOccurred())
+
+					err = build.Finish(db.BuildStatusSucceeded)
+					Expect(err).ToNot(HaveOccurred())
+
+					olderBuilds = append(olderBuilds, build)
+				}
+
+				var err error
+				cursorBuild, err = defaultJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				err = cursorBuild.Finish(db.BuildStatusSucceeded)
+				Expect(err).ToNot(HaveOccurred())
+
+				lastUsedBuild = db.BuildCursor{
+					ID: cursorBuild.ID(),
+				}
+
+				newerBuilds = []db.Build{}
+				for i := 0; i < pageLimit; i++ {
+					build, err := defaultJob.CreateBuild()
+					Expect(err).ToNot(HaveOccurred())
+
+					err = build.Finish(db.BuildStatusSucceeded)
+					Expect(err).ToNot(HaveOccurred())
+
+					newerBuilds = append(newerBuilds, build)
+				}
+
+				rerunBuilds = []db.Build{}
+				for i := 0; i < pageLimit; i++ {
+					build, err := defaultJob.RerunBuild(cursorBuild)
+					Expect(err).ToNot(HaveOccurred())
+
+					err = build.Finish(db.BuildStatusSucceeded)
+					Expect(err).ToNot(HaveOccurred())
+
+					rerunBuilds = append(rerunBuilds, build)
+				}
+			})
+
+			It("returns the rerun builds, oldest to newest, followed by the newer builds, oldest to newest, followed by the cursor build and older builds, newest to oldest", func() {
+				for i := 0; i < len(rerunBuilds); i++ {
+					buildID, ok, err := paginatedBuilds.Next(ctx)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(ok).To(BeTrue())
+					Expect(buildID).To(Equal(rerunBuilds[i].ID()))
+				}
+
 				for i := 0; i < len(newerBuilds); i++ {
 					buildID, ok, err := paginatedBuilds.Next(ctx)
 					Expect(err).ToNot(HaveOccurred())
