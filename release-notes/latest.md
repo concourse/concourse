@@ -18,6 +18,12 @@ collector. #4607
 As this feature is being built using [OpenTelemetry], expect to have support for
 other systems soon.
 
+#### <sub><sup><a name="4092" href="#4092">:link:</a></sup></sub> feature
+
+* @joshzarrabi added the `--all` flag to the `fly pause-pipeline` and
+`fly unpause-pipeline` commands. This allows users to pause or unpause every
+pipeline on a team at the same time. #4092
+
 [OpenTelemetry]: https://opentelemetry.io/
 [Jaeger]: https://www.jaegertracing.io/
 [Stackdriver]: https://cloud.google.com/trace/
