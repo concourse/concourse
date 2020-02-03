@@ -92,7 +92,7 @@ targets:
 				atcServer.Reset()
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/sky/userinfo"),
+						ghttp.VerifyRequest("GET", "/api/v1/user"),
 						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{"team": "test"}),
 					),
 				)
@@ -115,7 +115,7 @@ targets:
 				atcServer.Reset()
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/sky/userinfo"),
+						ghttp.VerifyRequest("GET", "/api/v1/user"),
 						ghttp.RespondWith(401, nil),
 					),
 				)
