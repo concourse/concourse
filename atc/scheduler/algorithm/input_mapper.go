@@ -1,6 +1,8 @@
 package algorithm
 
 import (
+	"context"
+
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -10,13 +12,13 @@ type inputMapper struct {
 	hasLatestBuild bool
 }
 
-func newInputMapper(vdb db.VersionsDB, currentJobID int) (inputMapper, error) {
-	latestBuildID, found, err := vdb.LatestBuildID(currentJobID)
+func newInputMapper(ctx context.Context, vdb db.VersionsDB, currentJobID int) (inputMapper, error) {
+	latestBuildID, found, err := vdb.LatestBuildID(ctx, currentJobID)
 	if err != nil {
 		return inputMapper{}, err
 	}
 
-	outputs, err := vdb.BuildOutputs(latestBuildID)
+	outputs, err := vdb.BuildOutputs(ctx, latestBuildID)
 	if err != nil {
 		return inputMapper{}, err
 	}

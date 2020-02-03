@@ -192,13 +192,13 @@ var _ = Describe("Runner", func() {
 									Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(2))
 
 									jobs := []string{}
-									_, pipeline, job, resources, jobsMap := fakeScheduler.ScheduleArgsForCall(0)
+									_, _, pipeline, job, resources, jobsMap := fakeScheduler.ScheduleArgsForCall(0)
 									Expect(pipeline.Name()).To(Equal("fake-pipeline"))
 									Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
 									Expect(jobsMap).To(Equal(expectedJobsMap))
 									jobs = append(jobs, job.Name())
 
-									_, pipeline, job, resources, jobsMap = fakeScheduler.ScheduleArgsForCall(1)
+									_, _, pipeline, job, resources, jobsMap = fakeScheduler.ScheduleArgsForCall(1)
 									Expect(pipeline.Name()).To(Equal("fake-pipeline"))
 									Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
 									Expect(jobsMap).To(Equal(expectedJobsMap))
@@ -276,7 +276,7 @@ var _ = Describe("Runner", func() {
 									fakeJob1.ReloadReturns(false, nil)
 								})
 
-								It("updates last schedule", func() {
+								It("does not update last schedule", func() {
 									Expect(schedulerErr).ToNot(HaveOccurred())
 									Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 									Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
@@ -294,7 +294,7 @@ var _ = Describe("Runner", func() {
 								Expect(schedulerErr).ToNot(HaveOccurred())
 								Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(1))
 
-								_, pipeline, job, resources, jobIDs := fakeScheduler.ScheduleArgsForCall(0)
+								_, _, pipeline, job, resources, jobIDs := fakeScheduler.ScheduleArgsForCall(0)
 								Expect(job).To(Equal(fakeJob2))
 								Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
 								Expect(pipeline).To(Equal(fakePipeline))

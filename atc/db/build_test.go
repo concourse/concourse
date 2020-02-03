@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -19,9 +20,13 @@ var _ = Describe("Build", func() {
 	var (
 		team       db.Team
 		versionsDB db.VersionsDB
+
+		ctx context.Context
 	)
 
 	BeforeEach(func() {
+		ctx = context.Background()
+
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 		Expect(err).ToNot(HaveOccurred())
@@ -502,7 +507,7 @@ var _ = Describe("Build", func() {
 		})
 
 		It("inserts inputs and outputs into successful build versions", func() {
-			outputs, err := versionsDB.SuccessfulBuildOutputs(build.ID())
+			outputs, err := versionsDB.SuccessfulBuildOutputs(ctx, build.ID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(outputs).To(ConsistOf(expectedOutputs))
 		})
@@ -2052,9 +2057,11 @@ var _ = Describe("Build", func() {
 
 				Expect(buildInputs).To(ConsistOf(expectedBuildInputs))
 
-				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
+				buildPipes, err := versionsDB.LatestBuildPipes(ctx, build.ID())
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildPipes[otherJob.ID()]).To(Equal(otherBuild.ID()))
+				Expect(buildPipes[otherJob.ID()]).To(Equal(db.BuildCursor{
+					ID: otherBuild.ID(),
+				}))
 
 				Expect(build.InputsReady()).To(BeTrue())
 			})
@@ -2075,7 +2082,7 @@ var _ = Describe("Build", func() {
 
 				Expect(buildInputs).To(BeNil())
 
-				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
+				buildPipes, err := versionsDB.LatestBuildPipes(ctx, build.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes).To(HaveLen(0))
 
@@ -2286,10 +2293,12 @@ var _ = Describe("Build", func() {
 
 				Expect(buildInputs).To(ConsistOf(expectedBuildInputs))
 
-				buildPipes, err := versionsDB.LatestBuildPipes(retriggerBuild.ID())
+				buildPipes, err := versionsDB.LatestBuildPipes(ctx, retriggerBuild.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes).To(HaveLen(1))
-				Expect(buildPipes[otherJob.ID()]).To(Equal(otherBuild.ID()))
+				Expect(buildPipes[otherJob.ID()]).To(Equal(db.BuildCursor{
+					ID: otherBuild.ID(),
+				}))
 
 				reloaded, err := retriggerBuild.Reload()
 				Expect(err).ToNot(HaveOccurred())
@@ -2305,7 +2314,7 @@ var _ = Describe("Build", func() {
 
 				Expect(buildInputs).To(BeNil())
 
-				buildPipes, err := versionsDB.LatestBuildPipes(build.ID())
+				buildPipes, err := versionsDB.LatestBuildPipes(ctx, build.ID())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildPipes).To(HaveLen(0))
 

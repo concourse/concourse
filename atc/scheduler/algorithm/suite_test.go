@@ -2,17 +2,18 @@ package algorithm_test
 
 import (
 	"os"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
+	"github.com/tedsuo/ifrit"
+	"go.opentelemetry.io/otel/exporter/trace/jaeger"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
-	"github.com/tedsuo/ifrit"
+	"github.com/concourse/concourse/tracing"
 )
 
 var (
@@ -23,6 +24,8 @@ var (
 	teamFactory db.TeamFactory
 
 	dbConn db.Conn
+
+	exporter *jaeger.Exporter
 )
 
 func TestAlgorithm(t *testing.T) {
@@ -31,6 +34,21 @@ func TestAlgorithm(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	jaegerURL := os.Getenv("JAEGER_URL")
+
+	if jaegerURL != "" {
+		spanSyncer, err := (tracing.Jaeger{
+			Endpoint: jaegerURL + "/api/traces",
+			Service:  "algorithm_test",
+		}).Exporter()
+		Expect(err).ToNot(HaveOccurred())
+
+		exporter = spanSyncer.(*jaeger.Exporter)
+
+		err = tracing.ConfigureTracer(exporter)
+		Expect(err).ToNot(HaveOccurred())
+	}
+
 	postgresRunner = postgresrunner.Runner{
 		Port: 5433 + GinkgoParallelNode(),
 	}
@@ -57,4 +75,8 @@ var _ = AfterEach(func() {
 var _ = AfterSuite(func() {
 	dbProcess.Signal(os.Interrupt)
 	<-dbProcess.Wait()
+
+	if exporter != nil {
+		exporter.Flush()
+	}
 })

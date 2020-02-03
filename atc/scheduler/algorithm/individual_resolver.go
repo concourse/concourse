@@ -1,21 +1,23 @@
 package algorithm
 
 import (
+	"context"
+
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
+	"go.opentelemetry.io/otel/api/key"
+	"google.golang.org/grpc/codes"
 )
 
 type individualResolver struct {
 	vdb         db.VersionsDB
 	inputConfig InputConfig
-
-	debug debugger
 }
 
 func NewIndividualResolver(vdb db.VersionsDB, inputConfig InputConfig) Resolver {
 	return &individualResolver{
 		vdb:         vdb,
 		inputConfig: inputConfig,
-		debug:       debugger{},
 	}
 }
 
@@ -25,52 +27,65 @@ func (r *individualResolver) InputConfigs() InputConfigs {
 
 // Handles the three different configurations of a resource without passed
 // constraints: pinned, every and latest
-func (r *individualResolver) Resolve(depth int) (map[string]*versionCandidate, db.ResolutionFailure, error) {
-	r.debug.reset(0, r.inputConfig.Name)
+func (r *individualResolver) Resolve(ctx context.Context) (map[string]*versionCandidate, db.ResolutionFailure, error) {
+	ctx, span := tracing.StartSpan(ctx, "individualResolver.Resolve", tracing.Attrs{
+		"input": r.inputConfig.Name,
+	})
+	defer span.End()
 
 	var version db.ResourceVersion
 	var hasNext bool
 	if r.inputConfig.UseEveryVersion {
-		buildID, found, err := r.vdb.LatestBuildID(r.inputConfig.JobID)
+		buildID, found, err := r.vdb.LatestBuildID(ctx, r.inputConfig.JobID)
 		if err != nil {
+			tracing.End(span, err)
 			return nil, "", err
 		}
 
 		if found {
-			version, hasNext, found, err = r.vdb.NextEveryVersion(buildID, r.inputConfig.ResourceID)
+			version, hasNext, found, err = r.vdb.NextEveryVersion(ctx, buildID, r.inputConfig.ResourceID)
 			if err != nil {
+				tracing.End(span, err)
 				return nil, "", err
 			}
 
 			if !found {
+				span.AddEvent(ctx, "next every version not found")
+				span.SetStatus(codes.NotFound)
 				return nil, db.VersionNotFound, nil
 			}
 		} else {
-			version, found, err = r.vdb.LatestVersionOfResource(r.inputConfig.ResourceID)
+			version, found, err = r.vdb.LatestVersionOfResource(ctx, r.inputConfig.ResourceID)
 			if err != nil {
+				tracing.End(span, err)
 				return nil, "", err
 			}
 
 			if !found {
+				span.AddEvent(ctx, "latest version not found")
+				span.SetStatus(codes.NotFound)
 				return nil, db.LatestVersionNotFound, nil
 			}
 		}
 
-		r.debug.log("setting candidate", r.inputConfig.Name, "to version for version every", version, " resource ", r.inputConfig.ResourceID)
+		span.AddEvent(ctx, "found via every", key.New("version").String(string(version)))
 	} else {
 		// there are no passed constraints, so just take the latest version
 		var err error
 		var found bool
-		version, found, err = r.vdb.LatestVersionOfResource(r.inputConfig.ResourceID)
+		version, found, err = r.vdb.LatestVersionOfResource(ctx, r.inputConfig.ResourceID)
 		if err != nil {
+			tracing.End(span, err)
 			return nil, "", err
 		}
 
 		if !found {
+			span.AddEvent(ctx, "latest version not found")
+			span.SetStatus(codes.NotFound)
 			return nil, db.LatestVersionNotFound, nil
 		}
 
-		r.debug.log("setting candidate", r.inputConfig.Name, "to version for latest", version)
+		span.AddEvent(ctx, "found via latest", key.New("version").String(string(version)))
 	}
 
 	candidate := newCandidateVersion(version)
@@ -80,26 +95,6 @@ func (r *individualResolver) Resolve(depth int) (map[string]*versionCandidate, d
 		r.inputConfig.Name: candidate,
 	}
 
+	span.SetStatus(codes.OK)
 	return versionCandidates, "", nil
-}
-
-type debugger struct {
-	depth     int
-	inputName string
-}
-
-func (d *debugger) reset(depth int, inputName string) {
-	d.depth = depth
-	d.inputName = inputName
-}
-
-func (d *debugger) log(messages ...interface{}) {
-	// log.Println(
-	// 	append(
-	// 		[]interface{}{
-	// 			strings.Repeat("-", d.depth) + fmt.Sprintf("[%s]", d.inputName),
-	// 		},
-	// 		messages...,
-	// 	)...,
-	// )
 }
