@@ -55,7 +55,7 @@ view :
 view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs, pipelines } g =
     let
         pipelinesForGroup =
-            pipelines |> List.filter (.teamName >> (==) g.teamName)
+            g.pipelines
 
         pipelineCards =
             if List.isEmpty pipelinesForGroup then
@@ -177,7 +177,7 @@ hdView :
 hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs, pipelines } session g =
     let
         pipelinesForGroup =
-            pipelines |> List.filter (.teamName >> (==) g.teamName)
+            g.pipelines
 
         header =
             Html.div

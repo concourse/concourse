@@ -93,6 +93,13 @@ all =
                           , teamName = "team1"
                           , groups = []
                           }
+                        , { id = 1
+                          , name = "other-pipeline"
+                          , paused = False
+                          , public = True
+                          , teamName = "team1"
+                          , groups = []
+                          }
                         ]
                 )
             |> Tuple.first
