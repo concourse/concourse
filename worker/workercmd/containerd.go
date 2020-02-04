@@ -72,7 +72,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) ifrit.Runner {
 	return grouper.NewParallel(os.Interrupt, grouper.Members{
 		{
 			Name:   "containerd",
-			Runner: cmdRunner{command},
+			Runner: CmdRunner{command},
 		},
 		{
 			Name: "containerd-backend",

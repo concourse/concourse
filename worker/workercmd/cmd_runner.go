@@ -5,12 +5,12 @@ import (
 	"os/exec"
 )
 
-type cmdRunner struct {
-	cmd *exec.Cmd
+type CmdRunner struct {
+	Cmd *exec.Cmd
 }
 
-func (runner cmdRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	err := runner.cmd.Start()
+func (runner CmdRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	err := runner.Cmd.Start()
 	if err != nil {
 		return err
 	}
@@ -20,13 +20,13 @@ func (runner cmdRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) err
 	waitErr := make(chan error, 1)
 
 	go func() {
-		waitErr <- runner.cmd.Wait()
+		waitErr <- runner.Cmd.Wait()
 	}()
 
 	for {
 		select {
 		case sig := <-signals:
-			runner.cmd.Process.Signal(sig)
+			runner.Cmd.Process.Signal(sig)
 		case err := <-waitErr:
 			return err
 		}
