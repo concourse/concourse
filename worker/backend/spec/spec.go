@@ -17,7 +17,7 @@ import (
 // - masked paths
 // - rootfs propagation
 // - seccomp
-// x user namespaces: uid/gid mappings	// TODO test this shit
+// x user namespaces: uid/gid mappings
 // x capabilities
 // x devices
 // x env
@@ -27,7 +27,7 @@ import (
 // x rootfs
 //
 //
-func OciSpec(gdn garden.ContainerSpec) (oci *specs.Spec, err error) {
+func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
 		return
@@ -45,16 +45,6 @@ func OciSpec(gdn garden.ContainerSpec) (oci *specs.Spec, err error) {
 
 	var mounts []specs.Mount
 	mounts, err = OciSpecBindMounts(gdn.BindMounts)
-	if err != nil {
-		return
-	}
-
-	maxUid, err := MaxValidUid()
-	if err != nil {
-		return
-	}
-
-	maxGid, err := MaxValidGid()
 	if err != nil {
 		return
 	}

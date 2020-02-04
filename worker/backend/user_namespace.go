@@ -1,4 +1,4 @@
-package spec
+package backend
 
 import (
 	"bufio"
@@ -13,12 +13,22 @@ const (
 	gidMap = "/proc/self/gid_map"
 )
 
-func MaxValidUid() (uint32, error) {
-	return maxValidFromFile(uidMap)
+type userNamespace struct{}
+
+func NewUserNamespace() UserNamespace {
+	return &userNamespace{}
 }
 
-func MaxValidGid() (uint32, error) {
-	return maxValidFromFile(gidMap)
+func (s *userNamespace) MaxValidIds() (uint32, uint32, error) {
+	maxValidUid, err := maxValidFromFile(uidMap)
+	if err != nil {
+		return 0, 0, err
+	}
+	maxValidGid, err := maxValidFromFile(gidMap)
+	if err != nil {
+		return 0, 0, err
+	}
+	return maxValidUid, maxValidGid, nil
 }
 
 func maxValidFromFile(fname string) (uint32, error) {

@@ -11,8 +11,4 @@ func TestSuite(t *testing.T) {
 	suite.Run(t, &SpecSuite{
 		Assertions: require.New(t),
 	})
-
-	suite.Run(t, &MappingSuite{
-		Assertions: require.New(t),
-	})
 }

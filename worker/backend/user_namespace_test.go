@@ -1,10 +1,10 @@
-package spec_test
+package backend_test
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/concourse/concourse/worker/backend/spec"
+	"github.com/concourse/concourse/worker/backend"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -57,7 +57,7 @@ func (s *MappingSuite) TestMaxValid() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			res, err := spec.MaxValid(bytes.NewBufferString(tc.input))
+			res, err := backend.MaxValid(bytes.NewBufferString(tc.input))
 			if tc.shouldErr {
 				s.Error(err)
 				return

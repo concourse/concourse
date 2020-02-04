@@ -1,4 +1,4 @@
-// Package backend provides the imlementation of a Garden server backed by
+// Package backend provides the implementation of a Garden server backed by
 // containerd.
 //
 // See https://containerd.io/, and https://github.com/cloudfoundry/garden.
@@ -26,6 +26,19 @@ type Backend struct {
 	containerStopper ContainerStopper
 	rootfsManager    RootfsManager
 	network          Network
+	userNamespace    UserNamespace
+}
+
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . UserNamespace
+
+type UserNamespace interface {
+	MaxValidIds() (uid, gid uint32, err error)
+}
+
+func WithUserNamespace(s UserNamespace) BackendOpt {
+	return func(b *Backend) {
+		b.userNamespace = s
+	}
 }
 
 // BackendOpt defines a functional option that when applied, modifies the
@@ -88,6 +101,10 @@ func New(client libcontainerd.Client, opts ...BackendOpt) (b Backend, err error)
 		b.rootfsManager = NewRootfsManager()
 	}
 
+	if b.userNamespace == nil {
+		b.userNamespace = NewUserNamespace()
+	}
+
 	return b, nil
 }
 
@@ -125,7 +142,12 @@ func (b *Backend) Ping() (err error) {
 func (b *Backend) Create(gdnSpec garden.ContainerSpec) (garden.Container, error) {
 	ctx := context.Background()
 
-	oci, err := bespec.OciSpec(gdnSpec)
+	maxUid, maxGid, err := b.userNamespace.MaxValidIds()
+	if err != nil {
+		return nil, fmt.Errorf("getting uid and gid maps: %w", err)
+	}
+
+	oci, err := bespec.OciSpec(gdnSpec, maxUid, maxGid)
 	if err != nil {
 		return nil, fmt.Errorf("garden spec to oci spec: %w", err)
 	}

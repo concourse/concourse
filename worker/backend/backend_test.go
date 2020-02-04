@@ -20,6 +20,7 @@ type BackendSuite struct {
 	backend          backend.Backend
 	containerStopper *backendfakes.FakeContainerStopper
 	network          *backendfakes.FakeNetwork
+	system           *backendfakes.FakeUserNamespace
 	client           *libcontainerdfakes.FakeClient
 }
 
@@ -27,11 +28,13 @@ func (s *BackendSuite) SetupTest() {
 	s.client = new(libcontainerdfakes.FakeClient)
 	s.containerStopper = new(backendfakes.FakeContainerStopper)
 	s.network = new(backendfakes.FakeNetwork)
+	s.system = new(backendfakes.FakeUserNamespace)
 
 	var err error
 	s.backend, err = backend.New(s.client,
 		backend.WithContainerStopper(s.containerStopper),
 		backend.WithNetwork(s.network),
+		backend.WithUserNamespace(s.system),
 	)
 	s.NoError(err)
 }
@@ -97,12 +100,14 @@ func (s *BackendSuite) TestCreateWithNewContainerFailure() {
 
 func (s *BackendSuite) TestCreateContainerNewTaskFailure() {
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
-	fakeContainer.NewTaskReturns(nil, errors.New("err"))
+
+	expectedErr := errors.New("task-err")
+	fakeContainer.NewTaskReturns(nil, expectedErr)
 
 	s.client.NewContainerReturns(fakeContainer, nil)
 
 	_, err := s.backend.Create(minimumValidGdnSpec)
-	s.Error(err)
+	s.EqualError(errors.Unwrap(err), expectedErr.Error())
 
 	s.Equal(1, fakeContainer.NewTaskCallCount())
 }

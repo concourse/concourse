@@ -10,6 +10,12 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+var (
+	dummyMaxUid uint32 = 0
+	dummyMaxGid uint32 = 0
+)
+
+
 type SpecSuite struct {
 	suite.Suite
 	*require.Assertions
@@ -75,7 +81,7 @@ func (s *SpecSuite) TestContainerSpecValidations() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			_, err := spec.OciSpec(tc.spec)
+			_, err := spec.OciSpec(tc.spec, dummyMaxUid, dummyMaxGid)
 			s.Error(err)
 		})
 	}
@@ -288,7 +294,7 @@ func (s *SpecSuite) TestContainerSpec() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			actual, err := spec.OciSpec(tc.gdn)
+			actual, err := spec.OciSpec(tc.gdn, dummyMaxUid, dummyMaxGid)
 			s.NoError(err)
 
 			tc.check(actual)
