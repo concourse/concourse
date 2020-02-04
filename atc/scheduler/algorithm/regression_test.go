@@ -8,6 +8,52 @@ import (
 var _ = DescribeTable("Regression tests",
 	(Example).Run,
 
+	Entry("hush-house 6.0 upgrade unsatisfiable job", Example{
+		LoadDB: "testdata/hush-house-6.json.gz",
+
+		Inputs: Inputs{
+			{
+				Name:     "rc-image",
+				Resource: "rc-image",
+				Passed: []string{
+					"frp-deps",
+					"gin-deps",
+					"etcd-deps",
+					"hugo-deps",
+					"caddy-deps",
+					"gitea-deps",
+					"guardian-deps",
+					"concourse-deps",
+					"syncthing-deps",
+					"kubernetes-deps",
+					"prometheus-deps",
+					"sourcegraph-deps",
+					"concourse-cf-resource-deps",
+					"concourse-s3-resource-deps",
+					"concourse-mock-resource-deps",
+					"concourse-pool-resource-deps",
+					"concourse-time-resource-deps",
+					"concourse-semver-resource-deps",
+					"concourse-tracker-resource-deps",
+					"concourse-docker-image-resource-deps",
+					"concourse-datadog-event-resource-deps",
+					"concourse-github-release-resource-deps",
+					"concourse-registry-image-resource-deps",
+					"concourse-bosh-io-stemcell-resource-deps",
+					"concourse-concourse-pipeline-resource-deps",
+				},
+			},
+		},
+
+		Result: Result{
+			// unsatisfiable; this test exists as a benchmark
+			OK: true,
+			Values: map[string]string{
+				"rc-image": "imported-r31481v804095",
+			},
+		},
+	}),
+
 	Entry("bosh memory leak regression test", Example{
 		LoadDB: "testdata/bosh-versions.json.gz",
 
