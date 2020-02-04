@@ -761,7 +761,7 @@ pipelinesView session params =
                                             , pipelineLayers = params.pipelineLayers
                                             , viewportWidth = params.viewportWidth
                                             , viewportHeight = params.viewportHeight
-                                            , scrollTop = params.scrollTop + totalOffset
+                                            , scrollTop = params.scrollTop - totalOffset
                                             }
                                             g
                                 in

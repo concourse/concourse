@@ -448,7 +448,7 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
-        , test "considers a group's y-offset when determining visibility" <|
+        , test "groups that are outside the viewport have no visible pipelines" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
@@ -465,6 +465,32 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "team-2" ]
                     |> Query.hasNot [ class "pipeline-wrapper" ]
+        , test "groups that are scrolled into view have visible pipelines" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team-2" 2 ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                            Ok <|
+                                viewportWithSize 300 200
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Update <|
+                            Scrolled
+                                { scrollTop = 600
+                                , scrollHeight = 3240
+                                , clientHeight = 200
+                                }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "team-2" ]
+                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-2" ] ]
         , test "pipeline wrapper has a z-index of 1 when hovering over it" <|
             \_ ->
                 Common.init "/"
