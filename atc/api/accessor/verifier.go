@@ -53,19 +53,7 @@ func (v *verifier) Verify(r *http.Request) (map[string]interface{}, error) {
 		return nil, ErrVerificationInvalidToken
 	}
 
-	claims, err := v.verify(parts[1])
-	if err != nil {
-
-		if err = v.refreshKeySet(); err != nil {
-			return nil, err
-		}
-
-		if claims, err = v.verify(parts[1]); err != nil {
-			return nil, err
-		}
-	}
-
-	return claims, nil
+	return v.verify(parts[1])
 }
 
 func (v *verifier) verify(raw string) (map[string]interface{}, error) {
@@ -80,7 +68,15 @@ func (v *verifier) verify(raw string) (map[string]interface{}, error) {
 
 	err = token.Claims(&v.keySet, &claims, &data)
 	if err != nil {
-		return nil, ErrVerificationInvalidSignature
+
+		if err = v.refreshKeySet(); err != nil {
+			return nil, err
+		}
+
+		err = token.Claims(&v.keySet, &claims, &data)
+		if err != nil {
+			return nil, ErrVerificationInvalidSignature
+		}
 	}
 
 	err = claims.Validate(jwt.Expected{Time: time.Now()})

@@ -91,6 +91,16 @@ var _ = Describe("Verifier", func() {
 				req.Header.Add("Authorization", fmt.Sprintf("bearer %s", "29384q29jdhkwjdhs"))
 			})
 
+			It("fails verification", func() {
+				Expect(err).To(Equal(accessor.ErrVerificationInvalidToken))
+			})
+		})
+
+		Context("when request has a token with an invalid signature", func() {
+			BeforeEach(func() {
+				req.Header.Add("Authorization", fmt.Sprintf("bearer %s", "eyJhbGciOiJSUzI1NiIsImtpZCI6ImtpZCJ9.eyJzdWIiOiAic29tZS1zdWIiLCAiZXhwIjogMH0.eiDPnv44MuLYfL9K0H6METeKDQSzmrSmUHAKxpXSZTIXa20VJurNMeBUF9uG4sAMoeNKlE4UEHrcn4xNtg8iwGqSMpLUNtVpuZFogKL3TFjhBha9LTNoH3uP5jjZB0MXMXu_xc9DM9qZnP7Efrm8zmDY7AGaK13sSVrneHbQ2VufsnzYxro1kXCyw5_QEyyemTrMLLyFdfe6XmZa20O4YthZor53vR9Iuaq1rrtTbYCiMIzVMdRrnX2B5FAMLqJso7XajKa5U9mTipW_YPHu8YOlUuu8HeuvmhrotEy5uD8HUAmVdkOIlKkP661cDVAl-HfcpVtCBmAGLFTSH-ANJw"))
+			})
+
 			Context("when the auth server responds with an error", func() {
 				BeforeEach(func() {
 					authServer.AppendHandlers(
@@ -99,6 +109,10 @@ var _ = Describe("Verifier", func() {
 							ghttp.RespondWith(http.StatusInternalServerError, nil),
 						),
 					)
+				})
+
+				It("tries to fetch a public key from the auth server", func() {
+					Expect(authServer.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("fails verification", func() {
@@ -123,13 +137,18 @@ var _ = Describe("Verifier", func() {
 					)
 				})
 
+				It("tries to fetch a public key from the auth server", func() {
+					Expect(authServer.ReceivedRequests()).To(HaveLen(1))
+				})
+
 				It("fails verification", func() {
-					Expect(err).To(Equal(accessor.ErrVerificationInvalidToken))
+					Expect(err).To(Equal(accessor.ErrVerificationInvalidSignature))
 				})
 			})
 		})
 
-		Context("when the auth server responds with a valid public key", func() {
+
+		Context("when the token has a valid signature", func() {
 			BeforeEach(func() {
 				authServer.AppendHandlers(
 					ghttp.CombineHandlers(

@@ -28,17 +28,17 @@ var _ = Describe("AccessorFactory", func() {
 		fakeTeamFactory *dbfakes.FakeTeamFactory
 	)
 
+	BeforeEach(func() {
+		req, err = http.NewRequest("GET", "localhost:8080", nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		fakeVerifier = new(accessorfakes.FakeVerifier)
+		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
+
+		accessorFactory = accessor.NewAccessFactory(fakeVerifier, fakeTeamFactory, "sub", []string{"some-sub"})
+	})
+
 	Describe("Create", func() {
-
-		BeforeEach(func() {
-			req, err = http.NewRequest("GET", "localhost:8080", nil)
-			Expect(err).NotTo(HaveOccurred())
-
-			fakeVerifier = new(accessorfakes.FakeVerifier)
-			fakeTeamFactory = new(dbfakes.FakeTeamFactory)
-
-			accessorFactory = accessor.NewAccessFactory(fakeVerifier, fakeTeamFactory, "sub", []string{"some-sub"})
-		})
 
 		JustBeforeEach(func() {
 			access, err = accessorFactory.Create(req, "some-role")
