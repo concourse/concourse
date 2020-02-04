@@ -123,6 +123,7 @@ noPipelineCard =
     , style "flex-direction" "column"
     , style "width" <| String.fromInt PipelineGridConstants.cardWidth ++ "px"
     , style "height" <| String.fromInt PipelineGridConstants.cardHeight ++ "px"
+    , style "margin-left" <| String.fromInt PipelineGridConstants.padding ++ "px"
     ]
 
 

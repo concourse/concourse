@@ -150,6 +150,7 @@ initLoadVar =
                     (Models.LoadVar (someStep "some-id" "some-name" Models.StepStateSucceeded))
         ]
 
+
 initGet : Test
 initGet =
     let
