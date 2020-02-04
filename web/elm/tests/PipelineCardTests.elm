@@ -1046,6 +1046,35 @@ all =
                             False
                         |> card
                         |> Query.has [ style "background-color" amber ]
+            , test "card is not affected by jobs from other pipelines" <|
+                \_ ->
+                    whenOnDashboard { highDensity = True }
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllJobsFetched <|
+                                let
+                                    baseJob =
+                                        job BuildStatusErrored
+                                in
+                                Ok
+                                    [ { baseJob | pipelineName = "other-pipeline" } ]
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> card
+                        |> Query.hasNot [ style "background-color" amber ]
             ]
         , describe "body" <|
             let

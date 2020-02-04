@@ -48,12 +48,12 @@ view :
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
         , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-        , existingJobs : List Concourse.Job
         , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
         , query : String
         , pipelineCards : List PipelineGrid.PipelineCard
         , dropAreas : List PipelineGrid.DropArea
         , groupCardsHeight : Float
+        , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
         }
     -> Group
     -> Html Message
@@ -128,12 +128,12 @@ tag { userState } g =
 hdView :
     { pipelineRunningKeyframes : String
     , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-    , existingJobs : List Concourse.Job
+    , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
     }
     -> { a | userState : UserState }
     -> Group
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } session g =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs } session g =
     let
         orderedPipelines =
             g.pipelines
@@ -159,7 +159,10 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } s
                                     pipelinesWithResourceErrors
                                         |> Dict.get ( p.teamName, p.name )
                                         |> Maybe.withDefault False
-                                , existingJobs = existingJobs
+                                , existingJobs =
+                                    pipelineJobs
+                                        |> Dict.get ( p.teamName, p.name )
+                                        |> Maybe.withDefault []
                                 }
                         )
     in
@@ -294,11 +297,9 @@ pipelineCardView session params { bounds, pipeline } teamName =
                         |> Dict.get ( pipeline.teamName, pipeline.name )
                         |> Maybe.withDefault False
                 , existingJobs =
-                    params.existingJobs
-                        |> List.filter
-                            (\j ->
-                                j.teamName == pipeline.teamName && j.pipelineName == pipeline.name
-                            )
+                    params.pipelineJobs
+                        |> Dict.get ( pipeline.teamName, pipeline.name )
+                        |> Maybe.withDefault []
                 , layers =
                     params.pipelineLayers
                         |> Dict.get ( pipeline.teamName, pipeline.name )

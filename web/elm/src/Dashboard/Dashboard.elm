@@ -94,6 +94,7 @@ init searchType =
       , viewportWidth = 0
       , viewportHeight = 0
       , scrollTop = 0
+      , pipelineJobs = Dict.empty
       }
     , [ FetchAllTeams
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -185,13 +186,12 @@ handleCallback callback ( model, effects ) =
             )
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
-            ( { model
-                | existingJobs = allJobsInEntireCluster
-                , pipelineLayers =
-                    if model.existingJobs == allJobsInEntireCluster then
-                        model.pipelineLayers
+            ( if model.existingJobs == allJobsInEntireCluster then
+                model
 
-                    else
+              else
+                let
+                    pipelinesWithJobs =
                         allJobsInEntireCluster
                             |> List.map (\j -> ( j.teamName, j.pipelineName ))
                             |> List.Extra.unique
@@ -199,11 +199,17 @@ handleCallback callback ( model, effects ) =
                                 (\( teamName, pipelineName ) ->
                                     allJobsInEntireCluster
                                         |> List.filter (\j -> j.teamName == teamName && j.pipelineName == pipelineName)
-                                        |> DashboardPreview.groupByRank
                                         |> Tuple.pair ( teamName, pipelineName )
                                 )
+                in
+                { model
+                    | existingJobs = allJobsInEntireCluster
+                    , pipelineLayers =
+                        pipelinesWithJobs
+                            |> List.map (\( key, jobs ) -> ( key, DashboardPreview.groupByRank jobs ))
                             |> Dict.fromList
-              }
+                    , pipelineJobs = pipelinesWithJobs |> Dict.fromList
+                }
             , effects
             )
 
@@ -707,7 +713,6 @@ pipelinesView :
             , highDensity : Bool
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
-            , existingJobs : List Concourse.Job
             , pipelines : List Pipeline
             , dragState : DragState
             , dropState : DropState
@@ -715,12 +720,13 @@ pipelinesView :
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
+            , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
         }
     -> List (Html Message)
 pipelinesView session params =
     let
         filteredGroups =
-            Filter.filterGroups params.existingJobs params.query params.teams params.pipelines
+            Filter.filterGroups params.pipelineJobs params.query params.teams params.pipelines
                 |> List.sortWith (Group.ordering session)
 
         groupViews =
@@ -730,7 +736,7 @@ pipelinesView session params =
                             (Group.hdView
                                 { pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
-                                , existingJobs = params.existingJobs
+                                , pipelineJobs = params.pipelineJobs
                                 }
                                 session
                             )
@@ -758,12 +764,12 @@ pipelinesView session params =
                                     , hovered = session.hovered
                                     , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                     , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
-                                    , existingJobs = params.existingJobs
                                     , pipelineLayers = params.pipelineLayers
                                     , query = params.query
                                     , pipelineCards = layout.pipelineCards
                                     , dropAreas = layout.dropAreas
                                     , groupCardsHeight = layout.height
+                                    , pipelineJobs = params.pipelineJobs
                                     }
                                     g
                                     |> (\html ->

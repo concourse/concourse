@@ -32,6 +32,7 @@ type alias Model =
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
+            , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
             }
         )
 
