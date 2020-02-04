@@ -1,22 +1,18 @@
-module Dashboard.PipelineGrid exposing (view)
+module Dashboard.PipelineGrid exposing
+    ( Bounds
+    , DropArea
+    , PipelineCard
+    , computeLayout
+    )
 
 import Concourse
 import Dashboard.Drag exposing (drag)
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Models exposing (DragState(..), DropState(..))
-import Dashboard.Pipeline as Pipeline
 import Dashboard.PipelineGrid.Constants exposing (cardHeight, cardWidth, padding)
 import Dashboard.PipelineGrid.Layout as Layout
 import Dict exposing (Dict)
-import HoverState
-import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
-import Html.Events exposing (on, preventDefaultOn, stopPropagationOn)
-import Html.Keyed
-import Json.Decode
-import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
-import Time
 import UserState exposing (UserState(..))
 
 
@@ -28,25 +24,33 @@ type alias Bounds =
     }
 
 
-view :
-    { a | userState : UserState }
-    ->
-        { dragState : DragState
-        , dropState : DropState
-        , now : Maybe Time.Posix
-        , hovered : HoverState.HoverState
-        , pipelineRunningKeyframes : String
-        , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-        , existingJobs : List Concourse.Job
-        , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
-        , viewportWidth : Float
-        , viewportHeight : Float
-        , scrollTop : Float
-        , query : String
-        }
+type alias PipelineCard =
+    { bounds : Bounds
+    , pipeline : Pipeline
+    }
+
+
+type alias DropArea =
+    { bounds : Bounds
+    , index : Int
+    }
+
+
+computeLayout :
+    { dragState : DragState
+    , dropState : DropState
+    , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
+    , viewportWidth : Float
+    , viewportHeight : Float
+    , scrollTop : Float
+    }
     -> Group
-    -> ( Html Message, Float )
-view session params g =
+    ->
+        { pipelineCards : List PipelineCard
+        , dropAreas : List DropArea
+        , height : Float
+        }
+computeLayout params g =
     let
         ( dragTeam, fromIndex, toIndex ) =
             case ( params.dragState, params.dropState ) of
@@ -84,7 +88,7 @@ view session params g =
             orderedPipelines
                 |> List.map
                     (\pipeline ->
-                        Dict.get ( pipeline.name, pipeline.teamName ) params.pipelineLayers
+                        Dict.get ( pipeline.teamName, pipeline.name ) params.pipelineLayers
                             |> Maybe.withDefault []
                     )
                 |> List.map
@@ -109,10 +113,10 @@ view session params g =
                 |> Maybe.withDefault 1
 
         totalCardsHeight =
-            numRows
+            toFloat numRows
                 * cardHeight
                 + padding
-                * (numRows - 1)
+                * (toFloat numRows - 1)
 
         cardLookup =
             cards
@@ -160,10 +164,7 @@ view session params g =
                                     Nothing ->
                                         cardBounds
                         in
-                        pipelineDropAreaView params.dragState
-                            g.teamName
-                            bounds
-                            (i + 1)
+                        { bounds = bounds, index = i + 1 }
                     )
             )
                 ++ (case List.head (List.reverse cards) of
@@ -172,14 +173,14 @@ view session params g =
                                 []
 
                             else
-                                [ pipelineDropAreaView params.dragState
-                                    g.teamName
-                                    { x = toFloat lastCard.column * (cardWidth + padding)
-                                    , y = (toFloat lastCard.row - 1) * (cardHeight + padding)
-                                    , width = cardWidth + padding
-                                    , height = cardHeight
-                                    }
-                                    (List.length cards + 1)
+                                [ { bounds =
+                                        { x = toFloat lastCard.column * (cardWidth + padding)
+                                        , y = (toFloat lastCard.row - 1) * (cardHeight + padding)
+                                        , width = cardWidth + padding
+                                        , height = cardHeight
+                                        }
+                                  , index = List.length cards + 1
+                                  }
                                 ]
 
                         Nothing ->
@@ -187,181 +188,36 @@ view session params g =
                    )
 
         pipelineCards =
-            if List.isEmpty orderedPipelines then
-                [ ( "not-set", Pipeline.pipelineNotSetView ) ]
-
-            else
-                g.pipelines
-                    |> List.map
-                        (\p ->
-                            cardLookup
-                                |> Dict.get p.id
-                                |> Maybe.withDefault { row = 0, column = 0, width = 0, height = 0 }
-                                |> Tuple.pair p
-                        )
-                    |> List.filter (\( _, card ) -> isVisible card)
-                    |> List.map
-                        (\( pipeline, card ) ->
-                            params.pipelineLayers
-                                |> Dict.get ( pipeline.name, pipeline.teamName )
-                                |> Maybe.withDefault []
-                                |> (\layers -> ( pipeline, card, layers ))
-                        )
-                    |> List.map
-                        (\( pipeline, card, layers ) ->
-                            Html.div
-                                ([ class "pipeline-wrapper"
-                                 , style "position" "absolute"
-                                 , style "transform"
-                                    ("translate("
-                                        ++ String.fromInt ((card.column - 1) * (cardWidth + padding) + padding)
-                                        ++ "px,"
-                                        ++ String.fromInt ((card.row - 1) * (cardHeight + padding))
-                                        ++ "px)"
-                                    )
-                                 , style
-                                    "width"
-                                    (String.fromInt
-                                        (cardWidth
-                                            * card.width
-                                            + padding
-                                            * (card.width - 1)
-                                        )
-                                        ++ "px"
-                                    )
-                                 , style "height"
-                                    (String.fromInt
-                                        (cardHeight
-                                            * card.height
-                                            + padding
-                                            * (card.height - 1)
-                                        )
-                                        ++ "px"
-                                    )
-                                 ]
-                                    ++ (if dragTeam == g.teamName then
-                                            [ style "transition" "transform 0.2s ease-in-out" ]
-
-                                        else
-                                            []
-                                       )
-                                    ++ (case HoverState.hoveredElement params.hovered of
-                                            Just (JobPreview jobID) ->
-                                                if
-                                                    (jobID.teamName == pipeline.teamName)
-                                                        && (jobID.pipelineName == pipeline.name)
-                                                then
-                                                    [ style "z-index" "1" ]
-
-                                                else
-                                                    []
-
-                                            _ ->
-                                                []
-                                       )
-                                )
-                                [ Html.div
-                                    ([ class "card"
-                                     , style "width" "100%"
-                                     , id <| Effects.toHtmlID <| PipelineCard pipeline.id
-                                     , attribute "data-pipeline-name" pipeline.name
-                                     ]
-                                        ++ (if String.isEmpty params.query then
-                                                [ attribute
-                                                    "ondragstart"
-                                                    "event.dataTransfer.setData('text/plain', '');"
-                                                , draggable "true"
-                                                , on "dragstart"
-                                                    (Json.Decode.succeed (DragStart pipeline.teamName pipeline.ordering))
-                                                , on "dragend" (Json.Decode.succeed DragEnd)
-                                                ]
-
-                                            else
-                                                []
-                                           )
-                                        ++ (if params.dragState == Dragging pipeline.teamName pipeline.ordering then
-                                                [ style "width" "0"
-                                                , style "margin" "0 12.5px"
-                                                , style "overflow" "hidden"
-                                                ]
-
-                                            else
-                                                []
-                                           )
-                                        ++ (if params.dropState == DroppingWhileApiRequestInFlight g.teamName then
-                                                [ style "opacity" "0.45", style "pointer-events" "none" ]
-
-                                            else
-                                                [ style "opacity" "1" ]
-                                           )
-                                    )
-                                    [ Pipeline.pipelineView
-                                        { now = params.now
-                                        , pipeline = pipeline
-                                        , resourceError =
-                                            params.pipelinesWithResourceErrors
-                                                |> Dict.get ( pipeline.teamName, pipeline.name )
-                                                |> Maybe.withDefault False
-                                        , existingJobs =
-                                            params.existingJobs
-                                                |> List.filter
-                                                    (\j ->
-                                                        j.teamName == pipeline.teamName && j.pipelineName == pipeline.name
-                                                    )
-                                        , layers = layers
-                                        , hovered = params.hovered
-                                        , pipelineRunningKeyframes = params.pipelineRunningKeyframes
-                                        , userState = session.userState
-                                        , query = params.query
-                                        }
-                                    ]
-                                ]
-                                |> Tuple.pair (String.fromInt pipeline.id)
-                        )
+            g.pipelines
+                |> List.map
+                    (\pipeline ->
+                        cardLookup
+                            |> Dict.get pipeline.id
+                            |> Maybe.withDefault { row = 0, column = 0, width = 0, height = 0 }
+                            |> (\card -> ( pipeline, card ))
+                    )
+                |> List.filter (\( _, card ) -> isVisible card)
+                |> List.map
+                    (\( pipeline, card ) ->
+                        { pipeline = pipeline
+                        , bounds =
+                            { x = (toFloat card.column - 1) * (cardWidth + padding) + padding
+                            , y = (toFloat card.row - 1) * (cardHeight + padding)
+                            , width =
+                                cardWidth
+                                    * toFloat card.width
+                                    + padding
+                                    * (toFloat card.width - 1)
+                            , height =
+                                cardHeight
+                                    * toFloat card.height
+                                    + padding
+                                    * (toFloat card.height - 1)
+                            }
+                        }
+                    )
     in
-    Html.Keyed.node "div"
-        [ class <| .sectionBodyClass Effects.stickyHeaderConfig
-        , style "position" "relative"
-        , style "height" <| String.fromInt totalCardsHeight ++ "px"
-        ]
-        (pipelineCards ++ [ ( "drop-areas", Html.div [ style "position" "absolute" ] dropAreas ) ])
-        |> (\html ->
-                ( html
-                , toFloat <| totalCardsHeight
-                )
-           )
-
-
-pipelineDropAreaView : DragState -> String -> Bounds -> Int -> Html Message
-pipelineDropAreaView dragState name { x, y, width, height } index =
-    let
-        active =
-            case dragState of
-                Dragging team _ ->
-                    team == name
-
-                _ ->
-                    False
-    in
-    Html.div
-        [ classList
-            [ ( "drop-area", True )
-            , ( "active", active )
-            ]
-        , style "position" "absolute"
-        , style "transform" <|
-            "translate("
-                ++ String.fromFloat x
-                ++ "px,"
-                ++ String.fromFloat y
-                ++ "px)"
-        , style "width" <| String.fromFloat width ++ "px"
-        , style "height" <| String.fromFloat height ++ "px"
-        , on "dragenter" (Json.Decode.succeed (DragOver name index))
-
-        -- preventDefault is required so that the card will not appear to
-        -- "float" or "snap" back to its original position when dropped.
-        , preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver name index, True ))
-        , stopPropagationOn "drop" (Json.Decode.succeed ( DragEnd, True ))
-        ]
-        []
+    { pipelineCards = pipelineCards
+    , dropAreas = dropAreas
+    , height = totalCardsHeight
+    }

@@ -1,4 +1,9 @@
-module Dashboard.PipelineGrid.Constants exposing (cardHeight, cardWidth, padding)
+module Dashboard.PipelineGrid.Constants exposing
+    ( cardHeight
+    , cardWidth
+    , headerHeight
+    , padding
+    )
 
 
 cardWidth : number
@@ -14,3 +19,8 @@ cardHeight =
 padding : number
 padding =
     25
+
+
+headerHeight : number
+headerHeight =
+    60

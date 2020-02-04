@@ -18,6 +18,8 @@ import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models as Models exposing (DragState(..), DropState(..), Dropdown(..), Model)
+import Dashboard.PipelineGrid as PipelineGrid
+import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Dashboard.RequestBuffer as RequestBuffer exposing (Buffer(..))
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
@@ -190,13 +192,15 @@ handleCallback callback ( model, effects ) =
                         model.pipelineLayers
 
                     else
-                        model.pipelines
+                        allJobsInEntireCluster
+                            |> List.map (\j -> ( j.teamName, j.pipelineName ))
+                            |> List.Extra.unique
                             |> List.map
-                                (\p ->
+                                (\( teamName, pipelineName ) ->
                                     allJobsInEntireCluster
-                                        |> List.filter (\j -> (j.pipelineName == p.name) && (j.teamName == p.teamName))
+                                        |> List.filter (\j -> j.teamName == teamName && j.pipelineName == pipelineName)
                                         |> DashboardPreview.groupByRank
-                                        |> (\layers -> ( ( p.name, p.teamName ), layers ))
+                                        |> Tuple.pair ( teamName, pipelineName )
                                 )
                             |> Dict.fromList
               }
@@ -227,8 +231,8 @@ handleCallback callback ( model, effects ) =
             ( { model | showTurbulence = True }, effects )
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
-            let
-                pipelines =
+            ( { model
+                | pipelines =
                     allPipelinesInEntireCluster
                         |> List.indexedMap
                             (\idx p ->
@@ -242,23 +246,6 @@ handleCallback callback ( model, effects ) =
                                 , paused = p.paused
                                 }
                             )
-            in
-            ( { model
-                | pipelines = pipelines
-                , pipelineLayers =
-                    if pipelines == model.pipelines then
-                        model.pipelineLayers
-
-                    else
-                        allPipelinesInEntireCluster
-                            |> List.map
-                                (\p ->
-                                    model.existingJobs
-                                        |> List.filter (\j -> (j.pipelineName == p.name) && (j.teamName == p.teamName))
-                                        |> DashboardPreview.groupByRank
-                                        |> (\layers -> ( ( p.name, p.teamName ), layers ))
-                                )
-                            |> Dict.fromList
               }
             , if List.isEmpty allPipelinesInEntireCluster then
                 effects ++ [ ModifyUrl "/" ]
@@ -751,6 +738,18 @@ pipelinesView session params =
                     else
                         List.foldl
                             (\g ( htmlList, totalOffset ) ->
+                                let
+                                    layout =
+                                        PipelineGrid.computeLayout
+                                            { dragState = params.dragState
+                                            , dropState = params.dropState
+                                            , pipelineLayers = params.pipelineLayers
+                                            , viewportWidth = params.viewportWidth
+                                            , viewportHeight = params.viewportHeight
+                                            , scrollTop = params.scrollTop + totalOffset
+                                            }
+                                            g
+                                in
                                 Group.view
                                     session
                                     { dragState = params.dragState
@@ -761,13 +760,19 @@ pipelinesView session params =
                                     , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                     , existingJobs = params.existingJobs
                                     , pipelineLayers = params.pipelineLayers
-                                    , viewportWidth = params.viewportWidth
-                                    , viewportHeight = params.viewportHeight
-                                    , scrollTop = params.scrollTop - totalOffset
                                     , query = params.query
+                                    , pipelineCards = layout.pipelineCards
+                                    , dropAreas = layout.dropAreas
+                                    , groupCardsHeight = layout.height
                                     }
                                     g
-                                    |> (\( html, curOffset ) -> ( html :: htmlList, totalOffset + curOffset ))
+                                    |> (\html ->
+                                            ( html :: htmlList
+                                            , totalOffset
+                                                + layout.height
+                                                + PipelineGridConstants.headerHeight
+                                            )
+                                       )
                             )
                             ( [], 0 )
                             >> Tuple.first

@@ -496,10 +496,13 @@ decodeBuildSetPipeline =
     Json.Decode.succeed BuildStepSetPipeline
         |> andMap (Json.Decode.field "name" Json.Decode.string)
 
+
 decodeBuildStepLoadVar : Json.Decode.Decoder BuildStep
 decodeBuildStepLoadVar =
     Json.Decode.succeed BuildStepLoadVar
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+
+
 
 -- Info
 
