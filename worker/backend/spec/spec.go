@@ -17,7 +17,7 @@ import (
 // - masked paths
 // - rootfs propagation
 // - seccomp
-// - user namespaces: uid/gid mappings
+// x user namespaces: uid/gid mappings	// TODO test this shit
 // x capabilities
 // x devices
 // x env
@@ -28,11 +28,6 @@ import (
 //
 //
 func OciSpec(gdn garden.ContainerSpec) (oci *specs.Spec, err error) {
-	var (
-		rootfs string
-		mounts []specs.Mount
-	)
-
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
 		return
@@ -42,29 +37,41 @@ func OciSpec(gdn garden.ContainerSpec) (oci *specs.Spec, err error) {
 		gdn.RootFSPath = gdn.Image.URI
 	}
 
+	var rootfs string
 	rootfs, err = rootfsDir(gdn.RootFSPath)
 	if err != nil {
 		return
 	}
 
+	var mounts []specs.Mount
 	mounts, err = OciSpecBindMounts(gdn.BindMounts)
 	if err != nil {
 		return
 	}
 
-	oci = merge(defaultGardenOciSpec(gdn.Privileged), &specs.Spec{
-		Version:  specs.Version,
-		Hostname: gdn.Handle,
-		Process: &specs.Process{
-			Env: gdn.Env,
+	maxUid, err := MaxValidUid()
+	if err != nil {
+		return
+	}
+
+	maxGid, err := MaxValidGid()
+	if err != nil {
+		return
+	}
+
+	oci = merge(
+		defaultGardenOciSpec(gdn.Privileged, maxUid, maxGid),
+		&specs.Spec{
+			Version:  specs.Version,
+			Hostname: gdn.Handle,
+			Process: &specs.Process{
+				Env: gdn.Env,
+			},
+			Root:        &specs.Root{Path: rootfs},
+			Mounts:      mounts,
+			Annotations: map[string]string(gdn.Properties),
 		},
-		Root:        &specs.Root{Path: rootfs},
-		Mounts:      mounts,
-		Annotations: map[string]string(gdn.Properties),
-		// Linux: &specs.Linux{
-		// 	Resources: &specs.LinuxResources{Memory: nil, Cpu: nil},
-		// },
-	})
+	)
 
 	return
 }
@@ -109,19 +116,41 @@ func OciSpecBindMounts(bindMounts []garden.BindMount) (mounts []specs.Mount, err
 	return
 }
 
+// OciIDMappings provides the uid/gid mappings for user namespaces (if
+// necessary, based on `privileged`).
+//
+func OciIDMappings(privileged bool, max uint32) []specs.LinuxIDMapping {
+	if privileged {
+		return []specs.LinuxIDMapping{}
+	}
+
+	return []specs.LinuxIDMapping{
+		{ // "root" inside, but non-root outside
+			ContainerID: 0,
+			HostID:      max,
+			Size:        1,
+		},
+		{ // anything else, not root inside & outside
+			ContainerID: 1,
+			HostID:      1,
+			Size:        max - 1,
+		},
+	}
+}
+
 // defaultGardenOciSpec represents a default set of properties necessary in
 // order to satisfy the garden interface.
 //
 // ps.: this spec is NOT completed - it must be merged with more properties to
 // form a properly working container.
 //
-func defaultGardenOciSpec(privileged bool) *specs.Spec {
+func defaultGardenOciSpec(privileged bool, maxUid, maxGid uint32) *specs.Spec {
 	var (
 		namespaces   = OciNamespaces(privileged)
 		capabilities = OciCapabilities(privileged)
 	)
 
-	return &specs.Spec{
+	spec := &specs.Spec{
 		Process: &specs.Process{
 			Args:         []string{"/tmp/gdn-init"},
 			Capabilities: &capabilities,
@@ -132,9 +161,13 @@ func defaultGardenOciSpec(privileged bool) *specs.Spec {
 			Resources: &specs.LinuxResources{
 				Devices: AnyContainerDevices,
 			},
+			UIDMappings: OciIDMappings(privileged, maxUid),
+			GIDMappings: OciIDMappings(privileged, maxGid),
 		},
 		Mounts: AnyContainerMounts,
 	}
+
+	return spec
 }
 
 // merge merges an OCI spec `dst` into `src`.
