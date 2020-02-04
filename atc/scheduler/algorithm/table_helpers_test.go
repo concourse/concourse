@@ -210,7 +210,7 @@ func (example Example) Run() {
 
 		imported := map[int]bool{}
 
-		for _, row := range legacyDB.BuildInputs {
+		for _, row := range legacyDB.BuildOutputs {
 			if imported[row.BuildID] {
 				continue
 			}
@@ -221,12 +221,14 @@ func (example Example) Run() {
 			imported[row.BuildID] = true
 		}
 
-		for _, row := range legacyDB.BuildOutputs {
+		for _, row := range legacyDB.BuildInputs {
 			if imported[row.BuildID] {
 				continue
 			}
 
-			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, "some-name", "succeeded")
+			// any builds not created at this point must have failed as they weren't
+			// present via outputs
+			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, "some-name", "failed")
 			Expect(err).ToNot(HaveOccurred())
 
 			imported[row.BuildID] = true

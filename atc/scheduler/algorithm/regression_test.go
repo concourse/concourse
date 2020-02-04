@@ -1,6 +1,7 @@
 package algorithm_test
 
 import (
+	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo/extensions/table"
 )
 
@@ -179,18 +180,17 @@ var _ = DescribeTable("Regression tests",
 		},
 
 		Result: Result{
-			OK: true,
-			Values: map[string]string{
-				"cflinuxfs2-rootfs-release-tarball": "imported-r192v105139",
-				"bosh-lite-stemcell":                "imported-r85v43839",
-				"etcd-release-tarball":              "imported-r113v105882",
-				"garden-linux-release-tarball":      "imported-r111v105557",
-				"runtime-ci":                        "imported-r163v106472",
-				"cf-release":                        "imported-r33v106196",
-				"stemcell":                          "imported-r3v103933",
-				"diego-final-releases":              "imported-r102v105599",
-				"diego-release-master":              "imported-r168v105643",
-				"diego-cf-compatibility":            "imported-r190v105760",
+			// unsatisfiable; this test exists as a benchmark
+			OK: false,
+			Errors: map[string]string{
+				"stemcell":                          string(db.NoSatisfiableBuilds),
+				"diego-final-releases":              string(db.NoSatisfiableBuilds),
+				"garden-linux-release-tarball":      string(db.NoSatisfiableBuilds),
+				"cflinuxfs2-rootfs-release-tarball": string(db.NoSatisfiableBuilds),
+				"cf-release":                        string(db.NoSatisfiableBuilds),
+				"bosh-lite-stemcell":                string(db.NoSatisfiableBuilds),
+				"diego-release-master":              string(db.NoSatisfiableBuilds),
+				"etcd-release-tarball":              string(db.NoSatisfiableBuilds),
 			},
 		},
 	}),
