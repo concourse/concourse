@@ -8,7 +8,7 @@ module Dashboard.Group exposing
     )
 
 import Concourse
-import Dashboard.Group.Models exposing (Group, Pipeline)
+import Dashboard.Group.Models exposing (Group)
 import Dashboard.Group.Tag as Tag
 import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
@@ -48,14 +48,13 @@ view :
         , pipelineRunningKeyframes : String
         , pipelinesWithResourceErrors : Dict ( String, String ) Bool
         , existingJobs : List Concourse.Job
-        , pipelines : List Pipeline
         }
     -> Group
     -> Html Message
-view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs, pipelines } g =
+view session { dragState, dropState, now, hovered, pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } g =
     let
         pipelinesForGroup =
-            pipelines |> List.filter (.teamName >> (==) g.teamName)
+            g.pipelines
 
         pipelineCards =
             if List.isEmpty pipelinesForGroup then
@@ -169,15 +168,14 @@ hdView :
     { pipelineRunningKeyframes : String
     , pipelinesWithResourceErrors : Dict ( String, String ) Bool
     , existingJobs : List Concourse.Job
-    , pipelines : List Pipeline
     }
     -> { a | userState : UserState }
     -> Group
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs, pipelines } session g =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, existingJobs } session g =
     let
         pipelinesForGroup =
-            pipelines |> List.filter (.teamName >> (==) g.teamName)
+            g.pipelines
 
         header =
             Html.div

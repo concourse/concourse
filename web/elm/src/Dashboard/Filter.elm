@@ -89,18 +89,27 @@ runFilter existingJobs f =
 
 
 pipelineFilter : PipelineFilter -> List Concourse.Job -> Pipeline -> Bool
-pipelineFilter pf existingJobs =
+pipelineFilter pf existingJobs pipeline =
+    let
+        jobsForPipeline =
+            existingJobs
+                |> List.filter
+                    (\j ->
+                        (j.teamName == pipeline.teamName)
+                            && (j.pipelineName == pipeline.name)
+                    )
+    in
     case pf of
         Status sf ->
             case sf of
                 PipelineStatus ps ->
-                    Pipeline.pipelineStatus existingJobs >> equal ps
+                    pipeline |> Pipeline.pipelineStatus jobsForPipeline |> equal ps
 
                 PipelineRunning ->
-                    Pipeline.pipelineStatus existingJobs >> isRunning
+                    pipeline |> Pipeline.pipelineStatus jobsForPipeline |> isRunning
 
         FuzzyName term ->
-            .name >> Simple.Fuzzy.match term
+            pipeline.name |> Simple.Fuzzy.match term
 
 
 parseFilters : String -> List Filter
