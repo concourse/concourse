@@ -30,6 +30,7 @@ async function showsPipelineState(t, setup, assertions) {
   await t.context.web.page.goto(t.context.web.route('/'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
+  await t.context.web.scrollIntoView(group);
   await t.context.web.page.waitFor(`${group} .card`);
   const pipeline = await t.context.web.page.$(`${group} .card`);
   const text = await t.context.web.text(pipeline);
@@ -76,6 +77,7 @@ test('shows pipelines in their correct order', async t => {
   await t.context.web.page.goto(t.context.web.route('/'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
+  await t.context.web.scrollIntoView(group);
   await t.context.web.page.waitFor(`${group} .pipeline-wrapper:nth-child(${pipelineOrder.length}) .card`);
 
   const names = await t.context.web.page.$$eval(`${group} .dashboard-pipeline-name`, nameElements => {

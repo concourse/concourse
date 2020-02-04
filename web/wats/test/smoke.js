@@ -24,6 +24,8 @@ test('running pipelines', async t => {
   t.regex(result.stdout, /pushing version: put-version/);
 
   await t.context.web.page.goto(t.context.web.route(`/`));
+  const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
+  await t.context.web.scrollIntoView(group);
   await t.context.web.waitForText('some-pipeline');
 
   await t.context.web.page.goto(t.context.web.route(`/teams/${t.context.teamName}/pipelines/some-pipeline`));
