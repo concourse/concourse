@@ -9,7 +9,6 @@ type alias Group =
 
 type alias Pipeline =
     { id : Int
-    , ordering : Int
     , name : String
     , teamName : String
     , public : Bool

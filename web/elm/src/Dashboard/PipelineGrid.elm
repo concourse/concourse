@@ -27,6 +27,7 @@ type alias Bounds =
 type alias PipelineCard =
     { bounds : Bounds
     , pipeline : Pipeline
+    , index : Int
     }
 
 
@@ -66,7 +67,6 @@ computeLayout params g =
         orderedPipelines =
             if (g.teamName == dragTeam) && (fromIndex >= 0) then
                 drag fromIndex toIndex g.pipelines
-                    |> List.indexedMap (\i p -> { p | ordering = i })
 
             else
                 g.pipelines
@@ -189,16 +189,16 @@ computeLayout params g =
 
         pipelineCards =
             g.pipelines
-                |> List.map
-                    (\pipeline ->
+                |> List.indexedMap
+                    (\i pipeline ->
                         cardLookup
                             |> Dict.get pipeline.id
                             |> Maybe.withDefault { row = 0, column = 0, width = 0, height = 0 }
-                            |> (\card -> ( pipeline, card ))
+                            |> (\card -> ( i, pipeline, card ))
                     )
-                |> List.filter (\( _, card ) -> isVisible card)
+                |> List.filter (\( _, _, card ) -> isVisible card)
                 |> List.map
-                    (\( pipeline, card ) ->
+                    (\( i, pipeline, card ) ->
                         { pipeline = pipeline
                         , bounds =
                             { x = (toFloat card.column - 1) * (cardWidth + padding) + padding
@@ -214,6 +214,7 @@ computeLayout params g =
                                     + padding
                                     * (toFloat card.height - 1)
                             }
+                        , index = i
                         }
                     )
     in

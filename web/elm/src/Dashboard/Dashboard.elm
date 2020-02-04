@@ -240,10 +240,9 @@ handleCallback callback ( model, effects ) =
             ( { model
                 | pipelines =
                     allPipelinesInEntireCluster
-                        |> List.indexedMap
-                            (\idx p ->
+                        |> List.map
+                            (\p ->
                                 { id = p.id
-                                , ordering = idx
                                 , name = p.name
                                 , teamName = p.teamName
                                 , public = p.public
@@ -398,17 +397,27 @@ updateBody msg ( model, effects ) =
             case model.dragState of
                 Dragging teamName dragIdx ->
                     let
-                        pipelines =
-                            Drag.drag dragIdx
-                                (case model.dropState of
-                                    Dropping dropIdx ->
-                                        dropIdx
+                        teamStartIndex =
+                            model.pipelines
+                                |> List.Extra.findIndex (\p -> p.teamName == teamName)
 
-                                    _ ->
-                                        dragIdx + 1
-                                )
-                                model.pipelines
-                                |> List.indexedMap (\i p -> { p | ordering = i })
+                        pipelines =
+                            case teamStartIndex of
+                                Just teamStartIdx ->
+                                    model.pipelines
+                                        |> Drag.drag (teamStartIdx + dragIdx)
+                                            (teamStartIdx
+                                                + (case model.dropState of
+                                                    Dropping dropIdx ->
+                                                        dropIdx
+
+                                                    _ ->
+                                                        dragIdx + 1
+                                                  )
+                                            )
+
+                                _ ->
+                                    model.pipelines
                     in
                     ( { model
                         | pipelines = pipelines

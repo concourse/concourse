@@ -66,10 +66,10 @@ view session params g =
             else
                 params.pipelineCards
                     |> List.map
-                        (\{ bounds, pipeline } ->
+                        (\{ bounds, pipeline, index } ->
                             pipelineCardView session
                                 params
-                                { bounds = bounds, pipeline = pipeline }
+                                { bounds = bounds, pipeline = pipeline, index = index }
                                 g.teamName
                                 |> (\html -> ( String.fromInt pipeline.id, html ))
                         )
@@ -202,17 +202,18 @@ pipelineCardView :
             , hovered : HoverState.HoverState
             , pipelineRunningKeyframes : String
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-            , existingJobs : List Concourse.Job
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
             , query : String
+            , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
         }
     ->
         { bounds : PipelineGrid.Bounds
         , pipeline : Pipeline
+        , index : Int
         }
     -> String
     -> Html Message
-pipelineCardView session params { bounds, pipeline } teamName =
+pipelineCardView session params { bounds, pipeline, index } teamName =
     Html.div
         ([ class "pipeline-wrapper"
          , style "position" "absolute"
@@ -266,14 +267,14 @@ pipelineCardView session params { bounds, pipeline } teamName =
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart pipeline.teamName pipeline.ordering))
+                            (Json.Decode.succeed (DragStart pipeline.teamName index))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging pipeline.teamName pipeline.ordering then
+                ++ (if params.dragState == Dragging pipeline.teamName index then
                         [ style "width" "0"
                         , style "margin" "0 12.5px"
                         , style "overflow" "hidden"
