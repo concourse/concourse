@@ -12,6 +12,7 @@ import Dashboard.Group.Tag as Tag
 import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.PipelineGrid as PipelineGrid
+import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState
@@ -89,6 +90,7 @@ view session params g =
         [ Html.div
             [ style "display" "flex"
             , style "align-items" "center"
+            , style "margin-bottom" (String.fromInt PipelineGridConstants.padding ++ "px")
             , class <| .sectionHeaderClass Effects.stickyHeaderConfig
             ]
             (Html.div

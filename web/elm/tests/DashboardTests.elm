@@ -1115,6 +1115,28 @@ all =
                                 , style "align-items" "center"
                                 ]
                             )
+            , test "team headers have a bottom margin of 25px" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.findAll teamHeaderSelector
+                        |> Query.each
+                            (Query.has [ style "margin-bottom" "25px" ])
             , test "on HD view, there is space between the list of pipelines and the role pill" <|
                 \_ ->
                     whenOnDashboard { highDensity = True }

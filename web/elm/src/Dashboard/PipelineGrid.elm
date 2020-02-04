@@ -116,7 +116,7 @@ computeLayout params g =
             toFloat numRows
                 * cardHeight
                 + padding
-                * (toFloat numRows - 1)
+                * toFloat numRows
 
         cardLookup =
             cards

@@ -71,16 +71,6 @@ all =
                         [ class "dashboard-team-pipelines"
                         , style "position" "relative"
                         ]
-        , test "sets the container height to the height of the cards" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
-                        )
-                    |> Tuple.first
-                    |> Common.queryView
-                    |> containerHasHeight 268
         , test "fetches the viewport of the scrollable area on load" <|
             \_ ->
                 Application.init
@@ -257,7 +247,7 @@ all =
                                 , width = 272
                                 , height = 268
                                 }
-                        , containerHasHeight <| 268 * 2 + 25
+                        , containerHasHeight <| (268 + 25) * 2
                         ]
         , test "pipelines with many dependant jobs are rendered as spanning multiple columns" <|
             \_ ->
@@ -335,8 +325,24 @@ all =
                                 , width = 272
                                 , height = 268
                                 }
-                        , containerHasHeight <| 268 * 2 + 25
+                        , containerHasHeight <| (268 + 25) * 2
                         ]
+        , test "sets the container height to the height of the cards" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                            Ok <|
+                                viewportWithSize 300 600
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> containerHasHeight ((268 + 25) * 2)
         , test "doesn't render rows below the viewport" <|
             \_ ->
                 Common.init "/"

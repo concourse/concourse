@@ -786,6 +786,7 @@ pipelinesView session params =
                                             , totalOffset
                                                 + layout.height
                                                 + PipelineGridConstants.headerHeight
+                                                + PipelineGridConstants.padding
                                             )
                                        )
                             )
