@@ -528,7 +528,7 @@ var _ = Describe("Accessor", func() {
 			})
 		})
 
-		Context("when the token has a federated user_id", func() {
+		Context("when the token has a federated user_name", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
