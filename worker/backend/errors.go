@@ -22,7 +22,7 @@ var (
 	// ErrGracePeriodTimeout indicates that the grace period for a graceful
 	// termination has been reached.
 	//
-	ErrGracePeriodTimeout = errors.New("grace-period-timeout")
+	ErrGracePeriodTimeout = errors.New("grace period timeout")
 
 	// ErrNotImplemented indicates that a method is not implemented.
 	//
