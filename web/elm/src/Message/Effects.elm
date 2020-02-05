@@ -480,9 +480,6 @@ toHtmlID domId =
         StepState stepID ->
             stepID ++ "_state"
 
-        PipelineCard databaseID ->
-            "pipeline-" ++ String.fromInt databaseID
-
         Dashboard ->
             "dashboard"
 

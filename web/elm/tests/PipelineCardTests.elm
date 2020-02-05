@@ -16,7 +16,7 @@ import Message.TopLevelMessage as ApplicationMsgs
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, class, containing, id, style, tag, text)
+import Test.Html.Selector exposing (attribute, class, containing, style, tag, text)
 import Time
 
 
@@ -277,30 +277,6 @@ all =
                         , style "display" "flex"
                         , style "flex-direction" "column"
                         ]
-        , test "has an id of 'pipeline-<id>'" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <|
-                            Ok
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team"
-                                  , groups = []
-                                  }
-                                ]
-                        )
-                    |> Tuple.first
-                    |> Common.queryView
-                    |> Query.find
-                        [ class "card"
-                        , containing [ text "pipeline" ]
-                        ]
-                    |> Query.has [ id "pipeline-0" ]
         , describe "header" <|
             let
                 header : () -> Query.Single ApplicationMsgs.TopLevelMessage

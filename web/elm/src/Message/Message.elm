@@ -80,7 +80,6 @@ type DomID
     | HamburgerMenu
     | SideBarTeam String
     | SideBarPipeline Concourse.PipelineIdentifier
-    | PipelineCard Int
     | Dashboard
     | DashboardGroup String
 

@@ -260,7 +260,6 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
         [ Html.div
             ([ class "card"
              , style "width" "100%"
-             , id <| Effects.toHtmlID <| PipelineCard pipeline.id
              , attribute "data-pipeline-name" pipeline.name
              ]
                 ++ (if String.isEmpty params.query then
