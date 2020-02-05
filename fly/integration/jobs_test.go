@@ -182,7 +182,7 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 				It("can list jobs in 'other-team'", func() {
-					flyJobCmd := exec.Command(flyPath, "-t", "some-target", "jobs", "-p", pipelineName, "--team-name", "other-team", "--json")
+					flyJobCmd := exec.Command(flyPath, "-t", "some-target", "jobs", "-p", pipelineName, "--team", "other-team", "--json")
 					sess, err := gexec.Start(flyJobCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 

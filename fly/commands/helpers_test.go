@@ -3,11 +3,13 @@ package commands_test
 import (
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"strconv"
+
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/fly/commands"
+	"github.com/concourse/concourse/fly/rc/rcfakes"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	fakes "github.com/concourse/concourse/go-concourse/concourse/concoursefakes"
 
@@ -320,6 +322,30 @@ var _ = Describe("Helper Functions", func() {
 				_, err := GetLatestResourceVersion(team, resource, atc.Version{"version": "v2"})
 				Expect(err).To(MatchError("could not find version matching {\"version\":\"v2\"}"))
 			})
+		})
+	})
+
+	Describe("#GetTeam", func() {
+		var target *rcfakes.FakeTarget
+		var client *fakes.FakeClient
+
+		BeforeEach(func() {
+			target = new(rcfakes.FakeTarget)
+			client = new(fakes.FakeClient)
+			target.ClientReturns(client)
+		})
+
+		It("gets the team", func() {
+			GetTeam(target, "team")
+
+			Expect(client.TeamCallCount()).To(Equal(1), "target.Client().Team should be called once")
+			Expect(client.TeamArgsForCall(0)).To(Equal("team"))
+		})
+
+		It("returns the target default if no team is provided", func() {
+			GetTeam(target, "")
+
+			Expect(target.TeamCallCount()).To(Equal(1), "target.Team should be called once")
 		})
 	})
 })

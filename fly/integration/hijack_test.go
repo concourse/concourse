@@ -671,13 +671,13 @@ var _ = Describe("Hijacking", func() {
 
 				Context("and with pipeline specified", func() {
 					It("can accept the check resources name and a pipeline", func() {
-						hijack("--check", "a-pipeline/some-resource-name", "--team-name", "other")
+						hijack("--check", "a-pipeline/some-resource-name", "--team", "other")
 					})
 				})
 
 				Context("and with url specified", func() {
 					It("hijacks the given check container by URL", func() {
-						hijack("--url", atcServer.URL()+"/teams/other/pipelines/a-pipeline/resources/some-resource-name", "--team-name", "other")
+						hijack("--url", atcServer.URL()+"/teams/other/pipelines/a-pipeline/resources/some-resource-name", "--team", "other")
 					})
 				})
 			})
@@ -706,7 +706,7 @@ var _ = Describe("Hijacking", func() {
 				})
 
 				It("hijacks the most recent one-off build", func() {
-					hijack("-b", "2", "-s", "some-step", "--team-name", hijackTeamName)
+					hijack("-b", "2", "-s", "some-step", "--team", hijackTeamName)
 				})
 			})
 		})
@@ -740,11 +740,11 @@ var _ = Describe("Hijacking", func() {
 						hijackTeamName = "other"
 					})
 					It("hijacks the job's next build with 'pipelineName/jobName'", func() {
-						hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--team-name", hijackTeamName)
+						hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--team", hijackTeamName)
 					})
 
 					It("hijacks the job's next build when URL is specified", func() {
-						hijack("--url", atcServer.URL()+"/teams/other/pipelines/some-pipeline/jobs/some-job", "--step", "some-step", "--team-name", hijackTeamName)
+						hijack("--url", atcServer.URL()+"/teams/other/pipelines/some-pipeline/jobs/some-job", "--step", "some-step", "--team", hijackTeamName)
 					})
 				})
 
@@ -772,10 +772,10 @@ var _ = Describe("Hijacking", func() {
 						hijackTeamName = "other"
 					})
 					It("hijacks the given build", func() {
-						hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step", "--team-name", hijackTeamName)
+						hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step", "--team", hijackTeamName)
 					})
 					It("hijacks the given build with URL", func() {
-						hijack("--url", atcServer.URL()+"/teams/other/pipelines/some-pipeline/jobs/some-job/builds/3", "--step", "some-step", "--team-name", hijackTeamName)
+						hijack("--url", atcServer.URL()+"/teams/other/pipelines/some-pipeline/jobs/some-job/builds/3", "--step", "some-step", "--team", hijackTeamName)
 					})
 				})
 
@@ -807,7 +807,7 @@ var _ = Describe("Hijacking", func() {
 					hijackTeamName = "other"
 				})
 				It("hijacks the job's next build", func() {
-					hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--attempt", "2.4", "--team-name", hijackTeamName)
+					hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--attempt", "2.4", "--team", hijackTeamName)
 				})
 			})
 		})
@@ -932,7 +932,7 @@ var _ = Describe("Hijacking", func() {
 						hijackTeamName = "other"
 					})
 					It("should hijack container with associated handle to 'other' team", func() {
-						hijack("--handle", "container-id", "--team-name", hijackTeamName)
+						hijack("--handle", "container-id", "--team", hijackTeamName)
 					})
 				})
 			})

@@ -8,8 +8,8 @@ import (
 )
 
 type PauseJobCommand struct {
-	Job flaghelpers.JobFlag `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to pause"`
-	TeamFlag
+	Job  flaghelpers.JobFlag `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to pause"`
+	Team string              `long:"team" description:"Name of the team to which the job belongs, if different from the target default"`
 }
 
 func (command *PauseJobCommand) Execute(args []string) error {
@@ -24,14 +24,14 @@ func (command *PauseJobCommand) Execute(args []string) error {
 		return err
 	}
 
-	team := command.TeamTarget(target)
+	team := GetTeam(target, command.Team)
 	found, err := team.PauseJob(pipelineName, jobName)
 	if err != nil {
 		return err
 	}
 
 	if !found {
-		return fmt.Errorf("%s/%s not found on team %s\n", pipelineName, jobName, team)
+		return fmt.Errorf("%s/%s not found on team %s\n", pipelineName, jobName, team.Name())
 	}
 
 	fmt.Printf("paused '%s'\n", jobName)

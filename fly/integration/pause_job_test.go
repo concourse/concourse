@@ -70,7 +70,7 @@ var _ = Describe("Fly CLI", func() {
 
 					It("successfully pauses the job", func() {
 						Expect(func() {
-							flyCmd = exec.Command(flyPath, "-t", "some-target", "pause-job", "-j", fullJobName, "--team-name", "other-team")
+							flyCmd = exec.Command(flyPath, "-t", "some-target", "pause-job", "-j", fullJobName, "--team", "other-team")
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 							<-sess.Exited
@@ -98,11 +98,11 @@ var _ = Describe("Fly CLI", func() {
 					It("exits 1 and outputs the corresponding error", func() {
 						Expect(func() {
 
-							flyCmd = exec.Command(flyPath, "-t", "some-target", "pause-job", "-j", "random-pipeline/random-job", "--team-name", "random-team")
+							flyCmd = exec.Command(flyPath, "-t", "some-target", "pause-job", "-j", "random-pipeline/random-job", "--team", "random-team")
 
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
-							Eventually(sess.Err).Should(gbytes.Say(`not found`))
+							Eventually(sess.Err).Should(gbytes.Say(`random-pipeline/random-job not found on team random-team`))
 							<-sess.Exited
 							Expect(sess.ExitCode()).To(Equal(1))
 						}).To(Change(func() int {
@@ -124,7 +124,7 @@ var _ = Describe("Fly CLI", func() {
 						Expect(func() {
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
-							Eventually(sess.Err).Should(gbytes.Say(`not found`))
+							Eventually(sess.Err).Should(gbytes.Say(`pipeline/job-name-potato not found on team main`))
 							<-sess.Exited
 							Expect(sess.ExitCode()).To(Equal(1))
 						}).To(Change(func() int {

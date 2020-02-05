@@ -83,7 +83,7 @@ var _ = Describe("Fly CLI", func() {
 
 						It("starts the build", func() {
 							Expect(func() {
-								flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team-name", "other-team")
+								flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "other-team")
 
 								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 								Expect(err).NotTo(HaveOccurred())
@@ -111,7 +111,7 @@ var _ = Describe("Fly CLI", func() {
 
 					It("prints an error message", func() {
 						Expect(func() {
-							flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team-name", "random-team")
+							flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "random-team")
 
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
@@ -215,7 +215,7 @@ var _ = Describe("Fly CLI", func() {
 
 				It("prints an error message", func() {
 					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team-name", "random-team")
+						flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "random-team")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())

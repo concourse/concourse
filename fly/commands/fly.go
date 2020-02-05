@@ -2,7 +2,6 @@ package commands
 
 import (
 	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type FlyCommand struct {
@@ -89,14 +88,3 @@ type FlyCommand struct {
 }
 
 var Fly FlyCommand
-
-type TeamFlag struct {
-	Team string `short:"n" long:"team-name" description:"Run command for specific team"`
-}
-
-func (t *TeamFlag) TeamTarget(target rc.Target) concourse.Team {
-	if t.Team != "" {
-		return target.Client().Team(t.Team)
-	}
-	return target.Team()
-}
