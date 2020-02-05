@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -65,13 +64,12 @@ type FakeDelegateFactory struct {
 	putDelegateReturnsOnCall map[int]struct {
 		result1 exec.PutDelegate
 	}
-	TaskDelegateStub        func(db.Build, atc.PlanID, vars.CredVarsTracker, policy.Checker) exec.TaskDelegate
+	TaskDelegateStub        func(db.Build, atc.PlanID, vars.CredVarsTracker) exec.TaskDelegate
 	taskDelegateMutex       sync.RWMutex
 	taskDelegateArgsForCall []struct {
 		arg1 db.Build
 		arg2 atc.PlanID
 		arg3 vars.CredVarsTracker
-		arg4 policy.Checker
 	}
 	taskDelegateReturns struct {
 		result1 exec.TaskDelegate
@@ -331,19 +329,18 @@ func (fake *FakeDelegateFactory) PutDelegateReturnsOnCall(i int, result1 exec.Pu
 	}{result1}
 }
 
-func (fake *FakeDelegateFactory) TaskDelegate(arg1 db.Build, arg2 atc.PlanID, arg3 vars.CredVarsTracker, arg4 policy.Checker) exec.TaskDelegate {
+func (fake *FakeDelegateFactory) TaskDelegate(arg1 db.Build, arg2 atc.PlanID, arg3 vars.CredVarsTracker) exec.TaskDelegate {
 	fake.taskDelegateMutex.Lock()
 	ret, specificReturn := fake.taskDelegateReturnsOnCall[len(fake.taskDelegateArgsForCall)]
 	fake.taskDelegateArgsForCall = append(fake.taskDelegateArgsForCall, struct {
 		arg1 db.Build
 		arg2 atc.PlanID
 		arg3 vars.CredVarsTracker
-		arg4 policy.Checker
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("TaskDelegate", []interface{}{arg1, arg2, arg3, arg4})
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("TaskDelegate", []interface{}{arg1, arg2, arg3})
 	fake.taskDelegateMutex.Unlock()
 	if fake.TaskDelegateStub != nil {
-		return fake.TaskDelegateStub(arg1, arg2, arg3, arg4)
+		return fake.TaskDelegateStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -358,17 +355,17 @@ func (fake *FakeDelegateFactory) TaskDelegateCallCount() int {
 	return len(fake.taskDelegateArgsForCall)
 }
 
-func (fake *FakeDelegateFactory) TaskDelegateCalls(stub func(db.Build, atc.PlanID, vars.CredVarsTracker, policy.Checker) exec.TaskDelegate) {
+func (fake *FakeDelegateFactory) TaskDelegateCalls(stub func(db.Build, atc.PlanID, vars.CredVarsTracker) exec.TaskDelegate) {
 	fake.taskDelegateMutex.Lock()
 	defer fake.taskDelegateMutex.Unlock()
 	fake.TaskDelegateStub = stub
 }
 
-func (fake *FakeDelegateFactory) TaskDelegateArgsForCall(i int) (db.Build, atc.PlanID, vars.CredVarsTracker, policy.Checker) {
+func (fake *FakeDelegateFactory) TaskDelegateArgsForCall(i int) (db.Build, atc.PlanID, vars.CredVarsTracker) {
 	fake.taskDelegateMutex.RLock()
 	defer fake.taskDelegateMutex.RUnlock()
 	argsForCall := fake.taskDelegateArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeDelegateFactory) TaskDelegateReturns(result1 exec.TaskDelegate) {

@@ -1561,6 +1561,7 @@ func (cmd *RunCommand) constructEngine(
 		resourceConfigFactory,
 		defaultLimits,
 		strategy,
+		policyChecker,
 		lockFactory,
 		cmd.EnableBuildRerunWhenWorkerDisappears,
 	)
@@ -1572,7 +1573,6 @@ func (cmd *RunCommand) constructEngine(
 		secretManager,
 		cmd.varSourcePool,
 		cmd.EnableRedactSecrets,
-		policyChecker,
 	)
 
 	return engine.NewEngine(stepBuilder)

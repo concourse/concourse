@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/policy"
 	"strconv"
 	"strings"
 
@@ -35,7 +34,7 @@ type StepFactory interface {
 type DelegateFactory interface {
 	GetDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.GetDelegate
 	PutDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.PutDelegate
-	TaskDelegate(db.Build, atc.PlanID, vars.CredVarsTracker, policy.Checker) exec.TaskDelegate
+	TaskDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.TaskDelegate
 	CheckDelegate(db.Check, atc.PlanID, vars.CredVarsTracker) exec.CheckDelegate
 	BuildStepDelegate(db.Build, atc.PlanID, vars.CredVarsTracker) exec.BuildStepDelegate
 }
@@ -47,7 +46,6 @@ func NewStepBuilder(
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	redactSecrets bool,
-	policyChecker policy.Checker,
 ) *stepBuilder {
 	return &stepBuilder{
 		stepFactory:     stepFactory,
@@ -56,7 +54,6 @@ func NewStepBuilder(
 		globalSecrets:   secrets,
 		varSourcePool:   varSourcePool,
 		redactSecrets:   redactSecrets,
-		policyChecker:   policyChecker,
 	}
 }
 
@@ -67,7 +64,6 @@ type stepBuilder struct {
 	globalSecrets   creds.Secrets
 	varSourcePool   creds.VarSourcePool
 	redactSecrets   bool
-	policyChecker   policy.Checker
 }
 
 func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {
@@ -404,7 +400,7 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan, credVar
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.TaskDelegate(build, plan.ID, credVarsTracker, builder.policyChecker),
+		builder.delegateFactory.TaskDelegate(build, plan.ID, credVarsTracker),
 	)
 }
 

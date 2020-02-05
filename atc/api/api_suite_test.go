@@ -158,7 +158,6 @@ var _ = BeforeEach(func() {
 
 	fakePolicyChecker = new(policyfakes.FakeChecker)
 	fakePolicyChecker.CheckHttpApiReturns(true, nil)
-	fakePolicyChecker.CheckTaskReturns(true, nil)
 
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewPolicyCheckWrappa(logger, fakePolicyChecker),

@@ -2,8 +2,8 @@ package exec
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"github.com/concourse/concourse/atc/policy"
 	"io"
 	"path"
 	"path/filepath"
@@ -67,8 +67,6 @@ type TaskDelegate interface {
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus)
 	Errored(lager.Logger, string)
-
-	PolicyCheck() (bool, error)
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -81,6 +79,7 @@ type TaskStep struct {
 	containerMetadata db.ContainerMetadata
 	strategy          worker.ContainerPlacementStrategy
 	workerClient      worker.Client
+	policyChecker     policy.Checker
 	delegate          TaskDelegate
 	lockFactory       lock.LockFactory
 	succeeded         bool
@@ -94,6 +93,7 @@ func NewTaskStep(
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
+	policyChecker policy.Checker,
 	delegate TaskDelegate,
 	lockFactory lock.LockFactory,
 ) Step {
@@ -105,6 +105,7 @@ func NewTaskStep(
 		containerMetadata: containerMetadata,
 		strategy:          strategy,
 		workerClient:      workerClient,
+		policyChecker:     policyChecker,
 		delegate:          delegate,
 		lockFactory:       lockFactory,
 	}
@@ -212,12 +213,18 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 
 	step.delegate.Initializing(logger)
 
-	pass, err := step.delegate.PolicyCheck()
-	if err != nil {
-		return err
-	}
-	if !pass {
-		return errors.New("policy check not pass")
+	if step.policyChecker != nil && config.ImageResource != nil {
+		pass, err := step.policyChecker.CheckUsingImage(
+			step.metadata.TeamName,
+			step.metadata.PipelineName,
+			"task",
+			config.ImageResource.Source)
+		if err != nil {
+			return err
+		}
+		if !pass {
+			return policy.PolicyCheckNotPass{}
+		}
 	}
 
 	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)

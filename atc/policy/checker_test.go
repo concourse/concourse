@@ -235,30 +235,26 @@ var _ = Describe("Policy checker", func() {
 				})
 			})
 
-			Context("CheckTask", func() {
+			Context("CheckUsingImage", func() {
 				var (
 					fakeBuild  *dbfakes.FakeBuild
-					taskConfig atc.TaskConfig
 					pass       bool
 				)
 
 				BeforeEach(func() {
 					fakeBuild = new(dbfakes.FakeBuild)
-					taskConfig = atc.TaskConfig{
-						Platform: "linux",
-					}
 				})
 
 				JustBeforeEach(func() {
-					pass, err = checker.CheckTask(fakeBuild, taskConfig)
+					pass, err = checker.CheckUsingImage("some-team", "some-pipeline", "task", atc.Source{"repository": "some-image"})
 				})
 
-				Context("when RunTask is in skip list", func() {
+				Context("when UsingImage is in skip list", func() {
 					BeforeEach(func() {
 						filter = policy.Filter{
 							HttpMethods:   []string{"POST,PUT"},
 							Actions:       []string{"do_1,do_2"},
-							ActionsToSkip: []string{policy.ActionRunTask},
+							ActionsToSkip: []string{policy.ActionUsingImage},
 						}
 					})
 
@@ -297,10 +293,14 @@ var _ = Describe("Policy checker", func() {
 							Service:        "concourse",
 							ClusterName:    "some-cluster",
 							ClusterVersion: "some-version",
-							Action:         policy.ActionRunTask,
+							Action:         policy.ActionUsingImage,
 							Team:           "some-team",
 							Pipeline:       "some-pipeline",
-							Data:           taskConfig,
+							Data: map[string]string{
+								"repository": "some-image",
+								"step":       "task",
+								"tag":        "latest",
+							},
 						}))
 					})
 

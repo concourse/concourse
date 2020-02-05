@@ -3,21 +3,26 @@ package policy
 import (
 	"bytes"
 	"fmt"
+	"github.com/concourse/concourse/atc"
 	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
+	"encoding/json"
 	"github.com/jessevdk/go-flags"
 	"sigs.k8s.io/yaml"
-	"encoding/json"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/api/accessor"
 )
 
-const ActionRunTask = "RunTask"
+const ActionUsingImage = "UsingImage"
+
+type PolicyCheckNotPass struct {}
+
+func (e PolicyCheckNotPass) Error() string {
+	return "policy check not pass"
+}
 
 type Filter struct {
 	HttpMethods   []string `long:"policy-check-filter-http-methods" description:"API http method to go through policy check"`
@@ -55,13 +60,12 @@ type PolicyCheckInput struct {
 
 //go:generate counterfeiter . Checker
 
-// Checker runs filters first, then calls underlying policy agent.
+// Checker runs filters first, then calls underlying policy agent. If not going
+// through policy checker, check methods should return true.
 type Checker interface {
-	// CheckHttpApi returns true if passes policy check. If not goes through
-	// policy check, just return true.
 	CheckHttpApi(string, accessor.Access, *http.Request) (bool, error)
 
-	CheckTask(db.Build, atc.TaskConfig) (bool, error)
+	CheckUsingImage(string, string, string, atc.Source) (bool, error)
 }
 
 //go:generate counterfeiter . Agent
@@ -212,20 +216,37 @@ func inArray(array []string, target string) bool {
 	return found
 }
 
-func (c *checker) CheckTask(build db.Build, config atc.TaskConfig) (bool, error) {
+func (c *checker) CheckUsingImage(teamName, pipelineName, step string, imageSource atc.Source) (bool, error) {
 	// Actions in skip list will not go through policy check.
-	if c.actionToSkip(ActionRunTask) {
+	if c.actionToSkip(ActionUsingImage) {
 		return true, nil
+	}
+
+	imageInfo := map[string]string{
+		"step": step,
+	}
+
+	if repository, ok := imageSource["repository"].(string); ok {
+		imageInfo["repository"] = repository
+	} else {
+		// If imageSource doesn't have repository defined, then skip policy check.
+		return true, nil
+	}
+
+	if tag, ok := imageSource["tag"].(string); ok {
+		imageInfo["tag"] = tag
+	} else {
+		imageInfo["tag"] = "latest"
 	}
 
 	input := PolicyCheckInput{
 		Service:        "concourse",
 		ClusterName:    clusterName,
 		ClusterVersion: clusterVersion,
-		Action:         ActionRunTask,
-		Team:           build.TeamName(),
-		Pipeline:       build.PipelineName(),
-		Data:           config,
+		Action:         ActionUsingImage,
+		Team:           teamName,
+		Pipeline:       pipelineName,
+		Data:           imageInfo,
 	}
 
 	return c.agent.Check(input)

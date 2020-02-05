@@ -3,7 +3,6 @@ package builder_test
 import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/policy/policyfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -32,7 +31,6 @@ var _ = Describe("Builder", func() {
 			fakeDelegateFactory *builderfakes.FakeDelegateFactory
 			fakeSecretManager   *credsfakes.FakeSecrets
 			fakeVarSourcePool   *credsfakes.FakeVarSourcePool
-			fakePolicyChecker   *policyfakes.FakeChecker
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -45,10 +43,6 @@ var _ = Describe("Builder", func() {
 			fakeDelegateFactory = new(builderfakes.FakeDelegateFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
 			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
-			fakePolicyChecker = new(policyfakes.FakeChecker)
-
-			fakePolicyChecker.CheckHttpApiReturns(true, nil)
-			fakePolicyChecker.CheckTaskReturns(true, nil)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
@@ -57,7 +51,6 @@ var _ = Describe("Builder", func() {
 				fakeSecretManager,
 				fakeVarSourcePool,
 				false,
-				fakePolicyChecker,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
@@ -816,7 +809,6 @@ var _ = Describe("Builder", func() {
 			fakeDelegateFactory *builderfakes.FakeDelegateFactory
 			fakeSecretManager   *credsfakes.FakeSecrets
 			fakeVarSourcePool   *credsfakes.FakeVarSourcePool
-			fakePolicyChecker   *policyfakes.FakeChecker
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -829,10 +821,6 @@ var _ = Describe("Builder", func() {
 			fakeDelegateFactory = new(builderfakes.FakeDelegateFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
 			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
-			fakePolicyChecker = new(policyfakes.FakeChecker)
-
-			fakePolicyChecker.CheckHttpApiReturns(true, nil)
-			fakePolicyChecker.CheckTaskReturns(true, nil)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
@@ -841,7 +829,6 @@ var _ = Describe("Builder", func() {
 				fakeSecretManager,
 				fakeVarSourcePool,
 				false,
-				fakePolicyChecker,
 			)
 
 			planFactory = atc.NewPlanFactory(123)

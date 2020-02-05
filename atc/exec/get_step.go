@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"fmt"
+	"github.com/concourse/concourse/atc/policy"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -63,6 +64,7 @@ type GetStep struct {
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
+	policyChecker        policy.Checker
 	delegate             GetDelegate
 	succeeded            bool
 }
@@ -75,6 +77,7 @@ func NewGetStep(
 	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
+	policyChecker policy.Checker,
 	delegate GetDelegate,
 	client worker.Client,
 ) Step {
@@ -86,10 +89,12 @@ func NewGetStep(
 		resourceFactory:      resourceFactory,
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
+		policyChecker:        policyChecker,
 		delegate:             delegate,
 		workerClient:         client,
 	}
 }
+
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	ctx, span := tracing.StartSpan(ctx, "get", tracing.Attrs{
 		"team":     step.metadata.TeamName,
@@ -135,6 +140,22 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
 	if err != nil {
 		return err
+	}
+
+	if step.policyChecker != nil {
+		for _, resourceType := range resourceTypes {
+			pass, err := step.policyChecker.CheckUsingImage(
+				step.metadata.TeamName,
+				step.metadata.PipelineName,
+				"get",
+				resourceType.Source)
+			if err != nil {
+				return err
+			}
+			if !pass {
+				return policy.PolicyCheckNotPass{}
+			}
+		}
 	}
 
 	containerSpec := worker.ContainerSpec{

@@ -7,7 +7,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/policy"
 )
 
@@ -27,17 +26,19 @@ type FakeChecker struct {
 		result1 bool
 		result2 error
 	}
-	CheckTaskStub        func(db.Build, atc.TaskConfig) (bool, error)
-	checkTaskMutex       sync.RWMutex
-	checkTaskArgsForCall []struct {
-		arg1 db.Build
-		arg2 atc.TaskConfig
+	CheckUsingImageStub        func(string, string, string, atc.Source) (bool, error)
+	checkUsingImageMutex       sync.RWMutex
+	checkUsingImageArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 string
+		arg4 atc.Source
 	}
-	checkTaskReturns struct {
+	checkUsingImageReturns struct {
 		result1 bool
 		result2 error
 	}
-	checkTaskReturnsOnCall map[int]struct {
+	checkUsingImageReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
 	}
@@ -110,65 +111,67 @@ func (fake *FakeChecker) CheckHttpApiReturnsOnCall(i int, result1 bool, result2 
 	}{result1, result2}
 }
 
-func (fake *FakeChecker) CheckTask(arg1 db.Build, arg2 atc.TaskConfig) (bool, error) {
-	fake.checkTaskMutex.Lock()
-	ret, specificReturn := fake.checkTaskReturnsOnCall[len(fake.checkTaskArgsForCall)]
-	fake.checkTaskArgsForCall = append(fake.checkTaskArgsForCall, struct {
-		arg1 db.Build
-		arg2 atc.TaskConfig
-	}{arg1, arg2})
-	fake.recordInvocation("CheckTask", []interface{}{arg1, arg2})
-	fake.checkTaskMutex.Unlock()
-	if fake.CheckTaskStub != nil {
-		return fake.CheckTaskStub(arg1, arg2)
+func (fake *FakeChecker) CheckUsingImage(arg1 string, arg2 string, arg3 string, arg4 atc.Source) (bool, error) {
+	fake.checkUsingImageMutex.Lock()
+	ret, specificReturn := fake.checkUsingImageReturnsOnCall[len(fake.checkUsingImageArgsForCall)]
+	fake.checkUsingImageArgsForCall = append(fake.checkUsingImageArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 string
+		arg4 atc.Source
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CheckUsingImage", []interface{}{arg1, arg2, arg3, arg4})
+	fake.checkUsingImageMutex.Unlock()
+	if fake.CheckUsingImageStub != nil {
+		return fake.CheckUsingImageStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.checkTaskReturns
+	fakeReturns := fake.checkUsingImageReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeChecker) CheckTaskCallCount() int {
-	fake.checkTaskMutex.RLock()
-	defer fake.checkTaskMutex.RUnlock()
-	return len(fake.checkTaskArgsForCall)
+func (fake *FakeChecker) CheckUsingImageCallCount() int {
+	fake.checkUsingImageMutex.RLock()
+	defer fake.checkUsingImageMutex.RUnlock()
+	return len(fake.checkUsingImageArgsForCall)
 }
 
-func (fake *FakeChecker) CheckTaskCalls(stub func(db.Build, atc.TaskConfig) (bool, error)) {
-	fake.checkTaskMutex.Lock()
-	defer fake.checkTaskMutex.Unlock()
-	fake.CheckTaskStub = stub
+func (fake *FakeChecker) CheckUsingImageCalls(stub func(string, string, string, atc.Source) (bool, error)) {
+	fake.checkUsingImageMutex.Lock()
+	defer fake.checkUsingImageMutex.Unlock()
+	fake.CheckUsingImageStub = stub
 }
 
-func (fake *FakeChecker) CheckTaskArgsForCall(i int) (db.Build, atc.TaskConfig) {
-	fake.checkTaskMutex.RLock()
-	defer fake.checkTaskMutex.RUnlock()
-	argsForCall := fake.checkTaskArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+func (fake *FakeChecker) CheckUsingImageArgsForCall(i int) (string, string, string, atc.Source) {
+	fake.checkUsingImageMutex.RLock()
+	defer fake.checkUsingImageMutex.RUnlock()
+	argsForCall := fake.checkUsingImageArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeChecker) CheckTaskReturns(result1 bool, result2 error) {
-	fake.checkTaskMutex.Lock()
-	defer fake.checkTaskMutex.Unlock()
-	fake.CheckTaskStub = nil
-	fake.checkTaskReturns = struct {
+func (fake *FakeChecker) CheckUsingImageReturns(result1 bool, result2 error) {
+	fake.checkUsingImageMutex.Lock()
+	defer fake.checkUsingImageMutex.Unlock()
+	fake.CheckUsingImageStub = nil
+	fake.checkUsingImageReturns = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeChecker) CheckTaskReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.checkTaskMutex.Lock()
-	defer fake.checkTaskMutex.Unlock()
-	fake.CheckTaskStub = nil
-	if fake.checkTaskReturnsOnCall == nil {
-		fake.checkTaskReturnsOnCall = make(map[int]struct {
+func (fake *FakeChecker) CheckUsingImageReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.checkUsingImageMutex.Lock()
+	defer fake.checkUsingImageMutex.Unlock()
+	fake.CheckUsingImageStub = nil
+	if fake.checkUsingImageReturnsOnCall == nil {
+		fake.checkUsingImageReturnsOnCall = make(map[int]struct {
 			result1 bool
 			result2 error
 		})
 	}
-	fake.checkTaskReturnsOnCall[i] = struct {
+	fake.checkUsingImageReturnsOnCall[i] = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}
@@ -179,8 +182,8 @@ func (fake *FakeChecker) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.checkHttpApiMutex.RLock()
 	defer fake.checkHttpApiMutex.RUnlock()
-	fake.checkTaskMutex.RLock()
-	defer fake.checkTaskMutex.RUnlock()
+	fake.checkUsingImageMutex.RLock()
+	defer fake.checkUsingImageMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

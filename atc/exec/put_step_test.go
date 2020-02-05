@@ -182,6 +182,7 @@ var _ = Describe("PutStep", func() {
 			fakeResourceConfigFactory,
 			fakeStrategy,
 			fakeClient,
+			nil,
 			fakeDelegate,
 		)
 

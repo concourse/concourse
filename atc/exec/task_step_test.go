@@ -137,6 +137,7 @@ var _ = Describe("TaskStep", func() {
 			containerMetadata,
 			fakeStrategy,
 			fakeClient,
+			nil,
 			fakeDelegate,
 			fakeLockFactory,
 		)

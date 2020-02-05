@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/policy"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -45,6 +46,7 @@ type PutStep struct {
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
 	workerClient          worker.Client
+	policyChecker         policy.Checker
 	delegate              PutDelegate
 	succeeded             bool
 }
@@ -58,6 +60,7 @@ func NewPutStep(
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
+	policyChecker policy.Checker,
 	delegate PutDelegate,
 ) Step {
 	return &PutStep{
@@ -69,6 +72,7 @@ func NewPutStep(
 		resourceConfigFactory: resourceConfigFactory,
 		workerClient:          workerClient,
 		strategy:              strategy,
+		policyChecker:         policyChecker,
 		delegate:              delegate,
 	}
 }
@@ -121,6 +125,22 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return err
+	}
+
+	if step.policyChecker != nil {
+		for _, resourceType := range resourceTypes {
+			pass, err := step.policyChecker.CheckUsingImage(
+				step.metadata.TeamName,
+				step.metadata.PipelineName,
+				"put",
+				resourceType.Source)
+			if err != nil {
+				return err
+			}
+			if !pass {
+				return policy.PolicyCheckNotPass{}
+			}
+		}
 	}
 
 	var putInputs PutInputs

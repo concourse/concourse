@@ -3,6 +3,7 @@ package builder
 import (
 	"crypto/sha1"
 	"fmt"
+	"github.com/concourse/concourse/atc/policy"
 	"path/filepath"
 
 	"github.com/concourse/concourse/atc"
@@ -22,6 +23,7 @@ type stepFactory struct {
 	resourceConfigFactory           db.ResourceConfigFactory
 	defaultLimits                   atc.ContainerLimits
 	strategy                        worker.ContainerPlacementStrategy
+	policyChecker                   policy.Checker
 	lockFactory                     lock.LockFactory
 	enableRerunWhenWorkerDisappears bool
 }
@@ -35,6 +37,7 @@ func NewStepFactory(
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
+	policyChecker policy.Checker,
 	lockFactory lock.LockFactory,
 	enableRerunWhenWorkerDisappears bool,
 ) *stepFactory {
@@ -47,6 +50,7 @@ func NewStepFactory(
 		resourceConfigFactory:           resourceConfigFactory,
 		defaultLimits:                   defaultLimits,
 		strategy:                        strategy,
+		policyChecker:                   policyChecker,
 		lockFactory:                     lockFactory,
 		enableRerunWhenWorkerDisappears: enableRerunWhenWorkerDisappears,
 	}
@@ -68,6 +72,7 @@ func (factory *stepFactory) GetStep(
 		factory.resourceFactory,
 		factory.resourceCacheFactory,
 		factory.strategy,
+		factory.policyChecker,
 		delegate,
 		factory.client,
 	)
@@ -96,6 +101,7 @@ func (factory *stepFactory) PutStep(
 		factory.resourceConfigFactory,
 		factory.strategy,
 		factory.client,
+		factory.policyChecker,
 		delegate,
 	)
 
@@ -146,6 +152,7 @@ func (factory *stepFactory) TaskStep(
 		containerMetadata,
 		factory.strategy,
 		factory.client,
+		factory.policyChecker,
 		delegate,
 		factory.lockFactory,
 	)

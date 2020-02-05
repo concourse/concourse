@@ -156,6 +156,7 @@ var _ = Describe("GetStep", func() {
 			fakeResourceFactory,
 			fakeResourceCacheFactory,
 			fakeStrategy,
+			nil,
 			fakeDelegate,
 			fakeClient,
 		)
