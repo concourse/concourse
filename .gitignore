@@ -16,3 +16,4 @@ ci/deployments/*/keys/id_rsa.pub
 
 hack/vault/certs
 hack/vault/init.json
+worker/backend/integration/sample/sample
