@@ -46,10 +46,10 @@ func maxValidFromFile(fname string) (uint32, error) {
 // For example, given the following mapping from /proc/self/uid_map:
 //
 // 	0 1001 10
-//      | |    |
-//      | |    max number of ids inside this mapping (3)
-//      | id outside (usually, the host)             (2)
-//      id inside the container                      (1)
+// 	| |    |
+// 	| |    max number of ids inside this mapping (3)
+// 	| id outside (usually, the host)             (2)
+// 	id inside the container                      (1)
 //
 // it determines that the maximum valid user id in this mapping is 9.
 //
