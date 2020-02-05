@@ -144,6 +144,10 @@ func (example Example) Run() {
 
 	var versionsDB db.VersionsDB
 	if example.LoadDB != "" {
+		if os.Getenv("ALGORITHM_REGRESSION") == "" {
+			ginkgo.Skip("skipping; to run, set $ALGORITHM_REGRESSION")
+		}
+
 		versionsDB = example.importVersionsDB(ctx, setup, cache, resources)
 	} else {
 		versionsDB = example.setupVersionsDB(ctx, setup, cache, resources)
