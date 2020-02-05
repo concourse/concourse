@@ -288,7 +288,7 @@ func (versions VersionsDB) LatestBuildID(ctx context.Context, jobID int) (int, b
 			"b.scheduled":    true,
 		}).
 		OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
-		Limit(100).
+		Limit(1).
 		RunWith(versions.conn).
 		QueryRowContext(ctx).
 		Scan(&buildID)
