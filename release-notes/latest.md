@@ -24,6 +24,10 @@ other systems soon.
 `fly unpause-pipeline` commands. This allows users to pause or unpause every
 pipeline on a team at the same time. #4092
 
+#### <sub><sup><a name="5118" href="#5118">:link:</a></sup></sub> feature
+
+* Improved the performance of the dashboard by only rendering the pipeline cards that are visible. #5118
+
 [OpenTelemetry]: https://opentelemetry.io/
 [Jaeger]: https://www.jaegertracing.io/
 [Stackdriver]: https://cloud.google.com/trace/
