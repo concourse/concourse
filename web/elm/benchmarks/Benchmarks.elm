@@ -88,7 +88,7 @@ main =
         Benchmark.describe "benchmark suite"
             [ Benchmark.compare "DashboardPreview.view"
                 "current"
-                (\_ -> DP.view HoverState.NoHover sampleJobs)
+                (\_ -> DP.view HoverState.NoHover (DP.groupByRank sampleJobs))
                 "old"
                 (\_ -> dashboardPreviewView sampleJobs)
             , Benchmark.compare "Build.view"
