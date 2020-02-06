@@ -76,6 +76,7 @@ var _ = Describe("CheckStep", func() {
 			containerMetadata,
 			fakeStrategy,
 			fakePool,
+			nil,
 			fakeDelegate,
 			fakeClient,
 		)

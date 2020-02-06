@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"fmt"
+	"github.com/concourse/concourse/atc/policy"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -23,6 +24,7 @@ type CheckStep struct {
 	resourceFactory   resource.ResourceFactory
 	strategy          worker.ContainerPlacementStrategy
 	pool              worker.Pool
+	policyChecker     policy.Checker
 	delegate          CheckDelegate
 	succeeded         bool
 	workerClient      worker.Client
@@ -44,6 +46,7 @@ func NewCheckStep(
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
+	policyChecker policy.Checker,
 	delegate CheckDelegate,
 	client worker.Client,
 ) *CheckStep {
@@ -55,6 +58,7 @@ func NewCheckStep(
 		containerMetadata: containerMetadata,
 		pool:              pool,
 		strategy:          strategy,
+		policyChecker:     policyChecker,
 		delegate:          delegate,
 		workerClient:      client,
 	}
@@ -96,6 +100,22 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 	timeout, err := time.ParseDuration(step.plan.Timeout)
 	if err != nil {
 		return fmt.Errorf("timeout parse: %w", err)
+	}
+
+	if step.policyChecker != nil {
+		for _, resourceType := range resourceTypes {
+			pass, err := step.policyChecker.CheckUsingImage(
+				step.metadata.TeamName,
+				step.metadata.PipelineName,
+				"check",
+				resourceType.Source)
+			if err != nil {
+				return err
+			}
+			if !pass {
+				return policy.PolicyCheckNotPass{}
+			}
+		}
 	}
 
 	containerSpec := worker.ContainerSpec{

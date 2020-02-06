@@ -128,6 +128,7 @@ func (factory *stepFactory) CheckStep(
 		containerMetadata,
 		worker.NewRandomPlacementStrategy(),
 		factory.pool,
+		factory.policyChecker,
 		delegate,
 		factory.client,
 	)
