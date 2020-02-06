@@ -181,7 +181,7 @@ func (s *BackendSuite) TestContainersWithProperProperties() {
 	s.Equal(1, s.client.ContainersCallCount())
 
 	_, labelSet := s.client.ContainersArgsForCall(0)
-	s.ElementsMatch([]string{"foo=bar", "caz=zaz"}, labelSet)
+	s.ElementsMatch([]string{"labels.foo==bar", "labels.caz==zaz"}, labelSet)
 }
 
 func (s *BackendSuite) TestContainersConversion() {

@@ -19,7 +19,7 @@ func propertiesToFilterList(properties garden.Properties) (filters []string, err
 			return
 		}
 
-		filters[idx] = k + "=" + v
+		filters[idx] = "labels." + k + "==" + v
 		idx++
 	}
 
