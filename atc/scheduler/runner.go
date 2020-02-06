@@ -8,7 +8,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
@@ -119,7 +118,9 @@ func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Log
 				return
 			}
 
-			err = s.scheduleJob(ctx, logger, schedulingLock, pipeline, job, resources, jobsMap)
+			defer schedulingLock.Release()
+
+			err = s.scheduleJob(ctx, logger, pipeline, job, resources, jobsMap)
 			if err != nil {
 				jLog.Error("failed-to-schedule-job", err)
 			}
@@ -129,12 +130,10 @@ func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Log
 	return nil
 }
 
-func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, schedulingLock lock.Lock, pipeline db.Pipeline, job db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
+func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, pipeline db.Pipeline, job db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
 	logger = logger.Session("schedule-job", lager.Data{"job": job.Name()})
 
 	logger.Debug("schedule")
-
-	defer schedulingLock.Release()
 
 	// Grabs out the requested time that triggered off the job schedule in
 	// order to set the last scheduled to the exact time of this triggering
