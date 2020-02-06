@@ -1,11 +1,58 @@
 package algorithm_test
 
 import (
+	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo/extensions/table"
 )
 
 var _ = DescribeTable("Regression tests",
 	(Example).Run,
+
+	Entry("hush-house 6.0 upgrade unsatisfiable job", Example{
+		LoadDB: "testdata/hush-house-6.json.gz",
+
+		Inputs: Inputs{
+			{
+				Name:     "rc-image",
+				Resource: "rc-image",
+				Passed: []string{
+					"frp-deps",
+					"gin-deps",
+					"etcd-deps",
+					"hugo-deps",
+					"caddy-deps",
+					"gitea-deps",
+					"guardian-deps",
+					"concourse-deps",
+					"syncthing-deps",
+					"kubernetes-deps",
+					"prometheus-deps",
+					"sourcegraph-deps",
+					"concourse-cf-resource-deps",
+					"concourse-s3-resource-deps",
+					"concourse-mock-resource-deps",
+					"concourse-pool-resource-deps",
+					"concourse-time-resource-deps",
+					"concourse-semver-resource-deps",
+					"concourse-tracker-resource-deps",
+					"concourse-docker-image-resource-deps",
+					"concourse-datadog-event-resource-deps",
+					"concourse-github-release-resource-deps",
+					"concourse-registry-image-resource-deps",
+					"concourse-bosh-io-stemcell-resource-deps",
+					"concourse-concourse-pipeline-resource-deps",
+				},
+			},
+		},
+
+		Result: Result{
+			// unsatisfiable; this test exists as a benchmark
+			OK: true,
+			Values: map[string]string{
+				"rc-image": "imported-r31481v804095",
+			},
+		},
+	}),
 
 	Entry("bosh memory leak regression test", Example{
 		LoadDB: "testdata/bosh-versions.json.gz",
@@ -179,18 +226,17 @@ var _ = DescribeTable("Regression tests",
 		},
 
 		Result: Result{
-			OK: true,
-			Values: map[string]string{
-				"cflinuxfs2-rootfs-release-tarball": "imported-r192v105139",
-				"bosh-lite-stemcell":                "imported-r85v43839",
-				"etcd-release-tarball":              "imported-r113v105882",
-				"garden-linux-release-tarball":      "imported-r111v105557",
-				"runtime-ci":                        "imported-r163v106472",
-				"cf-release":                        "imported-r33v106196",
-				"stemcell":                          "imported-r3v103933",
-				"diego-final-releases":              "imported-r102v105599",
-				"diego-release-master":              "imported-r168v105643",
-				"diego-cf-compatibility":            "imported-r190v105760",
+			// unsatisfiable; this test exists as a benchmark
+			OK: false,
+			Errors: map[string]string{
+				"stemcell":                          string(db.NoSatisfiableBuilds),
+				"diego-final-releases":              string(db.NoSatisfiableBuilds),
+				"garden-linux-release-tarball":      string(db.NoSatisfiableBuilds),
+				"cflinuxfs2-rootfs-release-tarball": string(db.NoSatisfiableBuilds),
+				"cf-release":                        string(db.NoSatisfiableBuilds),
+				"bosh-lite-stemcell":                string(db.NoSatisfiableBuilds),
+				"diego-release-master":              string(db.NoSatisfiableBuilds),
+				"etcd-release-tarball":              string(db.NoSatisfiableBuilds),
 			},
 		},
 	}),

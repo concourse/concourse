@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
@@ -108,6 +107,11 @@ func (mapping StringMapping) Name(id int) string {
 const CurrentJobName = "current"
 
 func (example Example) Run() {
+	currentTest := ginkgo.CurrentGinkgoTestDescription()
+
+	ctx, span := tracing.StartSpan(context.Background(), currentTest.TestText, tracing.Attrs{})
+	defer span.End()
+
 	setup := setupDB{
 		teamID:      1,
 		pipelineID:  1,
@@ -140,260 +144,13 @@ func (example Example) Run() {
 
 	var versionsDB db.VersionsDB
 	if example.LoadDB != "" {
-		versionsDB = db.NewVersionsDB(dbConn, 100, cache)
-
-		dbFile, err := os.Open(example.LoadDB)
-		Expect(err).ToNot(HaveOccurred())
-
-		gr, err := gzip.NewReader(dbFile)
-		Expect(err).ToNot(HaveOccurred())
-
-		log.Println("LOADING DB", example.LoadDB)
-		var legacyDB atc.DebugVersionsDB
-		err = json.NewDecoder(gr).Decode(&legacyDB)
-		Expect(err).ToNot(HaveOccurred())
-		log.Println("LOADED")
-
-		log.Println("IMPORTING", len(legacyDB.JobIDs), len(legacyDB.ResourceIDs), len(legacyDB.ResourceVersions), len(legacyDB.BuildInputs), len(legacyDB.BuildOutputs))
-
-		for name, id := range legacyDB.JobIDs {
-			setup.jobIDs[name] = id
-
-			setup.insertJob(name)
+		if os.Getenv("ALGORITHM_REGRESSION") == "" {
+			ginkgo.Skip("skipping; to run, set $ALGORITHM_REGRESSION")
 		}
 
-		for name, id := range legacyDB.ResourceIDs {
-			setup.resourceIDs[name] = id
-
-			setup.insertResource(name, false)
-			resources[name] = atc.ResourceConfig{
-				Name: name,
-				Type: "some-base-type",
-				Source: atc.Source{
-					name: "source",
-				},
-			}
-		}
-
-		log.Println("IMPORTING VERSIONS")
-
-		tx, err := dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-
-		stmt, err := tx.Prepare(pq.CopyIn("resource_config_versions", "id", "resource_config_scope_id", "version", "version_md5", "check_order"))
-		Expect(err).ToNot(HaveOccurred())
-
-		for _, row := range legacyDB.ResourceVersions {
-			name := fmt.Sprintf("imported-r%dv%d", row.ResourceID, row.VersionID)
-			setup.versionIDs[name] = row.VersionID
-
-			_, err := stmt.Exec(row.VersionID, row.ResourceID, "{}", strconv.Itoa(row.VersionID), row.CheckOrder)
-			Expect(err).ToNot(HaveOccurred())
-		}
-
-		_, err = stmt.Exec()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = stmt.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = tx.Commit()
-		Expect(err).ToNot(HaveOccurred())
-
-		log.Println("IMPORTING BUILDS")
-
-		tx, err = dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-
-		stmt, err = tx.Prepare(pq.CopyIn("builds", "team_id", "id", "job_id", "name", "status"))
-		Expect(err).ToNot(HaveOccurred())
-
-		imported := map[int]bool{}
-
-		for _, row := range legacyDB.BuildInputs {
-			if imported[row.BuildID] {
-				continue
-			}
-
-			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, "some-name", "succeeded")
-			Expect(err).ToNot(HaveOccurred())
-
-			imported[row.BuildID] = true
-		}
-
-		for _, row := range legacyDB.BuildOutputs {
-			if imported[row.BuildID] {
-				continue
-			}
-
-			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, "some-name", "succeeded")
-			Expect(err).ToNot(HaveOccurred())
-
-			imported[row.BuildID] = true
-		}
-
-		_, err = stmt.Exec()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = stmt.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = tx.Commit()
-		Expect(err).ToNot(HaveOccurred())
-
-		log.Println("IMPORTING INPUTS")
-
-		tx, err = dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-
-		stmt, err = tx.Prepare(pq.CopyIn("build_resource_config_version_inputs", "build_id", "resource_id", "version_md5", "name", "first_occurrence"))
-		Expect(err).ToNot(HaveOccurred())
-
-		for i, row := range legacyDB.BuildInputs {
-			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i), false)
-			Expect(err).ToNot(HaveOccurred())
-		}
-
-		_, err = stmt.Exec()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = stmt.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = tx.Commit()
-		Expect(err).ToNot(HaveOccurred())
-
-		log.Println("IMPORTING OUTPUTS")
-
-		tx, err = dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-
-		stmt, err = tx.Prepare(pq.CopyIn("build_resource_config_version_outputs", "build_id", "resource_id", "version_md5", "name"))
-		Expect(err).ToNot(HaveOccurred())
-
-		for i, row := range legacyDB.BuildOutputs {
-			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i))
-			Expect(err).ToNot(HaveOccurred())
-		}
-
-		_, err = stmt.Exec()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = stmt.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = tx.Commit()
-		Expect(err).ToNot(HaveOccurred())
-
-		log.Println("DONE IMPORTING")
+		versionsDB = example.importVersionsDB(ctx, setup, cache, resources)
 	} else {
-		versionsDB = db.NewVersionsDB(dbConn, 2, cache)
-
-		for _, row := range example.DB.Resources {
-			setup.insertRowVersion(resources, row)
-		}
-
-		buildOutputs := map[int]map[string][]string{}
-		buildToJobID := map[int]int{}
-		buildToRerunOf := map[int]int{}
-		for _, row := range example.DB.BuildOutputs {
-			setup.insertRowVersion(resources, row)
-			setup.insertRowBuild(row, example.DB.NeedsV6Migration)
-
-			resourceID := setup.resourceIDs.ID(row.Resource)
-
-			versionJSON, err := json.Marshal(atc.Version{"ver": row.Version})
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = setup.psql.Insert("build_resource_config_version_outputs").
-				Columns("build_id", "resource_id", "version_md5", "name").
-				Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), row.Resource).
-				Exec()
-			Expect(err).ToNot(HaveOccurred())
-
-			if !example.DB.NeedsV6Migration {
-				outputs, ok := buildOutputs[row.BuildID]
-				if !ok {
-					outputs = map[string][]string{}
-					buildOutputs[row.BuildID] = outputs
-				}
-
-				key := strconv.Itoa(resourceID)
-
-				outputs[key] = append(outputs[key], convertToMD5(row.Version))
-				buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
-
-				if row.RerunOfBuildID != 0 {
-					buildToRerunOf[row.BuildID] = row.RerunOfBuildID
-				}
-			}
-		}
-
-		for _, row := range example.DB.BuildInputs {
-			setup.insertRowVersion(resources, row)
-			setup.insertRowBuild(row, example.DB.NeedsV6Migration)
-
-			resourceID := setup.resourceIDs.ID(row.Resource)
-
-			versionJSON, err := json.Marshal(atc.Version{"ver": row.Version})
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = setup.psql.Insert("build_resource_config_version_inputs").
-				Columns("build_id", "resource_id", "version_md5", "name", "first_occurrence").
-				Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), row.Resource, false).
-				Exec()
-			Expect(err).ToNot(HaveOccurred())
-
-			if !example.DB.NeedsV6Migration {
-				outputs, ok := buildOutputs[row.BuildID]
-				if !ok {
-					outputs = map[string][]string{}
-					buildOutputs[row.BuildID] = outputs
-				}
-
-				key := strconv.Itoa(resourceID)
-
-				outputs[key] = append(outputs[key], convertToMD5(row.Version))
-				buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
-
-				if row.RerunOfBuildID != 0 {
-					buildToRerunOf[row.BuildID] = row.RerunOfBuildID
-				}
-			}
-		}
-
-		for buildID, outputs := range buildOutputs {
-			outputsJSON, err := json.Marshal(outputs)
-			Expect(err).ToNot(HaveOccurred())
-
-			var rerunOf sql.NullInt64
-			if buildToRerunOf[buildID] != 0 {
-				rerunOf.Int64 = int64(buildToRerunOf[buildID])
-			}
-
-			_, err = setup.psql.Insert("successful_build_outputs").
-				Columns("build_id", "job_id", "rerun_of", "outputs").
-				Values(buildID, buildToJobID[buildID], rerunOf, outputsJSON).
-				Suffix("ON CONFLICT DO NOTHING").
-				Exec()
-			Expect(err).ToNot(HaveOccurred())
-		}
-
-		for _, row := range example.DB.BuildPipes {
-			setup.insertBuildPipe(row)
-		}
-	}
-
-	for _, input := range example.Inputs {
-		setup.insertResource(input.Resource, input.NoResourceConfigScope)
-
-		resources[input.Resource] = atc.ResourceConfig{
-			Name: input.Resource,
-			Type: "some-base-type",
-			Source: atc.Source{
-				input.Resource: "source",
-			},
-		}
+		versionsDB = example.setupVersionsDB(ctx, setup, cache, resources)
 	}
 
 	inputConfigs := make(algorithm.InputConfigs, len(example.Inputs))
@@ -496,6 +253,292 @@ func (example Example) Run() {
 	}
 }
 
+func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cache *gocache.Cache, resources map[string]atc.ResourceConfig) db.VersionsDB {
+	ctx, span := tracing.StartSpan(ctx, "importVersionsDB", tracing.Attrs{
+		"db": example.LoadDB,
+	})
+	defer span.End()
+
+	versionsDB := db.NewVersionsDB(dbConn, 100, cache)
+
+	dbFile, err := os.Open(example.LoadDB)
+	Expect(err).ToNot(HaveOccurred())
+
+	gr, err := gzip.NewReader(dbFile)
+	Expect(err).ToNot(HaveOccurred())
+
+	var legacyDB atc.DebugVersionsDB
+	err = span.Tracer().WithSpan(ctx, "Decode", func(context.Context) error {
+		return json.NewDecoder(gr).Decode(&legacyDB)
+	})
+	Expect(err).ToNot(HaveOccurred())
+
+	span.AddEvent(
+		ctx,
+		"decoded",
+		key.New("JobIDs").Int(len(legacyDB.JobIDs)),
+		key.New("ResourceIDs").Int(len(legacyDB.ResourceIDs)),
+		key.New("ResourceVersions").Int(len(legacyDB.ResourceVersions)),
+		key.New("BuildInputs").Int(len(legacyDB.BuildInputs)),
+		key.New("BuildOutputs").Int(len(legacyDB.BuildOutputs)),
+	)
+
+	for name, id := range legacyDB.JobIDs {
+		setup.jobIDs[name] = id
+		setup.insertJob(name)
+	}
+
+	for name, id := range legacyDB.ResourceIDs {
+		setup.resourceIDs[name] = id
+
+		setup.insertResource(name, false)
+		resources[name] = atc.ResourceConfig{
+			Name: name,
+			Type: "some-base-type",
+			Source: atc.Source{
+				name: "source",
+			},
+		}
+	}
+
+	span.Tracer().WithSpan(ctx, "import versions", func(context.Context) error {
+		tx, err := dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		stmt, err := tx.Prepare(pq.CopyIn("resource_config_versions", "id", "resource_config_scope_id", "version", "version_md5", "check_order"))
+		Expect(err).ToNot(HaveOccurred())
+
+		for _, row := range legacyDB.ResourceVersions {
+			name := fmt.Sprintf("imported-r%dv%d", row.ResourceID, row.VersionID)
+			setup.versionIDs[name] = row.VersionID
+
+			_, err := stmt.Exec(row.VersionID, row.ResourceID, "{}", strconv.Itoa(row.VersionID), row.CheckOrder)
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		_, err = stmt.Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = stmt.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
+		return nil
+	})
+
+	span.Tracer().WithSpan(ctx, "import builds", func(context.Context) error {
+		tx, err := dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		stmt, err := tx.Prepare(pq.CopyIn("builds", "team_id", "id", "job_id", "name", "status"))
+		Expect(err).ToNot(HaveOccurred())
+
+		imported := map[int]bool{}
+
+		for _, row := range legacyDB.BuildOutputs {
+			if imported[row.BuildID] {
+				continue
+			}
+
+			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, "some-name", "succeeded")
+			Expect(err).ToNot(HaveOccurred())
+
+			imported[row.BuildID] = true
+		}
+
+		for _, row := range legacyDB.BuildInputs {
+			if imported[row.BuildID] {
+				continue
+			}
+
+			// any builds not created at this point must have failed as they weren't
+			// present via outputs
+			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, "some-name", "failed")
+			Expect(err).ToNot(HaveOccurred())
+
+			imported[row.BuildID] = true
+		}
+
+		_, err = stmt.Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = stmt.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
+		return nil
+	})
+
+	span.Tracer().WithSpan(ctx, "import inputs", func(context.Context) error {
+		tx, err := dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		stmt, err := tx.Prepare(pq.CopyIn("build_resource_config_version_inputs", "build_id", "resource_id", "version_md5", "name", "first_occurrence"))
+		Expect(err).ToNot(HaveOccurred())
+
+		for i, row := range legacyDB.BuildInputs {
+			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i), false)
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		_, err = stmt.Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = stmt.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
+		return nil
+	})
+
+	span.Tracer().WithSpan(ctx, "import inputs", func(context.Context) error {
+		tx, err := dbConn.Begin()
+		Expect(err).ToNot(HaveOccurred())
+
+		stmt, err := tx.Prepare(pq.CopyIn("build_resource_config_version_outputs", "build_id", "resource_id", "version_md5", "name"))
+		Expect(err).ToNot(HaveOccurred())
+
+		for i, row := range legacyDB.BuildOutputs {
+			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i))
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		_, err = stmt.Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = stmt.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).ToNot(HaveOccurred())
+
+		return nil
+	})
+
+	return versionsDB
+}
+
+func (example Example) setupVersionsDB(ctx context.Context, setup setupDB, cache *gocache.Cache, resources map[string]atc.ResourceConfig) db.VersionsDB {
+	ctx, span := tracing.StartSpan(ctx, "setupVersionsDB", tracing.Attrs{})
+	defer span.End()
+
+	versionsDB := db.NewVersionsDB(dbConn, 2, cache)
+
+	for _, row := range example.DB.Resources {
+		setup.insertRowVersion(resources, row)
+	}
+
+	buildOutputs := map[int]map[string][]string{}
+	buildToJobID := map[int]int{}
+	buildToRerunOf := map[int]int{}
+	for _, row := range example.DB.BuildOutputs {
+		setup.insertRowVersion(resources, row)
+		setup.insertRowBuild(row, example.DB.NeedsV6Migration)
+
+		resourceID := setup.resourceIDs.ID(row.Resource)
+
+		versionJSON, err := json.Marshal(atc.Version{"ver": row.Version})
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = setup.psql.Insert("build_resource_config_version_outputs").
+			Columns("build_id", "resource_id", "version_md5", "name").
+			Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), row.Resource).
+			Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		if !example.DB.NeedsV6Migration {
+			outputs, ok := buildOutputs[row.BuildID]
+			if !ok {
+				outputs = map[string][]string{}
+				buildOutputs[row.BuildID] = outputs
+			}
+
+			key := strconv.Itoa(resourceID)
+
+			outputs[key] = append(outputs[key], convertToMD5(row.Version))
+			buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
+
+			if row.RerunOfBuildID != 0 {
+				buildToRerunOf[row.BuildID] = row.RerunOfBuildID
+			}
+		}
+	}
+
+	for _, row := range example.DB.BuildInputs {
+		setup.insertRowVersion(resources, row)
+		setup.insertRowBuild(row, example.DB.NeedsV6Migration)
+
+		resourceID := setup.resourceIDs.ID(row.Resource)
+
+		versionJSON, err := json.Marshal(atc.Version{"ver": row.Version})
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = setup.psql.Insert("build_resource_config_version_inputs").
+			Columns("build_id", "resource_id", "version_md5", "name", "first_occurrence").
+			Values(row.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), row.Resource, false).
+			Exec()
+		Expect(err).ToNot(HaveOccurred())
+
+		if !example.DB.NeedsV6Migration {
+			outputs, ok := buildOutputs[row.BuildID]
+			if !ok {
+				outputs = map[string][]string{}
+				buildOutputs[row.BuildID] = outputs
+			}
+
+			key := strconv.Itoa(resourceID)
+
+			outputs[key] = append(outputs[key], convertToMD5(row.Version))
+			buildToJobID[row.BuildID] = setup.jobIDs.ID(row.Job)
+
+			if row.RerunOfBuildID != 0 {
+				buildToRerunOf[row.BuildID] = row.RerunOfBuildID
+			}
+		}
+	}
+
+	for buildID, outputs := range buildOutputs {
+		outputsJSON, err := json.Marshal(outputs)
+		Expect(err).ToNot(HaveOccurred())
+
+		var rerunOf sql.NullInt64
+		if buildToRerunOf[buildID] != 0 {
+			rerunOf.Int64 = int64(buildToRerunOf[buildID])
+		}
+
+		_, err = setup.psql.Insert("successful_build_outputs").
+			Columns("build_id", "job_id", "rerun_of", "outputs").
+			Values(buildID, buildToJobID[buildID], rerunOf, outputsJSON).
+			Suffix("ON CONFLICT DO NOTHING").
+			Exec()
+		Expect(err).ToNot(HaveOccurred())
+	}
+
+	for _, row := range example.DB.BuildPipes {
+		setup.insertBuildPipe(row)
+	}
+
+	for _, input := range example.Inputs {
+		setup.insertResource(input.Resource, input.NoResourceConfigScope)
+
+		resources[input.Resource] = atc.ResourceConfig{
+			Name: input.Resource,
+			Type: "some-base-type",
+			Source: atc.Source{
+				input.Resource: "source",
+			},
+		}
+	}
+
+	return versionsDB
+}
+
 func (example Example) assert(
 	setup setupDB,
 	alg *algorithm.Algorithm,
@@ -503,9 +546,7 @@ func (example Example) assert(
 	jobInputs []atc.JobInput,
 	resources db.Resources,
 ) {
-	currentTest := ginkgo.CurrentGinkgoTestDescription()
-
-	ctx, span := tracing.StartSpan(context.Background(), currentTest.TestText, tracing.Attrs{})
+	ctx, span := tracing.StartSpan(context.Background(), "assert", tracing.Attrs{})
 	defer span.End()
 
 	span.SetAttributes(key.New("seed").Int64(ginkgo.GinkgoRandomSeed()))

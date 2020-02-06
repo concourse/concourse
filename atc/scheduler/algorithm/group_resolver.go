@@ -35,16 +35,19 @@ type groupResolver struct {
 	orderedJobs [][]int
 	candidates  []*versionCandidate
 
+	doomedCandidates []*versionCandidate
+
 	lastUsedPassedBuilds map[int]db.BuildCursor
 }
 
 func NewGroupResolver(vdb db.VersionsDB, inputConfigs InputConfigs) Resolver {
 	return &groupResolver{
-		vdb:          vdb,
-		inputConfigs: inputConfigs,
-		pins:         make([]db.ResourceVersion, len(inputConfigs)),
-		orderedJobs:  make([][]int, len(inputConfigs)),
-		candidates:   make([]*versionCandidate, len(inputConfigs)),
+		vdb:              vdb,
+		inputConfigs:     inputConfigs,
+		pins:             make([]db.ResourceVersion, len(inputConfigs)),
+		orderedJobs:      make([][]int, len(inputConfigs)),
+		candidates:       make([]*versionCandidate, len(inputConfigs)),
+		doomedCandidates: make([]*versionCandidate, len(inputConfigs)),
 	}
 }
 
@@ -270,16 +273,25 @@ outputs:
 
 	// we found a candidate for ourselves and the rest are OK too - recurse
 	if r.candidates[resolvingIdx] != nil && r.candidates[resolvingIdx].VouchedForBy[jobID] && !mismatch {
-		worked, _, err := r.tryResolve(ctx)
-		if err != nil {
-			tracing.End(span, err)
-			return false, err
-		}
+		if r.candidatesAreDoomed() {
+			span.AddEvent(
+				ctx,
+				"candidates are doomed",
+			)
+		} else {
+			worked, _, err := r.tryResolve(ctx)
+			if err != nil {
+				tracing.End(span, err)
+				return false, err
+			}
 
-		if worked {
-			// this build's candidates satisfied everything else!
-			span.SetStatus(codes.OK)
-			return true, nil
+			if worked {
+				// this build's candidates satisfied everything else!
+				span.SetStatus(codes.OK)
+				return true, nil
+			}
+
+			r.doomCandidates()
 		}
 	}
 
@@ -291,6 +303,36 @@ outputs:
 
 	span.SetStatus(codes.InvalidArgument)
 	return false, nil
+}
+
+func (r *groupResolver) doomCandidates() {
+	for i, c := range r.candidates {
+		r.doomedCandidates[i] = c
+	}
+}
+
+func (r *groupResolver) candidatesAreDoomed() bool {
+	for i, c := range r.candidates {
+		doomed := r.doomedCandidates[i]
+
+		if c == nil && doomed == nil {
+			continue
+		}
+
+		if c == nil && doomed != nil {
+			return false
+		}
+
+		if c != nil && doomed == nil {
+			return false
+		}
+
+		if doomed.Version != c.Version {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (r *groupResolver) paginatedBuilds(ctx context.Context, currentInputConfig InputConfig, currentCandidate *versionCandidate, currentJobID int, passedJobID int) (db.PaginatedBuilds, bool, error) {
