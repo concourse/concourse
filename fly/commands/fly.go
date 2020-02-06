@@ -1,6 +1,8 @@
 package commands
 
-import "github.com/concourse/concourse/fly/rc"
+import (
+	"github.com/concourse/concourse/fly/rc"
+)
 
 type FlyCommand struct {
 	Help HelpCommand `command:"help" description:"Print this help message"`

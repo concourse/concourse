@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
@@ -87,4 +89,11 @@ func GetLatestResourceVersion(team concourse.Team, resource flaghelpers.Resource
 	}
 
 	return versions[0], nil
+}
+
+func GetTeam(target rc.Target, teamToFind string) concourse.Team {
+	if teamToFind != "" {
+		return target.Client().Team(teamToFind)
+	}
+	return target.Team()
 }

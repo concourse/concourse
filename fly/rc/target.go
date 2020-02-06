@@ -40,6 +40,8 @@ func (e ErrVersionMismatch) Error() string {
 		ui.Embolden(e.flyVersion), ui.Embolden(e.atcVersion), os.Args[0], e.targetName)
 }
 
+//go:generate counterfeiter . Target
+
 type Target interface {
 	Client() concourse.Client
 	Team() concourse.Team
