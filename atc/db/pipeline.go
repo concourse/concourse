@@ -783,6 +783,28 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		db.ResourceVersions = append(db.ResourceVersions, output)
 	}
 
+	rows, err = psql.Select("b.id, b.rerun_of").
+		From("builds b").
+		Where(sq.Eq{"b.pipeline_id": p.id}).
+		Where(sq.NotEq{"b.rerun_of": nil}).
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	for rows.Next() {
+		var rerun atc.DebugBuildRerun
+		err = rows.Scan(&rerun.BuildID, &rerun.RerunOf)
+		if err != nil {
+			return nil, err
+		}
+
+		db.BuildReruns = append(db.BuildReruns, rerun)
+	}
+
 	rows, err = psql.Select("j.name, j.id").
 		From("jobs j").
 		Where(sq.Eq{"j.pipeline_id": p.id}).

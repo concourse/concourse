@@ -907,8 +907,21 @@ var _ = Describe("Pipeline", func() {
 					explicitOutput,
 					implicitOutput,
 				}))
-			})
 
+				By("including build rerun mappings for builds")
+				build2DB, err = aJob.RerunBuild(build1DB)
+				Expect(err).ToNot(HaveOccurred())
+
+				versions, err = dbPipeline.LoadDebugVersionsDB()
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(versions.BuildReruns).To(ConsistOf([]atc.DebugBuildRerun{
+					{
+						BuildID: build2DB.ID(),
+						RerunOf: build1DB.ID(),
+					},
+				}))
+			})
 		})
 
 		It("can load up the latest versioned resource, enabled or not", func() {

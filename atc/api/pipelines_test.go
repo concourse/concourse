@@ -1316,69 +1316,77 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthorizedReturns(true)
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				fakeTeam.PipelineReturns(dbPipeline, true, nil)
-				//construct Version db
+			})
 
-				dbPipeline.LoadDebugVersionsDBReturns(
-					&atc.DebugVersionsDB{
-						ResourceVersions: []atc.DebugResourceVersion{
-							{
-								VersionID:  73,
-								ResourceID: 127,
-								CheckOrder: 123,
-							},
-						},
-						BuildOutputs: []atc.DebugBuildOutput{
-							{
-								DebugResourceVersion: atc.DebugResourceVersion{
+			Context("when getting the debug versions db works", func() {
+				BeforeEach(func() {
+					dbPipeline.LoadDebugVersionsDBReturns(
+						&atc.DebugVersionsDB{
+							ResourceVersions: []atc.DebugResourceVersion{
+								{
 									VersionID:  73,
 									ResourceID: 127,
 									CheckOrder: 123,
 								},
-								BuildID: 66,
-								JobID:   13,
 							},
-						},
-						BuildInputs: []atc.DebugBuildInput{
-							{
-								DebugResourceVersion: atc.DebugResourceVersion{
-									VersionID:  66,
-									ResourceID: 77,
-									CheckOrder: 88,
+							BuildOutputs: []atc.DebugBuildOutput{
+								{
+									DebugResourceVersion: atc.DebugResourceVersion{
+										VersionID:  73,
+										ResourceID: 127,
+										CheckOrder: 123,
+									},
+									BuildID: 66,
+									JobID:   13,
 								},
-								BuildID:   66,
-								JobID:     13,
-								InputName: "some-input-name",
+							},
+							BuildInputs: []atc.DebugBuildInput{
+								{
+									DebugResourceVersion: atc.DebugResourceVersion{
+										VersionID:  66,
+										ResourceID: 77,
+										CheckOrder: 88,
+									},
+									BuildID:   66,
+									JobID:     13,
+									InputName: "some-input-name",
+								},
+							},
+							BuildReruns: []atc.DebugBuildRerun{
+								{
+									BuildID: 111,
+									RerunOf: 222,
+								},
+							},
+							JobIDs: map[string]int{
+								"bad-luck-job": 13,
+							},
+							ResourceIDs: map[string]int{
+								"resource-127": 127,
 							},
 						},
-						JobIDs: map[string]int{
-							"bad-luck-job": 13,
-						},
-						ResourceIDs: map[string]int{
-							"resource-127": 127,
-						},
-					},
-					nil,
-				)
-			})
+						nil,
+					)
+				})
 
-			It("constructs teamDB with provided team name", func() {
-				Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
-				Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
-			})
+				It("constructs teamDB with provided team name", func() {
+					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
+				})
 
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
 
-			It("returns application/json", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-			})
+				It("returns application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
 
-			It("returns a json representation of all the versions in the pipeline", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
+				It("returns a json representation of all the versions in the pipeline", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
 
-				Expect(body).To(MatchJSON(`{
+					Expect(body).To(MatchJSON(`{
 				"ResourceVersions": [
 					{
 						"VersionID": 73,
@@ -1405,6 +1413,12 @@ var _ = Describe("Pipelines API", func() {
 						"InputName": "some-input-name"
 					}
 				],
+				"BuildReruns": [
+					{
+						"BuildID": 111,
+						"RerunOf": 222
+					}
+				],
 				"JobIDs": {
 						"bad-luck-job": 13
 				},
@@ -1412,6 +1426,26 @@ var _ = Describe("Pipelines API", func() {
 					"resource-127": 127
 				}
 				}`))
+				})
+			})
+
+			Context("when getting the debug versions db fails", func() {
+				BeforeEach(func() {
+					dbPipeline.LoadDebugVersionsDBReturns(nil, errors.New("nope"))
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+
+				It("does not return application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(BeEmpty())
+				})
 			})
 		})
 

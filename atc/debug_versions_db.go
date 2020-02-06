@@ -4,6 +4,7 @@ type DebugVersionsDB struct {
 	ResourceVersions []DebugResourceVersion
 	BuildOutputs     []DebugBuildOutput
 	BuildInputs      []DebugBuildInput
+	BuildReruns      []DebugBuildRerun
 	JobIDs           map[string]int
 	ResourceIDs      map[string]int
 }
@@ -25,4 +26,9 @@ type DebugBuildInput struct {
 	BuildID   int
 	JobID     int
 	InputName string
+}
+
+type DebugBuildRerun struct {
+	BuildID int
+	RerunOf int
 }
