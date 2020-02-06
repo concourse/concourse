@@ -8,6 +8,25 @@ import (
 var _ = DescribeTable("Regression tests",
 	(Example).Run,
 
+	Entry("exported with scopes and reruns", Example{
+		LoadDB: "testdata/booklit.json.gz",
+
+		Inputs: Inputs{
+			{
+				Name:     "booklit",
+				Resource: "booklit",
+				Passed:   []string{"unit"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"booklit": "imported-r1v26528",
+			},
+		},
+	}),
+
 	Entry("hush-house 6.0 upgrade unsatisfiable job", Example{
 		LoadDB: "testdata/hush-house-6.json.gz",
 

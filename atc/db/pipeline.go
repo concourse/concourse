@@ -666,8 +666,9 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		BuildOutputs:     []atc.DebugBuildOutput{},
 		BuildInputs:      []atc.DebugBuildInput{},
 		ResourceVersions: []atc.DebugResourceVersion{},
-		JobIDs:           map[string]int{},
-		ResourceIDs:      map[string]int{},
+		BuildReruns:      []atc.DebugBuildRerun{},
+		Resources:        []atc.DebugResource{},
+		Jobs:             []atc.DebugJob{},
 	}
 
 	tx, err := p.conn.Begin()
@@ -675,7 +676,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		return nil, err
 	}
 
-	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, b.job_id").
+	rows, err := psql.Select("v.id, v.check_order, r.id, v.resource_config_scope_id, o.build_id, b.job_id").
 		From("build_resource_config_version_outputs o").
 		Join("builds b ON b.id = o.build_id").
 		Join("resource_config_versions v ON v.version_md5 = o.version_md5").
@@ -688,6 +689,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
+			"r.active":      true,
 		}).
 		RunWith(tx).
 		Query()
@@ -699,7 +701,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 
 	for rows.Next() {
 		var output atc.DebugBuildOutput
-		err = rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID, &output.BuildID, &output.JobID)
+		err = rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID, &output.ScopeID, &output.BuildID, &output.JobID)
 		if err != nil {
 			return nil, err
 		}
@@ -709,7 +711,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		db.BuildOutputs = append(db.BuildOutputs, output)
 	}
 
-	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
+	rows, err = psql.Select("v.id, v.check_order, r.id, v.resource_config_scope_id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
 		From("build_resource_config_version_inputs i").
 		Join("builds b ON b.id = i.build_id").
 		Join("resource_config_versions v ON v.version_md5 = i.version_md5").
@@ -721,6 +723,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
+			"r.active":      true,
 		}).
 		RunWith(tx).
 		Query()
@@ -734,7 +737,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		var succeeded bool
 
 		var input atc.DebugBuildInput
-		err = rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.BuildID, &input.InputName, &input.JobID, &succeeded)
+		err = rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.ScopeID, &input.BuildID, &input.InputName, &input.JobID, &succeeded)
 		if err != nil {
 			return nil, err
 		}
@@ -753,7 +756,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		}
 	}
 
-	rows, err = psql.Select("v.id, v.check_order, r.id").
+	rows, err = psql.Select("v.id, v.check_order, r.id, v.resource_config_scope_id").
 		From("resource_config_versions v").
 		Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
@@ -762,6 +765,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
+			"r.active":      true,
 			"d.resource_id": nil,
 			"d.version_md5": nil,
 		}).
@@ -775,7 +779,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 
 	for rows.Next() {
 		var output atc.DebugResourceVersion
-		err = rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID)
+		err = rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID, &output.ScopeID)
 		if err != nil {
 			return nil, err
 		}
@@ -783,10 +787,16 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		db.ResourceVersions = append(db.ResourceVersions, output)
 	}
 
-	rows, err = psql.Select("b.id, b.rerun_of").
+	rows, err = psql.Select("j.id, b.id, b.rerun_of").
 		From("builds b").
-		Where(sq.Eq{"b.pipeline_id": p.id}).
-		Where(sq.NotEq{"b.rerun_of": nil}).
+		Join("jobs j ON j.id = b.job_id").
+		Where(sq.Eq{
+			"j.active":      true,
+			"b.pipeline_id": p.id,
+		}).
+		Where(sq.NotEq{
+			"b.rerun_of": nil,
+		}).
 		RunWith(tx).
 		Query()
 	if err != nil {
@@ -797,7 +807,7 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 
 	for rows.Next() {
 		var rerun atc.DebugBuildRerun
-		err = rows.Scan(&rerun.BuildID, &rerun.RerunOf)
+		err = rows.Scan(&rerun.JobID, &rerun.BuildID, &rerun.RerunOf)
 		if err != nil {
 			return nil, err
 		}
@@ -807,7 +817,10 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 
 	rows, err = psql.Select("j.name, j.id").
 		From("jobs j").
-		Where(sq.Eq{"j.pipeline_id": p.id}).
+		Where(sq.Eq{
+			"j.pipeline_id": p.id,
+			"j.active":      true,
+		}).
 		RunWith(tx).
 		Query()
 	if err != nil {
@@ -817,19 +830,21 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		var name string
-		var id int
-		err = rows.Scan(&name, &id)
+		var job atc.DebugJob
+		err = rows.Scan(&job.Name, &job.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		db.JobIDs[name] = id
+		db.Jobs = append(db.Jobs, job)
 	}
 
-	rows, err = psql.Select("r.name, r.id").
+	rows, err = psql.Select("r.name, r.id, r.resource_config_scope_id").
 		From("resources r").
-		Where(sq.Eq{"r.pipeline_id": p.id}).
+		Where(sq.Eq{
+			"r.pipeline_id": p.id,
+			"r.active":      true,
+		}).
 		RunWith(tx).
 		Query()
 	if err != nil {
@@ -839,14 +854,19 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		var name string
-		var id int
-		err = rows.Scan(&name, &id)
+		var scopeID sql.NullInt64
+		var resource atc.DebugResource
+		err = rows.Scan(&resource.Name, &resource.ID, &scopeID)
 		if err != nil {
 			return nil, err
 		}
 
-		db.ResourceIDs[name] = id
+		if scopeID.Valid {
+			i := int(scopeID.Int64)
+			resource.ScopeID = &i
+		}
+
+		db.Resources = append(db.Resources, resource)
 	}
 
 	err = tx.Commit()

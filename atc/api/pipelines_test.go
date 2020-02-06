@@ -1320,6 +1320,8 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when getting the debug versions db works", func() {
 				BeforeEach(func() {
+					scopeID := 789
+
 					dbPipeline.LoadDebugVersionsDBReturns(
 						&atc.DebugVersionsDB{
 							ResourceVersions: []atc.DebugResourceVersion{
@@ -1327,6 +1329,7 @@ var _ = Describe("Pipelines API", func() {
 									VersionID:  73,
 									ResourceID: 127,
 									CheckOrder: 123,
+									ScopeID:    111,
 								},
 							},
 							BuildOutputs: []atc.DebugBuildOutput{
@@ -1335,6 +1338,7 @@ var _ = Describe("Pipelines API", func() {
 										VersionID:  73,
 										ResourceID: 127,
 										CheckOrder: 123,
+										ScopeID:    111,
 									},
 									BuildID: 66,
 									JobID:   13,
@@ -1346,6 +1350,7 @@ var _ = Describe("Pipelines API", func() {
 										VersionID:  66,
 										ResourceID: 77,
 										CheckOrder: 88,
+										ScopeID:    222,
 									},
 									BuildID:   66,
 									JobID:     13,
@@ -1354,15 +1359,28 @@ var _ = Describe("Pipelines API", func() {
 							},
 							BuildReruns: []atc.DebugBuildRerun{
 								{
+									JobID:   13,
 									BuildID: 111,
 									RerunOf: 222,
 								},
 							},
-							JobIDs: map[string]int{
-								"bad-luck-job": 13,
+							Jobs: []atc.DebugJob{
+								{
+									ID:   13,
+									Name: "bad-luck-job",
+								},
 							},
-							ResourceIDs: map[string]int{
-								"resource-127": 127,
+							Resources: []atc.DebugResource{
+								{
+									ID:      127,
+									Name:    "resource-127",
+									ScopeID: nil,
+								},
+								{
+									ID:      128,
+									Name:    "resource-128",
+									ScopeID: &scopeID,
+								},
 							},
 						},
 						nil,
@@ -1391,7 +1409,8 @@ var _ = Describe("Pipelines API", func() {
 					{
 						"VersionID": 73,
 						"ResourceID": 127,
-						"CheckOrder": 123
+						"CheckOrder": 123,
+						"ScopeID": 111
 			    }
 				],
 				"BuildOutputs": [
@@ -1400,7 +1419,8 @@ var _ = Describe("Pipelines API", func() {
 						"ResourceID": 127,
 						"BuildID": 66,
 						"JobID": 13,
-						"CheckOrder": 123
+						"CheckOrder": 123,
+						"ScopeID": 111
 					}
 				],
 				"BuildInputs": [
@@ -1410,21 +1430,35 @@ var _ = Describe("Pipelines API", func() {
 						"BuildID": 66,
 						"JobID": 13,
 						"CheckOrder": 88,
+						"ScopeID": 222,
 						"InputName": "some-input-name"
 					}
 				],
 				"BuildReruns": [
 					{
+						"JobID": 13,
 						"BuildID": 111,
 						"RerunOf": 222
 					}
 				],
-				"JobIDs": {
-						"bad-luck-job": 13
-				},
-				"ResourceIDs": {
-					"resource-127": 127
-				}
+				"Jobs": [
+					{
+						"ID": 13,
+						"Name": "bad-luck-job"
+					}
+				],
+				"Resources": [
+					{
+						"ID": 127,
+						"Name": "resource-127",
+						"ScopeID": null
+					},
+					{
+						"ID": 128,
+						"Name": "resource-128",
+						"ScopeID": 789
+					}
+				]
 				}`))
 				})
 			})
