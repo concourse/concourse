@@ -159,54 +159,6 @@ func (event VolumeCollectorDuration) Emit(logger lager.Logger) {
 	)
 }
 
-type SchedulingFullDuration struct {
-	PipelineName string
-	Duration     time.Duration
-}
-
-func (event SchedulingFullDuration) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("full-scheduling-duration"),
-		Event{
-			Name:  "scheduling: full duration (ms)",
-			Value: ms(event.Duration),
-			State: EventStateOK,
-			Attributes: map[string]string{
-				"pipeline": event.PipelineName,
-			},
-		},
-	)
-}
-
-type SchedulingLoadVersionsDuration struct {
-	PipelineName string
-	Duration     time.Duration
-}
-
-func (event SchedulingLoadVersionsDuration) Emit(logger lager.Logger) {
-	state := EventStateOK
-
-	if event.Duration > time.Second {
-		state = EventStateWarning
-	}
-
-	if event.Duration > 5*time.Second {
-		state = EventStateCritical
-	}
-
-	emit(
-		logger.Session("loading-versions-duration"),
-		Event{
-			Name:  "scheduling: loading versions duration (ms)",
-			Value: ms(event.Duration),
-			State: state,
-			Attributes: map[string]string{
-				"pipeline": event.PipelineName,
-			},
-		},
-	)
-}
-
 type SchedulingJobDuration struct {
 	PipelineName string
 	JobName      string

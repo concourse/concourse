@@ -36,16 +36,11 @@ type PrometheusEmitter struct {
 
 	locksHeld *prometheus.GaugeVec
 
-	pipelineScheduled *prometheus.CounterVec
-
 	resourceChecksVec *prometheus.CounterVec
 
 	checksVec       *prometheus.HistogramVec
 	checkEnqueueVec *prometheus.CounterVec
 	checkQueueSize  prometheus.Gauge
-
-	schedulingFullDuration    *prometheus.CounterVec
-	schedulingLoadingDuration *prometheus.CounterVec
 
 	workerContainers        *prometheus.GaugeVec
 	workerUnknownContainers *prometheus.GaugeVec
@@ -269,40 +264,6 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(httpRequestsDuration)
 
-	// scheduling metrics
-	schedulingFullDuration := prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "scheduling",
-			Name:      "full_duration_seconds_total",
-			Help:      "Total time taken to schedule an entire pipeline",
-		},
-		[]string{"pipeline"},
-	)
-	prometheus.MustRegister(schedulingFullDuration)
-
-	schedulingLoadingDuration := prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "scheduling",
-			Name:      "loading_duration_seconds_total",
-			Help:      "Total time taken to load version information from the database for a pipeline",
-		},
-		[]string{"pipeline"},
-	)
-	prometheus.MustRegister(schedulingLoadingDuration)
-
-	pipelineScheduled := prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "scheduling",
-			Name:      "total",
-			Help:      "Total number of times a pipeline has been scheduled",
-		},
-		[]string{"pipeline"},
-	)
-	prometheus.MustRegister(pipelineScheduled)
-
 	dbQueriesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
 		Subsystem: "db",
@@ -392,16 +353,11 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 		locksHeld: locksHeld,
 
-		pipelineScheduled: pipelineScheduled,
-
 		resourceChecksVec: resourceChecksVec,
 
 		checksVec:       checksVec,
 		checkEnqueueVec: checkEnqueueVec,
 		checkQueueSize:  checkQueueSize,
-
-		schedulingFullDuration:    schedulingFullDuration,
-		schedulingLoadingDuration: schedulingLoadingDuration,
 
 		workerContainers:        workerContainers,
 		workersRegistered:       workersRegistered,
@@ -451,12 +407,6 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.workersRegisteredMetric(logger, event)
 	case "http response time":
 		emitter.httpResponseTimeMetrics(logger, event)
-	case "scheduling: full duration (ms)":
-		emitter.schedulingMetrics(logger, event)
-	case "scheduling: loading versions duration (ms)":
-		emitter.schedulingMetrics(logger, event)
-	case "scheduling: job duration (ms)":
-		emitter.schedulingMetrics(logger, event)
 	case "database queries":
 		emitter.databaseMetrics(logger, event)
 	case "database connections":
@@ -756,32 +706,6 @@ func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, e
 	}
 
 	emitter.httpRequestsDuration.WithLabelValues(method, route, status).Observe(responseTime / 1000)
-}
-
-func (emitter *PrometheusEmitter) schedulingMetrics(logger lager.Logger, event metric.Event) {
-	pipeline, exists := event.Attributes["pipeline"]
-	if !exists {
-		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
-		return
-	}
-
-	duration, ok := event.Value.(float64)
-	if !ok {
-		logger.Error("scheduling-full-duration-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
-		return
-	}
-
-	switch event.Name {
-	case "scheduling: full duration (ms)":
-		// concourse_scheduling_full_duration_seconds_total
-		emitter.schedulingFullDuration.WithLabelValues(pipeline).Add(duration / 1000)
-		// concourse_scheduling_total
-		emitter.pipelineScheduled.WithLabelValues(pipeline).Inc()
-	case "scheduling: loading versions duration (ms)":
-		// concourse_scheduling_loading_duration_seconds_total
-		emitter.schedulingLoadingDuration.WithLabelValues(pipeline).Add(duration / 1000)
-	default:
-	}
 }
 
 func (emitter *PrometheusEmitter) databaseMetrics(logger lager.Logger, event metric.Event) {
