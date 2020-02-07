@@ -12,17 +12,17 @@ import (
 )
 
 var Databases []db.Conn
-var DatabaseQueries = Meter(0)
+var DatabaseQueries = &Counter{}
 
-var ContainersCreated = Meter(0)
-var VolumesCreated = Meter(0)
+var ContainersCreated = &Counter{}
+var VolumesCreated = &Counter{}
 
-var FailedContainers = Meter(0)
-var FailedVolumes = Meter(0)
+var FailedContainers = &Counter{}
+var FailedVolumes = &Counter{}
 
-var ContainersDeleted = Meter(0)
-var VolumesDeleted = Meter(0)
-var ChecksDeleted = Meter(0)
+var ContainersDeleted = &Counter{}
+var VolumesDeleted = &Counter{}
+var ChecksDeleted = &Counter{}
 
 type BuildCollectorDuration struct {
 	Duration time.Duration
