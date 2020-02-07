@@ -10,6 +10,7 @@ import (
 	"runtime"
 
 	"github.com/concourse/concourse/fly/rc"
+	fakes "github.com/concourse/concourse/go-concourse/concourse/concoursefakes"
 	"golang.org/x/oauth2"
 	"sigs.k8s.io/yaml"
 
@@ -155,6 +156,26 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 					RootCAs:            expectedCaCertPool,
 				}))
 			})
+		})
+	})
+
+	Describe("FindTeam", func() {
+		It("finds the team", func() {
+			fakeClient := new(fakes.FakeClient)
+
+			rc.NewTarget(
+				"test-target",
+				"default-team",
+				"http://example.com",
+				nil,
+				"ca-cert",
+				nil,
+				true,
+				fakeClient,
+			).FindTeam("the-team")
+
+			Expect(fakeClient.FindTeamCallCount()).To(Equal(1), "client.FindTeam should be used")
+			Expect(fakeClient.FindTeamArgsForCall(0)).To(Equal("the-team"), "FindTeam should pass through team name")
 		})
 	})
 })

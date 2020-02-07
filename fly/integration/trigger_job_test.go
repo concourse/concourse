@@ -19,7 +19,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-var _ = Describe("Fly CLI", func() {
+var _ = FDescribe("Fly CLI", func() {
 	Describe("trigger-job", func() {
 		var (
 			mainPath        string
@@ -54,26 +54,30 @@ var _ = Describe("Fly CLI", func() {
 						})
 
 						It("starts the build", func() {
-							Expect(func() {
-								flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job")
+							flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job")
 
-								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-								Expect(err).NotTo(HaveOccurred())
+							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
 
-								Eventually(sess).Should(gbytes.Say(`started awesome-pipeline/awesome-job #42`))
+							Eventually(sess).Should(gbytes.Say(`started awesome-pipeline/awesome-job #42`))
 
-								<-sess.Exited
-								Expect(sess.ExitCode()).To(Equal(0))
-							}).To(Change(func() int {
-								return len(loginATCServer.ReceivedRequests())
-							}).By(2))
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(0))
 						})
 					})
 
-					Context("user is NOT currently on the pipeline's team", func() {
+					Context("user is NOT currently targeted to the pipeline's team", func() {
 
 						BeforeEach(func() {
 							loginATCServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+										Name: "other-team",
+										ID:   0,
+										Auth: atc.TeamAuth{},
+									}),
+								),
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("POST", otherPath),
 									ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{ID: 57, Name: "42"}),
@@ -82,26 +86,31 @@ var _ = Describe("Fly CLI", func() {
 						})
 
 						It("starts the build", func() {
-							Expect(func() {
-								flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "other-team")
+							flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "other-team")
 
-								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-								Expect(err).NotTo(HaveOccurred())
+							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
 
-								Eventually(sess).Should(gbytes.Say(`started awesome-pipeline/awesome-job #42`))
+							Eventually(sess).Should(gbytes.Say(`started awesome-pipeline/awesome-job #42`))
 
-								<-sess.Exited
-								Expect(sess.ExitCode()).To(Equal(0))
-							}).To(Change(func() int {
-								return len(loginATCServer.ReceivedRequests())
-							}).By(2))
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(0))
 						})
+
 					})
 				})
 
 				Context("when user does NOT own the same team as the given pipeline", func() {
 					BeforeEach(func() {
 						loginATCServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/api/v1/teams/random-team"),
+								ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+									Name: "random-team",
+									ID:   0,
+									Auth: atc.TeamAuth{},
+								}),
+							),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("POST", otherRandomPath),
 								ghttp.RespondWith(http.StatusNotFound, nil),
@@ -110,19 +119,15 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("prints an error message", func() {
-						Expect(func() {
-							flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "random-team")
+						flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "random-team")
 
-							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-							Expect(err).NotTo(HaveOccurred())
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-							Eventually(sess.Err).Should(gbytes.Say(`error: resource not found`))
+						Eventually(sess.Err).Should(gbytes.Say(`error: resource not found`))
 
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(1))
-						}).To(Change(func() int {
-							return len(loginATCServer.ReceivedRequests())
-						}).By(2))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(1))
 					})
 				})
 
@@ -207,6 +212,14 @@ var _ = Describe("Fly CLI", func() {
 				BeforeEach(func() {
 					loginATCServer.AppendHandlers(
 						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/random-team"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+								Name: "random-team",
+								ID:   0,
+								Auth: atc.TeamAuth{},
+							}),
+						),
+						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("POST", otherRandomPath),
 							ghttp.RespondWith(http.StatusNotFound, nil),
 						),
@@ -214,20 +227,57 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints an error message", func() {
-					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "random-team")
+					flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "random-team")
 
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess.Err).Should(gbytes.Say(`error: resource not found`))
+					Eventually(sess.Err).Should(gbytes.Say(`error: resource not found`))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(1))
-					}).To(Change(func() int {
-						return len(loginATCServer.ReceivedRequests())
-					}).By(2))
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(1))
 				})
+			})
+		})
+
+		Context("when you are authorized to view the team but the team does not exist", func() {
+			It("returns an error", func() {
+				loginATCServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/banana"),
+						ghttp.RespondWith(http.StatusNotFound, nil),
+					),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "banana")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say(`error: team 'banana' does not exist`))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+			})
+		})
+		Context("when you are NOT authorized to view the team", func() {
+			It("returns an error", func() {
+				loginATCServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/banana"),
+						ghttp.RespondWith(http.StatusUnauthorized, nil),
+					),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "banana")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say(`error: you are not part of team 'banana'`))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
 			})
 		})
 

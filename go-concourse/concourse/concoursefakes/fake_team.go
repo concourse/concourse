@@ -10,6 +10,16 @@ import (
 )
 
 type FakeTeam struct {
+	AuthStub        func() atc.TeamAuth
+	authMutex       sync.RWMutex
+	authArgsForCall []struct {
+	}
+	authReturns struct {
+		result1 atc.TeamAuth
+	}
+	authReturnsOnCall map[int]struct {
+		result1 atc.TeamAuth
+	}
 	BuildInputsForJobStub        func(string, string) ([]atc.BuildInput, bool, error)
 	buildInputsForJobMutex       sync.RWMutex
 	buildInputsForJobArgsForCall []struct {
@@ -732,6 +742,58 @@ type FakeTeam struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeTeam) Auth() atc.TeamAuth {
+	fake.authMutex.Lock()
+	ret, specificReturn := fake.authReturnsOnCall[len(fake.authArgsForCall)]
+	fake.authArgsForCall = append(fake.authArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Auth", []interface{}{})
+	fake.authMutex.Unlock()
+	if fake.AuthStub != nil {
+		return fake.AuthStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.authReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeTeam) AuthCallCount() int {
+	fake.authMutex.RLock()
+	defer fake.authMutex.RUnlock()
+	return len(fake.authArgsForCall)
+}
+
+func (fake *FakeTeam) AuthCalls(stub func() atc.TeamAuth) {
+	fake.authMutex.Lock()
+	defer fake.authMutex.Unlock()
+	fake.AuthStub = stub
+}
+
+func (fake *FakeTeam) AuthReturns(result1 atc.TeamAuth) {
+	fake.authMutex.Lock()
+	defer fake.authMutex.Unlock()
+	fake.AuthStub = nil
+	fake.authReturns = struct {
+		result1 atc.TeamAuth
+	}{result1}
+}
+
+func (fake *FakeTeam) AuthReturnsOnCall(i int, result1 atc.TeamAuth) {
+	fake.authMutex.Lock()
+	defer fake.authMutex.Unlock()
+	fake.AuthStub = nil
+	if fake.authReturnsOnCall == nil {
+		fake.authReturnsOnCall = make(map[int]struct {
+			result1 atc.TeamAuth
+		})
+	}
+	fake.authReturnsOnCall[i] = struct {
+		result1 atc.TeamAuth
+	}{result1}
 }
 
 func (fake *FakeTeam) BuildInputsForJob(arg1 string, arg2 string) ([]atc.BuildInput, bool, error) {
@@ -3917,6 +3979,8 @@ func (fake *FakeTeam) VersionedResourceTypesReturnsOnCall(i int, result1 atc.Ver
 func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.authMutex.RLock()
+	defer fake.authMutex.RUnlock()
 	fake.buildInputsForJobMutex.RLock()
 	defer fake.buildInputsForJobMutex.RUnlock()
 	fake.buildsMutex.RLock()

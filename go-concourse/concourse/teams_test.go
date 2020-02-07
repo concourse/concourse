@@ -12,38 +12,34 @@ import (
 )
 
 var _ = Describe("ATC Handler Teams", func() {
-	Describe("Team", func() {
-		var expectedTeam atc.Team
+	Describe("FindTeam", func() {
 		teamName := "myTeam"
 		expectedURL := "/api/v1/teams/myTeam"
-
-		BeforeEach(func() {
-			expectedTeam = atc.Team{
-				ID:   1,
-				Name: "myTeam",
-				Auth: atc.TeamAuth{
-					"owner": map[string][]string{
-						"groups": {}, "users": {"local:username"},
-					},
-				},
-			}
-		})
+		expectedAuth := atc.TeamAuth{
+			"owner": map[string][]string{
+				"groups": {}, "users": {"local:username"},
+			},
+		}
 
 		Context("when the team is found", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedTeam),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+							ID:   1,
+							Name: teamName,
+							Auth: expectedAuth,
+						}),
 					),
 				)
 			})
 
 			It("returns the requested team", func() {
-				team, found, err := team.Team(teamName)
+				team, err := client.FindTeam(teamName)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(team).To(Equal(expectedTeam))
+				Expect(team.Name()).To(Equal(teamName))
+				Expect(team.Auth()).To(Equal(expectedAuth))
 			})
 		})
 
@@ -58,9 +54,8 @@ var _ = Describe("ATC Handler Teams", func() {
 			})
 
 			It("returns false", func() {
-				_, found, err := team.Team(teamName)
+				_, err := client.FindTeam(teamName)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
 			})
 		})
 
@@ -75,8 +70,7 @@ var _ = Describe("ATC Handler Teams", func() {
 			})
 
 			It("returns false and error", func() {
-				_, found, err := team.Team(teamName)
-				Expect(found).To(BeFalse())
+				_, err := client.FindTeam(teamName)
 				Expect(err).To(HaveOccurred())
 			})
 		})

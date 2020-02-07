@@ -1,12 +1,14 @@
 package concourse
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
+	"github.com/tedsuo/rata"
 )
 
 //go:generate counterfeiter . Client
@@ -29,6 +31,7 @@ type Client interface {
 	GetCLIReader(arch, platform string) (io.ReadCloser, http.Header, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	ListTeams() ([]atc.Team, error)
+	FindTeam(teamName string) (Team, error)
 	Team(teamName string) Team
 	UserInfo() (map[string]interface{}, error)
 	ListActiveUsersSince(since time.Time) ([]atc.User, error)
@@ -51,4 +54,31 @@ func (client *client) URL() string {
 
 func (client *client) HTTPClient() *http.Client {
 	return client.connection.HTTPClient()
+}
+
+func (client *client) FindTeam(teamName string) (Team, error) {
+	var atcTeam atc.Team
+	err := client.connection.Send(internal.Request{
+		RequestName: atc.GetTeam,
+		Params:      rata.Params{"team_name": teamName},
+	}, &internal.Response{
+		Result: &atcTeam,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	switch err.(type) {
+	case nil:
+		return &team{
+			name:       atcTeam.Name,
+			connection: client.connection,
+			auth:       atcTeam.Auth,
+		}, nil
+	case internal.ResourceNotFoundError:
+		return nil, fmt.Errorf("team '%s' does not exist", teamName)
+	default:
+		return nil, err
+	}
 }
