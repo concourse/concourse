@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -26,12 +25,12 @@ type IntegrationSuite struct {
 	*require.Assertions
 
 	backend           backend.Backend
-	rootfs            string
 	client            *libcontainerd.Client
 	containerdProcess ifrit.Process
-	tmpDir            string
-	stdout            bytes.Buffer
+	rootfs            string
 	stderr            bytes.Buffer
+	stdout            bytes.Buffer
+	tmpDir            string
 }
 
 func (s *IntegrationSuite) containerdSocket() string {
@@ -54,6 +53,10 @@ func (s *IntegrationSuite) startContainerd() {
 }
 
 func (s *IntegrationSuite) SetupSuite() {
+	var err error
+	s.tmpDir, err = ioutil.TempDir("", "containerd")
+	s.NoError(err)
+
 	s.startContainerd()
 
 	retries := 0
@@ -73,14 +76,19 @@ func (s *IntegrationSuite) SetupSuite() {
 	s.Fail("timed out waiting for containerd to start")
 }
 
+func (s *IntegrationSuite) TearDownSuite() {
+	s.containerdProcess.Signal(syscall.SIGTERM)
+	<-s.containerdProcess.Wait()
+
+	os.RemoveAll(s.tmpDir)
+}
+
 func (s *IntegrationSuite) SetupTest() {
 	var (
 		err            error
-		namespace      = "test" + strconv.FormatInt(time.Now().UnixNano(), 10)
+		namespace      = "test"
 		requestTimeout = 3 * time.Second
 	)
-
-	// TODO - have `init` being compiled from here
 
 	s.backend, err = backend.New(
 		libcontainerd.New(
@@ -95,7 +103,9 @@ func (s *IntegrationSuite) SetupTest() {
 	s.setupRootfs()
 }
 
-func (s *IntegrationSuite) setupRootfs() (err error) {
+func (s *IntegrationSuite) setupRootfs() {
+	var err error
+
 	s.rootfs, err = ioutil.TempDir("", "containerd-integration")
 	s.NoError(err)
 
@@ -120,17 +130,27 @@ func (s *IntegrationSuite) TestPing() {
 	s.NoError(s.backend.Ping())
 }
 
-func (s *IntegrationSuite) TestContainerCreateAndDestroy() {
-	handle := mustCreateHandle()
+// TestContainerCreateRunStopDestroy validates that we're able to go through the
+// whole lifecycle of:
+//
+// 1. creating the container
+// 2. running a process in it
+// 3. stopping the process
+// 4. deleting the container
+//
+func (s *IntegrationSuite) TestContainerCreateRunStopedDestroy() {
+	handle := uuid()
+	properties := garden.Properties{"test": uuid()}
 
 	_, err := s.backend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
+		Properties: properties,
 	})
 	s.NoError(err)
 
-	containers, err := s.backend.Containers(nil)
+	containers, err := s.backend.Containers(properties)
 	s.NoError(err)
 
 	s.Len(containers, 1)
@@ -138,13 +158,17 @@ func (s *IntegrationSuite) TestContainerCreateAndDestroy() {
 	err = s.backend.Destroy(handle)
 	s.NoError(err)
 
-	containers, err = s.backend.Containers(nil)
+	containers, err = s.backend.Containers(properties)
 	s.NoError(err)
 	s.Len(containers, 0)
 }
 
+// TestContainerNetworkEgress aims at verifying that a process that we run in a
+// container that we create through our backend is able to make requests to
+// external services.
+//
 func (s *IntegrationSuite) TestContainerNetworkEgress() {
-	handle := mustCreateHandle()
+	handle := uuid()
 
 	container, err := s.backend.Create(garden.ContainerSpec{
 		Handle:     handle,
@@ -152,6 +176,10 @@ func (s *IntegrationSuite) TestContainerNetworkEgress() {
 		Privileged: true,
 	})
 	s.NoError(err)
+
+	defer func() {
+		s.NoError(s.backend.Destroy(handle))
+	}()
 
 	buf := new(buffer)
 	proc, err := container.Run(
@@ -173,18 +201,23 @@ func (s *IntegrationSuite) TestContainerNetworkEgress() {
 
 	s.Equal(exitCode, 0)
 	s.Equal("200 OK\n", buf.String())
-
-	err = s.backend.Destroy(container.Handle())
-	s.NoError(err)
-
 }
 
-func (s *IntegrationSuite) TestContainerRunPrivilegedToCompletion() {
+// TestRunPrivileged tests whether we're able to run a process in a privileged
+// container.
+//
+func (s *IntegrationSuite) TestRunPrivileged() {
 	s.runToCompletion(true)
 }
 
-// go test -run TestSuite/TestContainerRunUnprivilegedToCompletion
-func (s *IntegrationSuite) TestContainerRunUnprivilegedToCompletion() {
+// TestRunPrivileged tests whether we're able to run a process in an
+// unprivileged container.
+//
+// Differently from the privileged counterpart, we first need to change the
+// ownership of the rootfs so the uid 0 inside the container has the permissions
+// to execute the executable in there.
+//
+func (s *IntegrationSuite) TestRunUnprivileged() {
 	maxUid, maxGid, err := backend.NewUserNamespace().MaxValidIds()
 	s.NoError(err)
 
@@ -195,20 +228,22 @@ func (s *IntegrationSuite) TestContainerRunUnprivilegedToCompletion() {
 	s.runToCompletion(false)
 }
 
-func (s *IntegrationSuite) TearDownSuite() {
-	s.containerdProcess.Signal(syscall.SIGTERM)
-	<-s.containerdProcess.Wait()
-}
-
 func (s *IntegrationSuite) runToCompletion(privileged bool) {
-	handle := mustCreateHandle()
+	handle := uuid()
 
 	container, err := s.backend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: privileged,
+		Env: []string{
+			"FOO=bar",
+		},
 	})
 	s.NoError(err)
+
+	defer func() {
+		s.NoError(s.backend.Destroy(handle))
+	}()
 
 	buf := new(buffer)
 	proc, err := container.Run(
@@ -229,12 +264,13 @@ func (s *IntegrationSuite) runToCompletion(privileged bool) {
 	s.Equal(exitCode, 0)
 	s.Equal("hello world\n", buf.String())
 
-	err = s.backend.Destroy(container.Handle())
-	s.NoError(err)
 }
 
+// TestAttachToUnknownProc verifies that trying to attach to a process that does
+// not exist lead to an error.
+//
 func (s *IntegrationSuite) TestAttachToUnknownProc() {
-	handle := mustCreateHandle()
+	handle := uuid()
 
 	container, err := s.backend.Create(garden.ContainerSpec{
 		Handle:     handle,
@@ -243,6 +279,10 @@ func (s *IntegrationSuite) TestAttachToUnknownProc() {
 	})
 	s.NoError(err)
 
+	defer func() {
+		s.NoError(s.backend.Destroy(handle))
+	}()
+
 	_, err = container.Attach("inexistent", garden.ProcessIO{
 		Stdout: ioutil.Discard,
 		Stderr: ioutil.Discard,
@@ -250,9 +290,12 @@ func (s *IntegrationSuite) TestAttachToUnknownProc() {
 	s.Error(err)
 }
 
+// TestAttach tries to validate that we're able to start a process in a
+// container, get rid of the original client that originated the process, and
+// then attach back to that process from a new client.
+//
 func (s *IntegrationSuite) TestAttach() {
-	s.T().Skip()
-	handle := mustCreateHandle()
+	handle := uuid()
 
 	container, err := s.backend.Create(garden.ContainerSpec{
 		Handle:     handle,
@@ -305,17 +348,34 @@ func (s *IntegrationSuite) TestAttach() {
 	s.NoError(err)
 }
 
-// TestContainerWaitGracefulStop aims at validating that we're giving the
-// process enough opportunity to finish, but that we don't wait forever.
+// TestUngracefulStop aims at validating that we're giving the process enough
+// opportunity to finish, but that at the same time, we don't wait forever.
 //
-func (s *IntegrationSuite) TestContainerWaitGracefulStop() {
-	handle := mustCreateHandle()
+func (s *IntegrationSuite) TestUngracefulStop() {
+	var ungraceful = true
+	s.testStop(ungraceful)
+}
+
+// TestGracefulStop aims at validating that we're giving the process enough
+// opportunity to finish, but that at the same time, we don't wait forever.
+//
+func (s *IntegrationSuite) TestGracefulStop() {
+	var ungraceful = false
+	s.testStop(ungraceful)
+}
+
+func (s *IntegrationSuite) testStop(kill bool) {
+	handle := uuid()
 	container, err := s.backend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
 	})
 	s.NoError(err)
+
+	defer func() {
+		s.NoError(s.backend.Destroy(handle))
+	}()
 
 	_, err = container.Run(
 		garden.ProcessSpec{
@@ -328,7 +388,5 @@ func (s *IntegrationSuite) TestContainerWaitGracefulStop() {
 		},
 	)
 	s.NoError(err)
-
-	err = s.backend.Destroy(container.Handle())
-	s.NoError(err)
+	s.NoError(container.Stop(kill))
 }

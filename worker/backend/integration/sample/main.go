@@ -30,8 +30,6 @@ const defaultMessage = "hello world"
 // ps.: all other signals are ignored.
 //
 func waitForSignal(sig string) {
-	fmt.Println("setting up")
-
 	s, found := signals[strings.ToLower(sig)]
 	if !found {
 		log.Fatal("signal %s not found - available: %v",

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	uuid "github.com/nu7hatch/gouuid"
+	gouuid "github.com/nu7hatch/gouuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -26,8 +26,8 @@ func (m *buffer) String() string {
 	return m.content
 }
 
-func mustCreateHandle() string {
-	u4, err := uuid.NewV4()
+func uuid() string {
+	u4, err := gouuid.NewV4()
 	if err != nil {
 		panic("couldn't create new uuid")
 	}
