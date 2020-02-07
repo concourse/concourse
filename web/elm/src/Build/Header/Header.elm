@@ -20,7 +20,6 @@ import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
 import List.Extra
-import Maybe.Extra
 import Message.Callback
     exposing
         ( ApiEntity(..)
@@ -418,19 +417,21 @@ update msg ( model, effects ) =
 
         Click RerunBuildButton ->
             ( model
-            , effects
-                ++ (model.job
-                        |> Maybe.map
-                            (\j ->
-                                RerunJobBuild
-                                    { teamName = j.teamName
-                                    , pipelineName = j.pipelineName
-                                    , jobName = j.jobName
-                                    , buildName = model.name
-                                    }
-                            )
-                        |> Maybe.Extra.toList
-                   )
+            , case model.job of
+                Just jobId ->
+                    ApiCall
+                        (RouteJobBuild
+                            { teamName = jobId.teamName
+                            , pipelineName = jobId.pipelineName
+                            , jobName = jobId.jobName
+                            , buildName = model.name
+                            }
+                        )
+                        POST
+                        :: effects
+
+                Nothing ->
+                    effects
             )
 
         Click TriggerBuildButton ->
@@ -454,6 +455,40 @@ handleCallback callback ( model, effects ) =
             handleBuildFetched b ( model, effects )
 
         ApiResponse (RouteJobBuilds _ _) POST (Ok (Build b)) ->
+            ( { model
+                | history =
+                    ({ id = b.id
+                     , name = b.name
+                     , status = b.status
+                     , duration = b.duration
+                     }
+                        :: model.history
+                    )
+                        |> List.sortWith
+                            (\n m ->
+                                Maybe.map2
+                                    (\( i, j ) ( k, l ) ->
+                                        case compare i k of
+                                            EQ ->
+                                                compare j l
+
+                                            x ->
+                                                x
+                                    )
+                                    (buildName n.name)
+                                    (buildName m.name)
+                                    |> Maybe.withDefault EQ
+                            )
+                        |> List.reverse
+              }
+            , effects
+                ++ [ NavigateTo <|
+                        Routes.toString <|
+                            Routes.buildRoute b.id b.name model.job
+                   ]
+            )
+
+        ApiResponse (RouteJobBuild _) POST (Ok (Build b)) ->
             ( { model
                 | history =
                     ({ id = b.id

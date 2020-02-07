@@ -9,6 +9,7 @@ import Build.StepTree.Models as STModels
 import Common
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Data
 import Expect
 import HoverState
 import Keyboard
@@ -211,7 +212,7 @@ all =
                                         , tooltip = True
                                         }
                                 )
-                , test "clicking sends RerunJobBuild API call" <|
+                , test "clicking sends API call to rerun build" <|
                     \_ ->
                         ( { model | status = BuildStatusSucceeded, job = Just jobId }
                         , []
@@ -219,12 +220,15 @@ all =
                             |> Header.update (Message.Click Message.RerunBuildButton)
                             |> Tuple.second
                             |> Common.contains
-                                (Effects.RerunJobBuild <|
-                                    { teamName = "team"
-                                    , pipelineName = "pipeline"
-                                    , jobName = "job"
-                                    , buildName = model.name
-                                    }
+                                (Effects.ApiCall
+                                    (Callback.RouteJobBuild
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline"
+                                        , jobName = "job"
+                                        , buildName = model.name
+                                        }
+                                    )
+                                    Callback.POST
                                 )
                 , test "re-run build appears in the correct spot" <|
                     \_ ->
@@ -244,7 +248,13 @@ all =
                                 )
                             |> Header.handleCallback
                                 (Callback.ApiResponse
-                                    (Callback.RouteJobBuilds jobId Nothing)
+                                    (Callback.RouteJobBuild
+                                        { teamName = jobId.teamName
+                                        , pipelineName = jobId.pipelineName
+                                        , jobName = jobId.jobName
+                                        , buildName = build.name
+                                        }
+                                    )
                                     Callback.POST
                                     (Ok <|
                                         Callback.Build

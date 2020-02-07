@@ -7,7 +7,6 @@ import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, classList)
 import Keyboard
-import Maybe.Extra
 import Message.Callback as Callback
 import Message.Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (DomID(..), Message(..))
@@ -201,23 +200,25 @@ handleKeyPressed keyEvent ( model, effects ) =
 
             ( Keyboard.R, True ) ->
                 ( newModel
-                , effects
-                    ++ (if Concourse.BuildStatus.isRunning newModel.status then
-                            []
+                , case
+                    ( newModel.job
+                    , Concourse.BuildStatus.isRunning newModel.status
+                    )
+                  of
+                    ( Just jobId, False ) ->
+                        ApiCall
+                            (Callback.RouteJobBuild
+                                { teamName = jobId.teamName
+                                , pipelineName = jobId.pipelineName
+                                , jobName = jobId.jobName
+                                , buildName = newModel.name
+                                }
+                            )
+                            Callback.POST
+                            :: effects
 
-                        else
-                            newModel.job
-                                |> Maybe.map
-                                    (\j ->
-                                        RerunJobBuild
-                                            { teamName = j.teamName
-                                            , pipelineName = j.pipelineName
-                                            , jobName = j.jobName
-                                            , buildName = newModel.name
-                                            }
-                                    )
-                                |> Maybe.Extra.toList
-                       )
+                    _ ->
+                        effects
                 )
 
             ( Keyboard.A, True ) ->

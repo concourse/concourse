@@ -5,13 +5,11 @@ module Network.Job exposing
     , fetchJobsRaw
     , pause
     , pauseUnpause
-    , rerunJobBuild
     , unpause
     )
 
 import Concourse
 import Http
-import HttpBuilder
 import Json.Decode
 import Task exposing (Task)
 
@@ -38,26 +36,6 @@ fetchJobsRaw : Concourse.PipelineIdentifier -> Task Http.Error Json.Decode.Value
 fetchJobsRaw pi =
     Http.toTask <|
         Http.get ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs") Json.Decode.value
-
-
-rerunJobBuild :
-    Concourse.JobBuildIdentifier
-    -> Concourse.CSRFToken
-    -> Task Http.Error Concourse.Build
-rerunJobBuild jbi csrfToken =
-    HttpBuilder.post
-        ("/api/v1/teams/"
-            ++ jbi.teamName
-            ++ "/pipelines/"
-            ++ jbi.pipelineName
-            ++ "/jobs/"
-            ++ jbi.jobName
-            ++ "/builds/"
-            ++ jbi.buildName
-        )
-        |> HttpBuilder.withHeader Concourse.csrfTokenHeaderName csrfToken
-        |> HttpBuilder.withExpect (Http.expectJson Concourse.decodeBuild)
-        |> HttpBuilder.toTask
 
 
 pause : Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error ()

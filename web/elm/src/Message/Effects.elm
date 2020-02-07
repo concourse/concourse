@@ -14,7 +14,6 @@ import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
-import Dashboard.Group.Models
 import Http
 import Json.Decode
 import Json.Encode
@@ -143,7 +142,6 @@ type Effect
     | FetchAllJobs
     | GetCurrentTime
     | GetCurrentTimeZone
-    | RerunJobBuild Concourse.JobBuildIdentifier
     | DoAbortBuild Int
     | PauseJob Concourse.JobIdentifier
     | UnpauseJob Concourse.JobIdentifier
@@ -219,6 +217,13 @@ toUrl route =
                 (pipelinePrefix teamName pipelineName ++ [ "jobs" ])
                 []
 
+        RouteJobBuild { teamName, pipelineName, jobName, buildName } ->
+            Url.Builder.absolute
+                (pipelinePrefix teamName pipelineName
+                    ++ [ "jobs", jobName, "builds", buildName ]
+                )
+                []
+
         RouteJobBuilds { teamName, pipelineName, jobName } page ->
             Url.Builder.absolute
                 (pipelinePrefix teamName pipelineName
@@ -240,6 +245,11 @@ expect route method =
             Http.expectJson <|
                 Json.Decode.map Jobs <|
                     Json.Decode.value
+
+        ( RouteJobBuild _, _ ) ->
+            Http.expectJson <|
+                Json.Decode.map Build <|
+                    Concourse.decodeBuild
 
         ( RouteJobBuilds _ _, GET ) ->
             Http.expectStringResponse <|
@@ -342,21 +352,6 @@ runEffect effect key csrfToken =
 
         GetCurrentTimeZone ->
             Task.perform GotCurrentTimeZone Time.here
-
-        RerunJobBuild id ->
-            Network.Job.rerunJobBuild id csrfToken
-                |> Task.attempt
-                    (Result.map Build
-                        >> ApiResponse
-                            (RouteJobBuilds
-                                { teamName = id.teamName
-                                , pipelineName = id.pipelineName
-                                , jobName = id.jobName
-                                }
-                                Nothing
-                            )
-                            POST
-                    )
 
         PauseJob id ->
             Network.Job.pause id csrfToken

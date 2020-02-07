@@ -1005,55 +1005,30 @@ all =
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusSucceeded))
+                        (Callback.BuildFetched <|
+                            Ok (Data.jobBuild BuildStatusSucceeded)
+                        )
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.ApiResponse
-                            (Callback.RouteJob
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
-                            )
+                            (Callback.RouteJob Data.jobId)
                             Callback.GET
-                            (Ok <|
-                                Callback.Job
-                                    { pipeline =
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        }
-                                    , name = "j"
-                                    , pipelineName = "p"
-                                    , teamName = "t"
-                                    , nextBuild = Nothing
-                                    , finishedBuild = Nothing
-                                    , transitionBuild = Nothing
-                                    , paused = False
-                                    , disableManualTrigger = False
-                                    , inputs = []
-                                    , outputs = []
-                                    , groups = []
-                                    }
-                            )
+                            (Ok <| Callback.Job Data.job)
                         )
                     |> Tuple.first
                     |> Application.update
-                        (Msgs.DeliveryReceived <|
-                            KeyDown <|
-                                { ctrlKey = False
-                                , shiftKey = True
-                                , metaKey = False
-                                , code = Keyboard.R
-                                }
-                        )
+                        (Msgs.DeliveryReceived <| KeyDown Data.rerunShortcut)
                     |> Tuple.second
                     |> Expect.equal
-                        [ Effects.RerunJobBuild
-                            { teamName = "t"
-                            , pipelineName = "p"
-                            , jobName = "j"
-                            , buildName = "1"
-                            }
+                        [ Effects.ApiCall
+                            (Callback.RouteJobBuild
+                                { teamName = "t"
+                                , pipelineName = "p"
+                                , jobName = "j"
+                                , buildName = "1"
+                                }
+                            )
+                            Callback.POST
                         ]
         , test "pressing 'R' does nothing if there is a running build" <|
             \_ ->

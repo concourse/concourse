@@ -28,6 +28,7 @@ type alias Fetched a =
 type Route
     = RouteJob Concourse.JobIdentifier
     | RouteJobs Concourse.PipelineIdentifier
+    | RouteJobBuild Concourse.JobBuildIdentifier
     | RouteJobBuilds Concourse.JobIdentifier (Maybe Page)
 
 

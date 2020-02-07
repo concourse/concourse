@@ -1,9 +1,7 @@
 module Network.Build exposing (abort, fetch, fetchJobBuild)
 
 import Concourse
-import Concourse.Pagination exposing (Page, Paginated)
 import Http
-import Network.Pagination
 import Task exposing (Task)
 
 
