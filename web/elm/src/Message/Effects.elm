@@ -269,7 +269,7 @@ runEffect effect key csrfToken =
                 , withCredentials = False
                 }
                 |> Http.toTask
-                |> Task.attempt (ApiResponse route)
+                |> Task.attempt (ApiResponse route method)
 
         FetchResource id ->
             Network.Resource.fetchResource id

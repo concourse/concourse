@@ -5,7 +5,7 @@ import Common
 import Dict exposing (Dict)
 import Expect
 import Http
-import Message.Callback exposing (Callback(..), Route(..))
+import Message.Callback exposing (Callback(..), HttpMethod(..), Route(..))
 import NotFound.Model
 import Routes
 import SubPage.SubPage exposing (..)
@@ -43,6 +43,7 @@ all =
                                 , jobName = "j"
                                 }
                             )
+                            GET
                             notFoundResult
                         )
                     >> Tuple.first

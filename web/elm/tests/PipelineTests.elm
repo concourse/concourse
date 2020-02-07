@@ -367,6 +367,7 @@ all =
                                 , pipelineName = "pipeline"
                                 }
                             )
+                            Callback.GET
                             (Ok <| Callback.Jobs <| Json.Encode.list identity [])
                         )
                     |> Tuple.second

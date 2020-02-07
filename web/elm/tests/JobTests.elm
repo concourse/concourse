@@ -116,6 +116,7 @@ all =
                         |> Application.handleCallback
                             (ApiResponse
                                 (Callback.RouteJob jobIdentifier)
+                                Callback.GET
                                 (Ok <|
                                     Callback.Job
                                         { name = "job"
@@ -286,6 +287,7 @@ all =
                              in
                              ApiResponse
                                 (Callback.RouteJobBuilds jobId Nothing)
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -562,6 +564,7 @@ all =
                          in
                          ApiResponse
                             (Callback.RouteJobBuilds jobId Nothing)
+                            Callback.GET
                             (Ok <|
                                 Callback.Builds
                                     { pagination =
@@ -601,6 +604,7 @@ all =
                          in
                          ApiResponse
                             (Callback.RouteJobBuilds jobId Nothing)
+                            Callback.GET
                             (Ok <|
                                 Callback.Builds
                                     { pagination =
@@ -659,6 +663,7 @@ all =
                          in
                          ApiResponse
                             (Callback.RouteJobBuilds jobId Nothing)
+                            Callback.GET
                             (Ok <|
                                 Callback.Builds
                                     { pagination =
@@ -747,6 +752,7 @@ all =
                          in
                          ApiResponse
                             (Callback.RouteJobBuilds jobId Nothing)
+                            Callback.GET
                             (Ok <|
                                 Callback.Builds
                                     { pagination =
@@ -837,6 +843,7 @@ all =
                         |> Application.handleCallback
                             (ApiResponse
                                 (Callback.RouteJobBuilds jobId Nothing)
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -910,6 +917,7 @@ all =
                             |> Application.handleCallback
                                 (ApiResponse
                                     (Callback.RouteJobBuilds jobIdentifier Nothing)
+                                    Callback.GET
                                     (Ok <|
                                         Callback.Builds
                                             { pagination =
@@ -930,6 +938,7 @@ all =
                         |> Job.handleCallback
                             (ApiResponse
                                 (Callback.RouteJobBuilds someJobInfo Nothing)
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -967,6 +976,7 @@ all =
                         |> Job.handleCallback
                             (ApiResponse
                                 (Callback.RouteJobBuilds someJobInfo Nothing)
+                                Callback.GET
                                 (Err Http.NetworkError)
                             )
                         |> Tuple.first
@@ -1089,6 +1099,7 @@ all =
                     >> Application.handleCallback
                         (ApiResponse
                             (Callback.RouteJobBuilds jobIdentifier Nothing)
+                            Callback.GET
                             (Ok <|
                                 Callback.Builds
                                     { pagination =
@@ -1119,6 +1130,7 @@ all =
                     >> Application.handleCallback
                         (ApiResponse
                             (Callback.RouteJobBuilds jobIdentifier Nothing)
+                            Callback.GET
                             (Ok <|
                                 Callback.Builds
                                     { pagination =

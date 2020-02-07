@@ -474,7 +474,7 @@ handleCallback callback ( model, effects ) =
                 ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute b.id b.name model.job ]
             )
 
-        ApiResponse (RouteJobBuilds _ _) (Ok (Builds history)) ->
+        ApiResponse (RouteJobBuilds _ _) GET (Ok (Builds history)) ->
             handleHistoryFetched history ( model, effects )
 
         BuildHistoryFetched (Ok history) ->

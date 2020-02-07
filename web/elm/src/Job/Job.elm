@@ -184,15 +184,15 @@ handleCallback callback ( model, effects ) =
                            ]
             )
 
-        ApiResponse (RouteJobBuilds _ _) (Ok (Callback.Builds builds)) ->
+        ApiResponse (RouteJobBuilds _ _) GET (Ok (Callback.Builds builds)) ->
             handleJobBuildsFetched builds ( model, effects )
 
-        ApiResponse (RouteJob _) (Ok (Callback.Job job)) ->
+        ApiResponse (RouteJob _) GET (Ok (Callback.Job job)) ->
             ( { model | job = RemoteData.Success job }
             , effects
             )
 
-        ApiResponse (RouteJob _) (Err err) ->
+        ApiResponse (RouteJob _) GET (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then

@@ -85,6 +85,7 @@ all =
                                 }
                                 Nothing
                             )
+                            Callback.GET
                             (Ok <|
                                 Callback.Builds
                                     { pagination =
@@ -111,8 +112,8 @@ all =
                             , jobName = "j"
                             }
                         )
-                    <|
-                        Ok <|
+                        Callback.GET
+                        (Ok <|
                             Callback.Job
                                 { pipeline =
                                     { teamName = "t"
@@ -130,6 +131,7 @@ all =
                                 , outputs = []
                                 , groups = []
                                 }
+                        )
 
             fetchJobDetailsNoTrigger :
                 Application.Model
@@ -143,8 +145,8 @@ all =
                             , jobName = "j"
                             }
                         )
-                    <|
-                        Ok <|
+                        Callback.GET
+                        (Ok <|
                             Callback.Job
                                 { pipeline =
                                     { teamName = "t"
@@ -161,7 +163,7 @@ all =
                                 , inputs = []
                                 , outputs = []
                                 , groups = []
-                                }
+                                })
 
             fetchHistory :
                 Application.Model
@@ -176,6 +178,7 @@ all =
                             }
                             Nothing
                         )
+                        Callback.GET
                         (Ok <|
                             Callback.Builds
                                 { pagination =
@@ -985,8 +988,8 @@ all =
                                 , jobName = "j"
                                 }
                             )
-                         <|
-                            Ok <|
+                            Callback.GET
+                            (Ok <|
                                 Callback.Job
                                     { pipeline =
                                         { teamName = "t"
@@ -1003,7 +1006,7 @@ all =
                                     , inputs = []
                                     , outputs = []
                                     , groups = []
-                                    }
+                                    })
                         )
                     |> Tuple.first
                     |> Application.update
@@ -1057,6 +1060,7 @@ all =
                                 , jobName = "j"
                                 }
                             )
+                            Callback.GET
                             (Ok <|
                                 Callback.Job
                                     { pipeline =
@@ -1110,6 +1114,7 @@ all =
                                 , jobName = "j"
                                 }
                             )
+                            Callback.GET
                             (Ok <|
                                 Callback.Job
                                     { pipeline =
@@ -1630,6 +1635,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -1796,6 +1802,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -1850,6 +1857,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -1904,6 +1912,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -1943,6 +1952,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -1984,6 +1994,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -2025,6 +2036,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -2049,6 +2061,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -2103,6 +2116,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -2131,6 +2145,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -2162,6 +2177,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =
@@ -2196,6 +2212,7 @@ all =
                                     }
                                     Nothing
                                 )
+                                Callback.GET
                                 (Ok <|
                                     Callback.Builds
                                         { pagination =

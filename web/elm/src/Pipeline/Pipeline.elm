@@ -215,7 +215,7 @@ handleCallback callback ( model, effects ) =
         PipelineToggled _ (Err _) ->
             ( { model | isToggleLoading = False }, effects )
 
-        ApiResponse (RouteJobs _) (Ok (Jobs fetchedJobs)) ->
+        ApiResponse (RouteJobs _) GET (Ok (Jobs fetchedJobs)) ->
             renderIfNeeded
                 ( { model
                     | fetchedJobs = Just fetchedJobs
@@ -224,7 +224,7 @@ handleCallback callback ( model, effects ) =
                 , effects
                 )
 
-        ApiResponse (RouteJobs _) (Err err) ->
+        ApiResponse (RouteJobs _) GET (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     ( model, effects ++ redirectToLoginIfUnauthenticated status )

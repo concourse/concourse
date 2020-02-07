@@ -44,7 +44,7 @@ type ApiEntity
 
 type Callback
     = EmptyCallback
-    | ApiResponse Route (Fetched ApiEntity)
+    | ApiResponse Route HttpMethod (Fetched ApiEntity)
     | GotCurrentTime Time.Posix
     | GotCurrentTimeZone Time.Zone
     | BuildTriggered (Fetched Concourse.Build)

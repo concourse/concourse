@@ -198,6 +198,7 @@ all =
                     |> Header.handleCallback
                         (Callback.ApiResponse
                             (Callback.RouteJobBuilds jobId Nothing)
+                            Callback.GET
                             (Ok <|
                                 Callback.Builds
                                     { content = [ build ]

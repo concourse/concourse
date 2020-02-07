@@ -283,7 +283,7 @@ handleCallback action ( model, effects ) =
                 _ ->
                     ( model, effects )
 
-        ApiResponse (RouteJob _) (Ok (Callback.Job job)) ->
+        ApiResponse (RouteJob _) GET (Ok (Callback.Job job)) ->
             ( { model | disableManualTrigger = job.disableManualTrigger }
             , effects
             )
