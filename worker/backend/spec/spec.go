@@ -3,6 +3,7 @@ package spec
 import (
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"code.cloudfoundry.org/garden"
@@ -10,22 +11,12 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
+const (
+	RootPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	Path     = "PATH=/usr/local/bin:/usr/bin:/bin"
+)
+
 // OciSpec converts a given `garden` container specification to an OCI spec.
-//
-// TODO
-// - limits
-// - masked paths
-// - rootfs propagation
-// - seccomp
-// x user namespaces: uid/gid mappings
-// x capabilities
-// x devices
-// x env
-// x hostname
-// x mounts
-// x namespaces
-// x rootfs
-//
 //
 func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
@@ -62,6 +53,8 @@ func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, 
 			Annotations: map[string]string(gdn.Properties),
 		},
 	)
+
+	oci.Process.Env = envWithDefaultPath(oci.Process.Env, gdn.Privileged)
 
 	return
 }
@@ -126,6 +119,26 @@ func OciIDMappings(privileged bool, max uint32) []specs.LinuxIDMapping {
 			Size:        max - 1,
 		},
 	}
+}
+
+// envWithDefaultPath returns the default PATH for a privileged/unprivileged
+// user based on the existence of PATH already being set in the initial
+// environment.
+//
+func envWithDefaultPath(env []string, privileged bool) []string {
+	pathRegexp := regexp.MustCompile("^PATH=.*$")
+
+	for _, envVar := range env {
+		if pathRegexp.MatchString(envVar) {
+			return env
+		}
+	}
+
+	if privileged {
+		return append(env, RootPath)
+	}
+
+	return append(env, Path)
 }
 
 // defaultGardenOciSpec represents a default set of properties necessary in

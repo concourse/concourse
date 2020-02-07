@@ -15,7 +15,6 @@ var (
 	dummyMaxGid uint32 = 0
 )
 
-
 type SpecSuite struct {
 	suite.Suite
 	*require.Assertions
@@ -88,6 +87,8 @@ func (s *SpecSuite) TestContainerSpecValidations() {
 }
 
 func (s *SpecSuite) TestIDMappings() {
+	// TODO
+	//
 	// ensure that we mutate the right thing
 }
 
@@ -249,13 +250,34 @@ func (s *SpecSuite) TestContainerSpec() {
 			},
 		},
 		{
-			desc: "env",
+			desc: "env + default path",
 			gdn: garden.ContainerSpec{
 				Handle: "handle", RootFSPath: "raw:///rootfs",
 				Env: []string{"foo=bar"},
 			},
 			check: func(oci *specs.Spec) {
-				s.Equal([]string{"foo=bar"}, oci.Process.Env)
+				s.Equal([]string{"foo=bar", spec.Path}, oci.Process.Env)
+			},
+		},
+		{
+			desc: "env + default root path",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Env:        []string{"foo=bar"},
+				Privileged: true,
+			},
+			check: func(oci *specs.Spec) {
+				s.Equal([]string{"foo=bar", spec.RootPath}, oci.Process.Env)
+			},
+		},
+		{
+			desc: "env with path already configured",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Env: []string{"foo=bar", "PATH=/somewhere"},
+			},
+			check: func(oci *specs.Spec) {
+				s.Equal([]string{"foo=bar", "PATH=/somewhere"}, oci.Process.Env)
 			},
 		},
 		{
