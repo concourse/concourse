@@ -42,7 +42,7 @@ func tick(logger lager.Logger) {
 				logger.Session("database-connections"),
 				Event{
 					Name:  "database connections",
-					Value: database.Stats().OpenConnections,
+					Value: float64(database.Stats().OpenConnections),
 					Attributes: map[string]string{
 						"ConnectionName": database.Name(),
 					},
@@ -114,7 +114,7 @@ func tick(logger lager.Logger) {
 		logger.Session("gc-pause-total-duration"),
 		Event{
 			Name:  "gc pause total duration",
-			Value: int(memStats.PauseTotalNs),
+			Value: float64(memStats.PauseTotalNs),
 		},
 	)
 
@@ -122,7 +122,7 @@ func tick(logger lager.Logger) {
 		logger.Session("mallocs"),
 		Event{
 			Name:  "mallocs",
-			Value: int(memStats.Mallocs),
+			Value: float64(memStats.Mallocs),
 		},
 	)
 
@@ -130,7 +130,7 @@ func tick(logger lager.Logger) {
 		logger.Session("frees"),
 		Event{
 			Name:  "frees",
-			Value: int(memStats.Frees),
+			Value: float64(memStats.Frees),
 		},
 	)
 
@@ -138,7 +138,7 @@ func tick(logger lager.Logger) {
 		logger.Session("goroutines"),
 		Event{
 			Name:  "goroutines",
-			Value: int(runtime.NumGoroutine()),
+			Value: float64(runtime.NumGoroutine()),
 		},
 	)
 }

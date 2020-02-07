@@ -12,7 +12,7 @@ import (
 
 type Event struct {
 	Name       string
-	Value      interface{}
+	Value      float64
 	Attributes map[string]string
 	Host       string
 	Time       time.Time

@@ -185,7 +185,7 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 		logger.Session("worker-containers"),
 		Event{
 			Name:  "worker containers",
-			Value: event.Containers,
+			Value: float64(event.Containers),
 			Attributes: map[string]string{
 				"worker":    event.WorkerName,
 				"platform":  event.Platform,
@@ -206,7 +206,7 @@ func (event WorkerUnknownContainers) Emit(logger lager.Logger) {
 		logger.Session("worker-unknown-containers"),
 		Event{
 			Name:  "worker unknown containers",
-			Value: event.Containers,
+			Value: float64(event.Containers),
 			Attributes: map[string]string{
 				"worker": event.WorkerName,
 			},
@@ -227,7 +227,7 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 		logger.Session("worker-volumes"),
 		Event{
 			Name:  "worker volumes",
-			Value: event.Volumes,
+			Value: float64(event.Volumes),
 			Attributes: map[string]string{
 				"worker":    event.WorkerName,
 				"platform":  event.Platform,
@@ -248,7 +248,7 @@ func (event WorkerUnknownVolumes) Emit(logger lager.Logger) {
 		logger.Session("worker-unknown-volumes"),
 		Event{
 			Name:  "worker unknown volumes",
-			Value: event.Volumes,
+			Value: float64(event.Volumes),
 			Attributes: map[string]string{
 				"worker": event.WorkerName,
 			},
@@ -267,7 +267,7 @@ func (event WorkerTasks) Emit(logger lager.Logger) {
 		logger.Session("worker-tasks"),
 		Event{
 			Name:  "worker tasks",
-			Value: event.Tasks,
+			Value: float64(event.Tasks),
 			Attributes: map[string]string{
 				"worker":   event.WorkerName,
 				"platform": event.Platform,
@@ -285,7 +285,7 @@ func (event VolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 		logger.Session("gc-found-orphaned-volumes-for-deletion"),
 		Event{
 			Name:       "orphaned volumes to be garbage collected",
-			Value:      event.Volumes,
+			Value:      float64(event.Volumes),
 			Attributes: map[string]string{},
 		},
 	)
@@ -300,7 +300,7 @@ func (event CreatingContainersToBeGarbageCollected) Emit(logger lager.Logger) {
 		logger.Session("gc-found-creating-containers-for-deletion"),
 		Event{
 			Name:       "creating containers to be garbage collected",
-			Value:      event.Containers,
+			Value:      float64(event.Containers),
 			Attributes: map[string]string{},
 		},
 	)
@@ -315,7 +315,7 @@ func (event CreatedContainersToBeGarbageCollected) Emit(logger lager.Logger) {
 		logger.Session("gc-found-created-ccontainers-for-deletion"),
 		Event{
 			Name:       "created containers to be garbage collected",
-			Value:      event.Containers,
+			Value:      float64(event.Containers),
 			Attributes: map[string]string{},
 		},
 	)
@@ -330,7 +330,7 @@ func (event DestroyingContainersToBeGarbageCollected) Emit(logger lager.Logger) 
 		logger.Session("gc-found-destroying-containers-for-deletion"),
 		Event{
 			Name:       "destroying containers to be garbage collected",
-			Value:      event.Containers,
+			Value:      float64(event.Containers),
 			Attributes: map[string]string{},
 		},
 	)
@@ -345,7 +345,7 @@ func (event FailedContainersToBeGarbageCollected) Emit(logger lager.Logger) {
 		logger.Session("gc-found-failed-containers-for-deletion"),
 		Event{
 			Name:       "failed containers to be garbage collected",
-			Value:      event.Containers,
+			Value:      float64(event.Containers),
 			Attributes: map[string]string{},
 		},
 	)
@@ -360,7 +360,7 @@ func (event CreatedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 		logger.Session("gc-found-created-volumes-for-deletion"),
 		Event{
 			Name:       "created volumes to be garbage collected",
-			Value:      event.Volumes,
+			Value:      float64(event.Volumes),
 			Attributes: map[string]string{},
 		},
 	)
@@ -375,7 +375,7 @@ func (event DestroyingVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 		logger.Session("gc-found-destroying-volumes-for-deletion"),
 		Event{
 			Name:       "destroying volumes to be garbage collected",
-			Value:      event.Volumes,
+			Value:      float64(event.Volumes),
 			Attributes: map[string]string{},
 		},
 	)
@@ -390,7 +390,7 @@ func (event FailedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 		logger.Session("gc-found-failed-volumes-for-deletion"),
 		Event{
 			Name:       "failed volumes to be garbage collected",
-			Value:      event.Volumes,
+			Value:      float64(event.Volumes),
 			Attributes: map[string]string{},
 		},
 	)
@@ -426,7 +426,7 @@ func (event BuildStarted) Emit(logger lager.Logger) {
 		logger.Session("build-started"),
 		Event{
 			Name:  "build started",
-			Value: event.BuildID,
+			Value: float64(event.BuildID),
 			Attributes: map[string]string{
 				"pipeline":   event.PipelineName,
 				"job":        event.JobName,
@@ -480,7 +480,7 @@ func (e ErrorLog) Emit(logger lager.Logger) {
 		logger.Session("error-log"),
 		Event{
 			Name:  "error log",
-			Value: e.Value,
+			Value: float64(e.Value),
 			Attributes: map[string]string{
 				"message": e.Message,
 			},
@@ -606,7 +606,7 @@ func (event CheckQueueSize) Emit(logger lager.Logger) {
 		logger.Session("check-queue-size"),
 		Event{
 			Name:       "check queue size",
-			Value:      event.Checks,
+			Value:      float64(event.Checks),
 			Attributes: map[string]string{},
 		},
 	)
@@ -699,7 +699,7 @@ func (event WorkersState) Emit(logger lager.Logger) {
 			logger.Session("worker-state"),
 			Event{
 				Name:  "worker state",
-				Value: count,
+				Value: float64(count),
 				Attributes: map[string]string{
 					"state": string(state),
 				},

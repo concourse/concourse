@@ -497,14 +497,8 @@ func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, even
 		emitter.buildsErrored.Inc()
 	}
 
-	// concourse_builds_duration_seconds
-	duration, ok := event.Value.(float64)
-	if !ok {
-		logger.Error("build-finished-event-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
-		return
-	}
 	// seconds are the standard prometheus base unit for time
-	duration = duration / 1000
+	duration := event.Value / 1000
 	emitter.buildDurationsVec.WithLabelValues(team, pipeline, job).Observe(duration)
 }
 
@@ -526,12 +520,6 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 	}
 	tags, _ := event.Attributes["tags"]
 
-	containers, ok := event.Value.(int)
-	if !ok {
-		logger.Error("worker-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
-		return
-	}
-
 	labels := prometheus.Labels{
 		"worker":   worker,
 		"platform": platform,
@@ -543,7 +531,7 @@ func (emitter *PrometheusEmitter) workerContainersMetric(logger lager.Logger, ev
 		emitter.workerContainersLabels[worker] = make(map[string]prometheus.Labels)
 	}
 	emitter.workerContainersLabels[worker][key] = labels
-	emitter.workerContainers.With(emitter.workerContainersLabels[worker][key]).Set(float64(containers))
+	emitter.workerContainers.With(emitter.workerContainersLabels[worker][key]).Set(event.Value)
 }
 
 func (emitter *PrometheusEmitter) workersRegisteredMetric(logger lager.Logger, event metric.Event) {
@@ -553,13 +541,7 @@ func (emitter *PrometheusEmitter) workersRegisteredMetric(logger lager.Logger, e
 		return
 	}
 
-	count, ok := event.Value.(int)
-	if !ok {
-		logger.Error("workers-count-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
-		return
-	}
-
-	emitter.workersRegistered.WithLabelValues(state).Set(float64(count))
+	emitter.workersRegistered.WithLabelValues(state).Set(event.Value)
 }
 
 func (emitter *PrometheusEmitter) workerUnknownContainersMetric(logger lager.Logger, event metric.Event) {
@@ -573,18 +555,12 @@ func (emitter *PrometheusEmitter) workerUnknownContainersMetric(logger lager.Log
 		"worker": worker,
 	}
 
-	containers, ok := event.Value.(int)
-	if !ok {
-		logger.Error("worker-unknown-containers-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
-		return
-	}
-
 	key := serializeLabels(&labels)
 	if emitter.workerContainersLabels[worker] == nil {
 		emitter.workerContainersLabels[worker] = make(map[string]prometheus.Labels)
 	}
 	emitter.workerContainersLabels[worker][key] = labels
-	emitter.workerUnknownContainers.With(emitter.workerContainersLabels[worker][key]).Set(float64(containers))
+	emitter.workerUnknownContainers.With(emitter.workerContainersLabels[worker][key]).Set(event.Value)
 }
 
 func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event metric.Event) {
@@ -605,12 +581,6 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 	}
 	tags, _ := event.Attributes["tags"]
 
-	volumes, ok := event.Value.(int)
-	if !ok {
-		logger.Error("worker-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
-		return
-	}
-
 	labels := prometheus.Labels{
 		"worker":   worker,
 		"platform": platform,
@@ -622,7 +592,7 @@ func (emitter *PrometheusEmitter) workerVolumesMetric(logger lager.Logger, event
 		emitter.workerVolumesLabels[worker] = make(map[string]prometheus.Labels)
 	}
 	emitter.workerVolumesLabels[worker][key] = labels
-	emitter.workerVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(float64(volumes))
+	emitter.workerVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(event.Value)
 }
 
 func (emitter *PrometheusEmitter) workerUnknownVolumesMetric(logger lager.Logger, event metric.Event) {
@@ -636,18 +606,12 @@ func (emitter *PrometheusEmitter) workerUnknownVolumesMetric(logger lager.Logger
 		"worker": worker,
 	}
 
-	volumes, ok := event.Value.(int)
-	if !ok {
-		logger.Error("worker-unknown-volumes-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
-		return
-	}
-
 	key := serializeLabels(&labels)
 	if emitter.workerVolumesLabels[worker] == nil {
 		emitter.workerVolumesLabels[worker] = make(map[string]prometheus.Labels)
 	}
 	emitter.workerVolumesLabels[worker][key] = labels
-	emitter.workerUnknownVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(float64(volumes))
+	emitter.workerUnknownVolumes.With(emitter.workerVolumesLabels[worker][key]).Set(event.Value)
 }
 
 func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event metric.Event) {
@@ -662,12 +626,6 @@ func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event m
 		return
 	}
 
-	tasks, ok := event.Value.(int)
-	if !ok {
-		logger.Error("worker-tasks-event-value-type-mismatch", fmt.Errorf("expected event.Value to be an int"))
-		return
-	}
-
 	labels := prometheus.Labels{
 		"worker":   worker,
 		"platform": platform,
@@ -677,7 +635,7 @@ func (emitter *PrometheusEmitter) workerTasksMetric(logger lager.Logger, event m
 		emitter.workerTasksLabels[worker] = make(map[string]prometheus.Labels)
 	}
 	emitter.workerTasksLabels[worker][key] = labels
-	emitter.workerTasks.With(emitter.workerTasksLabels[worker][key]).Set(float64(tasks))
+	emitter.workerTasks.With(emitter.workerTasksLabels[worker][key]).Set(event.Value)
 }
 
 func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, event metric.Event) {
@@ -699,31 +657,20 @@ func (emitter *PrometheusEmitter) httpResponseTimeMetrics(logger lager.Logger, e
 		return
 	}
 
-	responseTime, ok := event.Value.(float64)
-	if !ok {
-		logger.Error("http-response-time-event-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
-		return
-	}
-
-	emitter.httpRequestsDuration.WithLabelValues(method, route, status).Observe(responseTime / 1000)
+	emitter.httpRequestsDuration.WithLabelValues(method, route, status).Observe(event.Value / 1000)
 }
 
 func (emitter *PrometheusEmitter) databaseMetrics(logger lager.Logger, event metric.Event) {
-	value, ok := event.Value.(int)
-	if !ok {
-		logger.Error("db-value-type-mismatch", fmt.Errorf("expected event.Value to be a int"))
-		return
-	}
 	switch event.Name {
 	case "database queries":
-		emitter.dbQueriesTotal.Add(float64(value))
+		emitter.dbQueriesTotal.Add(event.Value)
 	case "database connections":
 		connectionName, exists := event.Attributes["ConnectionName"]
 		if !exists {
 			logger.Error("failed-to-connection-name-in-event", fmt.Errorf("expected ConnectionName to exist in event.Attributes"))
 			return
 		}
-		emitter.dbConnections.WithLabelValues(connectionName).Set(float64(value))
+		emitter.dbConnections.WithLabelValues(connectionName).Set(event.Value)
 	default:
 	}
 
@@ -745,13 +692,7 @@ func (emitter *PrometheusEmitter) resourceMetric(logger lager.Logger, event metr
 }
 
 func (emitter *PrometheusEmitter) checkQueueSizeMetric(logger lager.Logger, event metric.Event) {
-	value, ok := event.Value.(int)
-	if !ok {
-		logger.Error("check-queue-size-type-mismatch", fmt.Errorf("expected event.Value to be a int"))
-		return
-	}
-
-	emitter.checkQueueSize.Set(float64(value))
+	emitter.checkQueueSize.Set(event.Value)
 }
 
 func (emitter *PrometheusEmitter) checkEnqueueMetric(logger lager.Logger, event metric.Event) {
@@ -782,13 +723,8 @@ func (emitter *PrometheusEmitter) checkMetric(logger lager.Logger, event metric.
 		return
 	}
 
-	duration, ok := event.Value.(float64)
-	if !ok {
-		logger.Error("check-event-value-type-mismatch", fmt.Errorf("expected event.Value to be a float64"))
-		return
-	}
 	// seconds are the standard prometheus base unit for time
-	duration = duration / 1000
+	duration := event.Value / 1000
 
 	emitter.checksVec.WithLabelValues(scopeID, checkStatus).Observe(duration)
 }

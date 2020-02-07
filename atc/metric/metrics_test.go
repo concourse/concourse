@@ -28,7 +28,7 @@ var _ = Describe("Metrics", func() {
 
 			for _, state := range db.AllWorkerStates() {
 				event := emitter.eventWithState(state)
-				Expect(event.Value).To(Equal(0))
+				Expect(event.Value).To(Equal(float64(0)))
 			}
 		})
 
@@ -39,7 +39,7 @@ var _ = Describe("Metrics", func() {
 			waitForEventsOnUnsafeGlobalChannel(emitter)
 
 			event := emitter.eventWithState(db.WorkerStateRunning)
-			Expect(event.Value).To(Equal(1))
+			Expect(event.Value).To(Equal(float64(1)))
 		})
 	})
 })

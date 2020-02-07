@@ -16,23 +16,23 @@ var _ = Describe("Counter", func() {
 
 	Context("when incremented", func() {
 		It("returns incremented value", func() {
-			Expect(counter.Delta()).To(Equal(0))
+			Expect(counter.Delta()).To(Equal(float64(0)))
 
 			counter.Inc()
 			counter.Inc()
 			counter.Inc()
 
-			Expect(counter.Delta()).To(Equal(3))
+			Expect(counter.Delta()).To(Equal(float64(3)))
 		})
 	})
 
 	Context("when incremented by a value", func() {
 		It("returns the incremented value", func() {
-			Expect(counter.Delta()).To(Equal(0))
+			Expect(counter.Delta()).To(Equal(float64(0)))
 
 			counter.IncDelta(3)
 
-			Expect(counter.Delta()).To(Equal(3))
+			Expect(counter.Delta()).To(Equal(float64(3)))
 		})
 	})
 
@@ -42,8 +42,8 @@ var _ = Describe("Counter", func() {
 			counter.Inc()
 			counter.Inc()
 
-			Expect(counter.Delta()).To(Equal(3))
-			Expect(counter.Delta()).To(Equal(0))
+			Expect(counter.Delta()).To(Equal(float64(3)))
+			Expect(counter.Delta()).To(Equal(float64(0)))
 		})
 	})
 })
