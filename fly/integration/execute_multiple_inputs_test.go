@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"encoding/json"
 	"fmt"
+	"github.com/klauspost/compress/zstd"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
@@ -133,7 +133,10 @@ run:
 				func(w http.ResponseWriter, req *http.Request) {
 					Expect(req.FormValue("platform")).To(Equal("some-platform"))
 
-					tr := tar.NewReader(zstd.NewReader(req.Body))
+					zstdReader, err := zstd.NewReader(req.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					tr := tar.NewReader(zstdReader)
 
 					hdr, err := tr.Next()
 					Expect(err).NotTo(HaveOccurred())
