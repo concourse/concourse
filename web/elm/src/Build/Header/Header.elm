@@ -433,6 +433,16 @@ update msg ( model, effects ) =
                    )
             )
 
+        Click TriggerBuildButton ->
+            ( model
+            , case model.job of
+                Just jobId ->
+                    ApiCall (RouteJobBuilds jobId Nothing) POST :: effects
+
+                Nothing ->
+                    effects
+            )
+
         _ ->
             ( model, effects )
 

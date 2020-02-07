@@ -121,6 +121,22 @@ all =
                                         , tooltip = True
                                         }
                                 )
+                , test "triggers build on click" <|
+                    \_ ->
+                        ( { model
+                            | status = BuildStatusSucceeded
+                            , job = Just jobId
+                          }
+                        , []
+                        )
+                            |> Header.update
+                                (Message.Click Message.TriggerBuildButton)
+                            |> Tuple.second
+                            |> Common.contains
+                                (Effects.ApiCall
+                                    (Callback.RouteJobBuilds jobId Nothing)
+                                    Callback.POST
+                                )
                 , test "changes URL on triggering" <|
                     \_ ->
                         ( { model

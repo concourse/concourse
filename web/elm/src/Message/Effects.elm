@@ -143,7 +143,6 @@ type Effect
     | FetchAllJobs
     | GetCurrentTime
     | GetCurrentTimeZone
-    | DoTriggerBuild Concourse.JobIdentifier
     | RerunJobBuild Concourse.JobBuildIdentifier
     | DoAbortBuild Int
     | PauseJob Concourse.JobIdentifier
@@ -228,24 +227,29 @@ toUrl route =
                 (Network.Pagination.params page)
 
 
-expect : Route -> Http.Expect ApiEntity
-expect route =
-    case route of
-        RouteJob { teamName, pipelineName } ->
+expect : Route -> HttpMethod -> Http.Expect ApiEntity
+expect route method =
+    case ( route, method ) of
+        ( RouteJob { teamName, pipelineName }, _ ) ->
             Http.expectJson <|
                 Json.Decode.map Job <|
                     Concourse.decodeJob
                         { teamName = teamName, pipelineName = pipelineName }
 
-        RouteJobs _ ->
+        ( RouteJobs _, _ ) ->
             Http.expectJson <|
                 Json.Decode.map Jobs <|
                     Json.Decode.value
 
-        RouteJobBuilds _ _ ->
+        ( RouteJobBuilds _ _, GET ) ->
             Http.expectStringResponse <|
                 Network.Pagination.parsePagination Concourse.decodeBuild
                     >> Result.map Builds
+
+        ( RouteJobBuilds _ _, POST ) ->
+            Http.expectJson <|
+                Json.Decode.map Build <|
+                    Concourse.decodeBuild
 
 
 runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
@@ -264,7 +268,7 @@ runEffect effect key csrfToken =
                 , headers =
                     [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
                 , body = Http.emptyBody
-                , expect = expect route
+                , expect = expect route method
                 , timeout = Nothing
                 , withCredentials = False
                 }
@@ -338,13 +342,6 @@ runEffect effect key csrfToken =
 
         GetCurrentTimeZone ->
             Task.perform GotCurrentTimeZone Time.here
-
-        DoTriggerBuild id ->
-            Network.Job.triggerBuild id csrfToken
-                |> Task.attempt
-                    (Result.map Build
-                        >> ApiResponse (RouteJobBuilds id Nothing) POST
-                    )
 
         RerunJobBuild id ->
             Network.Job.rerunJobBuild id csrfToken

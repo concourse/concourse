@@ -163,7 +163,8 @@ all =
                                 , inputs = []
                                 , outputs = []
                                 , groups = []
-                                })
+                                }
+                        )
 
             fetchHistory :
                 Application.Model
@@ -978,73 +979,27 @@ all =
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
                     |> Application.handleCallback
-                        (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusStarted))
+                        (Callback.BuildFetched <|
+                            Ok (Data.jobBuild BuildStatusStarted)
+                        )
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.ApiResponse
-                            (Callback.RouteJob
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
-                            )
+                            (Callback.RouteJob Data.jobId)
                             Callback.GET
-                            (Ok <|
-                                Callback.Job
-                                    { pipeline =
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        }
-                                    , name = "j"
-                                    , pipelineName = "p"
-                                    , teamName = "t"
-                                    , nextBuild = Nothing
-                                    , finishedBuild = Nothing
-                                    , transitionBuild = Nothing
-                                    , paused = False
-                                    , disableManualTrigger = False
-                                    , inputs = []
-                                    , outputs = []
-                                    , groups = []
-                                    })
+                            (Ok <| Callback.Job Data.job)
                         )
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.DeliveryReceived <|
-                            KeyDown <|
-                                { ctrlKey = False
-                                , shiftKey = True
-                                , metaKey = False
-                                , code = Keyboard.T
-                                }
-                        )
+                    |> Application.handleDelivery (KeyDown Data.triggerShortcut)
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.DeliveryReceived <|
-                            KeyUp <|
-                                { ctrlKey = False
-                                , shiftKey = False
-                                , metaKey = False
-                                , code = Keyboard.T
-                                }
-                        )
+                    |> Application.handleDelivery (KeyUp Data.triggerShortcut)
                     |> Tuple.first
-                    |> Application.update
-                        (Msgs.DeliveryReceived <|
-                            KeyDown <|
-                                { ctrlKey = False
-                                , shiftKey = True
-                                , metaKey = False
-                                , code = Keyboard.T
-                                }
-                        )
+                    |> Application.handleDelivery (KeyDown Data.triggerShortcut)
                     |> Tuple.second
                     |> Expect.equal
-                        [ Effects.DoTriggerBuild
-                            { teamName = "t"
-                            , pipelineName = "p"
-                            , jobName = "j"
-                            }
+                        [ Effects.ApiCall
+                            (Callback.RouteJobBuilds Data.jobId Nothing)
+                            Callback.POST
                         ]
         , test "pressing 'R' reruns build" <|
             \_ ->

@@ -9,6 +9,7 @@ module Data exposing
     , resource
     , resourceName
     , teamName
+    , triggerShortcut
     , version
     , versionedResource
     )
@@ -16,6 +17,7 @@ module Data exposing
 import Concourse
 import Concourse.BuildStatus as BuildStatus
 import Dict exposing (Dict)
+import Keyboard
 import Time
 
 
@@ -177,4 +179,13 @@ jobBuild status =
                 Just <| Time.millisToPosix 0
         }
     , reapTime = Nothing
+    }
+
+
+triggerShortcut : Keyboard.KeyEvent
+triggerShortcut =
+    { ctrlKey = False
+    , shiftKey = True
+    , metaKey = False
+    , code = Keyboard.T
     }

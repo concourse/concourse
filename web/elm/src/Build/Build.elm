@@ -398,13 +398,6 @@ update msg ( model, effects ) =
                    ]
             )
 
-        Click TriggerBuildButton ->
-            (model.job
-                |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
-                |> Maybe.withDefault identity
-            )
-                ( model, effects )
-
         Click AbortBuildButton ->
             ( model, DoAbortBuild model.id :: effects )
 

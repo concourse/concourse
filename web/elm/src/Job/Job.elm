@@ -268,7 +268,10 @@ update : Message -> ET Model
 update action ( model, effects ) =
     case action of
         Click TriggerBuildButton ->
-            ( model, effects ++ [ DoTriggerBuild model.jobIdentifier ] )
+            ( model
+            , effects
+                ++ [ ApiCall (RouteJobBuilds model.jobIdentifier Nothing) POST ]
+            )
 
         Click ToggleJobButton ->
             case model.job |> RemoteData.toMaybe of

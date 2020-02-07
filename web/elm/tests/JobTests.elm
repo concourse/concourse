@@ -522,6 +522,24 @@ all =
                     }
                 , hoverable = Message.Message.TriggerBuildButton
                 }
+            , test "clicking trigger build button triggers build" <|
+                \_ ->
+                    Common.init "/teams/t/pipelines/p/jobs/j"
+                        |> Application.handleCallback
+                            (ApiResponse
+                                (Callback.RouteJob Data.jobId)
+                                Callback.GET
+                                (Ok <| Callback.Job Data.job)
+                            )
+                        |> Tuple.first
+                        |> Application.update
+                            (Msgs.Update <| Click TriggerBuildButton)
+                        |> Tuple.second
+                        |> Common.contains
+                            (Effects.ApiCall
+                                (Callback.RouteJobBuilds Data.jobId Nothing)
+                                Callback.POST
+                            )
             , test "successfully triggering build redirects to new build" <|
                 \_ ->
                     Common.init "/teams/t/pipelines/p/jobs/j"

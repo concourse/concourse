@@ -8,6 +8,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (class, classList)
 import Keyboard
 import Maybe.Extra
+import Message.Callback as Callback
 import Message.Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
@@ -183,11 +184,17 @@ handleKeyPressed keyEvent ( model, effects ) =
 
             ( Keyboard.T, True ) ->
                 if not newModel.isTriggerBuildKeyDown then
-                    (newModel.job
-                        |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
-                        |> Maybe.withDefault identity
+                    ( { newModel | isTriggerBuildKeyDown = True }
+                    , case newModel.job of
+                        Just jobId ->
+                            ApiCall
+                                (Callback.RouteJobBuilds jobId Nothing)
+                                Callback.POST
+                                :: effects
+
+                        Nothing ->
+                            effects
                     )
-                        ( { newModel | isTriggerBuildKeyDown = True }, effects )
 
                 else
                     ( newModel, effects )
