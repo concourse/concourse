@@ -1026,12 +1026,16 @@ all =
                         |> Tuple.first
                         |> Common.queryView
                         |> teamHeaderHasNoPill "team"
-            , test "shows pill for first role on team header for team on which user has multiple roles" <|
+            , test
+                ("shows pill for most-privileged role on team header for team "
+                    ++ "on which user has multiple roles"
+                )
+              <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataAndUser
                             (apiData [ ( "team", [] ) ])
-                            (userWithRoles [ ( "team", [ "member", "viewer" ] ) ])
+                            (userWithRoles [ ( "team", [ "viewer", "member" ] ) ])
                         |> Tuple.first
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|

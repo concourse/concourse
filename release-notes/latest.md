@@ -24,6 +24,10 @@ other systems soon.
 `fly unpause-pipeline` commands. This allows users to pause or unpause every
 pipeline on a team at the same time. #4092
 
+#### <sub><sup><a name="5133" href="#5133">:link:</a></sup></sub> fix
+
+* In the case that a user has multiple roles on a team, the pills on the team headers on the dashboard now accurately reflect the logged-in user's most-privileged role on each team. #5133
+
 [OpenTelemetry]: https://opentelemetry.io/
 [Jaeger]: https://www.jaegertracing.io/
 [Stackdriver]: https://cloud.google.com/trace/
