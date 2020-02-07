@@ -1027,7 +1027,7 @@ all =
                         |> Common.queryView
                         |> teamHeaderHasNoPill "team"
             , test
-                ("shows pill for most-privileged role on team header for team"
+                ("shows pill for most-privileged role on team header for team "
                     ++ "on which user has multiple roles"
                 )
               <|
