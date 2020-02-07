@@ -18,15 +18,6 @@ echo '  docker-compose -f docker-compose.yml -f hack/overrides/vault.yml up -d'
 echo
 echo 'step 2:'
 echo '  export VAULT_CACERT=$PWD/hack/vault/certs/vault-ca.crt'
-echo '  vault operator init'
 echo
 echo 'step 3:'
-echo '  vault operator unseal # paste unseal key 1'
-echo '  vault operator unseal # paste unseal key 2'
-echo '  vault operator unseal # paste unseal key 3'
-echo '  vault login           # paste root token'
-echo
-echo 'step 4:'
-echo '  vault policy write concourse ./hack/vault/config/concourse-policy.hcl'
-echo '  vault auth enable cert'
-echo '  vault write auth/cert/certs/concourse policies=concourse certificate=@hack/vault/certs/vault-ca.crt ttl=1h'
+echo '  ./hack/vault/init'
