@@ -182,7 +182,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 
 	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
 
-	result := step.workerClient.RunPutStep(
+	result, err := step.workerClient.RunPutStep(
 		ctx,
 		logger,
 		owner,
@@ -195,21 +195,17 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		step.delegate,
 		resourceToPut,
 	)
-
-	versionResult := result.VersionResult
-	err = result.Err
-
 	if err != nil {
 		logger.Error("failed-to-put-resource", err)
-
-		if err, ok := err.(runtime.ErrResourceScriptFailed); ok {
-			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), runtime.VersionResult{})
-			return nil
-		}
-
 		return err
 	}
 
+	if result.ExitStatus != 0 {
+		step.delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
+		return nil
+	}
+
+	versionResult := result.VersionResult
 	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
 	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {

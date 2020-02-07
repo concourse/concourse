@@ -71,8 +71,9 @@ var _ = Describe("PutStep", func() {
 
 		planID atc.PlanID
 
-		versionResult runtime.VersionResult
-		clientErr     error
+		versionResult  runtime.VersionResult
+		clientErr      error
+		someExitStatus int
 	)
 
 	BeforeEach(func() {
@@ -150,6 +151,8 @@ var _ = Describe("PutStep", func() {
 
 		fakeResourceFactory.NewResourceReturns(fakeResource)
 
+		someExitStatus = 0
+
 	})
 
 	AfterEach(func() {
@@ -162,7 +165,10 @@ var _ = Describe("PutStep", func() {
 			Put: putPlan,
 		}
 
-		fakeClient.RunPutStepReturns(worker.PutResult{Status: 0, VersionResult: versionResult, Err: clientErr})
+		fakeClient.RunPutStepReturns(
+			worker.PutResult{ExitStatus: someExitStatus, VersionResult: versionResult},
+			clientErr,
+		)
 
 		putStep = exec.NewPutStep(
 			plan.ID,
@@ -347,9 +353,7 @@ var _ = Describe("PutStep", func() {
 	Context("when RunPutStep exits unsuccessfully", func() {
 		BeforeEach(func() {
 			versionResult = runtime.VersionResult{}
-			clientErr = runtime.ErrResourceScriptFailed{
-				ExitStatus: 42,
-			}
+			someExitStatus = 42
 		})
 
 		It("finishes the step via the delegate", func() {

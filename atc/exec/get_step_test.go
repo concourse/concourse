@@ -270,7 +270,7 @@ var _ = Describe("GetStep", func() {
 		BeforeEach(func() {
 			fakeClient.RunGetStepReturns(
 				worker.GetResult{
-					Status: 0,
+					ExitStatus: 0,
 					VersionResult: runtime.VersionResult{
 						Version:  atc.Version{"some": "version"},
 						Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
@@ -330,7 +330,7 @@ var _ = Describe("GetStep", func() {
 		BeforeEach(func() {
 			fakeClient.RunGetStepReturns(
 				worker.GetResult{
-					Status:        1,
+					ExitStatus:    1,
 					VersionResult: runtime.VersionResult{},
 				}, nil)
 		})
