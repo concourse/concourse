@@ -25,10 +25,15 @@ func NewProcess(
 
 var _ garden.Process = (*Process)(nil)
 
+// Id retrieves the ID associated with this process.
+//
 func (p *Process) ID() string {
 	return p.process.ID()
 }
 
+// Wait for the process to terminate (either naturally, or from a signal), and
+// once done, delete it.
+//
 func (p *Process) Wait() (int, error) {
 	status := <-p.exitStatusC
 	err := status.Error()
@@ -46,7 +51,7 @@ func (p *Process) Wait() (int, error) {
 	return int(status.ExitCode()), nil
 }
 
-// SetTTY
+// SetTTY resizes the process' terminal dimensions.
 //
 func (p *Process) SetTTY(spec garden.TTYSpec) error {
 	if spec.WindowSize == nil {
