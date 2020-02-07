@@ -5,6 +5,7 @@
  * zombies when they `exit`).
  */
 
+#include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
 #include <stddef.h>
