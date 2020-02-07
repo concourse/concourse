@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"syscall"
 	"time"
@@ -23,10 +24,10 @@ const (
 	//
 	UngracefulSignal = syscall.SIGKILL
 
-	// GracefulPeriod is the duration by which a graceful killer would let a
+	// GracePeriod is the duration by which a graceful killer would let a
 	// set of processes finish by themselves before going ungraceful.
 	//
-	GracefulPeriod = 10 * time.Second
+	GracePeriod = 10 * time.Second
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Killer
@@ -34,91 +35,77 @@ const (
 // Killer terminates tasks.
 //
 type Killer interface {
-	// Kill terminates a task.
+	// Kill terminates a task either in a graceful or ungraceful manner.
 	//
-	Kill(ctx context.Context, task containerd.Task) (err error)
+	Kill(
+		ctx context.Context,
+		task containerd.Task,
+		ungraceful bool,
+	) error
 }
 
-// UngracefulKiller terminates a task's processes without giving them chance to
-// gracefully finish themselves first.
+// killer terminates the processes exec'ed in a task.
 //
-type UngracefulKiller struct{}
-
-func NewUngracefulKiller() UngracefulKiller {
-	return UngracefulKiller{}
+// Only processes created through `task.Exec` are targetted to receive the the
+// first signals it delivers.
+//
+type killer struct {
+	gracePeriod   time.Duration
+	processKiller ProcessKiller
 }
 
-// Kill delivers a signal to the init process, letting it die, bringing its
-// sibling processes together with it through an implict SIGKILL delivered by
-// the kernel during the termination of its PID namespace.
+// KillerOpt is a functional option that modifies the behavior of a killer.
 //
-// 	container............
-// 	.
-// 	.	init proc	<- takes an explicit SIGKILL
-// 	.	/opt/resource/in
-// 	.         git clone
-// 	.
-//
-//		- once `init` is gone (guaranteed via SIGKILL), all other
-//		processes in the pid namespace get a SIGKILL too.
-//
-//
-// ref: http://man7.org/linux/man-pages/man7/pid_namespaces.7.html
-//
-func (k UngracefulKiller) Kill(
-	ctx context.Context,
-	task containerd.Task,
-) error {
-	return killTaskInitProc(ctx, task, UngracefulSignal)
-}
+type KillerOpt func(k *killer)
 
-// GracefulKiller terminates the processes in a task by first letting them
-// terminate themselves by their own means, and if and only if they don't do it
-// in time, ungracefully force them to be shutdown (via SIGKILL).
+// WithProcessKiller modifies the default process killer used by the task
+// killer.
 //
-// ps.: only processes created through `task.Exec` are targetted to receive the
-//      the first graceful signal.
-//
-// pps.: ungraceful finish is driven by terminating the init process in the pid
-//       namespace. (see `UngracefulKiller`).
-//
-//
-type GracefulKiller struct {
-	GracefulPeriod time.Duration
-}
-
-func NewGracefulKiller() GracefulKiller {
-	return GracefulKiller{
-		GracefulPeriod: GracefulPeriod,
+func WithProcessKiller(f ProcessKiller) KillerOpt {
+	return func(k *killer) {
+		k.processKiller = f
 	}
 }
 
-// Kill delivers a graceful signal to each exec'ed process in the task, waits
-// for them to finish on time, and, if not, ungracefully kills them.
+// WithGracePeriod configures the grace period used when waiting for a process
+// to be gracefully finished.
 //
-func (k GracefulKiller) Kill(ctx context.Context, task containerd.Task) error {
-	err := killTaskExecedProcesses(ctx, task, GracefulSignal)
-	if err != nil {
-		if err != ErrGracePeriodTimeout {
+func WithGracePeriod(p time.Duration) KillerOpt {
+	return func(k *killer) {
+		k.gracePeriod = p
+	}
+}
+
+func NewKiller(opts ...KillerOpt) *killer {
+	k := &killer{
+		gracePeriod:   GracePeriod,
+		processKiller: NewProcessKiller(),
+	}
+
+	for _, opt := range opts {
+		opt(k)
+	}
+
+	return k
+}
+
+// Kill delivers a signal to each exec'ed process in the task.
+//
+func (k killer) Kill(ctx context.Context, task containerd.Task, ungraceful bool) error {
+	if !ungraceful {
+		err := k.killTaskExecedProcesses(ctx, task, GracefulSignal)
+		switch {
+		case errors.Is(err, ErrGracePeriodTimeout):
+		case err == nil:
+			return nil
+		default:
 			return fmt.Errorf("kill task execed processes: %w", err)
 		}
 	}
 
-	err = killTaskInitProc(ctx, task, UngracefulSignal)
+	err := k.killTaskExecedProcesses(ctx, task, UngracefulSignal)
 	if err != nil {
-		return fmt.Errorf("kill task init proc: %w", err)
-	}
-
-	return nil
-}
-
-// killTaskInitProc terminates the process that corresponds to the root of the
-// sandbox (the init proc).
-//
-func killTaskInitProc(ctx context.Context, task containerd.Task, signal syscall.Signal) error {
-	err := killProcess(ctx, task, signal)
-	if err != nil {
-		return fmt.Errorf("kill process: %w", err)
+		return fmt.Errorf("ungraceful kill task execed processes: %w", err)
 	}
 
 	return nil
@@ -127,13 +114,13 @@ func killTaskInitProc(ctx context.Context, task containerd.Task, signal syscall.
 // killTaskProcesses delivers a signal to every live process that has been
 // created through a `task.Exec`.
 //
-func killTaskExecedProcesses(ctx context.Context, task containerd.Task, signal syscall.Signal) error {
+func (k killer) killTaskExecedProcesses(ctx context.Context, task containerd.Task, signal syscall.Signal) error {
 	procs, err := taskExecedProcesses(ctx, task)
 	if err != nil {
 		return fmt.Errorf("task execed processes: %w", err)
 	}
 
-	err = killProcesses(ctx, procs, signal)
+	err = k.killProcesses(ctx, procs, signal)
 	if err != nil {
 		return fmt.Errorf("kill procs: %w", err)
 	}
@@ -182,45 +169,16 @@ func taskExecedProcesses(ctx context.Context, task containerd.Task) ([]container
 // killProcesses takes care of delivering a termination signal to a set of
 // processes and waiting for their statuses.
 //
-func killProcesses(ctx context.Context, procs []containerd.Process, signal syscall.Signal) error {
+func (k killer) killProcesses(ctx context.Context, procs []containerd.Process, signal syscall.Signal) error {
 
 	// TODO - this could (probably *should*) be concurrent
 	//
 
 	for _, proc := range procs {
-		err := killProcess(ctx, proc, signal)
+		err := k.processKiller.Kill(ctx, proc, signal, k.gracePeriod)
 		if err != nil {
-			return err
+			return fmt.Errorf("proc kill: %w", err)
 		}
-	}
-
-	return nil
-}
-
-// killProcess takes care of delivering a termination signal to a process and
-// waiting for its exit status.
-//
-func killProcess(ctx context.Context, proc containerd.Process, signal syscall.Signal) error {
-	// TODO inject that period
-	//
-	waitCtx, cancel := context.WithTimeout(ctx, GracefulPeriod)
-	defer cancel()
-
-	statusC, err := proc.Wait(waitCtx)
-	if err != nil {
-		return fmt.Errorf("proc wait: %w", err)
-	}
-
-	err = proc.Kill(ctx, signal)
-	if err != nil {
-		return fmt.Errorf("proc kill w/ signal %d: %w", signal, err)
-	}
-
-	select {
-	case <-ctx.Done():
-		return fmt.Errorf("ctx done: %w", ctx.Err())
-	case <-statusC:
-		// TODO handle possible status error
 	}
 
 	return nil

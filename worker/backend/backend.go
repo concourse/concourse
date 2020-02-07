@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/backend/libcontainerd"
 	bespec "github.com/concourse/concourse/worker/backend/spec"
+	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/errdefs"
 )
@@ -22,11 +23,11 @@ var _ garden.Backend = (*Backend)(nil)
 // Backend implements a Garden backend backed by `containerd`.
 //
 type Backend struct {
-	client           libcontainerd.Client
-	containerStopper ContainerStopper
-	rootfsManager    RootfsManager
-	network          Network
-	userNamespace    UserNamespace
+	client        libcontainerd.Client
+	killer        Killer
+	network       Network
+	rootfsManager RootfsManager
+	userNamespace UserNamespace
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . UserNamespace
@@ -54,11 +55,11 @@ func WithRootfsManager(r RootfsManager) BackendOpt {
 	}
 }
 
-// WithContainerStopper configures the ContainerStopper used by the backend.
+// WithKiller configures the killer used to terminate tasks.
 //
-func WithContainerStopper(c ContainerStopper) BackendOpt {
+func WithKiller(k Killer) BackendOpt {
 	return func(b *Backend) {
-		b.containerStopper = c
+		b.killer = k
 	}
 }
 
@@ -90,11 +91,8 @@ func New(client libcontainerd.Client, opts ...BackendOpt) (b Backend, err error)
 		}
 	}
 
-	if b.containerStopper == nil {
-		b.containerStopper = NewContainerStopper(
-			NewGracefulKiller(),
-			NewUngracefulKiller(),
-		)
+	if b.killer == nil {
+		b.killer = NewKiller()
 	}
 
 	if b.rootfsManager == nil {
@@ -181,7 +179,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (garden.Container, error)
 
 	return NewContainer(
 		cont,
-		b.containerStopper,
+		b.killer,
 		b.rootfsManager,
 	), nil
 }
@@ -200,11 +198,6 @@ func (b *Backend) Destroy(handle string) error {
 		return fmt.Errorf("get container: %w", err)
 	}
 
-	err = b.containerStopper.GracefullyStop(ctx, container)
-	if err != nil {
-		return fmt.Errorf("stopping container: %w", err)
-	}
-
 	task, err := container.Task(ctx, cio.Load)
 	if err != nil {
 		if !errdefs.IsNotFound(err) {
@@ -219,9 +212,20 @@ func (b *Backend) Destroy(handle string) error {
 		return nil
 	}
 
+	const ungraceful = false
+	err = b.killer.Kill(ctx, task, ungraceful)
+	if err != nil {
+		return fmt.Errorf("gracefully killing task: %w", err)
+	}
+
 	err = b.network.Remove(ctx, task)
 	if err != nil {
 		return fmt.Errorf("network remove: %w", err)
+	}
+
+	_, err = task.Delete(ctx, containerd.WithProcessKill)
+	if err != nil {
+		return fmt.Errorf("task remove: %w", err)
 	}
 
 	err = container.Delete(ctx)
@@ -251,7 +255,7 @@ func (b *Backend) Containers(properties garden.Properties) (containers []garden.
 	for i, containerdContainer := range res {
 		containers[i] = NewContainer(
 			containerdContainer,
-			b.containerStopper,
+			b.killer,
 			b.rootfsManager,
 		)
 	}
@@ -273,7 +277,7 @@ func (b *Backend) Lookup(handle string) (garden.Container, error) {
 
 	return NewContainer(
 		containerdContainer,
-		b.containerStopper,
+		b.killer,
 		b.rootfsManager,
 	), nil
 }

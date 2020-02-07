@@ -14,20 +14,20 @@ import (
 )
 
 type Container struct {
-	container        containerd.Container
-	containerStopper ContainerStopper
-	rootfsManager    RootfsManager
+	container     containerd.Container
+	killer        Killer
+	rootfsManager RootfsManager
 }
 
 func NewContainer(
 	container containerd.Container,
-	containerStopper ContainerStopper,
+	killer Killer,
 	rootfsManager RootfsManager,
 ) *Container {
 	return &Container{
-		container:        container,
-		containerStopper: containerStopper,
-		rootfsManager:    rootfsManager,
+		container:     container,
+		killer:        killer,
+		rootfsManager: rootfsManager,
 	}
 }
 
@@ -42,18 +42,14 @@ func (c *Container) Handle() string {
 func (c *Container) Stop(kill bool) error {
 	ctx := context.Background()
 
-	if kill {
-		err := c.containerStopper.UngracefullyStop(ctx, c.container)
-		if err != nil {
-			return fmt.Errorf("ungraceful stop: %w", err)
-		}
-
-		return nil
+	task, err := c.container.Task(ctx, cio.Load)
+	if err != nil {
+		return fmt.Errorf("task lookup: %w", err)
 	}
 
-	err := c.containerStopper.GracefullyStop(ctx, c.container)
+	err = c.killer.Kill(ctx, task, kill)
 	if err != nil {
-		return fmt.Errorf("graceful stop: %w", err)
+		return fmt.Errorf("ungraceful stop: %w", err)
 	}
 
 	return nil

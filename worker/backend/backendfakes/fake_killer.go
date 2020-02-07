@@ -10,11 +10,12 @@ import (
 )
 
 type FakeKiller struct {
-	KillStub        func(context.Context, containerd.Task) error
+	KillStub        func(context.Context, containerd.Task, bool) error
 	killMutex       sync.RWMutex
 	killArgsForCall []struct {
 		arg1 context.Context
 		arg2 containerd.Task
+		arg3 bool
 	}
 	killReturns struct {
 		result1 error
@@ -26,17 +27,18 @@ type FakeKiller struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeKiller) Kill(arg1 context.Context, arg2 containerd.Task) error {
+func (fake *FakeKiller) Kill(arg1 context.Context, arg2 containerd.Task, arg3 bool) error {
 	fake.killMutex.Lock()
 	ret, specificReturn := fake.killReturnsOnCall[len(fake.killArgsForCall)]
 	fake.killArgsForCall = append(fake.killArgsForCall, struct {
 		arg1 context.Context
 		arg2 containerd.Task
-	}{arg1, arg2})
-	fake.recordInvocation("Kill", []interface{}{arg1, arg2})
+		arg3 bool
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Kill", []interface{}{arg1, arg2, arg3})
 	fake.killMutex.Unlock()
 	if fake.KillStub != nil {
-		return fake.KillStub(arg1, arg2)
+		return fake.KillStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -51,17 +53,17 @@ func (fake *FakeKiller) KillCallCount() int {
 	return len(fake.killArgsForCall)
 }
 
-func (fake *FakeKiller) KillCalls(stub func(context.Context, containerd.Task) error) {
+func (fake *FakeKiller) KillCalls(stub func(context.Context, containerd.Task, bool) error) {
 	fake.killMutex.Lock()
 	defer fake.killMutex.Unlock()
 	fake.KillStub = stub
 }
 
-func (fake *FakeKiller) KillArgsForCall(i int) (context.Context, containerd.Task) {
+func (fake *FakeKiller) KillArgsForCall(i int) (context.Context, containerd.Task, bool) {
 	fake.killMutex.RLock()
 	defer fake.killMutex.RUnlock()
 	argsForCall := fake.killArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeKiller) KillReturns(result1 error) {
