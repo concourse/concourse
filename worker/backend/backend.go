@@ -162,7 +162,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (garden.Container, error)
 		return nil, fmt.Errorf("new container: %w", err)
 	}
 
-	task, err := cont.NewTask(ctx, cio.NullIO)
+	task, err := cont.NewTask(ctx, cio.NullIO, containerd.WithNoNewKeyring)
 	if err != nil {
 		return nil, fmt.Errorf("new task: %w", err)
 	}
