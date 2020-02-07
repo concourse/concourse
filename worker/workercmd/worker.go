@@ -44,7 +44,7 @@ type WorkerCommand struct {
 	VolumeSweeperMaxInFlight    uint16        `long:"volume-sweeper-max-in-flight" default:"3" description:"Maximum number of volumes which can be swept in parallel."`
 	ContainerSweeperMaxInFlight uint16        `long:"container-sweeper-max-in-flight" default:"5" description:"Maximum number of containers which can be swept in parallel."`
 
-	RebalanceInterval time.Duration `long:"rebalance-interval" description:"Duration after which the registration should be swapped to another random SSH gateway."`
+	RebalanceInterval time.Duration `long:"rebalance-interval" default:"4h" description:"Duration after which the registration should be swapped to another random SSH gateway."`
 
 	ConnectionDrainTimeout time.Duration `long:"connection-drain-timeout" default:"1h" description:"Duration after which a worker should give up draining forwarded connections on shutdown."`
 

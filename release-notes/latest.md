@@ -44,3 +44,7 @@ overlapping paths.
 
 Certain payloads could make Concourse return internal errors due to possible
 errors from the library we used before.
+
+#### <sub><sup><a name="4847" href="#4847">:link:</a></sup></sub> fix
+
+* Set a default value of `4h` for `rebalance-interval`. Previously, this value was unset. With the new default, the workers will reconnect to a randomly selected TSA (SSH Gateway) every 4h.
