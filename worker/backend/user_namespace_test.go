@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type MappingSuite struct {
+type UserNamespaceSuite struct {
 	suite.Suite
 	*require.Assertions
 }
 
-func (s *MappingSuite) TestMaxValid() {
+func (s *UserNamespaceSuite) TestMaxValid() {
 	for _, tc := range []struct {
 		desc      string
 		input     string

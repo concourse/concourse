@@ -14,7 +14,8 @@ func TestSuite(t *testing.T) {
 	suite.Run(t, &ContainerSuite{Assertions: require.New(t)})
 	suite.Run(t, &FileStoreSuite{Assertions: require.New(t)})
 	suite.Run(t, &KillerSuite{Assertions: require.New(t)})
-	suite.Run(t, &MappingSuite{Assertions: require.New(t)})
+	suite.Run(t, &ProcessKillerSuite{Assertions: require.New(t)})
 	suite.Run(t, &ProcessSuite{Assertions: require.New(t)})
 	suite.Run(t, &RootfsManagerSuite{Assertions: require.New(t)})
+	suite.Run(t, &UserNamespaceSuite{Assertions: require.New(t)})
 }
