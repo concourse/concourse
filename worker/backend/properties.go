@@ -9,6 +9,18 @@ import (
 // propertiesToFilterList converts a set of garden properties to a list of
 // filters as expected by containerd.
 //
+// containerd filters are in the form of
+//
+//           <what>.<field><operator><value>
+//
+// which, in our very specific case of properties, means
+//
+//           labels.foo==bar
+//           |      |  | value
+//           |      |  equality
+//           |      key
+//           what
+//
 func propertiesToFilterList(properties garden.Properties) (filters []string, err error) {
 	filters = make([]string, len(properties))
 
