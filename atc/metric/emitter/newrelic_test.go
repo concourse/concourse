@@ -31,7 +31,6 @@ var _ = Describe("NewRelicEmitter", func() {
 		testEvent = metric.Event{
 			Name:  "build started",
 			Value: 1,
-			State: metric.EventStateOK,
 		}
 
 		testLogger = lager.NewLogger("newrelic")
@@ -171,7 +170,6 @@ func verifyEvents(expectedEvents int) http.HandlerFunc {
 		for _, event := range events {
 			Expect(event["eventType"]).To(Equal("build_started"))
 			Expect(event["value"]).To(Equal(float64(1)))
-			Expect(event["state"]).To(Equal("ok"))
 		}
 
 		writer.WriteHeader(http.StatusOK)

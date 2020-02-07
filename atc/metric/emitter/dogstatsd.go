@@ -91,7 +91,6 @@ func (emitter *DogstatsdEmitter) Emit(logger lager.Logger, event metric.Event) {
 
 	tags := []string{
 		fmt.Sprintf("host:%s", event.Host),
-		fmt.Sprintf("state:%s", event.State),
 	}
 
 	for k, v := range event.Attributes {

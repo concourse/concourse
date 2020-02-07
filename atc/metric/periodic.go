@@ -33,7 +33,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "database queries",
 			Value: DatabaseQueries.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -44,7 +43,6 @@ func tick(logger lager.Logger) {
 				Event{
 					Name:  "database connections",
 					Value: database.Stats().OpenConnections,
-					State: EventStateOK,
 					Attributes: map[string]string{
 						"ConnectionName": database.Name(),
 					},
@@ -58,7 +56,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "containers deleted",
 			Value: ContainersDeleted.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -67,7 +64,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "volumes deleted",
 			Value: VolumesDeleted.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -76,7 +72,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "checks deleted",
 			Value: ChecksDeleted.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -85,7 +80,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "containers created",
 			Value: ContainersCreated.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -94,7 +88,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "volumes created",
 			Value: VolumesCreated.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -103,7 +96,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "failed containers",
 			Value: FailedContainers.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -112,7 +104,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "failed volumes",
 			Value: FailedVolumes.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -124,7 +115,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "gc pause total duration",
 			Value: int(memStats.PauseTotalNs),
-			State: EventStateOK,
 		},
 	)
 
@@ -133,7 +123,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "mallocs",
 			Value: int(memStats.Mallocs),
-			State: EventStateOK,
 		},
 	)
 
@@ -142,7 +131,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "frees",
 			Value: int(memStats.Frees),
-			State: EventStateOK,
 		},
 	)
 
@@ -151,7 +139,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "goroutines",
 			Value: int(runtime.NumGoroutine()),
-			State: EventStateOK,
 		},
 	)
 }

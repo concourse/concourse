@@ -34,7 +34,6 @@ func (event BuildCollectorDuration) Emit(logger lager.Logger) {
 		Event{
 			Name:  "gc: build collector duration (ms)",
 			Value: ms(event.Duration),
-			State: EventStateOK,
 		},
 	)
 }
@@ -49,7 +48,6 @@ func (event WorkerCollectorDuration) Emit(logger lager.Logger) {
 		Event{
 			Name:  "gc: worker collector duration (ms)",
 			Value: ms(event.Duration),
-			State: EventStateOK,
 		},
 	)
 }
@@ -64,7 +62,6 @@ func (event ResourceCacheUseCollectorDuration) Emit(logger lager.Logger) {
 		Event{
 			Name:  "gc: resource cache use collector duration (ms)",
 			Value: ms(event.Duration),
-			State: EventStateOK,
 		},
 	)
 }
@@ -79,7 +76,6 @@ func (event ResourceConfigCollectorDuration) Emit(logger lager.Logger) {
 		Event{
 			Name:  "gc: resource config collector duration (ms)",
 			Value: ms(event.Duration),
-			State: EventStateOK,
 		},
 	)
 }
@@ -94,7 +90,6 @@ func (event ResourceCacheCollectorDuration) Emit(logger lager.Logger) {
 		Event{
 			Name:  "gc: resource cache collector duration (ms)",
 			Value: ms(event.Duration),
-			State: EventStateOK,
 		},
 	)
 }
@@ -109,7 +104,6 @@ func (event ResourceConfigCheckSessionCollectorDuration) Emit(logger lager.Logge
 		Event{
 			Name:  "gc: resource config check session collector duration (ms)",
 			Value: ms(event.Duration),
-			State: EventStateOK,
 		},
 	)
 }
@@ -124,7 +118,6 @@ func (event ArtifactCollectorDuration) Emit(logger lager.Logger) {
 		Event{
 			Name:  "gc: artifact collector duration (ms)",
 			Value: ms(event.Duration),
-			State: EventStateOK,
 		},
 	)
 }
@@ -139,7 +132,6 @@ func (event ContainerCollectorDuration) Emit(logger lager.Logger) {
 		Event{
 			Name:  "gc: container collector duration (ms)",
 			Value: ms(event.Duration),
-			State: EventStateOK,
 		},
 	)
 }
@@ -154,7 +146,6 @@ func (event VolumeCollectorDuration) Emit(logger lager.Logger) {
 		Event{
 			Name:  "gc: volume collector duration (ms)",
 			Value: ms(event.Duration),
-			State: EventStateOK,
 		},
 	)
 }
@@ -172,7 +163,6 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 		Event{
 			Name:  "scheduling: job duration (ms)",
 			Value: ms(event.Duration),
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"pipeline": event.PipelineName,
 				"job":      event.JobName,
@@ -196,7 +186,6 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 		Event{
 			Name:  "worker containers",
 			Value: event.Containers,
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"worker":    event.WorkerName,
 				"platform":  event.Platform,
@@ -218,7 +207,6 @@ func (event WorkerUnknownContainers) Emit(logger lager.Logger) {
 		Event{
 			Name:  "worker unknown containers",
 			Value: event.Containers,
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"worker": event.WorkerName,
 			},
@@ -240,7 +228,6 @@ func (event WorkerVolumes) Emit(logger lager.Logger) {
 		Event{
 			Name:  "worker volumes",
 			Value: event.Volumes,
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"worker":    event.WorkerName,
 				"platform":  event.Platform,
@@ -262,7 +249,6 @@ func (event WorkerUnknownVolumes) Emit(logger lager.Logger) {
 		Event{
 			Name:  "worker unknown volumes",
 			Value: event.Volumes,
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"worker": event.WorkerName,
 			},
@@ -282,7 +268,6 @@ func (event WorkerTasks) Emit(logger lager.Logger) {
 		Event{
 			Name:  "worker tasks",
 			Value: event.Tasks,
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"worker":   event.WorkerName,
 				"platform": event.Platform,
@@ -301,7 +286,6 @@ func (event VolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 		Event{
 			Name:       "orphaned volumes to be garbage collected",
 			Value:      event.Volumes,
-			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
 	)
@@ -317,7 +301,6 @@ func (event CreatingContainersToBeGarbageCollected) Emit(logger lager.Logger) {
 		Event{
 			Name:       "creating containers to be garbage collected",
 			Value:      event.Containers,
-			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
 	)
@@ -333,7 +316,6 @@ func (event CreatedContainersToBeGarbageCollected) Emit(logger lager.Logger) {
 		Event{
 			Name:       "created containers to be garbage collected",
 			Value:      event.Containers,
-			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
 	)
@@ -349,7 +331,6 @@ func (event DestroyingContainersToBeGarbageCollected) Emit(logger lager.Logger) 
 		Event{
 			Name:       "destroying containers to be garbage collected",
 			Value:      event.Containers,
-			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
 	)
@@ -365,7 +346,6 @@ func (event FailedContainersToBeGarbageCollected) Emit(logger lager.Logger) {
 		Event{
 			Name:       "failed containers to be garbage collected",
 			Value:      event.Containers,
-			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
 	)
@@ -381,7 +361,6 @@ func (event CreatedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 		Event{
 			Name:       "created volumes to be garbage collected",
 			Value:      event.Volumes,
-			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
 	)
@@ -397,7 +376,6 @@ func (event DestroyingVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 		Event{
 			Name:       "destroying volumes to be garbage collected",
 			Value:      event.Volumes,
-			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
 	)
@@ -413,7 +391,6 @@ func (event FailedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 		Event{
 			Name:       "failed volumes to be garbage collected",
 			Value:      event.Volumes,
-			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
 	)
@@ -429,7 +406,6 @@ func (event GarbageCollectionContainerCollectorJobDropped) Emit(logger lager.Log
 		Event{
 			Name:  "GC container collector job dropped",
 			Value: 1,
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"worker": event.WorkerName,
 			},
@@ -451,7 +427,6 @@ func (event BuildStarted) Emit(logger lager.Logger) {
 		Event{
 			Name:  "build started",
 			Value: event.BuildID,
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"pipeline":   event.PipelineName,
 				"job":        event.JobName,
@@ -479,7 +454,6 @@ func (event BuildFinished) Emit(logger lager.Logger) {
 		Event{
 			Name:  "build finished",
 			Value: ms(event.BuildDuration),
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"pipeline":     event.PipelineName,
 				"job":          event.JobName,
@@ -507,7 +481,6 @@ func (e ErrorLog) Emit(logger lager.Logger) {
 		Event{
 			Name:  "error log",
 			Value: e.Value,
-			State: EventStateWarning,
 			Attributes: map[string]string{
 				"message": e.Message,
 			},
@@ -524,22 +497,11 @@ type HTTPResponseTime struct {
 }
 
 func (event HTTPResponseTime) Emit(logger lager.Logger) {
-	state := EventStateOK
-
-	if event.Duration > 100*time.Millisecond {
-		state = EventStateWarning
-	}
-
-	if event.Duration > 1*time.Second {
-		state = EventStateCritical
-	}
-
 	emit(
 		logger.Session("http-response-time"),
 		Event{
 			Name:  "http response time",
 			Value: ms(event.Duration),
-			State: state,
 			Attributes: map[string]string{
 				"route":  event.Route,
 				"path":   event.Path,
@@ -558,16 +520,11 @@ type ResourceCheck struct {
 }
 
 func (event ResourceCheck) Emit(logger lager.Logger) {
-	state := EventStateOK
-	if !event.Success {
-		state = EventStateWarning
-	}
 	emit(
 		logger.Session("resource-check"),
 		Event{
 			Name:  "resource checked",
 			Value: 1,
-			State: state,
 			Attributes: map[string]string{
 				"pipeline":  event.PipelineName,
 				"resource":  event.ResourceName,
@@ -590,7 +547,6 @@ func (event CheckStarted) Emit(logger lager.Logger) {
 		Event{
 			Name:  "check started",
 			Value: ms(event.CheckPendingDuration),
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"scope_id":     strconv.Itoa(event.ResourceConfigScopeID),
 				"check_name":   event.CheckName,
@@ -613,7 +569,6 @@ func (event CheckFinished) Emit(logger lager.Logger) {
 		Event{
 			Name:  "check finished",
 			Value: ms(event.CheckDuration),
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"scope_id":     strconv.Itoa(event.ResourceConfigScopeID),
 				"check_name":   event.CheckName,
@@ -634,7 +589,6 @@ func (event CheckEnqueue) Emit(logger lager.Logger) {
 		Event{
 			Name:  "check enqueued",
 			Value: 1,
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"scope_id":   strconv.Itoa(event.ResourceConfigScopeID),
 				"check_name": event.CheckName,
@@ -653,7 +607,6 @@ func (event CheckQueueSize) Emit(logger lager.Logger) {
 		Event{
 			Name:       "check queue size",
 			Value:      event.Checks,
-			State:      EventStateOK,
 			Attributes: map[string]string{},
 		},
 	)
@@ -681,7 +634,6 @@ func (event LockAcquired) Emit(logger lager.Logger) {
 		Event{
 			Name:  "lock held",
 			Value: 1,
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"type": event.LockType,
 			},
@@ -699,7 +651,6 @@ func (event LockReleased) Emit(logger lager.Logger) {
 		Event{
 			Name:  "lock held",
 			Value: 0,
-			State: EventStateOK,
 			Attributes: map[string]string{
 				"type": event.LockType,
 			},
@@ -736,8 +687,6 @@ type WorkersState struct {
 }
 
 func (event WorkersState) Emit(logger lager.Logger) {
-	var eventState EventState
-
 	for _, state := range db.AllWorkerStates() {
 		count := 0
 		for _, workerState := range event.WorkerStateByName {
@@ -746,18 +695,11 @@ func (event WorkersState) Emit(logger lager.Logger) {
 			}
 		}
 
-		if state == db.WorkerStateStalled && count > 0 {
-			eventState = EventStateWarning
-		} else {
-			eventState = EventStateOK
-		}
-
 		emit(
 			logger.Session("worker-state"),
 			Event{
 				Name:  "worker state",
 				Value: count,
-				State: eventState,
 				Attributes: map[string]string{
 					"state": string(state),
 				},
