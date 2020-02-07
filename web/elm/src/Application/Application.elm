@@ -119,7 +119,7 @@ locationMsg url =
 handleCallback : Callback -> Model -> ( Model, List Effect )
 handleCallback callback model =
     case callback of
-        BuildTriggered (Err err) ->
+        ApiResponse (RouteJobBuilds _ _) POST (Err err) ->
             redirectToLoginIfNecessary err ( model, [] )
 
         BuildAborted (Err err) ->

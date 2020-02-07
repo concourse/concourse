@@ -135,6 +135,26 @@ jobId =
     }
 
 
+job : Concourse.Job
+job =
+    { name = "j"
+    , pipelineName = "p"
+    , teamName = "t"
+    , pipeline =
+        { pipelineName = "p"
+        , teamName = "t"
+        }
+    , nextBuild = Nothing
+    , finishedBuild = Nothing
+    , transitionBuild = Nothing
+    , paused = False
+    , disableManualTrigger = False
+    , inputs = []
+    , outputs = []
+    , groups = []
+    }
+
+
 jobBuild : BuildStatus.BuildStatus -> Concourse.Build
 jobBuild status =
     { id = 1

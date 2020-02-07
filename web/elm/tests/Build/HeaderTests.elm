@@ -121,6 +121,28 @@ all =
                                         , tooltip = True
                                         }
                                 )
+                , test "changes URL on triggering" <|
+                    \_ ->
+                        ( { model
+                            | status = BuildStatusSucceeded
+                            , job = Just jobId
+                          }
+                        , []
+                        )
+                            |> Header.handleCallback
+                                (Callback.ApiResponse
+                                    (Callback.RouteJobBuilds jobId Nothing)
+                                    Callback.POST
+                                    (Ok <|
+                                        Callback.Build
+                                            { build | id = 1, name = "1" }
+                                    )
+                                )
+                            |> Tuple.second
+                            |> Common.contains
+                                (Effects.NavigateTo
+                                    "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                                )
                 ]
             , describe "re-run"
                 [ test "does not appear on non-running one-off build" <|
@@ -188,6 +210,36 @@ all =
                                     , buildName = model.name
                                     }
                                 )
+                , test "re-run build appears in the correct spot" <|
+                    \_ ->
+                        ( model, [] )
+                            |> Header.handleCallback
+                                (Callback.BuildHistoryFetched <|
+                                    Ok
+                                        { content =
+                                            [ { build | name = "4" }
+                                            , { build | id = 1, name = "0" }
+                                            ]
+                                        , pagination =
+                                            { previousPage = Nothing
+                                            , nextPage = Nothing
+                                            }
+                                        }
+                                )
+                            |> Header.handleCallback
+                                (Callback.ApiResponse
+                                    (Callback.RouteJobBuilds jobId Nothing)
+                                    Callback.POST
+                                    (Ok <|
+                                        Callback.Build
+                                            { build | id = 2, name = "0.1" }
+                                    )
+                                )
+                            |> Tuple.first
+                            |> Header.header session
+                            |> .tabs
+                            |> List.map .name
+                            |> Expect.equal [ "4", "0.1", "0" ]
                 ]
             ]
         , test "stops fetching history once current build appears" <|
@@ -215,29 +267,6 @@ all =
                             (Callback.RouteJobBuilds jobId Nothing)
                             Callback.GET
                         )
-        , test "re-run build appears in the correct spot" <|
-            \_ ->
-                ( model, [] )
-                    |> Header.handleCallback
-                        (Callback.BuildHistoryFetched <|
-                            Ok
-                                { content =
-                                    [ { build | name = "4" }
-                                    , { build | id = 1, name = "0" }
-                                    ]
-                                , pagination =
-                                    { previousPage = Nothing
-                                    , nextPage = Nothing
-                                    }
-                                }
-                        )
-                    |> Header.handleCallback
-                        (Callback.BuildTriggered <| Ok { build | id = 2, name = "0.1" })
-                    |> Tuple.first
-                    |> Header.header session
-                    |> .tabs
-                    |> List.map .name
-                    |> Expect.equal [ "4", "0.1", "0" ]
         , test "updates duration on finishing status event" <|
             \_ ->
                 ( model, [] )

@@ -443,7 +443,7 @@ handleCallback callback ( model, effects ) =
         BuildFetched (Ok b) ->
             handleBuildFetched b ( model, effects )
 
-        BuildTriggered (Ok b) ->
+        ApiResponse (RouteJobBuilds _ _) POST (Ok (Build b)) ->
             ( { model
                 | history =
                     ({ id = b.id
@@ -471,7 +471,10 @@ handleCallback callback ( model, effects ) =
                         |> List.reverse
               }
             , effects
-                ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute b.id b.name model.job ]
+                ++ [ NavigateTo <|
+                        Routes.toString <|
+                            Routes.buildRoute b.id b.name model.job
+                   ]
             )
 
         ApiResponse (RouteJobBuilds _ _) GET (Ok (Builds history)) ->

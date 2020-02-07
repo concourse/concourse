@@ -162,7 +162,7 @@ getUpdateMessage model =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
-        BuildTriggered (Ok build) ->
+        ApiResponse (RouteJobBuilds _ _) POST (Ok (Callback.Build build)) ->
             ( model
             , case build.job of
                 Nothing ->

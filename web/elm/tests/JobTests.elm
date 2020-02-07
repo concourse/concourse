@@ -6,6 +6,7 @@ import Concourse exposing (Build, BuildId, Job)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests exposing (darkGrey, iconSelector, middleGrey)
+import Data
 import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
@@ -521,6 +522,58 @@ all =
                     }
                 , hoverable = Message.Message.TriggerBuildButton
                 }
+            , test "successfully triggering build redirects to new build" <|
+                \_ ->
+                    Common.init "/teams/t/pipelines/p/jobs/j"
+                        |> Application.handleCallback
+                            (ApiResponse
+                                (Callback.RouteJob Data.jobId)
+                                Callback.GET
+                                (Ok <| Callback.Job Data.job)
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.ApiResponse
+                                (Callback.RouteJobBuilds Data.jobId Nothing)
+                                Callback.POST
+                                (Ok <|
+                                    Callback.Build <|
+                                        Data.jobBuild BuildStatusPending
+                                )
+                            )
+                        |> Tuple.second
+                        |> Common.contains
+                            (Effects.NavigateTo
+                                "/teams/t/pipelines/p/jobs/j/builds/1"
+                            )
+            , test "redirects to login when triggering gives 401" <|
+                \_ ->
+                    Common.init "/teams/t/pipelines/p/jobs/j"
+                        |> Application.handleCallback
+                            (ApiResponse
+                                (Callback.RouteJob Data.jobId)
+                                Callback.GET
+                                (Ok <| Callback.Job Data.job)
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.ApiResponse
+                                (Callback.RouteJobBuilds Data.jobId Nothing)
+                                Callback.POST
+                                (Err <|
+                                    Http.BadStatus
+                                        { url = "http://example.com"
+                                        , status =
+                                            { code = 401
+                                            , message = ""
+                                            }
+                                        , headers = Dict.empty
+                                        , body = ""
+                                        }
+                                )
+                            )
+                        |> Tuple.second
+                        |> Common.contains Effects.RedirectToLogin
             , test "page below top bar fills height without scrolling" <|
                 init { disabled = False, paused = False }
                     >> queryView

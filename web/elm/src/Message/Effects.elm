@@ -341,11 +341,25 @@ runEffect effect key csrfToken =
 
         DoTriggerBuild id ->
             Network.Job.triggerBuild id csrfToken
-                |> Task.attempt BuildTriggered
+                |> Task.attempt
+                    (Result.map Build
+                        >> ApiResponse (RouteJobBuilds id Nothing) POST
+                    )
 
         RerunJobBuild id ->
             Network.Job.rerunJobBuild id csrfToken
-                |> Task.attempt BuildTriggered
+                |> Task.attempt
+                    (Result.map Build
+                        >> ApiResponse
+                            (RouteJobBuilds
+                                { teamName = id.teamName
+                                , pipelineName = id.pipelineName
+                                , jobName = id.jobName
+                                }
+                                Nothing
+                            )
+                            POST
+                    )
 
         PauseJob id ->
             Network.Job.pause id csrfToken
