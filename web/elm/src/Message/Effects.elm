@@ -23,6 +23,7 @@ import Message.Callback
     exposing
         ( ApiEntity(..)
         , Callback(..)
+        , HttpMethod(..)
         , Route(..)
         , TooltipPolicy(..)
         )
@@ -119,7 +120,7 @@ stickyHeaderConfig =
 
 
 type Effect
-    = ApiCall Route
+    = ApiCall Route HttpMethod
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
     | FetchVersionedResources Concourse.ResourceIdentifier (Maybe Page)
@@ -227,13 +228,6 @@ toUrl route =
                 (Network.Pagination.params page)
 
 
-method : Route -> String
-method route =
-    case route of
-        _ ->
-            "GET"
-
-
 expect : Route -> Http.Expect ApiEntity
 expect route =
     case route of
@@ -257,9 +251,15 @@ expect route =
 runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
 runEffect effect key csrfToken =
     case effect of
-        ApiCall route ->
+        ApiCall route method ->
             Http.request
-                { method = method route
+                { method =
+                    case method of
+                        GET ->
+                            "GET"
+
+                        POST ->
+                            "POST"
                 , url = toUrl route
                 , headers =
                     [ Http.header Concourse.csrfTokenHeaderName csrfToken ]

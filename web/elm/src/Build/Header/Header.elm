@@ -21,7 +21,13 @@ import HoverState
 import Html exposing (Html)
 import List.Extra
 import Maybe.Extra
-import Message.Callback exposing (ApiEntity(..), Callback(..), Route(..))
+import Message.Callback
+    exposing
+        ( ApiEntity(..)
+        , Callback(..)
+        , HttpMethod(..)
+        , Route(..)
+        )
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription
@@ -291,7 +297,7 @@ handleDelivery delivery ( model, effects ) =
                     if needsToFetchMorePages then
                         ( { model | fetchingHistory = True }
                         , effects
-                            ++ [ ApiCall (RouteJobBuilds job model.nextPage) ]
+                            ++ [ ApiCall (RouteJobBuilds job model.nextPage) GET ]
                         )
 
                     else
@@ -553,8 +559,9 @@ handleHistoryFetched history ( model, effects ) =
             else
                 ( { newModel | fetchingHistory = True }
                 , effects
-                    ++ [ ApiCall <|
-                            RouteJobBuilds job history.pagination.nextPage
+                    ++ [ ApiCall
+                            (RouteJobBuilds job history.pagination.nextPage)
+                            GET
                        ]
                 )
 

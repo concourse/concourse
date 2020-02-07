@@ -44,7 +44,12 @@ import Html.Events
 import Http
 import Job.Styles as Styles
 import Login.Login as Login
-import Message.Callback as Callback exposing (Callback(..), Route(..))
+import Message.Callback as Callback
+    exposing
+        ( Callback(..)
+        , HttpMethod(..)
+        , Route(..)
+        )
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(..))
@@ -111,8 +116,8 @@ init flags =
             }
     in
     ( model
-    , [ ApiCall (RouteJob flags.jobId)
-      , ApiCall (RouteJobBuilds flags.jobId flags.paging)
+    , [ ApiCall (RouteJob flags.jobId) GET
+      , ApiCall (RouteJobBuilds flags.jobId flags.paging) GET
       , GetCurrentTime
       , GetCurrentTimeZone
       , FetchAllPipelines
@@ -132,7 +137,8 @@ changeToJob flags ( model, effects ) =
                 }
             }
       }
-    , effects ++ [ ApiCall (RouteJobBuilds model.jobIdentifier flags.paging) ]
+    , effects
+        ++ [ ApiCall (RouteJobBuilds model.jobIdentifier flags.paging) GET ]
     )
 
 
@@ -246,8 +252,10 @@ handleDelivery delivery ( model, effects ) =
         ClockTicked FiveSeconds _ ->
             ( model
             , effects
-                ++ [ ApiCall (RouteJobBuilds model.jobIdentifier model.currentPage)
-                   , ApiCall (RouteJob model.jobIdentifier)
+                ++ [ ApiCall
+                        (RouteJobBuilds model.jobIdentifier model.currentPage)
+                        GET
+                   , ApiCall (RouteJob model.jobIdentifier) GET
                    , FetchAllPipelines
                    ]
             )

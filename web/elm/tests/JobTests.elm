@@ -208,8 +208,9 @@ all =
                             }
                             |> Tuple.second
                             |> Common.contains
-                                (Effects.ApiCall <|
-                                    Callback.RouteJob jobIdentifier
+                                (Effects.ApiCall
+                                    (Callback.RouteJob jobIdentifier)
+                                    Callback.GET
                                 )
                 , test "fetches builds" <|
                     \_ ->
@@ -229,8 +230,9 @@ all =
                             }
                             |> Tuple.second
                             |> Common.contains
-                                (Effects.ApiCall <|
-                                    Callback.RouteJobBuilds jobIdentifier Nothing
+                                (Effects.ApiCall
+                                    (Callback.RouteJobBuilds jobIdentifier Nothing)
+                                    Callback.GET
                                 )
                 , test "fetches builds when changing pages" <|
                     \_ ->
@@ -245,12 +247,13 @@ all =
                             |> Application.handleDelivery
                                 (Subscription.RouteChanged <|
                                     Routes.Job
-                                        { id = jobIdentifier , page = page }
+                                        { id = jobIdentifier, page = page }
                                 )
                             |> Tuple.second
                             |> Common.contains
-                                (Effects.ApiCall <|
-                                    Callback.RouteJobBuilds jobIdentifier page
+                                (Effects.ApiCall
+                                    (Callback.RouteJobBuilds jobIdentifier page)
+                                    Callback.GET
                                 )
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
@@ -1073,11 +1076,13 @@ all =
                     >> Tuple.second
                     >> Expect.all
                         [ Common.contains <|
-                            Effects.ApiCall <|
-                                Callback.RouteJobBuilds jobIdentifier Nothing
+                            Effects.ApiCall
+                                (Callback.RouteJobBuilds jobIdentifier Nothing)
+                                Callback.GET
                         , Common.contains <|
-                            Effects.ApiCall <|
-                                Callback.RouteJob jobIdentifier
+                            Effects.ApiCall
+                                (Callback.RouteJob jobIdentifier)
+                                Callback.GET
                         ]
             , test "on one-second timer, updates build timestamps" <|
                 init { disabled = False, paused = False }

@@ -1358,21 +1358,25 @@ all =
                     >> Tuple.second
                     >> Expect.all
                         [ Common.contains
-                            (Effects.ApiCall <|
-                                Callback.RouteJobBuilds
+                            (Effects.ApiCall
+                                (Callback.RouteJobBuilds
                                     { teamName = "t"
                                     , pipelineName = "p"
                                     , jobName = "j"
                                     }
                                     Nothing
+                                )
+                                Callback.GET
                             )
                         , Common.contains
-                            (Effects.ApiCall <|
-                                Callback.RouteJob
+                            (Effects.ApiCall
+                                (Callback.RouteJob
                                     { teamName = "t"
                                     , pipelineName = "p"
                                     , jobName = "j"
                                     }
+                                )
+                                Callback.GET
                             )
                         ]
             , test "header is 60px tall" <|
@@ -1958,13 +1962,15 @@ all =
                             (Subscription.ElementVisible ( "1", True ))
                         >> Tuple.second
                         >> Expect.equal
-                            [ Effects.ApiCall <|
-                                Callback.RouteJobBuilds
+                            [ Effects.ApiCall
+                                (Callback.RouteJobBuilds
                                     { teamName = "t"
                                     , pipelineName = "p"
                                     , jobName = "j"
                                     }
                                     (Just { direction = Until 1, limit = 100 })
+                                )
+                                Callback.GET
                             ]
                 , test "scrolling to last build while fetching fetches no more" <|
                     givenBuildFetched
@@ -2075,13 +2081,15 @@ all =
                             )
                         >> Tuple.second
                         >> Common.notContains
-                            (Effects.ApiCall <|
-                                Callback.RouteJobBuilds
+                            (Effects.ApiCall
+                                (Callback.RouteJobBuilds
                                     { teamName = "t"
                                     , pipelineName = "p"
                                     , jobName = "j"
                                     }
                                     (Just { direction = Until 2, limit = 100 })
+                                )
+                                Callback.GET
                             )
                 , test "if build is present in history, checks its visibility" <|
                     givenBuildFetched
@@ -2220,13 +2228,15 @@ all =
                             )
                         >> Tuple.second
                         >> Expect.equal
-                            [ Effects.ApiCall <|
-                                Callback.RouteJobBuilds
+                            [ Effects.ApiCall
+                                (Callback.RouteJobBuilds
                                     { teamName = "t"
                                     , pipelineName = "p"
                                     , jobName = "j"
                                     }
                                     (Just { direction = Until 2, limit = 100 })
+                                )
+                                Callback.GET
                             ]
                 , test "trigger build button is styled as a box of the color of the build status" <|
                     givenHistoryAndDetailsFetched

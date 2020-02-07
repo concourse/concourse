@@ -210,8 +210,9 @@ all =
                         )
                     |> Tuple.second
                     |> Common.notContains
-                        (Effects.ApiCall <|
-                            Callback.RouteJobBuilds jobId Nothing
+                        (Effects.ApiCall
+                            (Callback.RouteJobBuilds jobId Nothing)
+                            Callback.GET
                         )
         , test "re-run build appears in the correct spot" <|
             \_ ->

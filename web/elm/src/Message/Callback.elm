@@ -1,8 +1,9 @@
 module Message.Callback exposing
     ( ApiEntity(..)
     , Callback(..)
-    , TooltipPolicy(..)
+    , HttpMethod(..)
     , Route(..)
+    , TooltipPolicy(..)
     )
 
 import Browser.Dom
@@ -28,6 +29,11 @@ type Route
     = RouteJob Concourse.JobIdentifier
     | RouteJobs Concourse.PipelineIdentifier
     | RouteJobBuilds Concourse.JobIdentifier (Maybe Page)
+
+
+type HttpMethod
+    = GET
+    | POST
 
 
 type ApiEntity

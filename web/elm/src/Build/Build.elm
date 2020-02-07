@@ -48,6 +48,7 @@ import Maybe.Extra
 import Message.Callback as Callback
     exposing
         ( Callback(..)
+        , HttpMethod(..)
         , Route(..)
         , TooltipPolicy(..)
         )
@@ -520,8 +521,8 @@ handleBuildFetched build ( model, effects ) =
         fetchJobAndHistory =
             case ( model.job, build.job ) of
                 ( Nothing, Just buildJob ) ->
-                    [ ApiCall (RouteJob buildJob)
-                    , ApiCall (RouteJobBuilds buildJob Nothing)
+                    [ ApiCall (RouteJob buildJob) GET
+                    , ApiCall (RouteJobBuilds buildJob Nothing) GET
                     ]
 
                 _ ->

@@ -319,11 +319,13 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains
-                        (Effects.ApiCall <|
-                            Callback.RouteJobs
+                        (Effects.ApiCall
+                            (Callback.RouteJobs
                                 { teamName = "team"
                                 , pipelineName = "pipeline"
                                 }
+                            )
+                            Callback.GET
                         )
         , test "renders pipeline jobs after fetching jobs and resources" <|
             \_ ->

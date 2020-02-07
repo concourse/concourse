@@ -35,7 +35,13 @@ import Json.Decode
 import Json.Encode
 import Keyboard
 import Login.Login as Login
-import Message.Callback exposing (ApiEntity(..), Callback(..), Route(..))
+import Message.Callback
+    exposing
+        ( ApiEntity(..)
+        , Callback(..)
+        , HttpMethod(..)
+        , Route(..)
+        )
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription
@@ -172,7 +178,7 @@ handleCallback callback ( model, effects ) =
             ( { model | pipeline = RemoteData.Success pipeline }
             , effects
                 ++ [ FetchResources model.pipelineLocator
-                   , ApiCall <| RouteJobs model.pipelineLocator
+                   , ApiCall (RouteJobs model.pipelineLocator) GET
                    ]
             )
 
