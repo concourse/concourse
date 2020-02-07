@@ -1,3 +1,5 @@
+const loadIcons = import("./mdi-svg.min.js");
+
 var currentHighlight;
 
 var redraw;
@@ -504,14 +506,16 @@ function createGraph(svg, jobs, resources) {
 }
 
 function addIcon(iconName, nodeId) {
-  var id = nodeId + "-svg-icon";
-  if (document.getElementById(id) === null) {
-    var svg = icons.svg(iconName, id);
-    var template = document.createElement('template');
-    template.innerHTML = svg;
-    var icon = template.content.firstChild;
-    document.getElementById("icon-store").appendChild(icon)
-  }
+  loadIcons.then(() => {
+    var id = nodeId + "-svg-icon";
+    if (document.getElementById(id) === null) {
+      var svg = icons.svg(iconName, id);
+      var template = document.createElement('template');
+      template.innerHTML = svg;
+      var icon = template.content.firstChild;
+      document.getElementById("icon-store").appendChild(icon)
+    }
+  })
 }
 
 function objectIsEmpty(o) {

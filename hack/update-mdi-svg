@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "var icons = (function () {var icon_paths = {";
+echo "window.icons = (function () {var icon_paths = {";
 
 for file in $1/*.svg;
 do
