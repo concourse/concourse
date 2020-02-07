@@ -1247,6 +1247,18 @@ var _ = Describe("Pipeline", func() {
 			Expect(actualDashboard[0].Name).To(Equal(job.Name()))
 			Expect(actualDashboard[0].NextBuild).To(BeNil())
 			Expect(actualDashboard[0].FinishedBuild.ID).To(Equal(secondJobBuild.ID()))
+
+			By("returning the job inputs and outputs")
+			Expect(actualDashboard[0].Outputs).To(ConsistOf(atc.JobOutput{
+				Name:     "some-resource",
+				Resource: "some-resource",
+			}))
+			Expect(actualDashboard[0].Inputs).To(ConsistOf(atc.DashboardJobInput{
+				Name:     "some-input",
+				Resource: "some-resource",
+				Passed:   []string{"job-1", "job-2"},
+				Trigger:  true,
+			}))
 		})
 	})
 
