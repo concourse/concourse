@@ -24,6 +24,12 @@ var ContainersDeleted = &Counter{}
 var VolumesDeleted = &Counter{}
 var ChecksDeleted = &Counter{}
 
+var JobsScheduled = &Counter{}
+var JobsScheduling = &Gauge{}
+
+var BuildsStarted = &Counter{}
+var BuildsRunning = &Gauge{}
+
 type BuildCollectorDuration struct {
 	Duration time.Duration
 }

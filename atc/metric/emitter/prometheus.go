@@ -18,13 +18,18 @@ import (
 )
 
 type PrometheusEmitter struct {
+	jobsScheduled  prometheus.Counter
+	jobsScheduling prometheus.Gauge
+
+	buildsStarted prometheus.Counter
+	buildsRunning prometheus.Gauge
+
 	buildDurationsVec *prometheus.HistogramVec
 	buildsAborted     prometheus.Counter
 	buildsErrored     prometheus.Counter
 	buildsFailed      prometheus.Counter
 	buildsFinished    prometheus.Counter
 	buildsFinishedVec *prometheus.CounterVec
-	buildsStarted     prometheus.Counter
 	buildsSucceeded   prometheus.Counter
 
 	dbConnections  *prometheus.GaugeVec
@@ -113,6 +118,23 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	}, []string{"type"})
 	prometheus.MustRegister(locksHeld)
 
+	// job metrics
+	jobsScheduled := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "jobs",
+		Name:      "scheduled_total",
+		Help:      "Total number of Concourse jobs scheduled.",
+	})
+	prometheus.MustRegister(jobsScheduled)
+
+	jobsScheduling := prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "concourse",
+		Subsystem: "jobs",
+		Name:      "scheduling",
+		Help:      "Number of Concourse jobs currently being scheduled.",
+	})
+	prometheus.MustRegister(jobsScheduling)
+
 	// build metrics
 	buildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
@@ -121,6 +143,14 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Help:      "Total number of Concourse builds started.",
 	})
 	prometheus.MustRegister(buildsStarted)
+
+	buildsRunning := prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "concourse",
+		Subsystem: "builds",
+		Name:      "running",
+		Help:      "Number of Concourse builds currently running.",
+	})
+	prometheus.MustRegister(buildsRunning)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
@@ -335,13 +365,18 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	go http.Serve(listener, promhttp.Handler())
 
 	emitter := &PrometheusEmitter{
+		jobsScheduled:  jobsScheduled,
+		jobsScheduling: jobsScheduling,
+
+		buildsStarted: buildsStarted,
+		buildsRunning: buildsRunning,
+
 		buildDurationsVec: buildDurationsVec,
 		buildsAborted:     buildsAborted,
 		buildsErrored:     buildsErrored,
 		buildsFailed:      buildsFailed,
 		buildsFinished:    buildsFinished,
 		buildsFinishedVec: buildsFinishedVec,
-		buildsStarted:     buildsStarted,
 		buildsSucceeded:   buildsSucceeded,
 
 		dbConnections:  dbConnections,
@@ -389,8 +424,14 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.errorLogsMetric(logger, event)
 	case "lock held":
 		emitter.lock(logger, event)
-	case "build started":
-		emitter.buildsStarted.Inc()
+	case "jobs scheduled":
+		emitter.jobsScheduled.Add(event.Value)
+	case "jobs scheduling":
+		emitter.jobsScheduling.Set(event.Value)
+	case "builds started":
+		emitter.buildsStarted.Add(event.Value)
+	case "builds running":
+		emitter.buildsRunning.Set(event.Value)
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
 	case "worker containers":

@@ -107,6 +107,38 @@ func tick(logger lager.Logger) {
 		},
 	)
 
+	emit(
+		logger.Session("jobs-scheduled"),
+		Event{
+			Name:  "jobs scheduled",
+			Value: JobsScheduled.Delta(),
+		},
+	)
+
+	emit(
+		logger.Session("jobs-scheduling"),
+		Event{
+			Name:  "jobs scheduling",
+			Value: JobsScheduling.Max(),
+		},
+	)
+
+	emit(
+		logger.Session("builds-started"),
+		Event{
+			Name:  "builds started",
+			Value: BuildsStarted.Delta(),
+		},
+	)
+
+	emit(
+		logger.Session("builds-running"),
+		Event{
+			Name:  "builds running",
+			Value: BuildsRunning.Max(),
+		},
+	)
+
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 

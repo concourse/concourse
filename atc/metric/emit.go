@@ -91,7 +91,6 @@ func Initialize(logger lager.Logger, host string, attributes map[string]string, 
 		return nil
 	}
 
-	emitter = emitter
 	eventHost = host
 	eventAttributes = attributes
 	emissions = make(chan eventEmission, int(bufferSize))

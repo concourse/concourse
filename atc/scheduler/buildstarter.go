@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
@@ -265,6 +266,8 @@ func (s *buildStarter) tryStartNextPendingBuild(
 
 		return startResults{}, nil
 	}
+
+	metric.BuildsStarted.Inc()
 
 	return startResults{
 		started:    true,

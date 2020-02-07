@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 func NewTracker(
@@ -47,6 +48,9 @@ func (bt *Tracker) Track() error {
 		if _, exists := bt.running.LoadOrStore(b.ID(), true); !exists {
 			go func(build db.Build) {
 				defer bt.running.Delete(build.ID())
+
+				metric.BuildsRunning.Inc()
+				defer metric.BuildsRunning.Dec()
 
 				engineBuild := bt.engine.NewBuild(build)
 				engineBuild.Run(tLog.WithData(lager.Data{
