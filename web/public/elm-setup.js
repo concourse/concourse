@@ -66,26 +66,38 @@ app.ports.requestLoginRedirect.subscribe(function (message) {
 
 
 app.ports.tooltip.subscribe(function (pipelineInfo) {
-  var pipelineName = pipelineInfo[0];
-  var pipelineTeamName = pipelineInfo[1];
+  const pipelineName = pipelineInfo[0];
+  const pipelineTeamName = pipelineInfo[1];
 
-  var team = $('div[id="' + pipelineTeamName + '"]');
-  var title = team.find('.card[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name').get(0);
-
-  if(title && title.offsetWidth < title.scrollWidth){
-      title.parent().attr('data-tooltip', pipelineName);
+  const team = document.getElementById(pipelineTeamName);
+  if (team == null) {
+    return;
   }
+  const card = team.querySelector(`.card[data-pipeline-name="${pipelineName}"]`);
+  if (card == null) {
+    return;
+  }
+  const title = card.querySelector('.dashboard-pipeline-name');
+  if(title == null || title.offsetWidth >= title.scrollWidth) {
+    return;
+  }
+  title.parentNode.setAttribute('data-tooltip', pipelineName);
 });
 
 app.ports.tooltipHd.subscribe(function (pipelineInfo) {
   var pipelineName = pipelineInfo[0];
   var pipelineTeamName = pipelineInfo[1];
 
-  var title = $('.card[data-pipeline-name="' + pipelineName + '"][data-team-name="' + pipelineTeamName + '"]').find('.dashboardhd-pipeline-name');
-
-  if(title.get(0).offsetWidth < title.get(0).scrollWidth){
-      title.parent().attr('data-tooltip', pipelineName);
+  const card = document.querySelector(`.card[data-pipeline-name="${pipelineName}"][data-team-name="${pipelineTeamName}"]`);
+  if (card == null) {
+    return;
   }
+  const title = card.querySelector('.dashboardhd-pipeline-name');
+
+  if(title == null || title.offsetWidth >= title.scrollWidth){
+    return;
+  }
+  title.parentNode.setAttribute('data-tooltip', pipelineName);
 });
 
 var storageKey = "csrf_token";

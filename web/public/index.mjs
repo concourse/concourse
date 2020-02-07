@@ -232,31 +232,44 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     d3.select(svg.node().parentNode)
       .attr("viewBox", "" + (bbox.x - 20) + " " + (bbox.y - 20) + " " + (bbox.width + 40) + " " + (bbox.height + 40))
 
-    var $jobs = $(".job")
-    var jobAnimations = $jobs.clone();
-    var largestEdge = Math.max(bbox.width, bbox.height);
+    const originalJobs = [...document.querySelectorAll(".job")];
+    const jobAnimations = originalJobs.map(el => el.cloneNode(true));
+    jobAnimations.forEach(el => {
+      const foreignObject = el.querySelector('foreignObject');
+      if (foreignObject != null) {
+        removeElement(foreignObject);
+      }
+      el.classList.remove('job');
+      el.classList.add('job-animation-node');
+      el.querySelectorAll('a').forEach(removeElement);
+      if (foreignObject != null) {
+        removeElement(foreignObject);
+      }
+      el.appendChild(foreignObject);
 
-    jobAnimations.each(function(i, el){
-      var $el = $(el);
-      var $foreignObject = $el.find('foreignObject').detach();
-      $el.attr('class', $el.attr('class').replace('job', 'job-animation-node'));
-      $el.find('a').remove();
-      $el.append($foreignObject);
+      el.querySelectorAll('text').forEach(removeElement);
     });
-    jobAnimations.find("text").remove();
-    $jobs.find('.js-animation-wrapper').remove();
-    $("svg > g").prepend(jobAnimations);
-
-
-    if (largestEdge < 500) {
-      $(".animation").addClass("animation-small");
-    } else if (largestEdge < 1500) {
-      $(".animation").addClass("animation-medium");
-    } else if (largestEdge < 3000) {
-      $(".animation").addClass("animation-large");
-    } else {
-      $(".animation").addClass("animation-xlarge");
+    originalJobs.forEach(el => 
+      el.querySelectorAll('.js-animation-wrapper').forEach(removeElement)
+    );
+    const canvas = document.querySelector('svg > g');
+    if (canvas != null) {
+      canvas.prepend(...jobAnimations);
     }
+
+    const largestEdge = Math.max(bbox.width, bbox.height);
+    const animations = document.querySelectorAll('.animation');
+    animations.forEach(el => {
+      if (largestEdge < 500) {
+        el.classList.add("animation-small");
+      } else if (largestEdge < 1500) {
+        el.classList.add("animation-medium");
+      } else if (largestEdge < 3000) {
+        el.classList.add("animation-large");
+      } else {
+        el.classList.add("animation-xlarge");
+      }
+    })
 
     if (currentHighlight) {
       svgNodes.each(function(node) {
@@ -273,6 +286,16 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     }
   }
 };
+
+function removeElement(el) {
+  if (el == null) {
+    return;
+  }
+  if (el.parentNode == null) {
+    return;
+  }
+  el.parentNode.removeChild(el);
+}
 
 var zoom = (function() {
   var z;
