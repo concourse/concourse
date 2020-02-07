@@ -3,14 +3,13 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
-	"github.com/hashicorp/go-multierror"
 )
 
 //go:generate counterfeiter . BuildScheduler
@@ -27,25 +26,31 @@ type BuildScheduler interface {
 }
 
 type schedulerRunner struct {
-	logger             lager.Logger
-	jobFactory         db.JobFactory
-	scheduler          BuildScheduler
+	logger     lager.Logger
+	jobFactory db.JobFactory
+	scheduler  BuildScheduler
+
 	guardJobScheduling chan struct{}
+	running            *sync.Map
 }
 
 func NewRunner(logger lager.Logger, jobFactory db.JobFactory, scheduler BuildScheduler, maxJobs uint64) Runner {
 	newGuardJobScheduling := make(chan struct{}, maxJobs)
 	return &schedulerRunner{
-		logger:             logger,
-		jobFactory:         jobFactory,
-		scheduler:          scheduler,
+		logger:     logger,
+		jobFactory: jobFactory,
+		scheduler:  scheduler,
+
 		guardJobScheduling: newGuardJobScheduling,
+		running:            &sync.Map{},
 	}
 }
 
 func (s *schedulerRunner) Run(ctx context.Context) error {
-	s.logger.Info("start")
-	defer s.logger.Info("end")
+	sLog := s.logger.Session("run")
+
+	sLog.Debug("start")
+	defer sLog.Debug("done")
 
 	jobs, err := s.jobFactory.JobsToSchedule()
 	if err != nil {
@@ -57,22 +62,21 @@ func (s *schedulerRunner) Run(ctx context.Context) error {
 		return err
 	}
 
-	errGroup := new(multierror.Group)
 	for pipelineID, jobsToSchedule := range pipelineIDToJobs {
 		pipeline := pipelineIDToPipeline[pipelineID]
 
-		err := s.schedulePipeline(ctx, errGroup, pipeline, jobsToSchedule)
+		pLog := s.logger.Session("pipeline", lager.Data{"pipeline": pipeline.Name()})
+
+		err := s.schedulePipeline(ctx, pLog, pipeline, jobsToSchedule)
 		if err != nil {
-			s.logger.Error("failed-to-schedule-pipeline", err, lager.Data{"pipeline": pipeline.Name()})
+			pLog.Error("failed-to-schedule", err)
 		}
 	}
 
-	return errGroup.Wait().ErrorOrNil()
+	return nil
 }
 
-func (s *schedulerRunner) schedulePipeline(ctx context.Context, errGroup *multierror.Group, pipeline db.Pipeline, jobsToSchedule db.Jobs) error {
-	logger := s.logger.Session("pipeline", lager.Data{"pipeline": pipeline.Name()})
-
+func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Logger, pipeline db.Pipeline, jobsToSchedule db.Jobs) error {
 	resources, err := pipeline.Resources()
 	if err != nil {
 		return fmt.Errorf("find resources: %w", err)
@@ -88,38 +92,48 @@ func (s *schedulerRunner) schedulePipeline(ctx context.Context, errGroup *multie
 		jobsMap[job.Name()] = job.ID()
 	}
 
-	for _, job := range jobsToSchedule {
-		schedulingLock, acquired, err := job.AcquireSchedulingLock(logger)
-		if err != nil {
-			return fmt.Errorf("acquire job lock: %w", err)
-		}
-
-		if !acquired {
+	for _, j := range jobsToSchedule {
+		if _, exists := s.running.LoadOrStore(j.ID(), true); exists {
+			// already scheduling this job
 			continue
 		}
 
-		// shadow loop var for the goroutine closure
-		job := job
-
 		s.guardJobScheduling <- struct{}{}
-		errGroup.Go(func() error {
+
+		jLog := logger.Session("job", lager.Data{"job": j.Name()})
+
+		go func(job db.Job) {
 			defer func() {
 				<-s.guardJobScheduling
+				s.running.Delete(job.ID())
 			}()
 
-			return s.scheduleJob(ctx, logger, schedulingLock, pipeline, job, resources, jobsMap)
-		})
+			schedulingLock, acquired, err := job.AcquireSchedulingLock(logger)
+			if err != nil {
+				jLog.Error("failed-to-acquire-lock", err)
+				return
+			}
+
+			if !acquired {
+				return
+			}
+
+			defer schedulingLock.Release()
+
+			err = s.scheduleJob(ctx, logger, pipeline, job, resources, jobsMap)
+			if err != nil {
+				jLog.Error("failed-to-schedule-job", err)
+			}
+		}(j)
 	}
 
 	return nil
 }
 
-func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, schedulingLock lock.Lock, pipeline db.Pipeline, job db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
+func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, pipeline db.Pipeline, job db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
 	logger = logger.Session("schedule-job", lager.Data{"job": job.Name()})
 
 	logger.Debug("schedule")
-
-	defer schedulingLock.Release()
 
 	// Grabs out the requested time that triggered off the job schedule in
 	// order to set the last scheduled to the exact time of this triggering

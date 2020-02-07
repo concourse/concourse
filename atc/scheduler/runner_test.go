@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
-	"github.com/hashicorp/go-multierror"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -24,6 +25,7 @@ var _ = Describe("Runner", func() {
 	var (
 		fakePipeline  *dbfakes.FakePipeline
 		fakeScheduler *schedulerfakes.FakeBuildScheduler
+		maxInFlight   uint64
 
 		lock *lockfakes.FakeLock
 
@@ -47,6 +49,7 @@ var _ = Describe("Runner", func() {
 	BeforeEach(func() {
 		fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
 		fakeJobFactory = new(dbfakes.FakeJobFactory)
+		maxInFlight = 1
 
 		expectedJobsMap = algorithm.NameToIDMap{
 			"some-job":        1,
@@ -64,16 +67,16 @@ var _ = Describe("Runner", func() {
 		fakeResource2.SourceReturns(atc.Source{"uri": "git://some-dependant-resource"})
 
 		lock = new(lockfakes.FakeLock)
+	})
 
+	JustBeforeEach(func() {
 		schedulerRunner = NewRunner(
 			lagertest.NewTestLogger("test"),
 			fakeJobFactory,
 			fakeScheduler,
-			1,
+			maxInFlight,
 		)
-	})
 
-	JustBeforeEach(func() {
 		schedulerErr = schedulerRunner.Run(context.TODO())
 	})
 
@@ -222,6 +225,44 @@ var _ = Describe("Runner", func() {
 									})
 								})
 
+								Context("when the same job is already being scheduled", func() {
+									var scheduleWg *sync.WaitGroup
+
+									BeforeEach(func() {
+										maxInFlight = 2
+
+										fakeJobFactory.JobsToScheduleReturns([]db.Job{fakeJob1, fakeJob1}, nil)
+
+										wg := new(sync.WaitGroup)
+										wg.Add(2)
+
+										scheduleWg = wg
+
+										fakeScheduler.ScheduleStub = func(
+											context.Context,
+											lager.Logger,
+											db.Pipeline,
+											db.Job,
+											db.Resources,
+											algorithm.NameToIDMap,
+										) (bool, error) {
+											wg.Done()
+											wg.Wait()
+											return false, nil
+										}
+									})
+
+									AfterEach(func() {
+										// release the waiting schedule call
+										scheduleWg.Done()
+									})
+
+									It("only schedules the job once", func() {
+										Eventually(fakeScheduler.ScheduleCallCount).ShouldNot(BeZero())
+										Consistently(fakeScheduler.ScheduleCallCount).Should(Equal(1))
+									})
+								})
+
 								Context("when job scheduling fails", func() {
 									BeforeEach(func() {
 										fakeScheduler.ScheduleReturnsOnCall(0, false, errors.New("error"))
@@ -229,14 +270,9 @@ var _ = Describe("Runner", func() {
 									})
 
 									It("does not update last scheduled", func() {
-										Expect(schedulerErr).To(HaveOccurred())
-										Expect(schedulerErr).To(Equal(&multierror.Error{
-											Errors: []error{
-												fmt.Errorf("schedule job: %w", errors.New("error")),
-											},
-										}))
-										Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
+										Expect(schedulerErr).ToNot(HaveOccurred())
 										Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+										Consistently(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 									})
 								})
 
@@ -260,14 +296,9 @@ var _ = Describe("Runner", func() {
 								})
 
 								It("does not update last schedule", func() {
-									Expect(schedulerErr).To(HaveOccurred())
-									Expect(schedulerErr).To(Equal(&multierror.Error{
-										Errors: []error{
-											fmt.Errorf("reload job: %w", errors.New("disappointment")),
-										},
-									}))
-									Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
+									Expect(schedulerErr).ToNot(HaveOccurred())
 									Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+									Consistently(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 								})
 							})
 
@@ -278,8 +309,8 @@ var _ = Describe("Runner", func() {
 
 								It("does not update last schedule", func() {
 									Expect(schedulerErr).ToNot(HaveOccurred())
-									Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 									Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+									Consistently(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 								})
 							})
 						})
@@ -464,10 +495,7 @@ var _ = Describe("Runner", func() {
 				})
 
 				It("schedules the remaining job", func() {
-					Expect(schedulerErr).To(HaveOccurred())
-					Expect(schedulerErr.Error()).To(ContainSubstring("error-1"))
-					Expect(schedulerErr.Error()).To(ContainSubstring("error-3"))
-					Expect(schedulerErr.Error()).ToNot(ContainSubstring("error-2"))
+					Expect(schedulerErr).ToNot(HaveOccurred())
 					Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(1))
 					Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 					Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
