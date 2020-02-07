@@ -1,4 +1,15 @@
+import "./d3.v355.min.js";
+import { Graph, GraphNode } from './graph.mjs';
+
 const loadIcons = import("./mdi-svg.min.js");
+
+export function renderPipeline(jobs, resources, newUrl){
+  const foundSvg = d3.select(".pipeline-graph");
+  const svg = createPipelineSvg(foundSvg)
+  if (svg.node() != null) {
+    draw(svg, jobs, resources, newUrl);
+  }
+}
 
 var currentHighlight;
 
@@ -172,8 +183,8 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     }
 
     svg.selectAll("g.fail-triangle-node").remove()
-    failTriangleBottom = 20
-    failTriangleHeight = 24
+    const failTriangleBottom = 20
+    const failTriangleHeight = 24
     for (var i in failureCenters) {
       var triangleNode = svg.append("g")
         .attr("class", "fail-triangle-node")
@@ -300,7 +311,7 @@ function createPipelineSvg(svg) {
   return g
 }
 
-function resetPipelineFocus() {
+export function resetPipelineFocus() {
   var g = d3.select("g.test");
 
   if (!g.empty()) {
@@ -516,14 +527,6 @@ function addIcon(iconName, nodeId) {
       document.getElementById("icon-store").appendChild(icon)
     }
   })
-}
-
-function objectIsEmpty(o) {
-  for (var x in o) {
-    return false;
-  }
-
-  return true;
 }
 
 function groupNode(name) {

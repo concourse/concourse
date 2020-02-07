@@ -1,3 +1,5 @@
+const renderingModulePromise = import('./index.mjs');
+
 var resizeTimer;
 
 app.ports.pinTeamNames.subscribe(function(config) {
@@ -41,18 +43,17 @@ app.ports.pinTeamNames.subscribe(function(config) {
   window.onscroll = updateSticky;
 });
 
-app.ports.resetPipelineFocus.subscribe(resetPipelineFocus);
+app.ports.resetPipelineFocus.subscribe(function() {
+  renderingModulePromise.then(({resetPipelineFocus}) => resetPipelineFocus());
+});
 
 app.ports.renderPipeline.subscribe(function (values) {
-  setTimeout(function(){ // elm 0.17 bug, see https://github.com/elm-lang/core/issues/595
-    foundSvg = d3.select(".pipeline-graph");
-    var svg = createPipelineSvg(foundSvg)
-    if (svg.node() != null) {
-      var jobs = values[0];
-      var resources = values[1];
-      draw(svg, jobs, resources, app.ports.newUrl);
-    }
-  }, 0)
+  const jobs = values[0];
+  const resources = values[1];
+  renderingModulePromise.then(({renderPipeline}) =>
+    // elm 0.17 bug, see https://github.com/elm-lang/core/issues/595
+    setTimeout(() => renderPipeline(jobs, resources, app.ports.newUrl), 0)
+  );
 });
 
 app.ports.requestLoginRedirect.subscribe(function (message) {

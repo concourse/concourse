@@ -3,7 +3,7 @@ var KEY_SPACING = 10;
 var RANK_GROUP_SPACING = 50;
 var NODE_PADDING = 5;
 
-function Graph() {
+export function Graph() {
   this._nodes = {};
   this._edges = [];
 };
@@ -550,7 +550,7 @@ RankGroup.prototype.tug = function() {
   return changed;
 }
 
-function GraphNode(opts) {
+export function GraphNode(opts) {
   // Graph node ID
   this.id = opts.id;
   this.name = opts.name;
@@ -851,18 +851,11 @@ Edge.prototype.bezierPoints = function() {
 }
 
 Edge.prototype.path = function() {
-  points = this.bezierPoints()
+  const points = this.bezierPoints()
   return "M" + points[0].x + "," + points[0].y
        + " C" + points[1].x + "," + points[1].y
        + " " + points[2].x + "," + points[2].y
        + " " + points[3].x + "," + points[3].y;
-}
-
-function bezierInterpolate(points, fraction) {
-  q = d3.interpolate(points.slice(0, 3), points.slice(1, 4))(fraction)
-  r = d3.interpolate(q.slice(0, 2), q.slice(1, 3))(fraction)
-  b = d3.interpolate(r[0], r[1])(fraction)
-  return b
 }
 
 function EdgeSource(node, key) {
@@ -980,4 +973,12 @@ function compareNames(a, b) {
   }
 
   return a.localeCompare(b);
+}
+
+function objectIsEmpty(o) {
+  for (var x in o) {
+    return false;
+  }
+
+  return true;
 }
