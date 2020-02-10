@@ -119,6 +119,16 @@ var _ = Describe("Resource Config Scope", func() {
 					{"ref": "v1"},
 					{"ref": "v3"},
 				}
+
+				err := resourceScope.SaveVersions(originalVersionSlice)
+				Expect(err).ToNot(HaveOccurred())
+
+				latestVR, found, err := resourceScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(latestVR.Version()).To(Equal(db.Version{"ref": "v3"}))
+				Expect(latestVR.CheckOrder()).To(Equal(2))
 			})
 
 			It("does not change the check order", func() {

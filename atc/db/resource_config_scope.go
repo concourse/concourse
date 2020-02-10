@@ -78,27 +78,31 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
 
 	defer Rollback(tx)
 
-	var bumpCache bool
+	var containsNewVersion bool
 	for _, version := range versions {
 		newVersion, err := saveResourceVersion(tx, rcsID, version, nil)
 		if err != nil {
 			return err
 		}
 
-		versionJSON, err := json.Marshal(version)
-		if err != nil {
-			return err
-		}
-
-		err = incrementCheckOrder(tx, rcsID, string(versionJSON))
-		if err != nil {
-			return err
-		}
-
-		bumpCache = bumpCache || newVersion
+		containsNewVersion = containsNewVersion || newVersion
 	}
 
-	if bumpCache {
+	if containsNewVersion {
+		// bump the check order of all the versions returned by the check if there
+		// is at least one new version within the set of returned versions
+		for _, version := range versions {
+			versionJSON, err := json.Marshal(version)
+			if err != nil {
+				return err
+			}
+
+			err = incrementCheckOrder(tx, rcsID, string(versionJSON))
+			if err != nil {
+				return err
+			}
+		}
+
 		err = requestScheduleForJobsUsingResourceConfigScope(tx, rcsID)
 		if err != nil {
 			return err
