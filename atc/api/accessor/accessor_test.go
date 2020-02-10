@@ -144,7 +144,7 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.Claims = map[string]interface{}{
+				verification.RawClaims = map[string]interface{}{
 					"federated_claims": map[string]interface{}{
 						"connector_id": "some-connector",
 						"user_id":      "some-user-id",
@@ -175,7 +175,7 @@ var _ = Describe("Accessor", func() {
 
 			verification.HasToken = true
 			verification.IsTokenValid = true
-			verification.Claims = map[string]interface{}{
+			verification.RawClaims = map[string]interface{}{
 				"federated_claims": map[string]interface{}{
 					"connector_id": "some-connector",
 					"user_id":      "some-user-id",
@@ -194,7 +194,6 @@ var _ = Describe("Accessor", func() {
 			result := access.IsAuthorized("some-team")
 			Expect(expected).Should(Equal(result))
 		},
-
 
 		Entry("viewer attempting viewer action", "viewer", "viewer", true),
 		Entry("pipeline-operator attempting viewer action", "viewer", "pipeline-operator", true),
@@ -222,7 +221,7 @@ var _ = Describe("Accessor", func() {
 
 			verification.HasToken = true
 			verification.IsTokenValid = true
-			verification.Claims = map[string]interface{}{
+			verification.RawClaims = map[string]interface{}{
 				"groups": []string{"some-group"},
 				"federated_claims": map[string]interface{}{
 					"connector_id": "some-connector",
@@ -241,7 +240,6 @@ var _ = Describe("Accessor", func() {
 			result := access.IsAuthorized("some-team")
 			Expect(expected).Should(Equal(result))
 		},
-
 
 		Entry("viewer attempting viewer action", "viewer", "viewer", true),
 		Entry("pipeline-operator attempting viewer action", "viewer", "pipeline-operator", true),
@@ -296,7 +294,7 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.Claims = map[string]interface{}{
+				verification.RawClaims = map[string]interface{}{
 					"federated_claims": map[string]interface{}{
 						"connector_id": "some-connector",
 						"user_id":      "some-user-id",
@@ -417,7 +415,7 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.Claims = map[string]interface{}{
+				verification.RawClaims = map[string]interface{}{
 					"federated_claims": map[string]interface{}{
 						"connector_id": "some-connector",
 						"user_id":      "some-user-id",
@@ -528,7 +526,7 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.Claims = map[string]interface{}{
+				verification.RawClaims = map[string]interface{}{
 					"sub": "not-system",
 				}
 			})
@@ -542,7 +540,7 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.Claims = map[string]interface{}{
+				verification.RawClaims = map[string]interface{}{
 					"sub": "system",
 				}
 			})
@@ -553,11 +551,11 @@ var _ = Describe("Accessor", func() {
 		})
 	})
 
-	Describe("UserName", func() {
-		var result string
+	Describe("Claims", func() {
+		var result accessor.Claims
 
 		JustBeforeEach(func() {
-			result = access.UserName()
+			result = access.Claims()
 		})
 
 		Context("when the user has no token", func() {
@@ -566,7 +564,7 @@ var _ = Describe("Accessor", func() {
 			})
 
 			It("returns empty", func() {
-				Expect(result).To(BeEmpty())
+				Expect(result).To(Equal(accessor.Claims{}))
 			})
 		})
 
@@ -577,7 +575,7 @@ var _ = Describe("Accessor", func() {
 			})
 
 			It("returns empty", func() {
-				Expect(result).To(BeEmpty())
+				Expect(result).To(Equal(accessor.Claims{}))
 			})
 		})
 
@@ -585,24 +583,36 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.Claims = map[string]interface{}{
+				verification.RawClaims = map[string]interface{}{
+					"sub":   "some-sub",
+					"name":  "some-name",
+					"email": "some-email",
 					"federated_claims": map[string]interface{}{
-						"user_name": "some-user-name",
+						"user_id":      "some-id",
+						"user_name":    "some-user-name",
+						"connector_id": "some-connector",
 					},
 				}
 			})
 
 			It("returns the result", func() {
-				Expect(result).To(Equal("some-user-name"))
+				Expect(result).To(Equal(accessor.Claims{
+					Sub:       "some-sub",
+					Name:      "some-name",
+					Email:     "some-email",
+					UserID:    "some-id",
+					UserName:  "some-user-name",
+					Connector: "some-connector",
+				}))
 			})
 		})
 	})
 
-	Describe("UserInfo", func() {
-		var result accessor.UserInfo
+	Describe("TeamRoles", func() {
+		var result map[string][]string
 
 		JustBeforeEach(func() {
-			result = access.UserInfo()
+			result = access.TeamRoles()
 		})
 
 		Context("when the user has no token", func() {
@@ -611,9 +621,7 @@ var _ = Describe("Accessor", func() {
 			})
 
 			It("returns empty", func() {
-				Expect(result).To(Equal(accessor.UserInfo{
-					Teams: map[string][]string{},
-				}))
+				Expect(result).To(Equal(map[string][]string{}))
 			})
 		})
 
@@ -624,9 +632,7 @@ var _ = Describe("Accessor", func() {
 			})
 
 			It("returns empty", func() {
-				Expect(result).To(Equal(accessor.UserInfo{
-					Teams: map[string][]string{},
-				}))
+				Expect(result).To(Equal(map[string][]string{}))
 			})
 		})
 
@@ -634,7 +640,7 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.Claims = map[string]interface{}{
+				verification.RawClaims = map[string]interface{}{
 					"sub":   "some-sub",
 					"name":  "some-name",
 					"email": "some-email",
@@ -647,17 +653,8 @@ var _ = Describe("Accessor", func() {
 			})
 
 			Context("when the user is not part of any teams", func() {
-				It("returns result without teams", func() {
-					Expect(result).To(Equal(accessor.UserInfo{
-						Sub:      "some-sub",
-						Name:     "some-name",
-						Email:    "some-email",
-						UserID:   "some-user-id",
-						UserName: "some-user-name",
-						IsAdmin:  false,
-						IsSystem: false,
-						Teams:    map[string][]string{},
-					}))
+				It("returns empty", func() {
+					Expect(result).To(Equal(map[string][]string{}))
 				})
 			})
 
@@ -681,19 +678,10 @@ var _ = Describe("Accessor", func() {
 				})
 
 				It("returns result with teams", func() {
-					Expect(result).To(Equal(accessor.UserInfo{
-						Sub:      "some-sub",
-						Name:     "some-name",
-						Email:    "some-email",
-						UserID:   "some-user-id",
-						UserName: "some-user-name",
-						IsAdmin:  false,
-						IsSystem: false,
-						Teams: map[string][]string{
-							"some-team-1": []string{"owner"},
-							"some-team-2": []string{"member"},
-							"some-team-3": []string{"viewer"},
-						},
+					Expect(result).To(Equal(map[string][]string{
+						"some-team-1": []string{"owner"},
+						"some-team-2": []string{"member"},
+						"some-team-3": []string{"viewer"},
 					}))
 				})
 			})

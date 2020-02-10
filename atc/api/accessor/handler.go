@@ -6,7 +6,10 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/auditor"
+	"github.com/concourse/concourse/atc/db"
 )
+
+//go:generate counterfeiter net/http.Handler
 
 func NewHandler(
 	logger lager.Logger,
@@ -14,6 +17,7 @@ func NewHandler(
 	accessFactory AccessFactory,
 	action string,
 	aud auditor.Auditor,
+	userFactory db.UserFactory,
 ) http.Handler {
 	return accessorHandler{
 		logger:        logger,
@@ -21,6 +25,7 @@ func NewHandler(
 		accessFactory: accessFactory,
 		action:        action,
 		auditor:       aud,
+		userFactory:   userFactory,
 	}
 }
 
@@ -30,6 +35,7 @@ type accessorHandler struct {
 	accessFactory AccessFactory
 	action        string
 	auditor       auditor.Auditor
+	userFactory   db.UserFactory
 }
 
 func (h accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -41,9 +47,24 @@ func (h accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	claims := acc.Claims()
+
+	if claims.Sub != "" {
+		_, err = h.userFactory.CreateOrUpdateUser(
+			claims.UserName,
+			claims.Connector,
+			claims.Sub,
+		)
+		if err != nil {
+			h.logger.Error("failed-to-update-user-activity", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
 	ctx := context.WithValue(r.Context(), "accessor", acc)
 
-	h.auditor.Audit(h.action, acc.UserName(), r)
+	h.auditor.Audit(h.action, claims.UserName, r)
 	h.handler.ServeHTTP(w, r.WithContext(ctx))
 }
 

@@ -40,18 +40,20 @@ var _ = Describe("Users API", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 
-				fakeAccess.UserInfoReturns(accessor.UserInfo{
+				fakeAccess.IsAdminReturns(true)
+				fakeAccess.IsSystemReturns(false)
+
+				fakeAccess.ClaimsReturns(accessor.Claims{
 					Sub:      "some-sub",
 					Name:     "some-name",
 					UserID:   "some-user-id",
 					UserName: "some-user-name",
 					Email:    "some@email.com",
-					IsAdmin:  true,
-					IsSystem: false,
-					Teams: map[string][]string{
-						"some-team":       []string{"owner"},
-						"some-other-team": []string{"viewer"},
-					},
+				})
+
+				fakeAccess.TeamRolesReturns(map[string][]string{
+					"some-team":       []string{"owner"},
+					"some-other-team": []string{"viewer"},
 				})
 			})
 

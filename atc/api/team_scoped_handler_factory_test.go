@@ -40,7 +40,14 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 		handlerFactory := api.NewTeamScopedHandlerFactory(logger, fakeTeamFactory)
 		innerHandler := handlerFactory.HandlerFor(delegate.GetHandler)
 
-		handler = accessor.NewHandler(logger, innerHandler, fakeAccessor, "some-action", new(auditorfakes.FakeAuditor))
+		handler = accessor.NewHandler(
+			logger,
+			innerHandler,
+			fakeAccessor,
+			"some-action",
+			new(auditorfakes.FakeAuditor),
+			new(dbfakes.FakeUserFactory),
+		)
 	})
 
 	JustBeforeEach(func() {

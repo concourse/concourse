@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -54,6 +55,7 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 		), fakeAccessor,
 			"some-action",
 			new(auditorfakes.FakeAuditor),
+			new(dbfakes.FakeUserFactory),
 		))
 
 		client = &http.Client{

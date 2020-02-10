@@ -17,25 +17,23 @@ type Access interface {
 	IsAdmin() bool
 	IsSystem() bool
 	TeamNames() []string
-	UserName() string
-	UserInfo() UserInfo
+	TeamRoles() map[string][]string
+	Claims() Claims
 }
 
-type UserInfo struct {
-	Sub      string
-	Name     string
-	UserID   string
-	UserName string
-	Email    string
-	IsAdmin  bool
-	IsSystem bool
-	Teams    map[string][]string
+type Claims struct {
+	Sub       string
+	Name      string
+	UserID    string
+	UserName  string
+	Email     string
+	Connector string
 }
 
 type Verification struct {
 	HasToken     bool
 	IsTokenValid bool
-	Claims       map[string]interface{}
+	RawClaims    map[string]interface{}
 }
 
 type access struct {
@@ -184,7 +182,7 @@ func (a *access) hasPermission(role string) bool {
 
 func (a *access) claims() map[string]interface{} {
 	if a.IsAuthenticated() {
-		return a.verification.Claims
+		return a.verification.RawClaims
 	}
 	return map[string]interface{}{}
 }
@@ -274,15 +272,17 @@ func (a *access) IsSystem() bool {
 	return false
 }
 
-func (a *access) UserInfo() UserInfo {
-	return UserInfo{
-		Sub:      a.claim("sub"),
-		Name:     a.claim("name"),
-		Email:    a.claim("email"),
-		UserID:   a.userID(),
-		UserName: a.UserName(),
-		IsAdmin:  a.IsAdmin(),
-		IsSystem: a.IsSystem(),
-		Teams:    a.teamRoles(),
+func (a *access) TeamRoles() map[string][]string {
+	return a.teamRoles()
+}
+
+func (a *access) Claims() Claims {
+	return Claims{
+		Sub:       a.claim("sub"),
+		Name:      a.claim("name"),
+		Email:     a.claim("email"),
+		UserID:    a.userID(),
+		UserName:  a.UserName(),
+		Connector: a.connectorID(),
 	}
 }

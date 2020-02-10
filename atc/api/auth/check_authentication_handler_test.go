@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -52,14 +53,6 @@ var _ = Describe("AuthenticationHandler", func() {
 			http.Error(w, "nope", http.StatusUnauthorized)
 		}
 
-		server = httptest.NewServer(accessor.NewHandler(logger, auth.CheckAuthenticationHandler(
-			simpleHandler,
-			fakeRejector,
-		), fakeAccessor,
-			"some-action",
-			fakeAuditor,
-		))
-
 		client = http.DefaultClient
 	})
 
@@ -77,6 +70,7 @@ var _ = Describe("AuthenticationHandler", func() {
 			), fakeAccessor,
 				"some-action",
 				fakeAuditor,
+				new(dbfakes.FakeUserFactory),
 			))
 		})
 
@@ -129,6 +123,7 @@ var _ = Describe("AuthenticationHandler", func() {
 			), fakeAccessor,
 				"some-action",
 				fakeAuditor,
+				new(dbfakes.FakeUserFactory),
 			))
 		})
 

@@ -12,17 +12,19 @@ func (s *Server) GetUser(w http.ResponseWriter, r *http.Request) {
 	hLog := s.logger.Session("user")
 	w.Header().Set("Content-Type", "application/json")
 
-	info := accessor.GetAccessor(r).UserInfo()
+	acc := accessor.GetAccessor(r)
+
+	claims := acc.Claims()
 
 	user := atc.UserInfo{
-		Sub:      info.Sub,
-		Name:     info.Name,
-		UserId:   info.UserID,
-		UserName: info.UserName,
-		Email:    info.Email,
-		IsAdmin:  info.IsAdmin,
-		IsSystem: info.IsSystem,
-		Teams:    info.Teams,
+		Sub:      claims.Sub,
+		Name:     claims.Name,
+		UserId:   claims.UserID,
+		UserName: claims.UserName,
+		Email:    claims.Email,
+		IsAdmin:  acc.IsAdmin(),
+		IsSystem: acc.IsSystem(),
+		Teams:    acc.TeamRoles(),
 	}
 
 	err := json.NewEncoder(w).Encode(user)

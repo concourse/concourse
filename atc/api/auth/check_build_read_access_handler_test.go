@@ -108,6 +108,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 				fakeAccessor,
 				"some-action",
 				new(auditorfakes.FakeAuditor),
+				new(dbfakes.FakeUserFactory),
 			)
 		})
 
@@ -221,6 +222,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 				fakeAccessor,
 				"some-action",
 				new(auditorfakes.FakeAuditor),
+				new(dbfakes.FakeUserFactory),
 			)
 		})
 

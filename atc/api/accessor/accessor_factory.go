@@ -84,7 +84,7 @@ func (a *accessFactory) verify(r *http.Request) Verification {
 		}
 	}
 
-	return Verification{HasToken: true, IsTokenValid: true, Claims: claims}
+	return Verification{HasToken: true, IsTokenValid: true, RawClaims: claims}
 }
 
 func (a *accessFactory) CustomizeActionRoleMap(logger lager.Logger, customMapping CustomActionRoleMap) error {
