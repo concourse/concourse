@@ -355,7 +355,7 @@ Graph.prototype.addSpacingNodes = function() {
           this.setNode(spacingNode.id, spacingNode);
         }
 
-        currentCustomData = (i == 0 ? initialCustomData : null)
+        var currentCustomData = (i == 0 ? initialCustomData : null)
         this.addEdge(upstreamNode.id, spacingNode.id, edge.key, currentCustomData);
 
         upstreamNode = spacingNode;
