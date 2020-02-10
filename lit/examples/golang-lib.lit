@@ -31,34 +31,44 @@ resources:
       repository: golang
       tag: 1.11-stretch
 
-  - name: golang-1.10.x-image
+  - name: golang-1.12.x-image
     type: registry-image
     icon: docker
     source:
       repository: golang
-      tag: 1.10-stretch
+      tag: 1.12-stretch
 
-  - name: golang-1.9.x-image
+  - name: golang-1.13.x-image
     type: registry-image
     icon: docker
     source:
       repository: golang
-      tag: 1.9-stretch
+      tag: 1.13-stretch
 
 task-config: &task-config
   platform: linux
   inputs:
     - name: golang-mock-git
-      path: /go/src/github.com/golang/mock
+      path: go/src/github.com/golang/mock
+  params:
+    GO111MODULE: "on"
   run:
     path: /bin/sh
     args:
       - -c
       - |
-        SRCPATH=$PWD/go/src/github.com/golang/mock
         GOPATH=$PWD/go
-        cd $SRCPATH
-        go get -t -v ./...
+
+        cd go/src/github.com/golang/mock
+
+        go vet ./...
+        go build ./...
+        go install github.com/golang/mock/mockgen
+        GO111MODULE=off go get -u golang.org/x/lint/golint
+        ./ci/check_go_fmt.sh
+        ./ci/check_go_lint.sh
+        ./ci/check_go_generate.sh
+        ./ci/check_go_mod.sh
         go test -v ./...
 
 jobs:
@@ -73,26 +83,26 @@ jobs:
         image: golang-1.11.x-image
         config:
           << : *task-config
-  - name: golang-1.10
+  - name: golang-1.12
     public: true
     plan:
       - get: golang-mock-git
         trigger: true
-      - get: golang-1.10.x-image
+      - get: golang-1.12.x-image
         trigger: true
       - task: run-tests
-        image: golang-1.10.x-image
+        image: golang-1.12.x-image
         config:
           << : *task-config
-  - name: golang-1.9
+  - name: golang-1.13
     public: true
     plan:
       - get: golang-mock-git
         trigger: true
-      - get: golang-1.9.x-image
+      - get: golang-1.13.x-image
         trigger: true
       - task: run-tests
-        image: golang-1.9.x-image
+        image: golang-1.13.x-image
         config:
           << : *task-config
 	}}}
