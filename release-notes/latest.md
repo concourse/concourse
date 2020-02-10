@@ -31,3 +31,16 @@ pipeline on a team at the same time. #4092
 [OpenTelemetry]: https://opentelemetry.io/
 [Jaeger]: https://www.jaegertracing.io/
 [Stackdriver]: https://cloud.google.com/trace/
+
+#### <sub><sup><a name="5160" href="#5160">:link:</a></sup></sub> fix
+
+* Fix misuse of mount options when performing copy-on-write volumes based of
+  other copy-on-write volumes 
+
+This case could be faced when making providing inputs and outputs with
+overlapping paths.
+
+* Switch CGO-based Zstd library by a pure go one
+
+Certain payloads could make Concourse return internal errors due to possible
+errors in from the library we used before.
