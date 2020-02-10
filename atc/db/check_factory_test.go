@@ -436,30 +436,87 @@ var _ = Describe("CheckFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("include resources in return", func() {
-			Expect(resources).To(HaveLen(1))
-			Expect(resources[0].Name()).To(Equal("some-resource"))
+		// The default job doesn't use any resource, thus check should not run
+		// against un-used resource.
+		It("no resources in return", func() {
+			Expect(resources).To(HaveLen(0))
 		})
 
-		Context("when the resource is not active", func() {
-			BeforeEach(func() {
-				_, err = dbConn.Exec(`UPDATE resources SET active = false`)
+		Context("when the resources are used", func() {
+
+			BeforeEach(func(){
+				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+							Plan: atc.PlanSequence{
+								atc.PlanConfig{Get: "some-resource"},
+								atc.PlanConfig{Put: "some-resource-put-only"},
+							},
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-base-resource-type",
+							Source: atc.Source{
+								"some": "source",
+							},
+						},
+						{
+							Name: "some-resource-put-only",
+							Type: "some-base-resource-type",
+							Source: atc.Source{
+								"some": "source",
+							},
+						},
+					},
+					ResourceTypes: atc.ResourceTypes{
+						{
+							Name: "some-type",
+							Type: "some-base-resource-type",
+							Source: atc.Source{
+								"some-type": "source",
+							},
+						},
+					},
+				}, db.ConfigVersion(1), false)
 				Expect(err).NotTo(HaveOccurred())
-			})
 
-			It("does not return the resource", func() {
-				Expect(resources).To(HaveLen(0))
-			})
-		})
-
-		Context("when the resource pipeline is paused", func() {
-			BeforeEach(func() {
-				_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
+				_, found, err := defaultPipeline.Resource("some-resource")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				_, found, err = defaultPipeline.Resource("some-resource-put-only")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 			})
 
-			It("does not return the resource", func() {
-				Expect(resources).To(HaveLen(0))
+			It("include only get-resources in return", func() {
+				Expect(resources).To(HaveLen(1))
+				Expect(resources[0].Name()).To(Equal("some-resource"))
+			})
+
+			Context("when the resource is not active", func() {
+				BeforeEach(func() {
+					_, err = dbConn.Exec(`UPDATE resources SET active = false`)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("does not return the resource", func() {
+					Expect(resources).To(HaveLen(0))
+				})
+			})
+
+			Context("when the resource pipeline is paused", func() {
+				BeforeEach(func() {
+					_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("does not return the resource", func() {
+					Expect(resources).To(HaveLen(0))
+				})
 			})
 		})
 	})
