@@ -1,7 +1,7 @@
 import "./d3.v355.min.js";
 import { Graph, GraphNode } from './graph.mjs';
 
-const loadIcons = import("./mdi-svg.min.js");
+const iconsModulePromise = import("./mdi-svg.min.js");
 
 export function renderPipeline(jobs, resources, newUrl){
   const foundSvg = d3.select(".pipeline-graph");
@@ -540,7 +540,7 @@ function createGraph(svg, jobs, resources) {
 }
 
 function addIcon(iconName, nodeId) {
-  loadIcons.then(() => {
+  iconsModulePromise.then(icons => {
     var id = nodeId + "-svg-icon";
     if (document.getElementById(id) === null) {
       var svg = icons.svg(iconName, id);
