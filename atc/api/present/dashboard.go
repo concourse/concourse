@@ -47,7 +47,8 @@ func DashboardJob(
 		Paused:       job.Paused,
 		HasNewInputs: job.HasNewInputs,
 
-		Inputs: sanitizedInputs,
+		Inputs:  sanitizedInputs,
+		Outputs: job.Outputs,
 
 		Groups: job.Groups,
 

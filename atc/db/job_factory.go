@@ -38,10 +38,12 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (atc.Dashboard, error) {
 
 	defer Rollback(tx)
 
-	dashboard, err := buildDashboard(tx, sq.Or{
+	dashboardFactory := newDashboardFactory(tx, sq.Or{
 		sq.Eq{"tm.name": teamNames},
 		sq.Eq{"p.public": true},
 	})
+
+	dashboard, err := dashboardFactory.buildDashboard()
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +64,8 @@ func (j *jobFactory) AllActiveJobs() (atc.Dashboard, error) {
 
 	defer Rollback(tx)
 
-	dashboard, err := buildDashboard(tx, nil)
+	dashboardFactory := newDashboardFactory(tx, nil)
+	dashboard, err := dashboardFactory.buildDashboard()
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +90,42 @@ func (j *jobFactory) JobsToSchedule() (Jobs, error) {
 	return scanJobs(j.conn, j.lockFactory, rows)
 }
 
-func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
+type dashboardFactory struct {
+	// Constraints that are used by the dashboard queries. For example, a job ID
+	// constraint so that the dashboard will only return the job I have access to
+	// see.
+	pred interface{}
+
+	tx Tx
+}
+
+func newDashboardFactory(tx Tx, pred interface{}) dashboardFactory {
+	return dashboardFactory{
+		pred: pred,
+		tx:   tx,
+	}
+}
+
+func (d dashboardFactory) buildDashboard() (atc.Dashboard, error) {
+	dashboard, err := d.constructJobsForDashboard()
+	if err != nil {
+		return nil, err
+	}
+
+	jobInputs, err := d.fetchJobInputs()
+	if err != nil {
+		return nil, err
+	}
+
+	jobOutputs, err := d.fetchJobOutputs()
+	if err != nil {
+		return nil, err
+	}
+
+	return d.combineJobInputsAndOutputsWithDashboardJobs(dashboard, jobInputs, jobOutputs), nil
+}
+
+func (d dashboardFactory) constructJobsForDashboard() (atc.Dashboard, error) {
 	rows, err := psql.Select("j.id", "j.name", "p.name", "j.paused", "j.has_new_inputs", "j.tags", "tm.name",
 		"l.id", "l.name", "l.status", "l.start_time", "l.end_time",
 		"n.id", "n.name", "n.status", "n.start_time", "n.end_time",
@@ -101,9 +139,9 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 		Where(sq.Eq{
 			"j.active": true,
 		}).
-		Where(pred).
+		Where(d.pred).
 		OrderBy("j.id ASC").
-		RunWith(tx).
+		RunWith(d.tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -175,7 +213,11 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 		dashboard = append(dashboard, j)
 	}
 
-	rows, err = psql.Select("j.id", "i.name", "r.name", "array_agg(jp.name ORDER BY jp.id)", "i.trigger").
+	return dashboard, nil
+}
+
+func (d dashboardFactory) fetchJobInputs() (map[int][]atc.DashboardJobInput, error) {
+	rows, err := psql.Select("j.id", "i.name", "r.name", "array_agg(jp.name ORDER BY jp.id)", "i.trigger").
 		From("job_inputs i").
 		Join("jobs j ON j.id = i.job_id").
 		Join("pipelines p ON p.id = j.pipeline_id").
@@ -185,10 +227,10 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 		Where(sq.Eq{
 			"j.active": true,
 		}).
-		Where(pred).
+		Where(d.pred).
 		GroupBy("i.name, j.id, r.name, i.trigger").
 		OrderBy("j.id").
-		RunWith(tx).
+		RunWith(d.tx).
 		Query()
 	if err != nil {
 		return nil, err
@@ -221,6 +263,44 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 		})
 	}
 
+	return jobInputs, nil
+}
+
+func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutput, error) {
+	rows, err := psql.Select("o.name", "r.name", "o.job_id").
+		From("job_outputs o").
+		Join("jobs j ON j.id = o.job_id").
+		Join("pipelines p ON p.id = j.pipeline_id").
+		Join("teams tm ON tm.id = p.team_id").
+		Join("resources r ON r.id = o.resource_id").
+		Where(d.pred).
+		Where(sq.Eq{
+			"j.active": true,
+		}).
+		OrderBy("j.id").
+		RunWith(d.tx).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	jobOutputs := make(map[int][]atc.JobOutput)
+	for rows.Next() {
+		var output atc.JobOutput
+		var jobID int
+
+		err = rows.Scan(&output.Name, &output.Resource, &jobID)
+		if err != nil {
+			return nil, err
+		}
+
+		jobOutputs[jobID] = append(jobOutputs[jobID], output)
+	}
+
+	return jobOutputs, err
+}
+
+func (d dashboardFactory) combineJobInputsAndOutputsWithDashboardJobs(dashboard atc.Dashboard, jobInputs map[int][]atc.DashboardJobInput, jobOutputs map[int][]atc.JobOutput) atc.Dashboard {
 	var finalDashboard atc.Dashboard
 	for _, job := range dashboard {
 		for _, input := range jobInputs[job.ID] {
@@ -231,8 +311,16 @@ func buildDashboard(tx Tx, pred interface{}) (atc.Dashboard, error) {
 			return job.Inputs[p].Name < job.Inputs[q].Name
 		})
 
+		for _, output := range jobOutputs[job.ID] {
+			job.Outputs = append(job.Outputs, output)
+		}
+
+		sort.Slice(job.Outputs, func(p, q int) bool {
+			return job.Outputs[p].Name < job.Outputs[q].Name
+		})
+
 		finalDashboard = append(finalDashboard, job)
 	}
 
-	return finalDashboard, nil
+	return finalDashboard
 }

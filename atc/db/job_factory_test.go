@@ -32,6 +32,9 @@ var _ = Describe("Job Factory", func() {
 							{
 								Get: "some-other-resource",
 							},
+							{
+								Put: "some-resource",
+							},
 						},
 					},
 					{
@@ -48,6 +51,13 @@ var _ = Describe("Job Factory", func() {
 							{
 								Get:      "resource",
 								Resource: "some-resource",
+							},
+							{
+								Put:      "resource",
+								Resource: "some-resource",
+							},
+							{
+								Put: "some-resource",
 							},
 						},
 					},
@@ -82,6 +92,9 @@ var _ = Describe("Job Factory", func() {
 						Plan: atc.PlanSequence{
 							{
 								Get: "some-resource",
+							},
+							{
+								Put: "some-resource",
 							},
 						},
 					},
@@ -141,6 +154,25 @@ var _ = Describe("Job Factory", func() {
 						Passed:   []string{"public-pipeline-job-1", "public-pipeline-job-2"},
 					},
 				}))
+
+				Expect(visibleJobs[0].Outputs).To(BeNil())
+				Expect(visibleJobs[1].Outputs).To(Equal([]atc.JobOutput{
+					atc.JobOutput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+					},
+				}))
+				Expect(visibleJobs[2].Outputs).To(Equal([]atc.JobOutput{
+					atc.JobOutput{
+						Name:     "resource",
+						Resource: "some-resource",
+					},
+					atc.JobOutput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+					},
+				}))
+				Expect(visibleJobs[3].Outputs).To(BeNil())
 			})
 
 			It("returns next build, latest completed build, and transition build for each job", func() {
@@ -252,6 +284,31 @@ var _ = Describe("Job Factory", func() {
 				}))
 				Expect(allJobs[4].Inputs).To(Equal([]atc.DashboardJobInput{
 					atc.DashboardJobInput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+					},
+				}))
+
+				Expect(allJobs[0].Outputs).To(BeNil())
+				Expect(allJobs[1].Outputs).To(Equal([]atc.JobOutput{
+					atc.JobOutput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+					},
+				}))
+				Expect(allJobs[2].Outputs).To(Equal([]atc.JobOutput{
+					atc.JobOutput{
+						Name:     "resource",
+						Resource: "some-resource",
+					},
+					atc.JobOutput{
+						Name:     "some-resource",
+						Resource: "some-resource",
+					},
+				}))
+				Expect(allJobs[3].Outputs).To(BeNil())
+				Expect(allJobs[4].Outputs).To(Equal([]atc.JobOutput{
+					atc.JobOutput{
 						Name:     "some-resource",
 						Resource: "some-resource",
 					},

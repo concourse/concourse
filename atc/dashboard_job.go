@@ -16,7 +16,8 @@ type DashboardJob struct {
 	NextBuild       *DashboardBuild
 	TransitionBuild *DashboardBuild
 
-	Inputs []DashboardJobInput
+	Inputs  []DashboardJobInput
+	Outputs []JobOutput
 
 	Groups []string
 }
