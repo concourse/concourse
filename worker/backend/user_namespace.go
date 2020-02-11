@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"math"
 	"os"
 )
 
@@ -98,7 +97,7 @@ func MaxValid(r io.Reader) (uint32, error) {
 			return 0, fmt.Errorf("scanf: %w", err)
 		}
 
-		val = minUint(maxUint(val, inside+size-1), math.MaxUint32)
+		val = maxUint(val, inside+size-1)
 		lines++
 	}
 
@@ -116,14 +115,6 @@ func MaxValid(r io.Reader) (uint32, error) {
 
 func maxUint(a, b uint32) uint32 {
 	if a > b {
-		return a
-	}
-
-	return b
-}
-
-func minUint(a, b uint32) uint32 {
-	if a < b {
 		return a
 	}
 
