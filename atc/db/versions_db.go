@@ -302,7 +302,7 @@ func (versions VersionsDB) LatestBuildID(ctx context.Context, jobID int) (int, b
 	return buildID, true, nil
 }
 
-func (versions VersionsDB) NextEveryVersion(ctx context.Context, buildID int, resourceID int) (ResourceVersion, bool, bool, error) {
+func (versions VersionsDB) NextEveryVersion(ctx context.Context, jobID int, resourceID int) (ResourceVersion, bool, bool, error) {
 	tx, err := versions.conn.Begin()
 	if err != nil {
 		return "", false, false, err
@@ -311,14 +311,26 @@ func (versions VersionsDB) NextEveryVersion(ctx context.Context, buildID int, re
 	defer tx.Rollback()
 
 	var checkOrder int
-	err = psql.Select("rcv.check_order").
-		From("build_resource_config_version_inputs i").
-		Join("resource_config_versions rcv ON rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID).
-		Where(sq.Expr("i.version_md5 = rcv.version_md5")).
-		Where(sq.Eq{"i.build_id": buildID}).
-		RunWith(tx).
-		QueryRowContext(ctx).
-		Scan(&checkOrder)
+	err = tx.QueryRowContext(ctx, `
+		SELECT rcv.check_order
+		FROM resource_config_versions rcv
+		CROSS JOIN LATERAL (
+			SELECT i.build_id
+			FROM build_resource_config_version_inputs i
+			CROSS JOIN LATERAL (
+				SELECT b.id
+				FROM builds b
+				WHERE b.job_id = $1
+				AND i.build_id = b.id
+				LIMIT 1
+			) AS build
+			WHERE i.resource_id = $2
+			AND i.version_md5 = rcv.version_md5
+			LIMIT 1
+		) AS inputs
+		WHERE rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = $2)
+		ORDER BY rcv.check_order DESC
+		LIMIT 1;`, jobID, resourceID).Scan(&checkOrder)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			version, found, err := versions.latestVersionOfResource(ctx, tx, resourceID)
@@ -428,6 +440,39 @@ func (versions VersionsDB) LatestBuildPipes(ctx context.Context, buildID int) (m
 	}
 
 	return jobToBuildPipes, nil
+}
+
+func (versions VersionsDB) LatestBuildUsingLatestVersion(ctx context.Context, jobID int, resourceID int) (int, bool, error) {
+	var buildID int
+	err := versions.conn.QueryRowContext(ctx, `
+		SELECT inputs.build_id
+		FROM resource_config_versions rcv
+		CROSS JOIN LATERAL (
+			SELECT i.build_id
+			FROM build_resource_config_version_inputs i
+			CROSS JOIN LATERAL (
+				SELECT b.id
+				FROM builds b
+				WHERE b.job_id = $1
+				AND i.build_id = b.id
+				ORDER BY b.id DESC
+				LIMIT 1
+			) AS build
+			WHERE i.resource_id = $2
+			AND i.version_md5 = rcv.version_md5
+			LIMIT 1
+		) AS inputs
+		WHERE rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = $2)
+		ORDER BY rcv.check_order DESC
+		LIMIT 1`, jobID, resourceID).Scan(&buildID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, false, nil
+		}
+		return 0, false, err
+	}
+
+	return buildID, true, nil
 }
 
 func (versions VersionsDB) UnusedBuilds(ctx context.Context, jobID int, lastUsedBuild BuildCursor) (PaginatedBuilds, error) {

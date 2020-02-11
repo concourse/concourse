@@ -2341,7 +2341,7 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			OK: false,
 			Errors: map[string]string{
-				"resource-y": "latest version of resource not found",
+				"resource-y": "version of resource not found",
 			},
 		},
 	}),
@@ -3045,6 +3045,11 @@ var _ = DescribeTable("Input resolving",
 		DB: DB{
 			BuildInputs: []DBRow{
 				{Job: CurrentJobName, BuildID: 100, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			},
+
+			BuildPipes: []DBRow{
+				{FromBuildID: 1, ToBuildID: 100},
 			},
 
 			BuildOutputs: []DBRow{
@@ -3103,6 +3108,122 @@ var _ = DescribeTable("Input resolving",
 			OK:      false,
 			HasNext: false,
 			Errors:  map[string]string{"resource-x": "latest version of resource not found"},
+		},
+	}),
+
+	Entry("with version every and passed using an old version, it finds latest version ran by job", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: CurrentJobName, BuildID: 101, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: CurrentJobName, BuildID: 102, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			},
+
+			BuildPipes: []DBRow{
+				{FromBuildID: 1, ToBuildID: 100},
+				{FromBuildID: 2, ToBuildID: 101},
+				{FromBuildID: 1, ToBuildID: 102},
+			},
+
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "simple-a", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  Version{Every: true},
+				Passed:   []string{"simple-a"},
+			},
+		},
+
+		Result: Result{
+			OK:      true,
+			HasNext: true,
+			Values: map[string]string{
+				"resource-x": "rxv3",
+			},
+		},
+	}),
+
+	Entry("with version every without passed using an old version, it finds latest version ran by job", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: CurrentJobName, BuildID: 101, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: CurrentJobName, BuildID: 102, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  Version{Every: true},
+			},
+		},
+
+		Result: Result{
+			OK:      true,
+			HasNext: true,
+			Values: map[string]string{
+				"resource-x": "rxv3",
+			},
+		},
+	}),
+
+	Entry("if another job uses the same resource, that does not affect the next version found for the current job", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: CurrentJobName, BuildID: 101, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: CurrentJobName, BuildID: 102, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+
+				{Job: "another-job", BuildID: 103, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Resource: "resource-x", Version: "rxv5", CheckOrder: 5},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  Version{Every: true},
+			},
+		},
+
+		Result: Result{
+			OK:      true,
+			HasNext: true,
+			Values: map[string]string{
+				"resource-x": "rxv3",
+			},
 		},
 	}),
 )
