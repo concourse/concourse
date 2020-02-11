@@ -3,45 +3,18 @@
 \use-plugin{concourse-docs}
 \styled{index}
 
-\splash-intro{Concourse is an open-source continuous thing-doer.}{
+\splash-intro{
+  \inline-header{Concourse is an open-source continuous thing-doer.}
+
   Built on the simple mechanics of \reference{resources}{resources},
   \reference{tasks}{tasks}, and \reference{jobs}{jobs}, Concourse presents a
   general approach to automation that makes it great for
   \link{CI}{https://en.wikipedia.org/wiki/Continuous_integration}/\link{CD}{https://en.wikipedia.org/wiki/Continuous_delivery}.
+
+  \button{\reference{quick-start}}
+}{
+  \download-links
 }
-
-\right-side{Quick Start}{
-  Concourse is distributed as a single \code{concourse} binary, making it easy
-  to run just about anywhere, especially with Docker.
-
-  \codeblock{bash}{{
-  $ wget https://concourse-ci.org/docker-compose.yml
-  $ docker-compose up -d
-  Creating docs_concourse-db_1 ...
-  Creating docs_concourse-db_1 ... done
-  Creating docs_concourse_1 ...
-  Creating docs_concourse_1 ... done
-  }}
-
-  Concourse will be running at \link{localhost:8080}{http://localhost:8080}.
-  You can log in with the username/password as \code{test}/\code{test}.
-
-  Next, install \reference{fly-cli} by downloading it from the web UI and
-  target your local Concourse as the \code{test} user:
-
-  \codeblock{bash}{{
-  $ fly -t tutorial login -c http://localhost:8080 -u test -p test
-  logging in to team 'main'
-
-  target saved
-  }}
-
-  Then, head to \link{Hello
-  World}{https://concoursetutorial.com/basics/task-hello-world/} to kick the
-  tires!
-}
-
-\download-links
 
 \splash-example{Configuration As Code}{
   You can think of a \reference{pipelines}{pipeline} as a distributed,

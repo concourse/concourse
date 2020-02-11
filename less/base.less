@@ -1,6 +1,9 @@
 @import "colors.less";
 @import "mixins.less";
 
+@nav-height: 80px;
+@column-width: 240px;
+
 * {
   box-sizing: border-box;
 }
@@ -17,13 +20,34 @@ body {
   color: @darker-grey;
   background: white;
 
-  width: 100%;
   display: grid;
-  grid-template-rows: 80px auto;
-  grid-template-columns: 2fr 5fr 3fr;
-  grid-template-areas:
-    "logo primary-nav search"
-    "secondary-nav content aside";
+  grid-auto-rows: @nav-height auto auto;
+}
+
+.page-top {
+  background: @blue-primary;
+
+  .top-nav {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+}
+
+.body-content {
+  background: white;
+}
+
+.page-body {
+  max-width: 1100px;
+  margin: 0 auto;
+
+  display: flex;
+  flex-direction: row;
+
+  .page-nav {
+    width: @column-width;
+    flex-shrink: 0;
+  }
 }
 
 a {
@@ -125,38 +149,14 @@ h2, h3 {
   margin: 2rem 0 .8rem;
 }
 
-.top-logo {
-  grid-area: logo;
-}
-
-.top-nav {
-  grid-area: primary-nav;
-}
-
-.top-search {
-  grid-area: search;
+.top-logo, .top-nav, .top-search {
+  background: @blue-primary;
+  color: white;
+  font-family: 'Roboto Slab', serif;
+  line-height: @nav-height;
 }
 
 .page-nav {
-  grid-area: secondary-nav;
-}
-
-.page-content {
-  grid-area: content;
-}
-
-.page-aside {
-  grid-area: aside;
-}
-
-.top-logo, .top-nav, .top-search {
-  background: @brand;
-  color: white;
-  font-family: 'Roboto Slab', serif;
-  line-height: 80px;
-}
-
-.page-nav, .page-partial {
   padding: 30px;
 }
 
@@ -166,48 +166,51 @@ h2, h3 {
 
 .page-content {
   background: white;
-  padding: 70px;
   position: relative;
   min-width: 300px;
+}
+
+.page-content, .page-partial {
+  padding: 70px;
 }
 
 .top-nav {
   position: relative;
   white-space: nowrap;
-}
-
-.top-logo a {
-  color: white;
-  margin: 0;
-  font-size: 22px;
-  padding: 0 50px 0 80px;
-  line-height: 80px;
-  display: inline-block;
-  vertical-align: top;
-  text-decoration: none;
-  position: relative;
-}
-
-.top-logo img {
-  width: 40px;
-  height: 40px;
-  vertical-align: middle;
-  position: absolute;
-  top: 18px;
-  left: 17px;
-}
-
-.top-logo a:visited {
-  color: white;
+  display: flex;
+  flex-direction: row;
 }
 
 .top-link {
   color: white;
   font-size: 16px;
   text-transform: lowercase;
-  line-height: 80px;
+  line-height: @nav-height;
   display: inline-block;
   padding: 0 25px;
+
+  &.logo-link {
+    color: white;
+    margin: 0;
+    font-size: 22px;
+    width: @column-width;
+    padding: 0 50px 0 @nav-height;
+    line-height: @nav-height;
+    display: inline-block;
+    vertical-align: top;
+    text-decoration: none;
+    position: relative;
+    text-transform: initial;
+
+    img {
+      width: 40px;
+      height: 40px;
+      vertical-align: middle;
+      position: absolute;
+      top: 18px;
+      left: 17px;
+    }
+  }
 }
 
 .top-link, .top-link:visited {
@@ -221,8 +224,7 @@ h2, h3 {
 }
 
 .top-link.active {
-  background: white;
-  color: @darker-grey;
+  background: @blue-secondary;
   text-decoration: underline;
 }
 
@@ -253,10 +255,6 @@ h2, h3 {
   flex-direction: column;
 }
 
-.page-nav .number-cell {
-  padding-right: 3px;
-}
-
 .page-nav a {
   color: @grey-primary;
   text-decoration: none;
@@ -285,9 +283,7 @@ h2, h3 {
 }
 
 .page-nav .children {
-  margin-left: .5rem;
-  border-left: 1px solid @dark-grey;
-  padding-left: .8rem;
+  margin-left: 0.5em;
 }
 
 .page-nav .children table {
@@ -299,8 +295,27 @@ h2, h3 {
   vertical-align: top;
 }
 
-.section-number {
-  margin-right: .5rem;
+.page-nav {
+  .section-number {
+    width: 100px;
+    display: inline-block;
+    text-align: right;
+    margin-left: -100px;
+    padding-right: .5rem;
+  }
+
+  .children {
+    margin-left: -100px;
+
+    &.anchors {
+      margin-left: 0;
+    }
+
+    .number-cell {
+      padding-right: .5rem;
+      width: 100px;
+    }
+  }
 }
 
 .page-content {

@@ -1,0 +1,206 @@
+body.index {
+  background: @off-white;
+}
+
+.splash {
+  background: url('../images/concourse-pattern.svg');
+  background-size: 100vw auto;
+  color: white;
+
+  .splash-content {
+    width: 1100px;
+    margin: 0 auto;
+  }
+
+  .button a {
+    display: inline-block;
+    margin-top: 10px;
+
+    font-family: 'Roboto Slab', serif;
+    background: @blue-primary;
+    padding: 0 20px;
+    line-height: 40px;
+    font-size: 18px;
+    color: white;
+    text-decoration: none;
+
+    &:hover {
+      background: @blue-secondary;
+    }
+
+    // .3d-block(@blue-secondary, 3px, 5px);
+  }
+}
+
+.splash-title {
+  grid-column-start: span 2;
+  margin-bottom: 14px;
+  font-size: 19px;
+  border: 0;
+  align-self: end;
+
+  margin-top: 50px;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.page-content.index {
+  grid-column-start: 1;
+  padding: 0 !important;
+}
+
+.page-content.index .section,
+.splash-content {
+  padding: 70px;
+  display: grid;
+  grid-template-columns: 385px auto;
+  grid-gap: 0 30px;
+}
+
+.splash-intro {
+  font-size: 18px;
+
+  h2 {
+    font-style: italic;
+    color: white;
+    font-family: 'Roboto Slab', serif;
+    font-style: normal;
+    margin-top: 0;
+    border: 0;
+    font-size: 26px;
+    font-weight: 500;
+  }
+
+  a, a:visited {
+    color: white;
+  }
+}
+
+.segment.example pre,
+.segment.example p {
+  margin: 0;
+}
+
+.segment.example img {
+  vertical-align: top;
+}
+
+@download-size: 48px;
+@download-font-size: 18px;
+@download-icon-size: 24px;
+
+.download-info {
+  margin-top: 20px;
+}
+
+.hero-pill {
+  margin-top: 10px;
+
+  background-color: @amber-primary;
+  text-decoration: none;
+  display: inline-block;
+  padding-right: @download-icon-size;
+  height: @download-size;
+
+  &, &:visited, &:hover {
+    color: white;
+  }
+
+  &:hover {
+    text-decoration: none;
+    background-color: @amber-secondary;
+  }
+
+  background-repeat: no-repeat;
+  background-size: @download-icon-size @download-icon-size;
+  background-position: (@download-size / 2 - @download-icon-size / 2) center;
+  background-image: url("../images/icons/tag.svg");
+
+  font-size: @download-font-size;
+  text-indent: (@download-size / 2) + (@download-icon-size / 2) + 8px;
+  line-height: @download-size;
+  font-family: 'Roboto Slab', serif;
+
+  // .small {
+  //   font-size: 20px;
+  // }
+
+  // .3d-block(@amber-secondary, 5px, 7px);
+}
+
+.splash-downloads {
+  background: @darker-grey;
+  border: 2px solid @dark-grey;
+  padding: 40px 50px;
+  margin: 0 50px;
+
+  h3 {
+    margin-top: 0;
+  }
+}
+
+.download-info {
+  list-style-type: none;
+  padding-left: 0 !important;
+
+  > li {
+    margin-bottom: 5px;
+    color: white;
+    line-height: 32px;
+
+    display: grid;
+    grid-template-columns: 150px auto;
+  }
+
+  code {
+    background-color: @dark-grey;
+    padding: 3px;
+    border-radius: 5px;
+  }
+
+  .download-links {
+    list-style-type: none;
+    padding-left: 0 !important;
+    margin-bottom: 0;
+
+    display: flex;
+    flex-direction: row;
+
+    > li {
+      margin-bottom: 0;
+      white-space: nowrap;
+      margin-right: 16px;
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+      margin-right: 4px;
+      margin-top: -4px;
+    }
+
+    a, a:visited {
+      display: inline-block;
+      line-height: 32px;
+      box-sizing: content-box;
+      position: relative;
+      bottom: -1px;
+
+      color: white;
+      text-decoration: none;
+
+      border-bottom: 1px solid transparent;
+
+      .icon path {
+        fill: white;
+      }
+    }
+
+    a:hover {
+      border-bottom-color: white;
+    }
+  }
+}

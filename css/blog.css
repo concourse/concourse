@@ -12,11 +12,28 @@ body {
   line-height: 1.6;
   color: #2a2929;
   background: white;
-  width: 100%;
   display: grid;
-  grid-template-rows: 80px auto;
-  grid-template-columns: 2fr 5fr 3fr;
-  grid-template-areas: "logo primary-nav search" "secondary-nav content aside";
+  grid-auto-rows: 80px auto auto;
+}
+.page-top {
+  background: #4a90e2;
+}
+.page-top .top-nav {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.body-content {
+  background: white;
+}
+.page-body {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: row;
+}
+.page-body .page-nav {
+  width: 240px;
+  flex-shrink: 0;
 }
 a {
   color: #2d76cc;
@@ -115,34 +132,15 @@ h2,
 h3 {
   margin: 2rem 0 0.8rem;
 }
-.top-logo {
-  grid-area: logo;
-}
-.top-nav {
-  grid-area: primary-nav;
-}
-.top-search {
-  grid-area: search;
-}
-.page-nav {
-  grid-area: secondary-nav;
-}
-.page-content {
-  grid-area: content;
-}
-.page-aside {
-  grid-area: aside;
-}
 .top-logo,
 .top-nav,
 .top-search {
-  background: #3398dc;
+  background: #4a90e2;
   color: white;
   font-family: 'Roboto Slab', serif;
   line-height: 80px;
 }
-.page-nav,
-.page-partial {
+.page-nav {
   padding: 30px;
 }
 .page-partial h2 {
@@ -150,35 +148,18 @@ h3 {
 }
 .page-content {
   background: white;
-  padding: 70px;
   position: relative;
   min-width: 300px;
+}
+.page-content,
+.page-partial {
+  padding: 70px;
 }
 .top-nav {
   position: relative;
   white-space: nowrap;
-}
-.top-logo a {
-  color: white;
-  margin: 0;
-  font-size: 22px;
-  padding: 0 50px 0 80px;
-  line-height: 80px;
-  display: inline-block;
-  vertical-align: top;
-  text-decoration: none;
-  position: relative;
-}
-.top-logo img {
-  width: 40px;
-  height: 40px;
-  vertical-align: middle;
-  position: absolute;
-  top: 18px;
-  left: 17px;
-}
-.top-logo a:visited {
-  color: white;
+  display: flex;
+  flex-direction: row;
 }
 .top-link {
   color: white;
@@ -187,6 +168,27 @@ h3 {
   line-height: 80px;
   display: inline-block;
   padding: 0 25px;
+}
+.top-link.logo-link {
+  color: white;
+  margin: 0;
+  font-size: 22px;
+  width: 240px;
+  padding: 0 50px 0 80px;
+  line-height: 80px;
+  display: inline-block;
+  vertical-align: top;
+  text-decoration: none;
+  position: relative;
+  text-transform: initial;
+}
+.top-link.logo-link img {
+  width: 40px;
+  height: 40px;
+  vertical-align: middle;
+  position: absolute;
+  top: 18px;
+  left: 17px;
 }
 .top-link,
 .top-link:visited {
@@ -198,8 +200,7 @@ h3 {
   text-decoration: underline;
 }
 .top-link.active {
-  background: white;
-  color: #2a2929;
+  background: #2d76cc;
   text-decoration: underline;
 }
 .icon-link {
@@ -223,9 +224,6 @@ h3 {
   display: flex;
   flex-direction: column;
 }
-.page-nav .number-cell {
-  padding-right: 3px;
-}
 .page-nav a {
   color: #9b9b9b;
   text-decoration: none;
@@ -248,9 +246,7 @@ h3 {
   font-size: 1.1em;
 }
 .page-nav .children {
-  margin-left: 0.5rem;
-  border-left: 1px solid #3d3c3c;
-  padding-left: 0.8rem;
+  margin-left: 0.5em;
 }
 .page-nav .children table {
   border-spacing: 0;
@@ -259,8 +255,22 @@ h3 {
 .page-nav table td {
   vertical-align: top;
 }
-.section-number {
-  margin-right: 0.5rem;
+.page-nav .section-number {
+  width: 100px;
+  display: inline-block;
+  text-align: right;
+  margin-left: -100px;
+  padding-right: 0.5rem;
+}
+.page-nav .children {
+  margin-left: -100px;
+}
+.page-nav .children.anchors {
+  margin-left: 0;
+}
+.page-nav .children .number-cell {
+  padding-right: 0.5rem;
+  width: 100px;
 }
 .page-content {
   background: white;

@@ -42,6 +42,13 @@ func (p Plugin) FontAwesome(class string) booklit.Content {
 	}
 }
 
+func (p Plugin) Button(content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "button",
+		Content: content,
+	}
+}
+
 func (p Plugin) Codeblock(language string, code booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style:   "code-block",
@@ -60,17 +67,20 @@ func (p Plugin) InlineHeader(content booklit.Content) booklit.Content {
 	}
 }
 
-func (p Plugin) SplashIntro(intro, blurb booklit.Content) booklit.Content {
-	return booklit.Styled{
-		Style: "splash-intro",
-		Block: true,
+func (p Plugin) SplashIntro(intro, downloads booklit.Content) {
+	p.section.SetPartial(
+		"Splash",
+		booklit.Styled{
+			Style: "splash-intro",
+			Block: true,
 
-		Content: blurb,
+			Content: intro,
 
-		Partials: booklit.Partials{
-			"Intro": intro,
+			Partials: booklit.Partials{
+				"Downloads": downloads,
+			},
 		},
-	}
+	)
 }
 
 func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
