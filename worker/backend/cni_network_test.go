@@ -87,13 +87,13 @@ func (s *CNINetworkSuite) TestSetupMountsReturnsMountpoints() {
 			Destination: "/etc/hosts",
 			Type:        "bind",
 			Source:      "/tmp/handle/etc/hosts",
-			Options:     []string{"rbind", "rw"},
+			Options:     []string{"bind", "rw"},
 		},
 		{
 			Destination: "/etc/resolv.conf",
 			Type:        "bind",
 			Source:      "/tmp/handle/etc/resolv.conf",
-			Options:     []string{"rbind", "rw"},
+			Options:     []string{"bind", "rw"},
 		},
 	})
 }

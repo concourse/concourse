@@ -193,12 +193,12 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 			Destination: "/etc/hosts",
 			Type:        "bind",
 			Source:      etcHosts,
-			Options:     []string{"rbind", "rw"},
+			Options:     []string{"bind", "rw"},
 		}, {
 			Destination: "/etc/resolv.conf",
 			Type:        "bind",
 			Source:      resolvConf,
-			Options:     []string{"rbind", "rw"},
+			Options:     []string{"bind", "rw"},
 		},
 	}, nil
 }
