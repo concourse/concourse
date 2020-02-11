@@ -56,6 +56,7 @@ func (p Plugin) InlineHeader(content booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style:   "inline-header",
 		Content: content,
+		Block:   true,
 	}
 }
 
