@@ -30,17 +30,24 @@ const (
 	GracePeriod = 10 * time.Second
 )
 
+type KillBehaviour bool
+
+const (
+	KillGracefully   KillBehaviour = false
+	KillUngracefully KillBehaviour = true
+)
+
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . Killer
 
 // Killer terminates tasks.
 //
 type Killer interface {
-	// Kill terminates a task either in a graceful or ungraceful manner.
+	// Kill terminates a task either with a specific behaviour.
 	//
 	Kill(
 		ctx context.Context,
 		task containerd.Task,
-		ungraceful bool,
+		behaviour KillBehaviour,
 	) error
 }
 
@@ -91,24 +98,47 @@ func NewKiller(opts ...KillerOpt) *killer {
 
 // Kill delivers a signal to each exec'ed process in the task.
 //
-func (k killer) Kill(ctx context.Context, task containerd.Task, ungraceful bool) error {
-	if !ungraceful {
-		err := k.killTaskExecedProcesses(ctx, task, GracefulSignal)
-		switch {
-		case errors.Is(err, ErrGracePeriodTimeout):
-		case err == nil:
-			return nil
-		default:
-			return fmt.Errorf("kill task execed processes: %w", err)
+func (k killer) Kill(ctx context.Context, task containerd.Task, behaviour KillBehaviour) error {
+	switch behaviour {
+	case KillGracefully:
+		success, err := k.gracefullyKill(ctx, task)
+		if err != nil {
+			return fmt.Errorf("graceful kill: %w", err)
+		}
+		if !success {
+			err := k.ungracefullyKill(ctx, task)
+			if err != nil {
+				return fmt.Errorf("ungraceful kill: %w", err)
+			}
+		}
+	case KillUngracefully:
+		err := k.ungracefullyKill(ctx, task)
+		if err != nil {
+			return fmt.Errorf("ungraceful kill: %w", err)
 		}
 	}
+	return nil
+}
 
+func (k killer) ungracefullyKill(ctx context.Context, task containerd.Task) error {
 	err := k.killTaskExecedProcesses(ctx, task, UngracefulSignal)
 	if err != nil {
 		return fmt.Errorf("ungraceful kill task execed processes: %w", err)
 	}
 
 	return nil
+}
+
+func (k killer) gracefullyKill(ctx context.Context, task containerd.Task) (bool, error) {
+	err := k.killTaskExecedProcesses(ctx, task, GracefulSignal)
+	switch {
+	case errors.Is(err, ErrGracePeriodTimeout):
+		return false, nil
+	case err != nil:
+		return false, fmt.Errorf("kill task execed processes: %w", err)
+	}
+
+	return true, nil
 }
 
 // killTaskProcesses delivers a signal to every live process that has been

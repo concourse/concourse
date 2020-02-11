@@ -47,9 +47,14 @@ func (c *Container) Stop(kill bool) error {
 		return fmt.Errorf("task lookup: %w", err)
 	}
 
-	err = c.killer.Kill(ctx, task, kill)
+	behaviour := KillGracefully
+	if kill {
+		behaviour = KillUngracefully
+	}
+
+	err = c.killer.Kill(ctx, task, behaviour)
 	if err != nil {
-		return fmt.Errorf("ungraceful stop: %w", err)
+		return fmt.Errorf("kill: %w", err)
 	}
 
 	return nil
@@ -158,7 +163,7 @@ func (c *Container) Properties() (garden.Properties, error) {
 
 	labels, err := c.container.Labels(ctx)
 	if err != nil {
-		return garden.Properties{}, fmt.Errorf("")
+		return garden.Properties{}, fmt.Errorf("labels retrieval: %w", err)
 	}
 
 	return labels, nil
