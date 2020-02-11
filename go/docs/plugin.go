@@ -107,6 +107,10 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 		return nil, errors.New("no releases found!")
 	}
 	for _, release := range releases {
+		if release.GetPrerelease() {
+			continue
+		}
+
 		if release.TagName == nil {
 			return nil, fmt.Errorf("no tag name for release %v", release)
 		}
