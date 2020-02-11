@@ -111,20 +111,18 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	FindTeamStub        func(string) (concourse.Team, bool, error)
+	FindTeamStub        func(string) (concourse.Team, error)
 	findTeamMutex       sync.RWMutex
 	findTeamArgsForCall []struct {
 		arg1 string
 	}
 	findTeamReturns struct {
 		result1 concourse.Team
-		result2 bool
-		result3 error
+		result2 error
 	}
 	findTeamReturnsOnCall map[int]struct {
 		result1 concourse.Team
-		result2 bool
-		result3 error
+		result2 error
 	}
 	GetCLIReaderStub        func(string, string) (io.ReadCloser, http.Header, error)
 	getCLIReaderMutex       sync.RWMutex
@@ -752,7 +750,7 @@ func (fake *FakeClient) CheckReturnsOnCall(i int, result1 atc.Check, result2 boo
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) FindTeam(arg1 string) (concourse.Team, bool, error) {
+func (fake *FakeClient) FindTeam(arg1 string) (concourse.Team, error) {
 	fake.findTeamMutex.Lock()
 	ret, specificReturn := fake.findTeamReturnsOnCall[len(fake.findTeamArgsForCall)]
 	fake.findTeamArgsForCall = append(fake.findTeamArgsForCall, struct {
@@ -764,10 +762,10 @@ func (fake *FakeClient) FindTeam(arg1 string) (concourse.Team, bool, error) {
 		return fake.FindTeamStub(arg1)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.findTeamReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeClient) FindTeamCallCount() int {
@@ -776,7 +774,7 @@ func (fake *FakeClient) FindTeamCallCount() int {
 	return len(fake.findTeamArgsForCall)
 }
 
-func (fake *FakeClient) FindTeamCalls(stub func(string) (concourse.Team, bool, error)) {
+func (fake *FakeClient) FindTeamCalls(stub func(string) (concourse.Team, error)) {
 	fake.findTeamMutex.Lock()
 	defer fake.findTeamMutex.Unlock()
 	fake.FindTeamStub = stub
@@ -789,33 +787,30 @@ func (fake *FakeClient) FindTeamArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeClient) FindTeamReturns(result1 concourse.Team, result2 bool, result3 error) {
+func (fake *FakeClient) FindTeamReturns(result1 concourse.Team, result2 error) {
 	fake.findTeamMutex.Lock()
 	defer fake.findTeamMutex.Unlock()
 	fake.FindTeamStub = nil
 	fake.findTeamReturns = struct {
 		result1 concourse.Team
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeClient) FindTeamReturnsOnCall(i int, result1 concourse.Team, result2 bool, result3 error) {
+func (fake *FakeClient) FindTeamReturnsOnCall(i int, result1 concourse.Team, result2 error) {
 	fake.findTeamMutex.Lock()
 	defer fake.findTeamMutex.Unlock()
 	fake.FindTeamStub = nil
 	if fake.findTeamReturnsOnCall == nil {
 		fake.findTeamReturnsOnCall = make(map[int]struct {
 			result1 concourse.Team
-			result2 bool
-			result3 error
+			result2 error
 		})
 	}
 	fake.findTeamReturnsOnCall[i] = struct {
 		result1 concourse.Team
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeClient) GetCLIReader(arg1 string, arg2 string) (io.ReadCloser, http.Header, error) {

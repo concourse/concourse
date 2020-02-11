@@ -669,21 +669,6 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
-	TeamStub        func(string) (atc.Team, bool, error)
-	teamMutex       sync.RWMutex
-	teamArgsForCall []struct {
-		arg1 string
-	}
-	teamReturns struct {
-		result1 atc.Team
-		result2 bool
-		result3 error
-	}
-	teamReturnsOnCall map[int]struct {
-		result1 atc.Team
-		result2 bool
-		result3 error
-	}
 	UnpauseJobStub        func(string, string) (bool, error)
 	unpauseJobMutex       sync.RWMutex
 	unpauseJobArgsForCall []struct {
@@ -3653,72 +3638,6 @@ func (fake *FakeTeam) SetPinCommentReturnsOnCall(i int, result1 bool, result2 er
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) Team(arg1 string) (atc.Team, bool, error) {
-	fake.teamMutex.Lock()
-	ret, specificReturn := fake.teamReturnsOnCall[len(fake.teamArgsForCall)]
-	fake.teamArgsForCall = append(fake.teamArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("Team", []interface{}{arg1})
-	fake.teamMutex.Unlock()
-	if fake.TeamStub != nil {
-		return fake.TeamStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.teamReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakeTeam) TeamCallCount() int {
-	fake.teamMutex.RLock()
-	defer fake.teamMutex.RUnlock()
-	return len(fake.teamArgsForCall)
-}
-
-func (fake *FakeTeam) TeamCalls(stub func(string) (atc.Team, bool, error)) {
-	fake.teamMutex.Lock()
-	defer fake.teamMutex.Unlock()
-	fake.TeamStub = stub
-}
-
-func (fake *FakeTeam) TeamArgsForCall(i int) string {
-	fake.teamMutex.RLock()
-	defer fake.teamMutex.RUnlock()
-	argsForCall := fake.teamArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeTeam) TeamReturns(result1 atc.Team, result2 bool, result3 error) {
-	fake.teamMutex.Lock()
-	defer fake.teamMutex.Unlock()
-	fake.TeamStub = nil
-	fake.teamReturns = struct {
-		result1 atc.Team
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeTeam) TeamReturnsOnCall(i int, result1 atc.Team, result2 bool, result3 error) {
-	fake.teamMutex.Lock()
-	defer fake.teamMutex.Unlock()
-	fake.TeamStub = nil
-	if fake.teamReturnsOnCall == nil {
-		fake.teamReturnsOnCall = make(map[int]struct {
-			result1 atc.Team
-			result2 bool
-			result3 error
-		})
-	}
-	fake.teamReturnsOnCall[i] = struct {
-		result1 atc.Team
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeTeam) UnpauseJob(arg1 string, arg2 string) (bool, error) {
 	fake.unpauseJobMutex.Lock()
 	ret, specificReturn := fake.unpauseJobReturnsOnCall[len(fake.unpauseJobArgsForCall)]
@@ -4069,8 +3988,6 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.scheduleJobMutex.RUnlock()
 	fake.setPinCommentMutex.RLock()
 	defer fake.setPinCommentMutex.RUnlock()
-	fake.teamMutex.RLock()
-	defer fake.teamMutex.RUnlock()
 	fake.unpauseJobMutex.RLock()
 	defer fake.unpauseJobMutex.RUnlock()
 	fake.unpausePipelineMutex.RLock()

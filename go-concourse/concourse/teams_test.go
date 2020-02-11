@@ -1,10 +1,12 @@
 package concourse_test
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse/internal"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -53,9 +55,10 @@ var _ = Describe("ATC Handler Teams", func() {
 				)
 			})
 
-			It("returns false", func() {
+			It("returns an error", func() {
 				_, err := client.FindTeam(teamName)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).To(Equal(errors.New("team 'myTeam' does not exist")))
+
 			})
 		})
 
@@ -72,6 +75,25 @@ var _ = Describe("ATC Handler Teams", func() {
 			It("returns false and error", func() {
 				_, err := client.FindTeam(teamName)
 				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when an unhandled HTTP status code is returned", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusInternalServerError, "server issue"),
+					),
+				)
+			})
+			It("returns an UnexpectedResponseError", func() {
+				_, err := client.FindTeam(teamName)
+				Expect(err).To(Equal(internal.UnexpectedResponseError{
+					StatusCode: http.StatusInternalServerError,
+					Status:     "500 Internal Server Error",
+					Body:       "server issue",
+				}))
 			})
 		})
 	})

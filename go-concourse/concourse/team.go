@@ -76,7 +76,8 @@ type Team interface {
 
 type team struct {
 	name       string
-	connection internal.Connection
+	connection internal.Connection //Deprecated
+	httpAgent  internal.HTTPAgent
 	auth       atc.TeamAuth
 }
 

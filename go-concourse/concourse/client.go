@@ -1,8 +1,10 @@
 package concourse
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -39,12 +41,14 @@ type Client interface {
 }
 
 type client struct {
-	connection internal.Connection
+	connection internal.Connection //Deprecated
+	httpAgent  internal.HTTPAgent
 }
 
 func NewClient(apiURL string, httpClient *http.Client, tracing bool) Client {
 	return &client{
 		connection: internal.NewConnection(apiURL, httpClient, tracing),
+		httpAgent:  internal.NewHTTPAgent(apiURL, httpClient, tracing),
 	}
 }
 
@@ -58,27 +62,39 @@ func (client *client) HTTPClient() *http.Client {
 
 func (client *client) FindTeam(teamName string) (Team, error) {
 	var atcTeam atc.Team
-	err := client.connection.Send(internal.Request{
+	resp, err := client.httpAgent.Send(internal.Request{
 		RequestName: atc.GetTeam,
 		Params:      rata.Params{"team_name": teamName},
-	}, &internal.Response{
-		Result: &atcTeam,
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	switch err.(type) {
-	case nil:
+	switch resp.StatusCode {
+	case http.StatusOK:
+		err = json.NewDecoder(resp.Body).Decode(&atcTeam)
+		if err != nil {
+			return nil, err
+		}
 		return &team{
 			name:       atcTeam.Name,
 			connection: client.connection,
+			httpAgent:  client.httpAgent,
 			auth:       atcTeam.Auth,
 		}, nil
-	case internal.ResourceNotFoundError:
+	case http.StatusForbidden:
+		return nil, fmt.Errorf("you do not have a role on team '%s'", teamName)
+	case http.StatusNotFound:
 		return nil, fmt.Errorf("team '%s' does not exist", teamName)
 	default:
-		return nil, err
+		body, _ := ioutil.ReadAll(resp.Body)
+		return nil, internal.UnexpectedResponseError{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+			Body:       string(body),
+		}
 	}
+
+
 }
