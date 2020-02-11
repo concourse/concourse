@@ -77,6 +77,7 @@ var DefaultRoles = map[string]string{
 	atc.ListWorkers:                   ViewerRole,
 	atc.DeleteWorker:                  MemberRole,
 	atc.SetLogLevel:                   MemberRole,
+	atc.ListActiveUsersSince:          MemberRole,
 	atc.GetLogLevel:                   ViewerRole,
 	atc.DownloadCLI:                   ViewerRole,
 	atc.GetInfo:                       ViewerRole,
@@ -99,4 +100,6 @@ var DefaultRoles = map[string]string{
 	atc.GetArtifact:                   MemberRole,
 	atc.ListBuildArtifacts:            ViewerRole,
 	atc.GetWall:                       ViewerRole,
+	atc.SetWall:                       MemberRole,
+	atc.ClearWall:                     MemberRole,
 }
