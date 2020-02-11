@@ -3,7 +3,6 @@ package spec
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"code.cloudfoundry.org/garden"
@@ -12,8 +11,8 @@ import (
 )
 
 const (
-	RootPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-	Path     = "PATH=/usr/local/bin:/usr/bin:/bin"
+	PrivilegedPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	Path           = "PATH=/usr/local/bin:/usr/bin:/bin"
 )
 
 // OciSpec converts a given `garden` container specification to an OCI spec.
@@ -126,16 +125,14 @@ func OciIDMappings(privileged bool, max uint32) []specs.LinuxIDMapping {
 // environment.
 //
 func envWithDefaultPath(env []string, privileged bool) []string {
-	pathRegexp := regexp.MustCompile("^PATH=.*$")
-
 	for _, envVar := range env {
-		if pathRegexp.MatchString(envVar) {
+		if strings.HasPrefix(envVar, "PATH=") {
 			return env
 		}
 	}
 
 	if privileged {
-		return append(env, RootPath)
+		return append(env, PrivilegedPath)
 	}
 
 	return append(env, Path)

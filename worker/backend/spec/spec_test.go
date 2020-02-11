@@ -267,7 +267,7 @@ func (s *SpecSuite) TestContainerSpec() {
 				Privileged: true,
 			},
 			check: func(oci *specs.Spec) {
-				s.Equal([]string{"foo=bar", spec.RootPath}, oci.Process.Env)
+				s.Equal([]string{"foo=bar", spec.PrivilegedPath}, oci.Process.Env)
 			},
 		},
 		{
