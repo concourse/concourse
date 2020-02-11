@@ -16,7 +16,7 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	FDescribe("get-team", func() {
+	Describe("get-team", func() {
 		var team atc.Team
 
 		BeforeEach(func() {
@@ -40,8 +40,7 @@ var _ = Describe("Fly CLI", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
-				Fail("TODO: weird backtick and single quote found together. See if this test actually runs")
-				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("n", "team-name") + "` was not specified"))
+				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("n", "team-name") + "' was not specified"))
 			})
 		})
 

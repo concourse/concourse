@@ -261,11 +261,11 @@ var _ = FDescribe("Fly CLI", func() {
 			})
 		})
 		Context("when you are NOT authorized to view the team", func() {
-			It("returns an error", func() {
+			FIt("returns an error", func() {
 				loginATCServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/banana"),
-						ghttp.RespondWith(http.StatusUnauthorized, nil),
+						ghttp.RespondWith(http.StatusForbidden, nil),
 					),
 				)
 
