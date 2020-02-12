@@ -11,12 +11,12 @@ The following configurations can be parameterized through a \code{((var))}
 source:
 
 \list{
-  \reference{resource.source} under \reference{resources} in a pipeline
+  \reference{schema.resource.source} under \reference{schema.resources} in a pipeline
 }{
   \reference{resource_type.source} under \reference{resource-types} in a
   pipeline
 }{
-  \reference{resource.webhook_token} under \reference{resources} in a
+  \reference{schema.resource.webhook_token} under \reference{schema.resources} in a
   pipeline
 }{
   \reference{task-step-params} on a task step in a pipeline

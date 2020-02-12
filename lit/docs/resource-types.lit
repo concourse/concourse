@@ -19,7 +19,7 @@ A pipeline's resource types are listed under
   \required-attribute{name}{identifier}{
     The name of the resource type. This should be short and simple. This name
     will be referenced by \reference{pipeline.resources} defined within the
-    same pipeline, and \reference{image_resource}s used by tasks running in the
+    same pipeline, and \reference{schema.task.image_resource}s used by tasks running in the
     pipeline.
 
     Pipeline-provided resource types can override the core resource types by

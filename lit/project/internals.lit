@@ -141,7 +141,7 @@
       A use can be tied to a \reference{containers-table}, in which case the
       use can be removed when the container goes away. A cache is in use by a
       container when it's being used as the container's image, either via
-      \reference{image_resource} or a \reference{resource-types}{resource
+      \reference{schema.task.image_resource} or a \reference{resource-types}{resource
       type}.
     }
 
@@ -151,7 +151,7 @@
       \reference{resource_caches-table}{resource cache}.
 
       A build image resource cache is used for keeping caches that were used
-      for an \reference{image_resource} in a build, as part of the
+      for an \reference{schema.task.image_resource} in a build, as part of the
       \reference{resource-retention}{resource retention policy}.
     }
 
@@ -332,9 +332,9 @@
 
     \define-table{worker_task_caches}{
       The \italic{worker task caches} table tracks all of the details of a
-      \reference{caches}{task cache} for a specific worker. \italic{Worker task
+      \reference{schema.task.caches}{task cache} for a specific worker. \italic{Worker task
       caches} are created for any \reference{task-step} in a job for all of the
-      paths specified \reference{caches}{task cache}.
+      paths specified \reference{schema.task.caches}{task cache}.
 
       This table is used to identify worker task cache volumes by their
       \reference{volumes-worker_task_cache_id}{id}.
@@ -622,7 +622,7 @@
 
       \italic{Task containers} are created when a \reference{task-step} is
       executed in a build plan. They are based on the image produced by the
-      configured \reference{image_resource} or \reference{task-step-image}.
+      configured \reference{schema.task.image_resource} or \reference{task-step-image}.
     }
 
     \section{

@@ -61,31 +61,7 @@ configured job consists of the following fields:
     Builds which are not retained by the configured policy will have their logs
     reaped. If this configuration is omitted, logs are kept forever.
 
-    \schema{build_log_retention_policy}{
-      \optional-attribute{days}{number}{
-        Keep logs for builds which have finished within the specified number of
-        days.
-      }
-
-      \optional-attribute{builds}{number}{
-        Keep logs for the last specified number of builds.
-      }
-
-      \optional-attribute{minimum_succeeded_builds}{number}{
-        Keep a minimum number of successful build logs that would normally be
-        reaped.
-
-        Requires \reference{job.build_log_retention.builds} to be set to an
-        integer higher than 0 in order to work. For example, if
-        \reference{job.build_log_retention.builds} is set to 5, and this
-        attribute to 1, say a job has the following build history: 7(f), 6(f),
-        5(f), 4(f), 3(f), 2(f), 1(s), where f means failed and s means
-        succeeded, then builds 2 and 3 will be reaped, because it retains 5
-        build logs, and at least 1 succeeded build log. Default is 0.
-      }
-    }
-
-    \schema-toggle{Example}{
+    \schema-toggle{A complicated example}{
       The following example will keep logs for any builds that have completed in
       the last 2 days, while also keeping the last 1000 builds and at least 1
       succeeded build.
@@ -103,14 +79,41 @@ configured job consists of the following fields:
           # ...
       }}}
 
-      Note: if more than 1000 builds finish in the past 2 days, \italic{all} of
-      them will be retained thanks to the
-      \reference{job.build_log_retention.days} configuration. Similarly, if
-      there are 1000 builds spanning more than 2 days, they will also be kept
-      thanks to the \reference{job.build_log_retention.builds} configuration.
-      And if they all happened to have failed, the
-      \reference{job.build_log_retention.minimum_succeeded_builds} will keep
-      around at least one successful build. All policies operate independently.
+      If more than 1000 builds finish in the past 2 days, \italic{all} of them
+      will be retained thanks to the
+      \reference{schema.job.build_log_retention.build_log_retention_policy.days}{\code{days}}
+      configuration. Similarly, if there are 1000 builds spanning more than 2
+      days, they will also be kept thanks to the
+      \reference{schema.job.build_log_retention.build_log_retention_policy.builds}{\code{builds}}
+      configuration. And if they all happened to have failed, the
+      \reference{schema.job.build_log_retention.build_log_retention_policy.minimum_succeeded_builds}{\code{minimum_succeeded_builds}}
+      will keep around at least one successful build. All policies operate
+      independently.
+    }
+
+    \schema{build_log_retention_policy}{
+      \optional-attribute{days}{number}{
+        Keep logs for builds which have finished within the specified number of
+        days.
+      }
+
+      \optional-attribute{builds}{number}{
+        Keep logs for the last specified number of builds.
+      }
+
+      \optional-attribute{minimum_succeeded_builds}{number}{
+        Keep a minimum number of successful build logs that would normally be
+        reaped.
+
+        Requires
+        \reference{schema.job.build_log_retention.build_log_retention_policy.builds}{\code{builds}}
+        to be set to an integer higher than 0 in order to work. For example, if
+        \reference{schema.job.build_log_retention.build_log_retention_policy.builds}{\code{builds}}
+        is set to 5, and this attribute to 1, say a job has the following build
+        history: 7(f), 6(f), 5(f), 4(f), 3(f), 2(f), 1(s), where f means failed
+        and s means succeeded, then builds 2 and 3 will be reaped, because it
+        retains 5 build logs, and at least 1 succeeded build log. Default is 0.
+      }
     }
   }
 
@@ -161,7 +164,7 @@ configured job consists of the following fields:
 
     Note: when this is set to \code{true}, any \reference{get-step} and
     \reference{put-step}s will show the metadata for their resource version,
-    regardless of whether the resource itself has set \reference{resource.public}
+    regardless of whether the resource itself has set \reference{schema.resource.public}
     to \code{true}.
   }
 
@@ -180,27 +183,27 @@ configured job consists of the following fields:
 
   \optional-attribute{on_success}{step}{
     Step to execute when the job succeeds. Equivalent to the
-    \reference{on_success} step attribute.
+    \reference{schema.step.on_success} hook.
   }
 
   \optional-attribute{on_failure}{step}{
     Step to execute when the job fails. Equivalent to the
-    \reference{on_failure} step attribute.
+    \reference{schema.step.on_failure} hook.
   }
 
   \optional-attribute{on_error}{step}{
-    Step to execute when the job errors. Equivalent to the \reference{on_error}
-    step attribute.
+    Step to execute when the job errors. Equivalent to the
+    \reference{schema.step.on_error} hook.
   }
 
   \optional-attribute{on_abort}{step}{
-    Step to execute when the job aborts. Equivalent to the \reference{on_abort}
-    step attribute.
+    Step to execute when the job aborts. Equivalent to the
+    \reference{schema.step.on_abort} hook.
   }
 
   \optional-attribute{ensure}{step}{
     Step to execute regardless of whether the job succeeds, fails, errors, or
-    aborts. Equivalent to the \reference{ensure} step attribute.
+    aborts. Equivalent to the \reference{schema.step.ensure} hook.
   }
 }
 

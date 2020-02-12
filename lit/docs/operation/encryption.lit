@@ -28,7 +28,7 @@ management} as well.
   encrypted:
 
   \list{
-    Resource \reference{resource.source}s, as they often contain private keys
+    Resource \reference{schema.resource.source}s, as they often contain private keys
     and other credentials for writing to (or simply granting access to) the
     resource.
   }{
@@ -41,7 +41,7 @@ management} as well.
     Put step \reference{put-step-params} and get step
     \reference{get-step-params} are also encrypted, even though they rarely
     should contain credentials (they're usually in
-    \reference{resource.source}).
+    \reference{schema.resource.source}).
   }{
     Team auth configurations, as they often contain things like GitHub or other
     oAuth client secrets.

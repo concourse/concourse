@@ -300,7 +300,7 @@ appear as outputs.
 
       \optional-attribute{image}{identifier}{
         Specifies an artifact source containing an image to use for the task.
-        This overrides any \reference{image_resource} configuration present in
+        This overrides any \reference{schema.task.image_resource} configuration present in
         the task configuration.
 
         This is very useful when part of your pipeline involves building an image,
@@ -676,7 +676,7 @@ appear as outputs.
         failed or errored.
 
         Steps are either configured as a array or within a
-        \reference{in_parallel_config}.
+        \reference{schema.in_parallel_config}.
 
         \schema{in_parallel_config}{
           \required-attribute{steps}{[step]}{

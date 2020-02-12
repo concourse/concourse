@@ -68,7 +68,7 @@
   Exposing a pipeline reveals basically everything except for build output and
   resource metadata.
 
-  To expose a resource's metadata, \reference{resource.public} must be set to
+  To expose a resource's metadata, \reference{schema.resource.public} must be set to
   \code{true}.
 
   To expose a job's build output, \reference{job.public} must be set to
