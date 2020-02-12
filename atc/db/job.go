@@ -440,7 +440,6 @@ func (j *job) ScheduleBuild(build Build) (bool, error) {
 		return false, err
 	}
 
-	// XXX Do we need this??
 	result, err := psql.Update("jobs").
 		Set("max_in_flight_reached", reached).
 		Where(sq.Eq{
