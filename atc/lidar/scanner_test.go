@@ -246,5 +246,53 @@ var _ = Describe("Scanner", func() {
 				})
 			})
 		})
+
+		Context("when there are multiple resources that use the same resource type", func() {
+			var fakeResource1, fakeResource2 *dbfakes.FakeResource
+			var fakeResourceType *dbfakes.FakeResourceType
+
+			BeforeEach(func() {
+				fakeResource1 = new(dbfakes.FakeResource)
+				fakeResource1.NameReturns("some-name")
+				fakeResource1.SourceReturns(atc.Source{"some": "source"})
+				fakeResource1.TypeReturns("custom-type")
+				fakeResource1.PipelineIDReturns(1)
+				fakeResource1.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
+
+				fakeResource2 = new(dbfakes.FakeResource)
+				fakeResource2.NameReturns("some-name")
+				fakeResource2.SourceReturns(atc.Source{"some": "source"})
+				fakeResource2.TypeReturns("custom-type")
+				fakeResource2.PipelineIDReturns(1)
+				fakeResource2.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
+
+				fakeCheckFactory.ResourcesReturns([]db.Resource{fakeResource1, fakeResource2}, nil)
+
+				fakeResourceType = new(dbfakes.FakeResourceType)
+				fakeResourceType.NameReturns("custom-type")
+				fakeResourceType.PipelineIDReturns(1)
+				fakeResourceType.TypeReturns("some-base-type")
+				fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
+				fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
+
+				fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
+			})
+
+			It("only tries to create a check for the resource type once", func() {
+				Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(3))
+
+				var checked []string
+				_, checkable, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+				checked = append(checked, checkable.Name())
+
+				_, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+				checked = append(checked, checkable.Name())
+
+				_, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(2)
+				checked = append(checked, checkable.Name())
+
+				Expect(checked).To(ConsistOf([]string{fakeResourceType.Name(), fakeResource1.Name(), fakeResource2.Name()}))
+			})
+		})
 	})
 })

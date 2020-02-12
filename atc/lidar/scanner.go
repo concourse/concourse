@@ -54,6 +54,7 @@ func (s *scanner) Run(ctx context.Context) error {
 	}
 
 	waitGroup := new(sync.WaitGroup)
+	resourceTypesChecked := &sync.Map{}
 
 	for _, resource := range resources {
 		waitGroup.Add(1)
@@ -61,7 +62,7 @@ func (s *scanner) Run(ctx context.Context) error {
 		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
 			defer waitGroup.Done()
 
-			err := s.check(resource, resourceTypes)
+			err := s.check(resource, resourceTypes, resourceTypesChecked)
 			s.setCheckError(s.logger, resource, err)
 
 		}(resource, resourceTypes)
@@ -72,18 +73,21 @@ func (s *scanner) Run(ctx context.Context) error {
 	return s.checkFactory.NotifyChecker()
 }
 
-func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) error {
+func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes, resourceTypesChecked *sync.Map) error {
 
 	var err error
 
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
-		err = s.check(parentType, resourceTypes)
-		s.setCheckError(s.logger, parentType, err)
+		if _, exists := resourceTypesChecked.LoadOrStore(parentType.ID(), true); !exists {
+			// only create a check for resource type if it has not been checked yet
+			err = s.check(parentType, resourceTypes, resourceTypesChecked)
+			s.setCheckError(s.logger, parentType, err)
 
-		if err != nil {
-			s.logger.Error("failed-to-create-type-check", err)
-			return errors.Wrapf(err, "parent type '%v' error", parentType.Name())
+			if err != nil {
+				s.logger.Error("failed-to-create-type-check", err)
+				return errors.Wrapf(err, "parent type '%v' error", parentType.Name())
+			}
 		}
 	}
 
