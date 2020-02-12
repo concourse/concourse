@@ -24,7 +24,7 @@
   \code{jobs} describes a \reference{build-plans}{\code{plan}} to run when the
   job is triggered (either manually or by a \reference{get-step}).
 
-  Jobs can depend on resources that have \reference{get-step-passed} through prior jobs.
+  Jobs can depend on resources that have \reference{schema.step.get-step.passed} through prior jobs.
   The resulting sequence of jobs and resources is a dependency graph that
   continuously pushes your project forward, from source code to production.
 }{
@@ -71,7 +71,7 @@
 
 \splash-example{Reproducible, Debuggable Builds}{
   Everything runs in containers, ensuring a clean environment on every run.
-  Each \reference{task}{task} specifies its own image, giving it full control
+  Each \reference{tasks}{task} specifies its own image, giving it full control
   over its dependencies, rather than managing them on your workers.
 
   The \reference{fly-intercept} command will pop you right into one of your

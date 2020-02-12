@@ -622,7 +622,7 @@
 
       \italic{Task containers} are created when a \reference{task-step} is
       executed in a build plan. They are based on the image produced by the
-      configured \reference{schema.task.image_resource} or \reference{task-step-image}.
+      configured \reference{schema.task.image_resource} or \reference{schema.step.task-step.image}.
     }
 
     \section{

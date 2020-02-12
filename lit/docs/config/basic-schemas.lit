@@ -108,6 +108,7 @@ just here for completeness!
   Note that in the last example we took special care to quote the number.
 
   In many scenarios where a version can be specified, e.g.
-  \reference{step.get}, only a subset of the full set of fields is necessary.
-  The latest version matching the fields specified will be chosen.
+  \reference{schema.step.get-step.version}, only a subset of the full set of
+  fields is necessary. The latest version matching the fields specified will be
+  chosen.
 }

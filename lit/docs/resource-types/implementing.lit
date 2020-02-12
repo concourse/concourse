@@ -120,7 +120,7 @@ UI, so you should make your output pretty.
     \reference{resource-check}, and specifies the version to fetch.
   }{
     \code{params} is an arbitrary JSON object passed along verbatim from
-    \reference{get-step-params} on a \reference{get-step}.
+    \reference{schema.step.get-step.params} on a \reference{get-step}.
   }
 
   Example request, in this case for the \code{git} resource:
@@ -178,7 +178,7 @@ UI, so you should make your output pretty.
     \code{source} is the same value as passed to \reference{resource-check}.
   }{
     \code{params} is an arbitrary JSON object passed along verbatim from
-    \reference{get-step-params} on a \reference{put-step}.
+    \reference{schema.step.get-step.params} on a \reference{put-step}.
   }
 
   Example request, in this case for the \code{git} resource:

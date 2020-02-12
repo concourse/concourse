@@ -55,7 +55,7 @@ with the following schema.
 
   \optional-attribute{version}{version}{
     A version to pin the resource to across the pipeline. This has the same
-    effect as setting \reference{get-step-version} on every
+    effect as setting \reference{schema.step.get-step.version} on every
     \reference{get-step} referencing the resource.
 
     Resources can also be temporarily pinned to a version via the API and web UI.
@@ -76,7 +76,7 @@ with the following schema.
     \italic{Default \code{[]}.} A list of tags to determine which workers the
     checks will be performed on. You'll want to specify this if the source is
     internal to a worker's network, for example. See also
-    \reference{tags-step-modifier}.
+    \reference{schema.step.tags}.
   }
 
   \optional-attribute{public}{boolean}{
@@ -90,7 +90,7 @@ with the following schema.
 
     Note: even when set to \code{false}, the versions identifiers will be
     visible. In addition, if a resource is fetched in a build whose job is marked
-    \reference{job.public}, metadata will be visible in the build output.
+    \reference{schema.job.public}, metadata will be visible in the build output.
   }
 
   \optional-attribute{webhook_token}{string}{
@@ -126,7 +126,7 @@ with the following schema.
     }}}
 
     This could be passed to a job via a \reference{get-step} with
-    \reference{get-step-trigger}{\code{trigger: true}} to run the tests
+    \reference{schema.step.get-step.trigger}{\code{trigger: true}} to run the tests
     whenever there's new code:
 
     \codeblock{yaml}{{{
@@ -155,7 +155,7 @@ with the following schema.
     }}}
 
     This could be passed to a job via a \reference{get-step} with
-    \reference{get-step-trigger}{\code{trigger: true}} to run the job
+    \reference{schema.step.get-step.trigger}{\code{trigger: true}} to run the job
     periodically:
 
     \codeblock{yaml}{{{

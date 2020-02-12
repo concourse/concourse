@@ -11,8 +11,8 @@ down or update \reference{resources}{Resources}, or execute
 
 If any step in the build plan fails, the build will complete with failure. By
 default, any subsequent steps will not be performed. You can perform additional
-steps after failure by configuring \reference{step.on_failure} or
-\reference{step.ensure}.
+steps after failure by configuring \reference{schema.step.on_failure} or
+\reference{schema.step.ensure}.
 
 A new build of the job is scheduled whenever \reference{get-step}s with
 \code{trigger: true} have new versions available.
@@ -91,7 +91,7 @@ appear as outputs.
 
       \optional-attribute{resource}{resource.name}{
         \italic{Defaults to the value of \code{get}.} The resource to fetch,
-        as configured in \reference{pipeline.resources}.
+        as configured in \reference{schema.pipeline.resources}.
 
         Use this attribute to rename a resource from the overall pipeline context
         into the job-specific context.
@@ -188,7 +188,7 @@ appear as outputs.
 
       \optional-attribute{resource}{resource.name}{
         \italic{Defaults to the value of \code{put}.} The resource to update,
-        as configured in \reference{pipeline.resources}.
+        as configured in \reference{schema.pipeline.resources}.
       }
 
       \optional-attribute{inputs}{`all` | `detect` | [identifier]}{
@@ -201,7 +201,7 @@ appear as outputs.
         be provided to the container.
 
         If set to \code{detect}, the artifacts are detected based on the
-        configured \reference{step.put.params} by looking for all string values
+        configured \reference{schema.step.put-step.params} by looking for all string values
         and using the first path segment as an identifier. (This may become the
         default in the future.)
       }
@@ -220,10 +220,10 @@ appear as outputs.
 
     \schema-group{\code{task} step}{task-step}{
       \required-attribute{task}{identifier}{
-        Executes a \reference{task}{task}.
+        Executes a \reference{tasks}{task}.
 
         When a task completes, the artifacts specified by
-        \reference{task.outputs} will be registered in the build's artifact
+        \reference{schema.task.outputs} will be registered in the build's artifact
         namespace. This allows subsequent \reference{task-step}s and
         \reference{put-step}s to access the result of a task.
 
@@ -274,7 +274,7 @@ appear as outputs.
       }
 
       \optional-attribute{file}{file-path}{
-        A dynamic alternative to \reference{task-step-config}.
+        A dynamic alternative to \reference{schema.step.task-step.config}.
 
         \code{file} points at a \code{.yml} file containing the
         \reference{tasks}{task config}, which allows this to be tracked with your
@@ -294,7 +294,7 @@ appear as outputs.
         would set \code{file: something/unit.yml}.
 
         The content of the config file may contain template \code{((vars))}, which
-        will be filled in using \reference{task-step-vars} or a configured
+        will be filled in using \reference{schema.step.task-step.vars} or a configured
         \reference{creds}{credential manager}.
       }
 
@@ -387,11 +387,11 @@ appear as outputs.
 
       \optional-attribute{vars}{vars}{
         A map of template variables to pass to an external task. Not to be
-        confused with \reference{task.params}, which provides
+        confused with \reference{schema.task.params}, which provides
         \italic{environment variables} to the task.
 
         This is to be used with external tasks defined in
-        \reference{task-step-file}.
+        \reference{schema.step.task-step.file}.
 
         \schema-toggle{Examples}{
           A var may be statically passed like so:
@@ -446,17 +446,17 @@ appear as outputs.
         A map of task environment variable parameters to set, overriding those
         configured in the task's \code{config} or \code{file}.
 
-        The difference between \reference{step.task-step.params}{\code{params}}
-        and \reference{step.task-step.vars}{\code{vars}} is that
-        \reference{step.task-step.vars}{\code{vars}} allows you to interpolate
+        The difference between \reference{schema.step.task-step.params}{\code{params}}
+        and \reference{schema.step.task-step.vars}{\code{vars}} is that
+        \reference{schema.step.task-step.vars}{\code{vars}} allows you to interpolate
         any template variable in an external task, while
-        \reference{step.task-step.params}{\code{params}} can be used to
+        \reference{schema.step.task-step.params}{\code{params}} can be used to
         overwrite task parameters (i.e. env variables) specifically. Also,
-        \reference{step.task-step.params}{\code{params}} can have default
+        \reference{schema.step.task-step.params}{\code{params}} can have default
         values declared in the task.
 
         \schema-toggle{Usage example}{
-          Let's say we have a \reference{task-schema}{task config} in
+          Let's say we have a \reference{schema.task}{task config} in
           \code{intgration.yml} like so:
 
           \codeblock{yaml}{{{
@@ -530,7 +530,7 @@ appear as outputs.
         times in the same plan.
 
         \schema-toggle{Using with \code{input_mapping}}{
-          This is often used together with \reference{input_mapping}:
+          This is often used together with \reference{schema.step.task-step.input_mapping}:
 
           \codeblock{yaml}{{{
           plan:
@@ -611,8 +611,8 @@ appear as outputs.
         A map of template variables to pass to the pipeline config.
 
         Note that variables set with this field will not propagate to tasks configured
-        via \reference{task-step-file}. If you want those variables to be determined
-        at the time the pipeline is set, use \reference{task-step-vars} as well.
+        via \reference{schema.step.task-step.file}. If you want those variables to be determined
+        at the time the pipeline is set, use \reference{schema.step.task-step.vars} as well.
 
         \schema-toggle{Configuring static vars}{
           A var may be statically passed like so:
@@ -653,12 +653,11 @@ appear as outputs.
 
           ...this will resolve \code{"((text))"} to \code{{"Hello World!"}},
           while \code{((myuser))} and \code{((mypass))} will be left in the
-          pipeline to be evaluated at runtime through a
-          \reference{credential-manager} or \reference{var-sources}{var souce}.
+          pipeline to be \reference{runtime-vars}{fetched at runtime}.
         }
       }
 
-      \optional-attribute{var_files}{[path]}{
+      \optional-attribute{var_files}{[file-path]}{
         A list of paths to \code{.yml} files that will be passed to the
         pipeline config in the same manner as the \code{--load-vars-from} flag
         to \reference{fly-set-pipeline}. This means that if a variable appears
@@ -772,7 +771,7 @@ appear as outputs.
 
         \schema-toggle{Running multiple steps in a hook}{
           This can be used to perform multiple steps serially in an
-          \reference{on-failure-step-hook}:
+          \reference{schema.step.on_failure}:
 
           \codeblock{yaml}{{{
           plan:
@@ -939,7 +938,7 @@ appear as outputs.
       }}}
 
       The \code{on_success} hook is provided mainly for cases where there is an
-      equivalent \reference{on-failure-step-hook}, and having them next to each
+      equivalent \reference{schema.step.on_failure}, and having them next to each
       other is more clear.
     }
   }
@@ -989,9 +988,9 @@ appear as outputs.
   \optional-attribute{on_error}{step}{
     A hook step to execute after the parent step if the parent step terminates
     abnormally in any way other than those handled by the
-    \reference{step.on_abort} or \reference{step.on_failure}. This covers
+    \reference{schema.step.on_abort} or \reference{schema.step.on_failure}. This covers
     scenarios as broad as configuration mistakes, temporary network issues with
-    the workers, or running longer than a \reference{timeout-step-modifier}.
+    the workers, or running longer than a \reference{schema.step.timeout}.
 
     \schema-toggle{Sending a notification}{
       Until notifications become first-class (\link{RFC

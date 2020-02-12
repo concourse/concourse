@@ -7,11 +7,11 @@ determine how \reference{resources}{resources} progress through it, and how the
 pipeline is visualized.
 
 The most important attribute of a job is its build plan, configured as
-\reference{job.plan}. This determines the sequence of \reference{steps} to
+\reference{schema.job.plan}. This determines the sequence of \reference{steps} to
 execute in any builds of the job.
 
-Jobs are listed under the \code{jobs:} key in the pipeline configuration. Each
-configured job consists of the following fields:
+A pipeline's jobs are listed under \reference{schema.pipeline.jobs} with the
+following schema.
 
 \schema{job}{
   \required-attribute{name}{identifier}{
@@ -119,7 +119,7 @@ configured job consists of the following fields:
 
   \optional-attribute{build_logs_to_retain}{number}{
     \italic{Deprecated.} Equivalent to setting
-    \reference{job.build_log_retention.build_log_retention_policy.builds}{\code{job.build_log_retention.builds}}.
+    \reference{schema.job.build_log_retention.build_log_retention_policy.builds}{\code{job.build_log_retention.builds}}.
   }
 
   \optional-attribute{serial_groups}{[identifier]}{

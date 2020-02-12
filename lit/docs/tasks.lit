@@ -4,8 +4,8 @@
 \split-sections
 
 The smallest configurable unit in a Concourse pipeline is a single task. A task
-can be thought of as a function from \reference{task-inputs} to
-\reference{task-outputs} that can either succeed or fail.
+can be thought of as a function from \reference{schema.task.inputs} to
+\reference{schema.task.outputs} that can either succeed or fail.
 
 Going a bit further, ideally tasks are \italic{pure} functions: given the same
 set of inputs, it should either always succeed with the same outputs or always
@@ -94,7 +94,7 @@ A task's configuration specifies the following:
     The set of artifacts used by task, determining which artifacts will be
     available in the current directory when the task runs.
 
-    These are satisfied by \reference{get-step}s or \reference{task-outputs} of a
+    These are satisfied by \reference{get-step}s or \reference{schema.task.outputs} of a
     previous task. These can also be provided by \code{-i} with
     \reference{fly-execute}.
 
@@ -180,7 +180,7 @@ A task's configuration specifies the following:
     via environment variables.
 
     Pipelines can override these params by setting
-    \reference{task-step-params} on the \reference{task-step}. This is a common
+    \reference{schema.step.task-step.params} on the \reference{task-step}. This is a common
     method of providing credentials to a task.
   }
 
@@ -228,7 +228,7 @@ A task's configuration specifies the following:
     A string specifying the rootfs uri of the container, as interpreted by your
     worker's Garden backend.
 
-    \reference{task.image_resource} is the preferred way to specify base image.
+    \reference{schema.task.image_resource} is the preferred way to specify base image.
     You should only use this if you have no other option and you really know
     what you're doing.
   }
@@ -241,12 +241,12 @@ A task's configuration specifies the following:
     \code{--default-task-memory-limit} flags to the \code{concourse web} command.
 
     \schema{container_limits}{
-      \optional-attribute{cpu}{integer}{
+      \optional-attribute{cpu}{number}{
         The maximum amount of CPU available to the task container, measured in
         shares. 0 means unlimited.
       }
 
-      \optional-attribute{memory}{integer}{
+      \optional-attribute{memory}{number}{
         The maximum amount of memory available to the task container, measured in
         bytes. 0 means unlimited.
       }
@@ -299,7 +299,7 @@ A task's configuration specifies the following:
       name as the directory.
 
       Tasks must specify the inputs that they require as
-      \reference{task-inputs}. For \code{fly} to upload these inputs you can
+      \reference{schema.task.inputs}. For \code{fly} to upload these inputs you can
       use the \code{-i} or \code{--input} arguments with name and path pairs.
       For example:
 
@@ -364,7 +364,7 @@ A task's configuration specifies the following:
       input-name}.
 
       For example, the following pipeline fetches an image via a
-      \reference{get-step} and uses it for \reference{task-step-image}:
+      \reference{get-step} and uses it for \reference{schema.step.task-step.image}:
 
       \codeblock{yaml}{{{
       resources:
@@ -467,7 +467,7 @@ A task's configuration specifies the following:
       configured \reference{creds}{credential manager}.
 
       To satisfy these vars when running the task in a pipeline, see
-      \reference{task-step-vars}.
+      \reference{schema.step.task-step.vars}.
     }
 
     \section{
@@ -492,12 +492,12 @@ A task's configuration specifies the following:
   A task runs in a new container every time, using the image provided by
   \reference{schema.task.image_resource} as its base filesystem (i.e. \code{/}).
 
-  The command specified by \reference{task-run} will be executed in a working
-  directory containing each of the \reference{task-inputs}. If any inputs are
+  The command specified by \reference{schema.task.run} will be executed in a working
+  directory containing each of the \reference{schema.task.inputs}. If any inputs are
   missing the task will not run (and the container will not even be created).
 
   The working directory will also contain empty directories for each of the
-  \reference{task-outputs}. The task must place artifacts in the output
+  \reference{schema.task.outputs}. The task must place artifacts in the output
   directories for them to be exported. This meshes well with build tools with
   configurable destination paths.
 
@@ -508,7 +508,7 @@ A task's configuration specifies the following:
     \code{cp}, and then work out of \code{./output}.
   }
 
-  Any \reference{task-params} configured will be set in the environment for the
+  Any \reference{schema.step.task-step.params} configured will be set in the environment for the
   task's command, along with any environment variables provided by the task's
   image (i.e. \code{ENV} rules from your \code{Dockerfile}).
 
@@ -516,7 +516,7 @@ A task's configuration specifies the following:
   Docker image, this will be the user set by a \code{USER} rule in your
   \code{Dockerfile}, or \code{root} if not specified.
 
-  Another relevant bit of configuration is \reference{task-step-privileged},
+  Another relevant bit of configuration is \reference{schema.step.task-step.privileged},
   which determines whether the user the task runs as will have full privileges
   (primarily when running as \code{root}). This is intentionally \italic{not}
   configurable by the task itself, to prevent privilege escalation by way of
@@ -616,7 +616,7 @@ A task's configuration specifies the following:
   }
 
   \example{Producing Outputs}{
-    A task can configure \reference{task-outputs} to produce artifacts that can
+    A task can configure \reference{schema.task.outputs} to produce artifacts that can
     then be propagated to a \reference{put-step} or another
     \reference{task-step} in the same plan. They can also be downloaded with
     \reference{fly-execute} by passing \code{-o}.
@@ -705,7 +705,7 @@ A task's configuration specifies the following:
     is configured properly on the workers, SSL should Just Work™.
 
     External tasks are now fully interpolated using \reference{creds}{credential manager variables} and
-    \reference{task-step-vars}, so you can use template variables in an external task:
+    \reference{schema.step.task-step.vars}, so you can use template variables in an external task:
 
     \codeblock{yaml}{{{
       ---

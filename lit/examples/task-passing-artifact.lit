@@ -55,7 +55,7 @@ jobs:
 	\title{References}{references}
 
 	\list{
-		\reference{task-outputs}
+		\reference{schema.task.outputs}
 	}{
 		\reference{tasks}
 	}{

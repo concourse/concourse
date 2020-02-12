@@ -18,7 +18,7 @@ A pipeline's resource types are listed under
 \schema{resource_type}{
   \required-attribute{name}{identifier}{
     The name of the resource type. This should be short and simple. This name
-    will be referenced by \reference{pipeline.resources} defined within the
+    will be referenced by \reference{schema.pipeline.resources} defined within the
     same pipeline, and \reference{schema.task.image_resource}s used by tasks running in the
     pipeline.
 
@@ -82,7 +82,7 @@ A pipeline's resource types are listed under
     \italic{Default \code{[]}.} A list of tags to determine which workers the
     checks will be performed on. You'll want to specify this if the source is
     internal to a worker's network, for example. See also
-    \reference{tags-step-modifier}.
+    \reference{schema.step.tags}.
   }
 
   \optional-attribute{unique_version_history}{boolean}{

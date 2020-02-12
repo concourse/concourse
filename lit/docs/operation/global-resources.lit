@@ -7,7 +7,7 @@ is enabled by passing the \code{--enable-global-resources} flag to the
 \code{concourse web} command.
 
 The basic concept of global resources is to share detected resource versions
-between all resources that have the same \reference{resource-type} and
+between all resources that have the same \reference{schema.resource.type} and
 \reference{schema.resource.source} configuration.
 
 Before v5.0.0, each pipeline resource had its own version history, associated
@@ -123,7 +123,7 @@ instead associated to an anonymous 'resource config' i.e. its
     RFC}{https://github.com/concourse/rfcs/pull/1}.
 
     Users can also set this value themselves by configuring
-    \reference{resource-type-unique-version-history} on the resource type.
+    \reference{schema.resource_type.unique_version_history} on the resource type.
 
     Another case where version history shouldn't be shared is when resources
     "automagically" learn their auth credentials using things like IAM roles.
