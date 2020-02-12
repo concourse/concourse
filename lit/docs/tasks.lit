@@ -38,8 +38,30 @@ A task's configuration specifies the following:
     The container image to run with, as provided by an anonymous
     \reference{resources}{resource} definition.
 
-    If you want to use an image provided by a previous step within your build
-    plan, set \reference{task-step-image} on the \reference{task-step} instead.
+    Whenever the task runs, the anonymous resource will be \code{check}ed to
+    discover the latest version available. The image will then be fetched onto
+    the worker if necessary just prior to running the task.
+
+    To use an image provided by a previous step within your build plan, set
+    \reference{schema.step.task-step.image} on the \reference{task-step}
+    instead.
+
+    \schema-toggle{Using the \code{golang} Docker image}{
+      The following task config will use the \link{\code{golang} Docker
+      image}{https://hub.docker.com/_/golang} to run \code{go version}:
+
+      \codeblock{yaml}{{{
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source: {repository: golang}
+
+      run:
+        path: go
+        args: [version]
+      }}}
+    }
 
     \schema{anonymous_resource}{
       \required-attribute{type}{resource_type.name}{
