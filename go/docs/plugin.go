@@ -98,7 +98,7 @@ func (p *Plugin) Schema(name string, contentNode ast.Node) (booklit.Content, err
 	p.pushSchema(name)
 	defer p.popSchema()
 
-	tagName := name + "-schema"
+	tagName := "schema." + name
 
 	p.section.SetTagAnchored(
 		tagName,
@@ -249,12 +249,7 @@ func (p *Plugin) schemaAttribute(attribute string, type_ string, contentNode ast
 
 	targets := booklit.Sequence{
 		booklit.Target{
-			TagName: tagName,
-			Title:   display,
-			Content: content,
-		},
-		booklit.Target{
-			TagName: tagName + "-schema",
+			TagName: "schema." + tagName,
 			Title:   display,
 			Content: content,
 		},
