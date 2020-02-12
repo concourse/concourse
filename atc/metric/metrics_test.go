@@ -28,7 +28,7 @@ var _ = Describe("Metrics", func() {
 
 			for _, state := range db.AllWorkerStates() {
 				event := emitter.eventWithState(state)
-				Expect(event.Value).To(Equal(0))
+				Expect(event.Value).To(Equal(float64(0)))
 			}
 		})
 
@@ -39,26 +39,7 @@ var _ = Describe("Metrics", func() {
 			waitForEventsOnUnsafeGlobalChannel(emitter)
 
 			event := emitter.eventWithState(db.WorkerStateRunning)
-			Expect(event.Value).To(Equal(1))
-		})
-
-		It("emits warning event for stalled workers", func() {
-			givenOneWorkerWithState(db.WorkerStateStalled).
-				Emit(testLogger)
-
-			waitForEventsOnUnsafeGlobalChannel(emitter)
-
-			event := emitter.eventWithState(db.WorkerStateStalled)
-			Expect(event.State).To(Equal(metric.EventStateWarning))
-		})
-
-		It("if no workers are stalled, emitted event has OK status", func() {
-			givenNoWorkers().Emit(testLogger)
-
-			waitForEventsOnUnsafeGlobalChannel(emitter)
-
-			event := emitter.eventWithState(db.WorkerStateStalled)
-			Expect(event.State).To(Equal(metric.EventStateOK))
+			Expect(event.Value).To(Equal(float64(1)))
 		})
 	})
 })

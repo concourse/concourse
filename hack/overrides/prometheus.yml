@@ -12,6 +12,8 @@ services:
     environment:
       CONCOURSE_PROMETHEUS_BIND_IP: "0.0.0.0"
       CONCOURSE_PROMETHEUS_BIND_PORT: "9100"
+    ports:
+      - '9100:9100'
 
   prometheus:
     image: prom/prometheus

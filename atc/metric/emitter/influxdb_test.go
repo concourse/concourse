@@ -69,8 +69,7 @@ var _ = Describe("InfluxDBEmitter", func() {
 			It("should populate the batch points", func() {
 				influxDBEmitter.Emit(testLogger, metric.Event{
 					Name:  "build started",
-					Value: "123",
-					State: metric.EventStateOK,
+					Value: 123,
 					Attributes: map[string]string{
 						"pipeline":   "test1",
 						"job":        "job1",
@@ -83,7 +82,6 @@ var _ = Describe("InfluxDBEmitter", func() {
 				influxDBEmitter.Emit(testLogger, metric.Event{
 					Name:  "build finished",
 					Value: 100,
-					State: metric.EventStateOK,
 					Attributes: map[string]string{
 						"pipeline":     "test2",
 						"job":          "job2",
@@ -97,11 +95,11 @@ var _ = Describe("InfluxDBEmitter", func() {
 
 				Eventually(func() string {
 					return batchPointAt(influxDBClient, 0)
-				}).Should(Equal(`build\ started,build_id=123,build_name=build1,host=localhost,job=job1,pipeline=test1,team_name=team1 state="ok",value="123"`))
+				}).Should(Equal(`build\ started,build_id=123,build_name=build1,host=localhost,job=job1,pipeline=test1,team_name=team1 value=123`))
 
 				Eventually(func() string {
 					return batchPointAt(influxDBClient, 1)
-				}).Should(Equal(`build\ finished,build_id=456,build_name=build2,build_status=succeeded,host=localhost,job=job2,pipeline=test2,team_name=team2 state="ok",value=100i`))
+				}).Should(Equal(`build\ finished,build_id=456,build_name=build2,build_status=succeeded,host=localhost,job=job2,pipeline=test2,team_name=team2 value=100`))
 			})
 		})
 
