@@ -97,6 +97,7 @@ var requiredRoles = map[string]string{
 	atc.CreateArtifact:                "member",
 	atc.GetArtifact:                   "member",
 	atc.ListBuildArtifacts:            "viewer",
+	atc.GetWall:                       "viewer",
 }
 
 type CustomActionRoleMap map[string][]string

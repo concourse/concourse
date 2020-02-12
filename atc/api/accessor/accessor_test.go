@@ -862,6 +862,11 @@ var _ = Describe("Accessor", func() {
 		Entry("member :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "member", true),
 		Entry("pipeline-operator :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "pipeline-operator", true),
 		Entry("viewer :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "viewer", true),
+
+		Entry("owner :: "+atc.GetWall, atc.GetWall, "owner", true),
+		Entry("member :: "+atc.GetWall, atc.GetWall, "member", true),
+		Entry("pipeline-operator :: "+atc.GetWall, atc.GetWall, "pipeline-operator", true),
+		Entry("viewer :: "+atc.GetWall, atc.GetWall, "viewer", true),
 	)
 
 	Describe("Customize RBAC", func() {
