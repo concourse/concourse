@@ -17,10 +17,10 @@ configuration. Each configured resource consists of the following fields:
   }
 
   \required-attribute{type}{resource_type.name}{
-    The \reference{resource-types}{resource type}.
+    The \reference{resource-types}{resource type} implementing the resource.
   }
 
-  \required-attribute{source}{object}{
+  \required-attribute{source}{config}{
     The location of the resource. This varies by resource type, and is a black
     box to Concourse; it is blindly passed to the resource at runtime.
 
@@ -41,7 +41,7 @@ configuration. Each configured resource consists of the following fields:
     \code{github-circle}.
   }
 
-  \optional-attribute{version}{object}{
+  \optional-attribute{version}{version}{
     A version to pin the resource to across the pipeline. This has the same
     effect as setting \reference{get-step-version} on every
     \reference{get-step} referencing the resource.

@@ -25,38 +25,42 @@ code it's testing, possibly under some \code{ci} directory.
 A task's configuration specifies the following:
 
 \schema{task}{
-  \required-attribute{platform}{string}{
-    The platform the task should run on. By convention, \code{windows},
-    \code{linux}, or \code{darwin} are specified. This determines the pool of
-    workers that the task can run against.
+  \required-attribute{platform}{`linux` | `darwin` | `windows`}{
+    The platform the task should run on. This determines the pool of workers
+    that the task can run against.
+
+    Technically any string value is allowed so long as a worker advertises the
+    same platform, but in practice only \code{linux}, \code{darwin}, and
+    \code{windows} are in use.
   }
 
   \required-attribute{image_resource}{anonymous_resource}{
-    The base image of the container, as provided by an anonymous
+    The container image to run with, as provided by an anonymous
     \reference{resources}{resource} definition.
 
     If you want to use an image provided by a previous step within your build
     plan, set \reference{task-step-image} on the \reference{task-step} instead.
 
     \schema{anonymous_resource}{
-      \required-attribute{type}{string}{
-        The type of the resource. Usually \code{docker-image}.
+      \required-attribute{type}{resource_type.name}{
+        The type of the resource. Usually \code{registry-image}.
 
         You can use any resource type that returns a filesystem in the correct
         format: a \code{/rootfs} directory containing a full filesystem, and a
         \code{metadata.json} file containing.
       }
 
-      \required-attribute{source}{object}{
-        The configuration for the resource; see \reference{resource.source}.
+      \required-attribute{source}{config}{
+        The configuration for the resource; see
+        \reference{schema.resource.source}.
       }
 
-      \optional-attribute{params}{object}{
+      \optional-attribute{params}{config}{
         A map of arbitrary configuration to forward to the resource. Refer to the
         resource type's documentation to see what it supports.
       }
 
-      \optional-attribute{version}{object}{
+      \optional-attribute{version}{version}{
         A specific version of the resource to fetch. This should be a map with
         string keys and values. If not specified, the latest version will be
         fetched.
@@ -76,11 +80,11 @@ A task's configuration specifies the following:
     immediately.
 
     \schema{input}{
-      \required-attribute{name}{string}{
+      \required-attribute{name}{identifier}{
         The name of the input.
       }
 
-      \optional-attribute{path}{string}{
+      \optional-attribute{path}{dir-path}{
         The path where the input will be placed. If not specified, the input's
         \code{name} is used.
 
@@ -107,12 +111,12 @@ A task's configuration specifies the following:
     wants to export in the directory.
 
     \schema{output}{
-      \required-attribute{name}{string}{
+      \required-attribute{name}{identifier}{
         The name of the output. The contents under \code{path} will be made
         available to the rest of the plan under this name.
       }
 
-      \optional-attribute{path}{string}{
+      \optional-attribute{path}{dir-path}{
         The path to a directory where the output will be taken from. If not
         specified, the output's \code{name} is used.
 
@@ -140,7 +144,7 @@ A task's configuration specifies the following:
     exist for one-off builds.
 
     \schema{cache}{
-      \required-attribute{path}{string}{
+      \required-attribute{path}{dir-path}{
         The path to a directory to be cached.
 
         Paths are relative to the working directory of the task. Absolute paths
@@ -149,7 +153,7 @@ A task's configuration specifies the following:
     }
   }
 
-  \optional-attribute{params}{object}{
+  \optional-attribute{params}{env-vars}{
     A key-value mapping of string keys and values that are exposed to the task
     via environment variables.
 
@@ -167,7 +171,7 @@ A task's configuration specifies the following:
     small.
 
     \schema{command}{
-      \required-attribute{path}{string}{
+      \required-attribute{path}{file-path}{
         The name of or path to the executable to run.
 
         \code{path} is relative to the working directory. If \code{dir} is
@@ -185,7 +189,7 @@ A task's configuration specifies the following:
         arguments passed to Fly are appended to this array.
       }
 
-      \optional-attribute{dir}{string}{
+      \optional-attribute{dir}{dir-path}{
         A directory, relative to the initial working directory, to set as the
         working directory when running the script.
       }

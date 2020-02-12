@@ -119,7 +119,7 @@ configured job consists of the following fields:
     \reference{job.build_log_retention.build_log_retention_policy.builds}{\code{job.build_log_retention.builds}}.
   }
 
-  \optional-attribute{serial_groups}{[string]}{
+  \optional-attribute{serial_groups}{[identifier]}{
     \italic{Default \code{[]}.} When set to an array of arbitrary tag-like
     strings, builds of this job and other jobs referencing the same tags will
     be serialized.

@@ -103,9 +103,9 @@ appear as outputs.
         triggering and fetching.
       }
 
-      \optional-attribute{params}{object}{
-        An object containing arbitrary configuration to pass to the resource.
-        Refer to the resource type's documentation to see what it supports.
+      \optional-attribute{params}{config}{
+        Arbitrary configuration to pass to the resource. Refer to the resource
+        type's documentation to see what it supports.
       }
 
       \optional-attribute{trigger}{boolean}{
@@ -206,15 +206,15 @@ appear as outputs.
         default in the future.)
       }
 
-      \optional-attribute{params}{object}{
-        A map of arbitrary configuration to forward to the resource. Refer to
-        the resource type's documentation to see what it supports.
+      \optional-attribute{params}{config}{
+        Arbitrary configuration to pass to the resource. Refer to the resource
+        type's documentation to see what it supports.
       }
 
-      \optional-attribute{get_params}{object}{
-        A map of arbitrary configuration to forward to the resource that will
-        be utilized during the implicit \code{get} step. Refer to the resource
-        type's documentation to see what it supports.
+      \optional-attribute{get_params}{config}{
+        Arbitrary configuration to get to the resource during the implicit
+        \code{get} step. Refer to the resource type's documentation to see what
+        it supports.
       }
     }
 
@@ -273,7 +273,7 @@ appear as outputs.
         The \reference{tasks}{task config} to execute.
       }
 
-      \optional-attribute{file}{path}{
+      \optional-attribute{file}{file-path}{
         A dynamic alternative to \reference{task-step-config}.
 
         \code{file} points at a \code{.yml} file containing the
@@ -385,7 +385,7 @@ appear as outputs.
         requests.
       }
 
-      \optional-attribute{vars}{object}{
+      \optional-attribute{vars}{vars}{
         A map of template variables to pass to an external task. Not to be
         confused with \reference{task.params}, which provides
         \italic{environment variables} to the task.
@@ -442,7 +442,7 @@ appear as outputs.
         }
       }
 
-      \optional-attribute{params}{\{string: string\}}{
+      \optional-attribute{params}{env-vars}{
         A map of task environment variable parameters to set, overriding those
         configured in the task's \code{config} or \code{file}.
 
@@ -584,7 +584,7 @@ appear as outputs.
         }
       }
 
-      \required-attribute{file}{path}{
+      \required-attribute{file}{file-path}{
         The path to the pipeline's configuration file.
 
         \code{file} points at a \code{.yml} file containing the pipeline
@@ -607,7 +607,7 @@ appear as outputs.
         }
       }
 
-      \optional-attribute{vars}{object}{
+      \optional-attribute{vars}{vars}{
         A map of template variables to pass to the pipeline config.
 
         Note that variables set with this field will not propagate to tasks configured

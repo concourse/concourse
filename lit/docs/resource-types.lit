@@ -50,7 +50,7 @@ following attributes:
     forked \code{registry-image} resource.
   }
 
-  \required-attribute{source}{object}{
+  \required-attribute{source}{config}{
     The location of the resource type's resource. This varies
     by resource type, and is a black box to Concourse; it is blindly passed to
     the resource at runtime.
@@ -77,8 +77,9 @@ following attributes:
     via third-party resource type exploits.
   }
 
-  \optional-attribute{params}{object}{
-    Arbitrary params to pass when fetching the resource type's image.
+  \optional-attribute{params}{config}{
+    Arbitrary config to pass when running the \code{get} to fetch the resource
+    type's image.
   }
 
   \optional-attribute{check_every}{duration}{
