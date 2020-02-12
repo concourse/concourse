@@ -1,15 +1,16 @@
 package accessor_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"net/http"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"net/http"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -517,6 +518,11 @@ var _ = Describe("Accessor", func() {
 		Entry("member :: "+atc.CreateJobBuild, atc.CreateJobBuild, "member", true),
 		Entry("pipeline-operator :: "+atc.CreateJobBuild, atc.CreateJobBuild, "pipeline-operator", true),
 		Entry("viewer :: "+atc.CreateJobBuild, atc.CreateJobBuild, "viewer", false),
+
+		Entry("owner :: "+atc.RerunJobBuild, atc.RerunJobBuild, "owner", true),
+		Entry("member :: "+atc.RerunJobBuild, atc.RerunJobBuild, "member", true),
+		Entry("pipeline-operator :: "+atc.RerunJobBuild, atc.RerunJobBuild, "pipeline-operator", true),
+		Entry("viewer :: "+atc.RerunJobBuild, atc.RerunJobBuild, "viewer", false),
 
 		Entry("owner :: "+atc.ListAllJobs, atc.ListAllJobs, "owner", true),
 		Entry("member :: "+atc.ListAllJobs, atc.ListAllJobs, "member", true),

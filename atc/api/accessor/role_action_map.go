@@ -1,9 +1,10 @@
 package accessor
 
 import (
+	"io/ioutil"
+
 	"code.cloudfoundry.org/lager"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 
 	"github.com/concourse/concourse/atc"
 )
@@ -24,6 +25,7 @@ var requiredRoles = map[string]string{
 	atc.GetBuildPreparation:           "viewer",
 	atc.GetJob:                        "viewer",
 	atc.CreateJobBuild:                "pipeline-operator",
+	atc.RerunJobBuild:                 "pipeline-operator",
 	atc.ListAllJobs:                   "viewer",
 	atc.ListJobs:                      "viewer",
 	atc.ListJobBuilds:                 "viewer",
