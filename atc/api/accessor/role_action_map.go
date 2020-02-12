@@ -1,9 +1,10 @@
 package accessor
 
 import (
+	"io/ioutil"
+
 	"code.cloudfoundry.org/lager"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 
 	"github.com/concourse/concourse/atc"
 )
@@ -95,6 +96,7 @@ var requiredRoles = map[string]string{
 	atc.CreateArtifact:                "member",
 	atc.GetArtifact:                   "member",
 	atc.ListBuildArtifacts:            "viewer",
+	atc.GetWall:                       "viewer",
 }
 
 type CustomActionRoleMap map[string][]string

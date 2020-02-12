@@ -1,15 +1,16 @@
 package accessor_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"net/http"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"net/http"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -856,6 +857,11 @@ var _ = Describe("Accessor", func() {
 		Entry("member :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "member", true),
 		Entry("pipeline-operator :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "pipeline-operator", true),
 		Entry("viewer :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "viewer", true),
+
+		Entry("owner :: "+atc.GetWall, atc.GetWall, "owner", true),
+		Entry("member :: "+atc.GetWall, atc.GetWall, "member", true),
+		Entry("pipeline-operator :: "+atc.GetWall, atc.GetWall, "pipeline-operator", true),
+		Entry("viewer :: "+atc.GetWall, atc.GetWall, "viewer", true),
 	)
 
 	Describe("Customize RBAC", func() {
