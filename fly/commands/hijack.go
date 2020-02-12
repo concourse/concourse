@@ -38,9 +38,11 @@ type HijackCommand struct {
 
 func (command *HijackCommand) Execute([]string) error {
 	var (
-		target rc.Target
-		name   rc.TargetName
-		err    error
+		chosenContainer atc.Container
+		err             error
+		name            rc.TargetName
+		target          rc.Target
+		team            concourse.Team
 	)
 	if Fly.Target == "" && command.Url != "" {
 		u, err := url.Parse(command.Url)
@@ -65,22 +67,28 @@ func (command *HijackCommand) Execute([]string) error {
 		return err
 	}
 
-	var chosenContainer atc.Container
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
+		if err != nil {
+			return err
+		}
+	} else {
+		team = target.Team()
+	}
 
 	if command.Handle != "" {
-		team := GetTeam(target, command.Team)
 		chosenContainer, err = team.GetContainer(command.Handle)
 		if err != nil {
 			displayhelpers.Failf("no containers matched the given handle id!\n\nthey may have expired if your build hasn't recently finished.")
 		}
 
 	} else {
-		fingerprint, err := command.getContainerFingerprint(target)
+		fingerprint, err := command.getContainerFingerprint(target, team)
 		if err != nil {
 			return err
 		}
 
-		containers, err := command.getContainerIDs(target, fingerprint)
+		containers, err := command.getContainerIDs(target, fingerprint, team)
 		if err != nil {
 			return err
 		}
@@ -199,7 +207,6 @@ func (command *HijackCommand) Execute([]string) error {
 
 		h := hijacker.New(target.TLSConfig(), reqGenerator, target.Token())
 
-		team := GetTeam(target, command.Team)
 		return h.Hijack(team.Name(), chosenContainer.ID, spec, io)
 	}()
 
@@ -226,7 +233,7 @@ func parseUrlPath(urlPath string) map[string]string {
 	return urlMap
 }
 
-func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, urlParam string) (*containerFingerprint, error) {
+func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, urlParam string, team concourse.Team) (*containerFingerprint, error) {
 	u, err := url.Parse(urlParam)
 	if err != nil {
 		return nil, err
@@ -245,10 +252,9 @@ func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, u
 		return nil, err
 	}
 
-	team := urlMap["teams"]
+	teamFromUrl := urlMap["teams"]
 
-	teamName := GetTeam(target, command.Team).Name()
-	if team != teamName {
+	if teamFromUrl != team.Name() {
 		err = fmt.Errorf("Team in URL doesn't match the current team of the target")
 		return nil, err
 	}
@@ -263,12 +269,12 @@ func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, u
 	return fingerprint, nil
 }
 
-func (command *HijackCommand) getContainerFingerprint(target rc.Target) (*containerFingerprint, error) {
+func (command *HijackCommand) getContainerFingerprint(target rc.Target, team concourse.Team) (*containerFingerprint, error) {
 	var err error
 	fingerprint := &containerFingerprint{}
 
 	if command.Url != "" {
-		fingerprint, err = command.getContainerFingerprintFromUrl(target, command.Url)
+		fingerprint, err = command.getContainerFingerprintFromUrl(target, command.Url, team)
 		if err != nil {
 			return nil, err
 		}
@@ -299,13 +305,12 @@ func (command *HijackCommand) getContainerFingerprint(target rc.Target) (*contai
 	return fingerprint, nil
 }
 
-func (command *HijackCommand) getContainerIDs(target rc.Target, fingerprint *containerFingerprint) ([]atc.Container, error) {
+func (command *HijackCommand) getContainerIDs(target rc.Target, fingerprint *containerFingerprint, team concourse.Team) ([]atc.Container, error) {
 	reqValues, err := locateContainer(target.Client(), fingerprint)
 	if err != nil {
 		return nil, err
 	}
 
-	team := GetTeam(target, command.Team)
 	containers, err := team.ListContainers(reqValues)
 	if err != nil {
 		return nil, err

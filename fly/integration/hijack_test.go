@@ -667,11 +667,17 @@ var _ = Describe("Hijacking", func() {
 			Context("when the team is 'other'", func() {
 				BeforeEach(func() {
 					hijackTeamName = "other"
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+					)
 				})
 
 				Context("and with pipeline specified", func() {
 					It("can accept the check resources name and a pipeline", func() {
-						hijack("--check", "a-pipeline/some-resource-name", "--team", "other")
+						hijack("--check", "a-pipeline/some-resource-name", "--team", hijackTeamName)
 					})
 				})
 
@@ -703,6 +709,12 @@ var _ = Describe("Hijacking", func() {
 			Context("when the team is 'other'", func() {
 				BeforeEach(func() {
 					hijackTeamName = "other"
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+					)
 				})
 
 				It("hijacks the most recent one-off build", func() {
@@ -738,6 +750,12 @@ var _ = Describe("Hijacking", func() {
 				Context("When the team is 'other'", func() {
 					BeforeEach(func() {
 						hijackTeamName = "other"
+
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+								ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+						)
 					})
 					It("hijacks the job's next build with 'pipelineName/jobName'", func() {
 						hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--team", hijackTeamName)
@@ -770,6 +788,12 @@ var _ = Describe("Hijacking", func() {
 				Context("When the team is 'other'", func() {
 					BeforeEach(func() {
 						hijackTeamName = "other"
+
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+								ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+						)
 					})
 					It("hijacks the given build", func() {
 						hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step", "--team", hijackTeamName)
@@ -805,6 +829,12 @@ var _ = Describe("Hijacking", func() {
 			Context("When the team is 'other'", func() {
 				BeforeEach(func() {
 					hijackTeamName = "other"
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+					)
 				})
 				It("hijacks the job's next build", func() {
 					hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--attempt", "2.4", "--team", hijackTeamName)
@@ -930,6 +960,12 @@ var _ = Describe("Hijacking", func() {
 				Context("when the team is 'other'", func() {
 					BeforeEach(func() {
 						hijackTeamName = "other"
+
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+								ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+						)
 					})
 					It("should hijack container with associated handle to 'other' team", func() {
 						hijack("--handle", "container-id", "--team", hijackTeamName)
@@ -1007,6 +1043,48 @@ var _ = Describe("Hijacking", func() {
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).ToNot(Equal(0))
+		})
+	})
+
+	Context("when you are authenticated but the team does not exist", func() {
+		It("returns an error", func() {
+			loginATCServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/doesnotexist"),
+					ghttp.RespondWith(http.StatusNotFound, nil),
+				),
+			)
+
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "hijack", "--handle", "container-id", "--team", "doesnotexist")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err.Contents).Should(ContainSubstring(`error: team 'doesnotexist' does not exist`))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+		})
+	})
+
+	Context("when you are NOT authorized to view the team", func() {
+		It("returns an error", func() {
+			loginATCServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main"),
+					ghttp.RespondWith(http.StatusForbidden, nil),
+				),
+			)
+
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "hijack", "--handle", "container-id", "--team", "main")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err.Contents).Should(ContainSubstring(`error: you do not have a role on team 'main'`))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
 		})
 	})
 })
