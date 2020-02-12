@@ -54,7 +54,6 @@ func (s *scanner) Run(ctx context.Context) error {
 	}
 
 	waitGroup := new(sync.WaitGroup)
-	resourceTypesChecked := &sync.Map{}
 
 	for _, resource := range resources {
 		waitGroup.Add(1)
@@ -62,7 +61,7 @@ func (s *scanner) Run(ctx context.Context) error {
 		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
 			defer waitGroup.Done()
 
-			err := s.check(resource, resourceTypes, resourceTypesChecked)
+			err := s.check(resource, resourceTypes)
 			s.setCheckError(s.logger, resource, err)
 
 		}(resource, resourceTypes)
@@ -73,18 +72,13 @@ func (s *scanner) Run(ctx context.Context) error {
 	return s.checkFactory.NotifyChecker()
 }
 
-func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes, resourceTypesChecked *sync.Map) error {
+func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes) error {
 
 	var err error
 
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
-		if _, exists := resourceTypesChecked.LoadOrStore(parentType.ID(), true); exists {
-			// already trying to create check for resource type
-			return nil
-		}
-
-		err = s.check(parentType, resourceTypes, resourceTypesChecked)
+		err = s.check(parentType, resourceTypes)
 		s.setCheckError(s.logger, parentType, err)
 
 		if err != nil {
