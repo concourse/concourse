@@ -844,59 +844,54 @@ func (NoIndex) String() string {
 }
 
 func autoReferenceType(type_ string) booklit.Content {
-	switch type_ {
-	case "boolean", "string", "object":
-		return booklit.String(type_)
-	default:
-		if strings.HasPrefix(type_, "`") && strings.HasSuffix(type_, "`") {
-			scalar := strings.TrimPrefix(strings.TrimSuffix(type_, "`"), "`")
-			return booklit.Styled{
-				Style:   "schema-scalar",
-				Content: booklit.String(scalar),
-			}
+	if strings.HasPrefix(type_, "[") && strings.HasSuffix(type_, "]") {
+		subType := strings.TrimPrefix(strings.TrimSuffix(type_, "]"), "[")
+		return booklit.Sequence{
+			booklit.String("["),
+			autoReferenceType(subType),
+			booklit.String("]"),
 		}
+	}
 
-		if strings.HasPrefix(type_, "[") && strings.HasSuffix(type_, "]") {
-			subType := strings.TrimPrefix(strings.TrimSuffix(type_, "]"), "[")
-			return booklit.Sequence{
-				booklit.String("["),
-				autoReferenceType(subType),
-				booklit.String("]"),
-			}
+	if strings.HasPrefix(type_, "{") && strings.HasSuffix(type_, "}") {
+		subType := strings.TrimPrefix(strings.TrimSuffix(type_, "}"), "{")
+		return booklit.Sequence{
+			booklit.String("{"),
+			autoReferenceType(subType),
+			booklit.String("}"),
 		}
+	}
 
-		if strings.HasPrefix(type_, "{") && strings.HasSuffix(type_, "}") {
-			subType := strings.TrimPrefix(strings.TrimSuffix(type_, "}"), "{")
-			return booklit.Sequence{
-				booklit.String("{"),
-				autoReferenceType(subType),
-				booklit.String("}"),
-			}
-		}
+	for _, punc := range []string{" | ", ": ", ", "} {
+		if strings.Contains(type_, punc) {
+			ors := strings.Split(type_, punc)
 
-		for _, punc := range []string{" | ", ": ", ", "} {
-			if strings.Contains(type_, punc) {
-				ors := strings.Split(type_, punc)
+			seq := booklit.Sequence{}
+			for i, t := range ors {
+				seq = append(seq, autoReferenceType(t))
 
-				seq := booklit.Sequence{}
-				for i, t := range ors {
-					seq = append(seq, autoReferenceType(t))
-
-					if i+1 < len(ors) {
-						seq = append(seq, booklit.String(punc))
-					}
+				if i+1 < len(ors) {
+					seq = append(seq, booklit.String(punc))
 				}
-
-				return seq
 			}
-		}
 
-		return &booklit.Reference{
-			TagName: type_ + "-schema",
-			Content: booklit.Styled{
-				Style:   booklit.StyleBold,
-				Content: booklit.String(type_),
-			},
+			return seq
 		}
+	}
+
+	if strings.HasPrefix(type_, "`") && strings.HasSuffix(type_, "`") {
+		scalar := strings.TrimPrefix(strings.TrimSuffix(type_, "`"), "`")
+		return booklit.Styled{
+			Style:   "schema-scalar",
+			Content: booklit.String(scalar),
+		}
+	}
+
+	return &booklit.Reference{
+		TagName: "schema." + type_,
+		Content: booklit.Styled{
+			Style:   booklit.StyleBold,
+			Content: booklit.String(type_),
+		},
 	}
 }
