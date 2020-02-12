@@ -257,14 +257,14 @@ var _ = Describe("Scanner", func() {
 				fakeResource1.SourceReturns(atc.Source{"some": "source"})
 				fakeResource1.TypeReturns("custom-type")
 				fakeResource1.PipelineIDReturns(1)
-				fakeResource1.LastCheckEndTimeReturns(time.Now())
+				fakeResource1.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
 
 				fakeResource2 = new(dbfakes.FakeResource)
 				fakeResource2.NameReturns("some-name")
 				fakeResource2.SourceReturns(atc.Source{"some": "source"})
 				fakeResource2.TypeReturns("custom-type")
 				fakeResource2.PipelineIDReturns(1)
-				fakeResource2.LastCheckEndTimeReturns(time.Now())
+				fakeResource2.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
 
 				fakeCheckFactory.ResourcesReturns([]db.Resource{fakeResource1, fakeResource2}, nil)
 
@@ -279,11 +279,19 @@ var _ = Describe("Scanner", func() {
 			})
 
 			It("only tries to create a check for the resource type once", func() {
-				Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+				Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(3))
 
-				_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-				Expect(checkable).To(Equal(fakeResourceType))
-				Expect(manuallyTriggered).To(BeFalse())
+				var checked []string
+				_, checkable, _, _, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+				checked = append(checked, checkable.Name())
+
+				_, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+				checked = append(checked, checkable.Name())
+
+				_, checkable, _, _, _ = fakeCheckFactory.TryCreateCheckArgsForCall(2)
+				checked = append(checked, checkable.Name())
+
+				Expect(checked).To(ConsistOf([]string{fakeResourceType.Name(), fakeResource1.Name(), fakeResource2.Name()}))
 			})
 		})
 	})
