@@ -26,78 +26,82 @@ page}{https://github.com/concourse/concourse/wiki/Resource-Types}.
 Similar to \reference{resources}, each configured resource type consists of the
 following attributes:
 
-\define-attribute{name: string}{
-  \italic{Required.} The name of the new resource type. This should be short
-  and simple. This name will be referenced by \reference{pipeline-resources}
-  defined within the same pipeline, and \reference{image_resource}s used by
-  tasks running in the pipeline.
+\schema{resource_type}{
+  \required-attribute{name}{identifier}{
+    The name of the resource type. This should be short and simple. This name
+    will be referenced by \reference{pipeline.resources} defined within the
+    same pipeline, and \reference{image_resource}s used by tasks running in the
+    pipeline.
 
-  Pipeline-provided resource types can override the core resource types by
-  specifying the same name.
-}{resource-type-name}
+    Pipeline-provided resource types can override the core resource types by
+    specifying the same name.
+  }
 
-\define-attribute{type: string}{
-  \italic{Required.} The type of the resource used to provide the resource
-  type's container image. Yes, this is a bit meta. Usually this will be
-  \code{docker-image}, as the resource type must result in a container image,
-  though there may be other image formats (possibly themselves defined as
-  pipeline resource types!).
+  \required-attribute{type}{resource_type.name | identifier}{
+    The type of the resource used to provide the resource type's container
+    image.
 
-  A resource type's type can refer to other resource types, and can also use the
-  core type that it's overriding. This is useful for bringing in a newer or
-  forked \code{registry-image} resource.
-}{resource-type-type}
+    This is a bit meta. Usually this value will be \code{docker-image} or
+    \code{registry-image}, as the resource type must result in a container
+    image.
 
-\define-attribute{source: object}{
-  \italic{Optional.} The location of the resource type's resource. This varies
-  by resource type, and is a black box to Concourse; it is blindly passed to
-  the resource at runtime.
+    A resource type's type can refer to other resource types, and can also use the
+    core type that it's overriding. This is useful for bringing in a newer or
+    forked \code{registry-image} resource.
+  }
 
-  To use \code{docker-image} as an example, the source would contain something
-  like \code{repository: username/reponame}. See the \link{Docker Image
-  resource}{https://github.com/concourse/docker-image-resource} (or whatever
-  resource type your resource type uses) for more information.
-}{resource-type-source}
+  \required-attribute{source}{object}{
+    The location of the resource type's resource. This varies
+    by resource type, and is a black box to Concourse; it is blindly passed to
+    the resource at runtime.
 
-\define-attribute{privileged: boolean}{
-  \italic{Optional. Default \code{false}.} If set to \code{true}, the
-  resource's containers will be run with full capabilities, as determined by
-  the Garden backend the task runs on. For Linux-based backends it typically
-  determines whether or not the container will run in a separate user
-  namespace, and whether the \code{root} user is "actual" \code{root} (if set
-  to \code{true}) or a user namespaced \code{root} (if set to \code{false},
-  the default).
+    To use \code{docker-image} as an example, the source would contain something
+    like \code{repository: username/reponame}. See the \link{Docker Image
+    resource}{https://github.com/concourse/docker-image-resource} (or whatever
+    resource type your resource type uses) for more information.
+  }
 
-  This is a gaping security hole; only configure it if the resource type needs
-  it (which should be called out in its documentation). This is not up to the
-  resource type to decide dynamically, so as to prevent privilege escalation
-  via third-party resource type exploits.
-}{resource-type-privileged}
+  \optional-attribute{privileged}{boolean}{
+    \italic{Default \code{false}.} If set to \code{true}, the resource's
+    containers will be run with full capabilities, as determined by the worker
+    backend the task runs on.
 
-\define-attribute{params: object}{
-  \italic{Optional.} Arbitrary params to pass when fetching the resource.
-}{resource-type-params}
+    For Linux-based backends it typically determines whether or not the
+    container will run in a separate user namespace, and whether the
+    \code{root} user is "actual" \code{root} (if set to \code{true}) or a user
+    namespaced \code{root} (if set to \code{false}, the default).
 
-\define-attribute{check_every: string}{
-  \italic{Optional. Default \code{1m}.} The interval on which to check for new
-  versions of the resource type. Acceptable interval options are defined by the
-  \link{time.ParseDuration
-  function}{https://golang.org/pkg/time/#ParseDuration}.
-}{resource-type-check-every}
+    This is a gaping security hole; only configure it if the resource type needs
+    it (which should be called out in its documentation). This is not up to the
+    resource type to decide dynamically, so as to prevent privilege escalation
+    via third-party resource type exploits.
+  }
 
-\define-attribute{tags: [string]}{
-  \italic{Optional. Default \code{[]}.} A list of tags to determine which
-  workers the checks will be performed on. You'll want to specify this if the
-  source is internal to a worker's network, for example. See also
-  \reference{tags-step-modifier}.
-}{resource-type-tags}
+  \optional-attribute{params}{object}{
+    Arbitrary params to pass when fetching the resource type's image.
+  }
 
-\define-attribute{unique_version_history: bool}{
-  \italic{Optional. Default \code{false}.} Only relevant when
-  \reference{global-resources} is enabled. When set to \code{true}, resources
-  using this resource type will have a version history that is unique to the
-  resource, rather than sharing a global version history.
-}{resource-type-unique-version-history}
+  \optional-attribute{check_every}{duration}{
+    \italic{Default \code{1m}.} The interval on which to check for new versions
+    of the resource type. Acceptable interval options are defined by the
+    \link{time.ParseDuration
+    function}{https://golang.org/pkg/time/#ParseDuration}.
+  }
+
+  \optional-attribute{tags}{[string]}{
+    \italic{Default \code{[]}.} A list of tags to determine which workers the
+    checks will be performed on. You'll want to specify this if the source is
+    internal to a worker's network, for example. See also
+    \reference{tags-step-modifier}.
+  }
+
+  \optional-attribute{unique_version_history}{boolean}{
+    \italic{Default \code{false}.} Only relevant when
+    \reference{global-resources} is enabled. When set to \code{true}, resources
+    using this resource type will have a version history that is unique to the
+    resource, rather than sharing a global version history.
+  }
+}
 
 \split-sections
 

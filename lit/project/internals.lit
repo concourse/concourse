@@ -442,9 +442,9 @@
 
     Containers and volumes are the costliest resources consumed by Concourse.
     There are also many of them created over time as builds execute and
-    pipelines perform their \reference{pipeline-resources}{resource checking}.
-    Therefore it is important to parallelize this aspect of garbage collection
-    so that one slow delete or one slow worker does not cause them to pile up.
+    pipelines perform their \reference{resources}{resource checking}. Therefore
+    it is important to parallelize this aspect of garbage collection so that
+    one slow delete or one slow worker does not cause them to pile up.
 
     So, the next two steps are \reference{container-collection} and
     \reference{volume-collection}.

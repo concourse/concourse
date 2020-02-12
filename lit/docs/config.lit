@@ -15,5 +15,6 @@ use whatever templating system they like.
 \table-of-contents
 
 \include-section{config/yaml.lit}
+\include-section{config/basic-schemas.lit}
 \include-section{config/vars.lit}
 \include-section{config/dynamic-vars.lit}

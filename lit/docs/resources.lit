@@ -9,93 +9,95 @@ pipeline.
 Resources are listed under the \code{resources:} key in the pipeline
 configuration. Each configured resource consists of the following fields:
 
-\define-attribute{name: string}{
-  \italic{Required.} The name of the resource. This should be short and simple.
-  This name will be referenced by \reference{build-plans}{build plans} of jobs
-  in the pipeline.
-}{resource-name}
+\schema{resource}{
+  \required-attribute{name}{identifier}{
+    The name of the resource. This should be short and simple. This name will
+    be referenced by \reference{build-plans}{build plans} of jobs in the
+    pipeline.
+  }
 
-\define-attribute{type: string}{
-  \italic{Required.} The \reference{resource-types}{resource type}.
-}{resource-type}
+  \required-attribute{type}{resource_type.name}{
+    The \reference{resource-types}{resource type}.
+  }
 
-\define-attribute{icon: string}{
-  \italic{Optional.} The name of a \link{Material Design
-  icon}{https://materialdesignicons.com/} to show next to the resource name in
-  the web UI. For example, \code{github-circle}.
-}{resource-icon}
+  \required-attribute{source}{object}{
+    The location of the resource. This varies by resource type, and is a black
+    box to Concourse; it is blindly passed to the resource at runtime.
 
-\define-attribute{source: object}{
-  \italic{Optional.} The location of the resource. This varies
-  by resource type, and is a black box to Concourse; it is blindly passed to
-  the resource at runtime.
+    To use \code{git} as an example, the source may contain the repo URI, the
+    branch of the repo to track, and a private key to use when pushing/pulling.
 
-  To use \code{git} as an example, the source may contain the repo URI, the
-  branch of the repo to track, and a private key to use when pushing/pulling.
+    By convention, documentation for each resource type's configuration is
+    in each implementation's \code{README}.
 
-  By convention, documentation for each resource type's configuration is
-  in each implementation's \code{README}.
+    You can find the source for the resource types provided with Concourse at the
+    \link{Concourse GitHub
+    organization}{https://github.com/concourse?query=-resource}.
+  }
 
-  You can find the source for the resource types provided with Concourse at the
-  \link{Concourse GitHub
-  organization}{https://github.com/concourse?query=-resource}.
-}{resource-source}
+  \optional-attribute{icon}{string}{
+    The name of a \link{Material Design icon}{https://materialdesignicons.com/}
+    to show next to the resource name in the web UI. For example,
+    \code{github-circle}.
+  }
 
-\define-attribute{version: object}{
-  \italic{Optional.} A version to pin the resource to across the pipeline. This
-  has the same effect as setting \reference{get-step-version} on every
-  \reference{get-step} referencing the resource.
+  \optional-attribute{version}{object}{
+    A version to pin the resource to across the pipeline. This has the same
+    effect as setting \reference{get-step-version} on every
+    \reference{get-step} referencing the resource.
 
-  Resources can also be temporarily pinned to a version via the API and web UI.
-  However this functionality is disabled if the resource is pinned via
-  configuration, and if a pipeline is configured to have a version pinned while
-  also pinned in the web UI, the configuration takes precedence and will clear
-  out the temporary pin.
-}{resource-version}
+    Resources can also be temporarily pinned to a version via the API and web UI.
+    However this functionality is disabled if the resource is pinned via
+    configuration, and if a pipeline is configured to have a version pinned while
+    also pinned in the web UI, the configuration takes precedence and will clear
+    out the temporary pin.
+  }
 
-\define-attribute{check_every: string}{
-  \italic{Optional. Default \code{1m}.} The interval on which to check for new
-  versions of the resource. Acceptable interval options are defined by the
-  \link{time.ParseDuration function}{https://golang.org/pkg/time/#ParseDuration}.
-}{resource-check-every}
+  \optional-attribute{check_every}{duration}{
+    \italic{Default \code{1m}.} The interval on which to check for new versions
+    of the resource. Acceptable interval options are defined by the
+    \link{time.ParseDuration
+    function}{https://golang.org/pkg/time/#ParseDuration}.
+  }
 
-\define-attribute{tags: [string]}{
-  \italic{Optional. Default \code{[]}.} A list of tags to determine which
-  workers the checks will be performed on. You'll want to specify this if the
-  source is internal to a worker's network, for example. See also
-  \reference{tags-step-modifier}.
-}{resource-tags}
+  \optional-attribute{tags}{[string]}{
+    \italic{Default \code{[]}.} A list of tags to determine which workers the
+    checks will be performed on. You'll want to specify this if the source is
+    internal to a worker's network, for example. See also
+    \reference{tags-step-modifier}.
+  }
 
-\define-attribute{public: boolean}{
-  \italic{Optional. Default \code{false}.} If set to \code{true}, the metadata
-  for each version of the resource will be viewable by unauthenticated users
-  (assuming the pipeline has been \reference{exposing}{exposed}).
+  \optional-attribute{public}{boolean}{
+    \italic{Default \code{false}.} If set to \code{true}, the metadata for each
+    version of the resource will be viewable by unauthenticated users (assuming
+    the pipeline has been \reference{exposing}{exposed}).
 
-  Resource metadata should never contain credentials or secret information, but
-  this is off by default just to be safe in case users don't want to show
-  things like commit messages and authors to the public.
+    Resource metadata should never contain credentials or secret information, but
+    this is off by default just to be safe in case users don't want to show
+    things like commit messages and authors to the public.
 
-  Note: even when set to \code{false}, the versions identifiers will be
-  visible. In addition, if a resource is fetched in a build whose job is marked
-  \reference{job-public}, metadata will be visible in the build output.
-}{resource-public}
+    Note: even when set to \code{false}, the versions identifiers will be
+    visible. In addition, if a resource is fetched in a build whose job is marked
+    \reference{job.public}, metadata will be visible in the build output.
+  }
 
-\define-attribute{webhook_token: string}{
-  \italic{Optional.} If specified, web hooks can be sent to trigger an
-  immediate \italic{check} of the resource, specifying this value as a
-  primitive form of authentication via query params.
+  \optional-attribute{webhook_token}{string}{
+    If specified, web hooks can be sent to trigger an immediate \italic{check}
+    of the resource, specifying this value as a primitive form of
+    authentication via query params.
 
-  After configuring this value, you would then configure your hook sender with
-  the following painfully long path appended to your external URL:
+    After configuring this value, you would then configure your hook sender with
+    the following painfully long path appended to your external URL:
 
-  \code{{
-    /api/v1/teams/TEAM_NAME/pipelines/PIPELINE_NAME/resources/RESOURCE_NAME/check/webhook?webhook_token=WEBHOOK_TOKEN
-  }}
+    \code{{
+      /api/v1/teams/TEAM_NAME/pipelines/PIPELINE_NAME/resources/RESOURCE_NAME/check/webhook?webhook_token=WEBHOOK_TOKEN
+    }}
 
-  Note that the request payload sent to this API endpoint is entirely ignored.
-  You should configure the resource as if you're not using web hooks, as the
-  resource config is still the "source of truth."
-}{resource-webhook-token}
+    Note that the request payload sent to this API endpoint is entirely ignored.
+    You should configure the resource as if you're not using web hooks, as the
+    resource config is still the "source of truth."
+  }
+}
 
 \split-sections
 

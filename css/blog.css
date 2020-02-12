@@ -56,9 +56,6 @@ pre {
   color: #3d3c3c;
   padding: 0.5rem;
   overflow-x: auto;
-  /* kind of a hack tbh but happens to make various code samples fit better
-   * narrow spaces like the examples pane and front page */
-  font-size: 0.9em;
 }
 p,
 pre,

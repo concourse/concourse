@@ -235,7 +235,7 @@ decide much on its own.
 
   A tagged worker is taken out of the default placement logic. To run build
   steps on it, specify the \reference{tags-step-modifier}. Or, to perform
-  resource \code{check}s on it, specify \reference{resource-tags}{\code{tags}}
+  resource \code{check}s on it, specify \reference{resource.tags}{\code{tags}}
   on the resource itself.
 }
 

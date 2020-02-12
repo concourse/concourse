@@ -28,11 +28,11 @@ management} as well.
   encrypted:
 
   \list{
-    Resource \reference{resource-source}s, as they often contain private keys
+    Resource \reference{resource.source}s, as they often contain private keys
     and other credentials for writing to (or simply granting access to) the
     resource.
   }{
-    Resource type \reference{resource-type-source}s, for the same reason as
+    Resource type \reference{resource_type.source}s, for the same reason as
     above, though this is probably a less common use case.
   }{
     Pipeline \reference{task-step-vars} and \reference{task-step-params}, in case
@@ -41,7 +41,7 @@ management} as well.
     Put step \reference{put-step-params} and get step
     \reference{get-step-params} are also encrypted, even though they rarely
     should contain credentials (they're usually in
-    \reference{resource-source}).
+    \reference{resource.source}).
   }{
     Team auth configurations, as they often contain things like GitHub or other
     oAuth client secrets.

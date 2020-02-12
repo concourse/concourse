@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"net/http"
@@ -27,6 +28,8 @@ type Plugin struct {
 
 	definitionContext []string
 	noteIdx           int
+
+	schemaContext []string
 }
 
 func NewPlugin(section *booklit.Section) booklit.Plugin {
@@ -89,6 +92,195 @@ func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
 		Block:   true,
 		Content: content,
 	}
+}
+
+func (p *Plugin) Schema(name string, contentNode ast.Node) (booklit.Content, error) {
+	p.pushSchema(name)
+	defer p.popSchema()
+
+	tagName := name + "-schema"
+
+	p.section.SetTagAnchored(
+		tagName,
+		booklit.Sequence{
+			booklit.Styled{
+				Style: booklit.StyleBold,
+				Content: booklit.Styled{
+					Style:   booklit.StyleVerbatim,
+					Content: booklit.String(name),
+				},
+			},
+			booklit.String(" schema"),
+		},
+		booklit.Empty,
+		tagName,
+	)
+
+	stage := &stages.Evaluate{
+		Section: p.section,
+	}
+
+	err := contentNode.Visit(stage)
+	if err != nil {
+		return nil, err
+	}
+
+	content := stage.Result
+
+	return booklit.Styled{
+		Style:   "schema",
+		Block:   true,
+		Content: content,
+		Partials: booklit.Partials{
+			"Name":   booklit.String(name),
+			"Anchor": booklit.String(tagName),
+		},
+	}, nil
+}
+
+func (p *Plugin) SchemaGroup(title booklit.Content, tagName string, contentNode ast.Node) (booklit.Content, error) {
+	p.pushSchema(tagName)
+	defer p.popSchema()
+
+	stage := &stages.Evaluate{
+		Section: p.section,
+	}
+
+	err := contentNode.Visit(stage)
+	if err != nil {
+		return nil, err
+	}
+
+	content := stage.Result
+
+	return booklit.Styled{
+		Style:   "schema-group",
+		Block:   true,
+		Content: content,
+		Partials: booklit.Partials{
+			"Title": title,
+			"Target": booklit.Target{
+				TagName: tagName,
+				Title:   title,
+				Content: content,
+			},
+		},
+	}, nil
+}
+
+func (p *Plugin) RequiredAttribute(attribute string, type_ string, contentNode ast.Node) (booklit.Content, error) {
+	return p.schemaAttribute(
+		attribute,
+		type_,
+		contentNode,
+		booklit.Partials{
+			"Required": booklit.String("true"),
+		},
+	)
+}
+
+func (p *Plugin) OptionalAttribute(attribute string, type_ string, contentNode ast.Node) (booklit.Content, error) {
+	return p.schemaAttribute(
+		attribute,
+		type_,
+		contentNode,
+		booklit.Partials{
+			"Optional": booklit.String("true"),
+		},
+	)
+}
+
+func (p *Plugin) SchemaToggle(title, content booklit.Content) booklit.Content {
+	uniq := strings.Join(p.schemaContext, ".") + title.String()
+	hash := sha1.Sum([]byte(uniq))
+
+	return booklit.Styled{
+		Style:   "toggleable",
+		Block:   true,
+		Content: content,
+		Partials: booklit.Partials{
+			"Title": title,
+			"For":   booklit.String(fmt.Sprintf("%x", hash)),
+		},
+	}
+}
+
+func (p *Plugin) OneOf(content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "schema-one-of",
+		Block:   true,
+		Content: content,
+	}
+}
+
+func (p *Plugin) SchemaAttribute(attribute string, type_ string, contentNode ast.Node) (booklit.Content, error) {
+	return p.schemaAttribute(
+		attribute,
+		type_,
+		contentNode,
+		booklit.Partials{},
+	)
+}
+
+func (p *Plugin) schemaAttribute(attribute string, type_ string, contentNode ast.Node, partials booklit.Partials) (booklit.Content, error) {
+	p.pushSchema(attribute)
+	defer p.popSchema()
+
+	tagName := strings.Join(p.schemaContext, ".")
+
+	stage := &stages.Evaluate{
+		Section: p.section,
+	}
+
+	err := contentNode.Visit(stage)
+	if err != nil {
+		return nil, err
+	}
+
+	content := stage.Result
+
+	display := booklit.Styled{
+		Style: booklit.StyleBold,
+		Content: booklit.Styled{
+			Style:   booklit.StyleVerbatim,
+			Content: booklit.String(strings.Join(p.schemaContext, ".")),
+		},
+	}
+
+	targets := booklit.Sequence{
+		booklit.Target{
+			TagName: tagName,
+			Title:   display,
+			Content: content,
+		},
+		booklit.Target{
+			TagName: tagName + "-schema",
+			Title:   display,
+			Content: content,
+		},
+	}
+
+	partials["TagName"] = booklit.String(tagName)
+	partials["Targets"] = targets
+	partials["Attribute"] = booklit.String(attribute)
+	partials["Type"] = autoReferenceType(type_)
+
+	return NoIndex{
+		booklit.Styled{
+			Style:    "schema-attribute",
+			Block:    true,
+			Content:  content,
+			Partials: partials,
+		},
+	}, nil
+}
+
+func (p *Plugin) pushSchema(attribute string) {
+	p.schemaContext = append(p.schemaContext, attribute)
+}
+
+func (p *Plugin) popSchema() {
+	p.schemaContext = p.schemaContext[0 : len(p.schemaContext)-1]
 }
 
 func (p *Plugin) DownloadLinks() (booklit.Content, error) {
@@ -654,4 +846,62 @@ type NoIndex struct {
 
 func (NoIndex) String() string {
 	return ""
+}
+
+func autoReferenceType(type_ string) booklit.Content {
+	switch type_ {
+	case "boolean", "string", "object":
+		return booklit.String(type_)
+	default:
+		if strings.HasPrefix(type_, "`") && strings.HasSuffix(type_, "`") {
+			scalar := strings.TrimPrefix(strings.TrimSuffix(type_, "`"), "`")
+			return booklit.Styled{
+				Style:   "schema-scalar",
+				Content: booklit.String(scalar),
+			}
+		}
+
+		if strings.HasPrefix(type_, "[") && strings.HasSuffix(type_, "]") {
+			subType := strings.TrimPrefix(strings.TrimSuffix(type_, "]"), "[")
+			return booklit.Sequence{
+				booklit.String("["),
+				autoReferenceType(subType),
+				booklit.String("]"),
+			}
+		}
+
+		if strings.HasPrefix(type_, "{") && strings.HasSuffix(type_, "}") {
+			subType := strings.TrimPrefix(strings.TrimSuffix(type_, "}"), "{")
+			return booklit.Sequence{
+				booklit.String("{"),
+				autoReferenceType(subType),
+				booklit.String("}"),
+			}
+		}
+
+		for _, punc := range []string{" | ", ": ", ", "} {
+			if strings.Contains(type_, punc) {
+				ors := strings.Split(type_, punc)
+
+				seq := booklit.Sequence{}
+				for i, t := range ors {
+					seq = append(seq, autoReferenceType(t))
+
+					if i+1 < len(ors) {
+						seq = append(seq, booklit.String(punc))
+					}
+				}
+
+				return seq
+			}
+		}
+
+		return &booklit.Reference{
+			TagName: type_ + "-schema",
+			Content: booklit.Styled{
+				Style:   booklit.StyleBold,
+				Content: booklit.String(type_),
+			},
+		}
+	}
 }

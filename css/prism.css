@@ -4,10 +4,12 @@
 .token.cdata {
   color: #7a7373;
 }
-.token.punctuation {
+.token.punctuation,
+.token.anchor {
   color: #9b9b9b;
 }
 .token.selector,
+.token.quantifier,
 .token.tag {
   color: #ed4b35;
 }
@@ -41,8 +43,13 @@
 }
 .token.regex,
 .token.important,
-.token.variable {
+.token.variable,
+.token.charset-punctuation {
   color: #4a90e2;
+}
+.token.escape,
+.token.charclass {
+  color: #11c560;
 }
 .token.important,
 .token.bold {

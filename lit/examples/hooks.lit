@@ -84,11 +84,11 @@ jobs:
 	\title{References}{references}
 
 	\list{
-		\reference{job-on-success}
+		\reference{job.on_success}
 	}{
-		\reference{job-on-failure}
+		\reference{job.on_failure}
 	}{
-		\reference{job-on-abort}
+		\reference{job.on_abort}
 	}{
 		\reference{on-success-step-hook}
 	}{

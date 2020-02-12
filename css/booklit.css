@@ -56,9 +56,6 @@ pre {
   color: #3d3c3c;
   padding: 0.5rem;
   overflow-x: auto;
-  /* kind of a hack tbh but happens to make various code samples fit better
-   * narrow spaces like the examples pane and front page */
-  font-size: 0.9em;
 }
 p,
 pre,
@@ -506,7 +503,7 @@ body {
 .tutorial-image img {
   width: 70%;
 }
-.anchor {
+.anchor-target {
   display: inline-block;
   position: absolute;
   box-sizing: content-box;
@@ -832,4 +829,153 @@ body.index {
 }
 .download-info .download-links a:hover {
   border-bottom-color: white;
+}
+.schema {
+  margin-top: 2em;
+}
+.schema .schema-header {
+  margin-bottom: 1.5rem;
+}
+.schema .schema .schema-header {
+  font-size: 18px;
+}
+.schema-scalar {
+  background: rgba(30, 29, 29, 0.07);
+  padding: 3px;
+  border-radius: 5px;
+}
+.schema-group {
+  padding-bottom: 1em;
+  border-bottom: 1px dashed #9b9b9b;
+  margin-bottom: 1em;
+}
+.schema-group:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.schema-one-of {
+  border-bottom: 0.5rem solid #f6f5f5;
+  border-left: 0.5rem solid #f6f5f5;
+  border-right: 0.5rem solid #f6f5f5;
+  margin: 0 -1.5rem;
+}
+.schema-one-of .schema-one-of {
+  border-color: #e6e5e5;
+}
+.schema-one-of .schema-one-of .one-of-header {
+  background: #e6e5e5;
+}
+.schema-one-of > .schema-attribute,
+.schema-one-of .schema-group {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+.schema-one-of .one-of-header {
+  background: #f6f5f5;
+  font-family: 'Iosevka', monospace;
+  display: block;
+  line-height: 32px;
+  padding: 0 0.5rem;
+  font-weight: bold;
+}
+.schema-attribute {
+  margin-top: 1em;
+}
+.schema-attribute.required > .attribute-header pre {
+  background-color: #ffffdc;
+  position: relative;
+}
+.schema-attribute.required > .attribute-header pre:after {
+  content: "required";
+  margin-left: 0.5rem;
+  font-weight: bold;
+  position: absolute;
+  right: 0.5rem;
+  color: #ec9910;
+}
+.schema-attribute.optional > .attribute-header pre {
+  background-color: #f6f5f5;
+  position: relative;
+}
+.schema-attribute.optional > .attribute-header pre:after {
+  content: "optional";
+  margin-left: 0.5rem;
+  font-weight: bold;
+  position: absolute;
+  right: 0.5rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+.attribute-header pre {
+  background: #f6f5f5;
+  color: #2a2929;
+  margin-bottom: 0;
+  line-height: 32px;
+  padding: 0;
+}
+.attribute-header a {
+  color: inherit;
+}
+.attribute-header a:hover {
+  text-decoration: underline;
+}
+.attribute-header .attribute-name {
+  font-weight: bold;
+}
+.attribute-header .attribute-type {
+  color: #9b9b9b;
+}
+.attribute-header .attribute-type .schema-scalar,
+.attribute-header .attribute-type a {
+  color: #2a2929;
+}
+.attribute-content {
+  padding: 1em;
+}
+.attribute-content .schema-attribute {
+  margin: 1em;
+}
+.toggleable .toggle {
+  display: none;
+}
+.toggleable label.toggle-title {
+  cursor: pointer;
+  font-family: 'Roboto Slab', serif;
+  font-size: 16px;
+  user-select: none;
+  display: block;
+  padding: 0.25rem 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  background-image: url('../images/icons/chevron-down.svg');
+  background-repeat: no-repeat;
+  background-position-x: 0.5rem;
+  background-position-y: 7px;
+  background-size: 12px;
+  padding-left: 32px;
+  border-bottom: 1px solid #f6f5f5;
+}
+.toggleable .toggle-content {
+  display: none;
+  padding-left: 32px;
+  padding-bottom: 1em;
+}
+.toggleable .toggle:checked + label.toggle-title {
+  background-image: url('../images/icons/chevron-up.svg');
+  background-position-y: 6px;
+}
+.toggleable .toggle:checked + label + .toggle-content {
+  display: block;
+}
+.toggleable .attribute-header pre {
+  cursor: pointer;
+  background-image: url('../images/icons/chevron-down.svg');
+  background-repeat: no-repeat;
+  background-position-x: 0.5rem;
+  background-position-y: 7px;
+  background-size: 12px;
+  padding-left: 32px;
+}
+.toggleable .toggle:checked + label.attribute-header pre {
+  background-image: url('../images/icons/chevron-up.svg');
+  background-position-y: 6px;
 }

@@ -10,30 +10,32 @@ queue new builds for jobs as they have new available inputs.
 Pipelines are configured as declarative YAML files, fitting the following
 schema:
 
-\define-attribute{jobs: [job]}{
-  A set of \reference{jobs}{jobs} for the pipeline to continuously schedule.
-}{pipeline-jobs}
+\schema{pipeline}{
+  \optional-attribute{jobs}{[job]}{
+    A set of \reference{jobs}{jobs} for the pipeline to continuously schedule.
+  }
 
-\define-attribute{resources: [resource]}{
-  A set of \reference{resources}{resources} for the pipeline to continuously
-  check.
-}{pipeline-resources}
+  \optional-attribute{resources}{[resource]}{
+    A set of \reference{resources}{resources} for the pipeline to continuously
+    check.
+  }
 
-\define-attribute{resource_types: [resource_type]}{
-  A set of \reference{resource-types}{resource types} for resources within the
-  pipeline to use.
-}{pipeline-resource-types}
+  \optional-attribute{resource_types}{[resource_type]}{
+    A set of \reference{resource-types}{resource types} for resources within the
+    pipeline to use.
+  }
 
-\define-attribute{var_sources: [var_source]}{
-  A set of \reference{var-sources} for the pipeline to use.
-}{pipeline-var-sources}
+  \optional-attribute{var_sources}{[var_source]}{
+    A set of \reference{var-sources} for the pipeline to use.
+  }
 
-\define-attribute{groups: [group]}{
-  A list of \reference{pipeline-groups}{groups} to use for cleaning
-  up/organizing jobs in the web UI.
+  \optional-attribute{groups}{[group]}{
+    A list of \reference{pipeline-groups}{groups} to use for cleaning
+    up/organizing jobs in the web UI.
 
-  Each group must have a unique name.
-}{pipeline-config-groups}
+    Each group must have a unique name.
+  }
+}
 
 \split-sections
 

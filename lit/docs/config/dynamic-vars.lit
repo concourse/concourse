@@ -11,12 +11,12 @@ The following configurations can be parameterized through a \code{((var))}
 source:
 
 \list{
-  \reference{resource-source} under \reference{resources} in a pipeline
+  \reference{resource.source} under \reference{resources} in a pipeline
 }{
-  \reference{resource-type-source} under \reference{resource-types} in a
+  \reference{resource_type.source} under \reference{resource-types} in a
   pipeline
 }{
-  \reference{resource-webhook-token} under \reference{resources} in a
+  \reference{resource.webhook_token} under \reference{resources} in a
   pipeline
 }{
   \reference{task-step-params} on a task step in a pipeline
@@ -59,7 +59,7 @@ limited lifetime and tight rotation policies.
   detailed explanation of this syntax.
 
   Currently, \code{((var))} sources can only be configured at the
-  pipeline-level, through \reference{pipeline-var-sources}. Soon we will
+  pipeline-level, through \reference{pipeline.var_sources}. Soon we will
   introduce cluster-wide \code{((var))} sources and begin deprecating the
   cluster-wide credential manager.
 

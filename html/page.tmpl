@@ -14,43 +14,43 @@
       </div>
 
       <div class="body-content">
-      <div class="page-content">
-        {{. | render}}
+        <div class="page-content">
+          {{. | render}}
 
-        <nav class="prev-next">
-        {{with .Prev}}
-          <div class="prev">
-            prev:
+          <nav class="prev-next">
+          {{with .Prev}}
+            <div class="prev">
+              prev:
 
-            {{if eq .PageDepth 0}}
-            <span class="section-number">{{.Number}}</span>
-            {{end}}
+              {{if eq .PageDepth 0}}
+              <span class="section-number">{{.Number}}</span>
+              {{end}}
 
-            <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
-          </div>
-        {{end}}
+              <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
+            </div>
+          {{end}}
 
-        {{with .Next}}
-          <div class="next">
-            next:
+          {{with .Next}}
+            <div class="next">
+              next:
 
-            {{if eq .PageDepth 0}}
-            <span class="section-number">{{.Number}}</span>
-            {{end}}
+              {{if eq .PageDepth 0}}
+              <span class="section-number">{{.Number}}</span>
+              {{end}}
 
-            <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
-          </div>
-        {{end}}
-        </nav>
-      </div>
-
-      <div class="page-aside">
-        {{- if .Partial "RightSide" }}
-        <div class="page-partial">
-          {{.Partial "RightSide" | render}}
+              <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
+            </div>
+          {{end}}
+          </nav>
         </div>
-        {{ end -}}
-      </div>
+
+        <div class="page-aside">
+          {{- if .Partial "RightSide" }}
+          <div class="page-partial">
+            {{.Partial "RightSide" | render}}
+          </div>
+          {{ end -}}
+        </div>
       </div>
     </div>
 

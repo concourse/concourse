@@ -10,7 +10,7 @@ body {
   font-size: 16px;
   font-weight: 400;
   line-height: 1.6;
-  color: #292a2a;
+  color: #2a2929;
   background: white;
   display: grid;
   grid-auto-rows: 80px auto auto;
@@ -56,9 +56,6 @@ pre {
   color: #3d3c3c;
   padding: 0.5rem;
   overflow-x: auto;
-  /* kind of a hack tbh but happens to make various code samples fit better
-   * narrow spaces like the examples pane and front page */
-  font-size: 0.9em;
 }
 p,
 pre,
@@ -219,7 +216,7 @@ h3 {
 .page-nav {
   font-family: 'Roboto Slab', serif;
   font-size: 14px;
-  background: #292a2a;
+  background: #2a2929;
   color: #7a7373;
   display: flex;
   flex-direction: column;
@@ -358,7 +355,7 @@ a:visited {
   background: white;
 }
 .page-nav {
-  background: #292a2a;
+  background: #2a2929;
   color: #7a7373;
 }
 .docked .d-header {
