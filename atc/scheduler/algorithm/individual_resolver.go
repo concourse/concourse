@@ -25,8 +25,8 @@ func (r *individualResolver) InputConfigs() InputConfigs {
 	return InputConfigs{r.inputConfig}
 }
 
-// Handles the three different configurations of a resource without passed
-// constraints: pinned, every and latest
+// Handles two different configurations of a resource without passed
+// constraints: every and latest
 func (r *individualResolver) Resolve(ctx context.Context) (map[string]*versionCandidate, db.ResolutionFailure, error) {
 	ctx, span := tracing.StartSpan(ctx, "individualResolver.Resolve", tracing.Attrs{
 		"input": r.inputConfig.Name,
@@ -36,36 +36,18 @@ func (r *individualResolver) Resolve(ctx context.Context) (map[string]*versionCa
 	var version db.ResourceVersion
 	var hasNext bool
 	if r.inputConfig.UseEveryVersion {
-		buildID, found, err := r.vdb.LatestBuildID(ctx, r.inputConfig.JobID)
+		var found bool
+		var err error
+		version, hasNext, found, err = r.vdb.NextEveryVersion(ctx, r.inputConfig.JobID, r.inputConfig.ResourceID)
 		if err != nil {
 			tracing.End(span, err)
 			return nil, "", err
 		}
 
-		if found {
-			version, hasNext, found, err = r.vdb.NextEveryVersion(ctx, buildID, r.inputConfig.ResourceID)
-			if err != nil {
-				tracing.End(span, err)
-				return nil, "", err
-			}
-
-			if !found {
-				span.AddEvent(ctx, "next every version not found")
-				span.SetStatus(codes.NotFound)
-				return nil, db.VersionNotFound, nil
-			}
-		} else {
-			version, found, err = r.vdb.LatestVersionOfResource(ctx, r.inputConfig.ResourceID)
-			if err != nil {
-				tracing.End(span, err)
-				return nil, "", err
-			}
-
-			if !found {
-				span.AddEvent(ctx, "latest version not found")
-				span.SetStatus(codes.NotFound)
-				return nil, db.LatestVersionNotFound, nil
-			}
+		if !found {
+			span.AddEvent(ctx, "next every version not found")
+			span.SetStatus(codes.NotFound)
+			return nil, db.VersionNotFound, nil
 		}
 
 		span.AddEvent(ctx, "found via every", key.New("version").String(string(version)))

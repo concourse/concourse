@@ -342,7 +342,7 @@ func (r *groupResolver) paginatedBuilds(ctx context.Context, currentInputConfig 
 		if r.lastUsedPassedBuilds == nil {
 			lastUsedBuildIDs := map[int]db.BuildCursor{}
 
-			buildID, found, err := r.vdb.LatestBuildID(ctx, currentJobID)
+			buildID, found, err := r.vdb.LatestBuildUsingLatestVersion(ctx, currentJobID, currentInputConfig.ResourceID)
 			if err != nil {
 				return db.PaginatedBuilds{}, false, err
 			}
