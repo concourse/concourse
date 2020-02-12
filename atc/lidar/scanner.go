@@ -79,17 +79,15 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes, 
 
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
-		if _, exists := resourceTypesChecked.LoadOrStore(parentType.ID(), true); exists {
-			// already trying to create check for resource type
-			return nil
-		}
+		if _, exists := resourceTypesChecked.LoadOrStore(parentType.ID(), true); !exists {
+			// only create a check for resource type if it has not been checked yet
+			err = s.check(parentType, resourceTypes, resourceTypesChecked)
+			s.setCheckError(s.logger, parentType, err)
 
-		err = s.check(parentType, resourceTypes, resourceTypesChecked)
-		s.setCheckError(s.logger, parentType, err)
-
-		if err != nil {
-			s.logger.Error("failed-to-create-type-check", err)
-			return errors.Wrapf(err, "parent type '%v' error", parentType.Name())
+			if err != nil {
+				s.logger.Error("failed-to-create-type-check", err)
+				return errors.Wrapf(err, "parent type '%v' error", parentType.Name())
+			}
 		}
 	}
 
