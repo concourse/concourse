@@ -2,12 +2,24 @@
 
 \title{Resources}{resources}
 
-\reference{resources}{Resources} are the heart and soul of Concourse. They
-represent all external inputs to and outputs of \reference{jobs}{jobs} in the
-pipeline.
+Resources are the heart and soul of Concourse. They represent all external
+inputs to and outputs of \reference{jobs}{jobs} in the pipeline.
 
-Resources are listed under the \code{resources:} key in the pipeline
-configuration. Each configured resource consists of the following fields:
+Each resource represents a versioned artifact with an external source of truth.
+Configuring the same resource in any pipeline on any Concourse cluster will
+behave the exact same way. Concouse will continuously \code{check} each
+configured resource to discover new versions. These versions then flow through
+the pipeline via \reference{get-step}s configured on \reference{jobs}.
+
+\aside{
+  There are currently exceptions to this rule of
+  thumb - see \link{Re-inventing resource
+  types}{https://blog.concourse-ci.org/reinventing-resource-types/} for the
+  direction we're planning to resolve this.
+}
+
+A pipeline's resources are listed under \reference{schema.pipeline.resources}
+with the following schema.
 
 \schema{resource}{
   \required-attribute{name}{identifier}{

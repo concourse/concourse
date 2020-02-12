@@ -3,28 +3,17 @@
 \use-plugin{concourse-docs}
 
 Each resource in a pipeline has a \code{type}. The resource's type determines
-what versions are detected, the bits that are fetched when used for a
-\reference{get-step}, and the side effect that occurs when used for a
-\reference{put-step}.
+what versions are detected, the bits that are fetched when the resource's
+\reference{get-step} runs, and the side effect that occurs when the resource's
+\reference{put-step} runs.
 
-Out of the box, Concourse comes with a few resource types to cover common CI use
-cases like dealing with Git repositories and S3 buckets. These are called the
-"core" resource types. These are packaged with the worker, and can be listed via
-\reference{fly-workers}{\code{fly workers -d}}.
+Concourse comes with a few "core" resource types to cover common use cases like
+\code{git} and \code{s3} - the rest are developed and supported by the
+Concourse community. An exhaustive list of all resource types is available in
+the \link{Resource Types catalog}{https://resource-types.concourse-ci.org}.
 
-Beyond these core types, each pipeline can configure its own resource types by
-specifying \code{resource_types} at the top level. Each resource type is itself
-defined as a resource that provides the container image for the pipeline
-resource type (see \reference{implementing-resource-types}). You will almost
-always be using the \resource{registry-image} when doing this.
-
-A somewhat exhaustive list of all available resource types - both from the
-Concourse core project and from external contributors - is available in the
-\link{Resource Types wiki
-page}{https://github.com/concourse/concourse/wiki/Resource-Types}.
-
-Similar to \reference{resources}, each configured resource type consists of the
-following attributes:
+A pipeline's resource types are listed under
+\reference{schema.pipeline.resource_types} with the following schema.
 
 \schema{resource_type}{
   \required-attribute{name}{identifier}{
