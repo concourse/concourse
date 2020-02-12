@@ -3,15 +3,15 @@ const renderingModulePromise = import('./index.mjs');
 var resizeTimer;
 
 app.ports.pinTeamNames.subscribe(function(config) {
-  sections = () => Array.from(document.querySelectorAll("." + config.sectionClass));
-  header = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionHeaderClass));
-  body = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionBodyClass));
-  lowestHeaderTop = (section) => body(section).offsetTop + body(section).scrollHeight - header(section).scrollHeight;
+  const sections = () => Array.from(document.querySelectorAll("." + config.sectionClass));
+  const header = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionHeaderClass));
+  const body = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionBodyClass));
+  const lowestHeaderTop = (section) => body(section).offsetTop + body(section).scrollHeight - header(section).scrollHeight;
 
-  pageHeaderHeight = () => config.pageHeaderHeight;
-  viewportTop = () => window.pageYOffset + pageHeaderHeight();
+  const pageHeaderHeight = () => config.pageHeaderHeight;
+  const viewportTop = () => window.pageYOffset + pageHeaderHeight();
 
-  updateHeader = (section) => {
+  const updateHeader = (section) => {
     var scrolledFarEnough = section.offsetTop < viewportTop();
     var scrolledTooFar = lowestHeaderTop(section) < viewportTop();
     if (!scrolledFarEnough && !scrolledTooFar) {
@@ -33,7 +33,7 @@ app.ports.pinTeamNames.subscribe(function(config) {
     }
   }
 
-  updateSticky = () => {
+  const updateSticky = () => {
     document.querySelector("." + config.pageBodyClass).style.marginTop = pageHeaderHeight();
     sections().forEach(updateHeader);
   }
