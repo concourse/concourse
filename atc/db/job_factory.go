@@ -80,7 +80,12 @@ func (j *jobFactory) AllActiveJobs() (atc.Dashboard, error) {
 
 func (j *jobFactory) JobsToSchedule() (Jobs, error) {
 	rows, err := jobsQuery.
-		Where(sq.Expr("schedule_requested > last_scheduled")).
+		Where(sq.Expr("j.schedule_requested > j.last_scheduled")).
+		Where(sq.Eq{
+			"j.active": true,
+			"j.paused": false,
+			"p.paused": false,
+		}).
 		RunWith(j.conn).
 		Query()
 	if err != nil {
