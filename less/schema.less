@@ -1,3 +1,6 @@
+@required-bg-color: @highlight;
+@required-fg-color: @amber-secondary;
+
 .schema {
   margin-top: 2em;
 }
@@ -17,9 +20,10 @@
 }
 
 .schema-group {
-  padding-bottom: 1em;
-  border-bottom: 1px dashed @grey-primary;
-  margin-bottom: 1em;
+  padding: 0 1rem;
+  padding-bottom: 1rem;
+  border-bottom: .5rem solid @off-white;
+  margin-bottom: 1rem;
 
   &:last-child {
     padding-bottom: 0;
@@ -41,11 +45,6 @@
     }
   }
 
-  > .schema-attribute, .schema-group {
-    margin-left: 1rem;
-    margin-right: 1rem;
-  }
-
   .one-of-header {
     background: @off-white;
     font-family: 'Iosevka', monospace;
@@ -60,7 +59,7 @@
   margin-top: 1em;
 
   &.required > .attribute-header pre {
-    background-color: @highlight;
+    background-color: @required-bg-color;
     position: relative;
 
     &:after {
@@ -69,7 +68,7 @@
       font-weight: bold;
       position: absolute;
       right: .5rem;
-      color: @amber-secondary;
+      color: @required-fg-color;
     }
   }
 
@@ -121,8 +120,8 @@
 .attribute-content {
   padding: 1em;
 
-  .schema-attribute {
-    margin: 1em;
+  .schema-header {
+    margin-bottom: 1rem;
   }
 }
 

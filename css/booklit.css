@@ -845,9 +845,10 @@ body.index {
   border-radius: 5px;
 }
 .schema-group {
-  padding-bottom: 1em;
-  border-bottom: 1px dashed #9b9b9b;
-  margin-bottom: 1em;
+  padding: 0 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 0.5rem solid #f6f5f5;
+  margin-bottom: 1rem;
 }
 .schema-group:last-child {
   padding-bottom: 0;
@@ -864,11 +865,6 @@ body.index {
 }
 .schema-one-of .schema-one-of .one-of-header {
   background: #e6e5e5;
-}
-.schema-one-of > .schema-attribute,
-.schema-one-of .schema-group {
-  margin-left: 1rem;
-  margin-right: 1rem;
 }
 .schema-one-of .one-of-header {
   background: #f6f5f5;
@@ -931,8 +927,8 @@ body.index {
 .attribute-content {
   padding: 1em;
 }
-.attribute-content .schema-attribute {
-  margin: 1em;
+.attribute-content .schema-header {
+  margin-bottom: 1rem;
 }
 .toggleable .toggle {
   display: none;
