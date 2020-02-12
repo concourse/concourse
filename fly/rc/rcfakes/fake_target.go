@@ -30,6 +30,19 @@ type FakeTarget struct {
 	clientReturnsOnCall map[int]struct {
 		result1 concourse.Client
 	}
+	FindTeamStub        func(string) (concourse.Team, error)
+	findTeamMutex       sync.RWMutex
+	findTeamArgsForCall []struct {
+		arg1 string
+	}
+	findTeamReturns struct {
+		result1 concourse.Team
+		result2 error
+	}
+	findTeamReturnsOnCall map[int]struct {
+		result1 concourse.Team
+		result2 error
+	}
 	IsWorkerVersionCompatibleStub        func(string) (bool, error)
 	isWorkerVersionCompatibleMutex       sync.RWMutex
 	isWorkerVersionCompatibleArgsForCall []struct {
@@ -245,6 +258,69 @@ func (fake *FakeTarget) ClientReturnsOnCall(i int, result1 concourse.Client) {
 	fake.clientReturnsOnCall[i] = struct {
 		result1 concourse.Client
 	}{result1}
+}
+
+func (fake *FakeTarget) FindTeam(arg1 string) (concourse.Team, error) {
+	fake.findTeamMutex.Lock()
+	ret, specificReturn := fake.findTeamReturnsOnCall[len(fake.findTeamArgsForCall)]
+	fake.findTeamArgsForCall = append(fake.findTeamArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("FindTeam", []interface{}{arg1})
+	fake.findTeamMutex.Unlock()
+	if fake.FindTeamStub != nil {
+		return fake.FindTeamStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.findTeamReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTarget) FindTeamCallCount() int {
+	fake.findTeamMutex.RLock()
+	defer fake.findTeamMutex.RUnlock()
+	return len(fake.findTeamArgsForCall)
+}
+
+func (fake *FakeTarget) FindTeamCalls(stub func(string) (concourse.Team, error)) {
+	fake.findTeamMutex.Lock()
+	defer fake.findTeamMutex.Unlock()
+	fake.FindTeamStub = stub
+}
+
+func (fake *FakeTarget) FindTeamArgsForCall(i int) string {
+	fake.findTeamMutex.RLock()
+	defer fake.findTeamMutex.RUnlock()
+	argsForCall := fake.findTeamArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTarget) FindTeamReturns(result1 concourse.Team, result2 error) {
+	fake.findTeamMutex.Lock()
+	defer fake.findTeamMutex.Unlock()
+	fake.FindTeamStub = nil
+	fake.findTeamReturns = struct {
+		result1 concourse.Team
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTarget) FindTeamReturnsOnCall(i int, result1 concourse.Team, result2 error) {
+	fake.findTeamMutex.Lock()
+	defer fake.findTeamMutex.Unlock()
+	fake.FindTeamStub = nil
+	if fake.findTeamReturnsOnCall == nil {
+		fake.findTeamReturnsOnCall = make(map[int]struct {
+			result1 concourse.Team
+			result2 error
+		})
+	}
+	fake.findTeamReturnsOnCall[i] = struct {
+		result1 concourse.Team
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTarget) IsWorkerVersionCompatible(arg1 string) (bool, error) {
@@ -794,6 +870,8 @@ func (fake *FakeTarget) Invocations() map[string][][]interface{} {
 	defer fake.cACertMutex.RUnlock()
 	fake.clientMutex.RLock()
 	defer fake.clientMutex.RUnlock()
+	fake.findTeamMutex.RLock()
+	defer fake.findTeamMutex.RUnlock()
 	fake.isWorkerVersionCompatibleMutex.RLock()
 	defer fake.isWorkerVersionCompatibleMutex.RUnlock()
 	fake.tLSConfigMutex.RLock()

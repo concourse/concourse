@@ -19,7 +19,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-var _ = FDescribe("Fly CLI", func() {
+var _ = Describe("Fly CLI", func() {
 	Describe("trigger-job", func() {
 		var (
 			mainPath        string
@@ -240,7 +240,7 @@ var _ = FDescribe("Fly CLI", func() {
 			})
 		})
 
-		Context("when you are authorized to view the team but the team does not exist", func() {
+		Context("when you are authenticated but the team does not exist", func() {
 			It("returns an error", func() {
 				loginATCServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -261,7 +261,7 @@ var _ = FDescribe("Fly CLI", func() {
 			})
 		})
 		Context("when you are NOT authorized to view the team", func() {
-			FIt("returns an error", func() {
+			It("returns an error", func() {
 				loginATCServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/banana"),
@@ -274,7 +274,7 @@ var _ = FDescribe("Fly CLI", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say(`error: you are not part of team 'banana'`))
+				Eventually(sess.Err).Should(gbytes.Say(`error: you do not have a role on team 'banana'`))
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
