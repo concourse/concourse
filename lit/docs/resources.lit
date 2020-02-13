@@ -12,10 +12,12 @@ configured resource to discover new versions. These versions then flow through
 the pipeline via \reference{get-step}s configured on \reference{jobs}.
 
 \aside{
-  There are currently exceptions to this rule of
-  thumb - see \link{Re-inventing resource
-  types}{https://blog.concourse-ci.org/reinventing-resource-types/} for the
-  direction we're planning to resolve this.
+  Resources are currently the only real extension point to Concourse, which has
+  led to them being used for many things which don't fit the above definition.
+
+  Check out \link{Re-inventing resource
+  types}{https://blog.concourse-ci.org/reinventing-resource-types/} for more
+  details and to see the direction we're planning to take to resolve this.
 }
 
 A pipeline's resources are listed under \reference{schema.pipeline.resources}
