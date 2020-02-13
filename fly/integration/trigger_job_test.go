@@ -240,47 +240,6 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
-		Context("when you are authenticated but the team does not exist", func() {
-			It("returns an error", func() {
-				loginATCServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/banana"),
-						ghttp.RespondWith(http.StatusNotFound, nil),
-					),
-				)
-
-				flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "banana")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess.Err).Should(gbytes.Say(`error: team 'banana' does not exist`))
-
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
-			})
-		})
-		Context("when you are NOT authorized to view the team", func() {
-			It("returns an error", func() {
-				loginATCServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/banana"),
-						ghttp.RespondWith(http.StatusForbidden, nil),
-					),
-				)
-
-				flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job", "-j", "awesome-pipeline/awesome-job", "--team", "banana")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess.Err).Should(gbytes.Say(`error: you do not have a role on team 'banana'`))
-
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
-			})
-		})
-
 		Context("when the pipeline/job name is not specified", func() {
 			It("errors", func() {
 				reqsBefore := len(loginATCServer.ReceivedRequests())

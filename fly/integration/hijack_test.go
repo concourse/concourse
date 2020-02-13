@@ -1045,46 +1045,4 @@ var _ = Describe("Hijacking", func() {
 			Expect(sess.ExitCode()).ToNot(Equal(0))
 		})
 	})
-
-	Context("when you are authenticated but the team does not exist", func() {
-		It("returns an error", func() {
-			loginATCServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/doesnotexist"),
-					ghttp.RespondWith(http.StatusNotFound, nil),
-				),
-			)
-
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "hijack", "--handle", "container-id", "--team", "doesnotexist")
-
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(sess.Err.Contents).Should(ContainSubstring(`error: team 'doesnotexist' does not exist`))
-
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
-		})
-	})
-
-	Context("when you are NOT authorized to view the team", func() {
-		It("returns an error", func() {
-			loginATCServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/main"),
-					ghttp.RespondWith(http.StatusForbidden, nil),
-				),
-			)
-
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "hijack", "--handle", "container-id", "--team", "main")
-
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(sess.Err.Contents).Should(ContainSubstring(`error: you do not have a role on team 'main'`))
-
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
-		})
-	})
 })

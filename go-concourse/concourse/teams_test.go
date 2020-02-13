@@ -74,7 +74,7 @@ var _ = Describe("ATC Handler Teams", func() {
 
 			It("returns false and error", func() {
 				_, err := client.FindTeam(teamName)
-				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(errors.New("team 'myTeam' does not exist")))
 			})
 		})
 

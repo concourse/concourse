@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"fmt"
+	"net/http"
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
@@ -175,6 +176,10 @@ var _ = Describe("Fly CLI", func() {
 			Context("using --team parameter", func() {
 				BeforeEach(func() {
 					loginATCServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: "other-team"}),
+						),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/other-team/pipelines/pipeline/jobs"),
 							ghttp.RespondWithJSONEncoded(200, sampleJobs),
