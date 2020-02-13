@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
@@ -17,7 +18,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/klauspost/compress/zstd"
 	"github.com/vito/go-sse/sse"
 )
 
@@ -166,10 +166,7 @@ run:
 
 					Expect(req.FormValue("platform")).To(Equal("some-platform"))
 
-					zstdReader, err := zstd.NewReader(req.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					tr := tar.NewReader(zstdReader)
+					tr := tar.NewReader(zstd.NewReader(req.Body))
 
 					hdr, err := tr.Next()
 					Expect(err).NotTo(HaveOccurred())

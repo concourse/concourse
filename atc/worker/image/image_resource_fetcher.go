@@ -9,7 +9,7 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/klauspost/compress/zstd"
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
@@ -206,10 +206,7 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, err
 	}
 
-	zstdReader, err := zstd.NewReader(reader)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	zstdReader := zstd.NewReader(reader)
 	tarReader := tar.NewReader(zstdReader)
 
 	_, err = tarReader.Next()
@@ -221,7 +218,7 @@ func (i *imageResourceFetcher) Fetch(
 		reader: tarReader,
 		closers: []io.Closer{
 			reader,
-			CloseWithError{zstdReader},
+			zstdReader,
 		},
 	}
 
@@ -336,18 +333,6 @@ func (i *imageResourceFetcher) getLatestVersion(
 	}
 
 	return versions[0], nil
-}
-
-type CloseWithError struct {
-	NoErringCloser interface {
-		Close()
-	}
-}
-
-// I know this is bad
-func (cwe CloseWithError) Close() error {
-	cwe.NoErringCloser.Close()
-	return nil
 }
 
 type fileReadMultiCloser struct {

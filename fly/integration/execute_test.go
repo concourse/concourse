@@ -16,9 +16,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
-	"github.com/klauspost/compress/zstd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -134,10 +134,7 @@ run:
 				func(w http.ResponseWriter, req *http.Request) {
 					close(uploading)
 
-					zstdReader, err := zstd.NewReader(req.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					tr := tar.NewReader(zstdReader)
+					tr := tar.NewReader(zstd.NewReader(req.Body))
 
 					hdr, err := tr.Next()
 					Expect(err).NotTo(HaveOccurred())
