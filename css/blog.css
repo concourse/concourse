@@ -180,12 +180,12 @@ h3 {
   text-transform: initial;
 }
 .top-link.logo-link img {
-  width: 40px;
-  height: 40px;
+  width: 35px;
+  height: 35px;
   vertical-align: middle;
   position: absolute;
-  top: 13px;
-  left: 12px;
+  top: 15.5px;
+  left: 14.5px;
 }
 .top-link,
 .top-link:visited {
