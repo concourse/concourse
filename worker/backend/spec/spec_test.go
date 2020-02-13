@@ -10,12 +10,17 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type Suite struct {
+var (
+	dummyMaxUid uint32 = 0
+	dummyMaxGid uint32 = 0
+)
+
+type SpecSuite struct {
 	suite.Suite
 	*require.Assertions
 }
 
-func (s *Suite) TestContainerSpecValidations() {
+func (s *SpecSuite) TestContainerSpecValidations() {
 	for _, tc := range []struct {
 		desc string
 		spec garden.ContainerSpec
@@ -75,13 +80,19 @@ func (s *Suite) TestContainerSpecValidations() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			_, err := spec.OciSpec(tc.spec)
+			_, err := spec.OciSpec(tc.spec, dummyMaxUid, dummyMaxGid)
 			s.Error(err)
 		})
 	}
 }
 
-func (s *Suite) TestOciSpecBindMounts() {
+func (s *SpecSuite) TestIDMappings() {
+	// TODO
+	//
+	// ensure that we mutate the right thing
+}
+
+func (s *SpecSuite) TestOciSpecBindMounts() {
 	for _, tc := range []struct {
 		desc     string
 		mounts   []garden.BindMount
@@ -170,7 +181,7 @@ func (s *Suite) TestOciSpecBindMounts() {
 	}
 }
 
-func (s *Suite) TestOciNamespaces() {
+func (s *SpecSuite) TestOciNamespaces() {
 	for _, tc := range []struct {
 		desc       string
 		privileged bool
@@ -193,7 +204,7 @@ func (s *Suite) TestOciNamespaces() {
 	}
 }
 
-func (s *Suite) TestOciCapabilities() {
+func (s *SpecSuite) TestOciCapabilities() {
 	for _, tc := range []struct {
 		desc       string
 		privileged bool
@@ -216,7 +227,7 @@ func (s *Suite) TestOciCapabilities() {
 	}
 }
 
-func (s *Suite) TestContainerSpec() {
+func (s *SpecSuite) TestContainerSpec() {
 	var minimalContainerSpec = garden.ContainerSpec{
 		Handle: "handle", RootFSPath: "raw:///rootfs",
 	}
@@ -239,13 +250,34 @@ func (s *Suite) TestContainerSpec() {
 			},
 		},
 		{
-			desc: "env",
+			desc: "env + default path",
 			gdn: garden.ContainerSpec{
 				Handle: "handle", RootFSPath: "raw:///rootfs",
 				Env: []string{"foo=bar"},
 			},
 			check: func(oci *specs.Spec) {
-				s.Equal([]string{"foo=bar"}, oci.Process.Env)
+				s.Equal([]string{"foo=bar", spec.Path}, oci.Process.Env)
+			},
+		},
+		{
+			desc: "env + default root path",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Env:        []string{"foo=bar"},
+				Privileged: true,
+			},
+			check: func(oci *specs.Spec) {
+				s.Equal([]string{"foo=bar", spec.SuperuserPath}, oci.Process.Env)
+			},
+		},
+		{
+			desc: "env with path already configured",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Env: []string{"foo=bar", "PATH=/somewhere"},
+			},
+			check: func(oci *specs.Spec) {
+				s.Equal([]string{"foo=bar", "PATH=/somewhere"}, oci.Process.Env)
 			},
 		},
 		{
@@ -284,16 +316,10 @@ func (s *Suite) TestContainerSpec() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			actual, err := spec.OciSpec(tc.gdn)
+			actual, err := spec.OciSpec(tc.gdn, dummyMaxUid, dummyMaxGid)
 			s.NoError(err)
 
 			tc.check(actual)
 		})
 	}
-}
-
-func TestSuite(t *testing.T) {
-	suite.Run(t, &Suite{
-		Assertions: require.New(t),
-	})
 }

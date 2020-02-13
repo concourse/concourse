@@ -229,6 +229,14 @@ $ docker-compose \
   up -d
 ```
 
+### Using the experimental `containerd` garden backend locally
+
+There a docker-compose override (`./hack/overrides/containerd.yml`) that sets up
+the necessary environment variables needed to have [`containerd`] up an running as
+a Garden backend.
+
+[`containerd`]: https://containerd.io
+
 
 ### Running Vault locally
 

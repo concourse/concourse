@@ -75,7 +75,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 	case cmd.Garden.UseHoudini:
 		runner, err = cmd.houdiniRunner(logger)
 	case cmd.Garden.UseContainerd:
-		runner = cmd.containerdRunner(logger)
+		runner, err = cmd.containerdRunner(logger)
 	default:
 		runner, err = cmd.gdnRunner(logger)
 	}

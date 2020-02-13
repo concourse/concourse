@@ -16,9 +16,11 @@ ARG RUNC_VERSION=v1.0.0-rc9
 ARG CNI_VERSION=v0.8.3
 ARG CONTAINERD_VERSION=1.3.2
 
-RUN apt update && apt install -y curl
+# make `ctr` target the default concourse namespace
+ENV CONTAINERD_NAMESPACE=concourse
 
 RUN set -x && \
+	apt install -y curl iptables && \
 	curl -sSL https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION.linux-amd64.tar.gz \
 		| tar -zvxf - -C /usr/local/concourse/bin --strip-components=1 && \
 	curl -sSL https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.amd64 \ 
@@ -33,6 +35,12 @@ COPY . .
 RUN go build -gcflags=all="-N -l" -o /usr/local/concourse/bin/concourse \
       ./cmd/concourse
 VOLUME /src
+
+
+# build the init executable for containerd
+RUN  set -x && \
+	gcc -O2 -static -o /usr/local/concourse/bin/init ./cmd/init/init.c
+
 
 # generate keys (with 1024 bits just so they generate faster)
 RUN mkdir -p /concourse-keys
