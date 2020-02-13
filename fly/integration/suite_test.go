@@ -27,6 +27,7 @@ var atcServer *ghttp.Server
 var adminAtcServer *ghttp.Server
 
 const targetName = "testserver"
+const adminTarget = "admin-target"
 const teamName = "main"
 const atcVersion = "4.0.0"
 const workerVersion = "4.5.6"
@@ -143,7 +144,7 @@ var _ = BeforeEach(func() {
 
 	Expect(session.ExitCode()).To(Equal(0))
 
-	// super admin login server
+	// Login as a super admin
 	adminAtcServer = ghttp.NewServer()
 	adminAtcServer.AppendHandlers(
 		infoHandler(),
@@ -152,7 +153,7 @@ var _ = BeforeEach(func() {
 		infoHandler(),
 	)
 
-	flyLoginCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "main", "-u", "test", "-p", "test")
+	flyLoginCmd := exec.Command(flyPath, "-t", adminTarget, "login", "-c", adminAtcServer.URL(), "-n", "main", "-u", "test", "-p", "test")
 	sess, err := gexec.Start(flyLoginCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
