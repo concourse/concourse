@@ -2,6 +2,10 @@
 
 @search-size: 32px;
 
+.top-nav {
+  position: relative;
+}
+
 .search-input {
   z-index: 101;
   border: 1px solid transparent;
@@ -25,8 +29,6 @@
 
 .search-input:focus, .search-input:valid {
   outline: none;
-  position: absolute;
-  right: 24px;
   background: white;
   border-color: @offest-white;
   width: 500px;
@@ -42,13 +44,14 @@
   border-right: 1px solid @offest-white;
   color: @darker-grey;
   width: 500px;
-  position: fixed;
-  top: 56px;
-  right: 24px;
-  bottom: 0;
+  position: absolute;
+  top: (@top-nav-height - @search-size) / 2 + @search-size;
+  right: (@top-nav-height - @search-size) / 2;
   margin: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   line-height: 1.6;
+  height: 90vh;
 }
 
 .search-results li {

@@ -315,6 +315,9 @@ h3 {
 .page-content td:last-child {
   padding-right: 0;
 }
+.top-nav {
+  position: relative;
+}
 .search-input {
   z-index: 101;
   border: 1px solid transparent;
@@ -336,8 +339,6 @@ h3 {
 .search-input:focus,
 .search-input:valid {
   outline: none;
-  position: absolute;
-  right: 24px;
   background: white;
   border-color: #e6e5e5;
   width: 500px;
@@ -352,13 +353,14 @@ h3 {
   border-right: 1px solid #e6e5e5;
   color: #2a2929;
   width: 500px;
-  position: fixed;
-  top: 56px;
-  right: 24px;
-  bottom: 0;
+  position: absolute;
+  top: 51px;
+  right: 19px;
   margin: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   line-height: 1.6;
+  height: 90vh;
 }
 .search-results li {
   margin-bottom: 0;
