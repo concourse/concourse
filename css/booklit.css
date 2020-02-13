@@ -765,12 +765,12 @@ body.index .page-content h2:first-child {
 }
 .next-release {
   font-size: 16px;
-  background-color: #3d3c3c;
+  background-color: #4a90e2;
   background-image: url("../images/icons/project.svg");
   background-size: 15px 16px;
 }
 .next-release:hover {
-  background-color: #4a90e2;
+  background-color: #2d76cc;
 }
 .splash-downloads {
   background: #2a2929;
