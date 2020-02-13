@@ -18,7 +18,7 @@ import (
 )
 
 var _ = Describe("login -k Command", func() {
-	var loginATCServer *ghttp.Server
+	var adminAtcServer *ghttp.Server
 
 	Describe("login", func() {
 		var (
@@ -27,23 +27,23 @@ var _ = Describe("login -k Command", func() {
 		)
 		BeforeEach(func() {
 			l := log.New(GinkgoWriter, "TLSServer", 0)
-			loginATCServer = ghttp.NewUnstartedServer()
-			loginATCServer.HTTPTestServer.Config.ErrorLog = l
-			loginATCServer.HTTPTestServer.StartTLS()
+			adminAtcServer = ghttp.NewUnstartedServer()
+			adminAtcServer.HTTPTestServer.Config.ErrorLog = l
+			adminAtcServer.HTTPTestServer.StartTLS()
 		})
 
 		AfterEach(func() {
-			loginATCServer.Close()
+			adminAtcServer.Close()
 		})
 
 		Context("to new target with invalid SSL with -k", func() {
 			BeforeEach(func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
 				)
 
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-k", "-u", "some_user", "-p", "some_pass")
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-k", "-u", "some_user", "-p", "some_pass")
 
 				var err error
 				stdin, err = flyCmd.StdinPipe()
@@ -68,7 +68,7 @@ var _ = Describe("login -k Command", func() {
 			Context("login to existing target", func() {
 				var otherCmd *exec.Cmd
 				BeforeEach(func() {
-					loginATCServer.AppendHandlers(
+					adminAtcServer.AppendHandlers(
 						infoHandler(),
 						tokenHandler(),
 					)
@@ -118,7 +118,7 @@ var _ = Describe("login -k Command", func() {
 		Context("to new target with invalid SSL without -k", func() {
 			Context("without --ca-cert", func() {
 				BeforeEach(func() {
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "some_user", "-p", "some_pass")
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-u", "some_user", "-p", "some_pass")
 
 					var err error
 					stdin, err = flyCmd.StdinPipe()
@@ -147,7 +147,7 @@ var _ = Describe("login -k Command", func() {
 				BeforeEach(func() {
 					sslCert = string(pem.EncodeToMemory(&pem.Block{
 						Type:  "CERTIFICATE",
-						Bytes: loginATCServer.HTTPTestServer.TLS.Certificates[0].Certificate[0],
+						Bytes: adminAtcServer.HTTPTestServer.TLS.Certificates[0].Certificate[0],
 					}))
 
 					caCertFile, err := ioutil.TempFile("", "ca_cert.pem")
@@ -156,9 +156,9 @@ var _ = Describe("login -k Command", func() {
 					_, err = caCertFile.WriteString(sslCert)
 					Expect(err).NotTo(HaveOccurred())
 
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "--ca-cert", caCertFile.Name(), "-u", "some_user", "-p", "some_pass")
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "--ca-cert", caCertFile.Name(), "-u", "some_user", "-p", "some_pass")
 
-					loginATCServer.AppendHandlers(
+					adminAtcServer.AppendHandlers(
 						infoHandler(),
 						tokenHandler(),
 					)
@@ -194,7 +194,7 @@ var _ = Describe("login -k Command", func() {
 				BeforeEach(func() {
 					flyrcContents := `targets:
   some-target:
-    api: ` + loginATCServer.URL() + `
+    api: ` + adminAtcServer.URL() + `
     team: main
     ca_cert: some-ca-cert
     token:
@@ -205,7 +205,7 @@ var _ = Describe("login -k Command", func() {
 
 				Context("with -k", func() {
 					BeforeEach(func() {
-						loginATCServer.AppendHandlers(
+						adminAtcServer.AppendHandlers(
 							infoHandler(),
 							tokenHandler(),
 						)

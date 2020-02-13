@@ -45,7 +45,7 @@ var _ = Describe("Fly CLI", func() {
 					Context("user is currently on pipeline's team", func() {
 
 						BeforeEach(func() {
-							loginATCServer.AppendHandlers(
+							adminAtcServer.AppendHandlers(
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("POST", mainPath),
 									ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{ID: 57, Name: "42"}),
@@ -69,7 +69,7 @@ var _ = Describe("Fly CLI", func() {
 					Context("user is NOT currently targeted to the pipeline's team", func() {
 
 						BeforeEach(func() {
-							loginATCServer.AppendHandlers(
+							adminAtcServer.AppendHandlers(
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
 									ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
@@ -102,7 +102,7 @@ var _ = Describe("Fly CLI", func() {
 
 				Context("when user does NOT own the same team as the given pipeline", func() {
 					BeforeEach(func() {
-						loginATCServer.AppendHandlers(
+						adminAtcServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/api/v1/teams/random-team"),
 								ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
@@ -138,7 +138,7 @@ var _ = Describe("Fly CLI", func() {
 					BeforeEach(func() {
 						streaming = make(chan struct{})
 						events = make(chan atc.Event)
-						loginATCServer.AppendHandlers(
+						adminAtcServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("POST", mainPath),
 								ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{ID: 57, Name: "42"}),
@@ -210,7 +210,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when the pipeline/job doesn't exist", func() {
 				BeforeEach(func() {
-					loginATCServer.AppendHandlers(
+					adminAtcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/random-team"),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
@@ -242,7 +242,7 @@ var _ = Describe("Fly CLI", func() {
 
 		Context("when the pipeline/job name is not specified", func() {
 			It("errors", func() {
-				reqsBefore := len(loginATCServer.ReceivedRequests())
+				reqsBefore := len(adminAtcServer.ReceivedRequests())
 				flyCmd := exec.Command(flyPath, "-t", "some-target", "trigger-job")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -250,7 +250,7 @@ var _ = Describe("Fly CLI", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
-				Expect(loginATCServer.ReceivedRequests()).To(HaveLen(reqsBefore))
+				Expect(adminAtcServer.ReceivedRequests()).To(HaveLen(reqsBefore))
 			})
 		})
 
@@ -264,7 +264,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("returns all matching pipelines", func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
@@ -285,7 +285,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("returns all matching jobs", func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Job{

@@ -175,7 +175,7 @@ var _ = Describe("Fly CLI", func() {
 		Context("jobs for 'other-team'", func() {
 			Context("using --team parameter", func() {
 				BeforeEach(func() {
-					loginATCServer.AppendHandlers(
+					adminAtcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: "other-team"}),

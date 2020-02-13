@@ -35,7 +35,7 @@ var _ = Describe("Fly CLI", func() {
 			Context("when user owns the same team as the given pipeline", func() {
 				Context("user is currently on the same team as the given job", func() {
 					BeforeEach(func() {
-						loginATCServer.AppendHandlers(
+						adminAtcServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("PUT", apiPath),
 								ghttp.RespondWith(http.StatusOK, nil),
@@ -52,7 +52,7 @@ var _ = Describe("Fly CLI", func() {
 							Expect(sess.ExitCode()).To(Equal(0))
 							Eventually(sess).Should(gbytes.Say(fmt.Sprintf("unpaused '%s'\n", jobName)))
 						}).To(Change(func() int {
-							return len(loginATCServer.ReceivedRequests())
+							return len(adminAtcServer.ReceivedRequests())
 						}).By(2))
 					})
 				})
@@ -61,7 +61,7 @@ var _ = Describe("Fly CLI", func() {
 					BeforeEach(func() {
 						apiPath = fmt.Sprintf("/api/v1/teams/other-team/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
 
-						loginATCServer.AppendHandlers(
+						adminAtcServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("PUT", apiPath),
 								ghttp.RespondWith(http.StatusOK, nil),
@@ -78,7 +78,7 @@ var _ = Describe("Fly CLI", func() {
 							Expect(sess.ExitCode()).To(Equal(0))
 							Eventually(sess).Should(gbytes.Say(fmt.Sprintf("unpaused '%s'\n", jobName)))
 						}).To(Change(func() int {
-							return len(loginATCServer.ReceivedRequests())
+							return len(adminAtcServer.ReceivedRequests())
 						}).By(2))
 					})
 				})
@@ -87,7 +87,7 @@ var _ = Describe("Fly CLI", func() {
 			Context("when user does NOT own the pipeline's team or pipeline/job doesn't exist", func() {
 				BeforeEach(func() {
 					randomApiPath := fmt.Sprintf("/api/v1/teams/random-team/pipelines/random-pipeline/jobs/random-job/unpause")
-					loginATCServer.AppendHandlers(
+					adminAtcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("PUT", randomApiPath),
 							ghttp.RespondWith(http.StatusNotFound, nil),
@@ -103,7 +103,7 @@ var _ = Describe("Fly CLI", func() {
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(1))
 					}).To(Change(func() int {
-						return len(loginATCServer.ReceivedRequests())
+						return len(adminAtcServer.ReceivedRequests())
 					}).By(2))
 				})
 			})
@@ -111,7 +111,7 @@ var _ = Describe("Fly CLI", func() {
 			Context("when a job is failed to be unpaused using the API", func() {
 				BeforeEach(func() {
 					apiPath := fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
-					loginATCServer.AppendHandlers(
+					adminAtcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("PUT", apiPath),
 							ghttp.RespondWith(http.StatusInternalServerError, nil),
@@ -129,7 +129,7 @@ var _ = Describe("Fly CLI", func() {
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(1))
 					}).To(Change(func() int {
-						return len(loginATCServer.ReceivedRequests())
+						return len(adminAtcServer.ReceivedRequests())
 					}).By(2))
 				})
 			})

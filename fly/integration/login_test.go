@@ -24,7 +24,7 @@ import (
 
 var _ = Describe("login Command", func() {
 	var (
-		loginATCServer *ghttp.Server
+		adminAtcServer *ghttp.Server
 		tmpDir         string
 	)
 
@@ -46,15 +46,15 @@ var _ = Describe("login Command", func() {
 		)
 
 		BeforeEach(func() {
-			loginATCServer = ghttp.NewServer()
-			loginATCServer.AppendHandlers(
+			adminAtcServer = ghttp.NewServer()
+			adminAtcServer.AppendHandlers(
 				infoHandler(),
 			)
-			flyCmd = exec.Command(flyPath, "login", "-c", loginATCServer.URL())
+			flyCmd = exec.Command(flyPath, "login", "-c", adminAtcServer.URL())
 		})
 
 		AfterEach(func() {
-			loginATCServer.Close()
+			adminAtcServer.Close()
 		})
 
 		It("instructs the user to specify --target", func() {
@@ -70,20 +70,20 @@ var _ = Describe("login Command", func() {
 
 	Context("with no team name", func() {
 		BeforeEach(func() {
-			loginATCServer = ghttp.NewServer()
+			adminAtcServer = ghttp.NewServer()
 		})
 
 		AfterEach(func() {
-			loginATCServer.Close()
+			adminAtcServer.Close()
 		})
 
 		It("falls back to atc.DefaultTeamName team", func() {
-			loginATCServer.AppendHandlers(
+			adminAtcServer.AppendHandlers(
 				infoHandler(),
 				tokenHandler(),
 			)
 
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "user", "-p", "pass")
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-u", "user", "-p", "pass")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -96,18 +96,18 @@ var _ = Describe("login Command", func() {
 
 		Context("when already logged in as different team", func() {
 			BeforeEach(func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
 				)
 
-				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
+				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
 				err := setupFlyCmd.Run()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("uses the saved team name", func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
 				)
@@ -126,16 +126,16 @@ var _ = Describe("login Command", func() {
 	Context("with no specified flag but extra arguments ", func() {
 
 		BeforeEach(func() {
-			loginATCServer = ghttp.NewServer()
+			adminAtcServer = ghttp.NewServer()
 		})
 
 		AfterEach(func() {
-			loginATCServer.Close()
+			adminAtcServer.Close()
 		})
 
 		It("return error indicating login failed with unknown arguments", func() {
 
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "unknown-argument", "blah")
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "unknown-argument", "blah")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -148,7 +148,7 @@ var _ = Describe("login Command", func() {
 
 	Context("with a team name", func() {
 		flyLogin := func() *gexec.Session {
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "dummy-user", "-p", "dummy-pass")
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "some-team", "-u", "dummy-user", "-p", "dummy-pass")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -159,20 +159,20 @@ var _ = Describe("login Command", func() {
 		}
 
 		BeforeEach(func() {
-			loginATCServer = ghttp.NewServer()
+			adminAtcServer = ghttp.NewServer()
 		})
 
 		AfterEach(func() {
-			loginATCServer.Close()
+			adminAtcServer.Close()
 		})
 
 		It("uses specified team", func() {
-			loginATCServer.AppendHandlers(
+			adminAtcServer.AppendHandlers(
 				infoHandler(),
 				tokenHandler(),
 			)
 
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -189,7 +189,7 @@ var _ = Describe("login Command", func() {
 			JustBeforeEach(func() {
 				Expect(encodedString).NotTo(Equal(""))
 				encodedToken := base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(encodedString))
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/sky/token"),
@@ -280,7 +280,7 @@ var _ = Describe("login Command", func() {
 				})
 
 				It("fails", func() {
-					flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "dummy-user", "-p", "dummy-pass")
+					flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "some-team", "-u", "dummy-user", "-p", "dummy-pass")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -297,12 +297,12 @@ var _ = Describe("login Command", func() {
 
 		Context("when tracing is not enabled", func() {
 			It("does not print out API calls", func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
 				)
 
-				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
+				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -317,12 +317,12 @@ var _ = Describe("login Command", func() {
 
 		Context("when tracing is enabled", func() {
 			It("prints out API calls", func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
 				)
 
-				flyCmd := exec.Command(flyPath, "--verbose", "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
+				flyCmd := exec.Command(flyPath, "--verbose", "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -336,18 +336,18 @@ var _ = Describe("login Command", func() {
 
 		Context("when already logged in as different team", func() {
 			BeforeEach(func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
 				)
 
-				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
+				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
 				err := setupFlyCmd.Run()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("passes provided team name", func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
 				)
@@ -365,25 +365,25 @@ var _ = Describe("login Command", func() {
 
 	Describe("with ca cert", func() {
 		BeforeEach(func() {
-			loginATCServer = ghttp.NewUnstartedServer()
+			adminAtcServer = ghttp.NewUnstartedServer()
 			cert, err := tls.X509KeyPair([]byte(serverCert), []byte(serverKey))
 			Expect(err).NotTo(HaveOccurred())
 
-			loginATCServer.HTTPTestServer.TLS = &tls.Config{
+			adminAtcServer.HTTPTestServer.TLS = &tls.Config{
 				Certificates: []tls.Certificate{cert},
 			}
-			loginATCServer.HTTPTestServer.StartTLS()
+			adminAtcServer.HTTPTestServer.StartTLS()
 		})
 
 		AfterEach(func() {
-			loginATCServer.Close()
+			adminAtcServer.Close()
 		})
 
 		Context("when already logged in with ca cert", func() {
 			var caCertFilePath string
 
 			BeforeEach(func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
 				)
@@ -395,7 +395,7 @@ var _ = Describe("login Command", func() {
 				err = ioutil.WriteFile(caCertFilePath, []byte(serverCert), os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
 
-				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "--ca-cert", caCertFilePath, "-u", "user", "-p", "pass")
+				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "some-team", "--ca-cert", caCertFilePath, "-u", "user", "-p", "pass")
 
 				sess, err := gexec.Start(setupFlyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -409,7 +409,7 @@ var _ = Describe("login Command", func() {
 
 			Context("when ca cert is not provided", func() {
 				It("is using saved ca cert", func() {
-					loginATCServer.AppendHandlers(
+					adminAtcServer.AppendHandlers(
 						infoHandler(),
 						tokenHandler(),
 					)
@@ -432,22 +432,22 @@ var _ = Describe("login Command", func() {
 		)
 
 		BeforeEach(func() {
-			loginATCServer = ghttp.NewServer()
+			adminAtcServer = ghttp.NewServer()
 		})
 
 		AfterEach(func() {
-			loginATCServer.Close()
+			adminAtcServer.Close()
 		})
 
 		Context("with authorization_code grant", func() {
 			BeforeEach(func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 				)
 			})
 
 			It("instructs the user to visit the top-level login endpoint with fly port", func() {
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL())
 
 				stdin, err := flyCmd.StdinPipe()
 				Expect(err).NotTo(HaveOccurred())
@@ -475,7 +475,7 @@ var _ = Describe("login Command", func() {
 				var sess *gexec.Session
 
 				BeforeEach(func() {
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL())
 					_, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
 					sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -497,7 +497,7 @@ var _ = Describe("login Command", func() {
 				})
 
 				JustBeforeEach(func() {
-					loginATCServer.AppendHandlers(ghttp.CombineHandlers(
+					adminAtcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/fly_success"),
 						ghttp.RespondWith(200, ""),
 					))
@@ -515,7 +515,7 @@ var _ = Describe("login Command", func() {
 
 				It("sets a CORS header for the ATC being logged in to", func() {
 					corsHeader := resp.Header.Get("Access-Control-Allow-Origin")
-					Expect(corsHeader).To(Equal(loginATCServer.URL()))
+					Expect(corsHeader).To(Equal(adminAtcServer.URL()))
 				})
 
 				It("responds successfully", func() {
@@ -530,7 +530,7 @@ var _ = Describe("login Command", func() {
 					It("redirects back to noop fly success page", func() {
 						Expect(resp.StatusCode).To(Equal(http.StatusFound))
 						locationHeader := resp.Header.Get("Location")
-						Expect(locationHeader).To(Equal(fmt.Sprintf("%s/fly_success?noop=true", loginATCServer.URL())))
+						Expect(locationHeader).To(Equal(fmt.Sprintf("%s/fly_success?noop=true", adminAtcServer.URL())))
 					})
 				})
 			})
@@ -539,7 +539,7 @@ var _ = Describe("login Command", func() {
 		Context("with password grant", func() {
 			BeforeEach(func() {
 				credentials := base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/sky/token"),
@@ -558,7 +558,7 @@ var _ = Describe("login Command", func() {
 			})
 
 			It("takes username and password as cli arguments", func() {
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "some_username", "-p", "some_password")
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-u", "some_username", "-p", "some_password")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -572,7 +572,7 @@ var _ = Describe("login Command", func() {
 
 			Context("after logging in succeeds", func() {
 				BeforeEach(func() {
-					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "some_username", "-p", "some_password")
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-u", "some_username", "-p", "some_password")
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -592,7 +592,7 @@ var _ = Describe("login Command", func() {
 
 				Describe("running other commands", func() {
 					BeforeEach(func() {
-						loginATCServer.AppendHandlers(
+						adminAtcServer.AppendHandlers(
 							infoHandler(),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
@@ -622,7 +622,7 @@ var _ = Describe("login Command", func() {
 					BeforeEach(func() {
 						credentials := base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))
 
-						loginATCServer.AppendHandlers(
+						adminAtcServer.AppendHandlers(
 							infoHandler(),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("POST", "/sky/token"),
@@ -689,9 +689,9 @@ var _ = Describe("login Command", func() {
 					"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse.Version=%s", flyVersion),
 				)
 				Expect(err).NotTo(HaveOccurred())
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "user", "-p", "pass")
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-u", "user", "-p", "pass")
 
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
 				)
@@ -756,14 +756,14 @@ var _ = Describe("login Command", func() {
 				},
 			}
 
-			loginATCServer = ghttp.NewServer()
-			loginATCServer.AppendHandlers(
+			adminAtcServer = ghttp.NewServer()
+			adminAtcServer.AppendHandlers(
 				infoHandler(),
 				adminTokenHandler(),
 				teamHandler(teams),
 			)
 
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "main", "-u", "user", "-p", "pass")
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "main", "-u", "user", "-p", "pass")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -776,12 +776,12 @@ var _ = Describe("login Command", func() {
 		})
 
 		AfterEach(func() {
-			loginATCServer.Close()
+			adminAtcServer.Close()
 		})
 
 		Context("with the ATC Url unspecified", func() {
 			It("User logs in to any team", func() {
-				loginATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					adminTokenHandler(),
 					teamHandler(teams),
@@ -802,18 +802,18 @@ var _ = Describe("login Command", func() {
 
 		Context("when the CACert is provided", func() {
 			var caCertFilePath string
-			var loginSecuredATCServer *ghttp.Server
+			var adminAtcServer *ghttp.Server
 			BeforeEach(func(){
-				loginSecuredATCServer = ghttp.NewUnstartedServer()
+				adminAtcServer = ghttp.NewUnstartedServer()
 				cert, err := tls.X509KeyPair([]byte(serverCert), []byte(serverKey))
 				Expect(err).NotTo(HaveOccurred())
 
-				loginSecuredATCServer.HTTPTestServer.TLS = &tls.Config{
+				adminAtcServer.HTTPTestServer.TLS = &tls.Config{
 					Certificates: []tls.Certificate{cert},
 				}
-				loginSecuredATCServer.HTTPTestServer.StartTLS()
+				adminAtcServer.HTTPTestServer.StartTLS()
 
-				loginSecuredATCServer.AppendHandlers(
+				adminAtcServer.AppendHandlers(
 					infoHandler(),
 					adminTokenHandler(),
 					teamHandler(teams),
@@ -825,7 +825,7 @@ var _ = Describe("login Command", func() {
 
 				err = ioutil.WriteFile(caCertFilePath, []byte(serverCert), os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
-				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginSecuredATCServer.URL(), "-n", "main", "--ca-cert", caCertFilePath, "-u", "user", "-p", "pass")
+				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "main", "--ca-cert", caCertFilePath, "-u", "user", "-p", "pass")
 
 				sess, err := gexec.Start(setupFlyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -835,12 +835,12 @@ var _ = Describe("login Command", func() {
 
 			AfterEach(func() {
 				os.RemoveAll(caCertFilePath)
-				loginSecuredATCServer.Close()
+				adminAtcServer.Close()
 			})
 
 			Context("when ca cert is not provided this time", func() {
 				It("is using saved ca cert", func() {
-					loginSecuredATCServer.AppendHandlers(
+					adminAtcServer.AppendHandlers(
 						infoHandler(),
 						adminTokenHandler(),
 						teamHandler(teams),

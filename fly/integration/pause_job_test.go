@@ -32,10 +32,9 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when the job flag is provided", func() {
-			Context("when user owns the same team as the given pipeline's team", func() {
-				Context("user is currently on the same team as the given job", func() {
+			Context("when user is on the same team as the given pipeline/job's team", func() {
 					BeforeEach(func() {
-						loginATCServer.AppendHandlers(
+						adminAtcServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("PUT", apiPath),
 								ghttp.RespondWith(http.StatusOK, nil),
@@ -51,44 +50,42 @@ var _ = Describe("Fly CLI", func() {
 							Expect(sess.ExitCode()).To(Equal(0))
 							Eventually(sess).Should(gbytes.Say(fmt.Sprintf("paused '%s'\n", jobName)))
 						}).To(Change(func() int {
-							return len(loginATCServer.ReceivedRequests())
+							return len(adminAtcServer.ReceivedRequests())
 						}).By(2))
 					})
+			})
+
+			Context("user is admin and NOT currently on the same team as the given pipeline/job", func() {
+				BeforeEach(func() {
+					apiPath = fmt.Sprintf("/api/v1/teams/other-team/pipelines/%s/jobs/%s/pause", pipelineName, jobName)
+
+					adminAtcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("PUT", apiPath),
+							ghttp.RespondWith(http.StatusOK, nil),
+						),
+					)
 				})
 
-				Context("user is NOT currently on the same team as the given job", func() {
-					BeforeEach(func() {
-						apiPath = fmt.Sprintf("/api/v1/teams/other-team/pipelines/%s/jobs/%s/pause", pipelineName, jobName)
-
-						loginATCServer.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("PUT", apiPath),
-								ghttp.RespondWith(http.StatusOK, nil),
-							),
-						)
-					})
-
-					It("successfully pauses the job", func() {
-						Expect(func() {
-							flyCmd = exec.Command(flyPath, "-t", "some-target", "pause-job", "-j", fullJobName, "--team", "other-team")
-							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-							Expect(err).NotTo(HaveOccurred())
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(0))
-							Eventually(sess).Should(gbytes.Say(fmt.Sprintf("paused '%s'\n", jobName)))
-						}).To(Change(func() int {
-							return len(loginATCServer.ReceivedRequests())
-						}).By(2))
-					})
+				It("successfully pauses the job", func() {
+					Expect(func() {
+						flyCmd = exec.Command(flyPath, "-t", "some-target", "pause-job", "-j", fullJobName, "--team", "other-team")
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("paused '%s'\n", jobName)))
+					}).To(Change(func() int {
+						return len(adminAtcServer.ReceivedRequests())
+					}).By(2))
 				})
-
 			})
 
 			Context("when user does NOT own the pipeline's team or pipeline/job doesn't exist", func() {
-				Context("when user does NOT own the pipeline's team", func() {
+				Context("when user does NOT on the pipeline's team", func() {
 					BeforeEach(func() {
 						randomApiPath := fmt.Sprintf("/api/v1/teams/random-team/pipelines/random-pipeline/jobs/random-job/pause")
-						loginATCServer.AppendHandlers(
+						adminAtcServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("PUT", randomApiPath),
 								ghttp.RespondWith(http.StatusNotFound, nil),
@@ -106,14 +103,14 @@ var _ = Describe("Fly CLI", func() {
 							<-sess.Exited
 							Expect(sess.ExitCode()).To(Equal(1))
 						}).To(Change(func() int {
-							return len(loginATCServer.ReceivedRequests())
+							return len(adminAtcServer.ReceivedRequests())
 						}).By(2))
 					})
 				})
 
 				Context("when user owns the pipeline's team, but either the pipeline or job does NOT exist", func() {
 					BeforeEach(func() {
-						loginATCServer.AppendHandlers(
+						adminAtcServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("PUT", apiPath),
 								ghttp.RespondWith(http.StatusNotFound, nil),
@@ -128,7 +125,7 @@ var _ = Describe("Fly CLI", func() {
 							<-sess.Exited
 							Expect(sess.ExitCode()).To(Equal(1))
 						}).To(Change(func() int {
-							return len(loginATCServer.ReceivedRequests())
+							return len(adminAtcServer.ReceivedRequests())
 						}).By(2))
 					})
 				})
@@ -137,7 +134,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when a job fails to be paused using the API", func() {
 				BeforeEach(func() {
-					loginATCServer.AppendHandlers(
+					adminAtcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("PUT", apiPath),
 							ghttp.RespondWith(http.StatusInternalServerError, nil),
@@ -153,7 +150,7 @@ var _ = Describe("Fly CLI", func() {
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(1))
 					}).To(Change(func() int {
-						return len(loginATCServer.ReceivedRequests())
+						return len(adminAtcServer.ReceivedRequests())
 					}).By(2))
 				})
 			})

@@ -24,7 +24,7 @@ var flyPath string
 var homeDir string
 
 var atcServer *ghttp.Server
-var loginATCServer *ghttp.Server
+var adminAtcServer *ghttp.Server
 
 const targetName = "testserver"
 const teamName = "main"
@@ -144,15 +144,15 @@ var _ = BeforeEach(func() {
 	Expect(session.ExitCode()).To(Equal(0))
 
 	// super admin login server
-	loginATCServer = ghttp.NewServer()
-	loginATCServer.AppendHandlers(
+	adminAtcServer = ghttp.NewServer()
+	adminAtcServer.AppendHandlers(
 		infoHandler(),
 		adminTokenHandler(encodedTokenString(true)),
 		teamHandler(teams, encodedTokenString(true)),
 		infoHandler(),
 	)
 
-	flyLoginCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "main", "-u", "test", "-p", "test")
+	flyLoginCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", adminAtcServer.URL(), "-n", "main", "-u", "test", "-p", "test")
 	sess, err := gexec.Start(flyLoginCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -167,7 +167,7 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	atcServer.Close()
 	os.RemoveAll(homeDir)
-	loginATCServer.Close()
+	adminAtcServer.Close()
 
 })
 
