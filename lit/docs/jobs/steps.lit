@@ -499,7 +499,7 @@ appear as outputs.
         }
       }
 
-      \optional-attribute{input_mapping}{\{identifier: identifier\}}{
+      \optional-attribute{input_mapping}{\{task.inputs.input.name: identifier\}}{
         A map from task input names to concrete names in the build plan. This
         allows a task with generic input names to be used multiple times in the
         same plan, mapping its inputs to specific resources within the plan.
@@ -524,7 +524,7 @@ appear as outputs.
         }
       }
 
-      \optional-attribute{output_mapping}{\{identifier: identifier\}}{
+      \optional-attribute{output_mapping}{\{task.outputs.output.name: identifier\}}{
         A map from task output names to concrete names to register in the build
         plan. This allows a task with generic output names to be used multiple
         times in the same plan.
