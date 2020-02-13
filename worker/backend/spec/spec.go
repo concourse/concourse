@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	PrivilegedPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-	Path           = "PATH=/usr/local/bin:/usr/bin:/bin"
+	SuperuserPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	Path          = "PATH=/usr/local/bin:/usr/bin:/bin"
 )
 
 // OciSpec converts a given `garden` container specification to an OCI spec.
@@ -132,7 +132,7 @@ func envWithDefaultPath(env []string, privileged bool) []string {
 	}
 
 	if privileged {
-		return append(env, PrivilegedPath)
+		return append(env, SuperuserPath)
 	}
 
 	return append(env, Path)
