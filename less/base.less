@@ -1,8 +1,6 @@
 @import "colors.less";
 @import "mixins.less";
-
-@nav-height: 80px;
-@column-width: 240px;
+@import "vars.less";
 
 * {
   box-sizing: border-box;
@@ -21,7 +19,7 @@ body {
   background: white;
 
   display: grid;
-  grid-auto-rows: @nav-height auto auto;
+  grid-auto-rows: @top-nav-height auto auto;
 }
 
 .page-top {
@@ -45,7 +43,7 @@ body {
   flex-direction: row;
 
   .page-nav {
-    width: @column-width;
+    width: @page-nav-width;
     flex-shrink: 0;
   }
 }
@@ -149,7 +147,7 @@ h2, h3 {
   background: @blue-primary;
   color: white;
   font-family: 'Roboto Slab', serif;
-  line-height: @nav-height;
+  line-height: @top-nav-height;
 }
 
 .page-nav {
@@ -181,7 +179,7 @@ h2, h3 {
   color: white;
   font-size: 16px;
   text-transform: lowercase;
-  line-height: @nav-height;
+  line-height: @top-nav-height;
   display: inline-block;
   padding: 0 25px;
 
@@ -189,22 +187,24 @@ h2, h3 {
     color: white;
     margin: 0;
     font-size: 22px;
-    width: @column-width;
-    padding: 0 50px 0 @nav-height;
-    line-height: @nav-height;
+    width: @page-nav-width;
+    padding: 0 50px 0 @top-nav-height;
+    line-height: @top-nav-height;
     display: inline-block;
     vertical-align: top;
     text-decoration: none;
     position: relative;
     text-transform: initial;
 
+    @logo-size: 40px;
+
     img {
-      width: 40px;
-      height: 40px;
+      width: @logo-size;
+      height: @logo-size;
       vertical-align: middle;
       position: absolute;
-      top: 18px;
-      left: 17px;
+      top: (@top-nav-height - @logo-size) / 2 - 2px;
+      left: (@top-nav-height - @logo-size) / 2 - 3px;
     }
   }
 }
@@ -370,3 +370,5 @@ h2, h3 {
 .page-content td:last-child {
   padding-right: 0;
 }
+
+@import "search.less";
