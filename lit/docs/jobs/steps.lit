@@ -47,6 +47,20 @@ appear as outputs.
             file: my-repo/ci/unit.yml
           }}}
         }
+      }
+
+      \optional-attribute{resource}{resource.name}{
+        \italic{Defaults to the value of \code{get}.} The resource to fetch,
+        as configured in \reference{schema.pipeline.resources}.
+
+        Use this attribute to rename a resource from the overall pipeline context
+        into the job-specific context.
+      }
+
+      \optional-attribute{passed}{[job.name]}{
+        When specified, only the versions of the resource that made it through
+        the given list of jobs (AND-ed together) will be considered when
+        triggering and fetching.
 
         \schema-toggle{Fanning in from upstream jobs}{
           If multiple \code{get}s are configured with \code{passed}
@@ -71,6 +85,11 @@ appear as outputs.
           This is crucial to being able to implement safe "fan-in" semantics as
           things progress through a pipeline.
         }
+      }
+
+      \optional-attribute{params}{config}{
+        Arbitrary configuration to pass to the resource. Refer to the resource
+        type's documentation to see what it supports.
 
         \schema-toggle{Fetching with \code{params}}{
           The following plan fetches a version number via the \code{semver}
@@ -87,25 +106,6 @@ appear as outputs.
             params: {version: version/number}
           }}}
         }
-      }
-
-      \optional-attribute{resource}{resource.name}{
-        \italic{Defaults to the value of \code{get}.} The resource to fetch,
-        as configured in \reference{schema.pipeline.resources}.
-
-        Use this attribute to rename a resource from the overall pipeline context
-        into the job-specific context.
-      }
-
-      \optional-attribute{passed}{[job.name]}{
-        When specified, only the versions of the resource that made it through
-        the given list of jobs (AND-ed together) will be considered when
-        triggering and fetching.
-      }
-
-      \optional-attribute{params}{config}{
-        Arbitrary configuration to pass to the resource. Refer to the resource
-        type's documentation to see what it supports.
       }
 
       \optional-attribute{trigger}{boolean}{
