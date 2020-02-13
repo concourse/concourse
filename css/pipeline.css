@@ -11,6 +11,8 @@
 .pipeline-svg {
   display: block;
   font-family: 'Iosevka', monospace;
+  letter-spacing: 0.0425em;
+  font-weight: bold;
   font-size: 12px;
   line-height: 1.4;
   background: #3d3c3c;
