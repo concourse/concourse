@@ -1,9 +1,11 @@
-<div class="segment splash-intro">
-  {{.Content | render}}
-</div>
+<div class="side-by-side">
+  <div class="segment splash-intro">
+    {{.Content | render}}
+  </div>
 
-<div class="segment splash-downloads">
-  <h3>Latest Release</h3>
+  <div class="segment splash-downloads">
+    <h3>Latest Release</h3>
 
-  {{.Partial "Downloads" | render}}
+    {{.Partial "Downloads" | render}}
+  </div>
 </div>

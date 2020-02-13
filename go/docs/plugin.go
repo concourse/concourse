@@ -702,13 +702,19 @@ func (p Plugin) LiterateSegment(parasAndFinalCode ...booklit.Content) (booklit.C
 	}, nil
 }
 
-func (p Plugin) PipelineImage(path string) booklit.Content {
+func (p Plugin) SideBySide(left, right booklit.Content) booklit.Content {
 	return booklit.Styled{
-		Style: "pipeline-image",
-		Content: booklit.Image{
-			Path:        path,
-			Description: "pipeline",
-		},
+		Style:   "side-by-side",
+		Content: booklit.Sequence{left, right},
+		Block:   true,
+	}
+}
+
+func (p Plugin) IncludeTemplate(name string) booklit.Content {
+	return booklit.Styled{
+		Style:   booklit.Style(name),
+		Content: booklit.Empty,
+		Block:   true,
 	}
 }
 

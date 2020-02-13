@@ -1,5 +1,27 @@
 body.index {
   background: @off-white;
+
+  .page-content {
+    p {
+      font-size: 16px;
+    }
+
+    a {
+      color: @darkest-grey;
+    }
+  }
+}
+
+.pipeline-image {
+  margin-top: 2em;
+  margin-bottom: 1em;
+
+  .pipeline-svg {
+    display: block;
+    width: 100%;
+    margin: 0 auto;
+    background: @dark-grey;
+  }
 }
 
 .splash {
@@ -8,6 +30,7 @@ body.index {
   color: white;
 
   .splash-content {
+    padding: 70px;
     width: 1100px;
     margin: 0 auto;
   }
@@ -32,31 +55,17 @@ body.index {
   }
 }
 
-.splash-title {
-  grid-column-start: span 2;
+body.index .page-content h2 {
   margin-bottom: 14px;
   font-size: 19px;
   border: 0;
   align-self: end;
 
-  margin-top: 50px;
+  margin-top: 64px;
 
   &:first-child {
     margin-top: 0;
   }
-}
-
-.page-content.index {
-  grid-column-start: 1;
-  padding: 0 !important;
-}
-
-.page-content.index .section,
-.splash-content {
-  padding: 70px;
-  display: grid;
-  grid-template-columns: 385px auto;
-  grid-gap: 0 30px;
 }
 
 .splash-intro {
@@ -78,21 +87,13 @@ body.index {
   }
 }
 
-.segment.example pre,
-.segment.example p {
-  margin: 0;
-}
-
-.segment.example img {
-  vertical-align: top;
-}
-
 @download-size: 48px;
 @download-font-size: 18px;
 @download-icon-size: 24px;
 
 .download-info {
   margin-top: 20px;
+  margin-bottom: 0;
 }
 
 .hero-pill {
@@ -123,10 +124,6 @@ body.index {
   line-height: @download-size;
   font-family: 'Roboto Slab', serif;
 
-  // .small {
-  //   font-size: 20px;
-  // }
-
   // .3d-block(@amber-secondary, 5px, 7px);
 }
 
@@ -134,7 +131,8 @@ body.index {
   background: @darker-grey;
   border: 2px solid @dark-grey;
   padding: 40px 50px;
-  margin: 0 50px;
+  justify-self: flex-end;
+  align-items: flex-start;
 
   h3 {
     margin-top: 0;
@@ -172,6 +170,10 @@ body.index {
       margin-bottom: 0;
       white-space: nowrap;
       margin-right: 16px;
+
+      &:last-child {
+        margin-right: 0;
+      }
     }
 
     .icon {
@@ -202,5 +204,27 @@ body.index {
     a:hover {
       border-bottom-color: white;
     }
+  }
+}
+
+.side-by-side {
+  display: grid;
+  grid-template-columns: 425px auto;
+  grid-gap: 0 30px;
+  margin-bottom: 1em;
+
+  .segment {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .segment.example {
+    pre, p {
+      margin: 0;
+    }
+  }
+
+  .pipeline-svg {
+    padding: 48px;
   }
 }

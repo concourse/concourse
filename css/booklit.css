@@ -671,12 +671,29 @@ a.github-user:hover {
 body.index {
   background: #f6f5f5;
 }
+body.index .page-content p {
+  font-size: 16px;
+}
+body.index .page-content a {
+  color: #1e1d1d;
+}
+.pipeline-image {
+  margin-top: 2em;
+  margin-bottom: 1em;
+}
+.pipeline-image .pipeline-svg {
+  display: block;
+  width: 100%;
+  margin: 0 auto;
+  background: #3d3c3c;
+}
 .splash {
   background: url('../images/concourse-pattern.svg');
   background-size: 100vw auto;
   color: white;
 }
 .splash .splash-content {
+  padding: 70px;
   width: 1100px;
   margin: 0 auto;
 }
@@ -694,27 +711,15 @@ body.index {
 .splash .button a:hover {
   background: #2d76cc;
 }
-.splash-title {
-  grid-column-start: span 2;
+body.index .page-content h2 {
   margin-bottom: 14px;
   font-size: 19px;
   border: 0;
   align-self: end;
-  margin-top: 50px;
+  margin-top: 64px;
 }
-.splash-title:first-child {
+body.index .page-content h2:first-child {
   margin-top: 0;
-}
-.page-content.index {
-  grid-column-start: 1;
-  padding: 0 !important;
-}
-.page-content.index .section,
-.splash-content {
-  padding: 70px;
-  display: grid;
-  grid-template-columns: 385px auto;
-  grid-gap: 0 30px;
 }
 .splash-intro {
   font-size: 18px;
@@ -733,15 +738,9 @@ body.index {
 .splash-intro a:visited {
   color: white;
 }
-.segment.example pre,
-.segment.example p {
-  margin: 0;
-}
-.segment.example img {
-  vertical-align: top;
-}
 .download-info {
   margin-top: 20px;
+  margin-bottom: 0;
 }
 .hero-pill {
   margin-top: 10px;
@@ -772,7 +771,8 @@ body.index {
   background: #2a2929;
   border: 2px solid #3d3c3c;
   padding: 40px 50px;
-  margin: 0 50px;
+  justify-self: flex-end;
+  align-items: flex-start;
 }
 .splash-downloads h3 {
   margin-top: 0;
@@ -805,6 +805,9 @@ body.index {
   white-space: nowrap;
   margin-right: 16px;
 }
+.download-info .download-links > li:last-child {
+  margin-right: 0;
+}
 .download-info .download-links .icon {
   width: 16px;
   height: 16px;
@@ -829,6 +832,23 @@ body.index {
 }
 .download-info .download-links a:hover {
   border-bottom-color: white;
+}
+.side-by-side {
+  display: grid;
+  grid-template-columns: 425px auto;
+  grid-gap: 0 30px;
+  margin-bottom: 1em;
+}
+.side-by-side .segment {
+  display: flex;
+  flex-direction: column;
+}
+.side-by-side .segment.example pre,
+.side-by-side .segment.example p {
+  margin: 0;
+}
+.side-by-side .pipeline-svg {
+  padding: 48px;
 }
 .schema {
   margin-top: 2em;
