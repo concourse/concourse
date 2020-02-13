@@ -30,7 +30,7 @@ body.index {
 
   .splash-content {
     padding: 70px;
-    width: 1100px;
+    max-width: @page-width;
     margin: 0 auto;
   }
 
@@ -86,42 +86,52 @@ body.index .page-content h2 {
   }
 }
 
-@download-size: 48px;
-@download-font-size: 18px;
-@download-icon-size: 24px;
+@button-icon-size: 18px;
 
-.download-info {
-  margin-top: 20px;
-  margin-bottom: 0;
-}
-
-.hero-pill {
-  margin-top: 10px;
-
-  background-color: @amber-primary;
-  text-decoration: none;
+.icon-button {
+  font-family: 'Roboto Slab', serif;
+  font-size: 16px;
   display: inline-block;
-  padding-right: @download-icon-size;
-  height: @download-size;
+
+  padding: 4px 8px;
+  margin: -5px -8px;
+  padding-left: @button-icon-size + (2 * 8px);
+
+  background-repeat: no-repeat;
+  background-size: @button-icon-size @button-icon-size;
+  background-position: 8px center;
 
   &, &:visited, &:hover {
-    color: white;
+    color: white; //@amber-primary;
+    text-decoration: none;
   }
+}
+
+.release-link {
+  background-color: @amber-primary;
+  background-image: url("../images/icons/tag.svg");
+
+  // padding: 6px 8px;
+  // padding-left: @button-icon-size + (2 * 8px);
+  // margin: -5px -8px;
 
   &:hover {
-    text-decoration: none;
     background-color: @amber-secondary;
   }
 
-  background-repeat: no-repeat;
-  background-size: @download-icon-size @download-icon-size;
-  background-position: (@download-size / 2 - @download-icon-size / 2) center;
-  background-image: url("../images/icons/tag.svg");
+  // .3d-block(@amber-secondary, 5px, 7px);
+}
 
-  font-size: @download-font-size;
-  text-indent: (@download-size / 2) + (@download-icon-size / 2) + 8px;
-  line-height: @download-size;
-  font-family: 'Roboto Slab', serif;
+.next-release {
+  font-size: 16px;
+
+  background-color: @dark-grey;
+  background-image: url("../images/icons/project.svg");
+  background-size: 15px 16px;
+
+  &:hover {
+    background-color: @blue-primary;
+  }
 
   // .3d-block(@amber-secondary, 5px, 7px);
 }
@@ -129,26 +139,59 @@ body.index .page-content h2 {
 .splash-downloads {
   background: @darker-grey;
   border: 2px solid @dark-grey;
-  padding: 40px 50px;
-  justify-self: flex-end;
-  align-items: flex-start;
+  justify-self: stretch;
+  position: relative;
 
   h3 {
     margin-top: 0;
+    margin-bottom: 0;
+    line-height: 1;
+
+    &.whats-next {
+      margin-top: 25px;
+      margin-bottom: 0;
+    }
+  }
+
+  .splash-split {
+    padding: 35px;
+
+    &:not(:first-child) {
+      border-top: 2px solid @dark-grey;
+    }
+  }
+
+  .button a {
+    background: @dark-grey;
+    font-size: 16px;
+  }
+
+  .whats-next {
+    margin: 0 -40px -40px;
+    display: block;
+    padding: 5px;
+    color: @off-white;
+    margin-top: 24px;
+    background: @dark-grey;
   }
 }
 
 .download-info {
+  margin-top: 25px;
+  margin-bottom: 0;
+
   list-style-type: none;
   padding-left: 0 !important;
 
   > li {
-    margin-bottom: 5px;
     color: white;
-    line-height: 32px;
 
     display: grid;
-    grid-template-columns: 150px auto;
+    grid-template-columns: 1fr auto;
+
+    &:not(:last-child) {
+      margin-bottom: 10px;
+    }
   }
 
   code {
@@ -185,7 +228,8 @@ body.index .page-content h2 {
 
     a, a:visited {
       display: inline-block;
-      line-height: 32px;
+      padding-bottom: 3px;
+      margin-bottom: -3px;
       box-sizing: content-box;
       position: relative;
       bottom: -1px;
@@ -206,11 +250,17 @@ body.index .page-content h2 {
   }
 }
 
+.split-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
 .side-by-side {
   display: grid;
-  grid-template-columns: 425px auto;
-  grid-gap: 0 30px;
   margin-bottom: 1em;
+  grid-template-columns: 50% 50%;
+  grid-gap: 0 30px;
 
   .segment {
     display: flex;
@@ -225,5 +275,12 @@ body.index .page-content h2 {
 
   .pipeline-svg {
     padding: 48px;
+  }
+}
+
+@media(max-width: @page-width) {
+  .side-by-side {
+    grid-template-columns: 100%;
+    grid-gap: 30px 0;
   }
 }
