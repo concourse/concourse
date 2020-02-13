@@ -67,17 +67,19 @@ pushes your project forward, from source code to production.
 repository}{https://github.com/vito/booklit/blob/8741a4ca3116dcf24c30fedfa78e4aadcaff178a/ci/pipeline.yml}.}
 
 \splash-example{CI under source control}{
-  All administration is done using \reference{fly-cli}{the \code{fly} CLI}. The
-  \reference{fly-set-pipeline} command pushes the config up to Concourse. Once it
-  looks good, you can then check the file in to source control. This makes it
-  easy to recover if your Concourse server burns down.
+  All configuration and administration is done using \reference{fly-cli}{the
+  \code{fly} CLI}.
+
+  The \reference{fly-set-pipeline} command pushes the config up to Concourse.
+  Once it looks good, you can then check the file in to source control. This
+  makes it easy to recover your project if the Concourse server burns down.
 }{
   \codeblock{sh}{{{
   $ fly -t ci set-pipeline -p booklit -c pipeline.yml
   $ vim pipeline.yml
   $ fly -t ci set-pipeline -p booklit -c pipeline.yml
   $ git add pipeline.yml
-  $ git commit -m "initial pipeline"
+  $ git commit -m "initial pipeline"█
   }}}
 }
 
@@ -85,10 +87,11 @@ repository}{https://github.com/vito/booklit/blob/8741a4ca3116dcf24c30fedfa78e4aa
   Everything runs in containers, ensuring a clean environment on every run.
 
   Each \reference{tasks}{task} specifies its own image, giving it full control
-  over its dependencies, rather than managing them on your workers.
+  over its dependencies, rather than managing packages and state on your
+  workers.
 
   The \reference{fly-intercept} command will pop you right into one of your
-  build's containers, which can be useful for debugging.
+  build's containers, making it easy to troubleshoot flaky builds.
 }{
   \codeblock{sh}{{{
   $ fly -t ci intercept -j booklit/unit -s unit
@@ -103,14 +106,15 @@ repository}{https://github.com/vito/booklit/blob/8741a4ca3116dcf24c30fedfa78e4aa
 }
 
 \splash-example{Rapid local iteration}{
-  The \reference{fly-execute} command executes a task as a one-off build using
-  your local changes. This build runs in exactly the same way it would run in
-  your pipeline, without you having to repeatedly push broken commits until it
-  works.
+  The \reference{fly-execute} command lets you run a build with local changes.
 
-  When a job fails, you can also use \reference{fly-execute} with \code{-j}
-  flag to run with the same inputs as the failed job. You can then replace an
-  input with your local changes with \code{-i} to test if your fix is valid.
+  This build runs in exactly the same way as it would run in your pipeline,
+  without having to push broken commits until it works.
+
+  When a build in the pipeline fails, you can run \reference{fly-execute} with
+  the \code{-j} flag to run a one-off build with the same inputs as the failed
+  build. You can then replace an input with your local changes with \code{-i}
+  to see if your fix is valid.
 }{
   \codeblock{sh}{{{
   ~/booklit $ fly -t ci execute -c ci/test.yml
@@ -148,22 +152,26 @@ repository}{https://github.com/vito/booklit/blob/8741a4ca3116dcf24c30fedfa78e4aa
     - # ...
   }}}
 }{
-  Concourse does not have a complex plugin system. Instead, it has a single
-  strong abstraction.
+  Concourse does not have a complex plugin system. Instead, it focuses on a
+  single strong abstraction: \reference{resources}{resource}, which are
+  implemented by \reference{resource-types}{resource types}.
 
-  The \code{resources} section of a pipeline lists
-  \reference{resources}{resources}, which are abstract external locations where
-  your pipeline will monitor for changes, fetch bits from, and push bits to.
+  The \reference{schema.pipeline.resources} field configures external artifacts
+  that your pipeline will monitor for changes, fetch from, and push to.
 
   For example, a resource with type \code{git} refers to a git repository,
-  which will be \code{clone}d in a \reference{get-step} and \code{push}ed to in
-  a \reference{put-step}. Behind the scenes, Concourse will continuously run
-  \code{git fetch} to look for new commits that jobs may want to trigger on.
+  which will be \code{clone}d in a \reference{get-step} and \code{push}ed to
+  using a \reference{put-step}. Behind the scenes, Concourse will continuously
+  run \code{git fetch} to look for new commits that jobs may want to trigger
+  on.
 
-  At its core, though, Concourse knows nothing about Git. It comes with a
-  \code{git} resource type out of the box, but you could just as easily bring
-  your own into your pipeline. Resource types are implemented as container
-  images, fetched using the \code{registry-image} resource type.
+  At its core, Concourse knows nothing about \code{git}. It comes with a
+  \link{\code{git} resource type}{https://github.com/concourse/git-resource}
+  out of the box, but you could just as easily bring your own into your
+  pipeline by setting the \reference{schema.pipeline.resource_types} field.
+
+  To see what resource types are available, check out the \link{Resource Types
+  catalog}{https://resource-types.concourse-ci.org}!
 }
 
 \split-sections
