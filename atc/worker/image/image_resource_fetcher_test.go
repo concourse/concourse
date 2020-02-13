@@ -9,7 +9,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/klauspost/compress/zstd"
+	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -629,12 +629,10 @@ var _ = Describe("Image", func() {
 func tgzStreamWith(metadata string) io.ReadCloser {
 	buffer := gbytes.NewBuffer()
 
-	zstdWriter, err := zstd.NewWriter(buffer)
-	Expect(err).NotTo(HaveOccurred())
-
+	zstdWriter := zstd.NewWriter(buffer)
 	tarWriter := tar.NewWriter(zstdWriter)
 
-	err = tarWriter.WriteHeader(&tar.Header{
+	err := tarWriter.WriteHeader(&tar.Header{
 		Name: "metadata.json",
 		Mode: 0600,
 		Size: int64(len(metadata)),
