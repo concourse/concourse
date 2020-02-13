@@ -691,36 +691,7 @@ func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 
 	defer Rollback(tx)
 
-	buildToRerunID := buildToRerun.ID()
-	if buildToRerun.RerunOf() != 0 {
-		buildToRerunID = buildToRerun.RerunOf()
-	}
-
-	rerunBuildName, rerunNumber, err := j.getNewRerunBuildName(tx, buildToRerunID)
-	if err != nil {
-		return nil, err
-	}
-
-	rerunBuild := newEmptyBuild(j.conn, j.lockFactory)
-	err = createBuild(tx, rerunBuild, map[string]interface{}{
-		"name":         rerunBuildName,
-		"job_id":       j.id,
-		"pipeline_id":  j.pipelineID,
-		"team_id":      j.teamID,
-		"status":       BuildStatusPending,
-		"rerun_of":     buildToRerunID,
-		"rerun_number": rerunNumber,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	err = updateNextBuildForJob(tx, j.id)
-	if err != nil {
-		return nil, err
-	}
-
-	err = requestSchedule(tx, j.id)
+	rerunBuild, err := j.rerunBuild(tx, buildToRerun)
 	if err != nil {
 		return nil, err
 	}
@@ -1178,6 +1149,52 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 	}
 
 	return buildInputs, err
+}
+
+func (j *job) rerunBuild(tx Tx, buildToRerun Build) (*build, error) {
+	buildToRerunID := buildToRerun.ID()
+	if buildToRerun.RerunOf() != 0 {
+		buildToRerunID = buildToRerun.RerunOf()
+	}
+
+	rerunBuildName, rerunNumber, err := j.getNewRerunBuildName(tx, buildToRerunID)
+	if err != nil {
+		return nil, err
+	}
+
+	rerunBuild := newEmptyBuild(j.conn, j.lockFactory)
+	err = createBuild(tx, rerunBuild, map[string]interface{}{
+		"name":         rerunBuildName,
+		"job_id":       j.id,
+		"pipeline_id":  j.pipelineID,
+		"team_id":      j.teamID,
+		"status":       BuildStatusPending,
+		"rerun_of":     buildToRerunID,
+		"rerun_number": rerunNumber,
+	})
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+			retriedRerunBuild, err := j.rerunBuild(tx, buildToRerun)
+			if err != nil {
+				return nil, err
+			}
+
+			return retriedRerunBuild, nil
+		}
+		return nil, err
+	}
+
+	err = updateNextBuildForJob(tx, j.id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = requestSchedule(tx, j.id)
+	if err != nil {
+		return nil, err
+	}
+
+	return rerunBuild, nil
 }
 
 func scanJob(j *job, row scannable) error {
