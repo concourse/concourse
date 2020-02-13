@@ -374,10 +374,7 @@ run: {}
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
 
-								zstdReader, err := zstd.NewReader(req.Body)
-								Expect(err).ToNot(HaveOccurred())
-
-								tr := tar.NewReader(zstdReader)
+								tr := tar.NewReader(zstd.NewReader(req.Body))
 
 								var matchFound = false
 								for {
@@ -426,10 +423,7 @@ run: {}
 
 								Expect(req.FormValue("platform")).To(Equal("some-platform"))
 
-								zstdReader, err := zstd.NewReader(req.Body)
-								Expect(err).ToNot(HaveOccurred())
-
-								tr := tar.NewReader(zstdReader)
+								tr := tar.NewReader(zstd.NewReader(req.Body))
 
 								var matchFound = false
 								for {
