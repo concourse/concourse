@@ -20,7 +20,7 @@ type BackendSuite struct {
 	backend backend.Backend
 	client  *libcontainerdfakes.FakeClient
 	network *backendfakes.FakeNetwork
-	system  *backendfakes.FakeUserNamespace
+	userns  *backendfakes.FakeUserNamespace
 	killer  *backendfakes.FakeKiller
 }
 
@@ -28,13 +28,13 @@ func (s *BackendSuite) SetupTest() {
 	s.client = new(libcontainerdfakes.FakeClient)
 	s.killer = new(backendfakes.FakeKiller)
 	s.network = new(backendfakes.FakeNetwork)
-	s.system = new(backendfakes.FakeUserNamespace)
+	s.userns = new(backendfakes.FakeUserNamespace)
 
 	var err error
 	s.backend, err = backend.New(s.client,
 		backend.WithKiller(s.killer),
 		backend.WithNetwork(s.network),
-		backend.WithUserNamespace(s.system),
+		backend.WithUserNamespace(s.userns),
 	)
 	s.NoError(err)
 }
