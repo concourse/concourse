@@ -689,7 +689,7 @@ body.index .page-content a {
 }
 .splash {
   background: url('../images/concourse-pattern.svg');
-  background-size: 100vw auto;
+  background-size: cover;
   color: white;
 }
 .splash .splash-content {
