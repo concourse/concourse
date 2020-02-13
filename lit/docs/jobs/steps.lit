@@ -5,21 +5,39 @@
 Each \reference{jobs}{Job} has a single build plan. When a build of a job is
 created, the plan determines what happens.
 
-A build plan is a sequence of \italic{steps} to execute. These steps may fetch
-down or update \reference{resources}{Resources}, or execute
-\reference{tasks}{Tasks}.
+A build plan is a sequence of the following \italic{steps}:
 
-If any step in the build plan fails, the build will complete with failure. By
-default, any subsequent steps will not be performed. You can perform additional
-steps after failure by configuring \reference{schema.step.on_failure} or
-\reference{schema.step.ensure}.
+\list{
+  \reference{task-step}, which runs a \reference{tasks}{task}
+}{
+  \reference{get-step}, which fetches a \reference{resources}{resource}
+}{
+  \reference{put-step}, which updates a \reference{resources}{resource}
+}{
+  \reference{set-pipeline-step}, which configures a
+  \reference{pipelines}{pipeline}
+}{
+  \reference{in-parallel-step}, which runs steps in parallel
+}{
+  \reference{do-step}, which runs steps in sequence
+}{
+  \reference{try-step}, which attempts to run a step and succeeds even if the
+  step fails
+}
 
-A new build of the job is scheduled whenever \reference{get-step}s with
-\code{trigger: true} have new versions available.
+When a new version is available for a \code{get} step with
+\reference{schema.step.get-step.trigger}{\code{trigger: true}} configured, a
+new build of the job will be created from the build plan.
 
 To visualize the job in the pipeline, resources that appear as \code{get}
 steps are drawn as inputs, and resources that appear in \code{put} steps
 appear as outputs.
+
+If any step in the build plan fails, the build will fail and subsequent steps
+will not be executed. Additional steps may be configured to run after failure
+by configuring \reference{schema.step.on_failure} or
+\reference{schema.step.ensure} (or the job equivalents,
+\reference{schema.job.on_failure} and \reference{schema.job.ensure}).
 
 \split-sections
 
