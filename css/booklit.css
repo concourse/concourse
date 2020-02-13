@@ -688,8 +688,7 @@ body.index .page-content a {
   background: #3d3c3c;
 }
 .splash {
-  background: url('../images/concourse-pattern.svg');
-  background-size: cover;
+  background: url('../images/concourse-pattern.svg') center center / cover no-repeat;
   color: white;
 }
 .splash .splash-content {
