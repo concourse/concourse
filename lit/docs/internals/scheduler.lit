@@ -30,20 +30,20 @@ The subcomponent used to figure out whether a build can be scheduled is called t
   the input versions to the next build of a job. There are many factors that
   contribute to figuring out the next input versions. It can be anything that
   affects which resource versions will be used to schedule a build, such as
-  \reference{get-step-version}{version constraints} or
-  \reference{get-step-passed}{passed constraints} in a \reference{get-step}{get
-  step}, disabling versions through the web UI, etc. The
+  \reference{schema.step.get-step.version}{version constraints} or
+  \reference{schema.step.get-step.passed}{passed constraints} in a
+  \reference{get-step}, disabling versions through the web UI, etc. The
   algorithm can also fail to determine a successful set of input versions,
   which the error will be propogated to the preparation view in the build page.
 
   If the algorithm computes a successful set of input versions, it will figure
   out whether or not the versions it computed can be used to produce a new
   build. This is done by comparing the
-  \reference{get-step-trigger}{triggerable} input versions to the versions used
-  by the previous build and if any of them have a different version, then the
-  scheduler will know to schedule a new build. Conversly, if the input versions
-  produced by the algorithm are the same as the previous build, then the
-  scheduler will not create a new build.
+  \reference{schema.step.get-step.trigger}{triggerable} input versions to the
+  versions used by the previous build and if any of them have a different
+  version, then the scheduler will know to schedule a new build. Conversly, if
+  the input versions produced by the algorithm are the same as the previous
+  build, then the scheduler will not create a new build.
 }
 
 \section{

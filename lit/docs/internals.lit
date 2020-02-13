@@ -134,24 +134,24 @@ they are.
       The \code{concourse land-worker} command will put a worker in the LANDING
       state to safely drain its assignments for temporary downtime.
 
-      The ATC will wait for builds on the worker for \reference{jobs-table}
-      which aren't interruptible to finish, and transition the worker into
+      The ATC will wait for builds on the worker for jobs which aren't
+      interruptible to finish, and transition the worker into
       \reference{LANDED-table} state.
     }
 
     \define-table{LANDED}{
       A worker in this state has successfully waited for all non-interruptible
-      \reference{jobs-table} on it after having \code{concourse land-worker}
-      called. It will no longer be used to schedule any new containers or
-      create volumes until it registers as \reference{RUNNING-table} again.
+      jobs on it after having \code{concourse land-worker} called. It will no
+      longer be used to schedule any new containers or create volumes until it
+      registers as \reference{RUNNING-table} again.
     }
 
     \define-table{RETIRING}{
       The \code{concourse retire-worker} command will put a worker in the
       RETIRING state to remove it from the cluster permanently.
 
-      The ATC will wait for builds on the worker for \reference{jobs-table}
-      which aren't interruptible to finish, and remove the worker.
+      The ATC will wait for builds on the worker for jobs which aren't
+      interruptible to finish, and remove the worker.
     }
   }
 }
