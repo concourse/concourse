@@ -212,7 +212,6 @@ func (b *Backend) Destroy(handle string) error {
 		return nil
 	}
 
-	const ungraceful = false
 	err = b.killer.Kill(ctx, task, KillGracefully)
 	if err != nil {
 		return fmt.Errorf("gracefully killing task: %w", err)
