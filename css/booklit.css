@@ -722,6 +722,10 @@ body.index .page-content h2 {
 body.index .page-content h2:first-child {
   margin-top: 0;
 }
+.splash-intro,
+.splash-downloads {
+  justify-content: center;
+}
 .splash-intro {
   font-size: 18px;
 }
