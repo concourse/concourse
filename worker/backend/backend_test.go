@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/worker/backend/backendfakes"
 	"github.com/concourse/concourse/worker/backend/libcontainerd/libcontainerdfakes"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -263,43 +264,110 @@ func (s *BackendSuite) TestDestroyGetContainerError() {
 	s.EqualError(errors.Unwrap(err), "get-container-failed")
 }
 
-// func (s *BackendSuite) TestDestroyGracefullyStopErrors() {
-// 	fakeContainer := new(libcontainerdfakes.FakeContainer)
+func (s *BackendSuite) TestDestroyGetTaskError() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
 
-// 	s.client.GetContainerReturns(fakeContainer, nil)
-// 	s.containerStopper.GracefullyStopReturns(errors.New("gracefully-stop-failed"))
+	s.client.GetContainerReturns(fakeContainer, nil)
 
-// 	err := s.backend.Destroy("some-handle")
+	expectedError := errors.New("get-task-failed")
+	fakeContainer.TaskReturns(nil, expectedError)
 
-// 	s.Equal(1, s.containerStopper.GracefullyStopCallCount())
-// 	s.EqualError(errors.Unwrap(err), "gracefully-stop-failed")
-// }
+	err := s.backend.Destroy("some handle")
+	s.True(errors.Is(err, expectedError))
+}
 
-// func (s *BackendSuite) TestDestroyContainerDeleteError() {
-// 	fakeContainer := new(libcontainerdfakes.FakeContainer)
-// 	fakeContainer.DeleteReturns(errors.New("destroy-error"))
+func (s *BackendSuite) TestDestroyGetTaskErrorNotFoundAndDeleteFails() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
 
-// 	s.client.GetContainerReturns(fakeContainer, nil)
+	s.client.GetContainerReturns(fakeContainer, nil)
+	fakeContainer.TaskReturns(nil, errdefs.ErrNotFound)
 
-// 	err := s.backend.Destroy("some-handle")
+	expectedError := errors.New("delete-container-failed")
+	fakeContainer.DeleteReturns(expectedError)
 
-// 	s.Equal(1, s.containerStopper.GracefullyStopCallCount())
-// 	s.Equal(1, fakeContainer.DeleteCallCount())
-// 	s.EqualError(errors.Unwrap(err), "destroy-error")
-// }
+	err := s.backend.Destroy("some handle")
+	s.True(errors.Is(err, expectedError))
+}
 
-// func (s *BackendSuite) TestDestroy() {
-// 	fakeContainer := new(libcontainerdfakes.FakeContainer)
+func (s *BackendSuite) TestDestroyGetTaskErrorNotFoundAndDeleteSucceeds() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
 
-// 	s.client.GetContainerReturns(fakeContainer, nil)
+	s.client.GetContainerReturns(fakeContainer, nil)
+	fakeContainer.TaskReturns(nil, errdefs.ErrNotFound)
 
-// 	err := s.backend.Destroy("some-handle")
-// 	s.NoError(err)
+	err := s.backend.Destroy("some handle")
 
-// 	s.Equal(1, s.client.GetContainerCallCount())
-// 	s.Equal(1, s.containerStopper.GracefullyStopCallCount())
-// 	s.Equal(1, fakeContainer.DeleteCallCount())
-// }
+	s.Equal(1, fakeContainer.DeleteCallCount())
+	s.NoError(err)
+}
+
+func (s *BackendSuite) TestDestroyKillTaskFails() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	s.client.GetContainerReturns(fakeContainer, nil)
+	fakeContainer.TaskReturns(fakeTask, nil)
+
+	expectedError := errors.New("kill-task-failed")
+	s.killer.KillReturns(expectedError)
+
+	err := s.backend.Destroy("some handle")
+	s.True(errors.Is(err, expectedError))
+	_, _, behaviour := s.killer.KillArgsForCall(0)
+	s.Equal(backend.KillGracefully, behaviour)
+}
+
+func (s *BackendSuite) TestDestroyRemoveNetworkFails() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	s.client.GetContainerReturns(fakeContainer, nil)
+	fakeContainer.TaskReturns(fakeTask, nil)
+
+	expectedError := errors.New("remove-network-failed")
+	s.network.RemoveReturns(expectedError)
+
+	err := s.backend.Destroy("some handle")
+	s.True(errors.Is(err, expectedError))
+}
+
+func (s *BackendSuite) TestDestroyDeleteTaskFails() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	s.client.GetContainerReturns(fakeContainer, nil)
+	fakeContainer.TaskReturns(fakeTask, nil)
+
+	expectedError := errors.New("delete-container-failed")
+	fakeTask.DeleteReturns(nil, expectedError)
+
+	err := s.backend.Destroy("some handle")
+	s.True(errors.Is(err, expectedError))
+}
+
+func (s *BackendSuite) TestDestroyContainerDeleteFailsAndDeleteTaskSucceeds() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	s.client.GetContainerReturns(fakeContainer, nil)
+	fakeContainer.TaskReturns(fakeTask, nil)
+
+	expectedError := errors.New("delete-container-failed")
+	fakeContainer.DeleteReturns(expectedError)
+
+	err := s.backend.Destroy("some handle")
+	s.True(errors.Is(err, expectedError))
+}
+
+func (s *BackendSuite) TestDestroySucceeds() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	s.client.GetContainerReturns(fakeContainer, nil)
+	fakeContainer.TaskReturns(fakeTask, nil)
+
+	err := s.backend.Destroy("some handle")
+	s.NoError(err)
+}
 
 func (s *BackendSuite) TestStart() {
 	err := s.backend.Start()
