@@ -69,7 +69,7 @@ func (factory *stepFactory) GetStep(
 		factory.client,
 	)
 
-	return exec.LogError(getStep, delegate)
+	return exec.RetryError(getStep, delegate)
 }
 
 func (factory *stepFactory) PutStep(
@@ -92,7 +92,7 @@ func (factory *stepFactory) PutStep(
 		delegate,
 	)
 
-	return exec.LogError(putStep, delegate)
+	return exec.RetryError(putStep, delegate)
 }
 
 func (factory *stepFactory) CheckStep(
@@ -139,7 +139,7 @@ func (factory *stepFactory) TaskStep(
 		factory.lockFactory,
 	)
 
-	return exec.LogError(taskStep, delegate)
+	return exec.RetryError(taskStep, delegate)
 }
 
 func (factory *stepFactory) SetPipelineStep(
@@ -156,7 +156,7 @@ func (factory *stepFactory) SetPipelineStep(
 		factory.client,
 	)
 
-	return exec.LogError(spStep, delegate)
+	return exec.RetryError(spStep, delegate)
 }
 
 func (factory *stepFactory) LoadVarStep(
@@ -172,7 +172,7 @@ func (factory *stepFactory) LoadVarStep(
 		factory.client,
 	)
 
-	return exec.LogError(loadVarStep, delegate)
+	return exec.RetryError(loadVarStep, delegate)
 }
 
 func (factory *stepFactory) ArtifactInputStep(

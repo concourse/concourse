@@ -271,6 +271,9 @@ func (client *client) RunTaskStep(
 		return TaskResult{}, err
 	}
 
+	// TODO: delete before merge.
+	//processSpec.StderrWriter.Write([]byte(fmt.Sprintf("Chosen worker %s\n", chosenWorker.Name())))
+
 	if strategy.ModifiesActiveTasks() {
 		defer decreaseActiveTasks(logger.Session("decrease-active-tasks"), chosenWorker)
 	}
@@ -411,6 +414,9 @@ func (client *client) RunGetStep(
 	if err != nil {
 		return GetResult{}, err
 	}
+
+	// TODO: delete before merge.
+	//processSpec.StderrWriter.Write([]byte(fmt.Sprintf("Chosen worker %s: %s\n", chosenWorker.Name(), chosenWorker.Description())))
 
 	sign, err := resource.Signature()
 	if err != nil {
@@ -592,6 +598,9 @@ func (client *client) RunPutStep(
 	if err != nil {
 		return PutResult{}, err
 	}
+
+	// TODO: delete before merge.
+	//spec.StderrWriter.Write([]byte(fmt.Sprintf("Chosen worker %s: %s\n", chosenWorker.Name(), chosenWorker.Description())))
 
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
