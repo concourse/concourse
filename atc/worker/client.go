@@ -278,6 +278,58 @@ func (client *client) RunTaskStep(
 
 	select {
 	case <-ctx.Done():
+		// if we have an interrupt timeout, allow for a graceful termination
+		interruptTimeout, ok := InterruptTimeoutFromContext(ctx)
+		if ok {
+			// try to stop the process
+			err = process.Signal(garden.SignalTerminate)
+			if err != nil {
+				// if we can't send the signal, we need to do default behavior
+				logger.Error("process-terminate", err)
+
+				err = container.Stop(false)
+				if err != nil {
+					logger.Error("stopping-container", err)
+				}
+
+				status := <-exitStatusChan
+				return TaskResult{
+					ExitStatus:   status.processStatus,
+					VolumeMounts: container.VolumeMounts(),
+				}, ctx.Err()
+			}
+
+			// create a timer so we can clean this up on our terms
+			intTimer := time.NewTimer(interruptTimeout)
+
+			var status processStatus
+			select {
+			case status = <-exitStatusChan:
+				// process terminated with SIGTERM
+				// cleanup our timer
+				if !intTimer.Stop() {
+					<-intTimer.C
+				}
+				// break to our return flow
+				break
+			case <-intTimer.C:
+				// timed out, terminate with a SIGKILL
+				err = container.Stop(true)
+				if err != nil {
+					logger.Error("stopping-container", err)
+				}
+
+				// grab the status and break to our return flow
+				status = <-exitStatusChan
+				break
+			}
+
+			return TaskResult{
+				ExitStatus:   status.processStatus,
+				VolumeMounts: container.VolumeMounts(),
+			}, ctx.Err()
+		}
+
 		err = container.Stop(false)
 		if err != nil {
 			logger.Error("stopping-container", err)

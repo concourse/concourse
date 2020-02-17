@@ -348,6 +348,13 @@ func (factory *buildFactory) constructUnhookedPlan(
 		})
 	}
 
+	if planConfig.Interrupt != "" {
+		plan = factory.planFactory.NewPlan(atc.InterruptPlan{
+			Duration: planConfig.Interrupt,
+			Step:     plan,
+		})
+	}
+
 	return plan, nil
 }
 

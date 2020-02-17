@@ -470,6 +470,9 @@ type PlanConfig struct {
 	// used on any step to interrupt the step after a given duration
 	Timeout string `json:"timeout,omitempty"`
 
+	// used on any step to force graceful terminal when interrupted
+	Interrupt string `json:"interrupt_timeout,omitempty"`
+
 	// not present in yaml
 	DependentGet string `json:"-" json:"-"`
 

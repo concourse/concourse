@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
@@ -779,6 +780,59 @@ var _ = Describe("Client", func() {
 							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
 						})
 					})
+
+					Context("when there is an interrupt timeout", func() {
+						var timeStart time.Time
+						var interruptDuration time.Duration
+
+						BeforeEach(func() {
+							timeStart = time.Now()
+							interruptDuration = 1 * time.Second
+							ctx = worker.WithInterruptTimeout(ctx, interruptDuration)
+						})
+
+						It("sends a SIGTERM to the process", func() {
+							Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+							Expect(fakeProcess.SignalCallCount()).To(Equal(1))
+						})
+
+						Context("when process.Signal returns an error", func() {
+							var sendingError error
+
+							BeforeEach(func() {
+								sendingError = errors.New("can't send it")
+								fakeProcess.SignalReturns(sendingError)
+							})
+
+							It("falls back to default cancellation behavior", func() {
+								Expect(fakeContainer.StopCallCount()).To(Equal(1))
+								Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
+								Expect(err).To(Equal(context.Canceled))
+								Expect(time.Now()).To(BeTemporally("~", timeStart, 10*time.Millisecond))
+							})
+						})
+
+						Context("when the process terminates on its own", func() {
+							BeforeEach(func() {
+								fakeProcessExitCode = 0
+								fakeProcess.WaitReturns(fakeProcessExitCode, nil)
+							})
+
+							It("returns a successful result but is still cancelled", func() {
+								Expect(status).To(BeZero())
+								Expect(err).To(Equal(context.Canceled))
+							})
+						})
+
+						Context("when it doesn't terminate the process", func() {
+							It("stops the container with SIGKILL after the timeout", func() {
+								Expect(fakeContainer.StopCallCount()).To(Equal(1))
+								Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+								Expect(err).To(Equal(context.Canceled))
+								Expect(time.Now()).To(BeTemporally("~", timeStart.Add(interruptDuration), 100*time.Millisecond))
+							})
+						})
+					})
 				})
 
 				Context("when the process exits successfully", func() {
@@ -917,6 +971,59 @@ var _ = Describe("Client", func() {
 
 						It("doesn't return the error", func() {
 							Expect(err).To(Equal(context.Canceled))
+						})
+					})
+
+					Context("when there is an interrupt timeout", func() {
+						var timeStart time.Time
+						var interruptDuration time.Duration
+
+						BeforeEach(func() {
+							timeStart = time.Now()
+							interruptDuration = 1 * time.Second
+							ctx = worker.WithInterruptTimeout(ctx, interruptDuration)
+						})
+
+						It("sends a SIGTERM to the process", func() {
+							Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+							Expect(fakeProcess.SignalCallCount()).To(Equal(1))
+						})
+
+						Context("when process.Signal returns an error", func() {
+							var sendingError error
+
+							BeforeEach(func() {
+								sendingError = errors.New("can't send it")
+								fakeProcess.SignalReturns(sendingError)
+							})
+
+							It("falls back to default cancellation behavior", func() {
+								Expect(fakeContainer.StopCallCount()).To(Equal(1))
+								Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
+								Expect(err).To(Equal(context.Canceled))
+								Expect(time.Now()).To(BeTemporally("~", timeStart, 10*time.Millisecond))
+							})
+						})
+
+						Context("when the process terminates on its own", func() {
+							BeforeEach(func() {
+								fakeProcessExitCode = 0
+								fakeProcess.WaitReturns(fakeProcessExitCode, nil)
+							})
+
+							It("returns a successful result but is still cancelled", func() {
+								Expect(status).To(BeZero())
+								Expect(err).To(Equal(context.Canceled))
+							})
+						})
+
+						Context("when it doesn't terminate the process", func() {
+							It("stops the container with SIGKILL after the timeout", func() {
+								Expect(fakeContainer.StopCallCount()).To(Equal(1))
+								Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+								Expect(err).To(Equal(context.Canceled))
+								Expect(time.Now()).To(BeTemporally("~", timeStart.Add(interruptDuration), 100*time.Millisecond))
+							})
 						})
 					})
 				})

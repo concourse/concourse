@@ -23,6 +23,7 @@ func (plan Plan) Public() *json.RawMessage {
 		Try            *json.RawMessage `json:"try,omitempty"`
 		DependentGet   *json.RawMessage `json:"dependent_get,omitempty"`
 		Timeout        *json.RawMessage `json:"timeout,omitempty"`
+		Interrupt      *json.RawMessage `json:"interrupt_timeout,omitempty"`
 		Retry          *json.RawMessage `json:"retry,omitempty"`
 		ArtifactInput  *json.RawMessage `json:"artifact_input,omitempty"`
 		ArtifactOutput *json.RawMessage `json:"artifact_output,omitempty"`
@@ -92,6 +93,10 @@ func (plan Plan) Public() *json.RawMessage {
 
 	if plan.Timeout != nil {
 		public.Timeout = plan.Timeout.Public()
+	}
+
+	if plan.Interrupt != nil {
+		public.Interrupt = plan.Interrupt.Public()
 	}
 
 	if plan.Retry != nil {
@@ -276,6 +281,16 @@ func (plan LoadVarPlan) Public() *json.RawMessage {
 }
 
 func (plan TimeoutPlan) Public() *json.RawMessage {
+	return enc(struct {
+		Step     *json.RawMessage `json:"step"`
+		Duration string           `json:"duration"`
+	}{
+		Step:     plan.Step.Public(),
+		Duration: plan.Duration,
+	})
+}
+
+func (plan InterruptPlan) Public() *json.RawMessage {
 	return enc(struct {
 		Step     *json.RawMessage `json:"step"`
 		Duration string           `json:"duration"`

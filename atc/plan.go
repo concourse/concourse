@@ -20,6 +20,7 @@ type Plan struct {
 	OnFailure   *OnFailurePlan   `json:"on_failure,omitempty"`
 	Try         *TryPlan         `json:"try,omitempty"`
 	Timeout     *TimeoutPlan     `json:"timeout,omitempty"`
+	Interrupt   *InterruptPlan   `json:"interrupt_timeout,omitempty"`
 	Retry       *RetryPlan       `json:"retry,omitempty"`
 
 	// used for 'fly execute'
@@ -67,6 +68,11 @@ type OnSuccessPlan struct {
 }
 
 type TimeoutPlan struct {
+	Step     Plan   `json:"step"`
+	Duration string `json:"duration"`
+}
+
+type InterruptPlan struct {
 	Step     Plan   `json:"step"`
 	Duration string `json:"duration"`
 }

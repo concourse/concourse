@@ -1,8 +1,9 @@
 package configvalidate_test
 
 import (
-	"github.com/concourse/concourse/atc/configvalidate"
 	"strings"
+
+	"github.com/concourse/concourse/atc/configvalidate"
 
 	. "github.com/concourse/concourse/atc"
 
@@ -1307,6 +1308,22 @@ var _ = Describe("ValidateConfig", func() {
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.timeout refers to a duration that could not be parsed ('nope')"))
+				})
+			})
+
+			Context("when a plan has an invalid interrupt timeout in a step", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, PlanConfig{
+						Get:       "some-resource",
+						Interrupt: "nah",
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("throws a validation error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.interrupt refers to a duration that could not be parsed ('nah')"))
 				})
 			})
 

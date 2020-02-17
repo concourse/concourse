@@ -1,4 +1,8 @@
-#### <sub><sup><a name="4938" href="#4938">:link:</a></sup></sub> feature
+#### <sub><sup><a name="5191" href="#5191">:link:</a></sup></sub> feature
+
+* Added support for `interrupt_timeout` step modifier. #5191
+
+#### <sub><sup><a name="4976" href="#4976">:link:</a></sup></sub> feature
 
 * Include job label in build duration metrics exported to Prometheus. #4976
 

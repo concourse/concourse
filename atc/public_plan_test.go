@@ -359,6 +359,28 @@ var _ = Describe("Plan", func() {
 							Vars:     map[string]interface{}{"k1": "v1"},
 						},
 					},
+					atc.Plan{
+						ID: "38",
+						Interrupt: &atc.InterruptPlan{
+							Step: atc.Plan{
+								ID: "39",
+								Timeout: &atc.TimeoutPlan{
+									Step: atc.Plan{
+										ID: "40",
+										Task: &atc.TaskPlan{
+											Name:       "name",
+											ConfigPath: "some/config/path.yml",
+											Config: &atc.TaskConfig{
+												Params: atc.TaskEnv{"some": "secret"},
+											},
+										},
+									},
+									Duration: "lol",
+								},
+							},
+							Duration: "sometime",
+						},
+					},
 				},
 			}
 
@@ -623,6 +645,25 @@ var _ = Describe("Plan", func() {
 	  "set_pipeline": {
 		"name": "some-pipeline"
 	  }
+	},
+	{
+		"id": "38",
+		"interrupt_timeout": {
+			"step": {
+				"id": "39",
+				"timeout": {
+					"step": {
+						"id": "40",
+						"task": {
+							"name": "name",
+							"privileged": false
+						}
+					},
+					"duration": "lol"
+				}
+			},
+			"duration": "sometime"
+		}
 	}
   ]
 }

@@ -656,6 +656,14 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 		}
 	}
 
+	if plan.Interrupt != "" {
+		_, err := time.ParseDuration(plan.Interrupt)
+		if err != nil {
+			subIdentifier := fmt.Sprintf("%s.interrupt", identifier)
+			errorMessages = append(errorMessages, subIdentifier+fmt.Sprintf(" refers to a duration that could not be parsed ('%s')", plan.Interrupt))
+		}
+	}
+
 	if plan.Attempts < 0 {
 		subIdentifier := fmt.Sprintf("%s.attempts", identifier)
 		errorMessages = append(errorMessages, subIdentifier+fmt.Sprintf(" has an invalid number of attempts (%d)", plan.Attempts))
