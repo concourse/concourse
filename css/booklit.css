@@ -911,134 +911,126 @@ body.index .page-content h2:first-child {
   padding: 3px;
   border-radius: 5px;
 }
-.schema-group {
-  padding: 0 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 0.5rem solid #f6f5f5;
-  margin-bottom: 1rem;
-}
-.schema-group:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-.schema-one-of {
-  border-bottom: 0.5rem solid #f6f5f5;
-  border-left: 0.5rem solid #f6f5f5;
-  border-right: 0.5rem solid #f6f5f5;
-  margin: 0 -1.5rem;
-}
-.schema-one-of .schema-one-of {
-  border-color: #e6e5e5;
-}
-.schema-one-of .schema-one-of .one-of-header {
-  background: #e6e5e5;
-}
-.schema-one-of .one-of-header {
-  background: #f6f5f5;
-  font-family: 'Iosevka', monospace;
-  display: block;
-  line-height: 32px;
-  padding: 0 0.5rem;
-  font-weight: bold;
-}
-.schema-attribute {
-  margin-top: 1em;
-}
-.schema-attribute.required > .attribute-header pre {
-  background-color: #ffffdc;
-  position: relative;
-}
-.schema-attribute.required > .attribute-header pre:after {
-  content: "required";
-  margin-left: 0.5rem;
-  font-weight: bold;
-  position: absolute;
-  right: 0.5rem;
-  color: #ec9910;
-}
-.schema-attribute.optional > .attribute-header pre {
-  background-color: #f6f5f5;
-  position: relative;
-}
-.schema-attribute.optional > .attribute-header pre:after {
-  content: "optional";
-  margin-left: 0.5rem;
-  font-weight: bold;
-  position: absolute;
-  right: 0.5rem;
-  color: rgba(0, 0, 0, 0.5);
-}
-.attribute-header pre {
-  background: #f6f5f5;
-  color: #2a2929;
-  margin-bottom: 0;
-  line-height: 32px;
-  padding: 0;
-}
-.attribute-header a {
-  color: inherit;
-}
-.attribute-header a:hover {
-  text-decoration: underline;
-}
-.attribute-header .attribute-name {
-  font-weight: bold;
-}
-.attribute-header .attribute-type {
-  color: #9b9b9b;
-}
-.attribute-header .attribute-type .schema-scalar,
-.attribute-header .attribute-type a {
-  color: #2a2929;
-}
-.attribute-content {
-  padding: 1em;
-}
-.attribute-content .schema-header {
-  margin-bottom: 1rem;
-}
 .toggleable .toggle {
   display: none;
 }
-.toggleable label.toggle-title {
+.toggleable .toggle-title {
   cursor: pointer;
-  font-family: 'Roboto Slab', serif;
-  font-size: 16px;
   user-select: none;
   display: block;
   padding: 0.25rem 0.5rem;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  padding-left: 32px;
   background-image: url('../images/icons/chevron-down.svg');
   background-repeat: no-repeat;
-  background-position-x: 0.5rem;
-  background-position-y: 7px;
   background-size: 12px;
-  padding-left: 32px;
-  border-bottom: 1px solid #f6f5f5;
+  background-position-x: 10px;
+  background-position-y: calc(50% + 1px);
+  position: relative;
+}
+.toggleable .toggle-title:after {
+  font-family: 'Barlow', Helvetica, Arial, sans-serif;
+  font-style: italic;
+  margin-left: 0.5rem;
+  position: absolute;
+  right: 0.5rem;
 }
 .toggleable .toggle-content {
   display: none;
+  padding: 1em;
   padding-left: 32px;
-  padding-bottom: 1em;
 }
 .toggleable .toggle:checked + label.toggle-title {
   background-image: url('../images/icons/chevron-up.svg');
-  background-position-y: 6px;
+  background-position-y: center;
 }
 .toggleable .toggle:checked + label + .toggle-content {
   display: block;
 }
-.toggleable .attribute-header pre {
-  cursor: pointer;
-  background-image: url('../images/icons/chevron-down.svg');
-  background-repeat: no-repeat;
-  background-position-x: 0.5rem;
-  background-position-y: 7px;
-  background-size: 12px;
-  padding-left: 32px;
+.example .toggle-title {
+  background-color: rgba(74, 144, 226, 0.1);
 }
-.toggleable .toggle:checked + label.attribute-header pre {
-  background-image: url('../images/icons/chevron-up.svg');
-  background-position-y: 6px;
+.example .toggle-title:after {
+  content: "example";
+  color: #4a90e2;
+}
+.schema-group {
+  margin: 1em 0;
+}
+.schema-one-of {
+  border-bottom: 0.5em solid #f6f5f5;
+  border-left: 0.5em solid #f6f5f5;
+  border-right: 0.5em solid #f6f5f5;
+  margin: 0 -1.5em;
+}
+.schema-one-of .one-of-header {
+  display: block;
+  line-height: 32px;
+  padding: 0 0.5rem;
+  font-style: italic;
+  font-weight: bold;
+  background-color: #f6f5f5;
+}
+.schema-one-of .one-of-option {
+  padding: 0 1em;
+  border-bottom: 0.5rem solid #f6f5f5;
+}
+.schema-one-of .one-of-option:last-child {
+  border-bottom: 0;
+}
+.schema-one-of .schema-one-of {
+  border-color: #f0f;
+}
+.schema-one-of .schema-one-of .one-of-header {
+  background-color: #f0f;
+}
+.schema-one-of .schema-one-of .one-of-option {
+  border-color: #f0f;
+}
+.schema-attribute {
+  margin-top: 1em;
+}
+.schema-attribute:first-child {
+  margin-top: 0;
+}
+.schema-attribute .toggle-title a {
+  color: inherit;
+}
+.schema-attribute .toggle-title a:hover {
+  text-decoration: underline;
+}
+.schema-attribute .toggle-title code {
+  background: initial;
+  padding: initial;
+  border-radius: initial;
+}
+.schema-attribute .toggle-title .attribute-name {
+  font-weight: bold;
+}
+.schema-attribute .toggle-title .attribute-type {
+  color: #9b9b9b;
+}
+.schema-attribute .toggle-title .attribute-type .schema-scalar,
+.schema-attribute .toggle-title .attribute-type a {
+  color: #2a2929;
+}
+.schema-attribute .attribute-content .schema-header {
+  margin-bottom: 1rem;
+}
+.schema-attribute .attribute-content .example {
+  margin-top: 1em;
+  margin-right: -1em;
+}
+.schema-attribute.required > .toggle-title {
+  background-color: #ffffdc;
+}
+.schema-attribute.required > .toggle-title:after {
+  content: "required";
+  color: #ec9910;
+}
+.schema-attribute.optional > .toggle-title {
+  background-color: #f6f5f5;
+}
+.schema-attribute.optional > .toggle-title:after {
+  content: "optional";
+  color: #3d3c3c;
 }

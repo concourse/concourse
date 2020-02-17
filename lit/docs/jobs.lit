@@ -27,7 +27,7 @@ following schema.
     inherited to the new one. Once the pipeline is set, this field can be
     removed as the builds have been transfered.
 
-    \schema-toggle{Renaming a Job}{
+    \example-toggle{Renaming a job}{
       This can be used to rename a job without losing its history, like so:
 
       \codeblock{yaml}{{
@@ -61,7 +61,7 @@ following schema.
     Builds which are not retained by the configured policy will have their logs
     reaped. If this configuration is omitted, logs are kept forever.
 
-    \schema-toggle{A complicated example}{
+    \example-toggle{A complicated example}{
       The following example will keep logs for any builds that have completed in
       the last 2 days, while also keeping the last 1000 builds and at least 1
       succeeded build.
@@ -127,7 +127,7 @@ following schema.
     strings, builds of this job and other jobs referencing the same tags will
     be serialized.
 
-    \schema-toggle{Example}{
+    \example-toggle{Limiting parallelism}{
       This can be used to ensure that certain jobs do not run at the same time,
       like so:
 

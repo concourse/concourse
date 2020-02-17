@@ -158,7 +158,8 @@ func (p *Plugin) SchemaGroup(title booklit.Content, tagName string, contentNode 
 		Block:   true,
 		Content: content,
 		Partials: booklit.Partials{
-			"Title": title,
+			"Title":   title,
+			"TagName": booklit.String(tagName),
 			"Target": booklit.Target{
 				TagName: tagName,
 				Title:   title,
@@ -190,12 +191,12 @@ func (p *Plugin) OptionalAttribute(attribute string, type_ string, contentNode a
 	)
 }
 
-func (p *Plugin) SchemaToggle(title, content booklit.Content) booklit.Content {
+func (p *Plugin) ExampleToggle(title, content booklit.Content) booklit.Content {
 	uniq := strings.Join(p.schemaContext, ".") + title.String()
 	hash := sha1.Sum([]byte(uniq))
 
 	return booklit.Styled{
-		Style:   "toggleable",
+		Style:   "example-toggle",
 		Block:   true,
 		Content: content,
 		Partials: booklit.Partials{
@@ -205,11 +206,11 @@ func (p *Plugin) SchemaToggle(title, content booklit.Content) booklit.Content {
 	}
 }
 
-func (p *Plugin) OneOf(content booklit.Content) booklit.Content {
+func (p *Plugin) OneOf(options ...booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style:   "schema-one-of",
 		Block:   true,
-		Content: content,
+		Content: booklit.Sequence(options),
 	}
 }
 

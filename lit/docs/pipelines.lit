@@ -38,7 +38,7 @@ schema:
     Note: once you have added groups to your pipeline, all jobs must be in a
     group.
 
-    \schema-toggle{Grouping jobs}{
+    \example-toggle{Grouping jobs}{
       The following example will make the "tests" group the default view (since
       it's listed first), separating the later jobs into a "publish" group:
 

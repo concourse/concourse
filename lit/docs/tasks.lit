@@ -46,7 +46,7 @@ A task's configuration specifies the following:
     \reference{schema.step.task-step.image} on the \reference{task-step}
     instead.
 
-    \schema-toggle{Using the \code{golang} Docker image}{
+    \example-toggle{Using the \code{golang} Docker image}{
       The following task config will use the \link{\code{golang} Docker
       image}{https://hub.docker.com/_/golang} to run \code{go version}:
 

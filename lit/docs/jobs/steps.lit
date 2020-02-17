@@ -52,7 +52,7 @@ by configuring \reference{schema.step.on_failure} or
         \reference{put-step} which list the identifier as an input will have a
         copy of the bits in their working directory.
 
-        \schema-toggle{Fetching a repo and running its tests}{
+        \example-toggle{Fetching a repo and running its tests}{
           Almost every simple unit test job will look something like this:
           fetch my code with a \reference{get-step} and run its tests with a
           \reference{task-step}.
@@ -80,7 +80,7 @@ by configuring \reference{schema.step.on_failure} or
         the given list of jobs (AND-ed together) will be considered when
         triggering and fetching.
 
-        \schema-toggle{Fanning in from upstream jobs}{
+        \example-toggle{Fanning in from upstream jobs}{
           If multiple \code{get}s are configured with \code{passed}
           constraints, all of the mentioned jobs are correlated. That is, with
           the following set of inputs:
@@ -109,7 +109,7 @@ by configuring \reference{schema.step.on_failure} or
         Arbitrary configuration to pass to the resource. Refer to the resource
         type's documentation to see what it supports.
 
-        \schema-toggle{Fetching with \code{params}}{
+        \example-toggle{Fetching with \code{params}}{
           The following plan fetches a version number via the \code{semver}
           resource, bumps it to the next release candidate, and
           \reference{put-step}{\code{put}}s it back.
@@ -154,7 +154,7 @@ by configuring \reference{schema.step.on_failure} or
         configured resources start from the latest version).
       }
     }
-
+  }{
     \schema-group{\code{put} step}{put-step}{
       \required-attribute{put}{resource.name | identifier}{
         Pushes to the given \reference{resources}{resource}.
@@ -165,7 +165,7 @@ by configuring \reference{schema.step.on_failure} or
         The artifact will be available under the identifier \code{put}
         specifies.
 
-        \schema-toggle{Pulling and pushing}{
+        \example-toggle{Pulling and pushing}{
           The following plan fetches a repo using \reference{get-step}{\code{get}} and
           pushes it to another repo (assuming \code{repo-develop} and \code{repo-master}
           are defined as \code{git} resources):
@@ -179,7 +179,7 @@ by configuring \reference{schema.step.on_failure} or
           }}}
         }
 
-        \schema-toggle{Parameterizing the implicit \code{get}}{
+        \example-toggle{Parameterizing the implicit \code{get}}{
           If the logical name (whatever \code{put} specifies) differs from the
           concrete resource, you would specify \code{resource} as well, like so:
 
@@ -235,7 +235,7 @@ by configuring \reference{schema.step.on_failure} or
         it supports.
       }
     }
-
+  }{
     \schema-group{\code{task} step}{task-step}{
       \required-attribute{task}{identifier}{
         Executes a \reference{tasks}{task}.
@@ -251,7 +251,7 @@ by configuring \reference{schema.step.on_failure} or
         #32}{https://github.com/concourse/rfcs/pull/32} proposes that the name
         be used to reference a file within the project.
 
-        \schema-toggle{Functions from inputs to outputs}{
+        \example-toggle{Functions from inputs to outputs}{
           The following plan pulls down a repo, makes a commit to it, and pushes the
           commit to another repo (the task must have an output called
           \code{repo-with-commit}):
@@ -267,7 +267,7 @@ by configuring \reference{schema.step.on_failure} or
           }}}
         }
 
-        \schema-toggle{Build matrix with \code{in_parallel}}{
+        \example-toggle{Build matrix with \code{in_parallel}}{
           The following plan fetches a single repository and executes multiple tasks,
           using the \reference{in-parallel-step}{\code{in_parallel}} step, in a build matrix
           style configuration:
@@ -326,7 +326,7 @@ by configuring \reference{schema.step.on_failure} or
         through the rest of your pipeline, guaranteeing that the correct version (and
         thus a consistent set of dependencies) is used throughout your pipeline.
 
-        \schema-toggle{Fetching and using an image}{
+        \example-toggle{Fetching and using an image}{
           This can be used in to explicitly keep track of dependent images:
 
           \codeblock{yaml}{{{
@@ -350,7 +350,7 @@ by configuring \reference{schema.step.on_failure} or
           }}}
         }
 
-        \schema-toggle{Building and propagating an image}{
+        \example-toggle{Building and propagating an image}{
           Here's a pipeline which builds an image in one job and then propagates
           it to the next:
 
@@ -411,7 +411,7 @@ by configuring \reference{schema.step.on_failure} or
         This is to be used with external tasks defined in
         \reference{schema.step.task-step.file}.
 
-        \schema-toggle{Examples}{
+        \example-toggle{Parameterizing a task config file with vars}{
           A var may be statically passed like so:
 
           \codeblock{yaml}{{{
@@ -473,7 +473,7 @@ by configuring \reference{schema.step.on_failure} or
         \reference{schema.step.task-step.params}{\code{params}} can have default
         values declared in the task.
 
-        \schema-toggle{Usage example}{
+        \example-toggle{Running a task with env var params}{
           Let's say we have a \reference{schema.task}{task config} in
           \code{intgration.yml} like so:
 
@@ -503,7 +503,7 @@ by configuring \reference{schema.step.on_failure} or
           }}}
         }
 
-        \schema-toggle{Using with \code{((vars))}}{
+        \example-toggle{Using with \code{((vars))}}{
           \codeblock{yaml}{{{
           plan:
           - get: my-repo
@@ -522,7 +522,7 @@ by configuring \reference{schema.step.on_failure} or
         allows a task with generic input names to be used multiple times in the
         same plan, mapping its inputs to specific resources within the plan.
 
-        \schema-toggle{Generic task input names}{
+        \example-toggle{Generic task input names}{
           The following example demonstrates a task with a generic
           \code{release-repo} input being mapped to more specific artifact
           names:
@@ -547,7 +547,7 @@ by configuring \reference{schema.step.on_failure} or
         plan. This allows a task with generic output names to be used multiple
         times in the same plan.
 
-        \schema-toggle{Using with \code{input_mapping}}{
+        \example-toggle{Using with \code{input_mapping}}{
           This is often used together with \reference{schema.step.task-step.input_mapping}:
 
           \codeblock{yaml}{{{
@@ -567,7 +567,7 @@ by configuring \reference{schema.step.on_failure} or
         }
       }
     }
-
+  }{
     \schema-group{\code{set_pipeline} step}{set-pipeline-step}{
       \required-attribute{set_pipeline}{identifier}{
         \warn{
@@ -581,7 +581,7 @@ by configuring \reference{schema.step.on_failure} or
         The identifier specifies the name of the pipeline to configure. It will
         be configured within the current team and be created \italic{unpaused}.
 
-        \schema-toggle{One pipeline reconfiguring another}{
+        \example-toggle{One pipeline reconfiguring another}{
           This is a way to ensure a pipeline stays up to date with its definition in
           a source code repository, eliminating the need to manually run
           \reference{fly-set-pipeline}.
@@ -612,7 +612,7 @@ by configuring \reference{schema.step.on_failure} or
         The first segment in the path should refer to another artifact from the
         plan, and the rest of the path is relative to that artifact.
 
-        \schema-toggle{Fetching and configuring a pipeline}{
+        \example-toggle{Fetching and configuring a pipeline}{
           The \reference{get-step} can be used to fetch your configuration from
           a \code{git} repo and auto-configure it using a
           \reference{set-pipeline-step}:
@@ -632,7 +632,7 @@ by configuring \reference{schema.step.on_failure} or
         via \reference{schema.step.task-step.file}. If you want those variables to be determined
         at the time the pipeline is set, use \reference{schema.step.task-step.vars} as well.
 
-        \schema-toggle{Configuring static vars}{
+        \example-toggle{Configuring static vars}{
           A var may be statically passed like so:
 
           \codeblock{yaml}{{{
@@ -683,7 +683,7 @@ by configuring \reference{schema.step.on_failure} or
         list will override the values from files earlier in the list.
       }
     }
-
+  }{
     \schema-group{\code{in_parallel} step}{in-parallel-step}{
       \required-attribute{in_parallel}{[step] | in_parallel_config}{
         Performs the given steps in parallel.
@@ -695,7 +695,7 @@ by configuring \reference{schema.step.on_failure} or
         Steps are either configured as a array or within a
         \reference{schema.in_parallel_config}.
 
-        \schema-toggle{Fetching artifacts in parallel}{
+        \example-toggle{Fetching artifacts in parallel}{
           Using the \code{in_parallel} step where possible is the easiest way
           to speeding up a builds.
 
@@ -713,7 +713,7 @@ by configuring \reference{schema.step.on_failure} or
           }}}
         }
 
-        \schema-toggle{Running a build matrix}{
+        \example-toggle{Running a build matrix}{
           If any step in the \code{in_parallel} fails, the build will fail, making it
           useful for build matrices:
 
@@ -730,7 +730,7 @@ by configuring \reference{schema.step.on_failure} or
           }}}
         }
 
-        \schema-toggle{Limiting parallelism}{
+        \example-toggle{Limiting parallelism}{
           Using \code{limit} is useful for performing parallel execution of a
           growing number of tasks without overloading your workers. In the
           example below, two tasks will be run in parallel and in order until
@@ -775,19 +775,19 @@ by configuring \reference{schema.step.on_failure} or
         }
       }
     }
-
+  }{
     \schema-group{\code{aggregate} step}{aggregate-step}{
       \required-attribute{aggregate}{[step]}{
         \italic{Deprecated.} Use \reference{in-parallel-step} instead.
       }
     }
-
+  }{
     \schema-group{\code{do} step}{do-step}{
       \required-attribute{do}{[step]}{
         Simply performs the given steps serially, with the same semantics as if
         they were at the top level step listing.
 
-        \schema-toggle{Running multiple steps in a hook}{
+        \example-toggle{Running multiple steps in a hook}{
           This can be used to perform multiple steps serially in an
           \reference{schema.step.on_failure}:
 
@@ -804,7 +804,7 @@ by configuring \reference{schema.step.on_failure} or
         }
       }
     }
-
+  }{
     \schema-group{\code{try} step}{try-step}{
       \required-attribute{try}{step}{
         Performs the given step, ignoring any failure and masking it with
@@ -813,7 +813,7 @@ by configuring \reference{schema.step.on_failure} or
         This can be used when you want to perform some side-effect, but you
         don't really want the whole build to fail if it doesn't work.
 
-        \schema-toggle{Allowing non-critical behavior to fail}{
+        \example-toggle{Allowing non-critical behavior to fail}{
           When emitting logs somewhere for analyzing later, if the destination flakes
           out it may not really be critical, so we may want to just swallow the
           error:
@@ -844,7 +844,7 @@ by configuring \reference{schema.step.on_failure} or
     \code{aborted}, to distinguish between human intervention and timeouts being
     inforced).
 
-    \schema-toggle{Giving up}{
+    \example-toggle{Giving up}{
       The following will run the \code{unit} task and cancel it if it takes
       longer than 1 hour and 30 minutes:
 
@@ -866,7 +866,7 @@ by configuring \reference{schema.step.on_failure} or
     number of attempts is reached and the step has still not succeeded then the
     step will fail.
 
-    \schema-toggle{Retrying a task}{
+    \example-toggle{Retrying a task}{
       The following will run the task and retry it up to 9 times (for a total
       of 10 attempts) if it fails:
 
@@ -879,7 +879,7 @@ by configuring \reference{schema.step.on_failure} or
       }}}
     }
 
-    \schema-toggle{Retrying with a timeout}{
+    \example-toggle{Retrying with a timeout}{
       When used in combination with \code{timeout}, the timeout applies to
       \italic{each} step.
 
@@ -909,7 +909,7 @@ by configuring \reference{schema.step.on_failure} or
     \code{a} and \code{b} tags (in addition to any others) will be used for
     running the step.
 
-      \schema-toggle{Running in a private network}{
+      \example-toggle{Running in a private network}{
         You may have a private cluster only reachable by special workers
         running on-premises. To run steps against those workers, just provide a
         matching tag:
@@ -930,7 +930,7 @@ by configuring \reference{schema.step.on_failure} or
   \optional-attribute{on_success}{step}{
     A hook step to execute if the parent step succeeds.
 
-    \schema-toggle{Running on success}{
+    \example-toggle{Running on success}{
       The following will perform the second task only if the first one
       succeeds:
 
@@ -967,7 +967,7 @@ by configuring \reference{schema.step.on_failure} or
     This does not "recover" the failure - it will still fail even if the hook
     step succeeds.
 
-    \schema-toggle{Alerting on failure}{
+    \example-toggle{Alerting on failure}{
       The following will perform the \code{alert} task only if the \code{unit}
       task fails:
 
@@ -987,7 +987,7 @@ by configuring \reference{schema.step.on_failure} or
     A hook step to execute if the build is aborted and the parent step is
     terminated.
 
-    \schema-toggle{Cleaning up \code{on_abort}}{
+    \example-toggle{Cleaning up \code{on_abort}}{
       The following will perform the \code{cleanup} task only if the build is
       aborted while the \code{unit} task was running:
 
@@ -1010,7 +1010,7 @@ by configuring \reference{schema.step.on_failure} or
     scenarios as broad as configuration mistakes, temporary network issues with
     the workers, or running longer than a \reference{schema.step.timeout}.
 
-    \schema-toggle{Sending a notification}{
+    \example-toggle{Sending a notification}{
       Until notifications become first-class (\link{RFC
       #28}{https://github.com/concourse/rfcs/pull/28}, this step can be used to
       notify folks if their builds errored out:
@@ -1035,7 +1035,7 @@ by configuring \reference{schema.step.on_failure} or
     If the parent step succeeds and the ensured step fails, the overall step
     fails.
 
-    \schema-toggle{Releasing a lock}{
+    \example-toggle{Releasing a lock}{
       The following build plan acquires a lock and then \code{ensure}s that the
       lock is released.
 
