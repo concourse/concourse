@@ -36,15 +36,7 @@ func (command *PipelineOverviewCommand) Execute(args []string) error {
 		return err
 	}
 
-	if command.Json {
-		err = displayhelpers.JsonPrint(resources)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
-	headers = []string{"name", "type", "pinned"}
+	headers = []string{"resource name", "type", "pinned"}
 	table := ui.Table{Headers: ui.TableRow{}}
 	for _, h := range headers {
 		table.Headers = append(table.Headers, ui.TableCell{Contents: h, Color: color.New(color.Bold)})
@@ -75,6 +67,10 @@ func (command *PipelineOverviewCommand) Execute(args []string) error {
 	}
 
 	if command.Json {
+		err = displayhelpers.JsonPrint(resources)
+		if err != nil {
+			return err
+		}
 		err = displayhelpers.JsonPrint(jobs)
 		if err != nil {
 			return err
@@ -82,7 +78,7 @@ func (command *PipelineOverviewCommand) Execute(args []string) error {
 		return nil
 	}
 
-	headers = []string{"name", "paused", "status", "next"}
+	headers = []string{"job name", "paused", "status", "next"}
 	table = ui.Table{Headers: ui.TableRow{}}
 	for _, h := range headers {
 		table.Headers = append(table.Headers, ui.TableCell{Contents: h, Color: color.New(color.Bold)})
