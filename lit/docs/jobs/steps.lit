@@ -2,36 +2,39 @@
 
 \use-plugin{concourse-docs}
 
-Each \reference{jobs}{Job} has a single build plan. When a build of a job is
-created, the plan determines what happens.
+Each \reference{jobs}{job} has a single build plan configured as
+\reference{schema.job.plan}. A build plan is a recipe for what to run when a
+build of the job is created.
 
-A build plan is a sequence of the following \italic{steps}:
+A build plan is a sequence of \italic{steps}:
 
 \list{
-  \reference{task-step}, which runs a \reference{tasks}{task}
+  the \reference{task-step} runs a \reference{tasks}{task}
 }{
-  \reference{get-step}, which fetches a \reference{resources}{resource}
+  the \reference{get-step} fetches a \reference{resources}{resource}
 }{
-  \reference{put-step}, which updates a \reference{resources}{resource}
+  the \reference{put-step} updates a \reference{resources}{resource}
 }{
-  \reference{set-pipeline-step}, which configures a
+  the \reference{set-pipeline-step} configures a
   \reference{pipelines}{pipeline}
 }{
-  \reference{in-parallel-step}, which runs steps in parallel
+  the \reference{in-parallel-step} runs steps in parallel
 }{
-  \reference{do-step}, which runs steps in sequence
+  the \reference{do-step} runs steps in sequence
 }{
-  \reference{try-step}, which attempts to run a step and succeeds even if the
-  step fails
+  the \reference{try-step} attempts to run a step and succeeds even if the step
+  fails
 }
 
 When a new version is available for a \code{get} step with
 \reference{schema.step.get-step.trigger}{\code{trigger: true}} configured, a
 new build of the job will be created from the build plan.
 
-To visualize the job in the pipeline, resources that appear as \code{get}
-steps are drawn as inputs, and resources that appear in \code{put} steps
-appear as outputs.
+When viewing the job in the pipeline, resources that are used as \code{get}
+steps appear as inputs, and resources that are used in \code{put} steps appear
+as outputs. Jobs are rendered downstream of any jobs they reference in
+\reference{schema.step.get-step.passed}{\code{passed}} constraints, connected
+by the resource.
 
 If any step in the build plan fails, the build will fail and subsequent steps
 will not be executed. Additional steps may be configured to run after failure
@@ -295,25 +298,15 @@ by configuring \reference{schema.step.on_failure} or
         A dynamic alternative to \reference{schema.step.task-step.config}.
 
         \code{file} points at a \code{.yml} file containing the
-        \reference{tasks}{task config}, which allows this to be tracked with your
-        resources.
+        \reference{tasks}{task config}, which allows this to be tracked with
+        your resources.
 
-        The first segment in the path should refer to another source from the plan,
-        and the rest of the path is relative to that source.
+        The first segment in the path should refer to another source from the
+        plan, and the rest of the path is relative to that source.
 
-        For example, if in your plan you have the following
-        \reference{get-step}{\code{get}} step:
-
-        \codeblock{yaml}{{{
-        - get: something
-        }}}
-
-        And the \code{something} resource provided a \code{unit.yml} file, you
-        would set \code{file: something/unit.yml}.
-
-        The content of the config file may contain template \code{((vars))}, which
-        will be filled in using \reference{schema.step.task-step.vars} or a configured
-        \reference{creds}{credential manager}.
+        The content of the config file may contain template \code{((vars))},
+        which will be filled in using \reference{schema.step.task-step.vars}
+        or a configured \reference{creds}{credential manager}.
       }
 
       \optional-attribute{image}{identifier}{
