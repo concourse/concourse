@@ -36,6 +36,28 @@ func (command *PipelineOverviewCommand) Execute(args []string) error {
 		return err
 	}
 
+	var jobs []atc.Job
+
+	jobs, err = target.Team().ListJobs(pipelineName)
+	if err != nil {
+		return err
+	}
+
+	if command.Json {
+		var resources_and_jobs []interface{}
+		resources_and_jobs = append(resources_and_jobs, resources)
+		resources_and_jobs = append(resources_and_jobs, jobs)
+		err = displayhelpers.JsonPrint(resources_and_jobs)
+		if err != nil {
+			return err
+		}
+		// err = displayhelpers.JsonPrint(jobs)
+		// if err != nil {
+		// 	return err
+		// }
+		return nil
+	}
+
 	headers = []string{"resource name", "type", "pinned"}
 	table := ui.Table{Headers: ui.TableRow{}}
 	for _, h := range headers {
@@ -59,24 +81,6 @@ func (command *PipelineOverviewCommand) Execute(args []string) error {
 		table.Data = append(table.Data, row)
 	}
 	err = table.Render(os.Stdout, true)
-	var jobs []atc.Job
-
-	jobs, err = target.Team().ListJobs(pipelineName)
-	if err != nil {
-		return err
-	}
-
-	if command.Json {
-		err = displayhelpers.JsonPrint(resources)
-		if err != nil {
-			return err
-		}
-		err = displayhelpers.JsonPrint(jobs)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
 
 	headers = []string{"job name", "paused", "status", "next"}
 	table = ui.Table{Headers: ui.TableRow{}}
