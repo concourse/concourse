@@ -338,7 +338,7 @@ func (s *BackendSuite) TestDestroyDeleteTaskFails() {
 	s.client.GetContainerReturns(fakeContainer, nil)
 	fakeContainer.TaskReturns(fakeTask, nil)
 
-	expectedError := errors.New("delete-container-failed")
+	expectedError := errors.New("delete-task-failed")
 	fakeTask.DeleteReturns(nil, expectedError)
 
 	err := s.backend.Destroy("some handle")
