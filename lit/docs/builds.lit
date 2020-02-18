@@ -105,7 +105,7 @@ sure you intercept while it's running if you want to debug.
   current build's task, even as the "current build" changes.
 
   The working directory and any relevant environment variables (e.g. those
-  having come from \reference{task-params}) used by the original process will
+  having come from \reference{schema.step.task-step.params}) used by the original process will
   also be used for the process run by intercept.
 }
 

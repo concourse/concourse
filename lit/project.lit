@@ -76,8 +76,6 @@ As a contributor, you can jump on over to \link{Contribute}{contribute.html} for
 a more complete list of resources for contributors
 
 \include-section{./project/contribute.lit}
-\include-section{./project/architecture.lit}
-\include-section{./project/internals.lit}
 \include-section{./project/trademarks.lit}
 
 \section{

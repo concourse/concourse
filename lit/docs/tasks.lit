@@ -4,8 +4,8 @@
 \split-sections
 
 The smallest configurable unit in a Concourse pipeline is a single task. A task
-can be thought of as a function from \reference{task-inputs} to
-\reference{task-outputs} that can either succeed or fail.
+can be thought of as a function from \reference{schema.task.inputs} to
+\reference{schema.task.outputs} that can either succeed or fail.
 
 Going a bit further, ideally tasks are \italic{pure} functions: given the same
 set of inputs, it should either always succeed with the same outputs or always
@@ -24,217 +24,235 @@ code it's testing, possibly under some \code{ci} directory.
 
 A task's configuration specifies the following:
 
-\define-attribute{platform: string}{
-  \italic{Required.} The platform the task should run on. By convention,
-  \code{windows}, \code{linux}, or \code{darwin} are specified. This determines
-  the pool of workers that the task can run against. The base deployment
-  provides Linux workers.
-}{task-platform}
+\schema{task}{
+  \required-attribute{platform}{`linux` | `darwin` | `windows`}{
+    The platform the task should run on. This determines the pool of workers
+    that the task can run against.
 
-\define-attribute{image_resource: resource}{
-  Where \italic{\code{resource}} is:
+    Technically any string value is allowed so long as a worker advertises the
+    same platform, but in practice only \code{linux}, \code{darwin}, and
+    \code{windows} are in use.
+  }
 
-  \define-attribute{type: string}{
-    \italic{Required.} The type of the resource. Usually
-    \code{docker-image}.
-  }{image-resource-type}
+  \required-attribute{image_resource}{anonymous_resource}{
+    The container image to run with, as provided by an anonymous
+    \reference{resources}{resource} definition.
 
-  \define-attribute{source: object}{
-    \italic{Required.} The configuration for the resource; see
-    \reference{resource-source}.
-  }{image-resource-source}
+    Whenever the task runs, the anonymous resource will be \code{check}ed to
+    discover the latest version available. The image will then be fetched onto
+    the worker if necessary just prior to running the task.
 
-  \define-attribute{params: object}{
-    \italic{Optional.} A map of arbitrary configuration to forward to the
-    resource. Refer to the resource type's documentation to see what it
-    supports.
-  }{image-resource-params}
+    To use an image provided by a previous step within your build plan, set
+    \reference{schema.step.task-step.image} on the \reference{task-step}
+    instead.
 
-  \define-attribute{version: object}{
-    \italic{Optional.} A specific version of the resource to fetch. This
-    should be a map with string keys and values. If not specified, the
-    latest version will be fetched.
-  }{image-resource-version}
+    \example-toggle{Using the \code{golang} Docker image}{
+      The following task config will use the \link{\code{golang} Docker
+      image}{https://hub.docker.com/_/golang} to run \code{go version}:
 
-  \italic{Optional.} The base image of the container, as provided by a
-  \reference{resources}{resource} definition.
+      \codeblock{yaml}{{{
+      platform: linux
 
-  You can use any resource that returns a filesystem in the correct format (a
-  \code{/rootfs} directory and a \code{metadata.json} file in the top level)
-  but normally this will be the \link{Docker Image
-  resource}{https://github.com/concourse/docker-image-resource}. If you'd
-  like to make a resource of your own that supports this please use that as a
-  reference implementation for now.
+      image_resource:
+        type: registry-image
+        source: {repository: golang}
 
-  If you want to use an artifact source within the plan containing an image,
-  you must set the \reference{task-step-image} in the plan step instead.
-}{task-image-resource}{image_resource}
+      run:
+        path: go
+        args: [version]
+      }}}
+    }
 
-\define-attribute{rootfs_uri: string}{
-  \italic{Optional.} A string specifying the rootfs uri of the container, as
-  interpreted by your worker's Garden backend.
+    \schema{anonymous_resource}{
+      \required-attribute{type}{resource_type.name}{
+        The type of the resource. Usually \code{registry-image}.
 
-  \reference{image_resource} is a preferred way to specify base image and
-  \code{rootfs_uri} is not recommended. With \code{rootfs_uri} image fetching
-  is delegated to backend which does not guarantee image caching and might
-  result in some permission errors. You should only use this if you cannot
-  use \reference{image_resource} for some reason, and you know what you're
-  doing.
-}{task-rootfs-uri}
+        You can use any resource type that returns a filesystem in the correct
+        format: a \code{/rootfs} directory containing a full filesystem, and a
+        \code{metadata.json} file containing.
+      }
 
-\define-attribute{container_limits: container-limits}{
-  Where \italic{\code{container-limits}} is:
+      \required-attribute{source}{config}{
+        The configuration for the resource; see
+        \reference{schema.resource.source}.
+      }
 
-  \define-attribute{cpu: integer}{
-    \italic{Optional.} The maximum amount of CPU available to the task
-    container, measured in shares. 0 means unlimited.
-  }{task-container-limits-cpu}
+      \optional-attribute{params}{config}{
+        A map of arbitrary configuration to forward to the resource. Refer to the
+        resource type's documentation to see what it supports.
+      }
 
-  \define-attribute{memory: integer}{
-    \italic{Optional.} The maximum amount of memory available to the task
-    container, measured in bytes. 0 means unlimited.
-  }{task-container-limits-memory}
+      \optional-attribute{version}{version}{
+        A specific version of the resource to fetch. This should be a map with
+        string keys and values. If not specified, the latest version will be
+        fetched.
+      }
+    }
+  }
 
-  \italic{Optional.} CPU and memory limits to enforce on the task container.
+  \optional-attribute{inputs}{[input]}{
+    The set of artifacts used by task, determining which artifacts will be
+    available in the current directory when the task runs.
 
-  Note that these values, when specified, will override any limits set by
-  passing the \code{--default-task-cpu-limit} or
-  \code{--default-task-memory-limit} flags to the \code{concourse web} command.
-}{task-container-limits}
+    These are satisfied by \reference{get-step}s or \reference{schema.task.outputs} of a
+    previous task. These can also be provided by \code{-i} with
+    \reference{fly-execute}.
 
-\define-attribute{inputs: [input]}{
-  Where \italic{\code{input}} is:
+    If any required inputs are missing at run-time, then the task will error
+    immediately.
 
-  \define-attribute{name: string}{
-    \italic{Required.} The logical name of the input.
-  }{input-name}
+    \schema{input}{
+      \required-attribute{name}{identifier}{
+        The name of the input.
+      }
 
-  \define-attribute{path: string}{
-    \italic{Optional.} The path where the input will be placed. If not
-    specified, the input's \code{name} is used.
+      \optional-attribute{path}{dir-path}{
+        The path where the input will be placed. If not specified, the input's
+        \code{name} is used.
 
-    Paths are relative to the working directory of the task. Absolute paths are
-    not respected.
-  }{input-path}
+        Paths are relative to the working directory of the task. Absolute paths
+        are not respected.
+      }
 
-  \define-attribute{optional: bool}{
-    \italic{Optional.} If \code{true}, then the input is not required by the
-    task. The task may run even if this input is missing.
+      \optional-attribute{optional}{boolean}{
+        \italic{Default \code{false}.} If \code{true}, then the input is not
+        required by the task. The task may run even if this input is missing.
 
-    An \code{optional} input that is missing will not appear in the current
-    directory of the running task.
-  }{input-optional}
+        An \code{optional} input that is missing will not appear in the current
+        directory of the running task.
+      }
+    }
+  }
 
-  \italic{Optional.} The set of artifacts used by task, determining which
-  artifacts will be available in the current directory when the task runs.
+  \optional-attribute{outputs}{[output]}{
+    The artifacts produced by the task.
 
-  These are satisfied by \reference{get-step}s or \reference{task-outputs} of a
-  previous task. These can also be provided by \code{-i} with
-  \reference{fly-execute}.
+    Each output configures a directory to make available to later steps in the
+    \reference{build-plans}{build plan}. The directory will be automatically
+    created before the task runs, and the task should place any artifacts it
+    wants to export in the directory.
 
-  If any required inputs are missing at run-time, then the task will error
-  immediately.
-}{task-inputs}
+    \schema{output}{
+      \required-attribute{name}{identifier}{
+        The name of the output. The contents under \code{path} will be made
+        available to the rest of the plan under this name.
+      }
 
-\define-attribute{outputs: [output]}{
-  Where \italic{\code{output}} is:
+      \optional-attribute{path}{dir-path}{
+        The path to a directory where the output will be taken from. If not
+        specified, the output's \code{name} is used.
 
-  \define-attribute{name: string}{
-    \italic{Required.} The logical name of the output. The contents under
-    \code{path} will be made available to the rest of the plan under this
-    name.
-  }{output-name}
+        Paths are relative to the working directory of the task. Absolute paths are not respected.
+      }
+    }
+  }
 
-  \define-attribute{path: string}{
-    \italic{Optional.} The path to a directory where the output will be
-    taken from. If not specified, the output's \code{name} is used.
+  \optional-attribute{caches}{[cache]}{
+    The cached directories shared between task runs.
 
-    Paths are relative to the working directory of the task. Absolute paths are not respected.
-  }{output-path}
+    On the task's first run, all cache directories will be empty. It is the
+    responsibility of the task to populate these directories with any artifacts
+    to be cached. On subsequent runs, the cached directories will contain those
+    artifacts.
 
-  \italic{Optional.} The artifacts produced by the task.
+    Caches are scoped to the worker the task is run on, so you will not get a
+    cache hit when subsequent builds run on different workers. This also means
+    that caching is not intended to share state between workers, and your task
+    should be able to run whether or not the cache is warmed.
 
-  Each output configures a directory to make available to later steps in the
-  \reference{build-plans}{build plan}. The directory will be automatically
-  created before the task runs, and the task should place any artifacts it
-  wants to export in the directory.
-}{task-outputs}
+    Caches are also scoped to a particular task name inside of a pipeline's
+    job. As a consequence, if the job name, step name or cache path are
+    changed, the cache will not be used. This also means that caches do not
+    exist for one-off builds.
 
-\define-attribute{caches: [cache]}{
-  Where \italic{\code{cache}} is:
+    \schema{cache}{
+      \required-attribute{path}{dir-path}{
+        The path to a directory to be cached.
 
-  \define-attribute{path: string}{
-    \italic{Required.} The path to a directory to be cached.
+        Paths are relative to the working directory of the task. Absolute paths
+        are not respected.
+      }
+    }
+  }
 
-    Paths are relative to the working directory of the task. Absolute paths
-    are not respected.
-  }{cache-path}
+  \optional-attribute{params}{env-vars}{
+    A key-value mapping of string keys and values that are exposed to the task
+    via environment variables.
 
-  \italic{Optional.} The cached directories shared between task runs.
+    Pipelines can override these params by setting
+    \reference{schema.step.task-step.params} on the \reference{task-step}. This is a common
+    method of providing credentials to a task.
+  }
 
-  On the task's first run, all cache directories will be empty. It is the
-  responsibility of the task to populate these directories with any artifacts
-  to be cached. On subsequent runs, the cached directories will contain those
-  artifacts.
+  \required-attribute{run}{command}{
+    The command to execute in the container.
 
-  Caches are scoped to the worker the task is run on, so you will not get a
-  cache hit when subsequent builds run on different workers. This also means
-  that caching is not intended to share state between workers, and your task
-  should be able to run whether or not the cache is warmed.
+    Note that this is \italic{not} provided as a script blob, but explicit
+    \code{path} and \code{args} values; this allows \code{fly} to forward
+    arguments to the script, and forces your config \code{.yml} to stay fairly
+    small.
 
-  Caches are also scoped to a particular task name inside of a pipeline's
-  job. As a consequence, if the job name, step name or cache path are
-  changed, the cache will not be used. This also means that caches do not
-  exist for one-off builds.
-}{task-caches}{caches}
+    \schema{command}{
+      \required-attribute{path}{file-path}{
+        The name of or path to the executable to run.
 
-\define-attribute{run: run-config}{
-  Where \italic{\code{run-config}} is:
+        \code{path} is relative to the working directory. If \code{dir} is
+        specified to set the working directory, then \code{path} is relative to
+        it.
 
-  \define-attribute{path: string}{
-    \italic{Required.} The command to execute.
+        This is commonly a path to a script provided by one of the task's inputs,
+        e.g. \code{my-resource/scripts/test}. It could also be a command like
+        \code{bash} (respecting standard \code{$PATH} lookup rules), or an absolute
+        path to a file to execute, e.g. \code{/bin/bash}.
+      }
 
-    \code{path} is relative to the working directory. If \code{dir} is specified
-    to set the working directory, then \code{path} is relative to it.
+      \optional-attribute{args}{[string]}{
+        Arguments to pass to the command. Note that when executed with Fly, any
+        arguments passed to Fly are appended to this array.
+      }
 
-    This is commonly a path to a script provided by one of the task's inputs,
-    e.g. \code{my-resource/scripts/test}. It could also be a command like
-    \code{bash} (respecting standard \code{$PATH} lookup rules), or an absolute
-    path to a file to execute, e.g. \code{/bin/bash}.
-  }{task-run-path}
+      \optional-attribute{dir}{dir-path}{
+        A directory, relative to the initial working directory, to set as the
+        working directory when running the script.
+      }
 
-  \define-attribute{args: [string]}{
-    \italic{Optional.} Arguments to pass to the command. Note that when
-    executed with Fly, any arguments passed to Fly are appended to this
-    array.
-  }{task-run-args}
+      \optional-attribute{user}{string}{
+        Explicitly set the user to run as. If not specified, this defaults to the
+        user configured by the task's image. If not specified there, it's up to
+        the Garden backend, and may be e.g. \code{root} on Linux.
+      }
+    }
+  }
 
-  \define-attribute{dir: string}{
-    \italic{Optional.} A directory, relative to the initial working
-    directory, to set as the working directory when running the script.
-  }{task-run-dir}
+  \optional-attribute{rootfs_uri}{string}{
+    A string specifying the rootfs uri of the container, as interpreted by your
+    worker's Garden backend.
 
-  \define-attribute{user: string}{
-    \italic{Optional.} Explicitly set the user to run as. If not specified,
-    this defaults to the user configured by the task's image. If not
-    specified there, it's up to the Garden backend, and may be e.g.
-    \code{root} on Linux.
-  }{task-run-user}
+    \reference{schema.task.image_resource} is the preferred way to specify base image.
+    You should only use this if you have no other option and you really know
+    what you're doing.
+  }
 
-  \italic{Required.} The command to execute in the container.
+  \optional-attribute{container_limits}{container_limits}{
+    CPU and memory limits to enforce on the task container.
 
-  Note that this is \italic{not} provided as a script blob, but explicit
-  \code{path} and \code{args} values; this allows \code{fly} to forward
-  arguments to the script, and forces your config \code{.yml} to stay fairly
-  small.
-}{task-run}
+    Note that these values, when specified, will override any limits set by
+    passing the \code{--default-task-cpu-limit} or
+    \code{--default-task-memory-limit} flags to the \code{concourse web} command.
 
-\define-attribute{params: \{string: string\}}{
-  \italic{Optional.} A key-value mapping of values that are exposed to the
-  task via environment variables.
+    \schema{container_limits}{
+      \optional-attribute{cpu}{number}{
+        The maximum amount of CPU available to the task container, measured in
+        shares. 0 means unlimited.
+      }
 
-  Use this to provide things like credentials to a task.
-}{task-params}
+      \optional-attribute{memory}{number}{
+        The maximum amount of memory available to the task container, measured in
+        bytes. 0 means unlimited.
+      }
+    }
+  }
+}
 
 \section{
   \title{Running Tasks}{running-tasks}
@@ -281,7 +299,7 @@ A task's configuration specifies the following:
       name as the directory.
 
       Tasks must specify the inputs that they require as
-      \reference{task-inputs}. For \code{fly} to upload these inputs you can
+      \reference{schema.task.inputs}. For \code{fly} to upload these inputs you can
       use the \code{-i} or \code{--input} arguments with name and path pairs.
       For example:
 
@@ -346,7 +364,7 @@ A task's configuration specifies the following:
       input-name}.
 
       For example, the following pipeline fetches an image via a
-      \reference{get-step} and uses it for \reference{task-step-image}:
+      \reference{get-step} and uses it for \reference{schema.step.task-step.image}:
 
       \codeblock{yaml}{{{
       resources:
@@ -449,7 +467,7 @@ A task's configuration specifies the following:
       configured \reference{creds}{credential manager}.
 
       To satisfy these vars when running the task in a pipeline, see
-      \reference{task-step-vars}.
+      \reference{schema.step.task-step.vars}.
     }
 
     \section{
@@ -472,14 +490,14 @@ A task's configuration specifies the following:
   \title{Task Environment}{task-environment}
 
   A task runs in a new container every time, using the image provided by
-  \reference{image_resource} as its base filesystem (i.e. \code{/}).
+  \reference{schema.task.image_resource} as its base filesystem (i.e. \code{/}).
 
-  The command specified by \reference{task-run} will be executed in a working
-  directory containing each of the \reference{task-inputs}. If any inputs are
+  The command specified by \reference{schema.task.run} will be executed in a working
+  directory containing each of the \reference{schema.task.inputs}. If any inputs are
   missing the task will not run (and the container will not even be created).
 
   The working directory will also contain empty directories for each of the
-  \reference{task-outputs}. The task must place artifacts in the output
+  \reference{schema.task.outputs}. The task must place artifacts in the output
   directories for them to be exported. This meshes well with build tools with
   configurable destination paths.
 
@@ -490,17 +508,15 @@ A task's configuration specifies the following:
     \code{cp}, and then work out of \code{./output}.
   }
 
-  Any \reference{task-params} configured will be set in the environment for the
+  Any \reference{schema.step.task-step.params} configured will be set in the environment for the
   task's command, along with any environment variables provided by the task's
   image (i.e. \code{ENV} rules from your \code{Dockerfile}).
 
-  The user the command runs as is determined by the image. If you're using the
-  \link{Docker Image
-  resource}{https://github.com/concourse/docker-image-resource}, this will be
-  the user set by a \code{USER} rule in your \code{Dockerfile}, or \code{root}
-  if not specified.
+  The user the command runs as is determined by the image. If you're using a
+  Docker image, this will be the user set by a \code{USER} rule in your
+  \code{Dockerfile}, or \code{root} if not specified.
 
-  Another relevant bit of configuration is \reference{task-step-privileged},
+  Another relevant bit of configuration is \reference{schema.step.task-step.privileged},
   which determines whether the user the task runs as will have full privileges
   (primarily when running as \code{root}). This is intentionally \italic{not}
   configurable by the task itself, to prevent privilege escalation by way of
@@ -600,7 +616,7 @@ A task's configuration specifies the following:
   }
 
   \example{Producing Outputs}{
-    A task can configure \reference{task-outputs} to produce artifacts that can
+    A task can configure \reference{schema.task.outputs} to produce artifacts that can
     then be propagated to a \reference{put-step} or another
     \reference{task-step} in the same plan. They can also be downloaded with
     \reference{fly-execute} by passing \code{-o}.
@@ -689,7 +705,7 @@ A task's configuration specifies the following:
     is configured properly on the workers, SSL should Just Work™.
 
     External tasks are now fully interpolated using \reference{creds}{credential manager variables} and
-    \reference{task-step-vars}, so you can use template variables in an external task:
+    \reference{schema.step.task-step.vars}, so you can use template variables in an external task:
 
     \codeblock{yaml}{{{
       ---

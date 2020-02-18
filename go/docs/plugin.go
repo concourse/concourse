@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"net/http"
@@ -27,6 +28,8 @@ type Plugin struct {
 
 	definitionContext []string
 	noteIdx           int
+
+	schemaContext []string
 }
 
 func NewPlugin(section *booklit.Section) booklit.Plugin {
@@ -39,6 +42,13 @@ func (p Plugin) FontAwesome(class string) booklit.Content {
 	return booklit.Styled{
 		Style:   "font-awesome",
 		Content: booklit.String(class),
+	}
+}
+
+func (p Plugin) Button(content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "button",
+		Content: content,
 	}
 }
 
@@ -56,20 +66,24 @@ func (p Plugin) InlineHeader(content booklit.Content) booklit.Content {
 	return booklit.Styled{
 		Style:   "inline-header",
 		Content: content,
+		Block:   true,
 	}
 }
 
-func (p Plugin) SplashIntro(intro, blurb booklit.Content) booklit.Content {
-	return booklit.Styled{
-		Style: "splash-intro",
-		Block: true,
+func (p Plugin) SplashIntro(intro, downloads booklit.Content) {
+	p.section.SetPartial(
+		"Splash",
+		booklit.Styled{
+			Style: "splash-intro",
+			Block: true,
 
-		Content: blurb,
+			Content: intro,
 
-		Partials: booklit.Partials{
-			"Intro": intro,
+			Partials: booklit.Partials{
+				"Downloads": downloads,
+			},
 		},
-	}
+	)
 }
 
 func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
@@ -78,6 +92,191 @@ func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
 		Block:   true,
 		Content: content,
 	}
+}
+
+func (p *Plugin) Schema(name string, contentNode ast.Node) (booklit.Content, error) {
+	p.pushSchema(name)
+	defer p.popSchema()
+
+	tagName := "schema." + name
+
+	p.section.SetTagAnchored(
+		tagName,
+		booklit.Sequence{
+			booklit.Styled{
+				Style: booklit.StyleBold,
+				Content: booklit.Styled{
+					Style:   booklit.StyleVerbatim,
+					Content: booklit.String(name),
+				},
+			},
+			booklit.String(" schema"),
+		},
+		booklit.Empty,
+		tagName,
+	)
+
+	stage := &stages.Evaluate{
+		Section: p.section,
+	}
+
+	err := contentNode.Visit(stage)
+	if err != nil {
+		return nil, err
+	}
+
+	content := stage.Result
+
+	return booklit.Styled{
+		Style:   "schema",
+		Block:   true,
+		Content: content,
+		Partials: booklit.Partials{
+			"Name":   booklit.String(name),
+			"Anchor": booklit.String(tagName),
+		},
+	}, nil
+}
+
+func (p *Plugin) SchemaGroup(title booklit.Content, tagName string, contentNode ast.Node) (booklit.Content, error) {
+	p.pushSchema(tagName)
+	defer p.popSchema()
+
+	stage := &stages.Evaluate{
+		Section: p.section,
+	}
+
+	err := contentNode.Visit(stage)
+	if err != nil {
+		return nil, err
+	}
+
+	content := stage.Result
+
+	return booklit.Styled{
+		Style:   "schema-group",
+		Block:   true,
+		Content: content,
+		Partials: booklit.Partials{
+			"Title":   title,
+			"TagName": booklit.String(tagName),
+			"Target": booklit.Target{
+				TagName: tagName,
+				Title:   title,
+				Content: content,
+			},
+		},
+	}, nil
+}
+
+func (p *Plugin) RequiredAttribute(attribute string, type_ string, contentNode ast.Node) (booklit.Content, error) {
+	return p.schemaAttribute(
+		attribute,
+		type_,
+		contentNode,
+		booklit.Partials{
+			"Required": booklit.String("true"),
+		},
+	)
+}
+
+func (p *Plugin) OptionalAttribute(attribute string, type_ string, contentNode ast.Node) (booklit.Content, error) {
+	return p.schemaAttribute(
+		attribute,
+		type_,
+		contentNode,
+		booklit.Partials{
+			"Optional": booklit.String("true"),
+		},
+	)
+}
+
+func (p *Plugin) ExampleToggle(title, content booklit.Content) booklit.Content {
+	uniq := strings.Join(p.schemaContext, ".") + title.String()
+	hash := sha1.Sum([]byte(uniq))
+
+	return booklit.Styled{
+		Style:   "example-toggle",
+		Block:   true,
+		Content: content,
+		Partials: booklit.Partials{
+			"Title": title,
+			"For":   booklit.String(fmt.Sprintf("%x", hash)),
+		},
+	}
+}
+
+func (p *Plugin) OneOf(options ...booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "schema-one-of",
+		Block:   true,
+		Content: booklit.Sequence(options),
+	}
+}
+
+func (p *Plugin) SchemaAttribute(attribute string, type_ string, contentNode ast.Node) (booklit.Content, error) {
+	return p.schemaAttribute(
+		attribute,
+		type_,
+		contentNode,
+		booklit.Partials{},
+	)
+}
+
+func (p *Plugin) schemaAttribute(attribute string, type_ string, contentNode ast.Node, partials booklit.Partials) (booklit.Content, error) {
+	p.pushSchema(attribute)
+	defer p.popSchema()
+
+	tagName := strings.Join(p.schemaContext, ".")
+
+	stage := &stages.Evaluate{
+		Section: p.section,
+	}
+
+	err := contentNode.Visit(stage)
+	if err != nil {
+		return nil, err
+	}
+
+	content := stage.Result
+
+	display := booklit.Styled{
+		Style: booklit.StyleBold,
+		Content: booklit.Styled{
+			Style:   booklit.StyleVerbatim,
+			Content: booklit.String(strings.Join(p.schemaContext, ".")),
+		},
+	}
+
+	targets := booklit.Sequence{
+		booklit.Target{
+			TagName: "schema." + tagName,
+			Title:   display,
+			Content: content,
+		},
+	}
+
+	partials["TagName"] = booklit.String(tagName)
+	partials["Targets"] = targets
+	partials["Attribute"] = booklit.String(attribute)
+	partials["Type"] = autoReferenceType(type_)
+
+	return NoIndex{
+		booklit.Styled{
+			Style:    "schema-attribute",
+			Block:    true,
+			Content:  content,
+			Partials: partials,
+		},
+	}, nil
+}
+
+func (p *Plugin) pushSchema(attribute string) {
+	p.schemaContext = append(p.schemaContext, attribute)
+}
+
+func (p *Plugin) popSchema() {
+	p.schemaContext = p.schemaContext[0 : len(p.schemaContext)-1]
 }
 
 func (p *Plugin) DownloadLinks() (booklit.Content, error) {
@@ -106,6 +305,10 @@ func (p *Plugin) DownloadLinks() (booklit.Content, error) {
 		return nil, errors.New("no releases found!")
 	}
 	for _, release := range releases {
+		if release.GetPrerelease() {
+			continue
+		}
+
 		if release.TagName == nil {
 			return nil, fmt.Errorf("no tag name for release %v", release)
 		}
@@ -500,13 +703,19 @@ func (p Plugin) LiterateSegment(parasAndFinalCode ...booklit.Content) (booklit.C
 	}, nil
 }
 
-func (p Plugin) PipelineImage(path string) booklit.Content {
+func (p Plugin) SideBySide(left, right booklit.Content) booklit.Content {
 	return booklit.Styled{
-		Style: "pipeline-image",
-		Content: booklit.Image{
-			Path:        path,
-			Description: "pipeline",
-		},
+		Style:   "side-by-side",
+		Content: booklit.Sequence{left, right},
+		Block:   true,
+	}
+}
+
+func (p Plugin) IncludeTemplate(name string) booklit.Content {
+	return booklit.Styled{
+		Style:   booklit.Style(name),
+		Content: booklit.Empty,
+		Block:   true,
 	}
 }
 
@@ -639,4 +848,57 @@ type NoIndex struct {
 
 func (NoIndex) String() string {
 	return ""
+}
+
+func autoReferenceType(type_ string) booklit.Content {
+	if strings.HasPrefix(type_, "[") && strings.HasSuffix(type_, "]") {
+		subType := strings.TrimPrefix(strings.TrimSuffix(type_, "]"), "[")
+		return booklit.Sequence{
+			booklit.String("["),
+			autoReferenceType(subType),
+			booklit.String("]"),
+		}
+	}
+
+	if strings.HasPrefix(type_, "{") && strings.HasSuffix(type_, "}") {
+		subType := strings.TrimPrefix(strings.TrimSuffix(type_, "}"), "{")
+		return booklit.Sequence{
+			booklit.String("{"),
+			autoReferenceType(subType),
+			booklit.String("}"),
+		}
+	}
+
+	for _, punc := range []string{" | ", ": ", ", "} {
+		if strings.Contains(type_, punc) {
+			ors := strings.Split(type_, punc)
+
+			seq := booklit.Sequence{}
+			for i, t := range ors {
+				seq = append(seq, autoReferenceType(t))
+
+				if i+1 < len(ors) {
+					seq = append(seq, booklit.String(punc))
+				}
+			}
+
+			return seq
+		}
+	}
+
+	if strings.HasPrefix(type_, "`") && strings.HasSuffix(type_, "`") {
+		scalar := strings.TrimPrefix(strings.TrimSuffix(type_, "`"), "`")
+		return booklit.Styled{
+			Style:   "schema-scalar",
+			Content: booklit.String(scalar),
+		}
+	}
+
+	return &booklit.Reference{
+		TagName: "schema." + type_,
+		Content: booklit.Styled{
+			Style:   booklit.StyleBold,
+			Content: booklit.String(type_),
+		},
+	}
 }

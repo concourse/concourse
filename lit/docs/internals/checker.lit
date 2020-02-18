@@ -18,27 +18,25 @@ use this external state as inputs (or triggers) to your workloads.
   you want to pick up those new commits as quickly as possible, then you need to
   poll as often as possible.
 
-  The resource checker uses each resource's
-  \reference{resource-check-every}{check_every} interval in order to figure out
-  if a resource needs to be checked. A resource's
-  \reference{resource-check-every}{check-every} interval dictates how often the
-  it should be checked for new versions, with a default of 1 minute. If that
-  seems like a lot, it is, but it's how concourse keeps everything snappy. You
-  can \reference{resource-check-every}{configure this value} independently for
-  each resource, or if your external resource supports it, you can use
-  \reference{resource-webhook-token}{webhooks} to basically eliminate the need
-  for polling altogether.
+  The resource checker uses the \reference{schema.resource.check_every}
+  interval in order to figure out if a resource needs to be checked. A
+  resource's \code{check_every} interval dictates how often the it should be
+  checked for new versions, with a default of 1 minute. If that seems like a
+  lot, it is, but it's how Concourse keeps everything snappy. You can configure
+  this value independently for each resource, or if your external service
+  supports it, you can set \reference{schema.resource.webhook_token} to
+  basically eliminate the need for polling altogether.
 
   On every interval tick, the resource checker will see if there are any
   resources that need to be checked by looking up the last time a resource was
-  checked and seeing if it has been longer than the resources configured
-  \reference{resource-check-every}{check_every} interval.
+  checked and seeing if it has been longer than the resource's configured
+  \code{check_every} interval.
 
-  In practice this means that if a resource has a
-  \reference{resource-check-every}{check_every} of \code{1m}, it is not guaranteed to
-  be checked every 60 seconds. It really means that the next time the resource
-  checker runs, if it sees that the last check on that specific resource is
-  greater than 1 minute it will start a new check for that resource.
+  In practice this means that if a resource has a \code{check_every} of
+  \code{1m}, it is not guaranteed to be checked every 60 seconds. It really
+  means that the next time the resource checker runs, if it sees that the last
+  check on that specific resource is greater than 1 minute it will start a new
+  check for that resource.
 }
 
 \section{

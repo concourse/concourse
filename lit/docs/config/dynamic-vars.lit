@@ -11,18 +11,19 @@ The following configurations can be parameterized through a \code{((var))}
 source:
 
 \list{
-  \reference{resource-source} under \reference{resources} in a pipeline
+  \reference{schema.resource.source} under
+  \reference{schema.pipeline.resources}
 }{
-  \reference{resource-type-source} under \reference{resource-types} in a
-  pipeline
+  \reference{schema.resource_type.source} under
+  \reference{schema.pipeline.resources}
 }{
-  \reference{resource-webhook-token} under \reference{resources} in a
-  pipeline
+  \reference{schema.resource.webhook_token} under
+  \reference{schema.pipeline.resources}
 }{
-  \reference{task-step-params} on a task step in a pipeline
+  \reference{schema.step.task-step.params} on a task step in a pipeline
 }{
   \reference{tasks} in their entirety - whether from
-  \reference{task-step-file} or \reference{task-step-config} in a pipeline,
+  \reference{schema.step.task-step.file} or \reference{schema.step.task-step.config} in a pipeline,
   or a config executed with \reference{fly-execute}
 }
 
@@ -59,33 +60,39 @@ limited lifetime and tight rotation policies.
   detailed explanation of this syntax.
 
   Currently, \code{((var))} sources can only be configured at the
-  pipeline-level, through \reference{pipeline-var-sources}. Soon we will
+  pipeline-level, through \reference{schema.pipeline.var_sources}. Soon we will
   introduce cluster-wide \code{((var))} sources and begin deprecating the
   cluster-wide credential manager.
 
-  Each \code{((var))} source has the following configuration:
+  A pipeline's var sources are listed under
+  \reference{schema.pipeline.var_sources} with the following schema.
 
-  \define-attribute{name: string}{
-    \italic{Required.} The name of the \code{((var))} source. This should be short and
-    simple. This name will be referenced
-    \reference{var-syntax}{\code{((vars))}} throughout the config.
-  }{var-source-name}
+  \schema{var_source}{
+    \required-attribute{name}{string}{
+      The name of the \code{((var))} source. This should be short and simple.
+      This name will be referenced \reference{var-syntax}{\code{((vars))}}
+      throughout the config.
+    }
 
-  \define-attribute{type: string}{
-    \italic{Required.} The type of the \code{((var))} source. This corresponds to one of
-    the supported credential managers.
+    \required-attribute{type}{identifier}{
+      The type of the \code{((var))} source. This corresponds to one of the
+      supported credential managers.
 
-    Currently, only two types are supported: \code{vault} and \code{dummy}. This
-    will expand in the future to include all supported credential managers.
-  }{var-source-type}
+      Currently, only two types are supported: \code{vault} and \code{dummy}.
 
-  \define-attribute{config: object}{
-    \italic{Required.} The configuration for the \code{((var))} source.
+      In the future, we want to make use of something like the \link{Prototypes
+      (RFC #37)}{https://github.com/concourse/rfcs/pull/37} so that third-party
+      credential managers can be used just like resource types.
+    }
 
-    Arbitrary configuration for the \code{((var))} source. The schema of this value is
-    entirely dependent on the type. Each supported \code{((var))} source type, and their
-    config schema, are documented below.
-  }{var-source-config}
+    \required-attribute{config}{config}{
+      The configuration for the \code{((var))} source.
+
+      Arbitrary configuration for the \code{((var))} source. The schema of this value is
+      entirely dependent on the type. Each supported \code{((var))} source type, and their
+      config schema, are documented below.
+    }
+  }
 
   As the configuration for a \code{((var))} source is entirely dependent on its
   \code{type}, each supported type documents its own schema below:
@@ -112,7 +119,7 @@ limited lifetime and tight rotation policies.
       around the docs too much.
     }
 
-    The following fields can be set under \reference{var-source-config}:
+    The following fields can be set under \reference{schema.var_source.config}:
 
     \define-attribute{url: string}{
       \italic{Required.} The URL of the Vault API.
@@ -213,7 +220,7 @@ limited lifetime and tight rotation policies.
     management but still have sensitive values that you would like to
     \reference{creds-redacting}{redact} them from build output.
 
-    The following fields can be set under \reference{var-source-config}:
+    The following fields can be set under \reference{schema.var_source.config}:
 
     \define-attribute{vars: object}{
       \italic{Required.} A mapping of var name to var value.

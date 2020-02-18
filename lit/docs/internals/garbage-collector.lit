@@ -4,10 +4,9 @@
 
 \omit-children-from-table-of-contents
 
-Concourse runs everything in isolated environments by creating fresh
-\reference{container-internals} and \reference{volume-internals} to ensure
-things can safely run in a repeatable environment, isolated from other
-workloads running on the same worker.
+Concourse runs everything in isolated environments by creating fresh containers
+and volumes to ensure things can safely run in a repeatable environment,
+isolated from other workloads running on the same worker.
 
 This introduces a new problem of knowing when Concourse should remove these
 containers and volumes. Safely identifying things for removal and then
@@ -26,13 +25,11 @@ getting rid of them, releasing their resources, is the process of
     containers being removed. No one should even know garbage collection is
     happening.
   }{
-    \bold{Airtight}. Everything Concourse creates, whether it's a
-    \reference{container-internals}{container} or
-    \reference{volume-internals}{volume} on a worker or an entry in the
-    database, should never leak. Each object should have a fully defined
-    lifecycle such that there is a clear end to its use. The ATC should be
-    interruptible at any point in time and at the very least be able to
-    remove any state it had created beforehand.
+    \bold{Airtight}. Everything Concourse creates, whether it's a container or
+    volume on a worker or an entry in the database, should never leak. Each
+    object should have a fully defined lifecycle such that there is a clear end
+    to its use. The ATC should be interruptible at any point in time and at the
+    very least be able to remove any state it had created beforehand.
   }{
     \bold{Resilient}. Garbage collection should never be outpaced by the
     workload. A single misbehaving worker should not prevent garbage
@@ -57,16 +54,15 @@ getting rid of them, releasing their resources, is the process of
   collector, and they are all run asynchronously.
 
   After the initial pass of garbage collection in the database, there should
-  now be a set of \reference{volumes-table} and \reference{containers-table}
-  that meet criteria for garbage collection. These two are a bit more
-  complicated to garbage-collect; they both require talking to a worker, and
-  waiting on a potentially slow delete.
+  now be a set of containers and volumes that meet criteria for garbage
+  collection. These two are a bit more complicated to garbage-collect; they
+  both require talking to a worker, and waiting on a potentially slow delete.
 
   Containers and volumes are the costliest resources consumed by Concourse.
-  There are also many of them created over time as builds execute and
-  pipelines perform their \reference{pipeline-resources}{resource checking}.
-  Therefore it is important to parallelize this aspect of garbage collection
-  so that one slow delete or one slow worker does not cause them to pile up.
+  There are also many of them created over time as builds execute and pipelines
+  perform their resource checking. Therefore it is important to parallelize
+  this aspect of garbage collection so that one slow delete or one slow worker
+  does not cause them to pile up.
 }
 
 

@@ -1,27 +1,39 @@
-<a class="hero-pill" href="{{.Content.Target}}">{{.Partial "Version" | render}} <span class="small">release notes</span></a>
+<div class="splash-split">
+  <div class="split-header">
+    <h3>Download the latest release:</h3>
+    <a class="icon-button release-link" href="{{.Content.Target}}">{{.Partial "Version" | render}}</a>
+  </div>
 
-<ul class="download-info">
-  <li>
-    <span class="label">
-      <code>concourse</code> binary:
-    </span>
+  <ul class="download-info">
+    <li>
+      <span class="label">
+        <code>concourse</code> server:
+      </span>
 
-    <ul class="download-links">
-      <li><a href="{{.Partial "LinuxURL" | render}}">{{template "linux-icon.tmpl"}} Linux</a></li>
-      <li><a href="{{.Partial "DarwinURL" | render}}">{{template "osx-icon.tmpl"}} OS X</a></li>
-      <li><a href="{{.Partial "WindowsURL" | render}}">{{template "windows-icon.tmpl"}} Windows</a></li>
-    </ul>
-  </li>
+      <ul class="download-links">
+        <li><a href="{{.Partial "LinuxURL" | render}}">{{template "linux-icon.tmpl"}} Linux</a></li>
+        <li><a href="{{.Partial "DarwinURL" | render}}">{{template "osx-icon.tmpl"}} OS X</a></li>
+        <li><a href="{{.Partial "WindowsURL" | render}}">{{template "windows-icon.tmpl"}} Windows</a></li>
+      </ul>
+    </li>
 
-  <li>
-    <span class="label">
-      <code>fly</code> binary:
-    </span>
+    <li>
+      <span class="label">
+        <code>fly</code> CLI:
+      </span>
 
-    <ul class="download-links">
-      <li><a href="{{.Partial "FlyLinuxURL" | render}}">{{template "linux-icon.tmpl"}} Linux</a></li>
-      <li><a href="{{.Partial "FlyDarwinURL" | render}}">{{template "osx-icon.tmpl"}} OS X</a></li>
-      <li><a href="{{.Partial "FlyWindowsURL" | render}}">{{template "windows-icon.tmpl"}} Windows</a></li>
-    </ul>
-  </li>
-</ul>
+      <ul class="download-links">
+        <li><a href="{{.Partial "FlyLinuxURL" | render}}">{{template "linux-icon.tmpl"}} Linux</a></li>
+        <li><a href="{{.Partial "FlyDarwinURL" | render}}">{{template "osx-icon.tmpl"}} OS X</a></li>
+        <li><a href="{{.Partial "FlyWindowsURL" | render}}">{{template "windows-icon.tmpl"}} Windows</a></li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
+<div class="splash-split">
+  <div class="split-header">
+    <h3>Help build the next one:</h3>
+    <a class="icon-button next-release" href="https://project.concourse-ci.org">Roadmap</a>
+  </div>
+</div>

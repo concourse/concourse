@@ -1,0 +1,12 @@
+<div class="toggleable schema-attribute{{if .Partial "Required"}} required{{end}}{{if .Partial "Optional"}} optional{{end}}">
+  <input id="toggle-{{.Partial "TagName" | render}}" type="checkbox" class="toggle" />
+  <label for="toggle-{{.Partial "TagName" | render}}" class="toggle-title">
+    {{.Partial "Targets" | render}}
+
+    <code><span class="attribute-name">{{.Partial "Attribute" | render}}</span>: <span class="attribute-type">{{.Partial "Type" | render}}</span></code>
+  </label>
+
+  <div class="toggle-content attribute-content">
+    {{.Content | render}}
+  </div>
+</div>
