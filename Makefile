@@ -31,7 +31,7 @@ install:
 
 
 # init - populates the `init` configmap with the binary used to hold our main
-#        container up so that we can run processes in there. 
+#        container up so that we can run processes in there.
 #
 init: $(INIT_BIN)
 	$(KUBECTL) create namespace $(NAMESPACE) || true
@@ -39,7 +39,10 @@ init: $(INIT_BIN)
 		$(INIT_CONFIGMAP) || true
 
 $(INIT_BIN): $(INIT_SRC)
-	gcc -O2 -static -o $@ $<
+	cd ./cmd/init && docker build -t init-img .
+	docker create --name init init-img || true
+	docker cp init:/init $@
+	docker rm -f init
 
 
 # run - runs a `web` node that targets a kubernetes cluster pointed by
