@@ -86,6 +86,14 @@ IMPORTANT: Please expect and prepare for some downtime when upgrading to 6.0. On
 
 * Lidar is now defaulted to be on! This is no longer an experimental feature and the `ENABLE_LIDAR` flag will no longer be recognized. #3704
 
+#### <sub><sup><a name="4973" href="#4973">:link:</a></sup></sub> feature
+
+* @evanchaoli introduced another new step type in #4973: the [`load_var` step](https://concourse-ci.org/steps.html#load-var-step)! This step can be used to load a value from a file at runtime and set it in a ["local var source"](https://concourse-ci.org/vars.html#local-vars) so that later steps in the build may pass the value to fields like `params`.
+
+  With this primitive, resource type authors will no longer have to implement two ways to parameterize themselves (i.e. `tag` and `tag_file`). Resource types can now implement simpler interfaces which expect values to be set directly, and Concourse can handle the busywork of reading the value from a file.
+
+  This feature, like `set_pipeline` step, is considered **experimental** until its corresponding RFC, [RFC #27](https://github.com/concourse/rfcs/pull/27) is resolved. The step will helpfully remind you of this fact by printing a warning on every single use.
+
 #### <sub><sup><a name="5014" href="#5014">:link:</a></sup></sub> fix
 
 * We fixed a bug where users that have upgraded from Concourse v5.6.0 to v5.8.0 with lidar enabled, they might xperience a resource never being able to check because it is failing to create a check step. #5014
