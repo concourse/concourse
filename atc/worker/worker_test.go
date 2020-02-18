@@ -951,7 +951,6 @@ var _ = Describe("Worker", func() {
 					Expect(actualSpec).To(Equal(garden.ContainerSpec{
 						Handle:     "some-handle",
 						RootFSPath: "some-image-url",
-						NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 						Properties: garden.Properties{"user": "some-user"},
 						BindMounts: []garden.BindMount{
 							{
@@ -1058,7 +1057,6 @@ var _ = Describe("Worker", func() {
 							Expect(actualSpec).To(Equal(garden.ContainerSpec{
 								Handle:     "some-handle",
 								RootFSPath: "some-image-url",
-								NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 								Properties: garden.Properties{"user": "some-user"},
 								BindMounts: []garden.BindMount{
 									{
@@ -1118,7 +1116,6 @@ var _ = Describe("Worker", func() {
 							Expect(actualSpec).To(Equal(garden.ContainerSpec{
 								Handle:     "some-handle",
 								RootFSPath: "some-image-url",
-								NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 								Properties: garden.Properties{"user": "some-user"},
 								BindMounts: []garden.BindMount{
 									{
@@ -1178,7 +1175,6 @@ var _ = Describe("Worker", func() {
 							Expect(actualSpec).To(Equal(garden.ContainerSpec{
 								Handle:     "some-handle",
 								RootFSPath: "some-image-url",
-								NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 								Properties: garden.Properties{"user": "some-user"},
 								BindMounts: []garden.BindMount{
 									{
@@ -1239,7 +1235,6 @@ var _ = Describe("Worker", func() {
 							Expect(actualSpec).To(Equal(garden.ContainerSpec{
 								Handle:     "some-handle",
 								RootFSPath: "some-image-url",
-								NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 								Properties: garden.Properties{"user": "some-user"},
 								BindMounts: []garden.BindMount{
 									{
@@ -1301,7 +1296,6 @@ var _ = Describe("Worker", func() {
 							Expect(actualSpec).To(Equal(garden.ContainerSpec{
 								Handle:     "some-handle",
 								RootFSPath: "some-image-url",
-								NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 								Properties: garden.Properties{"user": "some-user"},
 								BindMounts: []garden.BindMount{
 									{
