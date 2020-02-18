@@ -226,6 +226,51 @@ var _ = Describe("PutStep", func() {
 				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 			})
 		})
+
+		Context("when the inputs are detected", func() {
+			BeforeEach(func() {
+				putPlan.Inputs = &atc.InputsConfig{
+					Detect: true,
+				}
+			})
+
+			Context("when the params are only strings", func() {
+				BeforeEach(func() {
+					putPlan.Params = atc.Params{
+						"some-param":    "some-source/source",
+						"another-param": "does-not-exist",
+						"number-param":  123,
+					}
+				})
+
+				It("calls RunPutStep with detected inputs", func() {
+					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+					Expect(containerSpec.ArtifactByPath).To(HaveLen(1))
+					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+				})
+			})
+
+			Context("when the params have maps and slices", func() {
+				BeforeEach(func() {
+					putPlan.Params = atc.Params{
+						"some-slice": []interface{}{
+							[]interface{}{"some-source/source", "does-not-exist", 123},
+							[]interface{}{"does not exist-2"},
+						},
+						"some-map": map[string]interface{}{
+							"key": "some-other-source/source",
+						},
+					}
+				})
+
+				It("calls RunPutStep with detected inputs", func() {
+					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+					Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
+					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+				})
+			})
+		})
 	})
 
 	It("calls workerClient -> RunPutStep with the appropriate arguments", func() {

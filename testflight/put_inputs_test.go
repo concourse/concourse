@@ -46,12 +46,40 @@ var _ = Describe("A put step with inputs", func() {
 
 	Context("when no inputs are specified", func() {
 		It("attached all inputs to the put container", func() {
-			watch := spawnFly("trigger-job", "-j", inPipeline("job-using-all-inputs"), "-w")
+			watch := spawnFly("trigger-job", "-j", inPipeline("job-using-no-inputs"), "-w")
 			<-watch.Exited
 
-			interceptS := fly("intercept", "-j", inPipeline("job-using-all-inputs"), "-s", "some-resource", "--step-type", "put", "--", "ls")
+			interceptS := fly("intercept", "-j", inPipeline("job-using-no-inputs"), "-s", "some-resource", "--step-type", "put", "--", "ls")
 			Expect(string(interceptS.Out.Contents())).To(ContainSubstring("all-input"))
 			Expect(string(interceptS.Out.Contents())).To(ContainSubstring("specified-input"))
+		})
+	})
+
+	Context("when inputs are detected", func() {
+		Context("when params are only strings", func() {
+			It("attaches only the detected inputs to the put container", func() {
+				watch := spawnFly("trigger-job", "-j", inPipeline("job-using-detect-inputs-simple"), "-w")
+				<-watch.Exited
+
+				interceptS := fly("intercept", "-j", inPipeline("job-using-detect-inputs-simple"), "-s", "some-resource", "--step-type", "put", "--", "ls")
+				Expect(string(interceptS.Out.Contents())).To(ContainSubstring("specified-input"))
+				Expect(string(interceptS.Out.Contents())).ToNot(ContainSubstring("all-input"))
+			})
+		})
+
+		Context("when params have slices and maps", func() {
+			It("attaches the inputs detected in the slices", func() {
+				watch := spawnFly("trigger-job", "-j", inPipeline("job-using-detect-inputs-complex"), "-w")
+				<-watch.Exited
+
+				interceptS := fly("intercept", "-j", inPipeline("job-using-detect-inputs-complex"), "-s", "some-resource", "--step-type", "put", "--", "ls")
+				Expect(string(interceptS.Out.Contents())).To(ContainSubstring("specified-input"))
+				Expect(string(interceptS.Out.Contents())).To(ContainSubstring("map-input"))
+				Expect(string(interceptS.Out.Contents())).ToNot(ContainSubstring("all-input"))
+				Expect(string(interceptS.Out.Contents())).ToNot(ContainSubstring("does-not-exist"))
+				Expect(string(interceptS.Out.Contents())).ToNot(ContainSubstring("does-not-exist-too"))
+				Expect(string(interceptS.Out.Contents())).ToNot(ContainSubstring("123456"))
+			})
 		})
 	})
 })
