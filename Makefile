@@ -64,3 +64,6 @@ test:
 	fly -t local set-pipeline -n -p test -c ./hack/k8s/sample-pipeline.yml
 	fly -t local unpause-pipeline -p test
 	fly -t local trigger-job -j test/test
+
+cluster:
+	kind create cluster --image cirocosta/kind:modified-cri --config hack/k8s/kind-config.yaml
