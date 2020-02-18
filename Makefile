@@ -1,6 +1,6 @@
 NAMESPACE ?= concourse
 
-KUBECONFIG ?= /home/ubuntu/.kube/config
+KUBECONFIG ?= $(shell realpath ~/.kube/config)
 KUBECTL    ?= kubectl --namespace $(NAMESPACE)
 
 INIT_CONFIGMAP ?= init
