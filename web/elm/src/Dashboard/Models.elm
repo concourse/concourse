@@ -22,12 +22,17 @@ type alias Model =
             , query : String
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             , existingJobs : List Concourse.Job
+            , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
             , dragState : DragState
             , dropState : DropState
             , isJobsRequestFinished : Bool
             , isTeamsRequestFinished : Bool
             , isPipelinesRequestFinished : Bool
             , isResourcesRequestFinished : Bool
+            , viewportWidth : Float
+            , viewportHeight : Float
+            , scrollTop : Float
+            , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
             }
         )
 

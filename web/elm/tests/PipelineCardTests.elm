@@ -107,7 +107,25 @@ all =
                             ]
                         |> Query.find [ class "card" ]
             in
-            [ describe "header" <|
+            [ describe "card" <|
+                [ test "card has display flex with direction column" <|
+                    noPipelinesCard
+                        >> Query.has
+                            [ style "display" "flex"
+                            , style "flex-direction" "column"
+                            ]
+                , test "card has width 272px and height 268px" <|
+                    noPipelinesCard
+                        >> Query.has
+                            [ style "width" "272px"
+                            , style "height" "268px"
+                            ]
+                , test "card has a left margin of 25px" <|
+                    noPipelinesCard
+                        >> Query.has
+                            [ style "margin-left" "25px" ]
+                ]
+            , describe "header" <|
                 let
                     header : () -> Query.Single ApplicationMsgs.TopLevelMessage
                     header =
@@ -146,13 +164,13 @@ all =
                         noPipelinesCard
                             >> Query.find [ class "card-body" ]
                 in
-                [ test "has 200px width, 120px height, 20px 36px padding" <|
+                [ test "has 20px 36px padding" <|
                     body
                         >> Query.has
-                            [ style "width" "200px"
-                            , style "height" "120px"
-                            , style "padding" "20px 36px"
-                            ]
+                            [ style "padding" "20px 36px" ]
+                , test "fills available height" <|
+                    body
+                        >> Query.has [ style "flex-grow" "1" ]
                 , test "has dark grey background" <|
                     body
                         >> Query.has [ style "background-color" darkGrey ]
@@ -179,7 +197,7 @@ all =
                         , style "height" "47px"
                         ]
             ]
-        , test "has 'move' cursor" <|
+        , test "has 'move' cursor when not searching" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -203,7 +221,34 @@ all =
                         , containing [ text "pipeline" ]
                         ]
                     |> Query.has [ style "cursor" "move" ]
-        , test "has 25px margins" <|
+        , test "does not have 'move' cursor when searching" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (ApplicationMsgs.Update <| Msgs.FilterMsg "pipeline")
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find
+                        [ class "card"
+                        , containing [ text "pipeline" ]
+                        ]
+                    |> Query.hasNot [ style "cursor" "move" ]
+        , test "fills available space" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -226,7 +271,12 @@ all =
                         [ class "card"
                         , containing [ text "pipeline" ]
                         ]
-                    |> Query.has [ style "margin" "25px" ]
+                    |> Query.has
+                        [ style "width" "100%"
+                        , style "height" "100%"
+                        , style "display" "flex"
+                        , style "flex-direction" "column"
+                        ]
         , describe "header" <|
             let
                 header : () -> Query.Single ApplicationMsgs.TopLevelMessage
@@ -972,60 +1022,84 @@ all =
                             False
                         |> card
                         |> Query.has [ style "background-color" amber ]
+            , test "card is not affected by jobs from other pipelines" <|
+                \_ ->
+                    whenOnDashboard { highDensity = True }
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllJobsFetched <|
+                                let
+                                    baseJob =
+                                        job BuildStatusErrored
+                                in
+                                Ok
+                                    [ { baseJob | pipelineName = "other-pipeline" } ]
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> card
+                        |> Query.hasNot [ style "background-color" amber ]
             ]
-        , describe "body"
+        , describe "body" <|
+            let
+                setup : () -> Query.Single ApplicationMsgs.TopLevelMessage
+                setup _ =
+                    whenOnDashboard { highDensity = False }
+                        |> givenDataUnauthenticated
+                            (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ { id = 0
+                                      , name = "pipeline"
+                                      , paused = False
+                                      , public = True
+                                      , teamName = "team"
+                                      , groups = []
+                                      }
+                                    ]
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find
+                            [ class "card"
+                            , containing [ text "pipeline" ]
+                            ]
+            in
             [ test "has dark grey background" <|
-                \_ ->
-                    whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated
-                            (apiData [ ( "team", [] ) ])
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.AllPipelinesFetched <|
-                                Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
-                            )
-                        |> Tuple.first
-                        |> Common.queryView
-                        |> Query.find
-                            [ class "card"
-                            , containing [ text "pipeline" ]
-                            ]
-                        |> findBody
-                        |> Query.has [ style "background-color" darkGrey ]
-            , test "has 2x margin above and below" <|
-                \_ ->
-                    whenOnDashboard { highDensity = False }
-                        |> givenDataUnauthenticated
-                            (apiData [ ( "team", [] ) ])
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.AllPipelinesFetched <|
-                                Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
-                            )
-                        |> Tuple.first
-                        |> Common.queryView
-                        |> Query.find
-                            [ class "card"
-                            , containing [ text "pipeline" ]
-                            ]
-                        |> findBody
-                        |> Query.has [ style "margin" "2px 0" ]
+                setup
+                    >> findBody
+                    >> Query.has [ style "background-color" darkGrey ]
+            , test "has 2px margin above and below" <|
+                setup
+                    >> findBody
+                    >> Query.has [ style "margin" "2px 0" ]
+            , test "fills available height" <|
+                setup
+                    >> findBody
+                    >> Query.has [ style "flex-grow" "1" ]
+            , test "pipeline-grid fills available space" <|
+                setup
+                    >> findBody
+                    >> Query.find [ class "pipeline-grid" ]
+                    >> Query.has
+                        [ style "box-sizing" "border-box"
+                        , style "width" "100%"
+                        , style "height" "100%"
+                        ]
             ]
         , describe "footer" <|
             let

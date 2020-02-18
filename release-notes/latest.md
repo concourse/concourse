@@ -18,6 +18,10 @@ collector. #4607
 As this feature is being built using [OpenTelemetry], expect to have support for
 other systems soon.
 
+[OpenTelemetry]: https://opentelemetry.io/
+[Jaeger]: https://www.jaegertracing.io/
+[Stackdriver]: https://cloud.google.com/trace/
+
 #### <sub><sup><a name="4092" href="#4092">:link:</a></sup></sub> feature
 
 * @joshzarrabi added the `--all` flag to the `fly pause-pipeline` and
@@ -28,9 +32,9 @@ pipeline on a team at the same time. #4092
 
 * In the case that a user has multiple roles on a team, the pills on the team headers on the dashboard now accurately reflect the logged-in user's most-privileged role on each team. #5133
 
-[OpenTelemetry]: https://opentelemetry.io/
-[Jaeger]: https://www.jaegertracing.io/
-[Stackdriver]: https://cloud.google.com/trace/
+#### <sub><sup><a name="5118" href="#5118">:link:</a></sup></sub> feature
+
+* Improved the performance of the dashboard by only rendering the pipeline cards that are visible. #5118
 
 #### <sub><sup><a name="5160" href="#5160">:link:</a></sup></sub> fix
 

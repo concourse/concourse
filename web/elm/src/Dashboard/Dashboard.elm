@@ -11,12 +11,15 @@ module Dashboard.Dashboard exposing
 import Application.Models exposing (Session)
 import Concourse
 import Concourse.Cli as Cli
+import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Drag as Drag
 import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models as Models exposing (DragState(..), DropState(..), Dropdown(..), Model)
+import Dashboard.PipelineGrid as PipelineGrid
+import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Dashboard.RequestBuffer as RequestBuffer exposing (Buffer(..))
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
@@ -42,8 +45,8 @@ import Html.Events
         )
 import List.Extra
 import Login.Login as Login
-import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..))
+import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message
     exposing
         ( DomID(..)
@@ -59,6 +62,7 @@ import Message.Subscription
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import SideBar.SideBar as SideBar
+import StrictEvents exposing (onScroll)
 import Time
 import UserState
 import Views.Styles
@@ -77,6 +81,7 @@ init searchType =
       , pipelinesWithResourceErrors = Dict.empty
       , existingJobs = []
       , pipelines = []
+      , pipelineLayers = Dict.empty
       , teams = []
       , isUserMenuExpanded = False
       , dropdown = Hidden
@@ -86,6 +91,10 @@ init searchType =
       , isTeamsRequestFinished = False
       , isResourcesRequestFinished = False
       , isPipelinesRequestFinished = False
+      , viewportWidth = 0
+      , viewportHeight = 0
+      , scrollTop = 0
+      , pipelineJobs = Dict.empty
       }
     , [ FetchAllTeams
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -93,6 +102,7 @@ init searchType =
       , FetchAllResources
       , FetchAllJobs
       , FetchAllPipelines
+      , GetViewportOf Dashboard AlwaysShow
       ]
     )
 
@@ -176,7 +186,32 @@ handleCallback callback ( model, effects ) =
             )
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
-            ( { model | existingJobs = allJobsInEntireCluster }, effects )
+            ( if model.existingJobs == allJobsInEntireCluster then
+                model
+
+              else
+                let
+                    pipelinesWithJobs =
+                        allJobsInEntireCluster
+                            |> List.map (\j -> ( j.teamName, j.pipelineName ))
+                            |> List.Extra.unique
+                            |> List.map
+                                (\( teamName, pipelineName ) ->
+                                    allJobsInEntireCluster
+                                        |> List.filter (\j -> j.teamName == teamName && j.pipelineName == pipelineName)
+                                        |> Tuple.pair ( teamName, pipelineName )
+                                )
+                in
+                { model
+                    | existingJobs = allJobsInEntireCluster
+                    , pipelineLayers =
+                        pipelinesWithJobs
+                            |> List.map (\( key, jobs ) -> ( key, DashboardPreview.groupByRank jobs ))
+                            |> Dict.fromList
+                    , pipelineJobs = pipelinesWithJobs |> Dict.fromList
+                }
+            , effects
+            )
 
         AllJobsFetched (Err _) ->
             ( { model | showTurbulence = True }, effects )
@@ -205,10 +240,9 @@ handleCallback callback ( model, effects ) =
             ( { model
                 | pipelines =
                     allPipelinesInEntireCluster
-                        |> List.indexedMap
-                            (\idx p ->
+                        |> List.map
+                            (\p ->
                                 { id = p.id
-                                , ordering = idx
                                 , name = p.name
                                 , teamName = p.teamName
                                 , public = p.public
@@ -283,6 +317,15 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
+        GotViewport Dashboard _ (Ok viewport) ->
+            ( { model
+                | viewportWidth = viewport.viewport.width
+                , viewportHeight = viewport.viewport.height
+                , scrollTop = viewport.viewport.y
+              }
+            , effects
+            )
+
         _ ->
             ( model, effects )
     )
@@ -320,6 +363,12 @@ handleDeliveryBody delivery ( model, effects ) =
         ClockTicked OneSecond time ->
             ( { model | now = Just time }, effects )
 
+        WindowResized _ _ ->
+            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+
+        SideBarStateReceived _ ->
+            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+
         _ ->
             ( model, effects )
 
@@ -348,16 +397,27 @@ updateBody msg ( model, effects ) =
             case model.dragState of
                 Dragging teamName dragIdx ->
                     let
-                        pipelines =
-                            Drag.drag dragIdx
-                                (case model.dropState of
-                                    Dropping dropIdx ->
-                                        dropIdx
+                        teamStartIndex =
+                            model.pipelines
+                                |> List.Extra.findIndex (\p -> p.teamName == teamName)
 
-                                    _ ->
-                                        dragIdx
-                                )
-                                model.pipelines
+                        pipelines =
+                            case teamStartIndex of
+                                Just teamStartIdx ->
+                                    model.pipelines
+                                        |> Drag.drag (teamStartIdx + dragIdx)
+                                            (teamStartIdx
+                                                + (case model.dropState of
+                                                    Dropping dropIdx ->
+                                                        dropIdx
+
+                                                    _ ->
+                                                        dragIdx + 1
+                                                  )
+                                            )
+
+                                _ ->
+                                    model.pipelines
                     in
                     ( { model
                         | pipelines = pipelines
@@ -424,6 +484,12 @@ updateBody msg ( model, effects ) =
 
                 Nothing ->
                     ( model, effects )
+
+        Click HamburgerMenu ->
+            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+
+        Scrolled scrollState ->
+            ( { model | scrollTop = scrollState.scrollTop }, effects )
 
         _ ->
             ( model, effects )
@@ -530,6 +596,8 @@ dashboardView session model =
     else
         Html.div
             (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
+                :: id (toHtmlID Dashboard)
+                :: onScroll Scrolled
                 :: Styles.content model.highDensity
             )
             (welcomeCard session model :: pipelinesView session model)
@@ -653,17 +721,21 @@ pipelinesView :
             , query : String
             , highDensity : Bool
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-            , existingJobs : List Concourse.Job
+            , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
             , pipelines : List Pipeline
             , dragState : DragState
             , dropState : DropState
             , now : Maybe Time.Posix
+            , viewportWidth : Float
+            , viewportHeight : Float
+            , scrollTop : Float
+            , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
         }
     -> List (Html Message)
 pipelinesView session params =
     let
         filteredGroups =
-            Filter.filterGroups params.existingJobs params.query params.teams params.pipelines
+            Filter.filterGroups params.pipelineJobs params.query params.teams params.pipelines
                 |> List.sortWith (Group.ordering session)
 
         groupViews =
@@ -673,24 +745,54 @@ pipelinesView session params =
                             (Group.hdView
                                 { pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
-                                , existingJobs = params.existingJobs
+                                , pipelineJobs = params.pipelineJobs
                                 }
                                 session
                             )
 
                     else
-                        List.map
-                            (Group.view
-                                session
-                                { dragState = params.dragState
-                                , dropState = params.dropState
-                                , now = params.now
-                                , hovered = session.hovered
-                                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
-                                , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
-                                , existingJobs = params.existingJobs
-                                }
+                        List.foldl
+                            (\g ( htmlList, totalOffset ) ->
+                                let
+                                    layout =
+                                        PipelineGrid.computeLayout
+                                            { dragState = params.dragState
+                                            , dropState = params.dropState
+                                            , pipelineLayers = params.pipelineLayers
+                                            , viewportWidth = params.viewportWidth
+                                            , viewportHeight = params.viewportHeight
+                                            , scrollTop = params.scrollTop - totalOffset
+                                            }
+                                            g
+                                in
+                                Group.view
+                                    session
+                                    { dragState = params.dragState
+                                    , dropState = params.dropState
+                                    , now = params.now
+                                    , hovered = session.hovered
+                                    , pipelineRunningKeyframes = session.pipelineRunningKeyframes
+                                    , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                    , pipelineLayers = params.pipelineLayers
+                                    , query = params.query
+                                    , pipelineCards = layout.pipelineCards
+                                    , dropAreas = layout.dropAreas
+                                    , groupCardsHeight = layout.height
+                                    , pipelineJobs = params.pipelineJobs
+                                    }
+                                    g
+                                    |> (\html ->
+                                            ( html :: htmlList
+                                            , totalOffset
+                                                + layout.height
+                                                + PipelineGridConstants.headerHeight
+                                                + PipelineGridConstants.padding
+                                            )
+                                       )
                             )
+                            ( [], 0 )
+                            >> Tuple.first
+                            >> List.reverse
                    )
     in
     if List.isEmpty groupViews && not (String.isEmpty params.query) then

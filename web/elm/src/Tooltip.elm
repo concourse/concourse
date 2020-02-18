@@ -17,7 +17,7 @@ type alias Model m =
 handleCallback : Callback -> ET (Model m)
 handleCallback callback ( model, effects ) =
     case callback of
-        GotViewport policy (Ok { scene, viewport }) ->
+        GotViewport _ policy (Ok { scene, viewport }) ->
             case model.hovered of
                 HoverState.Hovered domID ->
                     if policy == OnlyShowWhenOverflowing && viewport.width >= scene.width then

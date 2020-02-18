@@ -1,6 +1,7 @@
 module HoverState exposing
     ( HoverState(..)
     , TooltipPosition(..)
+    , hoveredElement
     , isHovered
     )
 
@@ -19,17 +20,27 @@ type HoverState
     | Tooltip DomID TooltipPosition
 
 
-isHovered : DomID -> HoverState -> Bool
-isHovered domID hoverState =
+hoveredElement : HoverState -> Maybe DomID
+hoveredElement hoverState =
     case hoverState of
         NoHover ->
-            False
+            Nothing
 
         Hovered d ->
-            d == domID
+            Just d
 
         TooltipPending d ->
-            d == domID
+            Just d
 
         Tooltip d _ ->
+            Just d
+
+
+isHovered : DomID -> HoverState -> Bool
+isHovered domID hoverState =
+    case hoveredElement hoverState of
+        Nothing ->
+            False
+
+        Just d ->
             d == domID

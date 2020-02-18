@@ -10,7 +10,7 @@ import Concourse.PipelineStatus
         )
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Pipeline as Pipeline
-import Dict
+import Dict exposing (Dict)
 import Parser
     exposing
         ( (|.)
@@ -39,7 +39,7 @@ type alias Filter =
     }
 
 
-filterGroups : List Concourse.Job -> String -> List Concourse.Team -> List Pipeline -> List Group
+filterGroups : Dict ( String, String ) (List Concourse.Job) -> String -> List Concourse.Team -> List Pipeline -> List Group
 filterGroups existingJobs query teams pipelines =
     let
         groupsToFilter =
@@ -62,7 +62,7 @@ filterGroups existingJobs query teams pipelines =
     parseFilters query |> List.foldr (runFilter existingJobs) groupsToFilter
 
 
-runFilter : List Concourse.Job -> Filter -> List Group -> List Group
+runFilter : Dict ( String, String ) (List Concourse.Job) -> Filter -> List Group -> List Group
 runFilter existingJobs f =
     let
         negater =
@@ -88,16 +88,13 @@ runFilter existingJobs f =
                 >> List.filter (.pipelines >> List.isEmpty >> not)
 
 
-pipelineFilter : PipelineFilter -> List Concourse.Job -> Pipeline -> Bool
+pipelineFilter : PipelineFilter -> Dict ( String, String ) (List Concourse.Job) -> Pipeline -> Bool
 pipelineFilter pf existingJobs pipeline =
     let
         jobsForPipeline =
             existingJobs
-                |> List.filter
-                    (\j ->
-                        (j.teamName == pipeline.teamName)
-                            && (j.pipelineName == pipeline.name)
-                    )
+                |> Dict.get ( pipeline.teamName, pipeline.name )
+                |> Maybe.withDefault []
     in
     case pf of
         Status sf ->

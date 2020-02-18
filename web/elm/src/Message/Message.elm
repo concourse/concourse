@@ -80,6 +80,8 @@ type DomID
     | HamburgerMenu
     | SideBarTeam String
     | SideBarPipeline Concourse.PipelineIdentifier
+    | Dashboard
+    | DashboardGroup String
 
 
 type VersionToggleAction

@@ -27,7 +27,7 @@ import Views.Styles
 
 pipelineNotSetView : Html Message
 pipelineNotSetView =
-    Html.div [ class "card" ]
+    Html.div (class "card" :: Styles.noPipelineCard)
         [ Html.div
             (class "card-header" :: Styles.noPipelineCardHeader)
             [ Html.text "no pipeline set"
@@ -86,11 +86,20 @@ pipelineView :
     , userState : UserState
     , resourceError : Bool
     , existingJobs : List Concourse.Job
+    , layers : List (List Concourse.Job)
+    , query : String
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query } =
     Html.div
-        Styles.pipelineCard
+        (Styles.pipelineCard
+            ++ (if String.isEmpty query then
+                    [ style "cursor" "move" ]
+
+                else
+                    []
+               )
+        )
         [ Html.div
             (class "banner"
                 :: Styles.pipelineCardBanner
@@ -100,7 +109,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
             )
             []
         , headerView pipeline resourceError
-        , bodyView hovered existingJobs
+        , bodyView hovered layers
         , footerView userState pipeline now hovered existingJobs
         ]
 
@@ -223,11 +232,11 @@ headerView pipeline resourceError =
         ]
 
 
-bodyView : HoverState.HoverState -> List Concourse.Job -> Html Message
-bodyView hovered existingJobs =
+bodyView : HoverState.HoverState -> List (List Concourse.Job) -> Html Message
+bodyView hovered layers =
     Html.div
         (class "card-body" :: Styles.pipelineCardBody)
-        [ DashboardPreview.view hovered existingJobs ]
+        [ DashboardPreview.view hovered layers ]
 
 
 footerView :

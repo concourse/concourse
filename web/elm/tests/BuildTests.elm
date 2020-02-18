@@ -2885,7 +2885,7 @@ all =
                             )
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.GotViewport Callback.AlwaysShow <|
+                            (Callback.GotViewport firstOccurrenceLabelID Callback.AlwaysShow <|
                                 Ok
                                     { scene =
                                         { width = 1
@@ -3118,7 +3118,9 @@ all =
                             )
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.GotViewport Callback.AlwaysShow <|
+                            (Callback.GotViewport (Message.Message.StepState "plan")
+                                Callback.AlwaysShow
+                             <|
                                 Ok
                                     { scene =
                                         { width = 1
@@ -3203,7 +3205,9 @@ all =
                             )
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.GotViewport Callback.AlwaysShow <|
+                            (Callback.GotViewport (Message.Message.StepState "plan")
+                                Callback.AlwaysShow
+                             <|
                                 Ok
                                     { scene =
                                         { width = 1
