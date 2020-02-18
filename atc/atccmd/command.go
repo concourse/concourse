@@ -1670,6 +1670,8 @@ func (cmd *RunCommand) appendKubernetesWorker(
 ) []grouper.Member {
 	var resourceTypes []atc.WorkerResourceType
 
+	// [cc] hardcoded map of base resource types that we expose
+	//
 	mapping := map[string]string{
 		"git":            "concourse/git-resource",
 		"registry-image": "concourse/registry-image-resource",
