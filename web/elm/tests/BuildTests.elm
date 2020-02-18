@@ -99,11 +99,7 @@ all =
                 Application.handleCallback <|
                     Callback.BuildJobDetailsFetched <|
                         Ok
-                            { pipeline =
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                }
-                            , name = "j"
+                            { name = "j"
                             , pipelineName = "p"
                             , teamName = "t"
                             , nextBuild = Nothing
@@ -123,11 +119,7 @@ all =
                 Application.handleCallback <|
                     Callback.BuildJobDetailsFetched <|
                         Ok
-                            { pipeline =
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                }
-                            , name = "j"
+                            { name = "j"
                             , pipelineName = "p"
                             , teamName = "t"
                             , nextBuild = Nothing
@@ -1005,11 +997,7 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
                             Ok
-                                { pipeline =
-                                    { teamName = "t"
-                                    , pipelineName = "p"
-                                    }
-                                , name = ""
+                                { name = ""
                                 , pipelineName = "p"
                                 , teamName = "t"
                                 , nextBuild = Nothing
@@ -1069,11 +1057,7 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
                             Ok
-                                { pipeline =
-                                    { teamName = "t"
-                                    , pipelineName = "p"
-                                    }
-                                , name = ""
+                                { name = ""
                                 , pipelineName = "p"
                                 , teamName = "t"
                                 , nextBuild = Nothing
@@ -1114,11 +1098,7 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
                             Ok
-                                { pipeline =
-                                    { teamName = "t"
-                                    , pipelineName = "p"
-                                    }
-                                , name = ""
+                                { name = ""
                                 , pipelineName = "p"
                                 , teamName = "t"
                                 , nextBuild = Nothing

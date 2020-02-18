@@ -223,11 +223,7 @@ findJobPreview =
 
 job : Concourse.Job
 job =
-    { pipeline =
-        { teamName = "team"
-        , pipelineName = "pipeline"
-        }
-    , name = "job"
+    { name = "job"
     , pipelineName = "pipeline"
     , teamName = "team"
     , nextBuild = Nothing

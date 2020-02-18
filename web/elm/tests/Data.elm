@@ -79,11 +79,7 @@ pipeline team id =
 
 job : Int -> Concourse.Job
 job pipelineID =
-    { pipeline =
-        { teamName = teamName
-        , pipelineName = "pipeline-" ++ String.fromInt pipelineID
-        }
-    , name = jobName
+    { name = jobName
     , pipelineName = "pipeline-" ++ String.fromInt pipelineID
     , teamName = teamName
     , nextBuild = Nothing
