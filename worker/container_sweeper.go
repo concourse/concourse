@@ -9,15 +9,16 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc/worker/gclient"
 )
 
-// containerSweeper is an ifrit.Runner that periodically reports and
+// ContainerSweeper is an ifrit.Runner that periodically reports and
 // garbage-collects a worker's containers
-type containerSweeper struct {
+type ContainerSweeper struct {
 	logger       lager.Logger
 	interval     time.Duration
 	tsaClient    TSAClient
-	gardenClient garden.Client
+	gardenClient gclient.Client
 	maxInFlight  uint16
 }
 
@@ -25,10 +26,10 @@ func NewContainerSweeper(
 	logger lager.Logger,
 	sweepInterval time.Duration,
 	tsaClient TSAClient,
-	gardenClient garden.Client,
+	gardenClient gclient.Client,
 	maxInFlight uint16,
-) *containerSweeper {
-	return &containerSweeper{
+) *ContainerSweeper {
+	return &ContainerSweeper{
 		logger:       logger,
 		interval:     sweepInterval,
 		tsaClient:    tsaClient,
@@ -37,7 +38,7 @@ func NewContainerSweeper(
 	}
 }
 
-func (sweeper *containerSweeper) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (sweeper *ContainerSweeper) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	timer := time.NewTicker(sweeper.interval)
 
 	close(ready)
@@ -54,7 +55,7 @@ func (sweeper *containerSweeper) Run(signals <-chan os.Signal, ready chan<- stru
 	}
 }
 
-func (sweeper *containerSweeper) sweep(logger lager.Logger) {
+func (sweeper *ContainerSweeper) sweep(logger lager.Logger) {
 	ctx := lagerctx.NewContext(context.Background(), logger)
 
 	containers, err := sweeper.gardenClient.Containers(garden.Properties{})

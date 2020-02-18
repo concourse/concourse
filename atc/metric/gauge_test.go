@@ -22,7 +22,7 @@ var _ = Describe("Gauge", func() {
 		gauge.Inc()
 		gauge.Dec()
 
-		Expect(gauge.Max()).To(Equal(2))
+		Expect(gauge.Max()).To(Equal(float64(2)))
 	})
 
 	It("deals with concurrent increments correctly", func() {
@@ -42,7 +42,7 @@ var _ = Describe("Gauge", func() {
 
 		wg.Wait()
 
-		Expect(gauge.Max()).To(Equal(totalIncs))
+		Expect(gauge.Max()).To(Equal(float64(totalIncs)))
 	})
 
 	It("resets the max to the current value when observed", func() {
@@ -50,8 +50,8 @@ var _ = Describe("Gauge", func() {
 		gauge.Inc()
 		gauge.Dec()
 
-		Expect(gauge.Max()).To(Equal(2))
+		Expect(gauge.Max()).To(Equal(float64(2)))
 
-		Expect(gauge.Max()).To(Equal(1))
+		Expect(gauge.Max()).To(Equal(float64(1)))
 	})
 })

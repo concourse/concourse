@@ -98,7 +98,14 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 
 		completed := false
 
-		err := source.conn.QueryRow(`
+		tx, err := source.conn.Begin()
+		if err != nil {
+			return
+		}
+
+		defer Rollback(tx)
+
+		err = tx.QueryRow(`
 			SELECT builds.completed
 			FROM builds
 			WHERE builds.id = $1
@@ -109,7 +116,7 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 			return
 		}
 
-		rows, err := source.conn.Query(`
+		rows, err := tx.Query(`
 			SELECT type, version, payload
 			FROM `+source.table+`
 			WHERE build_id = $1
@@ -157,6 +164,12 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 				close(source.events)
 				return
 			}
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			close(source.events)
+			return
 		}
 
 		if rowsReturned == batchSize {

@@ -11,8 +11,9 @@ import (
 )
 
 var _ = Describe("Resource Config Scope", func() {
-	var pipeline db.Pipeline
 	var resourceScope db.ResourceConfigScope
+	var resource db.Resource
+	var pipeline db.Pipeline
 
 	BeforeEach(func() {
 		setupTx, err := dbConn.Begin()
@@ -36,10 +37,33 @@ var _ = Describe("Resource Config Scope", func() {
 					},
 				},
 			},
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-job",
+					Plan: atc.PlanSequence{
+						{
+							Get: "some-resource",
+						},
+					},
+				},
+				{
+					Name: "downstream-job",
+					Plan: atc.PlanSequence{
+						{
+							Get:    "some-resource",
+							Passed: []string{"some-job"},
+						},
+					},
+				},
+				{
+					Name: "some-other-job",
+				},
+			},
 		}, db.ConfigVersion(0), false)
 		Expect(err).NotTo(HaveOccurred())
 
-		resource, found, err := pipeline.Resource("some-resource")
+		var found bool
+		resource, found, err = pipeline.Resource("some-resource")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
@@ -87,20 +111,6 @@ var _ = Describe("Resource Config Scope", func() {
 			Expect(latestVR.CheckOrder()).To(Equal(4))
 		})
 
-		It("bumps the cache index", func() {
-			var cacheIndex int
-			err := dbConn.QueryRow(`SELECT cache_index FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&cacheIndex)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cacheIndex).To(Equal(2))
-
-			err = resourceScope.SaveVersions(originalVersionSlice)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = dbConn.QueryRow(`SELECT cache_index FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&cacheIndex)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cacheIndex).To(Equal(3))
-		})
-
 		Context("when the versions already exists", func() {
 			var newVersionSlice []atc.Version
 
@@ -109,6 +119,16 @@ var _ = Describe("Resource Config Scope", func() {
 					{"ref": "v1"},
 					{"ref": "v3"},
 				}
+
+				err := resourceScope.SaveVersions(originalVersionSlice)
+				Expect(err).ToNot(HaveOccurred())
+
+				latestVR, found, err := resourceScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(latestVR.Version()).To(Equal(db.Version{"ref": "v3"}))
+				Expect(latestVR.CheckOrder()).To(Equal(2))
 			})
 
 			It("does not change the check order", func() {
@@ -123,21 +143,78 @@ var _ = Describe("Resource Config Scope", func() {
 				Expect(latestVR.CheckOrder()).To(Equal(2))
 			})
 
-			It("does not bump the cache index", func() {
-				err := resourceScope.SaveVersions(newVersionSlice)
-				Expect(err).ToNot(HaveOccurred())
+			Context("when a new version is added", func() {
+				It("requests schedule on the jobs that use the resource", func() {
+					err := resourceScope.SaveVersions(originalVersionSlice)
+					Expect(err).ToNot(HaveOccurred())
 
-				var cacheIndex int
-				err = dbConn.QueryRow(`SELECT cache_index FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&cacheIndex)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(cacheIndex).To(Equal(3))
+					job, found, err := pipeline.Job("some-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 
-				err = resourceScope.SaveVersions(newVersionSlice)
-				Expect(err).ToNot(HaveOccurred())
+					requestedSchedule := job.ScheduleRequestedTime()
 
-				err = dbConn.QueryRow(`SELECT cache_index FROM pipelines WHERE id = $1`, pipeline.ID()).Scan(&cacheIndex)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(cacheIndex).To(Equal(3))
+					newVersions := []atc.Version{
+						{"ref": "v0"},
+						{"ref": "v3"},
+					}
+					err = resourceScope.SaveVersions(newVersions)
+					Expect(err).ToNot(HaveOccurred())
+
+					found, err = job.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
+				})
+
+				It("does not request schedule on the jobs that use the resource but through passed constraints", func() {
+					err := resourceScope.SaveVersions(originalVersionSlice)
+					Expect(err).ToNot(HaveOccurred())
+
+					job, found, err := pipeline.Job("downstream-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					requestedSchedule := job.ScheduleRequestedTime()
+
+					newVersions := []atc.Version{
+						{"ref": "v0"},
+						{"ref": "v3"},
+					}
+					err = resourceScope.SaveVersions(newVersions)
+					Expect(err).ToNot(HaveOccurred())
+
+					found, err = job.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
+				})
+
+				It("does not request schedule on the jobs that do not use the resource", func() {
+					err := resourceScope.SaveVersions(originalVersionSlice)
+					Expect(err).ToNot(HaveOccurred())
+
+					job, found, err := pipeline.Job("some-other-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					requestedSchedule := job.ScheduleRequestedTime()
+
+					newVersions := []atc.Version{
+						{"ref": "v0"},
+						{"ref": "v3"},
+					}
+					err = resourceScope.SaveVersions(newVersions)
+					Expect(err).ToNot(HaveOccurred())
+
+					found, err = job.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
+				})
 			})
 		})
 	})
@@ -164,6 +241,44 @@ var _ = Describe("Resource Config Scope", func() {
 			It("gets latest version of resource", func() {
 				Expect(latestCV.Version()).To(Equal(db.Version{"ref": "v3"}))
 				Expect(latestCV.CheckOrder()).To(Equal(2))
+			})
+
+			It("disabled versions do not affect fetching the latest version", func() {
+				err := resourceScope.SaveVersions([]atc.Version{{"version": "1"}})
+				Expect(err).ToNot(HaveOccurred())
+
+				savedRCV, found, err := resourceScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(savedRCV.Version()).To(Equal(db.Version{"version": "1"}))
+
+				err = resource.DisableVersion(savedRCV.ID())
+				Expect(err).ToNot(HaveOccurred())
+
+				latestVR, found, err := resourceScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(latestVR.Version()).To(Equal(db.Version{"version": "1"}))
+
+				err = resource.EnableVersion(savedRCV.ID())
+				Expect(err).ToNot(HaveOccurred())
+
+				latestVR, found, err = resourceScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(latestVR.Version()).To(Equal(db.Version{"version": "1"}))
+			})
+
+			It("saving versioned resources updates the latest versioned resource", func() {
+				err := resourceScope.SaveVersions([]atc.Version{{"ref": "4"}, {"ref": "5"}})
+				Expect(err).ToNot(HaveOccurred())
+
+				savedVR, found, err := resourceScope.LatestVersion()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(savedVR.Version()).To(Equal(db.Version{"ref": "5"}))
 			})
 		})
 	})

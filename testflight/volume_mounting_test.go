@@ -36,7 +36,8 @@ var _ = Describe("A job with nested volume mounts", func() {
 		Expect(sess).To(gbytes.Say("hello"))
 	})
 
-	It("procceds through the plan with input same as output mounts", func() {
+	// Pending this test for now, @cirocosta will be looking into it
+	XIt("procceds through the plan with input same as output mounts", func() {
 		sess := fly("trigger-job", "-j", inPipeline("input-same-output"), "-w")
 		Expect(sess).To(gexec.Exit(0))
 		Expect(sess).To(gbytes.Say("hello"))

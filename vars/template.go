@@ -24,6 +24,10 @@ func NewTemplate(bytes []byte) Template {
 	return Template{bytes: bytes}
 }
 
+func (t Template) ExtraVarNames() []string {
+	return interpolator{}.extractVarNames(string(t.bytes))
+}
+
 func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 	var obj interface{}
 
@@ -58,7 +62,7 @@ func (t Template) interpolateRoot(obj interface{}, tracker varsTracker) (interfa
 type interpolator struct{}
 
 var (
-	interpolationRegex         = regexp.MustCompile(`\(\((!?[-/\.\w\pL]+)\)\)`)
+	interpolationRegex         = regexp.MustCompile(`\(\((!?([-/\.\w\pL]+\:)?[-/\.\w\pL]+)\)\)`)
 	interpolationAnchoredRegex = regexp.MustCompile("\\A" + interpolationRegex.String() + "\\z")
 )
 
@@ -138,8 +142,18 @@ type varsLookup struct {
 
 var ErrEmptyVar = errors.New("empty var")
 
+// Get value of a var. Name can be the following formats: 1) 'foo', where foo
+// is var name; 2) 'foo:bar', where foo is var source name, and bar is var name;
+// 3) '.:foo', where . means a local var, foo is var name.
 func (l varsLookup) Get(name string) (interface{}, bool, error) {
-	splitName := strings.Split(name, ".")
+	var splitName []string
+	if strings.Index(name, ":") > 0 {
+		parts := strings.Split(name, ":")
+		splitName = strings.Split(parts[1], ".")
+		splitName[0] = fmt.Sprintf("%s:%s", parts[0], splitName[0])
+	} else {
+		splitName = strings.Split(name, ".")
+	}
 
 	// this should be impossible since interpolationRegex only matches non-empty
 	// vars, but better to error than to panic

@@ -2,8 +2,10 @@ package gc
 
 import (
 	"context"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 type buildCollector struct {
@@ -22,6 +24,13 @@ func NewBuildCollector(buildFactory buildFactory) *buildCollector {
 
 func (b *buildCollector) Run(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx).Session("build-collector")
+
+	start := time.Now()
+	defer func() {
+		metric.BuildCollectorDuration{
+			Duration: time.Since(start),
+		}.Emit(logger)
+	}()
 
 	logger.Debug("start")
 	defer logger.Debug("done")

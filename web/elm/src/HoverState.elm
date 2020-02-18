@@ -1,14 +1,16 @@
-module HoverState exposing (HoverState(..), TooltipPosition, isHovered, tooltip)
+module HoverState exposing
+    ( HoverState(..)
+    , TooltipPosition(..)
+    , hoveredElement
+    , isHovered
+    )
 
 import Message.Message exposing (DomID)
 
 
-type alias TooltipPosition =
-    { top : Float
-    , left : Float
-    , marginTop : Float
-    , arrowSize : Float
-    }
+type TooltipPosition
+    = Top Float Float
+    | Bottom Float Float Float
 
 
 type HoverState
@@ -18,37 +20,27 @@ type HoverState
     | Tooltip DomID TooltipPosition
 
 
-isHovered : DomID -> HoverState -> Bool
-isHovered domID hoverState =
+hoveredElement : HoverState -> Maybe DomID
+hoveredElement hoverState =
     case hoverState of
         NoHover ->
-            False
+            Nothing
 
         Hovered d ->
-            d == domID
+            Just d
 
         TooltipPending d ->
-            d == domID
+            Just d
 
         Tooltip d _ ->
+            Just d
+
+
+isHovered : DomID -> HoverState -> Bool
+isHovered domID hoverState =
+    case hoveredElement hoverState of
+        Nothing ->
+            False
+
+        Just d ->
             d == domID
-
-
-tooltip : DomID -> HoverState -> Maybe TooltipPosition
-tooltip domID hoverState =
-    case hoverState of
-        NoHover ->
-            Nothing
-
-        Hovered _ ->
-            Nothing
-
-        TooltipPending _ ->
-            Nothing
-
-        Tooltip d t ->
-            if d == domID then
-                Just t
-
-            else
-                Nothing

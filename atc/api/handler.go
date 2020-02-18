@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/concourse/concourse/atc/api/usersserver"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/artifactserver"
@@ -22,7 +20,9 @@ import (
 	"github.com/concourse/concourse/atc/api/resourceserver"
 	"github.com/concourse/concourse/atc/api/resourceserver/versionserver"
 	"github.com/concourse/concourse/atc/api/teamserver"
+	"github.com/concourse/concourse/atc/api/usersserver"
 	"github.com/concourse/concourse/atc/api/volumeserver"
+	"github.com/concourse/concourse/atc/api/wallserver"
 	"github.com/concourse/concourse/atc/api/workerserver"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -66,8 +66,10 @@ func NewHandler(
 	version string,
 	workerVersion string,
 	secretManager creds.Secrets,
+	varSourcePool creds.VarSourcePool,
 	credsManagers creds.Managers,
 	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
+	dbWall db.Wall,
 ) (http.Handler, error) {
 
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
@@ -82,7 +84,7 @@ func NewHandler(
 	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory)
 	checkServer := checkserver.NewServer(logger, dbCheckFactory)
 	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory, dbCheckFactory)
-	resourceServer := resourceserver.NewServer(logger, secretManager, dbCheckFactory, dbResourceFactory, dbResourceConfigFactory)
+	resourceServer := resourceserver.NewServer(logger, secretManager, varSourcePool, dbCheckFactory, dbResourceFactory, dbResourceConfigFactory)
 
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL)
@@ -91,12 +93,13 @@ func NewHandler(
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
-	containerServer := containerserver.NewServer(logger, workerClient, secretManager, interceptTimeoutFactory, containerRepository, destroyer)
+	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, containerRepository, destroyer)
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
 	artifactServer := artifactserver.NewServer(logger, workerClient)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
+	wallServer := wallserver.NewServer(dbWall, logger)
 
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
@@ -123,8 +126,10 @@ func NewHandler(
 		atc.ListJobInputs:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs),
 		atc.GetJobBuild:    pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
 		atc.CreateJobBuild: pipelineHandlerFactory.HandlerFor(jobServer.CreateJobBuild),
+		atc.RerunJobBuild:  pipelineHandlerFactory.HandlerFor(jobServer.RerunJobBuild),
 		atc.PauseJob:       pipelineHandlerFactory.HandlerFor(jobServer.PauseJob),
 		atc.UnpauseJob:     pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
+		atc.ScheduleJob:    pipelineHandlerFactory.HandlerFor(jobServer.ScheduleJob),
 		atc.JobBadge:       pipelineHandlerFactory.HandlerFor(jobServer.JobBadge),
 		atc.MainJobBadge: mainredirect.Handler{
 			Routes: atc.Routes,
@@ -203,6 +208,10 @@ func NewHandler(
 
 		atc.CreateArtifact: teamHandlerFactory.HandlerFor(artifactServer.CreateArtifact),
 		atc.GetArtifact:    teamHandlerFactory.HandlerFor(artifactServer.GetArtifact),
+
+		atc.GetWall:   http.HandlerFunc(wallServer.GetWall),
+		atc.SetWall:   http.HandlerFunc(wallServer.SetWall),
+		atc.ClearWall: http.HandlerFunc(wallServer.ClearWall),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))

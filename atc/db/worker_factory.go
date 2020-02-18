@@ -557,22 +557,3 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 
 	return savedWorker, nil
 }
-
-func tagsMatch(workerTags []string, tags []string) bool {
-	if len(workerTags) > 0 && len(tags) == 0 {
-		return false
-	}
-
-insert_coin:
-	for _, stag := range tags {
-		for _, wtag := range workerTags {
-			if stag == wtag {
-				continue insert_coin
-			}
-		}
-
-		return false
-	}
-
-	return true
-}

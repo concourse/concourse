@@ -60,8 +60,8 @@ var _ = Describe("Image", func() {
 			}
 			fakeArtifactVolume.COWStrategyReturns(cowStrategy)
 
-			fakeImageArtifactSource := new(workerfakes.FakeArtifactSource)
-			fakeImageArtifactSource.VolumeOnReturns(fakeArtifactVolume, true, nil)
+			fakeImageArtifactSource := new(workerfakes.FakeStreamableArtifactSource)
+			fakeImageArtifactSource.ExistsOnReturns(fakeArtifactVolume, true, nil)
 			metadataReader := ioutil.NopCloser(strings.NewReader(
 				`{"env": ["A=1", "B=2"], "user":"image-volume-user"}`,
 			))
@@ -120,14 +120,14 @@ var _ = Describe("Image", func() {
 	Describe("imageProvidedByPreviousStepOnDifferentWorker", func() {
 		var (
 			fakeArtifactVolume        *workerfakes.FakeVolume
-			fakeImageArtifactSource   *workerfakes.FakeArtifactSource
+			fakeImageArtifactSource   *workerfakes.FakeStreamableArtifactSource
 			fakeContainerRootfsVolume *workerfakes.FakeVolume
 		)
 
 		BeforeEach(func() {
 			fakeArtifactVolume = new(workerfakes.FakeVolume)
-			fakeImageArtifactSource = new(workerfakes.FakeArtifactSource)
-			fakeImageArtifactSource.VolumeOnReturns(fakeArtifactVolume, false, nil)
+			fakeImageArtifactSource = new(workerfakes.FakeStreamableArtifactSource)
+			fakeImageArtifactSource.ExistsOnReturns(fakeArtifactVolume, false, nil)
 			metadataReader := ioutil.NopCloser(strings.NewReader(
 				`{"env": ["A=1", "B=2"], "user":"image-volume-user"}`,
 			))

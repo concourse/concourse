@@ -1,5 +1,6 @@
 module Build.Header.Header exposing
-    ( handleCallback
+    ( changeToBuild
+    , handleCallback
     , handleDelivery
     , header
     , update
@@ -18,8 +19,8 @@ import Duration exposing (Duration)
 import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
-import Keyboard
 import List.Extra
+import Maybe.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
 import Message.Message exposing (DomID(..), Message(..))
@@ -62,6 +63,26 @@ header session model =
                             Views.Light
                     , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
                     , tooltip = False
+                    }
+
+             else if model.job /= Nothing then
+                let
+                    isHovered =
+                        HoverState.isHovered
+                            RerunBuildButton
+                            session.hovered
+                in
+                Just
+                    { type_ = Views.Rerun
+                    , isClickable = True
+                    , backgroundShade =
+                        if isHovered then
+                            Views.Dark
+
+                        else
+                            Views.Light
+                    , backgroundColor = model.status
+                    , tooltip = isHovered
                     }
 
              else
@@ -116,7 +137,31 @@ historyItem model =
     { id = model.id
     , name = model.name
     , status = model.status
+    , duration = model.duration
     }
+
+
+changeToBuild : BuildPageType -> ET (Model r)
+changeToBuild pageType ( model, effects ) =
+    case pageType of
+        JobBuildPage buildID ->
+            ( model.history
+                |> List.Extra.find (.name >> (==) buildID.buildName)
+                |> Maybe.map
+                    (\b ->
+                        { model
+                            | id = b.id
+                            , status = b.status
+                            , duration = b.duration
+                            , name = b.name
+                        }
+                    )
+                |> Maybe.withDefault model
+            , effects
+            )
+
+        _ ->
+            ( model, effects )
 
 
 duration : Session -> Model r -> Views.BuildDuration
@@ -225,17 +270,6 @@ view session model =
 handleDelivery : Delivery -> ET (Model r)
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        KeyDown keyEvent ->
-            handleKeyPressed keyEvent ( model, effects )
-
-        KeyUp keyEvent ->
-            case keyEvent.code of
-                Keyboard.T ->
-                    ( { model | previousTriggerBuildByKey = False }, effects )
-
-                _ ->
-                    ( model, effects )
-
         ElementVisible ( id, True ) ->
             let
                 lastBuildVisible =
@@ -316,13 +350,8 @@ handleDelivery delivery ( model, effects ) =
 
                                 else
                                     model.status
-                        in
-                        ( { model
-                            | history =
-                                List.Extra.updateIf (.id >> (==) model.id)
-                                    (\item -> { item | status = newStatus })
-                                    model.history
-                            , duration =
+
+                            newDuration =
                                 let
                                     dur =
                                         model.duration
@@ -335,6 +364,18 @@ handleDelivery delivery ( model, effects ) =
                                         else
                                             Just date
                                 }
+                        in
+                        ( { model
+                            | history =
+                                List.Extra.updateIf (.id >> (==) model.id)
+                                    (\item ->
+                                        { item
+                                            | status = newStatus
+                                            , duration = newDuration
+                                        }
+                                    )
+                                    model.history
+                            , duration = newDuration
                             , status = newStatus
                           }
                         , effects
@@ -344,97 +385,6 @@ handleDelivery delivery ( model, effects ) =
 
         _ ->
             ( model, effects )
-
-
-handleKeyPressed : Keyboard.KeyEvent -> ET (Model r)
-handleKeyPressed keyEvent ( model, effects ) =
-    if Keyboard.hasControlModifier keyEvent then
-        ( model, effects )
-
-    else
-        case ( keyEvent.code, keyEvent.shiftKey ) of
-            ( Keyboard.H, False ) ->
-                case nextHistoryItem model.history (historyItem model) of
-                    Just item ->
-                        ( model
-                        , effects
-                            ++ [ NavigateTo <|
-                                    Routes.toString <|
-                                        Routes.buildRoute
-                                            item.id
-                                            item.name
-                                            model.job
-                               ]
-                        )
-
-                    Nothing ->
-                        ( model, effects )
-
-            ( Keyboard.L, False ) ->
-                case prevHistoryItem model.history (historyItem model) of
-                    Just item ->
-                        ( model
-                        , effects
-                            ++ [ NavigateTo <|
-                                    Routes.toString <|
-                                        Routes.buildRoute
-                                            item.id
-                                            item.name
-                                            model.job
-                               ]
-                        )
-
-                    Nothing ->
-                        ( model, effects )
-
-            ( Keyboard.T, True ) ->
-                if not model.previousTriggerBuildByKey then
-                    (model.job
-                        |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
-                        |> Maybe.withDefault identity
-                    )
-                        ( { model | previousTriggerBuildByKey = True }, effects )
-
-                else
-                    ( model, effects )
-
-            ( Keyboard.A, True ) ->
-                if Just (historyItem model) == List.head model.history then
-                    ( model, DoAbortBuild model.id :: effects )
-
-                else
-                    ( model, effects )
-
-            _ ->
-                ( model, effects )
-
-
-prevHistoryItem : List HistoryItem -> HistoryItem -> Maybe HistoryItem
-prevHistoryItem builds b =
-    case builds of
-        first :: second :: rest ->
-            if first == b then
-                Just second
-
-            else
-                prevHistoryItem (second :: rest) b
-
-        _ ->
-            Nothing
-
-
-nextHistoryItem : List HistoryItem -> HistoryItem -> Maybe HistoryItem
-nextHistoryItem builds b =
-    case builds of
-        first :: second :: rest ->
-            if second == b then
-                Just first
-
-            else
-                nextHistoryItem (second :: rest) b
-
-        _ ->
-            Nothing
 
 
 update : Message -> ET (Model r)
@@ -459,6 +409,23 @@ update msg ( model, effects ) =
             in
             ( model, effects ++ scroll ++ checkVisibility )
 
+        Click RerunBuildButton ->
+            ( model
+            , effects
+                ++ (model.job
+                        |> Maybe.map
+                            (\j ->
+                                RerunJobBuild
+                                    { teamName = j.teamName
+                                    , pipelineName = j.pipelineName
+                                    , jobName = j.jobName
+                                    , buildName = model.name
+                                    }
+                            )
+                        |> Maybe.Extra.toList
+                   )
+            )
+
         _ ->
             ( model, effects )
 
@@ -466,17 +433,35 @@ update msg ( model, effects ) =
 handleCallback : Callback -> ET (Model r)
 handleCallback callback ( model, effects ) =
     case callback of
-        BuildFetched (Ok ( browsingIndex, b )) ->
-            handleBuildFetched browsingIndex b ( model, effects )
+        BuildFetched (Ok b) ->
+            handleBuildFetched b ( model, effects )
 
         BuildTriggered (Ok b) ->
             ( { model
                 | history =
-                    { id = b.id
-                    , name = b.name
-                    , status = b.status
-                    }
+                    ({ id = b.id
+                     , name = b.name
+                     , status = b.status
+                     , duration = b.duration
+                     }
                         :: model.history
+                    )
+                        |> List.sortWith
+                            (\n m ->
+                                Maybe.map2
+                                    (\( i, j ) ( k, l ) ->
+                                        case compare i k of
+                                            EQ ->
+                                                compare j l
+
+                                            x ->
+                                                x
+                                    )
+                                    (buildName n.name)
+                                    (buildName m.name)
+                                    |> Maybe.withDefault EQ
+                            )
+                        |> List.reverse
               }
             , effects
                 ++ [ NavigateTo <| Routes.toString <| Routes.buildRoute b.id b.name model.job ]
@@ -493,18 +478,22 @@ handleCallback callback ( model, effects ) =
             ( model, effects )
 
 
-handleBuildFetched : Int -> Concourse.Build -> ET (Model r)
-handleBuildFetched browsingIndex b ( model, effects ) =
-    if browsingIndex == model.browsingIndex then
+handleBuildFetched : Concourse.Build -> ET (Model r)
+handleBuildFetched b ( model, effects ) =
+    if not model.hasLoadedYet || model.id == b.id then
         ( { model
-            | history =
+            | hasLoadedYet = True
+            , history =
                 List.Extra.setIf (.id >> (==) b.id)
                     { id = b.id
                     , name = b.name
                     , status = b.status
+                    , duration = b.duration
                     }
                     model.history
             , fetchingHistory = True
+            , duration = b.duration
+            , status = b.status
             , job = b.job
             , id = b.id
             , name = b.name
@@ -514,6 +503,19 @@ handleBuildFetched browsingIndex b ( model, effects ) =
 
     else
         ( model, effects )
+
+
+buildName : String -> Maybe ( Int, Int )
+buildName s =
+    case String.split "." s |> List.map String.toInt of
+        [ Just n ] ->
+            Just ( n, 0 )
+
+        [ Just n, Just m ] ->
+            Just ( n, m )
+
+        _ ->
+            Nothing
 
 
 handleHistoryFetched : Paginated Concourse.Build -> ET (Model r)
@@ -529,6 +531,7 @@ handleHistoryFetched history ( model, effects ) =
                                         { id = b.id
                                         , name = b.name
                                         , status = b.status
+                                        , duration = b.duration
                                         }
                                     )
                            )

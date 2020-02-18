@@ -38,4 +38,5 @@ Fixes # .
 - [ ] Documentation reviewed
 - [ ] Release notes reviewed
 - [ ] PR acceptance performed
-
+- [ ] New config flags added? Ensure that they are added to the [BOSH](https://github.com/concourse/concourse-bosh-release) 
+      and [Helm](https://github.com/concourse/helm) packaging; otherwise, ignored for the [integration tests](https://github.com/concourse/ci/tree/master/tasks/scripts/check-distribution-env) (for example, if they are Garden configs that are not displayed in the `--help` text). 

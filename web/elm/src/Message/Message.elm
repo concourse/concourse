@@ -46,14 +46,16 @@ type Message
 type DomID
     = ToggleJobButton
     | TriggerBuildButton
+    | AbortBuildButton
+    | RerunBuildButton
     | PreviousPageButton
     | NextPageButton
     | CheckButton Bool
     | SaveCommentButton
-    | AbortBuildButton
-    | FirstOccurrenceIcon StepID
+    | FirstOccurrenceGetStepLabel StepID
     | StepState StepID
     | PinIcon
+    | PinMenuDropDown String
     | PinButton VersionId
     | PinBar
     | PipelineButton Concourse.PipelineIdentifier
@@ -78,6 +80,8 @@ type DomID
     | HamburgerMenu
     | SideBarTeam String
     | SideBarPipeline Concourse.PipelineIdentifier
+    | Dashboard
+    | DashboardGroup String
 
 
 type VersionToggleAction

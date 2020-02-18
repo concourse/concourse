@@ -8,7 +8,7 @@
     vm_type: test
     stemcell: xenial
     jobs:
-    - release: concourse-((suite))
+    - release: concourse((suite))
       name: worker
       properties:
         log_level: debug

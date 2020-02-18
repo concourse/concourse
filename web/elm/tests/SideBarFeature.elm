@@ -429,11 +429,6 @@ hasSideBar iAmLookingAtThePage =
                 >> given iHoveredThePipelineLink
                 >> when iAmLookingAtTheFirstPipelineIcon
                 >> then_ iSeeItIsBright
-        , test "hovering the pipelink link checks its viewport" <|
-            given iHaveAnOpenSideBar_
-                >> given iClickedThePipelineGroup
-                >> when iHoveredTheFirstPipelineLink
-                >> then_ myBrowserChecksAViewport
         , defineHoverBehaviour
             { name = "pipeline link"
             , setup =
@@ -466,8 +461,9 @@ hasSideBar iAmLookingAtThePage =
         , test "subscribes to 5-second tick" <|
             given iAmLookingAtThePage
                 >> then_ myBrowserNotifiesEveryFiveSeconds
-        , test "fetches pipelines every 5 seconds" <|
+        , test "fetches pipelines every five seconds" <|
             given iAmLookingAtThePage
+                >> given myBrowserFetchedPipelines
                 >> when fiveSecondsPass
                 >> then_ myBrowserFetchesPipelines
         , test "sidebar has two pipeline groups" <|
@@ -749,44 +745,15 @@ iVisitTheDashboard _ =
 apiDataLoads =
     Tuple.first
         >> Application.handleCallback
-            (Callback.APIDataFetched
-                (Ok
-                    ( Time.millisToPosix 0
-                    , { teams =
-                            [ { name = "team", id = 0 }
-                            , { name = "other-team", id = 1 }
-                            ]
-                      , pipelines =
-                            [ { id = 0
-                              , name = "pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team"
-                              , groups = []
-                              }
-                            , { id = 1
-                              , name = "other-pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team"
-                              , groups = []
-                              }
-                            ]
-                      , jobs = []
-                      , resources = []
-                      , user = Nothing
-                      , version = "0.0.0-dev"
-                      }
-                    )
-                )
+            (Callback.AllTeamsFetched <|
+                Ok
+                    [ { name = "team", id = 0 }
+                    , { name = "other-team", id = 1 }
+                    ]
             )
-
-
-dataRefreshes =
-    apiDataLoads
         >> Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched <|
+            (Callback.AllPipelinesFetched <|
                 Ok
                     [ { id = 0
                       , name = "pipeline"
@@ -806,24 +773,28 @@ dataRefreshes =
             )
 
 
-thereAreNoPipelines =
-    Application.handleCallback
-        (Callback.APIDataFetched
-            (Ok
-                ( Time.millisToPosix 0
-                , { teams = []
-                  , pipelines = []
-                  , jobs = []
-                  , resources = []
-                  , user = Nothing
-                  , version = "0.0.0-dev"
-                  }
-                )
+dataRefreshes =
+    apiDataLoads
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok
+                    [ { id = 0
+                      , name = "pipeline"
+                      , paused = False
+                      , public = True
+                      , teamName = "team"
+                      , groups = []
+                      }
+                    , { id = 1
+                      , name = "other-pipeline"
+                      , paused = False
+                      , public = True
+                      , teamName = "team"
+                      , groups = []
+                      }
+                    ]
             )
-        )
-        >> Tuple.first
-        >> Application.handleCallback (Callback.PipelinesFetched <| Ok [])
-        >> Tuple.first
 
 
 iSeeNoHamburgerIcon =
@@ -1066,19 +1037,6 @@ iHoveredTheFirstPipelineLink =
             )
 
 
-theFirstPipelineLinkWasOverflowing =
-    Tuple.first
-        >> Application.handleCallback
-            (Callback.GotViewport <|
-                Ok
-                    { scene = { width = 1, height = 0 }
-                    , viewport = { width = 0, height = 0, x = 0, y = 0 }
-
-                    -- , element = { width = 0, height = 0, x = 0, y = 0 }
-                    }
-            )
-
-
 iSeeItContainsThePipelineName =
     Query.has [ text "pipeline" ]
 
@@ -1114,9 +1072,25 @@ fiveSecondsPass =
             )
 
 
-myBrowserFetchesPipelines =
-    Tuple.second
-        >> Common.contains Effects.FetchPipelines
+myBrowserFetchesPipelines ( a, effects ) =
+    let
+        pipelinesDirectly =
+            List.member Effects.FetchAllPipelines effects
+
+        pipelinesThroughData =
+            List.member Effects.FetchAllTeams effects
+    in
+    if pipelinesDirectly || pipelinesThroughData then
+        Expect.pass
+
+    else
+        Expect.fail <|
+            "Expected "
+                ++ Debug.toString effects
+                ++ " to contain "
+                ++ Debug.toString Effects.FetchAllPipelines
+                ++ " or "
+                ++ Debug.toString Effects.FetchAllTeams
 
 
 iHaveAnOpenSideBar =
@@ -1306,7 +1280,7 @@ iSeeNoSideBar =
 myBrowserFetchedPipelinesFromMultipleTeams =
     Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched <|
+            (Callback.AllPipelinesFetched <|
                 Ok
                     [ { id = 0
                       , name = "pipeline"
@@ -1343,7 +1317,7 @@ myBrowserFetchedPipelinesFromMultipleTeams =
 myBrowserFetchedPipelines =
     Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched <|
+            (Callback.AllPipelinesFetched <|
                 Ok
                     [ { id = 0
                       , name = "pipeline"
@@ -1380,7 +1354,7 @@ iSeeTheTurbulenceMessage =
 myBrowserFailsToFetchPipelines =
     Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched <|
+            (Callback.AllPipelinesFetched <|
                 Err <|
                     Http.BadStatus
                         { url = "http://example.com"
@@ -1419,7 +1393,7 @@ iSeeABlueBackground =
 
 
 myBrowserFetchedNoPipelines =
-    Tuple.first >> Application.handleCallback (Callback.PipelinesFetched <| Ok [])
+    Tuple.first >> Application.handleCallback (Callback.AllPipelinesFetched <| Ok [])
 
 
 iHaveAnExpandedPipelineGroup =
@@ -1639,20 +1613,18 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
         >> Application.handleCallback
             (Callback.BuildFetched
                 (Ok
-                    ( 1
-                    , { id = 1
-                      , name = "1"
-                      , job = Nothing
-                      , status = BuildStatusStarted
-                      , duration = { startedAt = Nothing, finishedAt = Nothing }
-                      , reapTime = Nothing
-                      }
-                    )
+                    { id = 1
+                    , name = "1"
+                    , job = Nothing
+                    , status = BuildStatusStarted
+                    , duration = { startedAt = Nothing, finishedAt = Nothing }
+                    , reapTime = Nothing
+                    }
                 )
             )
         >> Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched
+            (Callback.AllPipelinesFetched
                 (Ok
                     [ { id = 0
                       , name = "pipeline"
@@ -1776,17 +1748,3 @@ myBrowserFetchesSideBarState =
 myBrowserSavesSideBarState isOpen =
     Tuple.second
         >> Common.contains (Effects.SaveSideBarState isOpen)
-
-
-myBrowserChecksAViewport =
-    Tuple.second
-        >> List.any
-            (\e ->
-                case e of
-                    Effects.GetViewportOf _ ->
-                        True
-
-                    _ ->
-                        False
-            )
-        >> Expect.true "should get viewport"

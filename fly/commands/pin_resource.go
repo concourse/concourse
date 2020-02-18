@@ -3,12 +3,10 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type PinResourceCommand struct {
@@ -31,30 +29,19 @@ func (command *PinResourceCommand) Execute([]string) error {
 	team := target.Team()
 
 	if command.Version != nil {
-		versions, _, found, err := team.ResourceVersions(command.Resource.PipelineName, command.Resource.ResourceName, concourse.Page{}, *command.Version)
-
+		latestResourceVersion, err := GetLatestResourceVersion(team, command.Resource, *command.Version)
 		if err != nil {
 			return err
 		}
 
-		if !found || len(versions) <= 0 {
-			pinVersionBytes, err := json.Marshal(command.Version)
-			if err != nil {
-				return err
-			}
-
-			displayhelpers.Failf("could not find version matching %s", string(pinVersionBytes))
-		}
-
-		latestResourceVer := versions[0]
-		pinned, err := team.PinResourceVersion(command.Resource.PipelineName, command.Resource.ResourceName, latestResourceVer.ID)
+		pinned, err := team.PinResourceVersion(command.Resource.PipelineName, command.Resource.ResourceName, latestResourceVersion.ID)
 
 		if err != nil {
 			return err
 		}
 
 		if pinned {
-			versionBytes, err := json.Marshal(latestResourceVer.Version)
+			versionBytes, err := json.Marshal(latestResourceVersion.Version)
 			if err != nil {
 				return err
 			}

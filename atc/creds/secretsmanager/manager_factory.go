@@ -27,3 +27,7 @@ func (factory *managerFactory) AddConfig(group *flags.Group) creds.Manager {
 	subGroup.Namespace = "aws-secretsmanager"
 	return manager
 }
+
+func (factory *managerFactory) NewInstance(interface{}) (creds.Manager, error) {
+	return &Manager{}, nil
+}

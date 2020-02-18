@@ -2,9 +2,11 @@ package gc
 
 import (
 	"context"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
@@ -12,7 +14,7 @@ type resourceCacheUseCollector struct {
 	cacheLifecycle db.ResourceCacheLifecycle
 }
 
-func NewResourceCacheUseCollector(cacheLifecycle db.ResourceCacheLifecycle) Collector {
+func NewResourceCacheUseCollector(cacheLifecycle db.ResourceCacheLifecycle) *resourceCacheUseCollector {
 	return &resourceCacheUseCollector{
 		cacheLifecycle: cacheLifecycle,
 	}
@@ -23,6 +25,13 @@ func (rcuc *resourceCacheUseCollector) Run(ctx context.Context) error {
 
 	logger.Debug("start")
 	defer logger.Debug("done")
+
+	start := time.Now()
+	defer func() {
+		metric.ResourceCacheUseCollectorDuration{
+			Duration: time.Since(start),
+		}.Emit(logger)
+	}()
 
 	var errs error
 

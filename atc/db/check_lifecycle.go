@@ -10,7 +10,7 @@ import (
 //go:generate counterfeiter . CheckLifecycle
 
 type CheckLifecycle interface {
-	RemoveExpiredChecks(time.Duration) error
+	RemoveExpiredChecks(time.Duration) (int, error)
 }
 
 type checkLifecycle struct {
@@ -23,9 +23,9 @@ func NewCheckLifecycle(conn Conn) *checkLifecycle {
 	}
 }
 
-func (lifecycle *checkLifecycle) RemoveExpiredChecks(recyclePeriod time.Duration) error {
+func (lifecycle *checkLifecycle) RemoveExpiredChecks(recyclePeriod time.Duration) (int, error) {
 
-	_, err := psql.Delete("checks").
+	result, err := psql.Delete("checks").
 		Where(
 			sq.And{
 				sq.Gt{
@@ -37,5 +37,14 @@ func (lifecycle *checkLifecycle) RemoveExpiredChecks(recyclePeriod time.Duration
 		RunWith(lifecycle.conn).
 		Exec()
 
-	return err
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(affected), nil
 }

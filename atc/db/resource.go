@@ -9,19 +9,20 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . Resource
 
 type Resource interface {
+	PipelineRef
+
 	ID() int
 	Name() string
 	Public() bool
-	PipelineID() int
-	PipelineName() string
 	TeamID() int
 	TeamName() string
 	Type() string
@@ -89,11 +90,11 @@ var resourcesQuery = psql.Select(
 	Where(sq.Eq{"r.active": true})
 
 type resource struct {
+	pipelineRef
+
 	id                    int
 	name                  string
 	public                bool
-	pipelineID            int
-	pipelineName          string
 	teamID                int
 	teamName              string
 	type_                 string
@@ -112,9 +113,10 @@ type resource struct {
 	resourceConfigID      int
 	resourceConfigScopeID int
 	icon                  string
+}
 
-	conn        Conn
-	lockFactory lock.LockFactory
+func newEmptyResource(conn Conn, lockFactory lock.LockFactory) *resource {
+	return &resource{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
 type ResourceNotFoundError struct {
@@ -160,8 +162,6 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 func (r *resource) ID() int                          { return r.id }
 func (r *resource) Name() string                     { return r.name }
 func (r *resource) Public() bool                     { return r.public }
-func (r *resource) PipelineID() int                  { return r.pipelineID }
-func (r *resource) PipelineName() string             { return r.pipelineName }
 func (r *resource) TeamID() int                      { return r.teamID }
 func (r *resource) TeamName() string                 { return r.teamName }
 func (r *resource) Type() string                     { return r.type_ }
@@ -228,7 +228,7 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 		return nil, err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, r.type_, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -251,16 +251,16 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 		return nil, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
 	if rowsAffected > 0 {
-		err = bumpCacheIndexForPipelinesUsingResourceConfigScope(r.conn, resourceConfigScope.ID())
+		err = requestScheduleForJobsUsingResource(tx, r.id)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
 	return resourceConfigScope, nil
@@ -295,7 +295,7 @@ func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceCo
 
 	defer Rollback(tx)
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, r.type_, resourceTypes)
 	if err != nil {
 		return false, err
 	}
@@ -388,6 +388,13 @@ func (r *resource) CurrentPinnedVersion() atc.Version {
 }
 
 func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return nil, Pagination{}, false, err
+	}
+
+	defer Rollback(tx)
+
 	query := `
 		SELECT v.id, v.version, v.metadata, v.check_order,
 			NOT EXISTS (
@@ -412,9 +419,8 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 	}
 
 	var rows *sql.Rows
-	var err error
 	if page.Until != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
+		rows, err = tx.Query(fmt.Sprintf(`
 			SELECT sub.*
 				FROM (
 						%s
@@ -429,7 +435,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 			return nil, Pagination{}, false, err
 		}
 	} else if page.Since != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
+		rows, err = tx.Query(fmt.Sprintf(`
 			%s
 				AND version @> $4
 				AND v.check_order < (SELECT check_order FROM resource_config_versions WHERE id = $2)
@@ -440,7 +446,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 			return nil, Pagination{}, false, err
 		}
 	} else if page.To != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
+		rows, err = tx.Query(fmt.Sprintf(`
 			SELECT sub.*
 				FROM (
 						%s
@@ -455,7 +461,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 			return nil, Pagination{}, false, err
 		}
 	} else if page.From != 0 {
-		rows, err = r.conn.Query(fmt.Sprintf(`
+		rows, err = tx.Query(fmt.Sprintf(`
 			%s
 				AND version @> $4
 				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
@@ -466,7 +472,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 			return nil, Pagination{}, false, err
 		}
 	} else {
-		rows, err = r.conn.Query(fmt.Sprintf(`
+		rows, err = tx.Query(fmt.Sprintf(`
 			%s
 			AND version @> $3
 			ORDER BY v.check_order DESC
@@ -527,7 +533,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 	var minCheckOrder int
 	var maxCheckOrder int
 
-	err = r.conn.QueryRow(`
+	err = tx.QueryRow(`
 		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
 			COALESCE(MIN(v.check_order), 0) as minCheckOrder
 		FROM resource_config_versions v, resources r
@@ -539,6 +545,11 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 
 	firstRCVCheckOrder := checkOrderRVs[0]
 	lastRCVCheckOrder := checkOrderRVs[len(checkOrderRVs)-1]
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, Pagination{}, false, nil
+	}
 
 	var pagination Pagination
 
@@ -568,7 +579,12 @@ func (r *resource) DisableVersion(rcvID int) error {
 }
 
 func (r *resource) PinVersion(rcvID int) (bool, error) {
-	results, err := r.conn.Exec(`
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	results, err := tx.Exec(`
 	    INSERT INTO resource_pins(resource_id, version, comment_text)
 			VALUES ($1,
 				( SELECT rcv.version
@@ -592,13 +608,28 @@ func (r *resource) PinVersion(rcvID int) (bool, error) {
 		return false, nil
 	}
 
+	err = requestScheduleForJobsUsingResource(tx, r.id)
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
 func (r *resource) UnpinVersion() error {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return err
+	}
+
 	results, err := psql.Delete("resource_pins").
 		Where(sq.Eq{"resource_pins.resource_id": r.id}).
-		RunWith(r.conn).
+		RunWith(tx).
 		Exec()
 	if err != nil {
 		return err
@@ -610,7 +641,17 @@ func (r *resource) UnpinVersion() error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
+	}
+
+	err = requestScheduleForJobsUsingResource(tx, r.id)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -649,10 +690,10 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
-	err = bumpCacheIndex(tx, r.pipelineID)
+	err = requestScheduleForJobsUsingResource(tx, r.id)
 	if err != nil {
 		return err
 	}
@@ -742,6 +783,49 @@ func scanResource(r *resource, row scannable) error {
 
 	if rcScopeID.Valid {
 		r.resourceConfigScopeID, err = strconv.Atoi(rcScopeID.String)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
+func requestScheduleForJobsUsingResource(tx Tx, resourceID int) error {
+	rows, err := psql.Select("DISTINCT job_id").
+		From("job_inputs").
+		Where(sq.Eq{
+			"resource_id": resourceID,
+		}).
+		OrderBy("job_id DESC").
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	var jobs []int
+	for rows.Next() {
+		var jid int
+		err = rows.Scan(&jid)
+		if err != nil {
+			return err
+		}
+
+		jobs = append(jobs, jid)
+	}
+
+	for _, j := range jobs {
+		_, err := psql.Update("jobs").
+			Set("schedule_requested", sq.Expr("now()")).
+			Where(sq.Eq{
+				"id": j,
+			}).
+			RunWith(tx).
+			Exec()
 		if err != nil {
 			return err
 		}

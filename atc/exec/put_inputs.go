@@ -1,14 +1,13 @@
 package exec
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 )
 
 type PutInputNotFoundError struct {
@@ -20,7 +19,7 @@ func (e PutInputNotFoundError) Error() string {
 }
 
 type PutInputs interface {
-	FindAll(*artifact.Repository) ([]worker.InputSource, error)
+	FindAll(*build.Repository) (map[string]runtime.Artifact, error)
 }
 
 type allInputs struct{}
@@ -29,14 +28,16 @@ func NewAllInputs() PutInputs {
 	return &allInputs{}
 }
 
-func (i allInputs) FindAll(artifacts *artifact.Repository) ([]worker.InputSource, error) {
-	inputs := []worker.InputSource{}
+func (i allInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Artifact, error) {
+	inputs := map[string]runtime.Artifact{}
 
-	for name, source := range artifacts.AsMap() {
-		inputs = append(inputs, &putInputSource{
-			name:   name,
-			source: PutResourceSource{source},
-		})
+	for name, artifact := range artifacts.AsMap() {
+		pi := putInput{
+			name:     name,
+			artifact: artifact,
+		}
+
+		inputs[pi.DestinationPath()] = pi.Artifact()
 	}
 
 	return inputs, nil
@@ -52,97 +53,92 @@ func NewSpecificInputs(inputs []string) PutInputs {
 	}
 }
 
-func (i specificInputs) FindAll(artifacts *artifact.Repository) ([]worker.InputSource, error) {
+func (i specificInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Artifact, error) {
 	artifactsMap := artifacts.AsMap()
 
-	inputs := []worker.InputSource{}
+	inputs := map[string]runtime.Artifact{}
+
 	for _, i := range i.inputs {
-		artifactSource, found := artifactsMap[artifact.Name(i)]
+		artifact, found := artifactsMap[build.ArtifactName(i)]
 		if !found {
 			return nil, PutInputNotFoundError{Input: i}
 		}
 
-		inputs = append(inputs, &putInputSource{
-			name:   artifact.Name(i),
-			source: PutResourceSource{artifactSource},
-		})
+		pi := putInput{
+			name:     build.ArtifactName(i),
+			artifact: artifact,
+		}
+
+		inputs[pi.DestinationPath()] = pi.Artifact()
 	}
 
 	return inputs, nil
 }
 
 type detectInputs struct {
-	inputs []string
+	guessedNames []build.ArtifactName
 }
 
-func detectInputsFromParam(value interface{}) []string {
+func detectInputsFromParam(value interface{}) []build.ArtifactName {
 	switch actual := value.(type) {
 	case string:
 		input := actual
 		if idx := strings.IndexByte(actual, '/'); idx >= 0 {
 			input = actual[:idx]
 		}
-		return []string{input}
+		return []build.ArtifactName{build.ArtifactName(input)}
 	case map[string]interface{}:
-		var inputs []string
+		var inputs []build.ArtifactName
 		for _, value := range actual {
 			inputs = append(inputs, detectInputsFromParam(value)...)
 		}
 		return inputs
 	case []interface{}:
-		var inputs []string
+		var inputs []build.ArtifactName
 		for _, value := range actual {
 			inputs = append(inputs, detectInputsFromParam(value)...)
 		}
 		return inputs
 	default:
-		return []string{}
+		return []build.ArtifactName{}
 	}
 }
 
-func NewDetectInputs(params map[string]interface{}) PutInputs {
-	var inputs []string
-
-	for _, value := range params {
-		inputs = append(inputs, detectInputsFromParam(value)...)
-	}
+func NewDetectInputs(params atc.Params) PutInputs {
 	return &detectInputs{
-		inputs: inputs,
+		guessedNames: detectInputsFromParam(map[string]interface{}(params)),
 	}
 }
 
-func (i detectInputs) FindAll(artifacts *artifact.Repository) ([]worker.InputSource, error) {
+func (i detectInputs) FindAll(artifacts *build.Repository) (map[string]runtime.Artifact, error) {
 	artifactsMap := artifacts.AsMap()
 
-	inputs := []worker.InputSource{}
-	for _, i := range i.inputs {
-		artifactSource, found := artifactsMap[artifact.Name(i)]
-		if found {
-			inputs = append(inputs, &putInputSource{
-				name:   artifact.Name(i),
-				source: PutResourceSource{artifactSource},
-			})
+	inputs := map[string]runtime.Artifact{}
+	for _, name := range i.guessedNames {
+		artifact, found := artifactsMap[name]
+		if !found {
+			// false positive; not an artifact
+			continue
 		}
+
+		pi := putInput{
+			name:     name,
+			artifact: artifact,
+		}
+
+		inputs[pi.DestinationPath()] = pi.Artifact()
 	}
 
 	return inputs, nil
 }
 
-type putInputSource struct {
-	name   artifact.Name
-	source worker.ArtifactSource
+type putInput struct {
+	name     build.ArtifactName
+	artifact runtime.Artifact
 }
 
-func (s *putInputSource) Source() worker.ArtifactSource { return s.source }
+func (input putInput) Artifact() runtime.Artifact { return input.artifact }
 
-func (s *putInputSource) DestinationPath() string {
-	return resource.ResourcesDir("put/" + string(s.name))
-}
-
-type PutResourceSource struct {
-	worker.ArtifactSource
-}
-
-func (source PutResourceSource) StreamTo(ctx context.Context, logger lager.Logger, dest worker.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(ctx, logger, dest)
+func (input putInput) DestinationPath() string {
+	return resource.ResourcesDir("put/" + string(input.name))
 }

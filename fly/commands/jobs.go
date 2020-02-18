@@ -13,6 +13,7 @@ import (
 type JobsCommand struct {
 	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Get jobs in this pipeline"`
 	Json     bool   `long:"json" description:"Print command result as JSON"`
+	Team     string `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *JobsCommand) Execute([]string) error {
@@ -29,9 +30,10 @@ func (command *JobsCommand) Execute([]string) error {
 	}
 
 	var headers []string
-	var jobs []atc.Job
+	team := GetTeam(target, command.Team)
 
-	jobs, err = target.Team().ListJobs(pipelineName)
+	var jobs []atc.Job
+	jobs, err = team.ListJobs(pipelineName)
 	if err != nil {
 		return err
 	}

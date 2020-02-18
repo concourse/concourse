@@ -13,6 +13,8 @@ func (plan Plan) Public() *json.RawMessage {
 		Put            *json.RawMessage `json:"put,omitempty"`
 		Check          *json.RawMessage `json:"check,omitempty"`
 		Task           *json.RawMessage `json:"task,omitempty"`
+		SetPipeline    *json.RawMessage `json:"set_pipeline,omitempty"`
+		LoadVar        *json.RawMessage `json:"load_var,omitempty"`
 		OnAbort        *json.RawMessage `json:"on_abort,omitempty"`
 		OnError        *json.RawMessage `json:"on_error,omitempty"`
 		Ensure         *json.RawMessage `json:"ensure,omitempty"`
@@ -54,6 +56,14 @@ func (plan Plan) Public() *json.RawMessage {
 
 	if plan.Task != nil {
 		public.Task = plan.Task.Public()
+	}
+
+	if plan.SetPipeline != nil {
+		public.SetPipeline = plan.SetPipeline.Public()
+	}
+
+	if plan.LoadVar != nil {
+		public.LoadVar = plan.LoadVar.Public()
 	}
 
 	if plan.OnAbort != nil {
@@ -246,6 +256,22 @@ func (plan TaskPlan) Public() *json.RawMessage {
 	}{
 		Name:       plan.Name,
 		Privileged: plan.Privileged,
+	})
+}
+
+func (plan SetPipelinePlan) Public() *json.RawMessage {
+	return enc(struct {
+		Name string `json:"name"`
+	}{
+		Name: plan.Name,
+	})
+}
+
+func (plan LoadVarPlan) Public() *json.RawMessage {
+	return enc(struct {
+		Name string `json:"name"`
+	}{
+		Name: plan.Name,
 	})
 }
 

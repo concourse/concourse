@@ -3,44 +3,38 @@ package resource
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/runtime"
 )
-
-type putRequest struct {
-	Source atc.Source `json:"source"`
-	Params atc.Params `json:"params,omitempty"`
-}
 
 func (resource *resource) Put(
 	ctx context.Context,
-	ioConfig IOConfig,
-	source atc.Source,
-	params atc.Params,
-) (VersionResult, error) {
-	resourceDir := ResourcesDir("put")
+	spec runtime.ProcessSpec,
+	runnable runtime.Runner,
+) (runtime.VersionResult, error) {
+	vr := runtime.VersionResult{}
 
-	vr := &VersionResult{}
+	input, err := resource.Signature()
+	if err != nil {
+		return vr, err
+	}
 
-	path := "/opt/resource/out"
-	err := resource.runScript(
+	err = runnable.RunScript(
 		ctx,
-		path,
-		[]string{resourceDir},
-		putRequest{
-			Params: params,
-			Source: source,
-		},
+		spec.Path,
+		spec.Args,
+		input,
 		&vr,
-		ioConfig.Stderr,
+		spec.StderrWriter,
 		true,
 	)
 	if err != nil {
-		return VersionResult{}, err
+		return runtime.VersionResult{}, err
 	}
-	if vr == nil {
-		return VersionResult{}, fmt.Errorf("resource script (%s %s) output a null version", path, resourceDir)
+	if vr.Version == nil {
+		return runtime.VersionResult{}, fmt.Errorf("resource script (%s %s) output a null version", spec.Path, strings.Join(spec.Args, " "))
 	}
 
-	return *vr, nil
+	return vr, nil
 }

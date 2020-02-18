@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Artifacts API", func() {
+var _ = Describe("ArtifactRepository API", func() {
 	var fakeaccess *accessorfakes.FakeAccess
 
 	BeforeEach(func() {

@@ -19,6 +19,7 @@ import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Expect exposing (Expectation)
 import Html
+import List.Extra
 import Message.Callback as Callback
 import Message.Effects exposing (Effect)
 import Message.Message exposing (DomID, Message(..))
@@ -34,8 +35,7 @@ queryView : Application.Model -> Query.Single TopLevelMessage
 queryView =
     Application.view
         >> .body
-        >> List.head
-        >> Maybe.withDefault (Html.text "")
+        >> Html.div []
         >> Query.fromHtml
 
 
@@ -46,9 +46,9 @@ contains x xs =
 
     else
         Expect.fail <|
-            "Expected "
-                ++ Debug.toString xs
-                ++ " to contain "
+            "Expected \n[ "
+                ++ String.join "\n, " (List.map Debug.toString xs)
+                ++ "\n] to contain "
                 ++ Debug.toString x
 
 
@@ -73,12 +73,14 @@ isColorWithStripes { thick, thin } =
     Query.has
         [ style "background-image" <|
             "repeating-linear-gradient(-115deg,"
+                ++ thin
+                ++ " 0px,"
                 ++ thick
-                ++ " 0,"
+                ++ " 1px,"
                 ++ thick
                 ++ " 10px,"
                 ++ thin
-                ++ " 0,"
+                ++ " 11px,"
                 ++ thin
                 ++ " 16px)"
         , style "background-size" "106px 114px"
@@ -150,23 +152,21 @@ myBrowserFetchedTheBuild =
         >> Application.handleCallback
             (Callback.BuildFetched <|
                 Ok
-                    ( 1
-                    , { id = 1
-                      , name = "1"
-                      , job =
-                            Just
-                                { teamName = "other-team"
-                                , pipelineName = "yet-another-pipeline"
-                                , jobName = "job"
-                                }
-                      , status = BuildStatusStarted
-                      , duration =
-                            { startedAt = Nothing
-                            , finishedAt = Nothing
+                    { id = 1
+                    , name = "1"
+                    , job =
+                        Just
+                            { teamName = "other-team"
+                            , pipelineName = "yet-another-pipeline"
+                            , jobName = "job"
                             }
-                      , reapTime = Nothing
-                      }
-                    )
+                    , status = BuildStatusStarted
+                    , duration =
+                        { startedAt = Nothing
+                        , finishedAt = Nothing
+                        }
+                    , reapTime = Nothing
+                    }
             )
 
 

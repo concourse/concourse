@@ -274,7 +274,7 @@ func (c *connection) streamProcess(ctx context.Context, handle string, processIO
 
 		select {
 		case <-ctx.Done():
-			process.exited(-1, errors.New("stdin/stdout/stderr streams were canceled by context.Done"))
+			process.exited(-1, fmt.Errorf("stdin/stdout/stderr streams were canceled by: %w", ctx.Err()))
 		case waitedFor := <-streamHandler.wait(decoder):
 			process.exited(waitedFor.exitCode, waitedFor.err)
 		}

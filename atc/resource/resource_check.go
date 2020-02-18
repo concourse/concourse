@@ -4,28 +4,27 @@ import (
 	"context"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/runtime"
 )
 
-type checkRequest struct {
-	Source  atc.Source  `json:"source"`
-	Version atc.Version `json:"version"`
-}
-
-func (resource *resource) Check(ctx context.Context, source atc.Source, fromVersion atc.Version) ([]atc.Version, error) {
+func (resource *resource) Check(
+	ctx context.Context,
+	spec runtime.ProcessSpec,
+	runnable runtime.Runner) ([]atc.Version, error) {
 	var versions []atc.Version
 
-	err := resource.runScript(
+	input, err := resource.Signature()
+	if err != nil {
+		return versions, err
+	}
+	err = runnable.RunScript(
 		ctx,
-		"/opt/resource/check",
+		spec.Path,
 		nil,
-		checkRequest{source, fromVersion},
+		input,
 		&versions,
 		nil,
 		false,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return versions, nil
+	return versions, err
 }

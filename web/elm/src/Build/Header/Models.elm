@@ -25,8 +25,7 @@ type alias Model r =
         , now : Maybe Time.Posix
         , fetchingHistory : Bool
         , nextPage : Maybe Page
-        , previousTriggerBuildByKey : Bool
-        , browsingIndex : Int
+        , hasLoadedYet : Bool
     }
 
 
@@ -34,6 +33,7 @@ type alias HistoryItem =
     { id : Int
     , name : String
     , status : BuildStatus.BuildStatus
+    , duration : Concourse.BuildDuration
     }
 
 

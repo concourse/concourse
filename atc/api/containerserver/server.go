@@ -13,6 +13,7 @@ type Server struct {
 
 	workerClient            worker.Client
 	secretManager           creds.Secrets
+	varSourcePool           creds.VarSourcePool
 	interceptTimeoutFactory InterceptTimeoutFactory
 	containerRepository     db.ContainerRepository
 	destroyer               gc.Destroyer
@@ -22,6 +23,7 @@ func NewServer(
 	logger lager.Logger,
 	workerClient worker.Client,
 	secretManager creds.Secrets,
+	varSourcePool creds.VarSourcePool,
 	interceptTimeoutFactory InterceptTimeoutFactory,
 	containerRepository db.ContainerRepository,
 	destroyer gc.Destroyer,
@@ -30,6 +32,7 @@ func NewServer(
 		logger:                  logger,
 		workerClient:            workerClient,
 		secretManager:           secretManager,
+		varSourcePool:           varSourcePool,
 		interceptTimeoutFactory: interceptTimeoutFactory,
 		containerRepository:     containerRepository,
 		destroyer:               destroyer,

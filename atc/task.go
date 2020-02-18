@@ -47,8 +47,8 @@ type ImageResource struct {
 	Type   string `json:"type"`
 	Source Source `json:"source"`
 
-	Params  *Params  `json:"params,omitempty"`
-	Version *Version `json:"version,omitempty"`
+	Params  Params  `json:"params,omitempty"`
+	Version Version `json:"version,omitempty"`
 }
 
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
@@ -67,7 +67,7 @@ func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 }
 
 func (config TaskConfig) Validate() error {
-	messages := []string{}
+	var messages []string
 
 	if config.Platform == "" {
 		messages = append(messages, "  missing 'platform'")
@@ -88,7 +88,7 @@ func (config TaskConfig) Validate() error {
 }
 
 func (config TaskConfig) validateOutputContainsNames() []string {
-	messages := []string{}
+	var messages []string
 
 	for i, output := range config.Outputs {
 		if output.Name == "" {

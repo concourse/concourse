@@ -3,7 +3,7 @@ module SideBar.PipelineTests exposing (all)
 import Colors
 import Common
 import Expect
-import HoverState
+import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Message.Message exposing (DomID(..), Message)
 import SideBar.Pipeline as Pipeline
@@ -18,53 +18,13 @@ all : Test
 all =
     describe "sidebar pipeline"
         [ describe "when active"
-            [ describe "when hovered with tooltip"
-                [ test "pipeline name has tooltip" <|
-                    \_ ->
-                        Pipeline.pipeline
-                            { hovered =
-                                HoverState.Tooltip
-                                    (SideBarPipeline
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        }
-                                    )
-                                    { left = 0
-                                    , top = 0
-                                    , arrowSize = 15
-                                    , marginTop = -15
-                                    }
-                            , currentPipeline =
-                                Just
-                                    { teamName = "team"
-                                    , pipelineName = "pipeline"
-                                    }
-                            }
-                            singlePipeline
-                            |> .link
-                            |> .tooltip
-                            |> Expect.equal
-                                (Just
-                                    { left = 0
-                                    , top = 0
-                                    , arrowSize = 15
-                                    , marginTop = -15
-                                    }
-                                )
-                ]
-            , describe "when hovered"
+            [ describe "when hovered"
                 [ test "pipeline name background is dark with bright border" <|
                     \_ ->
                         pipeline { active = True, hovered = True }
                             |> .link
                             |> .rectangle
                             |> Expect.equal Styles.Dark
-                , test "pipeline name has no tooltip" <|
-                    \_ ->
-                        pipeline { active = True, hovered = True }
-                            |> .link
-                            |> .tooltip
-                            |> Expect.equal Nothing
                 , test "pipeline icon is bright" <|
                     \_ ->
                         pipeline { active = True, hovered = True }
@@ -83,12 +43,6 @@ all =
                         pipeline { active = True, hovered = False }
                             |> .icon
                             |> Expect.equal Styles.Bright
-                , test "pipeline name has no tooltip" <|
-                    \_ ->
-                        pipeline { active = True, hovered = False }
-                            |> .link
-                            |> .tooltip
-                            |> Expect.equal Nothing
                 ]
             ]
         , describe "when inactive"
@@ -104,12 +58,6 @@ all =
                         pipeline { active = False, hovered = True }
                             |> .icon
                             |> Expect.equal Styles.Bright
-                , test "pipeline name has no tooltip" <|
-                    \_ ->
-                        pipeline { active = False, hovered = True }
-                            |> .link
-                            |> .tooltip
-                            |> Expect.equal Nothing
                 ]
             , describe "when unhovered"
                 [ test "pipeline name is dim" <|
@@ -129,13 +77,6 @@ all =
                         pipeline { active = False, hovered = False }
                             |> .icon
                             |> Expect.equal Styles.Dim
-                , test "pipeline name has no tooltip" <|
-                    \_ ->
-                        pipeline
-                            { active = False, hovered = False }
-                            |> .link
-                            |> .tooltip
-                            |> Expect.equal Nothing
                 ]
             ]
         ]

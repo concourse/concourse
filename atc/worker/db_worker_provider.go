@@ -7,18 +7,18 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	bclient "github.com/concourse/baggageclaim/client"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/concourse/concourse/atc/worker/transport"
 	"github.com/concourse/retryhttp"
 	"github.com/cppforlife/go-semi-semantic/version"
-
-	"github.com/concourse/concourse/atc/db"
 )
 
 type dbWorkerProvider struct {
 	lockFactory                       lock.LockFactory
 	retryBackOffFactory               retryhttp.BackOffFactory
+	resourceFetcher                   Fetcher
 	imageFactory                      ImageFactory
 	dbResourceCacheFactory            db.ResourceCacheFactory
 	dbResourceConfigFactory           db.ResourceConfigFactory
@@ -30,11 +30,13 @@ type dbWorkerProvider struct {
 	dbWorkerFactory                   db.WorkerFactory
 	workerVersion                     version.Version
 	baggageclaimResponseHeaderTimeout time.Duration
+	gardenRequestTimeout              time.Duration
 }
 
 func NewDBWorkerProvider(
 	lockFactory lock.LockFactory,
 	retryBackOffFactory retryhttp.BackOffFactory,
+	fetcher Fetcher,
 	imageFactory ImageFactory,
 	dbResourceCacheFactory db.ResourceCacheFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
@@ -45,11 +47,12 @@ func NewDBWorkerProvider(
 	dbTeamFactory db.TeamFactory,
 	workerFactory db.WorkerFactory,
 	workerVersion version.Version,
-	baggageclaimResponseHeaderTimeout time.Duration,
+	baggageclaimResponseHeaderTimeout, gardenRequestTimeout time.Duration,
 ) WorkerProvider {
 	return &dbWorkerProvider{
 		lockFactory:                       lockFactory,
 		retryBackOffFactory:               retryBackOffFactory,
+		resourceFetcher:                   fetcher,
 		imageFactory:                      imageFactory,
 		dbResourceCacheFactory:            dbResourceCacheFactory,
 		dbResourceConfigFactory:           dbResourceConfigFactory,
@@ -61,6 +64,7 @@ func NewDBWorkerProvider(
 		dbWorkerFactory:                   workerFactory,
 		workerVersion:                     workerVersion,
 		baggageclaimResponseHeaderTimeout: baggageclaimResponseHeaderTimeout,
+		gardenRequestTimeout:              gardenRequestTimeout,
 	}
 }
 
@@ -75,8 +79,6 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 		return nil, err
 	}
 
-	tikTok := clock.NewClock()
-
 	workers := []Worker{}
 
 	for _, savedWorker := range savedWorkers {
@@ -87,7 +89,6 @@ func (provider *dbWorkerProvider) RunningWorkers(logger lager.Logger) ([]Worker,
 		workerLog := logger.Session("running-worker")
 		worker := provider.NewGardenWorker(
 			workerLog,
-			tikTok,
 			savedWorker,
 			buildContainersCountPerWorker[savedWorker.Name()],
 		)
@@ -113,7 +114,7 @@ func (provider *dbWorkerProvider) FindWorkersForContainerByOwner(
 
 	var workers []Worker
 	for _, w := range dbWorkers {
-		worker := provider.NewGardenWorker(logger, clock.NewClock(), w, 0)
+		worker := provider.NewGardenWorker(logger, w, 0)
 		if worker.IsVersionCompatible(logger, provider.workerVersion) {
 			workers = append(workers, worker)
 		}
@@ -139,7 +140,7 @@ func (provider *dbWorkerProvider) FindWorkerForContainer(
 		return nil, false, nil
 	}
 
-	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker, 0)
+	worker := provider.NewGardenWorker(logger, dbWorker, 0)
 	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
 		return nil, false, nil
 	}
@@ -163,21 +164,21 @@ func (provider *dbWorkerProvider) FindWorkerForVolume(
 		return nil, false, nil
 	}
 
-	worker := provider.NewGardenWorker(logger, clock.NewClock(), dbWorker, 0)
+	worker := provider.NewGardenWorker(logger, dbWorker, 0)
 	if !worker.IsVersionCompatible(logger, provider.workerVersion) {
 		return nil, false, nil
 	}
 	return worker, true, err
 }
 
-func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok clock.Clock, savedWorker db.Worker, buildContainersCount int) Worker {
+func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, savedWorker db.Worker, buildContainersCount int) Worker {
 	gcf := gclient.NewGardenClientFactory(
 		provider.dbWorkerFactory,
 		logger.Session("garden-connection"),
 		savedWorker.Name(),
 		savedWorker.GardenAddr(),
 		provider.retryBackOffFactory,
-		5*time.Minute,
+		provider.gardenRequestTimeout,
 	)
 
 	gClient := gcf.NewClient()
@@ -208,6 +209,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, tikTok cl
 		provider.dbVolumeRepository,
 		volumeClient,
 		provider.imageFactory,
+		provider.resourceFetcher,
 		provider.dbTeamFactory,
 		savedWorker,
 		buildContainersCount,

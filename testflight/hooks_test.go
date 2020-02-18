@@ -45,6 +45,8 @@ var _ = Describe("A pipeline containing jobs with hooks", func() {
 
 		By("performing ensure and on_abort steps on abort")
 		watch = spawnFly("trigger-job", "-j", inPipeline("some-aborted-job"), "-w")
+		// The first eventually is for the initialization block, when the script hasn't been executed yet.
+		Eventually(watch).Should(gbytes.Say("echo waiting to be aborted"))
 		Eventually(watch).Should(gbytes.Say("waiting to be aborted"))
 		fly("abort-build", "-j", inPipeline("some-aborted-job"), "-b", "1")
 		<-watch.Exited

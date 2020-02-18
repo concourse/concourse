@@ -1,7 +1,7 @@
 package k8s_test
 
 import (
-	"time"
+	"fmt"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -11,7 +11,7 @@ import (
 var _ = Describe("baggageclaim drivers", func() {
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace, nil)
+		cleanup(releaseName, namespace)
 	})
 
 	onPks(func() {
@@ -39,6 +39,36 @@ var _ = Describe("baggageclaim drivers", func() {
 			baggageclaimWorks("naive", UBUNTU)
 		})
 
+		Context("with a real btrfs partition", func() {
+			It("successfully recreates the worker", func() {
+				By("deploying concourse with ONLY one worker and having the worker pod use the gcloud disk and format it with btrfs")
+
+				setReleaseNameAndNamespace("real-btrfs-disk")
+
+				deployWithDriverAndSelectors("btrfs", UBUNTU,
+					"--set=persistence.enabled=false",
+					"--set=worker.additionalVolumes[0].name=concourse-work-dir",
+					"--set=worker.additionalVolumes[0].gcePersistentDisk.pdName=disk-topgun-k8s-btrfs-test",
+					"--set=worker.additionalVolumes[0].gcePersistentDisk.fsType=btrfs",
+				)
+
+				atc := waitAndLogin(namespace, releaseName+"-web")
+				defer atc.Close()
+
+				By("Setting and triggering a pipeline that always fails which creates volumes on the persistent disk")
+				fly.Run("set-pipeline", "-n", "-c", "pipelines/pipeline-that-fails.yml", "-p", "failing-pipeline")
+				fly.Run("unpause-pipeline", "-p", "failing-pipeline")
+				sessionTriggerJob := fly.Start("trigger-job", "-w", "-j", "failing-pipeline/simple-job")
+				<-sessionTriggerJob.Exited
+
+				By("deleting the worker pod which triggers the initContainer script")
+				deletePods(releaseName, fmt.Sprintf("--selector=app=%s-worker", releaseName))
+
+				By("all pods should be running")
+				waitAllPodsInNamespaceToBeReady(namespace)
+			})
+		})
+
 	})
 })
 
@@ -47,18 +77,9 @@ func baggageclaimWorks(driver string, selectorFlags ...string) {
 		It("works", func() {
 			setReleaseNameAndNamespace("bd-" + driver)
 			deployWithDriverAndSelectors(driver, selectorFlags...)
-			waitAllPodsInNamespaceToBeReady(namespace)
 
-			By("Creating the web proxy")
-			_, atcEndpoint := startPortForwarding(namespace, "service/"+releaseName+"-web", "8080")
-
-			By("Logging in")
-			fly.Login("test", "test", atcEndpoint)
-
-			Eventually(func() []Worker {
-				return getRunningWorkers(fly.GetWorkers())
-			}, 2*time.Minute, 10*time.Second).
-				ShouldNot(HaveLen(0))
+			atc := waitAndLogin(namespace, releaseName+"-web")
+			defer atc.Close()
 
 			By("Setting and triggering a dumb pipeline")
 			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "some-pipeline")
@@ -82,7 +103,6 @@ func baggageclaimFails(driver string, selectorFlags ...string) {
 				return workerLogsSession.Out.Contents()
 
 			}).Should(ContainSubstring("failed-to-set-up-driver"))
-
 		})
 	})
 }

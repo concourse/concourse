@@ -14,7 +14,7 @@ import (
 
 var _ = Describe("WorkerCollector", func() {
 	var (
-		workerCollector     gc.Collector
+		workerCollector     GcCollector
 		fakeWorkerLifecycle *dbfakes.FakeWorkerLifecycle
 	)
 

@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
@@ -31,6 +32,8 @@ var (
 
 	dbConn                              db.Conn
 	fakeSecrets                         *credsfakes.FakeSecrets
+	fakeVarSourcePool                   *credsfakes.FakeVarSourcePool
+	componentFactory                    db.ComponentFactory
 	buildFactory                        db.BuildFactory
 	volumeRepository                    db.VolumeRepository
 	containerRepository                 db.ContainerRepository
@@ -45,6 +48,8 @@ var (
 	workerBaseResourceTypeFactory       db.WorkerBaseResourceTypeFactory
 	workerTaskCacheFactory              db.WorkerTaskCacheFactory
 	userFactory                         db.UserFactory
+	dbWall                              db.Wall
+	fakeClock                           dbfakes.FakeClock
 
 	defaultWorkerResourceType atc.WorkerResourceType
 	defaultTeam               db.Team
@@ -98,6 +103,8 @@ var _ = BeforeEach(func() {
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
 
 	fakeSecrets = new(credsfakes.FakeSecrets)
+	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
+	componentFactory = db.NewComponentFactory(dbConn)
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 5*time.Minute)
 	volumeRepository = db.NewVolumeRepository(dbConn)
 	containerRepository = db.NewContainerRepository(dbConn)
@@ -108,10 +115,11 @@ var _ = BeforeEach(func() {
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	taskCacheFactory = db.NewTaskCacheFactory(dbConn)
-	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, time.Minute)
+	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, time.Minute)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)
+	dbWall = db.NewWall(dbConn, &fakeClock)
 
 	var err error
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
@@ -176,8 +184,8 @@ var _ = BeforeEach(func() {
 
 	var found bool
 	defaultResourceType, found, err = defaultPipeline.ResourceType("some-type")
-	Expect(found).To(BeTrue())
 	Expect(err).NotTo(HaveOccurred())
+	Expect(found).To(BeTrue())
 
 	defaultResource, found, err = defaultPipeline.Resource("some-resource")
 	Expect(err).NotTo(HaveOccurred())

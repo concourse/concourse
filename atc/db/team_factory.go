@@ -62,8 +62,8 @@ func (factory *teamFactory) createTeam(t atc.Team, admin bool) (Team, error) {
 		conn:        factory.conn,
 		lockFactory: factory.lockFactory,
 	}
-	err = factory.scanTeam(team, row)
 
+	err = factory.scanTeam(team, row)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (factory *teamFactory) CreateDefaultTeamIfNotExists() (Team, error) {
 }
 
 func (factory *teamFactory) NotifyResourceScanner() error {
-	return factory.conn.Bus().Notify("scanner")
+	return factory.conn.Bus().Notify(atc.ComponentLidarScanner)
 }
 
 func (factory *teamFactory) scanTeam(t *team, rows scannable) error {

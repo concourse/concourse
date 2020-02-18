@@ -49,10 +49,11 @@ var _ = Describe("Worker", func() {
 		fakeGardenContainer       *gclientfakes.FakeContainer
 		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 		fakeBaggageclaimClient    *baggageclaimfakes.FakeClient
+		fakeFetcher               *workerfakes.FakeFetcher
 
 		fakeLocalInput    *workerfakes.FakeInputSource
 		fakeRemoteInput   *workerfakes.FakeInputSource
-		fakeRemoteInputAS *workerfakes.FakeArtifactSource
+		fakeRemoteInputAS *workerfakes.FakeStreamableArtifactSource
 
 		fakeBindMount *workerfakes.FakeBindMountSource
 
@@ -97,6 +98,7 @@ var _ = Describe("Worker", func() {
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImage = new(workerfakes.FakeImage)
 		fakeImageFactory.GetImageReturns(fakeImage, nil)
+		fakeFetcher = new(workerfakes.FakeFetcher)
 
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		fakeCreatingContainer.HandleReturns("some-handle")
@@ -121,7 +123,7 @@ var _ = Describe("Worker", func() {
 		fakeLocalVolume.COWStrategyReturns(baggageclaim.COWStrategy{
 			Parent: new(baggageclaimfakes.FakeVolume),
 		})
-		fakeLocalInputAS.VolumeOnReturns(fakeLocalVolume, true, nil)
+		fakeLocalInputAS.ExistsOnReturns(fakeLocalVolume, true, nil)
 		fakeLocalInput.SourceReturns(fakeLocalInputAS)
 
 		fakeBindMount = new(workerfakes.FakeBindMountSource)
@@ -133,8 +135,8 @@ var _ = Describe("Worker", func() {
 
 		fakeRemoteInput = new(workerfakes.FakeInputSource)
 		fakeRemoteInput.DestinationPathReturns("/some/work-dir/remote-input")
-		fakeRemoteInputAS = new(workerfakes.FakeArtifactSource)
-		fakeRemoteInputAS.VolumeOnReturns(nil, false, nil)
+		fakeRemoteInputAS = new(workerfakes.FakeStreamableArtifactSource)
+		fakeRemoteInputAS.ExistsOnReturns(nil, false, nil)
 		fakeRemoteInput.SourceReturns(fakeRemoteInputAS)
 
 		fakeScratchVolume := new(workerfakes.FakeVolume)
@@ -259,13 +261,13 @@ var _ = Describe("Worker", func() {
 		fakeDBWorker.HTTPProxyURLReturns("http://proxy.com")
 		fakeDBWorker.HTTPSProxyURLReturns("https://proxy.com")
 		fakeDBWorker.NoProxyReturns("http://noproxy.com")
-		fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
 
 		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
 			fakeDBVolumeRepository,
 			fakeVolumeClient,
 			fakeImageFactory,
+			fakeFetcher,
 			fakeDBTeamFactory,
 			fakeDBWorker,
 			0,
@@ -949,6 +951,7 @@ var _ = Describe("Worker", func() {
 					Expect(actualSpec).To(Equal(garden.ContainerSpec{
 						Handle:     "some-handle",
 						RootFSPath: "some-image-url",
+						NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 						Properties: garden.Properties{"user": "some-user"},
 						BindMounts: []garden.BindMount{
 							{
@@ -1013,13 +1016,13 @@ var _ = Describe("Worker", func() {
 						fakeRemoteInputUnderInput = new(workerfakes.FakeInputSource)
 						fakeRemoteInputUnderInput.DestinationPathReturns("/some/work-dir/remote-input/other-input")
 						fakeRemoteInputUnderInputAS = new(workerfakes.FakeArtifactSource)
-						fakeRemoteInputUnderInputAS.VolumeOnReturns(nil, false, nil)
+						fakeRemoteInputUnderInputAS.ExistsOnReturns(nil, false, nil)
 						fakeRemoteInputUnderInput.SourceReturns(fakeRemoteInputUnderInputAS)
 
 						fakeRemoteInputUnderOutput = new(workerfakes.FakeInputSource)
 						fakeRemoteInputUnderOutput.DestinationPathReturns("/some/work-dir/output/input")
 						fakeRemoteInputUnderOutputAS = new(workerfakes.FakeArtifactSource)
-						fakeRemoteInputUnderOutputAS.VolumeOnReturns(nil, false, nil)
+						fakeRemoteInputUnderOutputAS.ExistsOnReturns(nil, false, nil)
 						fakeRemoteInputUnderOutput.SourceReturns(fakeRemoteInputUnderOutputAS)
 
 						fakeOutputUnderInputVolume = new(workerfakes.FakeVolume)
@@ -1055,6 +1058,7 @@ var _ = Describe("Worker", func() {
 							Expect(actualSpec).To(Equal(garden.ContainerSpec{
 								Handle:     "some-handle",
 								RootFSPath: "some-image-url",
+								NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 								Properties: garden.Properties{"user": "some-user"},
 								BindMounts: []garden.BindMount{
 									{
@@ -1114,6 +1118,7 @@ var _ = Describe("Worker", func() {
 							Expect(actualSpec).To(Equal(garden.ContainerSpec{
 								Handle:     "some-handle",
 								RootFSPath: "some-image-url",
+								NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 								Properties: garden.Properties{"user": "some-user"},
 								BindMounts: []garden.BindMount{
 									{
@@ -1173,6 +1178,7 @@ var _ = Describe("Worker", func() {
 							Expect(actualSpec).To(Equal(garden.ContainerSpec{
 								Handle:     "some-handle",
 								RootFSPath: "some-image-url",
+								NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 								Properties: garden.Properties{"user": "some-user"},
 								BindMounts: []garden.BindMount{
 									{
@@ -1233,6 +1239,7 @@ var _ = Describe("Worker", func() {
 							Expect(actualSpec).To(Equal(garden.ContainerSpec{
 								Handle:     "some-handle",
 								RootFSPath: "some-image-url",
+								NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 								Properties: garden.Properties{"user": "some-user"},
 								BindMounts: []garden.BindMount{
 									{
@@ -1294,6 +1301,7 @@ var _ = Describe("Worker", func() {
 							Expect(actualSpec).To(Equal(garden.ContainerSpec{
 								Handle:     "some-handle",
 								RootFSPath: "some-image-url",
+								NetOut:     []garden.NetOutRule{{Protocol: garden.ProtocolAll}},
 								Properties: garden.Properties{"user": "some-user"},
 								BindMounts: []garden.BindMount{
 									{
@@ -1353,11 +1361,11 @@ var _ = Describe("Worker", func() {
 
 				It("creates each volume unprivileged", func() {
 					Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
-						"/scratch":                    VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
-						"/some/work-dir":              VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
-						"/some/work-dir/output":       VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
-						"/some/work-dir/local-input":  VolumeSpec{Strategy: fakeLocalVolume.COWStrategy()},
-						"/some/work-dir/remote-input": VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
+						"/scratch":                    {Strategy: baggageclaim.EmptyStrategy{}},
+						"/some/work-dir":              {Strategy: baggageclaim.EmptyStrategy{}},
+						"/some/work-dir/output":       {Strategy: baggageclaim.EmptyStrategy{}},
+						"/some/work-dir/local-input":  {Strategy: fakeLocalVolume.COWStrategy()},
+						"/some/work-dir/remote-input": {Strategy: baggageclaim.EmptyStrategy{}},
 					}))
 				})
 
@@ -1399,11 +1407,11 @@ var _ = Describe("Worker", func() {
 
 					It("creates each volume privileged", func() {
 						Expect(volumeSpecs).To(Equal(map[string]VolumeSpec{
-							"/scratch":                    VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-							"/some/work-dir":              VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-							"/some/work-dir/output":       VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
-							"/some/work-dir/local-input":  VolumeSpec{Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
-							"/some/work-dir/remote-input": VolumeSpec{Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/scratch":                    {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/some/work-dir":              {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/some/work-dir/output":       {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
+							"/some/work-dir/local-input":  {Privileged: true, Strategy: fakeLocalVolume.COWStrategy()},
+							"/some/work-dir/remote-input": {Privileged: true, Strategy: baggageclaim.EmptyStrategy{}},
 						}))
 					})
 
@@ -1520,16 +1528,46 @@ var _ = Describe("Worker", func() {
 		})
 
 		Context("when container does not exist in database", func() {
+
 			BeforeEach(func() {
-				fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
 				fakeDBWorker.FindContainerReturns(nil, nil, nil)
+				fakeDBWorker.CreateContainerReturns(fakeCreatingContainer, nil)
 			})
 
-			It("creates a creating container in database", func() {
+			It("attemps to create container in the db", func() {
 				Expect(fakeDBWorker.CreateContainerCallCount()).To(Equal(1))
-				owner, metadata := fakeDBWorker.CreateContainerArgsForCall(0)
-				Expect(owner).To(Equal(fakeContainerOwner))
-				Expect(metadata).To(Equal(containerMetadata))
+			})
+
+			Context("having db container creation erroring", func() {
+				Context("with ContainerOwnerDisappearedError", func() {
+					BeforeEach(func() {
+						fakeDBWorker.CreateContainerReturns(nil, db.ContainerOwnerDisappearedError{})
+					})
+
+					It("fails w/ ResourceConfigCheckSessionExpiredError", func() {
+						Expect(findOrCreateErr).To(HaveOccurred())
+						Expect(findOrCreateErr).To(Equal(ResourceConfigCheckSessionExpiredError))
+					})
+				})
+
+				Context("with a non-specific error", func() {
+					BeforeEach(func() {
+						fakeDBWorker.CreateContainerReturns(nil, errors.New("err"))
+					})
+
+					It("fails with the same err", func() {
+						Expect(findOrCreateErr).To(HaveOccurred())
+						Expect(findOrCreateErr).To(Equal(errors.New("err")))
+					})
+				})
+			})
+
+			Context("having db container creation succeeding", func() {
+				It("creates a creating container in database", func() {
+					owner, metadata := fakeDBWorker.CreateContainerArgsForCall(0)
+					Expect(owner).To(Equal(fakeContainerOwner))
+					Expect(metadata).To(Equal(containerMetadata))
+				})
 			})
 
 		})

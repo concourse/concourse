@@ -81,17 +81,7 @@ func (i *issuer) Issue(verifiedClaims *VerifiedClaims) (*oauth2.Token, error) {
 
 			for _, group := range groupAuth {
 				for _, claimGroup := range claimGroups {
-
-					parts := strings.Split(claimGroup, ":")
-
-					if len(parts) > 0 {
-						// match the provider plus the org e.g. github:org-name
-						if strings.EqualFold(group, connectorID+":"+parts[0]) {
-							teamSet[team.Name()][role] = true
-							isAdmin = isAdmin || (team.Admin() && role == "owner")
-						}
-
-						// match the provider plus the entire claim group e.g. github:org-name:team-name
+					if claimGroup != "" {
 						if strings.EqualFold(group, connectorID+":"+claimGroup) {
 							teamSet[team.Name()][role] = true
 							isAdmin = isAdmin || (team.Admin() && role == "owner")

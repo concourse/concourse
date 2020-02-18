@@ -308,6 +308,15 @@ dup-key: ((key3))
 		Expect(result).To(Equal([]byte("abc: val\nxyz:\n- val\n")))
 	})
 
+	It("allow var_source name in variable keys", func() {
+		template := NewTemplate([]byte("abc: ((dummy:key))"))
+		vars := StaticVariables{"dummy:key": "val"}
+
+		result, err := template.Evaluate(vars, EvaluateOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(Equal([]byte("abc: val\n")))
+	})
+
 	It("allows to access sub key of an interpolated value via dot syntax", func() {
 		template := NewTemplate([]byte("((key.subkey))"))
 		vars := StaticVariables{

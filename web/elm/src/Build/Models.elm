@@ -1,16 +1,18 @@
 module Build.Models exposing
     ( Model
+    , ShortcutsModel
     , StepHeaderType(..)
     , toMaybe
     )
 
-import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
+import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..), HistoryItem)
 import Build.Output.Models exposing (OutputModel)
 import Concourse
+import Concourse.BuildStatus as BuildStatus
 import Keyboard
 import Login.Login as Login
-import RemoteData
 import Routes exposing (Highlight)
+import Time
 
 
 
@@ -20,20 +22,34 @@ import Routes exposing (Highlight)
 type alias Model =
     Login.Model
         (Build.Header.Models.Model
-            { build : RemoteData.WebData Concourse.Build
-            , browsingIndex : Int
-            , autoScroll : Bool
-            , previousKeyPress : Maybe Keyboard.KeyEvent
-            , shiftDown : Bool
-            , showHelp : Bool
-            , highlight : Highlight
-            , hoveredCounter : Int
-            , authorized : Bool
-            , output : CurrentOutput
-            , prep : Maybe Concourse.BuildPrep
-            , page : BuildPageType
-            }
+            (ShortcutsModel
+                { shiftDown : Bool
+                , highlight : Highlight
+                , authorized : Bool
+                , output : CurrentOutput
+                , prep : Maybe Concourse.BuildPrep
+                , page : BuildPageType
+                , hasLoadedYet : Bool
+                , notFound : Bool
+                , reapTime : Maybe Time.Posix
+                }
+            )
         )
+
+
+type alias ShortcutsModel r =
+    { r
+        | previousKeyPress : Maybe Keyboard.KeyEvent
+        , autoScroll : Bool
+        , showHelp : Bool
+        , id : Int
+        , history : List HistoryItem
+        , name : String
+        , job : Maybe Concourse.JobIdentifier
+        , status : BuildStatus.BuildStatus
+        , isTriggerBuildKeyDown : Bool
+        , duration : Concourse.BuildDuration
+    }
 
 
 toMaybe : CurrentOutput -> Maybe OutputModel
@@ -53,3 +69,5 @@ type StepHeaderType
     = StepHeaderPut
     | StepHeaderGet Bool
     | StepHeaderTask
+    | StepHeaderSetPipeline
+    | StepHeaderLoadVar

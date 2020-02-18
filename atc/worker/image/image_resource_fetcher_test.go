@@ -3,9 +3,7 @@ package image_test
 import (
 	"archive/tar"
 	"context"
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -15,49 +13,55 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/fetcher"
-	"github.com/concourse/concourse/atc/fetcher/fetcherfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/onsi/gomega/gbytes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Image", func() {
-	var fakeResourceFactory *resourcefakes.FakeResourceFactory
-	var fakeResourceFetcher *fetcherfakes.FakeFetcher
-	var fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
-	var fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
-	var fakeCreatingContainer *dbfakes.FakeCreatingContainer
+	var (
+		fakeResourceFetcher *workerfakes.FakeFetcher
 
-	var imageResourceFetcher image.ImageResourceFetcher
+		fakeResourceFactory *resourcefakes.FakeResourceFactory
 
-	var stderrBuf *gbytes.Buffer
+		fakeCheckResource *resourcefakes.FakeResource
+		fakeGetResource   *resourcefakes.FakeResource
 
-	var logger lager.Logger
-	var imageResource worker.ImageResource
-	var version atc.Version
-	var ctx context.Context
-	var fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
-	var fakeWorker *workerfakes.FakeWorker
+		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
+		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+		fakeCreatingContainer     *dbfakes.FakeCreatingContainer
 
-	var customTypes atc.VersionedResourceTypes
-	var privileged bool
+		imageResourceFetcher image.ImageResourceFetcher
 
-	var fetchedVolume worker.Volume
-	var fetchedMetadataReader io.ReadCloser
-	var fetchedVersion atc.Version
-	var fetchErr error
-	var teamID int
+		stderrBuf *gbytes.Buffer
 
+		logger                    lager.Logger
+		imageResource             worker.ImageResource
+		version                   atc.Version
+		ctx                       context.Context
+		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
+		fakeWorker                *workerfakes.FakeWorker
+
+		customTypes atc.VersionedResourceTypes
+		privileged  bool
+
+		fetchedVolume         worker.Volume
+		fetchedMetadataReader io.ReadCloser
+		fetchedVersion        atc.Version
+		fetchErr              error
+		teamID                int
+	)
 	BeforeEach(func() {
+		fakeResourceFetcher = new(workerfakes.FakeFetcher)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
-		fakeResourceFetcher = new(fetcherfakes.FakeFetcher)
+		fakeGetResource = new(resourcefakes.FakeResource)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		stderrBuf = gbytes.NewBuffer()
@@ -66,7 +70,7 @@ var _ = Describe("Image", func() {
 		imageResource = worker.ImageResource{
 			Type:   "docker",
 			Source: atc.Source{"some": "super-secret-sauce"},
-			Params: &atc.Params{"some": "params"},
+			Params: atc.Params{"some": "params"},
 		}
 		version = nil
 		ctx = context.Background()
@@ -97,14 +101,27 @@ var _ = Describe("Image", func() {
 		}
 
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
+
+		fakeCheckResource = new(resourcefakes.FakeResource)
+
 	})
+
+	ExpectVersionSaveToDatabaseFails := func(expectedError error) {
+		It("returns the error", func() {
+			Expect(fetchErr).To(Equal(expectedError))
+		})
+
+		It("does not construct the 'get' resource", func() {
+			Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(0))
+		})
+	}
 
 	JustBeforeEach(func() {
 		imageResourceFetcher = image.NewImageResourceFetcherFactory(
+			fakeResourceFactory,
 			fakeResourceCacheFactory,
 			fakeResourceConfigFactory,
 			fakeResourceFetcher,
-			fakeResourceFactory,
 		).NewImageResourceFetcher(
 			fakeWorker,
 			imageResource,
@@ -129,8 +146,7 @@ var _ = Describe("Image", func() {
 
 		Context("when initializing the Check resource works", func() {
 			var (
-				fakeCheckResource *resourcefakes.FakeResource
-				fakeContainer     *workerfakes.FakeContainer
+				fakeContainer *workerfakes.FakeContainer
 			)
 
 			BeforeEach(func() {
@@ -138,8 +154,6 @@ var _ = Describe("Image", func() {
 				fakeContainer.HandleReturns("some-handle")
 				fakeWorker.FindOrCreateContainerReturnsOnCall(0, fakeContainer, nil)
 
-				fakeCheckResource = new(resourcefakes.FakeResource)
-				fakeResourceFactory.NewResourceForContainerReturnsOnCall(0, fakeCheckResource)
 			})
 
 			Context("when the resource type the resource depends on a custom type", func() {
@@ -152,15 +166,29 @@ var _ = Describe("Image", func() {
 					imageResource = worker.ImageResource{
 						Type:   customResourceTypeName,
 						Source: atc.Source{"some": "source-param"},
-						Params: &atc.Params{"some": "params"},
+						Params: atc.Params{"some": "params"},
 					}
 
 				})
 
 				Context("and the custom type has a version", func() {
+					BeforeEach(func() {
+						fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResource)
+						fakeResourceFactory.NewResourceReturnsOnCall(1, fakeGetResource)
+					})
 					It("does not check for versions of the custom type", func() {
 						Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 					})
+
+					It("ran 'check' with the right config", func() {
+						Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
+						_, checkProcessSpec, checkImageContainer := fakeCheckResource.CheckArgsForCall(0)
+						Expect(checkProcessSpec).To(Equal(runtime.ProcessSpec{
+							Path: "/opt/resource/check",
+						}))
+						Expect(checkImageContainer).To(Equal(fakeContainer))
+					})
+
 				})
 
 				Context("and the custom type does not have a version", func() {
@@ -177,10 +205,14 @@ var _ = Describe("Image", func() {
 						}
 
 						fakeCheckResourceType = new(resourcefakes.FakeResource)
-						fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
-						fakeResourceFactory.NewResourceForContainerReturnsOnCall(0, fakeCheckResourceType)
+						fakeCheckResourceType.CheckReturns(
+							[]atc.Version{{"some-key": "some-value"}},
+							nil)
+						fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResourceType)
+						fakeResourceFactory.NewResourceReturnsOnCall(1, fakeCheckResource)
+						fakeResourceFactory.NewResourceReturnsOnCall(2, fakeGetResource)
 
-						fakeResourceFactory.NewResourceForContainerReturnsOnCall(1, fakeCheckResource)
+						fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 					})
 
 					It("checks for the latest version of the resource type", func() {
@@ -209,6 +241,9 @@ var _ = Describe("Image", func() {
 
 			Context("when check returns a version", func() {
 				BeforeEach(func() {
+					fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResource)
+					fakeResourceFactory.NewResourceReturnsOnCall(1, fakeGetResource)
+
 					fakeCheckResource.CheckReturns([]atc.Version{{"v": "1"}}, nil)
 				})
 
@@ -218,28 +253,28 @@ var _ = Describe("Image", func() {
 					})
 
 					Context("when fetching resource fails", func() {
+						var someError error
 						BeforeEach(func() {
-							fakeResourceFetcher.FetchReturns(nil, fetcher.ErrInterrupted)
+							someError = errors.New("some thing bad happened")
+							fakeResourceFetcher.FetchReturns(worker.GetResult{}, &workerfakes.FakeVolume{}, someError)
 						})
 
 						It("returns error", func() {
-							Expect(fetchErr).To(Equal(fetcher.ErrInterrupted))
+							Expect(fetchErr).To(Equal(someError))
 						})
 					})
 
 					Context("when fetching resource succeeds", func() {
 						var (
-							fakeVersionedSource   *resourcefakes.FakeVersionedSource
 							fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
+							fakeVolume            *workerfakes.FakeVolume
 						)
 
 						BeforeEach(func() {
-							fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
-							fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
+							fakeVolume = &workerfakes.FakeVolume{}
+							fakeResourceFetcher.FetchReturns(worker.GetResult{}, fakeVolume, nil)
 
-							fakeVersionedSource.StreamOutReturns(tgzStreamWith("some-tar-contents"), nil)
-							fakeVolume := new(workerfakes.FakeVolume)
-							fakeVersionedSource.VolumeReturns(fakeVolume)
+							fakeVolume.StreamOutReturns(tgzStreamWith("some-tar-contents"), nil)
 
 							fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
 							fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
@@ -247,46 +282,59 @@ var _ = Describe("Image", func() {
 
 						Context("when the resource has a volume", func() {
 							var (
-								fakeVolume            *workerfakes.FakeVolume
 								volumePath            string
 								fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
+								someStdoutWriter      io.Writer
+								someStderrWriter      io.Writer
 							)
 
 							BeforeEach(func() {
 								fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
-								fakeVolume = new(workerfakes.FakeVolume)
-								volumePath = "C:/Documents and Settings/Evan/My Documents"
 
+								volumePath = "C:/Documents and Settings/Evan/My Documents"
 								fakeVolume.PathReturns(volumePath)
-								fakeVersionedSource.VolumeReturns(fakeVolume)
+
+								someStdoutWriter = gbytes.NewBuffer()
+								someStderrWriter = gbytes.NewBuffer()
+
+								fakeImageFetchingDelegate.StdoutReturns(someStdoutWriter)
+								fakeImageFetchingDelegate.StderrReturns(someStderrWriter)
+
+								fakeResourceFactory.NewResourceReturns(fakeGetResource)
 
 								privileged = true
 							})
 
-							Context("calling NewResourceForContainer", func() {
-								BeforeEach(func() {
-									fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
-									fakeResourceFactory.NewResourceForContainerReturns(fakeCheckResource)
-								})
+							It("calls resourceFetcher.Fetch with the correct args", func() {
+								actualCtx, _, actualMetadata, actualWorker,
+									actualContainerSpec, actualProcessSpec, actualResource,
+									actualContainerOwner, actualImageFetcherSpec,
+									actualResourceCache, lockname := fakeResourceFetcher.FetchArgsForCall(0)
 
-								It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-									Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-									cctx, _, delegate, owner, metadata, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
-									Expect(cctx).To(Equal(ctx))
-									Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
-									Expect(metadata).To(Equal(db.ContainerMetadata{
-										Type: db.ContainerTypeCheck,
-									}))
-									Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-										ResourceType: "docker",
-									}))
-									Expect(containerSpec.TeamID).To(Equal(123))
-									Expect(actualCustomTypes).To(Equal(customTypes))
-									Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+								Expect(actualCtx).To(Equal(ctx))
+								Expect(actualMetadata).To(Equal(db.ContainerMetadata{
+									Type: db.ContainerTypeGet,
+								}))
+								Expect(actualWorker).To(Equal(fakeWorker))
+								Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+									ResourceType: "docker",
+								}))
+								Expect(actualContainerSpec.TeamID).To(Equal(123))
+								Expect(actualProcessSpec).To(Equal(runtime.ProcessSpec{
+									Path:         "/opt/resource/in",
+									Args:         []string{resource.ResourcesDir("get")},
+									StdoutWriter: someStdoutWriter,
+									StderrWriter: someStderrWriter,
+								}))
 
-									Expect(fakeResourceFactory.NewResourceForContainerCallCount()).To(Equal(1))
-									Expect(fakeResourceFactory.NewResourceForContainerArgsForCall(0).Handle()).To(Equal("some-handle"))
-								})
+								Expect(actualResource).To(Equal(fakeGetResource))
+								Expect(actualContainerOwner).To(Equal(db.NewImageGetContainerOwner(fakeCreatingContainer, 123)))
+								Expect(actualImageFetcherSpec).To(Equal(worker.ImageFetcherSpec{
+									customTypes,
+									fakeImageFetchingDelegate,
+								}))
+								Expect(actualResourceCache).To(Equal(fakeUsedResourceCache))
+								Expect(lockname).To(Equal("18c3de3f8ea112ba52e01f279b6cc62335b4bec2f359b9be7636a5ad7bf98f8c"))
 							})
 
 							It("succeeds", func() {
@@ -298,9 +346,10 @@ var _ = Describe("Image", func() {
 							})
 
 							It("calls StreamOut on the versioned source with the right metadata path", func() {
-								Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
-								_, src := fakeVersionedSource.StreamOutArgsForCall(0)
-								Expect(src).To(Equal("metadata.json"))
+								Expect(fakeVolume.StreamOutCallCount()).To(Equal(1))
+								volumeCtx, metadataFilePath := fakeVolume.StreamOutArgsForCall(0)
+								Expect(volumeCtx).To(Equal(ctx))
+								Expect(metadataFilePath).To(Equal("metadata.json"))
 							})
 
 							It("returns a tar stream containing the contents of metadata.json", func() {
@@ -311,78 +360,16 @@ var _ = Describe("Image", func() {
 								Expect(fetchedVersion).To(Equal(atc.Version{"v": "1"}))
 							})
 
-							It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
-								Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-								cctx, _, delegate, owner, metadata, containerSpec, actualCustomTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
-								Expect(cctx).To(Equal(ctx))
-								Expect(owner).To(Equal(db.NewImageCheckContainerOwner(fakeCreatingContainer, 123)))
-								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-									ResourceType: "docker",
-								}))
-								Expect(metadata).To(Equal(db.ContainerMetadata{
-									Type: db.ContainerTypeCheck,
-								}))
-								Expect(containerSpec.TeamID).To(Equal(123))
-								Expect(actualCustomTypes).To(Equal(customTypes))
-								Expect(delegate).To(Equal(fakeImageFetchingDelegate))
-
-								Expect(fakeResourceFactory.NewResourceForContainerCallCount()).To(Equal(1))
-								Expect(fakeResourceFactory.NewResourceForContainerArgsForCall(0).Handle()).To(Equal("some-handle"))
-							})
-
-							It("ran 'check' with the right config", func() {
-								Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
-								_, checkSource, checkVersion := fakeCheckResource.CheckArgsForCall(0)
-								Expect(checkVersion).To(BeNil())
-								Expect(checkSource).To(Equal(atc.Source{"some": "super-secret-sauce"}))
-							})
-
 							It("saved the image resource version in the database", func() {
 								Expect(fakeImageFetchingDelegate.ImageVersionDeterminedCallCount()).To(Equal(1))
 								Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(fakeUsedResourceCache))
-							})
-
-							It("fetches resource with correct session", func() {
-								Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-								_, _, actualContainerMetadata, actualWorker, containerSpec, actualCustomTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
-								Expect(actualContainerMetadata).To(Equal(
-									db.ContainerMetadata{
-										Type: db.ContainerTypeGet,
-									},
-								))
-								Expect(actualWorker.Name()).To(Equal("some-worker"))
-								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-									ResourceType: "docker",
-								}))
-								Expect(containerSpec.TeamID).To(Equal(123))
-								Expect(resourceInstance).To(Equal(resource.NewResourceInstance(
-									"docker",
-									atc.Version{"v": "1"},
-									atc.Source{"some": "super-secret-sauce"},
-									atc.Params{"some": "params"},
-									customTypes,
-									fakeUsedResourceCache,
-									db.NewImageGetContainerOwner(fakeCreatingContainer, teamID),
-								)))
-								Expect(actualCustomTypes).To(Equal(customTypes))
-								Expect(delegate).To(Equal(fakeImageFetchingDelegate))
-								expectedLockName := fmt.Sprintf("%x",
-									sha256.Sum256([]byte(
-										`{"type":"docker","version":{"v":"1"},"source":{"some":"super-secret-sauce"},"params":{"some":"params"},"worker_name":"fake-worker-name"}`,
-									)),
-								)
-								Expect(resourceInstance.LockName("fake-worker-name")).To(Equal(expectedLockName))
-							})
-
-							It("gets the volume", func() {
-								Expect(fakeVersionedSource.VolumeCallCount()).To(Equal(1))
 							})
 
 							Context("when streaming the metadata out fails", func() {
 								disaster := errors.New("nope")
 
 								BeforeEach(func() {
-									fakeVersionedSource.StreamOutReturns(nil, disaster)
+									fakeVolume.StreamOutReturns(nil, disaster)
 								})
 
 								It("returns the error", func() {
@@ -392,37 +379,41 @@ var _ = Describe("Image", func() {
 
 							Context("when the resource still does not have a volume for some reason", func() {
 								BeforeEach(func() {
-									fakeVersionedSource.VolumeReturns(nil)
+									fakeResourceFetcher.FetchReturns(worker.GetResult{}, nil, nil)
 								})
 
 								It("returns an appropriate error", func() {
 									Expect(fetchErr).To(Equal(image.ErrImageGetDidNotProduceVolume))
 								})
 							})
+
+							//This is the only test thats not repeated in the flow below
+							It("ran 'check' with the right config", func() {
+								Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
+								_, checkProcessSpec, checkImageContainer := fakeCheckResource.CheckArgsForCall(0)
+								Expect(checkProcessSpec).To(Equal(runtime.ProcessSpec{
+									Path: "/opt/resource/check",
+								}))
+								Expect(checkImageContainer).To(Equal(fakeContainer))
+							})
 						})
 					})
 				})
 
 				Context("when saving the version in the database fails", func() {
-					var imageVersionSavingCalamity error
+					var imageVersionSavingCalamity = errors.New("hang in there bud")
 					BeforeEach(func() {
-						imageVersionSavingCalamity = errors.New("hang in there bud")
 						fakeImageFetchingDelegate.ImageVersionDeterminedReturns(imageVersionSavingCalamity)
 					})
 
-					It("returns the error", func() {
-						Expect(fetchErr).To(Equal(imageVersionSavingCalamity))
-					})
-
-					It("does not construct the 'get' resource", func() {
-						Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(0))
-					})
+					ExpectVersionSaveToDatabaseFails(imageVersionSavingCalamity)
 				})
 			})
 
 			Context("when check returns no versions", func() {
 				BeforeEach(func() {
 					fakeCheckResource.CheckReturns([]atc.Version{}, nil)
+					fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResource)
 				})
 
 				It("exits with ErrImageUnavailable", func() {
@@ -442,6 +433,7 @@ var _ = Describe("Image", func() {
 				BeforeEach(func() {
 					disaster = errors.New("wah")
 					fakeCheckResource.CheckReturns(nil, disaster)
+					fakeResourceFactory.NewResourceReturnsOnCall(0, fakeCheckResource)
 				})
 
 				It("returns the error", func() {
@@ -476,7 +468,8 @@ var _ = Describe("Image", func() {
 
 	Context("when a version is specified", func() {
 		BeforeEach(func() {
-			version = atc.Version{"some": "version"}
+			version = atc.Version{"v": "1"}
+			fakeResourceFactory.NewResourceReturnsOnCall(0, fakeGetResource)
 		})
 
 		Context("when saving the version in the database succeeds", func() {
@@ -485,28 +478,28 @@ var _ = Describe("Image", func() {
 			})
 
 			Context("when fetching resource fails", func() {
+				var someError error
 				BeforeEach(func() {
-					fakeResourceFetcher.FetchReturns(nil, fetcher.ErrInterrupted)
+					someError = errors.New("some thing bad happened")
+					fakeResourceFetcher.FetchReturns(worker.GetResult{}, &workerfakes.FakeVolume{}, someError)
 				})
 
 				It("returns error", func() {
-					Expect(fetchErr).To(Equal(fetcher.ErrInterrupted))
+					Expect(fetchErr).To(Equal(someError))
 				})
 			})
 
 			Context("when fetching resource succeeds", func() {
 				var (
-					fakeVersionedSource   *resourcefakes.FakeVersionedSource
 					fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
+					fakeVolume            *workerfakes.FakeVolume
 				)
 
 				BeforeEach(func() {
-					fakeVersionedSource = new(resourcefakes.FakeVersionedSource)
-					fakeResourceFetcher.FetchReturns(fakeVersionedSource, nil)
+					fakeVolume = &workerfakes.FakeVolume{}
+					fakeResourceFetcher.FetchReturns(worker.GetResult{}, fakeVolume, nil)
 
-					fakeVersionedSource.StreamOutReturns(tgzStreamWith("some-tar-contents"), nil)
-					fakeVolume := new(workerfakes.FakeVolume)
-					fakeVersionedSource.VolumeReturns(fakeVolume)
+					fakeVolume.StreamOutReturns(tgzStreamWith("some-tar-contents"), nil)
 
 					fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
 					fakeResourceCacheFactory.FindOrCreateResourceCacheReturns(fakeUsedResourceCache, nil)
@@ -514,26 +507,59 @@ var _ = Describe("Image", func() {
 
 				Context("when the resource has a volume", func() {
 					var (
-						fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
-						fakeVolume            *workerfakes.FakeVolume
 						volumePath            string
+						fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
+						someStdoutWriter      io.Writer
+						someStderrWriter      io.Writer
 					)
 
 					BeforeEach(func() {
 						fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
-						fakeVolume = new(workerfakes.FakeVolume)
-						volumePath = "C:/Documents and Settings/Evan/My Documents"
 
+						volumePath = "C:/Documents and Settings/Evan/My Documents"
 						fakeVolume.PathReturns(volumePath)
-						fakeVersionedSource.VolumeReturns(fakeVolume)
+
+						someStdoutWriter = gbytes.NewBuffer()
+						someStderrWriter = gbytes.NewBuffer()
+
+						fakeImageFetchingDelegate.StdoutReturns(someStdoutWriter)
+						fakeImageFetchingDelegate.StderrReturns(someStderrWriter)
+
+						fakeResourceFactory.NewResourceReturns(fakeGetResource)
 
 						privileged = true
 					})
 
-					It("does not construct a new resource for checking", func() {
-						Expect(fakeWorker.EnsureDBContainerExistsCallCount()).To(BeZero())
-						Expect(fakeWorker.FindOrCreateContainerCallCount()).To(BeZero())
-						Expect(fakeResourceFactory.NewResourceForContainerCallCount()).To(BeZero())
+					It("calls resourceFetcher.Fetch with the correct args", func() {
+						actualCtx, _, actualMetadata, actualWorker,
+							actualContainerSpec, actualProcessSpec, actualResource,
+							actualContainerOwner, actualImageFetcherSpec,
+							actualResourceCache, lockname := fakeResourceFetcher.FetchArgsForCall(0)
+
+						Expect(actualCtx).To(Equal(ctx))
+						Expect(actualMetadata).To(Equal(db.ContainerMetadata{
+							Type: db.ContainerTypeGet,
+						}))
+						Expect(actualWorker).To(Equal(fakeWorker))
+						Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+							ResourceType: "docker",
+						}))
+						Expect(actualContainerSpec.TeamID).To(Equal(123))
+						Expect(actualProcessSpec).To(Equal(runtime.ProcessSpec{
+							Path:         "/opt/resource/in",
+							Args:         []string{resource.ResourcesDir("get")},
+							StdoutWriter: someStdoutWriter,
+							StderrWriter: someStderrWriter,
+						}))
+
+						Expect(actualResource).To(Equal(fakeGetResource))
+						Expect(actualContainerOwner).To(Equal(db.NewImageGetContainerOwner(fakeCreatingContainer, 123)))
+						Expect(actualImageFetcherSpec).To(Equal(worker.ImageFetcherSpec{
+							customTypes,
+							fakeImageFetchingDelegate,
+						}))
+						Expect(actualResourceCache).To(Equal(fakeUsedResourceCache))
+						Expect(lockname).To(Equal("18c3de3f8ea112ba52e01f279b6cc62335b4bec2f359b9be7636a5ad7bf98f8c"))
 					})
 
 					It("succeeds", func() {
@@ -545,9 +571,10 @@ var _ = Describe("Image", func() {
 					})
 
 					It("calls StreamOut on the versioned source with the right metadata path", func() {
-						Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
-						_, src := fakeVersionedSource.StreamOutArgsForCall(0)
-						Expect(src).To(Equal("metadata.json"))
+						Expect(fakeVolume.StreamOutCallCount()).To(Equal(1))
+						volumeCtx, metadataFilePath := fakeVolume.StreamOutArgsForCall(0)
+						Expect(volumeCtx).To(Equal(ctx))
+						Expect(metadataFilePath).To(Equal("metadata.json"))
 					})
 
 					It("returns a tar stream containing the contents of metadata.json", func() {
@@ -555,7 +582,7 @@ var _ = Describe("Image", func() {
 					})
 
 					It("has the version on the image", func() {
-						Expect(fetchedVersion).To(Equal(atc.Version{"some": "version"}))
+						Expect(fetchedVersion).To(Equal(atc.Version{"v": "1"}))
 					})
 
 					It("saved the image resource version in the database", func() {
@@ -563,41 +590,11 @@ var _ = Describe("Image", func() {
 						Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(fakeUsedResourceCache))
 					})
 
-					It("fetches resource with correct session", func() {
-						Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-						_, _, actualContainerMetadata, actualWorker, containerSpec, actualCustomTypes, resourceInstance, delegate := fakeResourceFetcher.FetchArgsForCall(0)
-						Expect(actualContainerMetadata).To(Equal(
-							db.ContainerMetadata{
-								Type: db.ContainerTypeGet,
-							},
-						))
-						Expect(actualWorker.Name()).To(Equal("some-worker"))
-						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-							ResourceType: "docker",
-						}))
-						Expect(containerSpec.TeamID).To(Equal(teamID))
-						Expect(resourceInstance).To(Equal(resource.NewResourceInstance(
-							"docker",
-							atc.Version{"some": "version"},
-							atc.Source{"some": "super-secret-sauce"},
-							atc.Params{"some": "params"},
-							customTypes,
-							fakeUsedResourceCache,
-							db.NewImageGetContainerOwner(fakeCreatingContainer, teamID),
-						)))
-						Expect(actualCustomTypes).To(Equal(customTypes))
-						Expect(delegate).To(Equal(fakeImageFetchingDelegate))
-					})
-
-					It("gets the volume", func() {
-						Expect(fakeVersionedSource.VolumeCallCount()).To(Equal(1))
-					})
-
 					Context("when streaming the metadata out fails", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeVersionedSource.StreamOutReturns(nil, disaster)
+							fakeVolume.StreamOutReturns(nil, disaster)
 						})
 
 						It("returns the error", func() {
@@ -607,7 +604,7 @@ var _ = Describe("Image", func() {
 
 					Context("when the resource still does not have a volume for some reason", func() {
 						BeforeEach(func() {
-							fakeVersionedSource.VolumeReturns(nil)
+							fakeResourceFetcher.FetchReturns(worker.GetResult{}, nil, nil)
 						})
 
 						It("returns an appropriate error", func() {
@@ -619,19 +616,12 @@ var _ = Describe("Image", func() {
 		})
 
 		Context("when saving the version in the database fails", func() {
-			var imageVersionSavingCalamity error
+			var imageVersionSavingCalamity = errors.New("hang in there bud")
 			BeforeEach(func() {
-				imageVersionSavingCalamity = errors.New("hang in there bud")
 				fakeImageFetchingDelegate.ImageVersionDeterminedReturns(imageVersionSavingCalamity)
 			})
 
-			It("returns the error", func() {
-				Expect(fetchErr).To(Equal(imageVersionSavingCalamity))
-			})
-
-			It("does not construct the 'get' resource", func() {
-				Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(0))
-			})
+			ExpectVersionSaveToDatabaseFails(imageVersionSavingCalamity)
 		})
 	})
 })

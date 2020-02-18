@@ -23,7 +23,7 @@ func NewBuildLogCollector(
 	batchSize int,
 	buildLogRetentionCalculator BuildLogRetentionCalculator,
 	drainerConfigured bool,
-) Collector {
+) *buildLogCollector {
 	return &buildLogCollector{
 		pipelineFactory:             pipelineFactory,
 		batchSize:                   batchSize,
@@ -69,7 +69,14 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 	job db.Job,
 	logger lager.Logger) error {
-	logRetention := br.buildLogRetentionCalculator.BuildLogsToRetain(job)
+
+	jobConfig, err := job.Config()
+	if err != nil {
+		logger.Error("failed-to-get-job-config", err)
+		return err
+	}
+
+	logRetention := br.buildLogRetentionCalculator.BuildLogsToRetain(jobConfig)
 	if logRetention.Builds == 0 && logRetention.Days == 0 {
 		return nil
 	}
@@ -199,7 +206,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 		"build-ids": buildIDsToDelete,
 	})
 
-	err := pipeline.DeleteBuildEventsByBuildIDs(buildIDsToDelete)
+	err = pipeline.DeleteBuildEventsByBuildIDs(buildIDsToDelete)
 	if err != nil {
 		logger.Error("failed-to-delete-build-events", err)
 		return err

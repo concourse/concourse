@@ -1,6 +1,7 @@
 package builder_test
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -39,7 +41,7 @@ var _ = Describe("DelegateFactory", func() {
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123456789, 0))
 		credVars := vars.StaticVariables{
 			"source-param": "super-secret-source",
-			"git-key":      "123\n456\n789",
+			"git-key":      "{\n123\n456\n789\n}\n",
 		}
 		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
 	})
@@ -47,12 +49,12 @@ var _ = Describe("DelegateFactory", func() {
 	Describe("GetDelegate", func() {
 		var (
 			delegate   exec.GetDelegate
-			info       exec.VersionInfo
+			info       runtime.VersionResult
 			exitStatus exec.ExitStatus
 		)
 
 		BeforeEach(func() {
-			info = exec.VersionInfo{
+			info = runtime.VersionResult{
 				Version:  atc.Version{"foo": "bar"},
 				Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 			}
@@ -157,12 +159,12 @@ var _ = Describe("DelegateFactory", func() {
 	Describe("PutDelegate", func() {
 		var (
 			delegate   exec.PutDelegate
-			info       exec.VersionInfo
+			info       runtime.VersionResult
 			exitStatus exec.ExitStatus
 		)
 
 		BeforeEach(func() {
-			info = exec.VersionInfo{
+			info = runtime.VersionResult{
 				Version:  atc.Version{"foo": "bar"},
 				Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 			}
@@ -221,17 +223,25 @@ var _ = Describe("DelegateFactory", func() {
 	Describe("TaskDelegate", func() {
 		var (
 			delegate   exec.TaskDelegate
-			config     atc.TaskConfig
 			exitStatus exec.ExitStatus
+			someConfig atc.TaskConfig
 		)
 
 		BeforeEach(func() {
 			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+			someConfig = atc.TaskConfig{
+				Platform: "some-platform",
+				Run: atc.TaskRunConfig{
+					Path: "some-foo-path",
+					Dir:  "some-bar-dir",
+				},
+			}
+			delegate.SetTaskConfig(someConfig)
 		})
 
 		Describe("Initializing", func() {
 			JustBeforeEach(func() {
-				delegate.Initializing(logger, config)
+				delegate.Initializing(logger)
 			})
 
 			It("saves an event", func() {
@@ -239,17 +249,31 @@ var _ = Describe("DelegateFactory", func() {
 				event := fakeBuild.SaveEventArgsForCall(0)
 				Expect(event.EventType()).To(Equal(atc.EventType("initialize-task")))
 			})
+
+			It("calls SaveEvent with the taskConfig", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				event := fakeBuild.SaveEventArgsForCall(0)
+				b := `{"time":.*,"origin":{"id":"some-plan-id"},"config":{"platform":"some-platform","image":"","run":{"path":"some-foo-path","args":null,"dir":"some-bar-dir"},"inputs":null}}`
+				Expect(json.Marshal(event)).To(MatchRegexp(b))
+			})
 		})
 
 		Describe("Starting", func() {
 			JustBeforeEach(func() {
-				delegate.Starting(logger, config)
+				delegate.Starting(logger)
 			})
 
 			It("saves an event", func() {
 				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 				event := fakeBuild.SaveEventArgsForCall(0)
 				Expect(event.EventType()).To(Equal(atc.EventType("start-task")))
+			})
+
+			It("calls SaveEvent with the taskConfig", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				event := fakeBuild.SaveEventArgsForCall(0)
+				b := `{"time":.*,"origin":{"id":"some-plan-id"},"config":{"platform":"some-platform","image":"","run":{"path":"some-foo-path","args":null,"dir":"some-bar-dir"},"inputs":null}}`
+				Expect(json.Marshal(event)).To(MatchRegexp(b))
 			})
 		})
 
@@ -300,6 +324,30 @@ var _ = Describe("DelegateFactory", func() {
 
 		BeforeEach(func() {
 			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+		})
+
+		Describe("Initializing", func() {
+			JustBeforeEach(func() {
+				delegate.Initializing(logger)
+			})
+
+			It("saves an event", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				event := fakeBuild.SaveEventArgsForCall(0)
+				Expect(event.EventType()).To(Equal(atc.EventType("initialize")))
+			})
+		})
+
+		Describe("Finished", func() {
+			JustBeforeEach(func() {
+				delegate.Finished(logger, true)
+			})
+
+			It("saves an event", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				event := fakeBuild.SaveEventArgsForCall(0)
+				Expect(event.EventType()).To(Equal(atc.EventType("finish")))
+			})
 		})
 
 		Describe("ImageVersionDetermined", func() {
@@ -474,6 +522,100 @@ var _ = Describe("DelegateFactory", func() {
 			})
 		})
 
+		Describe("No line buffer without secrets redaction", func() {
+			BeforeEach(func() {
+				credVars := vars.StaticVariables{}
+				credVarsTracker = vars.NewCredVarsTracker(credVars, false)
+				delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+			})
+
+			Context("Stdout", func() {
+				It("should not buffer lines", func() {
+					writer := delegate.Stdout()
+					writtenBytes, writeErr := writer.Write([]byte("1\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("1\r")))
+					writtenBytes, writeErr = writer.Write([]byte("2\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("2\r")))
+					writtenBytes, writeErr = writer.Write([]byte("3\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("3\r")))
+					writeErr = writer.(io.Closer).Close()
+					Expect(writeErr).To(BeNil())
+
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(3))
+					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "1\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStdout,
+							ID:     "some-plan-id",
+						},
+					}))
+					Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "2\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStdout,
+							ID:     "some-plan-id",
+						},
+					}))
+					Expect(fakeBuild.SaveEventArgsForCall(2)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "3\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStdout,
+							ID:     "some-plan-id",
+						},
+					}))
+				})
+			})
+
+			Context("Stderr", func() {
+				It("should not buffer lines", func() {
+					writer := delegate.Stderr()
+					writtenBytes, writeErr := writer.Write([]byte("1\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("1\r")))
+					writtenBytes, writeErr = writer.Write([]byte("2\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("2\r")))
+					writtenBytes, writeErr = writer.Write([]byte("3\r"))
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("3\r")))
+					writeErr = writer.(io.Closer).Close()
+					Expect(writeErr).To(BeNil())
+
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(3))
+					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "1\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStderr,
+							ID:     "some-plan-id",
+						},
+					}))
+					Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "2\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStderr,
+							ID:     "some-plan-id",
+						},
+					}))
+					Expect(fakeBuild.SaveEventArgsForCall(2)).To(Equal(event.Log{
+						Time:    123456789,
+						Payload: "3\r",
+						Origin: event.Origin{
+							Source: event.OriginSourceStderr,
+							ID:     "some-plan-id",
+						},
+					}))
+				})
+			})
+		})
+
 		Describe("Secrets redaction", func() {
 			var (
 				writer       io.Writer
@@ -591,7 +733,7 @@ var _ = Describe("DelegateFactory", func() {
 					var logLines string
 
 					JustBeforeEach(func() {
-						logLines = "ok123ok\nok456ok\nok789ok\n"
+						logLines = "{\nok123ok\nok456ok\nok789ok\n}\n"
 						writer = delegate.Stderr()
 						writtenBytes, writeErr = writer.Write([]byte(logLines))
 						writer.(io.Closer).Close()
@@ -603,7 +745,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
 							Time:    123456789,
-							Payload: "ok((redacted))ok\nok((redacted))ok\nok((redacted))ok\n",
+							Payload: "{\nok((redacted))ok\nok((redacted))ok\nok((redacted))ok\n}\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
 								ID:     "some-plan-id",

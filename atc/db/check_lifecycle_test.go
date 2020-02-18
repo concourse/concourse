@@ -9,7 +9,11 @@ import (
 )
 
 var _ = Describe("CheckLifecycle", func() {
-	var checkLifecycle db.CheckLifecycle
+	var (
+		checkLifecycle db.CheckLifecycle
+		removedChecks  int
+		err            error
+	)
 
 	BeforeEach(func() {
 		checkLifecycle = db.NewCheckLifecycle(dbConn)
@@ -17,7 +21,7 @@ var _ = Describe("CheckLifecycle", func() {
 
 	Describe("RemoveExpiredChecks", func() {
 		JustBeforeEach(func() {
-			err := checkLifecycle.RemoveExpiredChecks(time.Hour * 24)
+			removedChecks, err = checkLifecycle.RemoveExpiredChecks(time.Hour * 24)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -33,6 +37,7 @@ var _ = Describe("CheckLifecycle", func() {
 				err := dbConn.QueryRow("SELECT count(*) from checks").Scan(&count)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(count).To(Equal(0))
+				Expect(removedChecks).To(Equal(1))
 			})
 		})
 
@@ -48,6 +53,7 @@ var _ = Describe("CheckLifecycle", func() {
 				err := dbConn.QueryRow("SELECT count(*) from checks").Scan(&count)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(count).To(Equal(1))
+				Expect(removedChecks).To(Equal(0))
 			})
 		})
 
@@ -66,6 +72,7 @@ var _ = Describe("CheckLifecycle", func() {
 				err := dbConn.QueryRow("SELECT count(*) from checks").Scan(&count)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(count).To(Equal(1))
+				Expect(removedChecks).To(Equal(1))
 			})
 		})
 	})

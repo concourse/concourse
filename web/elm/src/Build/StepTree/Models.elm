@@ -26,7 +26,6 @@ import Array exposing (Array)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Dict exposing (Dict)
-import Message.Message exposing (DomID)
 import Routes exposing (Highlight, StepID)
 import Time
 
@@ -35,12 +34,13 @@ type alias StepTreeModel =
     { tree : StepTree
     , foci : Dict StepID StepFocus
     , highlight : Highlight
-    , tooltip : Maybe DomID
     }
 
 
 type StepTree
     = Task Step
+    | SetPipeline Step
+    | LoadVar Step
     | ArtifactInput Step
     | Get Step
     | ArtifactOutput Step
@@ -125,6 +125,9 @@ type BuildEvent
     | InitializeTask Origin Time.Posix
     | StartTask Origin Time.Posix
     | FinishTask Origin Int Time.Posix
+    | Initialize Origin Time.Posix
+    | Start Origin Time.Posix
+    | Finish Origin Time.Posix Bool
     | InitializeGet Origin Time.Posix
     | StartGet Origin Time.Posix
     | FinishGet Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
@@ -181,6 +184,12 @@ map f tree =
 
         Put step ->
             Put (f step)
+
+        SetPipeline step ->
+            SetPipeline (f step)
+
+        LoadVar step ->
+            LoadVar (f step)
 
         _ ->
             tree
@@ -329,6 +338,12 @@ finishTree root =
 
         Put step ->
             Put (finishStep step)
+
+        SetPipeline step ->
+            SetPipeline (finishStep step)
+
+        LoadVar step ->
+            LoadVar (finishStep step)
 
         Aggregate trees ->
             Aggregate (Array.map finishTree trees)

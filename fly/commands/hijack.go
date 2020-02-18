@@ -33,6 +33,7 @@ type HijackCommand struct {
 	PositionalArgs struct {
 		Command []string `positional-arg-name:"command" description:"The command to run in the container (default: bash)"`
 	} `positional-args:"yes"`
+	Team string `long:"team" description:"Name of the team to which the container belongs, if different from the target default"`
 }
 
 func (command *HijackCommand) Execute([]string) error {
@@ -63,10 +64,12 @@ func (command *HijackCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+
 	var chosenContainer atc.Container
 
 	if command.Handle != "" {
-		chosenContainer, err = target.Team().GetContainer(command.Handle)
+		team := GetTeam(target, command.Team)
+		chosenContainer, err = team.GetContainer(command.Handle)
 		if err != nil {
 			displayhelpers.Failf("no containers matched the given handle id!\n\nthey may have expired if your build hasn't recently finished.")
 		}
@@ -196,7 +199,8 @@ func (command *HijackCommand) Execute([]string) error {
 
 		h := hijacker.New(target.TLSConfig(), reqGenerator, target.Token())
 
-		return h.Hijack(target.Team().Name(), chosenContainer.ID, spec, io)
+		team := GetTeam(target, command.Team)
+		return h.Hijack(team.Name(), chosenContainer.ID, spec, io)
 	}()
 
 	if err != nil {
@@ -242,7 +246,9 @@ func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, u
 	}
 
 	team := urlMap["teams"]
-	if team != target.Team().Name() {
+
+	teamName := GetTeam(target, command.Team).Name()
+	if team != teamName {
 		err = fmt.Errorf("Team in URL doesn't match the current team of the target")
 		return nil, err
 	}
@@ -299,7 +305,8 @@ func (command *HijackCommand) getContainerIDs(target rc.Target, fingerprint *con
 		return nil, err
 	}
 
-	containers, err := target.Team().ListContainers(reqValues)
+	team := GetTeam(target, command.Team)
+	containers, err := team.ListContainers(reqValues)
 	if err != nil {
 		return nil, err
 	}

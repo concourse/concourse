@@ -5,7 +5,7 @@ module Colors exposing
     , background
     , bottomBarText
     , buildStatusColor
-    , buildTooltipBackground
+    , buildTooltipText
     , card
     , cliIconHover
     , comment
@@ -40,6 +40,7 @@ module Colors exposing
     , secondaryTopBar
     , sectionHeader
     , sideBar
+    , sideBarActive
     , started
     , startedFaded
     , statusColor
@@ -229,8 +230,8 @@ groupsBarBackground =
     "#2b2a2a"
 
 
-buildTooltipBackground : String
-buildTooltipBackground =
+buildTooltipText : String
+buildTooltipText =
     "#ecf0f1"
 
 
@@ -277,6 +278,11 @@ groupBackground =
 sideBar : String
 sideBar =
     "#333333"
+
+
+sideBarActive : String
+sideBarActive =
+    "#272727"
 
 
 errorLog : String

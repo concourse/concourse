@@ -15,6 +15,7 @@ import Browser
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
+import Html
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
@@ -33,6 +34,7 @@ import Set
 import SideBar.SideBar as SideBar
 import SubPage.SubPage as SubPage
 import Time
+import Tooltip
 import Url
 import UserState exposing (UserState(..))
 
@@ -64,6 +66,7 @@ init flags url =
             { userState = UserStateUnknown
             , hovered = HoverState.NoHover
             , clusterName = ""
+            , version = ""
             , turbulenceImgSrc = flags.turbulenceImgSrc
             , notFoundImgSrc = flags.notFoundImgSrc
             , csrfToken = flags.csrfToken
@@ -152,22 +155,7 @@ handleCallback callback model =
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
-        APIDataFetched (Ok ( _, data )) ->
-            let
-                session =
-                    model.session
-
-                newSession =
-                    { session
-                        | userState =
-                            data.user
-                                |> Maybe.map UserStateLoggedIn
-                                |> Maybe.withDefault UserStateLoggedOut
-                    }
-            in
-            subpageHandleCallback callback ( { model | session = newSession }, [] )
-
-        APIDataFetched (Err err) ->
+        AllTeamsFetched (Err err) ->
             let
                 session =
                     model.session
@@ -198,13 +186,13 @@ handleCallback callback model =
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
-        ClusterInfoFetched (Ok { clusterName }) ->
+        ClusterInfoFetched (Ok { clusterName, version }) ->
             let
                 session =
                     model.session
 
                 newSession =
-                    { session | clusterName = clusterName }
+                    { session | clusterName = clusterName, version = version }
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
 
@@ -259,22 +247,19 @@ sideBarHandleCallback callback ( model, effects ) =
 
                         SubPage.BuildModel buildModel ->
                             SideBar.handleCallback callback
-                                (buildModel.build
-                                    |> RemoteData.andThen
-                                        (\b ->
-                                            case b.job of
-                                                Just j ->
-                                                    RemoteData.Success j
+                                (case buildModel.job of
+                                    Just j ->
+                                        RemoteData.Success j
 
-                                                Nothing ->
-                                                    RemoteData.NotAsked
-                                        )
+                                    Nothing ->
+                                        RemoteData.NotAsked
                                 )
 
                         _ ->
                             SideBar.handleCallback callback <|
                                 RemoteData.NotAsked
                    )
+                |> Tooltip.handleCallback callback
     in
     ( { model | session = session }, newEffects )
 
@@ -439,7 +424,16 @@ urlUpdate route model =
 
 view : Model -> Browser.Document TopLevelMessage
 view model =
-    SubPage.view model.session model.subModel
+    let
+        ( title, body ) =
+            SubPage.view model.session model.subModel
+    in
+    { title = title ++ " - Concourse"
+    , body =
+        [ Tooltip.view model.session
+        , Html.map Update body
+        ]
+    }
 
 
 subscriptions : Model -> List Subscription

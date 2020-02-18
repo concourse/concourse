@@ -55,6 +55,8 @@ test('can fly login with browser and reuse same browser without CSRF issues', as
   let pipelineSelector = '.card[data-pipeline-name=some-pipeline]';
   let playButton = `${pipelineSelector} [style*="ic-play"]`;
   let pauseButton = `${pipelineSelector} [style*="ic-pause"]`;
+  const group = `.dashboard-team-group[data-team-name="main"]`;
+  await t.context.web.scrollIntoView(group);
   await t.context.web.page.waitFor(playButton);
   await t.context.web.page.click(playButton);
   await t.context.web.page.waitForSelector(pauseButton, {timeout: 90000});

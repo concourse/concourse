@@ -2,6 +2,7 @@ module Job.Styles exposing
     ( buildResourceHeader
     , buildResourceIcon
     , icon
+    , noBuildsMessage
     , triggerButton
     , triggerTooltip
     )
@@ -53,7 +54,7 @@ triggerTooltip =
     , style "right" "100%"
     , style "top" "15px"
     , style "width" "300px"
-    , style "color" Colors.buildTooltipBackground
+    , style "color" Colors.buildTooltipText
     , style "font-size" "12px"
     , style "font-family" "Inconsolata,monospace"
     , style "padding" "10px"
@@ -74,4 +75,11 @@ buildResourceIcon : List (Html.Attribute msg)
 buildResourceIcon =
     [ style "background-size" "contain"
     , style "margin-right" "5px"
+    ]
+
+
+noBuildsMessage : List (Html.Attribute msg)
+noBuildsMessage =
+    [ style "font-size" "16px"
+    , style "padding" "10px 0 0 30px"
     ]

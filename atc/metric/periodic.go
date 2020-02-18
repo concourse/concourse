@@ -33,7 +33,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "database queries",
 			Value: DatabaseQueries.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -43,8 +42,7 @@ func tick(logger lager.Logger) {
 				logger.Session("database-connections"),
 				Event{
 					Name:  "database connections",
-					Value: database.Stats().OpenConnections,
-					State: EventStateOK,
+					Value: float64(database.Stats().OpenConnections),
 					Attributes: map[string]string{
 						"ConnectionName": database.Name(),
 					},
@@ -58,7 +56,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "containers deleted",
 			Value: ContainersDeleted.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -67,7 +64,14 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "volumes deleted",
 			Value: VolumesDeleted.Delta(),
-			State: EventStateOK,
+		},
+	)
+
+	emit(
+		logger.Session("checks-deleted"),
+		Event{
+			Name:  "checks deleted",
+			Value: ChecksDeleted.Delta(),
 		},
 	)
 
@@ -76,7 +80,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "containers created",
 			Value: ContainersCreated.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -85,7 +88,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "volumes created",
 			Value: VolumesCreated.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -94,7 +96,6 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "failed containers",
 			Value: FailedContainers.Delta(),
-			State: EventStateOK,
 		},
 	)
 
@@ -103,7 +104,38 @@ func tick(logger lager.Logger) {
 		Event{
 			Name:  "failed volumes",
 			Value: FailedVolumes.Delta(),
-			State: EventStateOK,
+		},
+	)
+
+	emit(
+		logger.Session("jobs-scheduled"),
+		Event{
+			Name:  "jobs scheduled",
+			Value: JobsScheduled.Delta(),
+		},
+	)
+
+	emit(
+		logger.Session("jobs-scheduling"),
+		Event{
+			Name:  "jobs scheduling",
+			Value: JobsScheduling.Max(),
+		},
+	)
+
+	emit(
+		logger.Session("builds-started"),
+		Event{
+			Name:  "builds started",
+			Value: BuildsStarted.Delta(),
+		},
+	)
+
+	emit(
+		logger.Session("builds-running"),
+		Event{
+			Name:  "builds running",
+			Value: BuildsRunning.Max(),
 		},
 	)
 
@@ -114,8 +146,7 @@ func tick(logger lager.Logger) {
 		logger.Session("gc-pause-total-duration"),
 		Event{
 			Name:  "gc pause total duration",
-			Value: int(memStats.PauseTotalNs),
-			State: EventStateOK,
+			Value: float64(memStats.PauseTotalNs),
 		},
 	)
 
@@ -123,8 +154,7 @@ func tick(logger lager.Logger) {
 		logger.Session("mallocs"),
 		Event{
 			Name:  "mallocs",
-			Value: int(memStats.Mallocs),
-			State: EventStateOK,
+			Value: float64(memStats.Mallocs),
 		},
 	)
 
@@ -132,8 +162,7 @@ func tick(logger lager.Logger) {
 		logger.Session("frees"),
 		Event{
 			Name:  "frees",
-			Value: int(memStats.Frees),
-			State: EventStateOK,
+			Value: float64(memStats.Frees),
 		},
 	)
 
@@ -141,8 +170,7 @@ func tick(logger lager.Logger) {
 		logger.Session("goroutines"),
 		Event{
 			Name:  "goroutines",
-			Value: int(runtime.NumGoroutine()),
-			State: EventStateOK,
+			Value: float64(runtime.NumGoroutine()),
 		},
 	)
 }

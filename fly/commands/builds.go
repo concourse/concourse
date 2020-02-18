@@ -32,6 +32,15 @@ type BuildsCommand struct {
 }
 
 func (command *BuildsCommand) Execute([]string) error {
+	var (
+		builds = make([]atc.Build, 0)
+		teams  = make([]concourse.Team, 0)
+
+		timeSince time.Time
+		timeUntil time.Time
+		page      = concourse.Page{}
+	)
+
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -42,48 +51,10 @@ func (command *BuildsCommand) Execute([]string) error {
 		return err
 	}
 
-	var (
-		timeSince time.Time
-		timeUntil time.Time
-		page      = concourse.Page{}
-	)
-
-	if command.Since != "" {
-		timeSince, err = time.ParseInLocation(inputTimeLayout, command.Since, time.Now().Location())
-		if err != nil {
-			return errors.New("Since time should be in the format: " + inputTimeLayout)
-		}
-		page.Since = int(timeSince.Unix())
+	page, err = command.validateBuildArguments(timeSince, page, timeUntil)
+	if err != nil {
+		return err
 	}
-
-	if command.Until != "" {
-		timeUntil, err = time.ParseInLocation(inputTimeLayout, command.Until, time.Now().Location())
-		if err != nil {
-			return errors.New("Until time should be in the format: " + inputTimeLayout)
-		}
-		page.Until = int(timeUntil.Unix())
-	}
-
-	if timeSince.After(timeUntil) && command.Since != "" && command.Until != "" {
-		return errors.New("Cannot have --since after --until")
-	}
-
-	if command.pipelineFlag() && command.jobFlag() {
-		return errors.New("Cannot specify both --pipeline and --job")
-	}
-
-	if command.CurrentTeam && command.AllTeams {
-		return errors.New("Cannot specify both --all-teams and --current-team")
-	}
-
-	if len(command.Teams) > 0 && command.AllTeams {
-		return errors.New("Cannot specify both --all-teams and --team")
-	}
-
-	var (
-		builds = make([]atc.Build, 0)
-		teams  = make([]concourse.Team, 0)
-	)
 
 	page.Limit = command.Count
 	page.Timestamps = command.Since != "" || command.Until != ""
@@ -91,71 +62,118 @@ func (command *BuildsCommand) Execute([]string) error {
 	currentTeam := target.Team()
 	client := target.Client()
 
+	builds, err = command.getBuilds(builds, currentTeam, page, client, teams)
+	if err != nil {
+		return err
+	}
+
+	return command.displayBuilds(builds)
+}
+
+func (command *BuildsCommand) getBuilds(builds []atc.Build, currentTeam concourse.Team, page concourse.Page, client concourse.Client, teams []concourse.Team) ([]atc.Build, error) {
+	var err error
 	if command.pipelineFlag() {
-		err = command.Pipeline.Validate()
+		builds, err = command.validatePipelineBuilds(builds, currentTeam, page)
 		if err != nil {
-			return err
-		}
-
-		var found bool
-		builds, _, found, err = currentTeam.PipelineBuilds(
-			string(command.Pipeline),
-			page,
-		)
-		if err != nil {
-			return err
-		}
-
-		if !found {
-			displayhelpers.Failf("pipeline not found")
+			return nil, err
 		}
 	} else if command.jobFlag() {
-		var found bool
-		builds, _, found, err = currentTeam.JobBuilds(
-			command.Job.PipelineName,
-			command.Job.JobName,
-			page,
-		)
+		builds, err = command.validateJobBuilds(builds, currentTeam, page)
 		if err != nil {
-			return err
-		}
-
-		if !found {
-			displayhelpers.Failf("pipeline/job not found")
+			return nil, err
 		}
 	} else if command.AllTeams {
-		atcTeams, err := client.ListTeams()
+		teams, err = command.getAllTeams(client, teams)
 		if err != nil {
-			return err
-		}
-
-		for _, atcTeam := range atcTeams {
-			teams = append(teams, client.Team(atcTeam.Name))
+			return nil, err
 		}
 	} else if len(command.Teams) > 0 || command.CurrentTeam {
-		if command.CurrentTeam {
-			teams = append(teams, currentTeam)
-		}
-
-		for _, teamName := range command.Teams {
-			teams = append(teams, client.Team(teamName))
-		}
+		teams = command.validateCurrentTeam(teams, currentTeam, client)
 	} else {
 		builds, _, err = client.Builds(page)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	for _, team := range teams {
 		teamBuilds, _, err := team.Builds(page)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		builds = append(builds, teamBuilds...)
 	}
 
+	return builds, err
+}
+
+func (command *BuildsCommand) getAllTeams(client concourse.Client, teams []concourse.Team) ([]concourse.Team, error) {
+	atcTeams, err := client.ListTeams()
+	if err != nil {
+		return nil, err
+	}
+	for _, atcTeam := range atcTeams {
+		teams = append(teams, client.Team(atcTeam.Name))
+	}
+	return teams, nil
+}
+
+func (command *BuildsCommand) validateCurrentTeam(teams []concourse.Team, currentTeam concourse.Team, client concourse.Client) []concourse.Team {
+	if command.CurrentTeam {
+		teams = append(teams, currentTeam)
+	}
+	for _, teamName := range command.Teams {
+		teams = append(teams, client.Team(teamName))
+	}
+	return teams
+}
+
+func (command *BuildsCommand) validateJobBuilds(builds []atc.Build, currentTeam concourse.Team, page concourse.Page) ([]atc.Build, error) {
+	var (
+		err   error
+		found bool
+	)
+
+	builds, _, found, err = currentTeam.JobBuilds(
+		command.Job.PipelineName,
+		command.Job.JobName,
+		page,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		displayhelpers.Failf("pipeline/job not found")
+	}
+	return builds, err
+}
+
+func (command *BuildsCommand) validatePipelineBuilds(builds []atc.Build, currentTeam concourse.Team, page concourse.Page) ([]atc.Build, error) {
+	err := command.Pipeline.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	var found bool
+	builds, _, found, err = currentTeam.PipelineBuilds(
+		string(command.Pipeline),
+		page,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		displayhelpers.Failf("pipeline not found")
+	}
+
+	return builds, err
+}
+
+func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
+	var err error
 	if command.Json {
 		err = displayhelpers.JsonPrint(builds)
 		if err != nil {
@@ -177,14 +195,8 @@ func (command *BuildsCommand) Execute([]string) error {
 		},
 	}
 
-	var rangeUntil int
-	if command.Count < len(builds) {
-		rangeUntil = command.Count
-	} else {
-		rangeUntil = len(builds)
-	}
-
-	for _, b := range builds[:rangeUntil] {
+	buildCap := command.buildCap(builds)
+	for _, b := range builds[:buildCap] {
 		startTimeCell, endTimeCell, durationCell := populateTimeCells(time.Unix(b.StartTime, 0), time.Unix(b.EndTime, 0))
 
 		var pipelineJobCell, buildCell ui.TableCell
@@ -231,6 +243,37 @@ func (command *BuildsCommand) Execute([]string) error {
 	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
 
+func (command *BuildsCommand) validateBuildArguments(timeSince time.Time, page concourse.Page, timeUntil time.Time) (concourse.Page, error) {
+	var err error
+	if command.Since != "" {
+		timeSince, err = time.ParseInLocation(inputTimeLayout, command.Since, time.Now().Location())
+		if err != nil {
+			return page, errors.New("Since time should be in the format: " + inputTimeLayout)
+		}
+		page.Since = int(timeSince.Unix())
+	}
+	if command.Until != "" {
+		timeUntil, err = time.ParseInLocation(inputTimeLayout, command.Until, time.Now().Location())
+		if err != nil {
+			return page, errors.New("Until time should be in the format: " + inputTimeLayout)
+		}
+		page.Until = int(timeUntil.Unix())
+	}
+	if timeSince.After(timeUntil) && command.Since != "" && command.Until != "" {
+		return page, errors.New("Cannot have --since after --until")
+	}
+	if command.pipelineFlag() && command.jobFlag() {
+		return page, errors.New("Cannot specify both --pipeline and --job")
+	}
+	if command.CurrentTeam && command.AllTeams {
+		return page, errors.New("Cannot specify both --all-teams and --current-team")
+	}
+	if len(command.Teams) > 0 && command.AllTeams {
+		return page, errors.New("Cannot specify both --all-teams and --team")
+	}
+	return page, err
+}
+
 func populateTimeCells(startTime time.Time, endTime time.Time) (ui.TableCell, ui.TableCell, ui.TableCell) {
 	var startTimeCell ui.TableCell
 	var endTimeCell ui.TableCell
@@ -271,4 +314,12 @@ func (command *BuildsCommand) jobFlag() bool {
 
 func (command *BuildsCommand) pipelineFlag() bool {
 	return command.Pipeline != ""
+}
+
+func (command *BuildsCommand) buildCap(builds []atc.Build) int {
+	if command.Count < len(builds) {
+		return command.Count
+	}
+
+	return len(builds)
 }

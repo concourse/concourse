@@ -3,38 +3,29 @@ package resource
 import (
 	"context"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/runtime"
 )
-
-type getRequest struct {
-	Source  atc.Source  `json:"source"`
-	Params  atc.Params  `json:"params,omitempty"`
-	Version atc.Version `json:"version,omitempty"`
-}
 
 func (resource *resource) Get(
 	ctx context.Context,
-	volume worker.Volume,
-	ioConfig IOConfig,
-	source atc.Source,
-	params atc.Params,
-	version atc.Version,
-) (VersionedSource, error) {
-	var vr VersionResult
+	spec runtime.ProcessSpec,
+	runnable runtime.Runner,
+) (runtime.VersionResult, error) {
+	var vr runtime.VersionResult
 
-	err := resource.runScript(
-		ctx,
-		"/opt/resource/in",
-		[]string{ResourcesDir("get")},
-		getRequest{source, params, version},
-		&vr,
-		ioConfig.Stderr,
-		true,
-	)
+	input, err := resource.Signature()
 	if err != nil {
-		return nil, err
+		return vr, err
 	}
 
-	return NewGetVersionedSource(volume, vr.Version, vr.Metadata), nil
+	err = runnable.RunScript(
+		ctx,
+		spec.Path,
+		spec.Args,
+		input,
+		&vr,
+		spec.StderrWriter,
+		true,
+	)
+	return vr, err
 }

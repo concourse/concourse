@@ -19,7 +19,6 @@ import Html.Attributes
     exposing
         ( attribute
         , class
-        , classList
         , href
         , id
         , style
@@ -101,6 +100,7 @@ type BackgroundShade
 type ButtonType
     = Abort
     | Trigger
+    | Rerun
 
 
 viewHeader : Header -> Html Message
@@ -115,7 +115,7 @@ viewHeader header =
             [ Html.div [] (List.map viewWidget header.leftWidgets)
             , Html.div [ style "display" "flex" ] (List.map viewWidget header.rightWidgets)
             ]
-        , viewHistory header.tabs
+        , viewHistory header.backgroundColor header.tabs
         ]
 
 
@@ -213,23 +213,21 @@ viewTimespan timespan =
             String.fromInt d ++ "d " ++ String.fromInt h ++ "h"
 
 
-lazyViewHistory : List BuildTab -> Html Message
-lazyViewHistory =
-    Html.Lazy.lazy viewBuildTabs
+lazyViewHistory : BuildStatus -> List BuildTab -> Html Message
+lazyViewHistory backgroundColor =
+    Html.Lazy.lazy (viewBuildTabs backgroundColor)
 
 
-viewBuildTabs : List BuildTab -> Html Message
-viewBuildTabs =
-    List.map viewBuildTab >> Html.ul [ id historyId ]
+viewBuildTabs : BuildStatus -> List BuildTab -> Html Message
+viewBuildTabs backgroundColor =
+    List.map (viewBuildTab backgroundColor) >> Html.ul [ id historyId ]
 
 
-viewBuildTab : BuildTab -> Html Message
-viewBuildTab tab =
+viewBuildTab : BuildStatus -> BuildTab -> Html Message
+viewBuildTab backgroundColor tab =
     Html.li
-        ([ classList [ ( "current", tab.isCurrent ) ]
-         , id <| String.fromInt tab.id
-         ]
-            ++ Styles.historyItem tab.background
+        ((id <| String.fromInt tab.id)
+            :: Styles.historyItem backgroundColor tab.isCurrent tab.background
         )
         [ Html.a
             [ onLeftClick <| Click <| Message.BuildTab tab.id tab.name
@@ -250,6 +248,9 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
                 Trigger ->
                     "ic-add-circle-outline-white.svg"
 
+                Rerun ->
+                    "ic-rerun.svg"
+
         accessibilityLabel =
             case type_ of
                 Abort ->
@@ -257,6 +258,9 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
 
                 Trigger ->
                     "Trigger Build"
+
+                Rerun ->
+                    "Rerun Build"
 
         domID =
             case type_ of
@@ -266,12 +270,15 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
                 Trigger ->
                     Message.TriggerBuildButton
 
+                Rerun ->
+                    Message.RerunBuildButton
+
         styles =
             [ style "padding" "10px"
             , style "outline" "none"
             , style "margin" "0"
             , style "border-width" "0 0 0 1px"
-            , style "border-color" Colors.background
+            , style "border-color" <| Colors.buildStatusColor False backgroundColor
             , style "border-style" "solid"
             , style "position" "relative"
             , style "background-color" <|
@@ -293,8 +300,8 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
          , attribute "title" accessibilityLabel
          , onLeftClick <| Click domID
          , onMouseEnter <| Hover <| Just domID
-         , onFocus <| Hover <| Just domID
          , onMouseLeave <| Hover Nothing
+         , onFocus <| Hover <| Just domID
          , onBlur <| Hover Nothing
          ]
             ++ styles
@@ -304,8 +311,26 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
             , image = image
             }
             []
+        , tooltipArrow tooltip type_
         , viewTooltip tooltip type_
         ]
+
+
+tooltipArrow : Bool -> ButtonType -> Html Message
+tooltipArrow tooltip type_ =
+    case ( tooltip, type_ ) of
+        ( True, Trigger ) ->
+            Html.div
+                Styles.buttonTooltipArrow
+                []
+
+        ( True, Rerun ) ->
+            Html.div
+                Styles.buttonTooltipArrow
+                []
+
+        _ ->
+            Html.text ""
 
 
 viewTooltip : Bool -> ButtonType -> Html Message
@@ -313,9 +338,16 @@ viewTooltip tooltip type_ =
     case ( tooltip, type_ ) of
         ( True, Trigger ) ->
             Html.div
-                Styles.triggerTooltip
+                (Styles.buttonTooltip 240)
                 [ Html.text <|
                     "manual triggering disabled in job config"
+                ]
+
+        ( True, Rerun ) ->
+            Html.div
+                (Styles.buttonTooltip 165)
+                [ Html.text <|
+                    "re-run with the same inputs"
                 ]
 
         _ ->
@@ -332,13 +364,15 @@ viewTitle name jobID =
                         Routes.Job { id = id, page = Nothing }
                 ]
                 [ Html.span [ class "build-name" ] [ Html.text id.jobName ]
-                , Html.text (" #" ++ name)
+                , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
                 ]
 
         _ ->
             Html.text ("build #" ++ name)
 
 
-viewHistory : List BuildTab -> Html Message
-viewHistory =
-    lazyViewHistory >> List.singleton >> Html.div [ onMouseWheel ScrollBuilds ]
+viewHistory : BuildStatus -> List BuildTab -> Html Message
+viewHistory backgroundColor =
+    lazyViewHistory backgroundColor
+        >> List.singleton
+        >> Html.div [ onMouseWheel ScrollBuilds ]

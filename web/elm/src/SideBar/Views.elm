@@ -1,6 +1,6 @@
 module SideBar.Views exposing (Pipeline, Team, viewTeam)
 
-import HoverState exposing (TooltipPosition)
+import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Html.Attributes exposing (href, id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -20,7 +20,6 @@ type alias Team =
         , opacity : Styles.Opacity
         , rectangle : Styles.TeamBackingRectangle
         , domID : DomID
-        , tooltip : Maybe TooltipPosition
         }
     , isExpanded : Bool
     , pipelines : List Pipeline
@@ -45,7 +44,6 @@ viewTeam team =
                     ++ [ id <| toHtmlID team.name.domID ]
                 )
                 [ Html.text team.name.text ]
-            , tooltip team.name.tooltip team.name.text
             ]
         , if team.isExpanded then
             Html.div Styles.column <| List.map viewPipeline team.pipelines
@@ -63,7 +61,6 @@ type alias Pipeline =
         , text : String
         , href : String
         , domID : DomID
-        , tooltip : Maybe TooltipPosition
         }
     }
 
@@ -82,21 +79,5 @@ viewPipeline p =
                    , id <| toHtmlID p.link.domID
                    ]
             )
-            [ Html.text p.link.text
-            , tooltip p.link.tooltip p.link.text
-            ]
+            [ Html.text p.link.text ]
         ]
-
-
-tooltip : Maybe TooltipPosition -> String -> Html Message
-tooltip tp text =
-    case tp of
-        Nothing ->
-            Html.text ""
-
-        Just tooltipPosition ->
-            Html.div
-                (Styles.tooltip tooltipPosition)
-                [ Html.div (Styles.tooltipArrow tooltipPosition) []
-                , Html.div Styles.tooltipBody [ Html.text text ]
-                ]

@@ -1,6 +1,5 @@
 module Concourse exposing
-    ( APIData
-    , AuthSession
+    ( AuthSession
     , AuthToken
     , Build
     , BuildDuration
@@ -58,7 +57,6 @@ module Concourse exposing
     , decodeUser
     , decodeVersion
     , decodeVersionedResource
-    , receiveStatus
     , retrieveCSRFToken
     )
 
@@ -160,24 +158,6 @@ type alias Build =
     , status : BuildStatus
     , duration : BuildDuration
     , reapTime : Maybe Time.Posix
-    }
-
-
-receiveStatus : BuildStatus -> Time.Posix -> Build -> Build
-receiveStatus newStatus date ({ duration, status } as build) =
-    { build
-        | status =
-            if Concourse.BuildStatus.isRunning status then
-                newStatus
-
-            else
-                status
-        , duration =
-            if Concourse.BuildStatus.isRunning newStatus then
-                duration
-
-            else
-                { duration | finishedAt = Just date }
     }
 
 
@@ -319,6 +299,8 @@ type alias StepName =
 
 type BuildStep
     = BuildStepTask StepName
+    | BuildStepSetPipeline StepName
+    | BuildStepLoadVar StepName
     | BuildStepArtifactInput StepName
     | BuildStepGet StepName (Maybe Version)
     | BuildStepArtifactOutput StepName
@@ -389,6 +371,10 @@ decodeBuildPlan_ =
                     lazy (\_ -> decodeBuildStepRetry)
                 , Json.Decode.field "timeout" <|
                     lazy (\_ -> decodeBuildStepTimeout)
+                , Json.Decode.field "set_pipeline" <|
+                    lazy (\_ -> decodeBuildSetPipeline)
+                , Json.Decode.field "load_var" <|
+                    lazy (\_ -> decodeBuildStepLoadVar)
                 ]
             )
 
@@ -503,6 +489,18 @@ decodeBuildStepTimeout : Json.Decode.Decoder BuildStep
 decodeBuildStepTimeout =
     Json.Decode.succeed BuildStepTimeout
         |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+
+
+decodeBuildSetPipeline : Json.Decode.Decoder BuildStep
+decodeBuildSetPipeline =
+    Json.Decode.succeed BuildStepSetPipeline
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+
+
+decodeBuildStepLoadVar : Json.Decode.Decoder BuildStep
+decodeBuildStepLoadVar =
+    Json.Decode.succeed BuildStepLoadVar
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
 
@@ -871,20 +869,6 @@ decodeCause =
     Json.Decode.succeed Cause
         |> andMap (Json.Decode.field "versioned_resource_id" Json.Decode.int)
         |> andMap (Json.Decode.field "build_id" Json.Decode.int)
-
-
-
--- APIData
-
-
-type alias APIData =
-    { teams : List Team
-    , pipelines : List Pipeline
-    , jobs : List Job
-    , resources : List Resource
-    , user : Maybe User
-    , version : String
-    }
 
 
 

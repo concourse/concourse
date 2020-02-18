@@ -115,7 +115,7 @@ init flags =
       , FetchJobBuilds flags.jobId flags.paging
       , GetCurrentTime
       , GetCurrentTimeZone
-      , FetchPipelines
+      , FetchAllPipelines
       ]
     )
 
@@ -248,7 +248,7 @@ handleDelivery delivery ( model, effects ) =
             , effects
                 ++ [ FetchJobBuilds model.jobIdentifier model.currentPage
                    , FetchJob model.jobIdentifier
-                   , FetchPipelines
+                   , FetchAllPipelines
                    ]
             )
 
@@ -539,11 +539,19 @@ viewMainJobsSection session model =
                         , viewPaginationBar session model
                         ]
                     ]
-        , case model.buildsWithResources.content of
-            [] ->
+        , case ( model.buildsWithResources.content, model.currentPage ) of
+            ( _, Nothing ) ->
                 LoadingIndicator.view
 
-            anyList ->
+            ( [], Just _ ) ->
+                Html.div Styles.noBuildsMessage
+                    [ Html.text <|
+                        "no builds for job “"
+                            ++ model.jobIdentifier.jobName
+                            ++ "”"
+                    ]
+
+            ( anyList, Just _ ) ->
                 Html.div
                     [ class "scrollable-body job-body"
                     , style "overflow-y" "auto"

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -28,13 +29,19 @@ type Conn interface {
 	Driver() driver.Driver
 
 	Begin() (Tx, error)
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Prepare(query string) (*sql.Stmt, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) squirrel.RowScanner
+	Exec(string, ...interface{}) (sql.Result, error)
+	Prepare(string) (*sql.Stmt, error)
+	Query(string, ...interface{}) (*sql.Rows, error)
+	QueryRow(string, ...interface{}) squirrel.RowScanner
 
-	SetMaxIdleConns(n int)
-	SetMaxOpenConns(n int)
+	BeginTx(context.Context, *sql.TxOptions) (Tx, error)
+	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
+	PrepareContext(context.Context, string) (*sql.Stmt, error)
+	QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...interface{}) squirrel.RowScanner
+
+	SetMaxIdleConns(int)
+	SetMaxOpenConns(int)
 	Stats() sql.DBStats
 
 	Close() error
@@ -45,12 +52,16 @@ type Conn interface {
 
 type Tx interface {
 	Commit() error
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Prepare(query string) (*sql.Stmt, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) squirrel.RowScanner
+	Exec(string, ...interface{}) (sql.Result, error)
+	Prepare(string) (*sql.Stmt, error)
+	Query(string, ...interface{}) (*sql.Rows, error)
+	QueryRow(string, ...interface{}) squirrel.RowScanner
+	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
+	PrepareContext(context.Context, string) (*sql.Stmt, error)
+	QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...interface{}) squirrel.RowScanner
 	Rollback() error
-	Stmt(stmt *sql.Stmt) *sql.Stmt
+	Stmt(*sql.Stmt) *sql.Stmt
 }
 
 func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory) (Conn, error) {
@@ -128,6 +139,7 @@ var encryptedColumns = []encryptedColumn{
 	{"builds", "private_plan", "id"},
 	{"cert_cache", "cert", "domain"},
 	{"checks", "plan", "id"},
+	{"pipelines", "var_sources", "id"},
 }
 
 func encryptPlaintext(logger lager.Logger, sqlDB *sql.DB, key *encryption.Key) error {
@@ -406,6 +418,36 @@ func (db *db) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
 	return db.DB.QueryRow(query, args...)
 }
 
+func (db *db) BeginTx(ctx context.Context, opts *sql.TxOptions) (Tx, error) {
+	tx, err := db.DB.BeginTx(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dbTx{tx, GlobalConnectionTracker.Track()}, nil
+}
+
+func (db *db) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	defer GlobalConnectionTracker.Track().Release()
+	return db.DB.ExecContext(ctx, query, args...)
+}
+
+func (db *db) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	defer GlobalConnectionTracker.Track().Release()
+	return db.DB.PrepareContext(ctx, query)
+}
+
+func (db *db) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	defer GlobalConnectionTracker.Track().Release()
+	return db.DB.QueryContext(ctx, query, args...)
+}
+
+// to conform to squirrel.Runner interface
+func (db *db) QueryRowContext(ctx context.Context, query string, args ...interface{}) squirrel.RowScanner {
+	defer GlobalConnectionTracker.Track().Release()
+	return db.DB.QueryRowContext(ctx, query, args...)
+}
+
 type dbTx struct {
 	*sql.Tx
 
@@ -415,6 +457,10 @@ type dbTx struct {
 // to conform to squirrel.Runner interface
 func (tx *dbTx) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
 	return tx.Tx.QueryRow(query, args...)
+}
+
+func (tx *dbTx) QueryRowContext(ctx context.Context, query string, args ...interface{}) squirrel.RowScanner {
+	return tx.Tx.QueryRowContext(ctx, query, args...)
 }
 
 func (tx *dbTx) Commit() error {
@@ -433,10 +479,10 @@ func Rollback(tx Tx) {
 	_ = tx.Rollback()
 }
 
-type nonOneRowAffectedError struct {
+type NonOneRowAffectedError struct {
 	RowsAffected int64
 }
 
-func (err nonOneRowAffectedError) Error() string {
+func (err NonOneRowAffectedError) Error() string {
 	return fmt.Sprintf("expected 1 row to be updated; got %d", err.RowsAffected)
 }

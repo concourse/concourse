@@ -24,10 +24,11 @@ const (
 //go:generate counterfeiter . Check
 
 type Check interface {
+	PipelineRef
+
 	ID() int
 	TeamID() int
 	TeamName() string
-	PipelineName() string
 	ResourceConfigScopeID() int
 	ResourceConfigID() int
 	BaseResourceTypeID() int
@@ -65,6 +66,8 @@ var checksQuery = psql.Select(
 	From("checks c")
 
 type check struct {
+	pipelineRef
+
 	id                    int
 	resourceConfigScopeID int
 	metadata              CheckMetadata
@@ -77,17 +80,19 @@ type check struct {
 	createTime time.Time
 	startTime  time.Time
 	endTime    time.Time
-
-	conn        Conn
-	lockFactory lock.LockFactory
 }
 
 type CheckMetadata struct {
 	TeamID             int    `json:"team_id"`
 	TeamName           string `json:"team_name"`
+	PipelineID         int    `json:"pipeline_id"`
 	PipelineName       string `json:"pipeline_name"`
 	ResourceConfigID   int    `json:"resource_config_id"`
 	BaseResourceTypeID int    `json:"base_resource_type_id"`
+}
+
+func newEmptyCheck(conn Conn, lockFactory lock.LockFactory) *check {
+	return &check{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
 func (c *check) ID() int                    { return c.id }
@@ -106,10 +111,6 @@ func (c *check) TeamID() int {
 
 func (c *check) TeamName() string {
 	return c.metadata.TeamName
-}
-
-func (c *check) PipelineName() string {
-	return c.metadata.PipelineName
 }
 
 func (c *check) ResourceConfigID() int {
@@ -144,13 +145,16 @@ func (c *check) Start() error {
 
 	defer Rollback(tx)
 
-	_, err = psql.Update("checks").
+	var startTime time.Time
+	err = psql.Update("checks").
 		Set("start_time", sq.Expr("now()")).
 		Where(sq.Eq{
 			"id": c.id,
 		}).
+		Suffix("RETURNING start_time").
 		RunWith(tx).
-		Exec()
+		QueryRow().
+		Scan(&startTime)
 	if err != nil {
 		return err
 	}
@@ -171,6 +175,8 @@ func (c *check) Start() error {
 		return err
 	}
 
+	c.startTime = startTime
+
 	return nil
 }
 
@@ -190,6 +196,7 @@ func (c *check) finish(status CheckStatus, checkError error) error {
 
 	defer Rollback(tx)
 
+	var endTime time.Time
 	builder := psql.Update("checks").
 		Set("status", status).
 		Set("end_time", sq.Expr("now()")).
@@ -201,9 +208,11 @@ func (c *check) finish(status CheckStatus, checkError error) error {
 		builder = builder.Set("check_error", checkError.Error())
 	}
 
-	_, err = builder.
+	err = builder.
+		Suffix("RETURNING end_time").
 		RunWith(tx).
-		Exec()
+		QueryRow().
+		Scan(&endTime)
 	if err != nil {
 		return err
 	}
@@ -232,6 +241,9 @@ func (c *check) finish(status CheckStatus, checkError error) error {
 		return err
 	}
 
+	c.endTime = endTime
+	c.status = status
+
 	return nil
 }
 
@@ -245,11 +257,17 @@ func (c *check) AcquireTrackingLock(logger lager.Logger) (lock.Lock, bool, error
 func (c *check) AllCheckables() ([]Checkable, error) {
 	var checkables []Checkable
 
+	tx, err := c.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
 	rows, err := resourcesQuery.
 		Where(sq.Eq{
 			"r.resource_config_scope_id": c.resourceConfigScopeID,
 		}).
-		RunWith(c.conn).
+		RunWith(tx).
 		Query()
 
 	if err != nil {
@@ -259,11 +277,7 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		r := &resource{
-			conn:        c.conn,
-			lockFactory: c.lockFactory,
-		}
-
+		r := newEmptyResource(c.conn, c.lockFactory)
 		err = scanResource(r, rows)
 		if err != nil {
 			return nil, err
@@ -276,7 +290,7 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 		Where(sq.Eq{
 			"ro.id": c.resourceConfigScopeID,
 		}).
-		RunWith(c.conn).
+		RunWith(tx).
 		Query()
 
 	if err != nil {
@@ -286,17 +300,18 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		r := &resourceType{
-			conn:        c.conn,
-			lockFactory: c.lockFactory,
-		}
-
+		r := newEmptyResourceType(c.conn, c.lockFactory)
 		err = scanResourceType(r, rows)
 		if err != nil {
 			return nil, err
 		}
 
 		checkables = append(checkables, r)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
 	return checkables, nil
@@ -355,6 +370,9 @@ func scanCheck(c *check, row scannable) error {
 			return err
 		}
 	}
+
+	c.pipelineID = c.metadata.PipelineID
+	c.pipelineName = c.metadata.PipelineName
 
 	if checkError.Valid {
 		c.checkError = errors.New(checkError.String)

@@ -2,6 +2,7 @@ package gc
 
 import (
 	"context"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -13,7 +14,7 @@ type workerCollector struct {
 	workerLifecycle db.WorkerLifecycle
 }
 
-func NewWorkerCollector(workerLifecycle db.WorkerLifecycle) Collector {
+func NewWorkerCollector(workerLifecycle db.WorkerLifecycle) *workerCollector {
 	return &workerCollector{
 		workerLifecycle: workerLifecycle,
 	}
@@ -24,6 +25,13 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 
 	logger.Debug("start")
 	defer logger.Debug("done")
+
+	start := time.Now()
+	defer func() {
+		metric.WorkerCollectorDuration{
+			Duration: time.Since(start),
+		}.Emit(logger)
+	}()
 
 	affected, err := wc.workerLifecycle.DeleteUnresponsiveEphemeralWorkers()
 	if err != nil {

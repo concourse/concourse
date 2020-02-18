@@ -48,6 +48,14 @@ class Web {
     }, text)
   }
 
+  async scrollIntoView(selector) {
+    await this.page.waitFor(selector);
+    await this.page.evaluate(selector => {
+      const elem = document.querySelector(selector);
+      elem.scrollIntoView(true);
+    }, selector);
+  }
+
   async login(t) {
     await this.visitLoginPage();
     await this.performLogin();

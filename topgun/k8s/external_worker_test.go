@@ -3,8 +3,6 @@ package k8s_test
 import (
 	"time"
 
-	"github.com/onsi/gomega/gexec"
-
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,8 +13,8 @@ var _ = Describe("external workers through separate deployments", func() {
 	const publicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC496FSYFcBAKgDtMsBAJiF/6/NxlXKP5UZecyEsedYuTt1GOgJTwaA1qZ1LmHsbfLDE68oDdiM4uvxfI4wtLhz57w3u0jOUxZ2JeF7SVwEf1nVqLn4Gh/f8GUNQGSyIp1zUD5Bx9fq0PAyQ47mt7Ufi84rcf8LKl7nzAIHTcdg2BvTkQN9bUGPaq/Pb1W2bKPAQy4OzXTSIyrAJ89TH2jFeaZfyxQFGbD9jVHH/yl0oiMrDeaRYgccE5II+KY7WoLjsBry/9Qf2ERELKTK4UeIGIqWci9lab1ti+GxFPPiC3krNFjo4jShV4eUs4cNIrjwNrxVaKPXmU6o7Y3Hpayx Concourse"
 
 	var (
-		proxySession     *gexec.Session
-		atcEndpoint      string
+		atc Endpoint
+
 		workerKey        string
 		tsaPort          string
 		webDeployArgs    []string
@@ -30,7 +28,6 @@ var _ = Describe("external workers through separate deployments", func() {
 		tsaPort = "2222"
 		helmArgs := append(webDeployArgs,
 			"--set=worker.enabled=false",
-
 			"--set=web.tsa.bindPort="+tsaPort,
 		)
 		deployConcourseChart(releaseName+"-web", helmArgs...)
@@ -47,11 +44,13 @@ var _ = Describe("external workers through separate deployments", func() {
 		waitAllPodsInNamespaceToBeReady(namespace + "-worker")
 		waitAllPodsInNamespaceToBeReady(namespace + "-web")
 
-		By("Creating the web proxy")
-		proxySession, atcEndpoint = startPortForwarding(namespace+"-web", "service/"+releaseName+"-web-web", "8080")
+		atc = endpointFactory.NewServiceEndpoint(
+			namespace+"-web",
+			releaseName+"-web-web",
+			"8080",
+		)
 
-		By("Logging in")
-		fly.Login("test", "test", atcEndpoint)
+		fly.Login("test", "test", "http://"+atc.Address())
 
 	})
 
@@ -72,8 +71,9 @@ var _ = Describe("external workers through separate deployments", func() {
 	}
 
 	AfterEach(func() {
-		cleanup(releaseName+"-web", namespace+"-web", proxySession)
-		cleanup(releaseName+"-worker", namespace+"-worker", nil)
+		atc.Close()
+		cleanup(releaseName+"-web", namespace+"-web")
+		cleanup(releaseName+"-worker", namespace+"-worker")
 	})
 
 	Context("main team worker", func() {

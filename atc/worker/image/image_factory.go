@@ -33,7 +33,7 @@ func (f *imageFactory) GetImage(
 	resourceTypes atc.VersionedResourceTypes,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {
-		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.VolumeOn(logger, worker)
+		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.ExistsOn(logger, worker)
 		if err != nil {
 			logger.Error("failed-to-check-if-volume-exists-on-worker", err)
 			return nil, err
@@ -63,7 +63,7 @@ func (f *imageFactory) GetImage(
 			w.ImageResource{
 				Type:   resourceType.Type,
 				Source: resourceType.Source,
-				Params: &resourceType.Params,
+				Params: resourceType.Params,
 			},
 			resourceType.Version,
 			teamID,
@@ -82,9 +82,7 @@ func (f *imageFactory) GetImage(
 
 	if imageSpec.ImageResource != nil {
 		var version atc.Version
-		if imageSpec.ImageResource.Version != nil {
-			version = *imageSpec.ImageResource.Version
-		}
+		version = imageSpec.ImageResource.Version
 
 		imageResourceFetcher := f.imageResourceFetcherFactory.NewImageResourceFetcher(
 			worker,

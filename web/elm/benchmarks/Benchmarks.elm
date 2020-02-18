@@ -62,11 +62,10 @@ type alias Model =
         , history : List Concourse.Build
         , nextPage : Maybe Page
         , currentBuild : WebData CurrentBuild
-        , browsingIndex : Int
         , autoScroll : Bool
         , previousKeyPress : Maybe Keyboard.KeyEvent
         , shiftDown : Bool
-        , previousTriggerBuildByKey : Bool
+        , isTriggerBuildKeyDown : Bool
         , showHelp : Bool
         , highlight : Highlight
         , hoveredCounter : Int
@@ -89,7 +88,7 @@ main =
         Benchmark.describe "benchmark suite"
             [ Benchmark.compare "DashboardPreview.view"
                 "current"
-                (\_ -> DP.view HoverState.NoHover sampleJobs)
+                (\_ -> DP.view HoverState.NoHover (DP.groupByRank sampleJobs))
                 "old"
                 (\_ -> dashboardPreviewView sampleJobs)
             , Benchmark.compare "Build.view"
@@ -285,7 +284,7 @@ viewBuildHeader session model build =
                         ]
                             ++ (if buttonDisabled && buttonHovered then
                                     [ Html.div
-                                        Build.Styles.triggerTooltip
+                                        (Build.Styles.buttonTooltip 240)
                                         [ Html.text <|
                                             "manual triggering disabled "
                                                 ++ "in job config"
@@ -579,7 +578,10 @@ viewHistoryItem currentBuild build =
         ([ classList [ ( "current", build.id == currentBuild.id ) ]
          , id <| String.fromInt build.id
          ]
-            ++ Build.Styles.historyItem build.status
+            ++ Build.Styles.historyItem
+                currentBuild.status
+                (build.id == currentBuild.id)
+                build.status
         )
         [ Html.a
             [ onLeftClick <| Click <| BuildTab build.id build.name
@@ -693,6 +695,7 @@ sampleSession =
     , timeZone = Time.utc
     , turbulenceImgSrc = ""
     , userState = UserState.UserStateLoggedOut
+    , version = ""
     }
 
 
@@ -726,11 +729,10 @@ sampleOldModel =
                     , highlight = Routes.HighlightNothing
                     }
             }
-    , browsingIndex = 0
     , autoScroll = True
     , previousKeyPress = Nothing
     , shiftDown = False
-    , previousTriggerBuildByKey = False
+    , isTriggerBuildKeyDown = False
     , showHelp = False
     , highlight = Routes.HighlightNothing
     , hoveredCounter = 0
@@ -752,18 +754,6 @@ sampleModel =
     , history = []
     , nextPage = Nothing
     , prep = Nothing
-    , build =
-        RemoteData.Success
-            { id = 0
-            , name = "0"
-            , job = Nothing
-            , status = Concourse.BuildStatus.BuildStatusStarted
-            , duration =
-                { startedAt = Nothing
-                , finishedAt = Nothing
-                }
-            , reapTime = Nothing
-            }
     , duration = { startedAt = Nothing, finishedAt = Nothing }
     , status = Concourse.BuildStatus.BuildStatusStarted
     , output =
@@ -774,18 +764,19 @@ sampleModel =
             , eventStreamUrlPath = Nothing
             , highlight = Routes.HighlightNothing
             }
-    , browsingIndex = 0
     , autoScroll = True
     , previousKeyPress = Nothing
-    , previousTriggerBuildByKey = False
+    , isTriggerBuildKeyDown = False
     , showHelp = False
     , highlight = Routes.HighlightNothing
-    , hoveredCounter = 0
     , authorized = True
     , fetchingHistory = False
     , scrolledToCurrentBuild = False
     , shiftDown = False
     , isUserMenuExpanded = False
+    , hasLoadedYet = True
+    , notFound = False
+    , reapTime = Nothing
     }
 
 
@@ -847,7 +838,6 @@ steps =
         { tree = tree
         , foci = Dict.empty
         , highlight = Routes.HighlightNothing
-        , tooltip = Nothing
         }
 
 

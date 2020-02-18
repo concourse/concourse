@@ -1,4 +1,7 @@
-module Message.Callback exposing (Callback(..))
+module Message.Callback exposing
+    ( Callback(..)
+    , TooltipPolicy(..)
+    )
 
 import Browser.Dom
 import Concourse
@@ -7,7 +10,8 @@ import Http
 import Json.Encode
 import Message.Message
     exposing
-        ( VersionId
+        ( DomID
+        , VersionId
         , VersionToggleAction
         , VisibilityAction
         )
@@ -27,7 +31,9 @@ type Callback
     | JobFetched (Fetched Concourse.Job)
     | JobsFetched (Fetched Json.Encode.Value)
     | PipelineFetched (Fetched Concourse.Pipeline)
+    | PipelinesFetched (Fetched (List Concourse.Pipeline))
     | PipelineToggled Concourse.PipelineIdentifier (Fetched ())
+    | PipelinesOrdered String (Fetched ())
     | UserFetched (Fetched Concourse.User)
     | ResourcesFetched (Fetched Json.Encode.Value)
     | BuildResourcesFetched (Fetched ( Int, Concourse.BuildResources ))
@@ -42,16 +48,23 @@ type Callback
     | VersionToggled VersionToggleAction VersionId (Fetched ())
     | Checked (Fetched Concourse.Check)
     | CommentSet (Fetched ())
-    | APIDataFetched (Fetched ( Time.Posix, Concourse.APIData ))
+    | AllTeamsFetched (Fetched (List Concourse.Team))
+    | AllJobsFetched (Fetched (List Concourse.Job))
+    | AllResourcesFetched (Fetched (List Concourse.Resource))
     | LoggedOut (Fetched ())
     | ScreenResized Browser.Dom.Viewport
     | BuildJobDetailsFetched (Fetched Concourse.Job)
-    | BuildFetched (Fetched ( Int, Concourse.Build ))
-    | BuildPrepFetched (Fetched ( Int, Concourse.BuildPrep ))
+    | BuildFetched (Fetched Concourse.Build)
+    | BuildPrepFetched Concourse.BuildId (Fetched Concourse.BuildPrep)
     | BuildHistoryFetched (Fetched (Paginated Concourse.Build))
     | PlanAndResourcesFetched Int (Fetched ( Concourse.BuildPlan, Concourse.BuildResources ))
     | BuildAborted (Fetched ())
     | VisibilityChanged VisibilityAction Concourse.PipelineIdentifier (Fetched ())
-    | PipelinesFetched (Fetched (List Concourse.Pipeline))
-    | GotViewport (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | AllPipelinesFetched (Fetched (List Concourse.Pipeline))
+    | GotViewport DomID TooltipPolicy (Result Browser.Dom.Error Browser.Dom.Viewport)
     | GotElement (Result Browser.Dom.Error Browser.Dom.Element)
+
+
+type TooltipPolicy
+    = AlwaysShow
+    | OnlyShowWhenOverflowing

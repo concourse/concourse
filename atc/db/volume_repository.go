@@ -42,6 +42,8 @@ type VolumeRepository interface {
 
 	UpdateVolumesMissingSince(workerName string, handles []string) error
 	RemoveMissingVolumes(gracePeriod time.Duration) (removed int, err error)
+
+	DestroyUnknownVolumes(workerName string, handles []string) (int, error)
 }
 
 const noTeam = 0
@@ -56,13 +58,13 @@ func NewVolumeRepository(conn Conn) VolumeRepository {
 	}
 }
 
-func (repository *volumeRepository) queryVolumeHandles(cond sq.Eq) ([]string, error) {
+func (repository *volumeRepository) queryVolumeHandles(tx Tx, cond sq.Eq) ([]string, error) {
 	query, args, err := psql.Select("handle").From("volumes").Where(cond).ToSql()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := repository.conn.Query(query, args...)
+	rows, err := tx.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -89,31 +91,33 @@ func (repository *volumeRepository) UpdateVolumesMissingSince(workerName string,
 	// clear out missing_since for reported volumes
 	query, args, err := psql.Update("volumes").
 		Set("missing_since", nil).
-		Where(
-			sq.And{
-				sq.NotEq{
-					"missing_since": nil,
-				},
-				sq.Eq{
-					"handle": reportedHandles,
-				},
-			},
+		Where(sq.And{
+			sq.Eq{"handle": reportedHandles},
+			sq.NotEq{"missing_since": nil},
+		},
 		).ToSql()
 	if err != nil {
 		return err
 	}
 
-	rows, err := repository.conn.Query(query, args...)
+	tx, err := repository.conn.Begin()
 	if err != nil {
 		return err
 	}
 
-	Close(rows)
+	defer Rollback(tx)
 
-	dbHandles, err := repository.queryVolumeHandles(sq.Eq{
-		"worker_name":   workerName,
-		"missing_since": nil,
-	})
+	_, err = tx.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	dbHandles, err := repository.queryVolumeHandles(
+		tx,
+		sq.Eq{
+			"worker_name":   workerName,
+			"missing_since": nil,
+		})
 	if err != nil {
 		return err
 	}
@@ -130,30 +134,43 @@ func (repository *volumeRepository) UpdateVolumesMissingSince(workerName string,
 		return err
 	}
 
-	rows, err = repository.conn.Query(query, args...)
+	_, err = tx.Exec(query, args...)
 	if err != nil {
 		return err
 	}
 
-	defer Close(rows)
-
-	return nil
+	return tx.Commit()
 }
 
+// Removes any volumes that exist in the database but are missing on the worker
+// for over the designated grace time period.
 func (repository *volumeRepository) RemoveMissingVolumes(gracePeriod time.Duration) (int, error) {
-	result, err := psql.Delete("volumes").
-		Where(
-			sq.And{
-				sq.Eq{
-					"state": []VolumeState{VolumeStateCreated, VolumeStateFailed},
-				},
-				sq.Gt{
-					"NOW() - missing_since": fmt.Sprintf("%.0f seconds", gracePeriod.Seconds()),
-				},
-			},
-		).RunWith(repository.conn).
-		Exec()
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
 
+	// Setting the foreign key constraint to deferred, meaning that the foreign
+	// key constraint will not be executed until the end of the transaction. This
+	// allows the gc query to remove any parent volumes as long as the child
+	// volume that references it is also removed within the same transaction.
+	_, err = tx.Exec("SET CONSTRAINTS volumes_parent_id_fkey DEFERRED")
+	if err != nil {
+		return 0, err
+	}
+
+	result, err := tx.Exec(`
+	WITH RECURSIVE missing(id) AS (
+		SELECT id FROM volumes WHERE missing_since IS NOT NULL and NOW() - missing_since > $1 AND state IN ($2, $3)
+	UNION ALL
+		SELECT v.id FROM missing m, volumes v WHERE v.parent_id = m.id
+	)
+	DELETE FROM volumes v USING missing m WHERE m.id = v.id`, fmt.Sprintf("%.0f seconds", gracePeriod.Seconds()), VolumeStateCreated, VolumeStateFailed)
+	if err != nil {
+		return 0, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return 0, err
 	}
@@ -532,12 +549,77 @@ func (repository *volumeRepository) DestroyFailedVolumes() (int, error) {
 }
 
 func (repository *volumeRepository) GetDestroyingVolumes(workerName string) ([]string, error) {
-	return repository.queryVolumeHandles(
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Rollback(tx)
+
+	volumes, err := repository.queryVolumeHandles(
+		tx,
 		sq.Eq{
 			"state":       string(VolumeStateDestroying),
 			"worker_name": workerName,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return volumes, nil
+}
+
+func (repository *volumeRepository) DestroyUnknownVolumes(workerName string, reportedHandles []string) (int, error) {
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer Rollback(tx)
+	dbHandles, err := repository.queryVolumeHandles(tx, sq.Eq{
+		"worker_name": workerName,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	unknownHandles := diff(reportedHandles, dbHandles)
+
+	if len(unknownHandles) == 0 {
+		return 0, nil
+	}
+
+	insertBuilder := psql.Insert("volumes").Columns(
+		"handle",
+		"worker_name",
+		"state",
+	)
+
+	for _, unknownHandle := range unknownHandles {
+		insertBuilder = insertBuilder.Values(
+			unknownHandle,
+			workerName,
+			VolumeStateDestroying,
+		)
+	}
+
+	_, err = insertBuilder.RunWith(tx).Exec()
+	if err != nil {
+		return 0, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	return len(unknownHandles), nil
 }
 
 // 1. open tx

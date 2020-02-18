@@ -136,17 +136,15 @@ all =
             [ context "when login state unknown"
                 queryView
                 [ it "shows concourse logo" <|
-                    Query.children []
-                        >> Query.index 0
-                        >> Query.has
-                            [ style "background-image"
-                                "url(/public/images/concourse-logo-white.svg)"
-                            , style "background-position" "50% 50%"
-                            , style "background-repeat" "no-repeat"
-                            , style "background-size" "42px 42px"
-                            , style "width" topBarHeight
-                            , style "height" topBarHeight
-                            ]
+                    Query.has
+                        [ style "background-image"
+                            "url(/public/images/concourse-logo-white.svg)"
+                        , style "background-position" "50% 50%"
+                        , style "background-repeat" "no-repeat"
+                        , style "background-size" "42px 42px"
+                        , style "width" topBarHeight
+                        , style "height" topBarHeight
+                        ]
                 , it "shows pipeline breadcrumb" <|
                     Query.has [ id "breadcrumb-pipeline" ]
                 , context "pipeline breadcrumb"
@@ -566,21 +564,24 @@ all =
                 }
                 |> Tuple.first
                 |> Application.handleCallback
-                    (Callback.APIDataFetched
-                        (Ok
-                            ( Time.millisToPosix 0
-                            , { teams =
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    ]
-                              , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
-                              , resources = []
-                              , user = Nothing
-                              , version = ""
+                    (Callback.AllTeamsFetched <|
+                        Ok
+                            [ Concourse.Team 1 "team1"
+                            , Concourse.Team 2 "team2"
+                            ]
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team1"
+                              , groups = []
                               }
-                            )
-                        )
+                            ]
                     )
                 |> Tuple.first
             )
@@ -614,21 +615,24 @@ all =
         , rspecStyleDescribe "rendering search bar on dashboard page"
             (Common.init "/"
                 |> Application.handleCallback
-                    (Callback.APIDataFetched
-                        (Ok
-                            ( Time.millisToPosix 0
-                            , { teams =
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    ]
-                              , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
-                              , resources = []
-                              , user = Nothing
-                              , version = ""
+                    (Callback.AllTeamsFetched <|
+                        Ok
+                            [ Concourse.Team 1 "team1"
+                            , Concourse.Team 2 "team2"
+                            ]
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team1"
+                              , groups = []
                               }
-                            )
-                        )
+                            ]
                     )
                 |> Tuple.first
             )
@@ -887,21 +891,24 @@ all =
         , rspecStyleDescribe "when search query is updated"
             (Common.init "/"
                 |> Application.handleCallback
-                    (Callback.APIDataFetched
-                        (Ok
-                            ( Time.millisToPosix 0
-                            , { teams =
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    ]
-                              , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
-                              , resources = []
-                              , user = Nothing
-                              , version = ""
+                    (Callback.AllTeamsFetched <|
+                        Ok
+                            [ Concourse.Team 1 "team1"
+                            , Concourse.Team 2 "team2"
+                            ]
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team1"
+                              , groups = []
                               }
-                            )
-                        )
+                            ]
                     )
                 |> Tuple.first
             )
@@ -961,21 +968,24 @@ all =
                 }
                 |> Tuple.first
                 |> Application.handleCallback
-                    (Callback.APIDataFetched
-                        (Ok
-                            ( Time.millisToPosix 0
-                            , { teams =
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    ]
-                              , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
-                              , resources = []
-                              , user = Nothing
-                              , version = ""
+                    (Callback.AllTeamsFetched <|
+                        Ok
+                            [ Concourse.Team 1 "team1"
+                            , Concourse.Team 2 "team2"
+                            ]
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team1"
+                              , groups = []
                               }
-                            )
-                        )
+                            ]
                     )
                 |> Tuple.first
             )
@@ -1011,19 +1021,23 @@ all =
             )
             [ it "when there are teams the dropdown displays them" <|
                 Application.handleCallback
-                    (Callback.APIDataFetched
-                        (Ok
-                            ( Time.millisToPosix 0
-                            , { teams = [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]
-                              , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
-                              , resources = []
-                              , user = Nothing
-                              , version = ""
-                              }
-                            )
-                        )
+                    (Callback.AllTeamsFetched <|
+                        Ok
+                            [ Concourse.Team 1 "team1", Concourse.Team 2 "team2" ]
                     )
+                    >> Tuple.first
+                    >> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team1"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     >> Tuple.first
                     >> Application.update
                         (ApplicationMsgs.Update Msgs.FocusMsg)
@@ -1038,31 +1052,34 @@ all =
                         ]
             , it "when there are many teams, the dropdown only displays the first 10" <|
                 Application.handleCallback
-                    (Callback.APIDataFetched
-                        (Ok
-                            ( Time.millisToPosix 0
-                            , { teams =
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    , Concourse.Team 3 "team3"
-                                    , Concourse.Team 4 "team4"
-                                    , Concourse.Team 5 "team5"
-                                    , Concourse.Team 6 "team6"
-                                    , Concourse.Team 7 "team7"
-                                    , Concourse.Team 8 "team8"
-                                    , Concourse.Team 9 "team9"
-                                    , Concourse.Team 10 "team10"
-                                    , Concourse.Team 11 "team11"
-                                    ]
-                              , pipelines = [ onePipeline "team1" ]
-                              , jobs = []
-                              , resources = []
-                              , user = Nothing
-                              , version = ""
-                              }
-                            )
-                        )
+                    (Callback.AllTeamsFetched <|
+                        Ok
+                            [ Concourse.Team 1 "team1"
+                            , Concourse.Team 2 "team2"
+                            , Concourse.Team 3 "team3"
+                            , Concourse.Team 4 "team4"
+                            , Concourse.Team 5 "team5"
+                            , Concourse.Team 6 "team6"
+                            , Concourse.Team 7 "team7"
+                            , Concourse.Team 8 "team8"
+                            , Concourse.Team 9 "team9"
+                            , Concourse.Team 10 "team10"
+                            , Concourse.Team 11 "team11"
+                            ]
                     )
+                    >> Tuple.first
+                    >> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team1"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     >> Tuple.first
                     >> Application.update
                         (ApplicationMsgs.Update Msgs.FocusMsg)
@@ -1075,25 +1092,22 @@ all =
         , rspecStyleDescribe "dropdown stuff"
             (Common.init "/"
                 |> Application.handleCallback
-                    (Callback.APIDataFetched <|
+                    (Callback.AllTeamsFetched <|
                         Ok
-                            ( Time.millisToPosix 0
-                            , { teams = [ { id = 0, name = "team" } ]
-                              , pipelines =
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
-                              , jobs = []
-                              , resources = []
-                              , user = Nothing
-                              , version = "0.0.0-dev"
+                            [ { id = 0, name = "team" } ]
+                    )
+                |> Tuple.first
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ { id = 0
+                              , name = "pipeline"
+                              , paused = False
+                              , public = True
+                              , teamName = "team"
+                              , groups = []
                               }
-                            )
+                            ]
                     )
                 |> Tuple.first
             )
@@ -1231,7 +1245,7 @@ all =
                                             Tuple.second
                                                 >> Expect.equal
                                                     [ Effects.ModifyUrl
-                                                        "/?search=status: "
+                                                        "/?search=status%3A%20"
                                                     ]
                                         ]
                                    ]

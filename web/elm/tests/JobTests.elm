@@ -185,7 +185,7 @@ all =
                             , fragment = Nothing
                             }
                             |> Tuple.second
-                            |> Common.contains Effects.FetchPipelines
+                            |> Common.contains Effects.FetchAllPipelines
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
                         Common.init "/teams/team/pipelines/pipeline/jobs/job"
@@ -835,6 +835,24 @@ all =
                     }
                 , hoverable = Message.Message.PreviousPageButton
                 }
+            , describe "When fetching builds"
+                [ test "says no builds" <|
+                    \_ ->
+                        init { disabled = False, paused = False } ()
+                            |> Application.handleCallback
+                                (JobBuildsFetched <|
+                                    Ok
+                                        { pagination =
+                                            { previousPage = Nothing
+                                            , nextPage = Nothing
+                                            }
+                                        , content = []
+                                        }
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.has [ text "no builds for job “job”" ]
+                ]
             , test "JobBuildsFetched" <|
                 \_ ->
                     let

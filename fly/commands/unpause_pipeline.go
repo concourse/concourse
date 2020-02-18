@@ -9,7 +9,8 @@ import (
 )
 
 type UnpausePipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Pipeline to unpause"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Pipeline to unpause"`
+	All      bool                     `short:"a" long:"all"      description:"Unpause all pipelines"`
 }
 
 func (command *UnpausePipelineCommand) Validate() error {
@@ -17,12 +18,18 @@ func (command *UnpausePipelineCommand) Validate() error {
 }
 
 func (command *UnpausePipelineCommand) Execute(args []string) error {
+	if string(command.Pipeline) == "" && !command.All {
+		displayhelpers.Failf("Either a pipeline name or --all are required")
+	}
+
+	if string(command.Pipeline) != "" && command.All {
+		displayhelpers.Failf("A pipeline and --all can not both be specified")
+	}
+
 	err := command.Validate()
 	if err != nil {
 		return err
 	}
-
-	pipelineName := string(command.Pipeline)
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
@@ -34,15 +41,33 @@ func (command *UnpausePipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	found, err := target.Team().UnpausePipeline(pipelineName)
-	if err != nil {
-		return err
+	var pipelineNames []string
+	if string(command.Pipeline) != "" {
+		pipelineNames = []string{string(command.Pipeline)}
 	}
 
-	if found {
-		fmt.Printf("unpaused '%s'\n", pipelineName)
-	} else {
-		displayhelpers.Failf("pipeline '%s' not found\n", pipelineName)
+	if command.All {
+		pipelines, err := target.Team().ListPipelines()
+		if err != nil {
+			return err
+		}
+
+		for _, pipeline := range pipelines {
+			pipelineNames = append(pipelineNames, pipeline.Name)
+		}
+	}
+
+	for _, pipelineName := range pipelineNames {
+		found, err := target.Team().UnpausePipeline(pipelineName)
+		if err != nil {
+			return err
+		}
+
+		if found {
+			fmt.Printf("unpaused '%s'\n", pipelineName)
+		} else {
+			displayhelpers.Failf("pipeline '%s' not found\n", pipelineName)
+		}
 	}
 
 	return nil

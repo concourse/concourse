@@ -8,7 +8,8 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/exec/artifact"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -47,7 +48,9 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	volume, found, err := buildArtifact.Volume(step.build.TeamID())
+	// TODO (runtime/#3607): artifact_input_step shouldn't know about db Volumem
+	//		has a runState with artifact repo. We could use that.
+	createdVolume, found, err := buildArtifact.Volume(step.build.TeamID())
 	if err != nil {
 		return err
 	}
@@ -56,22 +59,26 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 		return ArtifactVolumeNotFoundError{buildArtifact.Name()}
 	}
 
-	workerVolume, found, err := step.workerClient.FindVolume(logger, volume.TeamID(), volume.Handle())
+	// TODO (runtime/#3607): artifact_input_step shouldn't be looking up the volume on the worker
+	_, found, err = step.workerClient.FindVolume(logger, createdVolume.TeamID(), createdVolume.Handle())
 	if err != nil {
 		return err
 	}
 
 	if !found {
 		return ArtifactVolumeNotFoundError{buildArtifact.Name()}
+	}
+
+	art := runtime.TaskArtifact{
+		VolumeHandle: createdVolume.Handle(),
 	}
 
 	logger.Info("register-artifact-source", lager.Data{
 		"artifact_id": buildArtifact.ID(),
-		"handle":      workerVolume.Handle(),
+		"handle":      art.ID(),
 	})
 
-	source := NewTaskArtifactSource(workerVolume)
-	state.Artifacts().RegisterSource(artifact.Name(step.plan.ArtifactInput.Name), source)
+	state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.ArtifactInput.Name), &art)
 
 	step.succeeded = true
 

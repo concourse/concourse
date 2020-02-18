@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("BuildLogCollector", func() {
 	var (
-		buildLogCollector   Collector
+		buildLogCollector   GcCollector
 		fakePipelineFactory *dbfakes.FakePipelineFactory
 		batchSize           int
 		buildLogRetainCalc  BuildLogRetentionCalculator
@@ -71,7 +71,7 @@ var _ = Describe("BuildLogCollector", func() {
 				fakeJob.FirstLoggedBuildIDReturns(5)
 				fakeJob.ConfigReturns(atc.JobConfig{
 					BuildLogsToRetain: 2,
-				})
+				}, nil)
 
 				fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
 			})
@@ -218,7 +218,7 @@ var _ = Describe("BuildLogCollector", func() {
 				BeforeEach(func() {
 					fakeJob.ConfigReturns(atc.JobConfig{
 						BuildLogsToRetain: 3,
-					})
+					}, nil)
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
 						if page == (db.Page{Until: 4, Limit: 5}) {
 							return []db.Build{
@@ -337,7 +337,7 @@ var _ = Describe("BuildLogCollector", func() {
 							Builds: 1,
 							Days:   0,
 						},
-					})
+					}, nil)
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
 					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
@@ -370,7 +370,7 @@ var _ = Describe("BuildLogCollector", func() {
 							Builds: 0,
 							Days:   3,
 						},
-					})
+					}, nil)
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
 					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
@@ -399,7 +399,7 @@ var _ = Describe("BuildLogCollector", func() {
 							Builds: 1,
 							Days:   3,
 						},
-					})
+					}, nil)
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
 					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
@@ -430,7 +430,7 @@ var _ = Describe("BuildLogCollector", func() {
 							Builds: 0,
 							Days:   1,
 						},
-					})
+					}, nil)
 
 					fakePipeline.DeleteBuildEventsByBuildIDsReturns(nil)
 					fakeJob.UpdateFirstLoggedBuildIDReturns(nil)
@@ -454,7 +454,7 @@ var _ = Describe("BuildLogCollector", func() {
 							Days:                   0,
 							MinimumSucceededBuilds: 2,
 						},
-					})
+					}, nil)
 
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
 						if page == (db.Page{Until: 4, Limit: 5}) {
@@ -503,7 +503,7 @@ var _ = Describe("BuildLogCollector", func() {
 							Days:                   0,
 							MinimumSucceededBuilds: 5,
 						},
-					})
+					}, nil)
 
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
 						if page == (db.Page{Until: 4, Limit: 5}) {
@@ -557,7 +557,7 @@ var _ = Describe("BuildLogCollector", func() {
 				fakeJob.FirstLoggedBuildIDReturns(1)
 				fakeJob.ConfigReturns(atc.JobConfig{
 					BuildLogsToRetain: 10,
-				})
+				}, nil)
 
 				fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
 			})
@@ -602,7 +602,7 @@ var _ = Describe("BuildLogCollector", func() {
 			})
 		})
 
-		Context("when the dashboard job says retain 0 builds", func() {
+		Context("when the job says retain 0 builds", func() {
 			var fakeJob *dbfakes.FakeJob
 
 			BeforeEach(func() {
@@ -611,14 +611,10 @@ var _ = Describe("BuildLogCollector", func() {
 				fakeJob.FirstLoggedBuildIDReturns(6)
 				fakeJob.ConfigReturns(atc.JobConfig{
 					BuildLogsToRetain: 0,
-				})
+				}, nil)
 				fakeJob.TagsReturns([]string{})
 
-				fakePipeline.DashboardReturns(db.Dashboard{
-					{
-						Job: fakeJob,
-					},
-				}, nil)
+				fakePipeline.JobsReturns([]db.Job{fakeJob}, nil)
 			})
 
 			It("skips the reaping step for that job", func() {

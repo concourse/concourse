@@ -158,7 +158,22 @@ handleEvent event ( model, effects ) =
             )
 
         FinishTask origin exitStatus time ->
-            ( updateStep origin.id (finishStep exitStatus (Just time)) model
+            ( updateStep origin.id (finishStep (exitStatus == 0) (Just time)) model
+            , effects
+            )
+
+        Initialize origin time ->
+            ( updateStep origin.id (setInitialize time) model
+            , effects
+            )
+
+        Start origin time ->
+            ( updateStep origin.id (setStart time) model
+            , effects
+            )
+
+        Finish origin time succeeded ->
+            ( updateStep origin.id (finishStep succeeded (Just time)) model
             , effects
             )
 
@@ -173,7 +188,7 @@ handleEvent event ( model, effects ) =
             )
 
         FinishGet origin exitStatus version metadata time ->
-            ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
+            ( updateStep origin.id (finishStep (exitStatus == 0) time << setResourceInfo version metadata) model
             , effects
             )
 
@@ -188,7 +203,7 @@ handleEvent event ( model, effects ) =
             )
 
         FinishPut origin exitStatus version metadata time ->
-            ( updateStep origin.id (finishStep exitStatus time << setResourceInfo version metadata) model
+            ( updateStep origin.id (finishStep (exitStatus == 0) time << setResourceInfo version metadata) model
             , effects
             )
 
@@ -232,19 +247,21 @@ appendStepLog output mtime tree =
         \step ->
             let
                 outputLineCount =
-                    Ansi.Log.update output (Ansi.Log.init Ansi.Log.Cooked) |> .lines |> Array.length
+                    Ansi.Log.update output (Ansi.Log.init Ansi.Log.Cooked)
+                        |> .lines
+                        |> Array.length
 
-                logLineCount =
-                    max (Array.length step.log.lines - 1) 0
+                lastLineNo =
+                    max (Array.length step.log.lines) 1
 
-                setLineTimestamp line timestamps =
-                    Dict.update line (always mtime) timestamps
+                setLineTimestamp lineNo timestamps =
+                    Dict.update lineNo (always mtime) timestamps
 
                 newTimestamps =
                     List.foldl
                         setLineTimestamp
                         step.timestamps
-                        (List.range logLineCount (logLineCount + outputLineCount - 1))
+                        (List.range lastLineNo (lastLineNo + outputLineCount - 1))
 
                 newLog =
                     Ansi.Log.update output step.log
@@ -275,11 +292,11 @@ setInitialize time tree =
     setStepInitialize time (setStepState StepStateRunning tree)
 
 
-finishStep : Int -> Maybe Time.Posix -> StepTree -> StepTree
-finishStep exitStatus mtime tree =
+finishStep : Bool -> Maybe Time.Posix -> StepTree -> StepTree
+finishStep succeeded mtime tree =
     let
         stepState =
-            if exitStatus == 0 then
+            if succeeded then
                 StepStateSucceeded
 
             else

@@ -109,19 +109,23 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListAllJobs,
 			atc.ListAllResources,
 			atc.ListBuilds,
-			atc.MainJobBadge:
+			atc.MainJobBadge,
+			atc.GetWall:
 			newHandler = auth.CheckAuthenticationIfProvidedHandler(handler, rejector)
 
 		case atc.GetLogLevel,
 			atc.ListActiveUsersSince,
 			atc.SetLogLevel,
-			atc.GetInfoCreds:
+			atc.GetInfoCreds,
+			atc.SetWall,
+			atc.ClearWall:
 			newHandler = auth.CheckAdminHandler(handler, rejector)
 
 		// authorized (requested team matches resource team)
 		case atc.CheckResource,
 			atc.CheckResourceType,
 			atc.CreateJobBuild,
+			atc.RerunJobBuild,
 			atc.CreatePipelineBuild,
 			atc.DeletePipeline,
 			atc.DisableResourceVersion,
@@ -144,6 +148,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.SaveConfig,
 			atc.ClearTaskCache,
 			atc.CreateArtifact,
+			atc.ScheduleJob,
 			atc.GetArtifact:
 			newHandler = auth.CheckAuthorizationHandler(handler, rejector)
 

@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-
-	"github.com/concourse/concourse/fly/rc"
-
 	"sigs.k8s.io/yaml"
+
+	"github.com/vito/go-interact/interact"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
+	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/onsi/gomega/gexec"
-	"github.com/vito/go-interact/interact"
 )
 
 type ATCConfig struct {
@@ -120,50 +118,6 @@ func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool) 
 }
 
 func diff(existingConfig atc.Config, newConfig atc.Config) bool {
-	var diffExists bool
-
 	stdout, _ := ui.ForTTY(os.Stdout)
-
-	indent := gexec.NewPrefixedWriter("  ", stdout)
-
-	groupDiffs := groupDiffIndices(GroupIndex(existingConfig.Groups), GroupIndex(newConfig.Groups))
-	if len(groupDiffs) > 0 {
-		diffExists = true
-		fmt.Println("groups:")
-
-		for _, diff := range groupDiffs {
-			diff.Render(indent, "group")
-		}
-	}
-
-	resourceDiffs := diffIndices(ResourceIndex(existingConfig.Resources), ResourceIndex(newConfig.Resources))
-	if len(resourceDiffs) > 0 {
-		diffExists = true
-		fmt.Println("resources:")
-
-		for _, diff := range resourceDiffs {
-			diff.Render(indent, "resource")
-		}
-	}
-
-	resourceTypeDiffs := diffIndices(ResourceTypeIndex(existingConfig.ResourceTypes), ResourceTypeIndex(newConfig.ResourceTypes))
-	if len(resourceTypeDiffs) > 0 {
-		diffExists = true
-		fmt.Println("resource types:")
-
-		for _, diff := range resourceTypeDiffs {
-			diff.Render(indent, "resource type")
-		}
-	}
-
-	jobDiffs := diffIndices(JobIndex(existingConfig.Jobs), JobIndex(newConfig.Jobs))
-	if len(jobDiffs) > 0 {
-		diffExists = true
-		fmt.Println("jobs:")
-
-		for _, diff := range jobDiffs {
-			diff.Render(indent, "job")
-		}
-	}
-	return diffExists
+	return existingConfig.Diff(stdout, newConfig)
 }

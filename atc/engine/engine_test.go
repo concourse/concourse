@@ -3,11 +3,13 @@ package engine_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
@@ -377,6 +379,11 @@ var _ = Describe("Engine", func() {
 
 			BeforeEach(func() {
 				logger = lagertest.NewTestLogger("test")
+				fakeCheck.PlanReturns(atc.Plan{
+					Check: &atc.CheckPlan{
+						Name: "some-name",
+					},
+				})
 			})
 
 			JustBeforeEach(func() {
@@ -452,6 +459,7 @@ var _ = Describe("Engine", func() {
 							It("finishes the check", func() {
 								waitGroup.Wait()
 								Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
+								Expect(fakeCheck.FinishWithErrorArgsForCall(0)).To(Equal(fmt.Errorf("run check step: %w", errors.New("nope"))))
 							})
 						})
 
@@ -474,6 +482,7 @@ var _ = Describe("Engine", func() {
 
 						It("releases the lock", func() {
 							Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeCheck.FinishWithErrorArgsForCall(0)).To(Equal(fmt.Errorf("create check step: %w", errors.New("nope"))))
 						})
 					})
 				})

@@ -8,6 +8,8 @@ import (
 func Job(
 	teamName string,
 	job db.Job,
+	inputs []atc.JobInput,
+	outputs []atc.JobOutput,
 	finishedBuild db.Build,
 	nextBuild db.Build,
 	transitionBuild db.Build,
@@ -30,7 +32,7 @@ func Job(
 	}
 
 	sanitizedInputs := []atc.JobInput{}
-	for _, input := range job.Config().Inputs() {
+	for _, input := range inputs {
 		sanitizedInputs = append(sanitizedInputs, atc.JobInput{
 			Name:     input.Name,
 			Resource: input.Resource,
@@ -40,7 +42,7 @@ func Job(
 	}
 
 	sanitizedOutputs := []atc.JobOutput{}
-	for _, output := range job.Config().Outputs() {
+	for _, output := range outputs {
 		sanitizedOutputs = append(sanitizedOutputs, atc.JobOutput{
 			Name:     output.Name,
 			Resource: output.Resource,
@@ -53,7 +55,7 @@ func Job(
 		Name:                 job.Name(),
 		PipelineName:         job.PipelineName(),
 		TeamName:             teamName,
-		DisableManualTrigger: job.Config().DisableManualTrigger,
+		DisableManualTrigger: job.DisableManualTrigger(),
 		Paused:               job.Paused(),
 		FirstLoggedBuildID:   job.FirstLoggedBuildID(),
 		FinishedBuild:        presentedFinishedBuild,

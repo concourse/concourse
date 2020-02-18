@@ -30,7 +30,7 @@ func NewSsm(log lager.Logger, api ssmiface.SSMAPI, secretTemplates []*template.T
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (s *Ssm) NewSecretLookupPaths(teamName string, pipelineName string) []creds.SecretLookupPath {
+func (s *Ssm) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range s.secretTemplates {
 		lPath := NewSecretLookupPathSsm(tmpl, teamName, pipelineName)

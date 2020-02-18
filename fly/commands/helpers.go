@@ -1,11 +1,13 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
@@ -70,13 +72,28 @@ func GetBuild(client concourse.Client, team concourse.Team, jobName string, buil
 	}
 }
 
-func SliceItoa(slice []int) string {
-	var strSlice string
-	for i, val := range slice {
-		if i > 0 {
-			strSlice += "."
-		}
-		strSlice += strconv.Itoa(val)
+func GetLatestResourceVersion(team concourse.Team, resource flaghelpers.ResourceFlag, version atc.Version) (atc.ResourceVersion, error) {
+	versions, _, found, err := team.ResourceVersions(resource.PipelineName, resource.ResourceName, concourse.Page{}, version)
+
+	if err != nil {
+		return atc.ResourceVersion{}, err
 	}
-	return strSlice
+
+	if !found || len(versions) <= 0 {
+		versionBytes, err := json.Marshal(version)
+		if err != nil {
+			return atc.ResourceVersion{}, err
+		}
+
+		return atc.ResourceVersion{}, errors.New(fmt.Sprintf("could not find version matching %s", string(versionBytes)))
+	}
+
+	return versions[0], nil
+}
+
+func GetTeam(target rc.Target, teamToFind string) concourse.Team {
+	if teamToFind != "" {
+		return target.Client().Team(teamToFind)
+	}
+	return target.Team()
 }

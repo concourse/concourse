@@ -9,10 +9,10 @@ type VariableLookupFromSecrets struct {
 	LookupPaths []SecretLookupPath
 }
 
-func NewVariables(secrets Secrets, teamName string, pipelineName string) vars.Variables {
+func NewVariables(secrets Secrets, teamName string, pipelineName string, allowRootPath bool) vars.Variables {
 	return VariableLookupFromSecrets{
 		Secrets:     secrets,
-		LookupPaths: secrets.NewSecretLookupPaths(teamName, pipelineName),
+		LookupPaths: secrets.NewSecretLookupPaths(teamName, pipelineName, allowRootPath),
 	}
 }
 

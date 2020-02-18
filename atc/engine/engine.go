@@ -3,16 +3,18 @@ package engine
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/tracing"
 )
 
 //go:generate counterfeiter . Engine
@@ -32,8 +34,10 @@ type Runnable interface {
 //go:generate counterfeiter . StepBuilder
 
 type StepBuilder interface {
-	BuildStep(db.Build) (exec.Step, error)
-	CheckStep(db.Check) (exec.Step, error)
+	BuildStep(lager.Logger, db.Build) (exec.Step, error)
+	CheckStep(lager.Logger, db.Check) (exec.Step, error)
+
+	BuildStepErrored(lager.Logger, db.Build, error)
 }
 
 func NewEngine(builder StepBuilder) Engine {
@@ -126,6 +130,8 @@ type engineBuild struct {
 	release       chan bool
 	trackedStates *sync.Map
 	waitGroup     *sync.WaitGroup
+
+	pipelineCredMgrs []creds.Manager
 }
 
 func (b *engineBuild) Run(logger lager.Logger) {
@@ -175,12 +181,27 @@ func (b *engineBuild) Run(logger lager.Logger) {
 
 	defer notifier.Close()
 
-	step, err := b.builder.BuildStep(b.build)
+	ctx, span := tracing.StartSpan(b.ctx, "build", tracing.Attrs{
+		"team":     b.build.TeamName(),
+		"pipeline": b.build.PipelineName(),
+		"job":      b.build.JobName(),
+		"build":    b.build.Name(),
+		"build_id": strconv.Itoa(b.build.ID()),
+	})
+	defer span.End()
+
+	step, err := b.builder.BuildStep(logger, b.build)
 	if err != nil {
 		logger.Error("failed-to-build-step", err)
+
+		// Fails the build if BuildStep returned error. Because some unrecoverable error,
+		// like pipeline var_source is wrong, will cause a build to never start
+		// to run.
+		b.builder.BuildStepErrored(logger, b.build, err)
+		b.finish(logger.Session("finish"), err, false)
+
 		return
 	}
-
 	b.trackStarted(logger)
 	defer b.trackFinished(logger)
 
@@ -203,7 +224,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 
 	done := make(chan error)
 	go func() {
-		ctx := lagerctx.NewContext(b.ctx, logger)
+		ctx := lagerctx.NewContext(ctx, logger)
 		done <- step.Run(ctx, state)
 	}()
 
@@ -212,6 +233,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 		logger.Info("releasing")
 
 	case err = <-done:
+		logger.Debug("engine-build-done")
 		b.finish(logger.Session("finish"), err, step.Succeeded())
 	}
 }
@@ -348,9 +370,13 @@ func (c *engineCheck) Run(logger lager.Logger) {
 		return
 	}
 
-	step, err := c.builder.CheckStep(c.check)
+	c.trackStarted(logger)
+	defer c.trackFinished(logger)
+
+	step, err := c.builder.CheckStep(logger, c.check)
 	if err != nil {
 		logger.Error("failed-to-create-check-step", err)
+		c.check.FinishWithError(fmt.Errorf("create check step: %w", err))
 		return
 	}
 
@@ -372,7 +398,7 @@ func (c *engineCheck) Run(logger lager.Logger) {
 	case err = <-done:
 		if err != nil {
 			logger.Info("errored", lager.Data{"error": err.Error()})
-			c.check.FinishWithError(err)
+			c.check.FinishWithError(fmt.Errorf("run check step: %w", err))
 		} else {
 			logger.Info("succeeded")
 			if err = c.check.Finish(); err != nil {
@@ -391,4 +417,22 @@ func (c *engineCheck) runState() exec.RunState {
 func (c *engineCheck) clearRunState() {
 	id := fmt.Sprintf("check:%v", c.check.ID())
 	c.trackedStates.Delete(id)
+}
+
+func (c *engineCheck) trackStarted(logger lager.Logger) {
+	metric.CheckStarted{
+		CheckName:             c.check.Plan().Check.Name,
+		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
+		CheckStatus:           c.check.Status(),
+		CheckPendingDuration:  c.check.StartTime().Sub(c.check.CreateTime()),
+	}.Emit(logger)
+}
+
+func (c *engineCheck) trackFinished(logger lager.Logger) {
+	metric.CheckFinished{
+		CheckName:             c.check.Plan().Check.Name,
+		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
+		CheckStatus:           c.check.Status(),
+		CheckDuration:         c.check.EndTime().Sub(c.check.StartTime()),
+	}.Emit(logger)
 }

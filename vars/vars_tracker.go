@@ -2,6 +2,7 @@ package vars
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -13,34 +14,64 @@ type CredVarsTrackerIterator interface {
 	YieldCred(string, string)
 }
 
+//go:generate counterfeiter . CredVarsTracker
+
 type CredVarsTracker interface {
 	Variables
 	IterateInterpolatedCreds(iter CredVarsTrackerIterator)
+	Enabled() bool
+
+	AddLocalVar(string, interface{}, bool)
 }
 
 func NewCredVarsTracker(credVars Variables, on bool) CredVarsTracker {
-	if on {
-		return credVarsTracker{
-			credVars:          credVars,
-			interpolatedCreds: map[string]string{},
-			lock:              sync.RWMutex{},
-		}
-	} else {
-		return dummyCredVarsTracker{credVars: credVars}
+	return &credVarsTracker{
+		localVars:         StaticVariables{},
+		credVars:          credVars,
+		enabled:           on,
+		interpolatedCreds: map[string]string{},
+		noRedactVarNames:  map[string]bool{},
+		lock:              sync.RWMutex{},
 	}
 }
 
 type credVarsTracker struct {
-	credVars          Variables
+	credVars  Variables
+	localVars StaticVariables
+
+	enabled bool
+
 	interpolatedCreds map[string]string
+
+	noRedactVarNames map[string]bool
 
 	// Considering in-parallel steps, a lock is need.
 	lock sync.RWMutex
 }
 
-func (t credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	val, found, err := t.credVars.Get(varDef)
-	if found {
+func (t *credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
+	var (
+		val   interface{}
+		found bool
+		err   error
+	)
+
+	redact := true
+	parts := strings.Split(varDef.Name, ":")
+	if len(parts) == 2 && parts[0] == "." {
+		varDef.Name = parts[1]
+		val, found, err = t.localVars.Get(varDef)
+		if found {
+			parts = strings.Split(varDef.Name, ".")
+			if _, ok := t.noRedactVarNames[parts[0]]; ok {
+				redact = false
+			}
+		}
+	} else {
+		val, found, err = t.credVars.Get(varDef)
+	}
+
+	if t.enabled && found && redact {
 		t.lock.Lock()
 		t.track(varDef.Name, val)
 		t.lock.Unlock()
@@ -49,7 +80,7 @@ func (t credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, erro
 	return val, found, err
 }
 
-func (t credVarsTracker) track(name string, val interface{}) {
+func (t *credVarsTracker) track(name string, val interface{}) {
 	switch v := val.(type) {
 	case map[interface{}]interface{}:
 		for kk, vv := range v {
@@ -68,11 +99,11 @@ func (t credVarsTracker) track(name string, val interface{}) {
 	}
 }
 
-func (t credVarsTracker) List() ([]VariableDefinition, error) {
+func (t *credVarsTracker) List() ([]VariableDefinition, error) {
 	return t.credVars.List()
 }
 
-func (t credVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) {
+func (t *credVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) {
 	t.lock.RLock()
 	for k, v := range t.interpolatedCreds {
 		iter.YieldCred(k, v)
@@ -80,22 +111,15 @@ func (t credVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) 
 	t.lock.RUnlock()
 }
 
-// DummyCredVarsTracker do nothing,
-
-type dummyCredVarsTracker struct {
-	credVars Variables
+func (t *credVarsTracker) Enabled() bool {
+	return t.enabled
 }
 
-func (t dummyCredVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	return t.credVars.Get(varDef)
-}
-
-func (t dummyCredVarsTracker) List() ([]VariableDefinition, error) {
-	return t.credVars.List()
-}
-
-func (t dummyCredVarsTracker) IterateInterpolatedCreds(iter CredVarsTrackerIterator) {
-	// do nothing
+func (t *credVarsTracker) AddLocalVar(name string, value interface{}, redact bool) {
+	t.localVars[name] = value
+	if !redact {
+		t.noRedactVarNames[name] = true
+	}
 }
 
 // MapCredVarsTrackerIterator implements a simple CredVarsTrackerIterator which just

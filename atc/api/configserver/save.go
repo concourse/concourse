@@ -9,13 +9,13 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/vars"
 	"github.com/hashicorp/go-multierror"
 	"github.com/tedsuo/rata"
-	"sigs.k8s.io/yaml"
 )
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
@@ -47,30 +47,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		ignoredUnknownToplevels := map[string]interface{}{}
-
-		// do a naive unmarshal first so we can ignore unknown top-level keys
-		err = yaml.UnmarshalStrict(body, &ignoredUnknownToplevels)
-		if err != nil {
-			s.handleBadRequest(w, "malformed config")
-			return
-		}
-
-		for k := range ignoredUnknownToplevels {
-			switch k {
-			case "groups", "jobs", "resources", "resource_types":
-			default:
-				delete(ignoredUnknownToplevels, k)
-			}
-		}
-
-		configWithoutUnknownToplevels, err := yaml.Marshal(ignoredUnknownToplevels)
-		if err != nil {
-			s.handleBadRequest(w, fmt.Sprintf("yaml re-marshal failed: %s", err))
-			return
-		}
-
-		err = yaml.UnmarshalStrict(configWithoutUnknownToplevels, &config, yaml.DisallowUnknownFields)
+		err = atc.UnmarshalConfig(body, &config)
 		if err != nil {
 			session.Error("malformed-request-payload", err, lager.Data{
 				"content-type": r.Header.Get("Content-Type"),
@@ -84,9 +61,9 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	warnings, errorMessages := config.Validate()
+	warnings, errorMessages := configvalidate.Validate(config)
 	if len(errorMessages) > 0 {
-		session.Info("ignoring-invalid-config")
+		session.Info("ignoring-invalid-config", lager.Data{"errors": errorMessages})
 		s.handleBadRequest(w, errorMessages...)
 		return
 	}
@@ -95,7 +72,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	teamName := rata.Param(r, "team_name")
 
 	if checkCredentials {
-		variables := creds.NewVariables(s.secretManager, teamName, pipelineName)
+		variables := creds.NewVariables(s.secretManager, teamName, pipelineName, false)
 
 		errs := validateCredParams(variables, config, session)
 		if errs != nil {
@@ -176,7 +153,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 				errs = multierror.Append(errs, err)
 			}
 
-			if plan.TaskConfigPath != "" {
+			if plan.File != "" {
 				// external task - we can't really validate much right now, because task yaml will be
 				// retrieved in runtime during job execution. but we can validate vars and params which will be
 				// passed to this task
@@ -185,7 +162,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 					errs = multierror.Append(errs, err)
 				}
 
-				err = creds.NewTaskVarsValidator(credMgrVars, plan.TaskVars).Validate()
+				err = creds.NewTaskVarsValidator(credMgrVars, plan.Vars).Validate()
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}

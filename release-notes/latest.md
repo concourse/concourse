@@ -1,36 +1,54 @@
-#### <sub><sup><a name="4480" href="#4480">:link:</a></sup></sub> feature
+#### <sub><sup><a name="4938" href="#4938">:link:</a></sup></sub> feature
 
-* @ProvoK added support for a `?title=` query parameter on the pipeline/job badge endpoints! Now you can make it say something other than "build". #4480
-  ![badge](https://ci.concourse-ci.org/api/v1/teams/main/pipelines/concourse/badge?title=check%20it%20out)
+* Include job label in build duration metrics exported to Prometheus. #4976
 
-#### <sub><sup><a name="4518" href="#4518">:link:</a></sup></sub> feature
+#### <sub><sup><a name="5023" href="#5023">:link:</a></sup></sub> fix
 
-* @evanchaoli added a feature to stop ATC from attempting to renew Vault leases that are not renewable #4518.
+* The dashboard page refreshes its data every 5 seconds. Until now, it was possible (especially for admin users) for the dashboard to initiate an ever-growing number of API calls, unnecessarily consuming browser, network and API resources. Now the dashboard will not initiate a request for more data until the previous request finishes. #5023
 
-#### <sub><sup><a name="4516" href="#4516">:link:</a></sup></sub> feature
+#### <sub><sup><a name="4607" href="#4607">:link:</a></sup></sub> feature
 
-* Add 5 minute timeout for baggageclaim destroy calls #4516.
+* Add experimental support for exposing traces to [Jaeger] or [Stackdriver].
 
-#### <sub><sup><a name="4334" href="#4334">:link:</a></sup></sub> feature
+With this feature enabled (via `--tracing-(jaeger|stackdriver)-*` variables in
+`concourse web`), the `web` node starts recording traces that represent the
+various steps that a build goes through, sending them to the configured trace
+collector. #4607
 
-* @aledeganopix4d added a feature sort pipelines alphabetically #4334.
+As this feature is being built using [OpenTelemetry], expect to have support for
+other systems soon.
 
-#### <sub><sup><a name="4470" href="#4470">:link:</a></sup></sub> feature, breaking
+[OpenTelemetry]: https://opentelemetry.io/
+[Jaeger]: https://www.jaegertracing.io/
+[Stackdriver]: https://cloud.google.com/trace/
 
-* All API payloads are now gzipped. This should help save bandwidth and make the web UI load faster. #4470
+#### <sub><sup><a name="4092" href="#4092">:link:</a></sup></sub> feature
 
-#### <sub><sup><a name="4448-4588" href="#4448-4588">:link:</a></sup></sub> feature
+* @joshzarrabi added the `--all` flag to the `fly pause-pipeline` and
+`fly unpause-pipeline` commands. This allows users to pause or unpause every
+pipeline on a team at the same time. #4092
 
-* You can now pin a resource to different version without unpinning it first #4448, #4588.
+#### <sub><sup><a name="5133" href="#5133">:link:</a></sup></sub> fix
 
-#### <sub><sup><a name="4507" href="#4507">:link:</a></sup></sub> fix
+* In the case that a user has multiple roles on a team, the pills on the team headers on the dashboard now accurately reflect the logged-in user's most-privileged role on each team. #5133
 
-* @iamjarvo fixed a [bug](444://github.com/concourse/concourse/issues/4472) where `fly builds` would show the wrong duration for cancelled builds #4507.
+#### <sub><sup><a name="5118" href="#5118">:link:</a></sup></sub> feature
 
-#### <sub><sup><a name="4590" href="#4590">:link:</a></sup></sub> feature
+* Improved the performance of the dashboard by only rendering the pipeline cards that are visible. #5118
 
-* @pnsantos updated the Material Design icon library so now the `concourse-ci` icon is available for resources :tada: #4590
+#### <sub><sup><a name="5160" href="#5160">:link:</a></sup></sub> fix
 
-#### <sub><sup><a name="4492" href="#4492">:link:</a></sup></sub> fix
+* Fix misuse of mount options when performing copy-on-write volumes based on
+  other copy-on-write volumes 
 
-* The `fly format-pipeline` now always produces a formatted pipeline, instead of declining to do so when it was already in the expected format. #4492
+This case could be faced when providing inputs and outputs with
+overlapping paths.
+
+* Switch CGO-based Zstd library by a pure go one
+
+Certain payloads could make Concourse return internal errors due to possible
+errors from the library we used before.
+
+#### <sub><sup><a name="4847" href="#4847">:link:</a></sup></sub> fix
+
+* Set a default value of `4h` for `rebalance-interval`. Previously, this value was unset. With the new default, the workers will reconnect to a randomly selected TSA (SSH Gateway) every 4h.

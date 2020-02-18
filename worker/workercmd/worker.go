@@ -7,12 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse"
+	"github.com/concourse/concourse/atc/worker/gclient"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/flag"
@@ -45,7 +44,7 @@ type WorkerCommand struct {
 	VolumeSweeperMaxInFlight    uint16        `long:"volume-sweeper-max-in-flight" default:"3" description:"Maximum number of volumes which can be swept in parallel."`
 	ContainerSweeperMaxInFlight uint16        `long:"container-sweeper-max-in-flight" default:"5" description:"Maximum number of containers which can be swept in parallel."`
 
-	RebalanceInterval time.Duration `long:"rebalance-interval" description:"Duration after which the registration should be swapped to another random SSH gateway."`
+	RebalanceInterval time.Duration `long:"rebalance-interval" default:"4h" description:"Duration after which the registration should be swapped to another random SSH gateway."`
 
 	ConnectionDrainTimeout time.Duration `long:"connection-drain-timeout" default:"1h" description:"Duration after which a worker should give up draining forwarded connections on shutdown."`
 
@@ -106,12 +105,10 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.baggageclaimAddr(),
 	)
 
-	gardenClient := gclient.New(
-		gconn.NewWithLogger(
-			"tcp",
-			cmd.gardenAddr(),
-			logger.Session("garden-connection"),
-		),
+	gardenClient := gclient.BasicGardenClientWithRequestTimeout(
+		logger.Session("garden-connection"),
+		cmd.Garden.RequestTimeout,
+		cmd.gardenURL(),
 	)
 
 	baggageclaimClient := bclient.NewWithHTTPClient(
@@ -130,7 +127,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 			// we've seen destroy calls to baggageclaim hang and lock gc
 			// gc is periodic so we don't need to retry here, we can rely
 			// on the next sweeper tick.
-			Timeout: 5*time.Minute,
+			Timeout: 5 * time.Minute,
 		},
 	)
 

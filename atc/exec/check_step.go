@@ -3,7 +3,6 @@ package exec
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -11,8 +10,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -40,8 +39,8 @@ func NewCheckStep(
 	planID atc.PlanID,
 	plan atc.CheckPlan,
 	metadata StepMetadata,
-	containerMetadata db.ContainerMetadata,
 	resourceFactory resource.ResourceFactory,
+	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
 	delegate CheckDelegate,
@@ -50,8 +49,8 @@ func NewCheckStep(
 		planID:            planID,
 		plan:              plan,
 		metadata:          metadata,
-		containerMetadata: containerMetadata,
 		resourceFactory:   resourceFactory,
+		containerMetadata: containerMetadata,
 		pool:              pool,
 		strategy:          strategy,
 		delegate:          delegate,
@@ -142,21 +141,18 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 	deadline, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	checkable := step.resourceFactory.NewResourceForContainer(container)
+	processSpec := runtime.ProcessSpec{
+		Path: "/opt/resource/check",
+	}
 
-	versions, err := checkable.Check(deadline, source, step.plan.FromVersion)
+	checkable := step.resourceFactory.NewResource(source, nil, step.plan.FromVersion)
+	versions, err := checkable.Check(deadline, processSpec, container)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			return fmt.Errorf("Timed out after %v while checking for new versions", timeout)
 		}
 		return err
 	}
-
-	metric.CheckFinished{
-		CheckName:             step.plan.Name,
-		ResourceConfigScopeID: strconv.Itoa(step.metadata.ResourceConfigScopeID),
-		Success:               err == nil,
-	}.Emit(logger)
 
 	err = step.delegate.SaveVersions(versions)
 	if err != nil {

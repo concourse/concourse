@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e -u
+
+cd $(dirname $0)/..
+
+args=(-f docker-compose.yml)
+
+for f in hack/overrides/*.yml; do
+  args+=(-f $f)
+done
+
+docker-compose ${args[@]} "$@"

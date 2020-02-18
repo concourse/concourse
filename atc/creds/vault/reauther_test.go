@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"code.cloudfoundry.org/lager/lagertest"
+
 	"github.com/cenkalti/backoff"
 )
 
@@ -46,7 +48,8 @@ func testWithoutVaultErrors(t *testing.T) {
 		Renewed:      make(chan bool, 1),
 		Delay:        1 * time.Second,
 	}
-	ra := NewReAuther(ma, 10*time.Second, 1*time.Second, 64*time.Second)
+	logger := lagertest.NewTestLogger("vault-test")
+	ra := NewReAuther(logger, ma, 10*time.Second, 1*time.Second, 64*time.Second)
 	select {
 	case <-ra.LoggedIn():
 	case <-time.After(1 * time.Second):
@@ -105,7 +108,8 @@ func testExponentialBackoff(t *testing.T) {
 		Delay:        1 * time.Second,
 		LoginError:   fmt.Errorf("Could not login to Vault"),
 	}
-	ra := NewReAuther(ma, 0, 1*time.Second, maxRetryInterval)
+	logger := lagertest.NewTestLogger("vault-test")
+	ra := NewReAuther(logger, ma, 0, 1*time.Second, maxRetryInterval)
 
 	select {
 	case <-ra.LoggedIn():

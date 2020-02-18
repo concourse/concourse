@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"code.cloudfoundry.org/lager"
 	"sync"
 	"time"
 
@@ -25,10 +26,14 @@ type ReAuther struct {
 
 	loggedIn     chan struct{}
 	loggedInOnce *sync.Once
+
+	closedCh chan struct{}
+
+	logger lager.Logger
 }
 
 // NewReAuther with a retry time and a max retry time.
-func NewReAuther(auther Auther, maxTTL, retry, max time.Duration) *ReAuther {
+func NewReAuther(logger lager.Logger, auther Auther, maxTTL, retry, max time.Duration) *ReAuther {
 	ra := &ReAuther{
 		auther: auther,
 		base:   retry,
@@ -37,6 +42,10 @@ func NewReAuther(auther Auther, maxTTL, retry, max time.Duration) *ReAuther {
 
 		loggedIn:     make(chan struct{}, 1),
 		loggedInOnce: &sync.Once{},
+
+		closedCh: make(chan struct{}, 1),
+
+		logger: logger,
 	}
 
 	go ra.authLoop()
@@ -48,6 +57,11 @@ func NewReAuther(auther Auther, maxTTL, retry, max time.Duration) *ReAuther {
 // may result in a single signal as this channel is not blocked.
 func (ra *ReAuther) LoggedIn() <-chan struct{} {
 	return ra.loggedIn
+}
+
+func (ra *ReAuther) Close() {
+	ra.logger.Debug("vault-reauther-close")
+	close(ra.closedCh)
 }
 
 // we can't renew a secret that has exceeded it's maxTTL or it's lease
@@ -76,8 +90,21 @@ func (ra *ReAuther) sleep(leaseEnd, tokenEOL time.Time) {
 	}
 }
 
+func (ra *ReAuther) closed() bool {
+	select {
+	case <-ra.closedCh:
+		ra.logger.Debug("vault-reauther-closed")
+		return true
+	default: // default clause makes above channel non-blocking.
+	}
+	return false
+}
+
 func (ra *ReAuther) authLoop() {
 	var tokenEOL, leaseEnd time.Time
+
+	ra.logger.Debug("vault-reauther-started")
+	defer ra.logger.Debug("vault-reauther-terminated")
 
 	for {
 		exp := backoff.NewExponentialBackOff()
@@ -87,6 +114,10 @@ func (ra *ReAuther) authLoop() {
 		exp.Reset()
 
 		for {
+			if ra.closed() {
+				return
+			}
+
 			lease, err := ra.auther.Login()
 			if err != nil {
 				time.Sleep(exp.NextBackOff())
@@ -108,6 +139,10 @@ func (ra *ReAuther) authLoop() {
 		}
 
 		for {
+			if ra.closed() {
+				return
+			}
+
 			if !ra.renewable(leaseEnd, tokenEOL) {
 				break
 			}

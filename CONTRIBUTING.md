@@ -190,6 +190,85 @@ To trace a running worker instance:
 $ ./hack/trace worker
 ```
 
+To attach IDE debugger to a running instance, you can use the `--listen` flag followed by a port and the dlv will be started in headless mode listening on the specified port.   
+
+To debug a running web instance:
+
+```sh
+$ ./hack/trace web --listen 2345
+```
+
+To debug a running worker instance:
+
+```sh
+$ ./hack/trace worker --listen 2345
+```
+
+After this is done, the final step is to connect your IDE to the debugger with the following parameters:
+* host: `localhost`
+* port: `2345` 
+
+For GoLand you can do so by going to Run | Edit Configurations… | + | Go Remote and fill in the parameters.
+
+
+### Trying out distributed tracing with Jaeger
+
+Under `./hack`, a docker-compose override file named `jaeger.yml` provides the
+essentials to get [Jaeger] running alongside the other components, as well as
+tying Concourse to it through the right environment variables.
+
+[Jaeger]: https://jaegertracing.io
+
+To leverage that extension, run `docker-compose up` specifying where all the
+yaml files are:
+
+```sh
+$ docker-compose \
+  -f ./docker-compose.yml \
+  -f ./hack/overrides/jaeger.yml \
+  up -d
+```
+
+### Using the experimental `containerd` garden backend locally
+
+There a docker-compose override (`./hack/overrides/containerd.yml`) that sets up
+the necessary environment variables needed to have [`containerd`] up an running as
+a Garden backend.
+
+[`containerd`]: https://containerd.io
+
+
+### Running Vault locally
+
+1. Make sure you have [`certstrap`]
+2.  Run `./hack/vault/setup`, and follow the instructions.
+
+See more about in the section [The Vault credential manager].
+
+[The Vault credential Manager]: https://concourse-ci.org/vault-credential-manager.html
+[`certstrap`]: https://github.com/square/certstrap
+
+
+### Running Prometheus locally
+
+Just like for Jaeger, we have a docker-compose override file that enhances the
+base `docker-compose.yml` with the [Prometheus] service, bringing with it the
+necessary configuraton for collecting Concourse metrics.
+
+[Prometheus]: https://prometheus.io
+
+
+```sh
+$ docker-compose \
+  -f ./docker-compose.yml \
+  -f ./hack/overrides/prometheus.yml \
+  up -d
+```
+
+Now head to http://localhost:9090, and you'll be able to graph `concourse_`
+Prometheus metrics.
+
+
 ### Connecting to Postgres
 
 If you want to poke around the database, you can connect to the `db` node using
@@ -235,7 +314,8 @@ To generate a migration:
 1. Build the CLI:
 
 ```sh
-$ go build atc/db/migration/cli -o mig
+$ cd atc/db/migration
+$ go build -o mig ./cli
 ```
 2. Run the `generate` command. It takes the migration name, file type (SQL or Go)
 and optionally, the directory in which to put the migration files (by default,
@@ -386,8 +466,11 @@ $ ginkgo -r --nodes=4 testflight
 Run `yarn test` from the `web/wats` directory. They use puppeteer to run
 a headless Chromium. A handy fact is that in most cases if a test fails,
 a screenshot taken at the moment of the failure will be at
-`web/wats/failure.png`.
-
+`web/wats/failure.png`. There is a known
+[issue](https://github.com/concourse/concourse/issues/3890) with running these
+tests in parallel (which is the default setting). The issue stems from an
+upstream dependency, so until it is fixed you can run `yarn test --serial` to
+avoid it.
 
 ### Running Kubernetes tests
 

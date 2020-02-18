@@ -96,6 +96,43 @@ var _ = Describe("ATC Handler Builds", func() {
 		})
 	})
 
+	Describe("RerunJobBuild", func() {
+		var (
+			pipelineName  string
+			jobName       string
+			buildName     string
+			expectedBuild atc.Build
+		)
+
+		BeforeEach(func() {
+			pipelineName = "mypipeline"
+			jobName = "myjob"
+			buildName = "mybuild"
+
+			expectedBuild = atc.Build{
+				ID:      123,
+				Name:    "myrerunbuild",
+				Status:  "succeeded",
+				JobName: "myjob",
+				APIURL:  "api/v1/builds/123",
+			}
+			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds/mybuild"
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedBuild),
+				),
+			)
+		})
+
+		It("takes a pipeline and a job and creates the build", func() {
+			build, err := team.RerunJobBuild(pipelineName, jobName, buildName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(build).To(Equal(expectedBuild))
+		})
+	})
+
 	Describe("JobBuild", func() {
 		var (
 			expectedBuild atc.Build

@@ -32,7 +32,7 @@ func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, wor
 		candidateInputCount := 0
 
 		for _, inputSource := range spec.Inputs {
-			_, found, err := inputSource.Source().VolumeOn(logger, w)
+			_, found, err := inputSource.Source().ExistsOn(logger, w)
 			if err != nil {
 				return nil, err
 			}

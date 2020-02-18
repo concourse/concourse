@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -52,11 +51,12 @@ var (
 	dbUserFactory           *dbfakes.FakeUserFactory
 	dbCheckFactory          *dbfakes.FakeCheckFactory
 	dbTeam                  *dbfakes.FakeTeam
+	dbWall                  *dbfakes.FakeWall
 	fakeSecretManager       *credsfakes.FakeSecrets
+	fakeVarSourcePool       *credsfakes.FakeVarSourcePool
 	credsManagers           creds.Managers
 	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
 	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
-	expire                  time.Duration
 	isTLSEnabled            bool
 	cliDownloadsDir         string
 	logger                  *lagertest.TestLogger
@@ -96,6 +96,7 @@ var _ = BeforeEach(func() {
 	dbBuildFactory = new(dbfakes.FakeBuildFactory)
 	dbUserFactory = new(dbfakes.FakeUserFactory)
 	dbCheckFactory = new(dbfakes.FakeCheckFactory)
+	dbWall = new(dbfakes.FakeWall)
 
 	interceptTimeoutFactory = new(containerserverfakes.FakeInterceptTimeoutFactory)
 	interceptTimeout = new(containerserverfakes.FakeInterceptTimeout)
@@ -123,6 +124,7 @@ var _ = BeforeEach(func() {
 	fakeDestroyer = new(gcfakes.FakeDestroyer)
 
 	fakeSecretManager = new(credsfakes.FakeSecrets)
+	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 	credsManagers = make(creds.Managers)
 	var err error
 
@@ -134,8 +136,6 @@ var _ = BeforeEach(func() {
 	logger = lagertest.NewTestLogger("api")
 
 	sink = lager.NewReconfigurableSink(lager.NewPrettySink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
-
-	expire = 24 * time.Hour
 
 	isTLSEnabled = false
 
@@ -187,8 +187,10 @@ var _ = BeforeEach(func() {
 		"1.2.3",
 		"4.5.6",
 		fakeSecretManager,
+		fakeVarSourcePool,
 		credsManagers,
 		interceptTimeoutFactory,
+		dbWall,
 	)
 
 	Expect(err).NotTo(HaveOccurred())

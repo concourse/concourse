@@ -1,6 +1,8 @@
 package builder_test
 
 import (
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -14,8 +16,8 @@ import (
 )
 
 type StepBuilder interface {
-	BuildStep(db.Build) (exec.Step, error)
-	CheckStep(db.Check) (exec.Step, error)
+	BuildStep(lager.Logger, db.Build) (exec.Step, error)
+	CheckStep(lager.Logger, db.Check) (exec.Step, error)
 }
 
 var _ = Describe("Builder", func() {
@@ -28,30 +30,37 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory     *builderfakes.FakeStepFactory
 			fakeDelegateFactory *builderfakes.FakeDelegateFactory
 			fakeSecretManager   *credsfakes.FakeSecrets
+			fakeVarSourcePool   *credsfakes.FakeVarSourcePool
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
+
+			logger lager.Logger
 		)
 
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 			fakeDelegateFactory = new(builderfakes.FakeDelegateFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
+			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
 				fakeDelegateFactory,
 				"http://example.com",
 				fakeSecretManager,
+				fakeVarSourcePool,
 				false,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
+
+			logger = lagertest.NewTestLogger("builder-test")
 		})
 
 		Context("with no build", func() {
 			JustBeforeEach(func() {
-				_, err = stepBuilder.BuildStep(nil)
+				_, err = stepBuilder.BuildStep(logger, nil)
 			})
 
 			It("errors", func() {
@@ -61,20 +70,26 @@ var _ = Describe("Builder", func() {
 
 		Context("with a build", func() {
 			var (
-				fakeBuild *dbfakes.FakeBuild
+				fakeBuild    *dbfakes.FakeBuild
+				fakePipeline *dbfakes.FakePipeline
 
 				expectedPlan     atc.Plan
 				expectedMetadata exec.StepMetadata
 			)
 
 			BeforeEach(func() {
+				fakePipeline = new(dbfakes.FakePipeline)
+				fakePipeline.IDReturns(2222)
+				fakePipeline.NameReturns("some-pipeline")
+
 				fakeBuild = new(dbfakes.FakeBuild)
 				fakeBuild.IDReturns(4444)
 				fakeBuild.NameReturns("42")
 				fakeBuild.JobNameReturns("some-job")
 				fakeBuild.JobIDReturns(3333)
-				fakeBuild.PipelineNameReturns("some-pipeline")
-				fakeBuild.PipelineIDReturns(2222)
+				fakeBuild.PipelineNameReturns(fakePipeline.Name())
+				fakeBuild.PipelineIDReturns(fakePipeline.ID())
+				fakeBuild.PipelineReturns(fakePipeline, true, nil)
 				fakeBuild.TeamNameReturns("some-team")
 				fakeBuild.TeamIDReturns(1111)
 
@@ -94,7 +109,7 @@ var _ = Describe("Builder", func() {
 			JustBeforeEach(func() {
 				fakeBuild.PrivatePlanReturns(expectedPlan)
 
-				_, err = stepBuilder.BuildStep(fakeBuild)
+				_, err = stepBuilder.BuildStep(logger, fakeBuild)
 			})
 
 			Context("when the build has the wrong schema", func() {
@@ -520,6 +535,38 @@ var _ = Describe("Builder", func() {
 						})
 					})
 
+					Context("that contains a set_pipeline step", func() {
+						BeforeEach(func() {
+							expectedPlan = planFactory.NewPlan(atc.SetPipelinePlan{
+								Name:     "some-pipeline",
+								File:     "some-input/pipeline.yml",
+								VarFiles: []string{"foo", "bar"},
+								Vars:     map[string]interface{}{"baz": "qux"},
+							})
+						})
+
+						It("constructs set_pipeline correctly", func() {
+							plan, stepMetadata, _ := fakeStepFactory.SetPipelineStepArgsForCall(0)
+							Expect(plan).To(Equal(expectedPlan))
+							Expect(stepMetadata).To(Equal(expectedMetadata))
+						})
+					})
+
+					Context("that contains a load_var step", func() {
+						BeforeEach(func() {
+							expectedPlan = planFactory.NewPlan(atc.LoadVarPlan{
+								Name: "some-var",
+								File: "some-input/data.yml",
+							})
+						})
+
+						It("constructs load_var correctly", func() {
+							plan, stepMetadata, _ := fakeStepFactory.LoadVarStepArgsForCall(0)
+							Expect(plan).To(Equal(expectedPlan))
+							Expect(stepMetadata).To(Equal(expectedMetadata))
+						})
+					})
+
 					Context("that contains outputs", func() {
 						var (
 							putPlan          atc.Plan
@@ -761,30 +808,37 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory     *builderfakes.FakeStepFactory
 			fakeDelegateFactory *builderfakes.FakeDelegateFactory
 			fakeSecretManager   *credsfakes.FakeSecrets
+			fakeVarSourcePool   *credsfakes.FakeVarSourcePool
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
+
+			logger lager.Logger
 		)
 
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 			fakeDelegateFactory = new(builderfakes.FakeDelegateFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
+			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
 				fakeDelegateFactory,
 				"http://example.com",
 				fakeSecretManager,
+				fakeVarSourcePool,
 				false,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
+
+			logger = lagertest.NewTestLogger("builder-test")
 		})
 
 		Context("with no check", func() {
 			JustBeforeEach(func() {
-				_, err = stepBuilder.CheckStep(nil)
+				_, err = stepBuilder.CheckStep(logger, nil)
 			})
 
 			It("errors", func() {
@@ -794,18 +848,28 @@ var _ = Describe("Builder", func() {
 
 		Context("with a check", func() {
 			var (
-				fakeCheck *dbfakes.FakeCheck
+				fakePipeline *dbfakes.FakePipeline
+				fakeCheck    *dbfakes.FakeCheck
 
 				expectedPlan     atc.Plan
 				expectedMetadata exec.StepMetadata
 			)
 
 			BeforeEach(func() {
+				fakePipeline = new(dbfakes.FakePipeline)
+				fakePipeline.IDReturns(2222)
+				fakePipeline.NameReturns("some-pipeline")
+
 				fakeCheck = new(dbfakes.FakeCheck)
+				fakeCheck.PipelineIDReturns(fakePipeline.ID())
+				fakeCheck.PipelineNameReturns(fakePipeline.Name())
+				fakeCheck.PipelineReturns(fakePipeline, true, nil)
 				fakeCheck.ResourceConfigScopeIDReturns(4444)
 				fakeCheck.BaseResourceTypeIDReturns(2222)
 
 				expectedMetadata = exec.StepMetadata{
+					PipelineID:            fakePipeline.ID(),
+					PipelineName:          fakePipeline.Name(),
 					ResourceConfigScopeID: 4444,
 					BaseResourceTypeID:    2222,
 					ExternalURL:           "http://example.com",
@@ -815,7 +879,7 @@ var _ = Describe("Builder", func() {
 			JustBeforeEach(func() {
 				fakeCheck.PlanReturns(expectedPlan)
 
-				_, err = stepBuilder.CheckStep(fakeCheck)
+				_, err = stepBuilder.CheckStep(logger, fakeCheck)
 			})
 
 			Context("when the check has the wrong schema", func() {

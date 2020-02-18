@@ -29,6 +29,8 @@ all : Test
 all =
     describe "StepTree"
         [ initTask
+        , initSetPipeline
+        , initLoadVar
         , initGet
         , initPut
         , initAggregate
@@ -94,6 +96,58 @@ initTask =
                     tree
                     (\s -> { s | state = Models.StepStateSucceeded })
                     (Models.Task (someStep "some-id" "some-name" Models.StepStateSucceeded))
+        ]
+
+
+initSetPipeline : Test
+initSetPipeline =
+    let
+        { tree, foci } =
+            StepTree.init Routes.HighlightNothing
+                emptyResources
+                { id = "some-id"
+                , step = BuildStepSetPipeline "some-name"
+                }
+    in
+    describe "init with SetPipeline"
+        [ test "the tree" <|
+            \_ ->
+                Expect.equal
+                    (Models.SetPipeline (someStep "some-id" "some-name" Models.StepStatePending))
+                    tree
+        , test "using the focus" <|
+            \_ ->
+                assertFocus "some-id"
+                    foci
+                    tree
+                    (\s -> { s | state = Models.StepStateSucceeded })
+                    (Models.SetPipeline (someStep "some-id" "some-name" Models.StepStateSucceeded))
+        ]
+
+
+initLoadVar : Test
+initLoadVar =
+    let
+        { tree, foci } =
+            StepTree.init Routes.HighlightNothing
+                emptyResources
+                { id = "some-id"
+                , step = BuildStepLoadVar "some-name"
+                }
+    in
+    describe "init with LoadVar"
+        [ test "the tree" <|
+            \_ ->
+                Expect.equal
+                    (Models.LoadVar (someStep "some-id" "some-name" Models.StepStatePending))
+                    tree
+        , test "using the focus" <|
+            \_ ->
+                assertFocus "some-id"
+                    foci
+                    tree
+                    (\s -> { s | state = Models.StepStateSucceeded })
+                    (Models.LoadVar (someStep "some-id" "some-name" Models.StepStateSucceeded))
         ]
 
 
@@ -584,6 +638,12 @@ updateStep f tree =
     case tree of
         Models.Task step ->
             Models.Task (f step)
+
+        Models.SetPipeline step ->
+            Models.SetPipeline (f step)
+
+        Models.LoadVar step ->
+            Models.LoadVar (f step)
 
         Models.Get step ->
             Models.Get (f step)
