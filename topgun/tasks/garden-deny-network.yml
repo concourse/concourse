@@ -1,0 +1,11 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: alpine
+
+run:
+  path: nc
+  args: ["-w", "3", "8.8.8.8", "53"]
