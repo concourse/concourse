@@ -946,6 +946,9 @@ body.index .page-content h2:first-child {
 .toggleable .toggle:checked + label + .toggle-content {
   display: block;
 }
+.example {
+  margin-top: 1em;
+}
 .example .toggle-title {
   background-color: rgba(74, 144, 226, 0.1);
 }
@@ -1017,7 +1020,6 @@ body.index .page-content h2:first-child {
   margin-bottom: 1rem;
 }
 .schema-attribute .attribute-content .example {
-  margin-top: 1em;
   margin-right: -1em;
 }
 .schema-attribute.required > .toggle-title {
