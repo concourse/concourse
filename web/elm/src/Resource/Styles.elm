@@ -51,11 +51,10 @@ pinBar isPinned =
                 Colors.background
     in
     [ style "flex-grow" "1"
-    , style "margin" "10px"
-    , style "padding-left" "7px"
     , style "display" "flex"
     , style "align-items" "center"
     , style "position" "relative"
+    , style "background-color" Colors.pinTools
     , style "border" <| "1px solid " ++ pinBarBorderColor
     ]
 
@@ -363,6 +362,7 @@ pagination : List (Html.Attribute msg)
 pagination =
     [ style "display" "flex"
     , style "align-items" "stretch"
+    , style "margin-left" "auto"
     ]
 
 

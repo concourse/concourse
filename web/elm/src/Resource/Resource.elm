@@ -889,7 +889,6 @@ header session model =
         , Html.div
             Resource.Styles.headerLastCheckedSection
             [ lastCheckedView ]
-        , pinBar session model
         , paginationMenu session model
         ]
 
@@ -916,7 +915,7 @@ body session model =
             [ checkSection sectionModel ]
 
          else
-            [ pinTools session model.pinnedVersion ]
+            [ pinTools session model ]
         )
             ++ [ viewVersionedResources session model ]
 
@@ -1056,36 +1055,18 @@ concourseVersion pinnedVersion =
             Just version
 
 
-pinTools : { s | hovered : HoverState.HoverState } -> Models.PinnedVersion -> Html Message
+pinTools :
+    { s | hovered : HoverState.HoverState }
+    -> { b | pinnedVersion : Models.PinnedVersion }
+    -> Html Message
 pinTools session pinnedVersion =
     let
         hovered =
             session.hovered == HoverState.Hovered UnpinButton
     in
     Html.div
-        (id "pin-tools"
-            :: Resource.Styles.pinTools
-        )
-        [ Icon.icon { sizePx = 25, image = "pin-ic-white.svg" }
-            [ onMouseEnter <| Hover <| Just <| UnpinButton
-            , onMouseLeave <| Hover Nothing
-            , onClick <| Click <| UnpinButton
-            , style "margin-right" "10px"
-            , style "background-color" <|
-                if hovered then
-                    Colors.frame
-
-                else
-                    Colors.pinTools
-            , style "cursor" "pointer"
-            ]
-        , case concourseVersion pinnedVersion of
-            Nothing ->
-                Html.text ""
-
-            Just v ->
-                viewVersion [] v
-        ]
+        (id "pin-tools" :: Resource.Styles.pinTools)
+        [ pinBar session pinnedVersion ]
 
 
 checkSection :

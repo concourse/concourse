@@ -1113,6 +1113,25 @@ all =
                             |> Event.simulate Event.mouseEnter
                             |> Event.toResult
                             |> Expect.err
+                , test "pin bar has a white pin icon of size 25 px" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-bar" ]
+                            |> Query.has
+                                (iconSelector
+                                    { size = "25px"
+                                    , image = "pin-ic-white.svg"
+                                    }
+                                )
+                , test "pin icon on pin bar has a margin right of 10 px" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.has [ style "margin-right" "10px" ]
                 , test "pin icon on pin bar has pointer cursor" <|
                     \_ ->
                         init
@@ -1183,7 +1202,7 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-icon" ]
                             |> Query.has [ style "background-color" "transparent" ]
-                , test "pin bar shows unpinned state when upon successful VersionUnpinned msg" <|
+                , test "pin bar is not visible when upon successful VersionUnpinned msg" <|
                     \_ ->
                         init
                             |> givenResourcePinnedDynamically
@@ -1192,7 +1211,7 @@ all =
                             |> Application.handleCallback (Callback.VersionUnpinned (Ok ()))
                             |> Tuple.first
                             |> queryView
-                            |> pinBarHasUnpinnedState
+                            |> Query.hasNot [ id "pin-bar" ]
                 , test "pin bar shows unpinned state upon receiving failing (VersionUnpinned) msg" <|
                     \_ ->
                         init
@@ -1203,13 +1222,6 @@ all =
                             |> Tuple.first
                             |> queryView
                             |> pinBarHasPinnedState version
-                , test "pin icon on pin bar is white" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedDynamically
-                            |> queryView
-                            |> Query.find [ id "pin-icon" ]
-                            |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
                 ]
             , describe "versions list"
                 [ test "version pin states reflect resource pin state" <|
@@ -2410,7 +2422,19 @@ all =
                 ]
             ]
         , describe "given resource is not pinned"
-            [ test "pin comment bar is not visible" <|
+            [ test "pin tool is not visible" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.hasNot [ id "pin-tools" ]
+            , test "pin bar is not visible" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.hasNot [ id "pin-bar" ]
+            , test "pin comment bar is not visible" <|
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
@@ -2532,22 +2556,6 @@ all =
                                     [ style "padding-left" "10px" ]
                             )
                 ]
-            , test "pin icon on pin bar has default cursor" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Query.has defaultCursor
-            , test "clicking pin icon on pin bar does nothing" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Event.simulate Event.click
-                        |> Event.toResult
-                        |> Expect.err
             , test "mousing over pin icon does nothing" <|
                 \_ ->
                     init
@@ -2702,7 +2710,7 @@ all =
                                 (Callback.VersionPinned badResponse)
                             >> Tuple.first
                             >> queryView
-                            >> pinBarHasUnpinnedState
+                            >> Query.hasNot [ id "pin-bar" ]
                     , test "clicked button shows unpinned state when pinning fails" <|
                         afterClick
                             >> Application.handleCallback
@@ -2714,56 +2722,6 @@ all =
                             >> pinButtonHasUnpinnedState
                     ]
                 ]
-            , test "pin bar expands horizontally to fill available space" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.has [ style "flex-grow" "1" ]
-            , test "pin bar margin causes outline to appear inset from the rest of the secondary top bar" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.has [ style "margin" "10px" ]
-            , test "there is some space between the check age and the pin bar" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.has [ style "padding-left" "7px" ]
-            , test "pin bar lays out contents horizontally, centering them vertically" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.has
-                            [ style "display" "flex"
-                            , style "align-items" "center"
-                            ]
-            , test "pin bar is positioned relatively, to facilitate a tooltip" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.has [ style "position" "relative" ]
-            , test "pin icon is a 25px square icon" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Query.has
-                            [ style "background-repeat" "no-repeat"
-                            , style "background-position" "50% 50%"
-                            , style "height" "25px"
-                            , style "width" "25px"
-                            ]
             ]
         , describe "given versioned resource fetched"
             [ test "there is a pin button for each version" <|
@@ -2777,19 +2735,20 @@ all =
                         |> Query.count (Expect.equal 1)
             ]
         , describe "pin tools" <|
-            [ test "has grey background" <|
-                \_ ->
+            let
+                pinTools =
                     init
                         |> givenResourcePinnedDynamically
                         |> queryView
                         |> Query.find [ id "pin-tools" ]
+            in
+            [ test "has grey background" <|
+                \_ ->
+                    pinTools
                         |> Query.has [ style "background-color" "#2e2c2c" ]
             , test "has height of 28 px" <|
                 \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-tools" ]
+                    pinTools
                         |> Query.has [ style "height" "28px" ]
             , test "not display check status bar when resources being pinned" <|
                 \_ ->
@@ -2805,119 +2764,30 @@ all =
                         |> Query.hasNot [ id "pin-tools" ]
             , test "has a bottom margin of 24 px" <|
                 \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-tools" ]
+                    pinTools
                         |> Query.has [ style "margin-bottom" "24px" ]
             , test "shows a pinned version" <|
                 \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-tools" ]
+                    pinTools
                         |> Query.has [ text version ]
             , test "version text vertically centers" <|
                 \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-tools" ]
+                    pinTools
                         |> Query.has [ style "display" "flex", style "align-items" "center" ]
-            , test "has a pin icon" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-tools" ]
-                        |> Query.has
-                            (iconSelector
-                                { size = "25px"
-                                , image = "pin-ic-white.svg"
-                                }
-                            )
-            , test "unpin button has a margin right of 10 px" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-tools" ]
-                        |> Query.find
-                            (iconSelector
-                                { size = "25px"
-                                , image = "pin-ic-white.svg"
-                                }
-                            )
-                        |> Query.has [ style "margin-right" "10px" ]
-            , defineHoverBehaviour
-                { name = "unpin button"
-                , setup = init |> givenResourcePinnedDynamically
-                , query =
-                    queryView
-                        >> Query.find [ id "pin-tools" ]
-                        >> Query.find
-                            (iconSelector
-                                { size = "25px"
-                                , image = "pin-ic-white.svg"
-                                }
-                            )
-                , unhoveredSelector =
-                    { description = "lighter grey background"
-                    , selector =
-                        [ style "background-color" "#2e2c2c" ]
-                    }
-                , hoverable = Message.Message.UnpinButton
-                , hoveredSelector =
-                    { description = "darker grey background"
-                    , selector =
-                        [ style "background-color" darkGreyHex ]
-                    }
-                }
             , test "after pinning it has a purple border" <|
                 \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-tools" ]
+                    pinTools
                         |> Query.has purpleOutlineSelector
             , test "pin tools size includes its border" <|
                 \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-tools" ]
+                    pinTools
                         |> Query.has [ style "box-sizing" "border-box" ]
-            , test "unpin button is clickable" <|
+            , test "contains pin-bar on the left" <|
                 \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-tools" ]
-                        |> Query.find
-                            (iconSelector
-                                { size = "25px"
-                                , image = "pin-ic-white.svg"
-                                }
-                            )
-                        |> Query.has [ style "cursor" "pointer" ]
-            , test "unpin button has click handler" <|
-                \_ ->
-                    init
-                        |> givenResourcePinnedDynamically
-                        |> queryView
-                        |> Query.find [ id "pin-tools" ]
-                        |> Query.find
-                            (iconSelector
-                                { size = "25px"
-                                , image = "pin-ic-white.svg"
-                                }
-                            )
-                        |> Event.simulate Event.click
-                        |> Event.expect
-                            (Msgs.Update <|
-                                Message.Message.Click <|
-                                    UnpinButton
-                            )
+                    pinTools
+                        |> Query.children []
+                        |> Query.index 0
+                        |> Query.has [ id "pin-bar" ]
             ]
         , describe "check status" <|
             let
