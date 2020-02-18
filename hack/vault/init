@@ -6,7 +6,7 @@ cd $(dirname $0)/../..
 
 export VAULT_CACERT=$PWD/hack/vault/certs/vault-ca.crt
 
-# vault operator init --format=json > hack/vault/init.json
+vault operator init --format=json > hack/vault/init.json
 
 vault operator unseal $(jq -r .unseal_keys_b64[0] < hack/vault/init.json)
 vault operator unseal $(jq -r .unseal_keys_b64[1] < hack/vault/init.json)
