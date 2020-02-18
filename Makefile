@@ -30,6 +30,44 @@ install:
 	go install -v ./cmd/concourse
 
 
+# run - runs a `web` node that targets a kubernetes cluster pointed by
+#       `$(KUBECONFIG)`.
+#
+run: install init
+	concourse web $(CONCOURSE_WEB_FLAGS)
+
+
+# debug - runs a `web` node with `dlv` so that one can debug it.
+#
+debug: init
+	dlv debug ./cmd/concourse -- web $(CONCOURSE_WEB_FLAGS)
+
+
+# db - brings the database up
+#
+db:
+	docker-compose up -d db
+
+
+# test - runs a sample workload
+#
+test:
+	fly -t local login -u test -p test
+	fly -t local set-pipeline -n -p test -c ./hack/k8s/sample-pipeline.yml
+	fly -t local unpause-pipeline -p test
+	fly -t local trigger-job -j test/test
+
+
+# cluster - creates a kubernetes cluster using a modified image of `kind`,
+# having the containerd configuration patched to have any insecure registries
+# pullable.
+#
+cluster:
+	kind create cluster \
+		--image cirocosta/kind:modified-cri \
+		--config hack/k8s/kind-config.yaml
+
+
 # init - populates the `init` configmap with the binary used to hold our main
 #        container up so that we can run processes in there.
 #
@@ -38,6 +76,7 @@ init: $(INIT_BIN)
 	$(KUBECTL) create configmap --from-file $< \
 		$(INIT_CONFIGMAP) || true
 
+
 $(INIT_BIN): $(INIT_SRC)
 	cd ./cmd/init && docker build -t init-img .
 	docker create --name init init-img || true
@@ -45,28 +84,3 @@ $(INIT_BIN): $(INIT_SRC)
 	docker rm -f init
 
 
-# run - runs a `web` node that targets a kubernetes cluster pointed by
-#       `$(KUBECONFIG)`.
-#
-run: install init
-	concourse web $(CONCOURSE_WEB_FLAGS)
-
-# debug - runs a `web` node with `dlv` so that one can debug it.
-#
-debug: init
-	dlv debug ./cmd/concourse -- web $(CONCOURSE_WEB_FLAGS)
-
-# db - brings the database up
-#
-db:
-	docker-compose up -d db
-
-
-test:
-	fly -t local login -u test -p test
-	fly -t local set-pipeline -n -p test -c ./hack/k8s/sample-pipeline.yml
-	fly -t local unpause-pipeline -p test
-	fly -t local trigger-job -j test/test
-
-cluster:
-	kind create cluster --image cirocosta/kind:modified-cri --config hack/k8s/kind-config.yaml
