@@ -18,6 +18,9 @@ A build plan is a sequence of \italic{steps}:
   the \reference{set-pipeline-step} configures a
   \reference{pipelines}{pipeline}
 }{
+  the \reference{load-var-step} loads a value into a
+  \reference{local-vars}{local var}
+}{
   the \reference{in-parallel-step} runs steps in parallel
 }{
   the \reference{do-step} runs steps in sequence
@@ -416,9 +419,9 @@ by configuring \reference{schema.step.on_failure} or
               text: "Hello World!"
           }}}
 
-          This is often used in combination with
-          \reference{pipeline-vars}{\code{((vars))}} in the pipeline (note the
-          replacement of the string literal with the \code{((text))} pipeline var):
+          This is often used in combination with \reference{vars} in the
+          pipeline (note the replacement of the string literal with the
+          \code{((text))} pipeline var):
 
           \codeblock{yaml}{{{
           plan:
@@ -637,9 +640,10 @@ by configuring \reference{schema.step.on_failure} or
               text: "Hello World!"
           }}}
 
-          Any \reference{pipeline-vars}{\code{((vars))}} in the pipeline will
-          be resolved using this field. If \code{my-repo/ci/pipeline.yml} looks
-          like...:
+          Any \reference{vars} in the pipeline config will be filled in
+          statically using this field.
+
+          For example, if \code{my-repo/ci/pipeline.yml} looks like...:
 
           \codeblock{yaml}{{{
           resources:
@@ -674,6 +678,91 @@ by configuring \reference{schema.step.on_failure} or
         to \reference{fly-set-pipeline}. This means that if a variable appears
         in multiple files, the value from a file that is passed later in the
         list will override the values from files earlier in the list.
+      }
+    }
+  }{
+    \schema-group{\code{load_var} step}{load-var-step}{
+      \required-attribute{load_var}{identifier}{
+        \warn{
+          The \code{load_var} step was introduced in Concourse v6.0.0. It is
+          considered an \bold{experimental} feature until its associated
+          \link{RFC}{https://github.com/concourse/rfcs/pull/27} is resolved.
+        }
+
+        Load the value for a var at runtime, making it available to subsequent
+        steps as a build-local var named after the given identifier.
+
+        \example-toggle{Loading a simple value as a var}{
+          The following build plan uses a version produced by the
+          \resource{semver} as a tag:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: version
+          - load_var: version-tag
+            file: version/version
+          - put: image
+            params: {tag: ((.:version-tag))}
+          }}}
+        }
+      }
+
+      \required-attribute{file}{file-path}{
+        The path to a file whose content shall be read and used as the var's
+        value.
+      }
+
+      \optional-attribute{format}{`detect` | `json` | `yaml` | `yml` | `raw`}{
+        \italic{Default \code{detect}.} The format of the file's content.
+
+        If set to \code{detect}, the format will be inferred from the file
+        extension.
+
+        If set to \code{json}, \code{yaml}, or \code{yml}, the file content
+        will be parsed accordingly and the resulting structure will be the
+        value of the var.
+
+        If set to \code{raw}, the file content will be the value of the var as
+        a single string value.
+
+        \example-toggle{Loading a var with multiple fields}{
+          Let's say we have a task, \code{generate-creds}, which produces a
+          \code{generated-user} output containing a \code{user.json} file like
+          so:
+
+          \codeblock{yaml}{{{
+          {
+            "username": "some-user",
+            "password": "some-password"
+          }
+          }}}
+
+          We could pass these credentials to subsequent steps by loading it
+          into a var with \code{load_var}, which will detect that it is in JSON
+          format based on the file extension:
+
+          \codeblock{yaml}{{{
+          plan:
+          - task: generate-creds
+          - load_var: user
+            file: generated-user/user.json
+          - task: use-creds
+            params:
+              USERNAME: ((.:user.username))
+              PASSWORD: ((.:user.username))
+          }}}
+
+          If the \code{use-creds} task were to print these values, they would
+          be automatically redacted unless
+          \reference{schema.step.load-var-step.reveal}{\code{reveal: true}} is
+          set.
+        }
+      }
+
+      \optional-attribute{reveal}{boolean}{
+        \italic{Default \code{false}.} If set to \code{true}, allow the var's
+        content to be printed in the build output even with secret redaction
+        enabled.
       }
     }
   }{

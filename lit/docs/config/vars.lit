@@ -1,4 +1,4 @@
-\title{Intro to \code{((vars))}}{vars}
+\title{\aux{Using }\code{((vars))}}{vars}
 
 \use-plugin{concourse-docs}
 
@@ -17,7 +17,7 @@ pipeline config file to be configured multiple times with different parameters
 - e.g. \code{((branch_name))}.
 
 \section{
-  \title{\code{((var))} syntax}
+  \title{\code{((var))} syntax}{var-syntax}
 
   The full syntax for \code{((vars))} is
   \code{((\italic{source-name}:\italic{secret-path}.\italic{secret-field}))}.
@@ -27,7 +27,9 @@ pipeline config file to be configured multiple times with different parameters
   read. If omitted (along with the \code{:} delimiter), the
   \reference{cluster-wide-credential-manager}{cluster-wide credential manager}
   will be used, or the value may be provided
-  \reference{static-vars}{statically}.
+  \reference{static-vars}{statically}. The special name \code{.} refers to the
+  \reference{local-vars}{local var source}, while any other name refers to a
+  \reference{var-sources}{var source}.
 
   The required \italic{secret-path} identifies the location of the
   credential. The interpretation of this value depends on the var source
@@ -48,7 +50,19 @@ pipeline config file to be configured multiple times with different parameters
 }
 
 \section{
-  \title{Interpolation}{var-interpolation}
+  \title{Local vars via the \code{.} var source}{local-vars}
+
+  The special var source name \code{.} refers to a conceptual "local var
+  source."
+
+  The precise scope for these "local vars" depends on where they're being used.
+  Currently the only mechanism that utilizes local vars is the
+  \reference{load-var-step}, which stores a var in a local scope for the
+  duration of the build.
+}
+
+\section{
+  \title{Interpolation behavior}{var-interpolation}
 
   Values for \code{((vars))} are substituted structurally. That is, if you have
   \code{foo: ((bar))}, whatever value \code{((bar))} resolves to will become
@@ -67,7 +81,7 @@ pipeline config file to be configured multiple times with different parameters
 }
 
 \section{
-  \title{Providing \code{((vars))} with \code{fly}}{static-vars}
+  \title{Providing static var values with \code{fly}}{static-vars}
 
   Various commands in the \reference{fly-cli} support the following three flags
   for providing values for \code{((vars))}:
@@ -87,70 +101,133 @@ pipeline config file to be configured multiple times with different parameters
   \code{-v} flags take precedence. This way a vars file may be
   re-used, overriding individual values by hand.
 
-  For example, with a pipeline template like so:
+  \example-toggle{Setting values with \code{-v} and \code{y}}{
+    With a pipeline template like so:
 
-  \codeblock{yaml}{{{
-  resources:
-  - name: booklit
-    type: booklit
-    source:
-      uri: https://github.com/vito/booklit
-      branch: ((branch))
-      private_key: ((private_key))
-
-  jobs:
-  - name: unit
-    plan:
-    - get: booklit
-      trigger: ((trigger))
-    - task: unit
-      file: booklit/ci/unit.yml
-  }}}
-
-  And let's say I've put the \code{private_key} var in a file called
-  \code{vars.yml}, since it's quite large and hard to pass through flags:
-
-  \codeblock{yaml}{{{
-  private_key: |
-    -----BEGIN RSA PRIVATE KEY-----
-    # ... snipped ...
-    -----END RSA PRIVATE KEY-----
-  }}}
-
-  The \reference{fly-validate-pipeline} command may be used to test
-  how interpolation is applied, by passing the \code{--output} flag.
-
-  \codeblock{sh}{{{
-  $ fly validate-pipeline \
-    -c pipeline.yml \
-    -l vars.yml \
-    -y trigger=true \
-    -v branch=master \
-    --output
-  }}}
-
-  The above incantation should print the following:
-
-  \codeblock{yaml}{{{
-    jobs:
-    - name: unit
-      plan:
-      - get: booklit
-        trigger: true
-      - file: booklit/ci/unit.yml
-        task: unit
+    \codeblock{yaml}{{{
     resources:
     - name: booklit
       type: booklit
       source:
-        branch: master
-        private_key: |
-          -----BEGIN RSA PRIVATE KEY-----
-          # ... snipped ...
-          -----END RSA PRIVATE KEY-----
         uri: https://github.com/vito/booklit
-  }}}
+        branch: ((branch))
+        private_key: ((private_key))
 
-  Note that we had to use \code{-y} so that the \code{trigger: true}
-  ends up with a boolean value instead of the string \code{"true"}.
+    jobs:
+    - name: unit
+      plan:
+      - get: booklit
+        trigger: ((trigger))
+      - task: unit
+        file: booklit/ci/unit.yml
+    }}}
+
+    Let's say we have a private key in a file called \code{private_key}.
+
+    The \reference{fly-validate-pipeline} command may be used to test
+    how interpolation is applied, by passing the \code{--output} flag.
+
+    \codeblock{sh}{{{
+    $ fly validate-pipeline \
+      -c pipeline.yml \
+      -y trigger=true \
+      -v private_key="$(cat private_key)" \
+      -v branch=master \
+      --output
+    }}}
+
+    The above incantation should print the following:
+
+    \codeblock{yaml}{{{
+      jobs:
+      - name: unit
+        plan:
+        - get: booklit
+          trigger: true
+        - file: booklit/ci/unit.yml
+          task: unit
+      resources:
+      - name: booklit
+        type: booklit
+        source:
+          branch: master
+          private_key: |
+            -----BEGIN RSA PRIVATE KEY-----
+            # ... snipped ...
+            -----END RSA PRIVATE KEY-----
+          uri: https://github.com/vito/booklit
+    }}}
+
+    Note that we had to use \code{-y} so that the \code{trigger: true}
+    ends up with a boolean value instead of the string \code{"true"}.
+  }
+
+  \example-toggle{Loading values from files with \code{-l}}{
+    With a pipeline template like so:
+
+    \codeblock{yaml}{{{
+    resources:
+    - name: booklit
+      type: booklit
+      source:
+        uri: https://github.com/vito/booklit
+        branch: ((branch))
+        private_key: ((private_key))
+
+    jobs:
+    - name: unit
+      plan:
+      - get: booklit
+        trigger: ((trigger))
+      - task: unit
+        file: booklit/ci/unit.yml
+    }}}
+
+    Let's say I've put the \code{private_key} var in a file called
+    \code{vars.yml}, since it's quite large and hard to pass through flags:
+
+    \codeblock{yaml}{{{
+    private_key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      # ... snipped ...
+      -----END RSA PRIVATE KEY-----
+    }}}
+
+    The \reference{fly-validate-pipeline} command may be used to test
+    how interpolation is applied, by passing the \code{--output} flag.
+
+    \codeblock{sh}{{{
+    $ fly validate-pipeline \
+      -c pipeline.yml \
+      -l vars.yml \
+      -y trigger=true \
+      -v branch=master \
+      --output
+    }}}
+
+    The above incantation should print the following:
+
+    \codeblock{yaml}{{{
+      jobs:
+      - name: unit
+        plan:
+        - get: booklit
+          trigger: true
+        - file: booklit/ci/unit.yml
+          task: unit
+      resources:
+      - name: booklit
+        type: booklit
+        source:
+          branch: master
+          private_key: |
+            -----BEGIN RSA PRIVATE KEY-----
+            # ... snipped ...
+            -----END RSA PRIVATE KEY-----
+          uri: https://github.com/vito/booklit
+    }}}
+
+    Note that we had to use \code{-y} so that the \code{trigger: true}
+    ends up with a boolean value instead of the string \code{"true"}.
+  }
 }

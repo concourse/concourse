@@ -447,14 +447,11 @@ A task's configuration specifies the following:
     }
 
     \section{
-      \title{Providing values for \code{((vars))}}{fly-execute-vars}
+      \title{Providing values for vars}{fly-execute-vars}
 
-      Task config files can contain template variables in the form of
-      \code{((foo-bar))}, the same as \reference{pipeline-vars}{pipeline
-      \code{((vars))}}.
-
-      These vars can be set during \code{fly execute} by using the \code{-v},
-      \code{-y} and \code{-l} flags, the same as \reference{fly-set-pipeline}:
+      Task config files can contain \reference{vars} which can can be set
+      during \code{fly execute} by using the \code{-v}, \code{-y} and \code{-l}
+      flags:
 
       \codeblock{bash}{{
         fly -t example execute --config tests.yml \\
