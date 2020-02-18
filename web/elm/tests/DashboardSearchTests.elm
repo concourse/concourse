@@ -40,11 +40,7 @@ all =
             |> Application.handleCallback
                 (Callback.AllJobsFetched <|
                     Ok
-                        [ { pipeline =
-                                { teamName = "team1"
-                                , pipelineName = "pipeline"
-                                }
-                          , name = "job"
+                        [ { name = "job"
                           , pipelineName = "pipeline"
                           , teamName = "team1"
                           , nextBuild =
