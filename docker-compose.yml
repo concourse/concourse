@@ -20,15 +20,16 @@ services:
     ports:
     - 8080:8080
     environment:
-      CONCOURSE_LOG_LEVEL: debug
-      CONCOURSE_POSTGRES_HOST: db
-      CONCOURSE_POSTGRES_USER: dev
-      CONCOURSE_POSTGRES_PASSWORD: dev
-      CONCOURSE_POSTGRES_DATABASE: concourse
-      CONCOURSE_EXTERNAL_URL: http://localhost:8080
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
-      CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
+      CONCOURSE_EXTERNAL_URL: http://localhost:8080
+      CONCOURSE_ENABLE_LIDAR: 'true'
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_MAIN_TEAM_LOCAL_USER: test
+      CONCOURSE_POSTGRES_DATABASE: concourse
+      CONCOURSE_POSTGRES_HOST: db
+      CONCOURSE_POSTGRES_PASSWORD: dev
+      CONCOURSE_POSTGRES_USER: dev
 
   worker:
     build: .

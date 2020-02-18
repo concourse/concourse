@@ -397,6 +397,9 @@ type mountableRemoteInput struct {
 // * working dir
 // * input
 // * output
+//
+// TODO [cc] make sure we get this right
+//
 func (worker *gardenWorker) createVolumes(
 	ctx context.Context,
 	logger lager.Logger,

@@ -6,10 +6,9 @@ import (
 
 	c "code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/tedsuo/ifrit"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/tedsuo/ifrit"
 )
 
 func NewHardcoded(

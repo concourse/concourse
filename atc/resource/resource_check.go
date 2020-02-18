@@ -10,7 +10,9 @@ import (
 func (resource *resource) Check(
 	ctx context.Context,
 	spec runtime.ProcessSpec,
-	runnable runtime.Runner) ([]atc.Version, error) {
+	runnable runtime.Runner,
+) ([]atc.Version, error) {
+
 	var versions []atc.Version
 
 	input, err := resource.Signature()
