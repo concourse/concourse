@@ -320,6 +320,7 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	var resources []Resource
 
 	rows, err := resourcesQuery.
+		Join("(select DISTINCT(resource_id) FROM job_inputs) ji ON ji.resource_id = r.id").
 		Where(sq.Eq{"p.paused": false}).
 		RunWith(c.conn).
 		Query()
