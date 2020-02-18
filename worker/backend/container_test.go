@@ -39,33 +39,37 @@ func (s *ContainerSuite) SetupTest() {
 	)
 }
 
-// func (s *ContainerSuite) TestStopWithKillUngracefullyStops() {
-// 	err := s.container.Stop(true)
-// 	s.NoError(err)
-// 	s.Equal(1, s.ungracefulKiller.KillCallCount())
-// }
+func (s *ContainerSuite) TestStopLoadTaskFails() {
+	expectedError := errors.New("load-task-fails")
+	s.containerdContainer.TaskReturns(nil, expectedError)
 
-// func (s *ContainerSuite) TestStopWithKillFailing() {
-// 	s.ungracefulKiller.UngracefullyStopReturns(errors.New("ungraceful-stop-err"))
+	err := s.container.Stop(true)
+	s.True(errors.Is(err, expectedError))
+}
 
-// 	err := s.container.Stop(true)
-// 	s.Equal(1, s.ungracefulKiller.UngracefullyStopCallCount())
-// 	s.EqualError(errors.Unwrap(err), "ungraceful-stop-err")
-// }
+func (s *ContainerSuite) TestStopKillTaskFails() {
+	expectedError := errors.New("kill-task-fails")
+	s.killer.KillReturns(expectedError)
 
-// func (s *ContainerSuite) TestStopWithoutKillGracefullyStops() {
-// 	err := s.container.Stop(false)
-// 	s.NoError(err)
-// 	s.Equal(1, s.ungracefulKiller.GracefullyStopCallCount())
-// }
+	err := s.container.Stop(true)
+	s.True(errors.Is(err, expectedError))
+}
 
-// func (s *ContainerSuite) TestStopWithoutKillFailing() {
-// 	s.ungracefulKiller.GracefullyStopReturns(errors.New("graceful-stop-err"))
+func (s *ContainerSuite) TestStopKillGracefullySucceeds() {
+	const kill = false
+	err := s.container.Stop(kill)
+	s.NoError(err)
+	_, _, behaviour := s.killer.KillArgsForCall(0)
+	s.Equal(backend.KillGracefully, behaviour)
+}
 
-// 	err := s.container.Stop(false)
-// 	s.EqualError(errors.Unwrap(err), "graceful-stop-err")
-// 	s.Equal(1, s.ungracefulKiller.GracefullyStopCallCount())
-// }
+func (s *ContainerSuite) TestStopKillUngracefullySucceeds() {
+	const kill = true
+	err := s.container.Stop(kill)
+	s.NoError(err)
+	_, _, behaviour := s.killer.KillArgsForCall(0)
+	s.Equal(backend.KillUngracefully, behaviour)
+}
 
 func (s *ContainerSuite) TestRunContainerSpecErr() {
 	expectedErr := errors.New("spec-err")
