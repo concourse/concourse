@@ -67,3 +67,44 @@
   the resource page. A default comment is automatically
   generated containing your username and a timestamp. This comment can be edited.
 }
+
+\section{
+  \title{\code{fly enable-resource-version}}{fly-enable-resource-version}
+
+  To enable a specific version of a resource, run:
+
+  \codeblock{bash}{{{
+  $ fly -t example enable-resource-version --resource my-pipeline/my-resource \
+      --version ref:bceaf
+  }}}
+
+  Note that the version needs to be provided as a key-value pair. For the git
+  resource the \code{ref:} prefix is used while the \italic{registry} 
+  resource might use \code{digest} as a prefix like \code{digest:sha256:94be7d7b}.
+
+  This command is idempotent. Enabling an already enabled resource version will do nothing.
+
+  You can also enable a resource version via the UI by clicking on the check mark button next to the desired version on
+  the resource page.
+}
+
+\section{
+  \title{\code{fly disable-resource-version}}{fly-disable-resource-version}
+
+  To disable a specific version of a resource, run:
+
+  \codeblock{bash}{{{
+  $ fly -t example disable-resource-version --resource my-pipeline/my-resource \
+      --version ref:bceaf
+  }}}
+
+  Note that the version needs to be provided as a key-value pair. For the git
+  resource the \code{ref:} prefix is used while the \italic{registry} 
+  resource might use \code{digest} as a prefix like \code{digest:sha256:94be7d7b}.
+
+  This command is idempotent. Disabling an already disabled resource version will do nothing.
+
+  You can also disable a resource version via the UI by clicking on the check mark button next to the desired version on
+  the resource page.
+}
+

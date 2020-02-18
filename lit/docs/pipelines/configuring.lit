@@ -23,7 +23,7 @@ Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
   pipeline definition in the YAML file specified.
 
   \section{
-    \title{\aux{Pipeline }\code{((vars))}}{pipeline-vars}
+    \title{Static \code{((vars))}}{pipeline-vars}
 
     The pipeline configuration can contain template variables in the form of
     \code{((foo-bar))}. They will be replaced with values populated by repeated

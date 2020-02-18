@@ -1,0 +1,156 @@
+\title{Intro to \code{((vars))}}{vars}
+
+\use-plugin{concourse-docs}
+
+Concourse supports value substitution in YAML configuration by way of
+\code{((vars))}.
+
+Automation entails the use of all kinds of credentials. It's important to keep
+these values separate from the rest of your configuration by using
+\code{((vars))} instead of hardcoding values. This allows your configuration to
+be placed under source control and allows credentials to be tucked safely away
+into a secure credential manager like Vault instead of the Concourse database.
+
+Aside from credentials, \code{((vars))} may also be used for generic
+parameterization of pipeline configuration templates, allowing a single
+pipeline config file to be configured multiple times with different parameters
+- e.g. \code{((branch_name))}.
+
+\section{
+  \title{\code{((var))} syntax}
+
+  The full syntax for \code{((vars))} is
+  \code{((\italic{source-name}:\italic{secret-path}.\italic{secret-field}))}.
+
+  The optional \italic{source-name} identifies the
+  \reference{var-sources}{\code{((var))} source} from which the value will be
+  read. If omitted (along with the \code{:} delimiter), the
+  \reference{cluster-wide-credential-manager}{cluster-wide credential manager}
+  will be used, or the value may be provided
+  \reference{static-vars}{statically}.
+
+  The required \italic{secret-path} identifies the location of the
+  credential. The interpretation of this value depends on the var source
+  type. For example, with Vault this may be a path like \code{path/to/cred}.
+  For the Kubernetes secret manager this may just be the name of a secret.
+  For credential managers which support path-based lookup, a
+  \italic{secret-path} without a leading / may be queried relative to a
+  predefined set of path prefixes. This is how the Vault credential manager
+  currently works; \code{foo} will be queried under \code{/concourse/(team
+  name)/(pipeline name)/foo}.
+
+  The optional \italic{secret-field} specifies a field on the fetched secret to
+  read. If omitted, the credential manager may choose to read a 'default field'
+  from the fetched credential if the field exists. For example, the Vault
+  credential manager will return the value of the \code{value} field if
+  present. This is useful for simple single-value credentials where typing
+  \code{((foo.value))} would feel verbose.
+}
+
+\section{
+  \title{Interpolation}{var-interpolation}
+
+  Values for \code{((vars))} are substituted structurally. That is, if you have
+  \code{foo: ((bar))}, whatever value \code{((bar))} resolves to will become
+  the value of the \code{foo} field in the object. This can be a value of any
+  type and structure: a boolean, a simple string, a multiline credential like a
+  certificate, or a complicated data structure like an array of objects.
+
+  This differs from text-based substitution in that it's impossible for a value
+  to result in broken YAML syntax, and it relieves the template author from
+  having to worry about things like whitespace alignment.
+
+  When a \code{((var))} appears adjacent to additional string content, e.g.
+  \code{foo: hello-((bar))-goodbye}, its value will be concatenated with the
+  surrounding content. If the \code{((var))} resolves to a non-string value, an
+  error will be raised.
+}
+
+\section{
+  \title{Providing \code{((vars))} with \code{fly}}{static-vars}
+
+  Various commands in the \reference{fly-cli} support the following three flags
+  for providing values for \code{((vars))}:
+
+  \list{
+    \code{-v} or \code{--var} \code{NAME=VALUE} sets the string \code{VALUE} as
+    the value for the var \code{NAME}.
+  }{
+    \code{-y} or \code{--yaml-var} \code{NAME=VALUE} parses \code{VALUE} as
+    YAML and sets it as the value for the var \code{NAME}.
+  }{
+    \code{-l} or \code{--load-vars-from} \code{FILE} loads \code{FILE}, a YAML
+    document containing mapping var names to values, and sets them all.
+  }
+
+  When used in combination with \code{-l}, the \code{-y} and
+  \code{-v} flags take precedence. This way a vars file may be
+  re-used, overriding individual values by hand.
+
+  For example, with a pipeline template like so:
+
+  \codeblock{yaml}{{{
+  resources:
+  - name: booklit
+    type: booklit
+    source:
+      uri: https://github.com/vito/booklit
+      branch: ((branch))
+      private_key: ((private_key))
+
+  jobs:
+  - name: unit
+    plan:
+    - get: booklit
+      trigger: ((trigger))
+    - task: unit
+      file: booklit/ci/unit.yml
+  }}}
+
+  And let's say I've put the \code{private_key} var in a file called
+  \code{vars.yml}, since it's quite large and hard to pass through flags:
+
+  \codeblock{yaml}{{{
+  private_key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    # ... snipped ...
+    -----END RSA PRIVATE KEY-----
+  }}}
+
+  The \reference{fly-validate-pipeline} command may be used to test
+  how interpolation is applied, by passing the \code{--output} flag.
+
+  \codeblock{sh}{{{
+  $ fly validate-pipeline \
+    -c pipeline.yml \
+    -l vars.yml \
+    -y trigger=true \
+    -v branch=master \
+    --output
+  }}}
+
+  The above incantation should print the following:
+
+  \codeblock{yaml}{{{
+    jobs:
+    - name: unit
+      plan:
+      - get: booklit
+        trigger: true
+      - file: booklit/ci/unit.yml
+        task: unit
+    resources:
+    - name: booklit
+      type: booklit
+      source:
+        branch: master
+        private_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          # ... snipped ...
+          -----END RSA PRIVATE KEY-----
+        uri: https://github.com/vito/booklit
+  }}}
+
+  Note that we had to use \code{-y} so that the \code{trigger: true}
+  ends up with a boolean value instead of the string \code{"true"}.
+}

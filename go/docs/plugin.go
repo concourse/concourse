@@ -10,13 +10,11 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	_ "github.com/concourse/docs/go/chromastyle"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 
 	"github.com/vito/booklit"
 	"github.com/vito/booklit/ast"
-	"github.com/vito/booklit/chroma"
 	"github.com/vito/booklit/stages"
 )
 
@@ -26,7 +24,6 @@ func init() {
 
 type Plugin struct {
 	section *booklit.Section
-	chroma  chroma.Plugin
 
 	definitionContext []string
 	noteIdx           int
@@ -35,7 +32,6 @@ type Plugin struct {
 func NewPlugin(section *booklit.Section) booklit.Plugin {
 	return &Plugin{
 		section: section,
-		chroma:  chroma.NewPlugin(section).(chroma.Plugin),
 	}
 }
 
@@ -46,8 +42,14 @@ func (p Plugin) FontAwesome(class string) booklit.Content {
 	}
 }
 
-func (p Plugin) Codeblock(language string, code booklit.Content) (booklit.Content, error) {
-	return p.chroma.Syntax(language, code, "concourseci")
+func (p Plugin) Codeblock(language string, code booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "code-block",
+		Content: code,
+		Partials: booklit.Partials{
+			"Language": booklit.String(language),
+		},
+	}
 }
 
 func (p Plugin) InlineHeader(content booklit.Content) booklit.Content {
@@ -190,16 +192,11 @@ func (p Plugin) ExamplePipeline() booklit.Content {
 }
 
 func (p Plugin) TitledCodeblock(title booklit.Content, language string, code booklit.Content) (booklit.Content, error) {
-	codeblock, err := p.Codeblock(language, code)
-	if err != nil {
-		return nil, err
-	}
-
 	return booklit.Styled{
 		Style: "titled-codeblock",
 		Block: true,
 
-		Content: codeblock,
+		Content: p.Codeblock(language, code),
 
 		Partials: booklit.Partials{
 			"Title": booklit.Styled{

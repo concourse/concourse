@@ -1,0 +1,19 @@
+\title{Config Basics}{config-basics}
+
+\use-plugin{concourse-docs}
+
+Concourse configuration for things like \reference{pipelines} and
+\reference{tasks} is done through declarative
+\link{YAML}{https://en.wikipedia.org/wiki/YAML} files.
+
+Concourse configuration supports basic variable substitution by way of
+\reference{vars}{\code{((vars))}}. There is no built-in support for
+fancier templating constructs, e.g. loops and conditionals; users are free to
+use whatever templating system they like.
+
+\split-sections
+\table-of-contents
+
+\include-section{config/yaml.lit}
+\include-section{config/vars.lit}
+\include-section{config/dynamic-vars.lit}

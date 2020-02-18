@@ -2,13 +2,10 @@
 
 \use-plugin{concourse-docs}
 
-Concourse is primarily driven from the command-line; there is no GUI config
-wizard.
-
-So, the first step to getting started with Concourse is to install the
-\code{fly} CLI tool. You can download \code{fly} from any Concourse
-installation. There are download links for common platforms in the bottom right
-hand corner of the main page.
+The first step to getting started with Concourse is to install the \code{fly}
+CLI tool. You can download \code{fly} from any Concourse installation. There
+are download links for common platforms in the bottom right hand corner of the
+main page.
 
 Throughout the Concourse documentation we'll stick to the long-form name of
 every command and flag. Once you've learned what the commands do, you may want

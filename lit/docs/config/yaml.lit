@@ -1,0 +1,84 @@
+\use-plugin{concourse-docs}
+
+\title{Intro to YAML}
+
+\link{YAML}{https://yaml.org} is a human-friendly syntax for writing
+structured documents. You can think of it as JSON without the sharp edges.
+
+Here's a quick example demonstrating common YAML syntax:
+
+\codeblock{yaml}{{{
+  # commented lines are prefixed with the '#' character
+
+  # strings
+  quoted_string: "bar"
+  unquoted_string: hello world!
+  multiline_string: |
+    hello, world!
+    this is one big string with a trailing linebreak!
+
+  # arrays
+  array: [hello, world]
+  multiline_array:
+  - hello
+  - world
+
+  # objects
+  object: {one: uno, two: dos}
+  multiline_object:
+    one: uno
+    two: dos
+
+  # boolean values
+  booleans: [true, false]
+
+  # numeric values
+  numeric: [1234, 12.34]
+}}}
+
+\section{
+  \title{YAML Tips & Tricks}
+
+  YAML anchor syntax can be used to avoid repetition within configuration.
+
+  For example, the following YAML document...:
+
+  \codeblock{yaml}{{{
+  large_value: &my_anchor
+    do_the_thing: true
+    with_these_values: [1, 2, 3]
+
+  duplicate_value: *my_anchor
+  }}}
+
+  ...is exactly equivalent to:
+
+  \codeblock{yaml}{{{
+  large_value:
+    do_the_thing: true
+    with_these_values: [1, 2, 3]
+
+  duplicate_value:
+    do_the_thing: true
+    with_these_values: [1, 2, 3]
+  }}}
+
+  If you find yourself repeating configuration throughout your pipeline, it may
+  be a sign that Concourse is missing some kind of abstraction to make your
+  pipeline less verbose. If you have the time and are interested in helping out
+  with Concourse's design, feedback of this sort is welcome in the
+  \link{forums}{https://discuss.concourse-ci.org}!
+}
+
+\section{
+  \title{YAML Quirks}{yaml-quirks}
+
+  YAML has some weird parts. For example, all of the following terms are
+  acceptable boolean values: \code{true}, \code{false}, \code{yes},
+  \code{no}, \code{on}, \code{off}.
+
+  YAML is also whitespace-sensitive. For the most part, this is really handy
+  because it keeps you from having to count curly-braces in deeply nested
+  parts of configuration such as \reference{job-plan}. Sometimes, though, it
+  can be hard to keep track of the correct indentation level.
+}

@@ -33,6 +33,7 @@ discourse/mobile/mobile.scss: less/discourse/mobile.less less/*.less
 
 blog/concourse.zip: blog/package.json blog/*.hbs css/*.css images/* blog/partials/*.hbs
 	cp css/*.css blog/assets/css/
+	cp js/prism.js blog/assets/js/
 	cp -r images/* blog/assets/images/
 	yarn run gscan ./blog
 	cd blog && zip -r concourse.zip package.json *.hbs assets partials
