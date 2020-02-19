@@ -100,6 +100,10 @@ IMPORTANT: Please expect and prepare for some downtime when upgrading to 6.0. On
 
   This feature may become the default in the future if it turns out to be useful and safe enough in practice. Try it out!
 
+#### <sub><sup><a name="5118" href="#5118">:link:</a></sup></sub> feature
+
+* #5118 implements infinite scroll and lazy rendering to the dashboard, which should greatly improve performance on installations with a ton of pipelines configured. The initial page load can still be quite laggy, but interacting with the page afterwards now performs a lot better. We'll keep chipping away at this problem and may have larger changes in store for the future.
+
 #### <sub><sup><a name="5149" href="#5149">:link:</a></sup></sub> fix
 
 * In #5149, @evanchaoli implemented an optimization which should lower the resource checking load on some instances: instead of checking *all* resources, only resources which are actually used as inputs will be checked.
