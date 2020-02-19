@@ -205,3 +205,7 @@ pipeline on a team at the same time. #4092
 #### <sub><sup><a name="4847" href="#4847">:link:</a></sup></sub> fix
 
 * Set a default value of `4h` for `rebalance-interval`. Previously, this value was unset. With the new default, the workers will reconnect to a randomly selected TSA (SSH Gateway) every 4h.
+
+#### <sub><sup><a name="5015" href="#5015">:link:</a></sup></sub> fix
+
+* With #5015, worker state metrics will be emitted even for states with 0 workers, rather than not emitting the metric at all. This should make it easier to confirm that there are in fact 0 stalled workers as opposed to not having any knowledge of it.
