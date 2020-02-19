@@ -96,13 +96,17 @@ IMPORTANT: Please expect and prepare for some downtime when upgrading to 6.0. On
 
 #### <sub><sup><a name="4616" href="#4616">:link:</a></sup></sub> feature
 
-* @julia-pu implemented a way for `put` steps to automatically determine the artifacts they need, by configuring [`inputs: detect`](https://concourse-ci.org/steps.html#schema.step.put-step.inputs). With `detect`, the step will walk over its `params` and look for paths that correspond to artifact names in the build plan (e.g. `tag: foo/bar` or just `repository: foo`). When it comes time to run, only those named artifacts will be given to the step, which can avoid wasting a lot of time transferring artifacts the step doesn't even need.
+* In #4614, @julia-pu implemented a way for `put` steps to automatically determine the artifacts they need, by configuring [`inputs: detect`](https://concourse-ci.org/steps.html#schema.step.put-step.inputs). With `detect`, the step will walk over its `params` and look for paths that correspond to artifact names in the build plan (e.g. `tag: foo/bar` or just `repository: foo`). When it comes time to run, only those named artifacts will be given to the step, which can avoid wasting a lot of time transferring artifacts the step doesn't even need.
 
   This feature may become the default in the future if it turns out to be useful and safe enough in practice. Try it out!
 
+#### <sub><sup><a name="5149" href="#5149">:link:</a></sup></sub> fix
+
+* In #5149, @evanchaoli implemented an optimization which should lower the resource checking load on some instances: instead of checking *all* resources, only resources which are actually used as inputs will be checked.
+
 #### <sub><sup><a name="5014" href="#5014">:link:</a></sup></sub> fix
 
-* We fixed a bug where users that have upgraded from Concourse v5.6.0 to v5.8.0 with lidar enabled, they might xperience a resource never being able to check because it is failing to create a check step. #5014
+* We fixed a bug where users that have upgraded from Concourse v5.6.0 to v5.8.0 with lidar enabled, they might experience a resource never being able to check because it is failing to create a check step. #5014
 
 #### <sub><sup><a name="4065" href="#4065">:link:</a></sup></sub> fix
 
