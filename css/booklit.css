@@ -1008,6 +1008,10 @@ body.index .page-content h2:first-child {
 }
 .schema-attribute .toggle-title .attribute-name {
   font-weight: bold;
+  text-decoration: none;
+}
+.schema-attribute .toggle-title .attribute-name:hover {
+  text-decoration: underline;
 }
 .schema-attribute .toggle-title .attribute-type {
   color: #9b9b9b;

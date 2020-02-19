@@ -227,7 +227,7 @@ func (p *Plugin) schemaAttribute(attribute string, type_ string, contentNode ast
 	p.pushSchema(attribute)
 	defer p.popSchema()
 
-	tagName := strings.Join(p.schemaContext, ".")
+	tagName := "schema." + strings.Join(p.schemaContext, ".")
 
 	stage := &stages.Evaluate{
 		Section: p.section,
@@ -250,7 +250,7 @@ func (p *Plugin) schemaAttribute(attribute string, type_ string, contentNode ast
 
 	targets := booklit.Sequence{
 		booklit.Target{
-			TagName: "schema." + tagName,
+			TagName: tagName,
 			Title:   display,
 			Content: content,
 		},

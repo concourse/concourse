@@ -3,7 +3,7 @@
   <label for="toggle-{{.Partial "TagName" | render}}" class="toggle-title">
     {{.Partial "Targets" | render}}
 
-    <code><span class="attribute-name">{{.Partial "Attribute" | render}}</span>: <span class="attribute-type">{{.Partial "Type" | render}}</span></code>
+    <code><a class="attribute-name" href="#{{.Partial "TagName" | render}}">{{.Partial "Attribute" | render}}</a>: <span class="attribute-type">{{.Partial "Type" | render}}</span></code>
   </label>
 
   <div class="toggle-content attribute-content">
