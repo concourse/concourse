@@ -1,8 +1,26 @@
 @import "colors.less";
+@import "vars.less";
 @import "base.less";
 
 body {
-  background: @off-white;
+  background: @darker-grey;
+}
+
+.page-nav {
+  text-align: right;
+
+  ul {
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    line-height: 18px;
+  }
+
+  a.self {
+    color: white;
+  }
 }
 
 .post-meta {

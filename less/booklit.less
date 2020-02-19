@@ -5,6 +5,60 @@ body {
   background: @darker-grey;
 }
 
+.page-nav {
+  .context {
+    position: relative;
+    margin-bottom: 2rem;
+
+    .children a.active {
+      text-decoration: underline;
+    }
+
+    a.self {
+      color: white;
+      text-decoration: underline;
+    }
+
+    .top {
+      font-size: 1.1em;
+    }
+  }
+
+  .children {
+    margin-left: 0.5em;
+
+    table {
+      border-spacing: 0;
+      border-collapse: collapse;
+
+      td {
+        vertical-align: top;
+      }
+    }
+  }
+
+  .section-number {
+    width: 100px;
+    display: inline-block;
+    text-align: right;
+    margin-left: -100px;
+    padding-right: .5rem;
+  }
+
+  .children {
+    margin-left: -100px;
+
+    &.anchors {
+      margin-left: 0;
+    }
+
+    .number-cell {
+      padding-right: .5rem;
+      width: 100px;
+    }
+  }
+}
+
 .page-aside pre {
   background: @offest-white;
   color: @dark-grey;

@@ -22,33 +22,27 @@
     {{ghost_head}}
   </head>
   <body class="{{body_class}}">
-    <div class="top-logo">
-      <a href="https://concourse-ci.org"><img src="{{asset "images/logo-white.svg"}}" />Concourse</a>
+    <div class="page-top">
+      <nav class="top-nav">
+        <a class="top-link logo-link" href="/"><img src="{{asset "images/logo-white.svg"}}" />Concourse</a>
+        <a class="top-link" href="https://concourse-ci.org/docs.html">docs</a>
+        <a class="top-link" href="https://concourse-ci.org/examples.html">examples</a>
+        <a class="top-link" href="https://concourse-ci.org/project.html">project</a>
+        <a class="top-link active" href="https://blog.concourse-ci.org">blog</a>
+        <a class="top-link" href="https://discuss.concourse-ci.org">discuss</a>
+        <a class="top-link" href="https://resource-types.concourse-ci.org">resource types</a>
+      </nav>
     </div>
 
-    <nav class="top-nav">
-      <a class="top-link" href="https://concourse-ci.org/docs.html">docs</a>
-      <a class="top-link" href="https://concourse-ci.org/examples.html">examples</a>
-      <a class="top-link" href="https://concourse-ci.org/project.html">project</a>
-      <a class="top-link active" href="https://blog.concourse-ci.org">blog</a>
-      <a class="top-link" href="https://discuss.concourse-ci.org">discuss</a>
-      <a class="top-link" href="https://resource-types.concourse-ci.org">resource types</a>
-    </nav>
+    <div class="page-body">
+      <div class="page-nav">
+        {{navigation}}
+      </div>
 
-    <div class="top-search">
+      <div class="page-content">
+        {{{body}}}
+      </div>
     </div>
-
-    <div class="page-nav">
-      {{navigation}}
-    </div>
-
-    <div class="page-aside">
-    </div>
-
-    <div class="page-content">
-      {{{body}}}
-    </div>
-
 
     {{ghost_foot}}
 

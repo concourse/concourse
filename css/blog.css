@@ -228,47 +228,6 @@ h3 {
 .page-nav a:hover {
   text-decoration: underline;
 }
-.page-nav .context {
-  position: relative;
-  margin-bottom: 2rem;
-}
-.page-nav .context .children a.active {
-  text-decoration: underline;
-}
-.page-nav .context a.self {
-  color: white;
-  text-decoration: underline;
-}
-.page-nav .context .top {
-  font-size: 1.1em;
-}
-.page-nav .children {
-  margin-left: 0.5em;
-}
-.page-nav .children table {
-  border-spacing: 0;
-  border-collapse: collapse;
-}
-.page-nav table td {
-  vertical-align: top;
-}
-.page-nav .section-number {
-  width: 100px;
-  display: inline-block;
-  text-align: right;
-  margin-left: -100px;
-  padding-right: 0.5rem;
-}
-.page-nav .children {
-  margin-left: -100px;
-}
-.page-nav .children.anchors {
-  margin-left: 0;
-}
-.page-nav .children .number-cell {
-  padding-right: 0.5rem;
-  width: 100px;
-}
 .page-content {
   background: white;
 }
@@ -418,7 +377,20 @@ h3 {
   color: #2a2929;
 }
 body {
-  background: #f6f5f5;
+  background: #2a2929;
+}
+.page-nav {
+  text-align: right;
+}
+.page-nav ul {
+  margin: 0;
+  padding: 0;
+}
+.page-nav li {
+  line-height: 18px;
+}
+.page-nav a.self {
+  color: white;
 }
 .post-meta {
   color: #5a5555;
