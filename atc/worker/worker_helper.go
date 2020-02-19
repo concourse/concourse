@@ -25,8 +25,6 @@ func (w workerHelper) createGardenContainer(
 	bindMounts []garden.BindMount,
 ) (gclient.Container, error) {
 
-	networkOutRules := []garden.NetOutRule{{Protocol: garden.ProtocolAll}}
-
 	gardenProperties := garden.Properties{}
 
 	if containerSpec.User != "" {
@@ -56,7 +54,6 @@ func (w workerHelper) createGardenContainer(
 			Privileged: fetchedImage.Privileged,
 			BindMounts: bindMounts,
 			Limits:     containerSpec.Limits.ToGardenLimits(),
-			NetOut:     networkOutRules,
 			Env:        env,
 			Properties: gardenProperties,
 		})
