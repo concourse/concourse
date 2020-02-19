@@ -1,0 +1,30 @@
+\title{Tracing}{tracing}
+
+\use-plugin{concourse-docs}
+
+\warn{This is an \bold{experimental} feature.}
+
+Tracing in Concourse enables the delivery of traces related to the internal
+processes that go into running builds, and other internal operations, breaking
+them down by time, and component.
+
+It currently only integrates with
+\link{\italic{Jaeger}}{https://www.jaegertracing.io/}, although support for
+other systems is planned to expand as the underlying SDK
+(\link{\italic{OpenTelemetry}}{https://opentelemetry.io/}) evolves.
+
+
+\section{
+  \title{Configuring}
+
+  There's only one variable that is required to be set in order to leverage
+  Jaeger's integration with Concourse: \code{CONCOURSE_TRACING_JAEGER_ENDPOINT}.
+
+
+  \codeblock{bash}{{{
+  CONCOURSE_TRACING_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+  }}}
+
+  This tells Concourse how to target Jaeger's Thrift HTTP endpoint to send the
+  traces to.
+}
