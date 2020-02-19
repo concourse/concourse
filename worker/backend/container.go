@@ -13,6 +13,8 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
+const GraceTimeKey = "garden.grace-time"
+
 type Container struct {
 	container     containerd.Container
 	killer        Killer
@@ -230,10 +232,15 @@ func (c *Container) StreamOut(spec garden.StreamOutSpec) (readCloser io.ReadClos
 	return
 }
 
-// SetGraceTime - Not Implemented
-func (c *Container) SetGraceTime(graceTime time.Duration) (err error) {
-	err = ErrNotImplemented
-	return
+// SetGraceTime stores the grace time as a containerd label with key "garden.grace-time"
+//
+func (c *Container) SetGraceTime(graceTime time.Duration) error {
+	err := c.SetProperty(GraceTimeKey, fmt.Sprintf("%d", graceTime))
+	if err != nil {
+		return fmt.Errorf("set grace time: %w", err)
+	}
+
+	return nil
 }
 
 // CurrentBandwidthLimits - Not Implemented

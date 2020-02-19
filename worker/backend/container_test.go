@@ -183,3 +183,45 @@ func (s *ContainerSuite) TestRunProcCloseIOWithStdin() {
 	// true on an `IOCloseInfo`.
 	s.True(obj.Stdin)
 }
+
+func (s *ContainerSuite) TestSetGraceTimeSetLabelsFails() {
+	expectedErr := errors.New("set-label-error")
+	s.containerdContainer.SetLabelsReturns(nil, expectedErr)
+
+	err := s.container.SetGraceTime(1234)
+	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ContainerSuite) TestSetGraceTimeSetLabelsSucceeds() {
+	err := s.container.SetGraceTime(1234)
+	s.NoError(err)
+
+	expectedLabelSet := map[string]string{
+		"garden.grace-time": "1234",
+	}
+	_, labelSet := s.containerdContainer.SetLabelsArgsForCall(0)
+	s.Equal(expectedLabelSet, labelSet)
+}
+
+func (s *ContainerSuite) TestPropertyGetLabelsFails() {
+	expectedErr := errors.New("get-labels-error")
+	s.containerdContainer.LabelsReturns(nil, expectedErr)
+	_, err := s.container.Property("any")
+	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ContainerSuite) TestPropertyNotFound() {
+	s.containerdContainer.LabelsReturns(garden.Properties{}, nil)
+	_, err := s.container.Property("any")
+	s.Equal(backend.ErrNotFound("any"), err)
+}
+
+func (s *ContainerSuite) TestPropertyReturnsValue() {
+	properties := garden.Properties{
+		"any": "some-value",
+	}
+	s.containerdContainer.LabelsReturns(properties, nil)
+	result, err := s.container.Property("any")
+	s.NoError(err)
+	s.Equal("some-value", result)
+}
