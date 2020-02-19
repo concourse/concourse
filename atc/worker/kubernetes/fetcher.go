@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/atc/worker/image"
 )
 
 func (k Kubernetes) fetchImageForContainer(
@@ -49,56 +51,60 @@ func (k Kubernetes) fetchImageForContainer(
 
 // TODO get resource factory w/ us
 //
-func (k Kubernetes) version() (err error) {
-	// resourceType, found := i.customTypes.Lookup(i.imageResource.Type)
-	// if found && resourceType.Version == nil {
-	// 	err := i.ensureVersionOfType(ctx, logger, container, resourceType)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
+func (k Kubernetes) version(
+	imageResource *worker.ImageResource,
+	teamID int,
+	container db.CreatingContainer,
+) (version atc.Version, err error) {
 
-	// resourceSpec := worker.ContainerSpec{
-	// 	ImageSpec: worker.ImageSpec{
-	// 		ResourceType: i.imageResource.Type,
-	// 	},
-	// 	TeamID: i.teamID,
-	// 	BindMounts: []worker.BindMountSource{
-	// 		&worker.CertsVolumeMount{Logger: logger},
-	// 	},
-	// }
+	// TODO [cc] handle custom resource type
+	//
 
-	// owner := db.NewImageCheckContainerOwner(container, i.teamID)
+	containerSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: imageResource.Type,
+		},
+		TeamID: teamID,
+	}
 
-	// imageContainer, err := i.worker.FindOrCreateContainer(
-	// 	ctx,
-	// 	logger,
-	// 	i.imageFetchingDelegate,
-	// 	owner,
-	// 	db.ContainerMetadata{
-	// 		Type: db.ContainerTypeCheck,
-	// 	},
-	// 	resourceSpec,
-	// 	i.customTypes,
-	// )
-	// if err != nil {
-	// 	return nil, err
-	// }
+	owner := db.NewImageCheckContainerOwner(container, teamID)
 
-	// processSpec := runtime.ProcessSpec{
-	// 	Path: "/opt/resource/check",
-	// }
-	// checkingResource := i.resourceFactory.NewResource(i.imageResource.Source, nil, i.imageResource.Version)
-	// versions, err := checkingResource.Check(context.TODO(), processSpec, imageContainer)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	processSpec := runtime.ProcessSpec{
+		Path: "/opt/resource/check",
+	}
 
-	// if len(versions) == 0 {
-	// 	return nil, ErrImageUnavailable
-	// }
+	containerMetadata := db.ContainerMetadata{
+		Type: db.ContainerTypeCheck,
+	}
 
-	// return versions[0], nil
+	pod, err := k.findOrCreateContainer(
+		owner,
+		containerMetadata,
+		containerSpec,
+	)
+	if err != nil {
+		err = fmt.Errorf("find or create container: %w", err)
+		return
+	}
+
+	res := k.rf.NewResource(
+		imageResource.Source,
+		nil,
+		imageResource.Version,
+	)
+
+	versions, err := res.Check(context.TODO(), processSpec, pod)
+	if err != nil {
+		err = fmt.Errorf("check: %w", err)
+		return
+	}
+
+	if len(versions) == 0 {
+		err = image.ErrImageUnavailable
+		return
+	}
+
+	version = versions[0]
 	return
 }
 
@@ -141,12 +147,23 @@ func (k Kubernetes) imageResource(
 		return
 	}
 
+	version := imageResource.Version
+	if version == nil {
+		version, err = k.version(
+			imageResource,
+			teamID,
+			container,
+		)
+		if err != nil {
+			err = fmt.Errorf("version: %w", err)
+			return
+		}
+	}
+
 	res := k.rf.NewResource(
 		imageResource.Source,
 		imageResource.Params,
-		map[string]string{
-			"digest": "sha256:bc025862c3e8ec4a8754ea4756e33da6c41cba38330d7e324abd25c8e0b93300",
-		}, // TODO version,
+		version,
 	)
 
 	// TODO check result lol

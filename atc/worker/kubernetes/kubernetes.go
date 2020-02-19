@@ -24,6 +24,7 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/kubernetes/backend"
+	"github.com/hashicorp/go-multierror"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -448,7 +449,18 @@ func (k Kubernetes) findOrCreateContainer(
 		// figure the image out
 		imageUri, err := k.fetchImageForContainer(containerSpec, w, creating)
 		if err != nil {
-			return nil, fmt.Errorf("fetch img for container: %w", err)
+			err = fmt.Errorf("fetch img for container: %w", err)
+
+			_, transitionErr := creating.Failed() // TODO wrap this .. somehow?
+			// would be nice to not miss this potential err
+			// ps.: we should do this `ir err, FAILED + capture err`
+			// everywhere here.
+
+			if transitionErr != nil {
+				err = multierror.Append(transitionErr, err)
+			}
+
+			return nil, err
 		}
 
 		inputs := make(map[string]string, len(containerSpec.ArtifactByPath))
@@ -482,6 +494,11 @@ func (k Kubernetes) findOrCreateContainer(
 		container, err = k.be.Create(handle, podDefinition)
 		if err != nil {
 			return nil, fmt.Errorf("creating container: %w", err)
+		}
+
+		created, err = creating.Created()
+		if err != nil {
+			return nil, fmt.Errorf("transitioning creating to created: %w", err)
 		}
 	}
 

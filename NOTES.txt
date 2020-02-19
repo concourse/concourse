@@ -1,23 +1,43 @@
-TODO
+TODO 
 
-- [ ] fly execute
-- [ ] fly hijack
-- [ ] privileged
-  - demonstrate how we're able to go from source to container image without the
-    need of any privileges (that's a very basic thing we should be able to do
-    nowadays)
-- [ ] having non-k8s workers together
-  - as a user, would you even choose that?
-- [ ] multiple namespaces / clusters?
-  - argocd: https://github.com/argoproj/argo-cd/issues/1673
-  - [ ] tags?
-- [ ] put step
-- [ ] perform proper `check` in `image_resource` image fetching
-- [ ] test custom resource types
-- [ ] container state transition
-- [ ] container limits
-- [ ] user definition
-- [ ] caches?
+	- [x] perform proper `check` in `image_resource` image fetching
+
+	- [x] container state transition
+
+	- [ ] see if we can influence scheduling by putting annotations / labels
+	  that identify the builds themselves
+
+	- [ ] garbage collection of containers
+
+	- [ ] get back the exit status of the script executions
+
+	- [ ] put step
+
+	- [ ] test custom resource types
+
+	- [ ] container limits
+
+	- [ ] user in task definition
+
+	- [ ] privileged
+		- demonstrate how we're able to go from source to container
+		  image without the need of any privileges (that's a very basic
+		  thing we should be able to do nowadays)
+
+	- [ ] having non-k8s workers together
+		- as a user, would you even choose that?
+
+	- [ ] add logs to where it's important to extract info from
+
+	- [ ] multiple namespaces / clusters?
+		- argocd: https://github.com/argoproj/argo-cd/issues/1673
+		- [ ] tags?
+
+	- [ ] caches?
+
+	- [ ] fly hijack
+
+	- [ ] fly execute
 
 
 THOUGHTS

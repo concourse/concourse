@@ -285,6 +285,10 @@ func (i *imageResourceFetcher) getLatestVersion(
 ) (atc.Version, error) {
 
 	resourceType, found := i.customTypes.Lookup(i.imageResource.Type)
+
+	// we're using a custom resource type, but we don't have a version of
+	// that custom resource type
+	//
 	if found && resourceType.Version == nil {
 		err := i.ensureVersionOfType(ctx, logger, container, resourceType)
 		if err != nil {
