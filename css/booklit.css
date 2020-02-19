@@ -1040,3 +1040,28 @@ body.index .page-content h2:first-child {
   content: "optional";
   color: #3d3c3c;
 }
+.toggleable.metric {
+  margin-top: 1em;
+}
+.toggleable.metric .toggle-title {
+  background-color: #f6f5f5;
+}
+.toggleable.metric .toggle-title code {
+  background: 0;
+  padding: 0;
+  border-radius: 0;
+}
+.toggleable.metric .toggle-title .metric-name {
+  font-weight: bold;
+}
+.toggleable.metric .toggle-title .metric-labels {
+  color: #9b9b9b;
+}
+.toggleable.metric .toggle-title .metric-labels .metric-label {
+  color: #2a2929;
+}
+.toggleable.metric .toggle-title .metric-type {
+  float: right;
+  font-style: italic;
+  color: #3d3c3c;
+}

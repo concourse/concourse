@@ -371,3 +371,35 @@ a.github-user {
 
 @import "index.less";
 @import "schema.less";
+
+.toggleable.metric {
+  margin-top: 1em;
+
+  .toggle-title {
+    background-color: @off-white;
+
+    code {
+      background: 0;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    .metric-name {
+      font-weight: bold;
+    }
+
+    .metric-labels {
+      color: @grey-primary;
+
+      .metric-label {
+        color: @darker-grey;
+      }
+    }
+
+    .metric-type {
+      float: right;
+      font-style: italic;
+      color: @dark-grey;
+    }
+  }
+}
