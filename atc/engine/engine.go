@@ -421,18 +421,12 @@ func (c *engineCheck) clearRunState() {
 
 func (c *engineCheck) trackStarted(logger lager.Logger) {
 	metric.CheckStarted{
-		CheckName:             c.check.Plan().Check.Name,
-		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
-		CheckStatus:           c.check.Status(),
-		CheckPendingDuration:  c.check.StartTime().Sub(c.check.CreateTime()),
+		CheckStatus: c.check.Status(),
 	}.Emit(logger)
 }
 
 func (c *engineCheck) trackFinished(logger lager.Logger) {
 	metric.CheckFinished{
-		CheckName:             c.check.Plan().Check.Name,
-		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
-		CheckStatus:           c.check.Status(),
-		CheckDuration:         c.check.EndTime().Sub(c.check.StartTime()),
+		CheckStatus: c.check.Status(),
 	}.Emit(logger)
 }

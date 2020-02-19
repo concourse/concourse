@@ -735,9 +735,9 @@ func (emitter *PrometheusEmitter) checkQueueSizeMetric(logger lager.Logger, even
 }
 
 func (emitter *PrometheusEmitter) checkMetric(logger lager.Logger, event metric.Event) {
-	checkStatus, exists := event.Attributes["check_status"]
+	checkStatus, exists := event.Attributes["status"]
 	if !exists {
-		logger.Error("failed-to-find-check-status-in-event", fmt.Errorf("expected check_status to exist in event.Attributes"))
+		logger.Error("failed-to-find-check-status-in-event", fmt.Errorf("expected status to exist in event.Attributes"))
 		return
 	}
 

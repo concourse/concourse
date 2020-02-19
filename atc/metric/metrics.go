@@ -541,10 +541,7 @@ func (event ResourceCheck) Emit(logger lager.Logger) {
 }
 
 type CheckStarted struct {
-	ResourceConfigScopeID int
-	CheckName             string
-	CheckStatus           db.CheckStatus
-	CheckPendingDuration  time.Duration
+	CheckStatus db.CheckStatus
 }
 
 func (event CheckStarted) Emit(logger lager.Logger) {
@@ -552,21 +549,16 @@ func (event CheckStarted) Emit(logger lager.Logger) {
 		logger.Session("check-started"),
 		Event{
 			Name:  "check started",
-			Value: ms(event.CheckPendingDuration),
+			Value: 1,
 			Attributes: map[string]string{
-				"scope_id":     strconv.Itoa(event.ResourceConfigScopeID),
-				"check_name":   event.CheckName,
-				"check_status": string(event.CheckStatus),
+				"status": string(event.CheckStatus),
 			},
 		},
 	)
 }
 
 type CheckFinished struct {
-	ResourceConfigScopeID int
-	CheckName             string
-	CheckStatus           db.CheckStatus
-	CheckDuration         time.Duration
+	CheckStatus db.CheckStatus
 }
 
 func (event CheckFinished) Emit(logger lager.Logger) {
@@ -574,20 +566,15 @@ func (event CheckFinished) Emit(logger lager.Logger) {
 		logger.Session("check-finished"),
 		Event{
 			Name:  "check finished",
-			Value: ms(event.CheckDuration),
+			Value: 1,
 			Attributes: map[string]string{
-				"scope_id":     strconv.Itoa(event.ResourceConfigScopeID),
-				"check_name":   event.CheckName,
-				"check_status": string(event.CheckStatus),
+				"status": string(event.CheckStatus),
 			},
 		},
 	)
 }
 
-type CheckEnqueue struct {
-	CheckName             string
-	ResourceConfigScopeID int
-}
+type CheckEnqueue struct{}
 
 func (event CheckEnqueue) Emit(logger lager.Logger) {
 	emit(
@@ -595,10 +582,6 @@ func (event CheckEnqueue) Emit(logger lager.Logger) {
 		Event{
 			Name:  "check enqueued",
 			Value: 1,
-			Attributes: map[string]string{
-				"scope_id":   strconv.Itoa(event.ResourceConfigScopeID),
-				"check_name": event.CheckName,
-			},
 		},
 	)
 }
