@@ -23,7 +23,7 @@ behavior}{https://github.com/concourse/git-resource#check-check-for-new-commits}
 \section{
   \title{Where do they come from and what are they used for?}{where-and-what-versions}
 
-  The \reference{check}{resource checker} is responsible for checking for new
+  The \reference{checker}{resource checker} is responsible for checking for new
   versions of a resource. These versions are then saved into the database and
   can be viewed from the resource page in the web UI.
 
