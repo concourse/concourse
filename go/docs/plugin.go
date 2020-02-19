@@ -674,14 +674,14 @@ func (p Plugin) Resource(name string) booklit.Content {
 	}
 }
 
-func (p Plugin) TutorialImage(path string) booklit.Content {
+func (p Plugin) Diagram(path string, width string) booklit.Content {
 	return booklit.Styled{
-		Style: "classed-image",
-		Content: booklit.Image{
-			Path:        path,
-			Description: "tutorial image",
+		Style:   "diagram",
+		Block:   true,
+		Content: booklit.String(path),
+		Partials: booklit.Partials{
+			"Width": booklit.String(width),
 		},
-		Partials: booklit.Partials{"Class": booklit.String("tutorial-image")},
 	}
 }
 

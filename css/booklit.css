@@ -599,11 +599,8 @@ body {
 .warning p {
   color: #434300;
 }
-.tutorial-image {
+.diagram {
   text-align: center;
-}
-.tutorial-image img {
-  width: 70%;
 }
 .anchor-target {
   display: inline-block;

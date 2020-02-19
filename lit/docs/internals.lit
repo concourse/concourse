@@ -17,7 +17,7 @@ components. You'll see them referenced here and there throughout the
 documentation, so you may want to skim this page just to get an idea of what
 they are.
 
-\tutorial-image{images/concourse_architecture.png}
+\diagram{images/concourse_architecture.png}{80%}
 
 \section{
   \title{ATC\aux{: web UI & build scheduler}}{component-atc}
