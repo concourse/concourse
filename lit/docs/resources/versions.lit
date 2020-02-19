@@ -1,0 +1,41 @@
+\title{Resource Versions}{resource-versions}
+
+\use-plugin{concourse-docs}
+
+As you may know, resources represent external state that changes over time.
+But how do we track those changes in a generic way that will properly represent
+all the different resource types? That is where resource versions are
+introduced. Concourse uses versions to represent the exact changes of a
+resource over time.
+
+The versions of a resource is directly dependent on it's resource configuration
+and \reference{resource-types}{resource type}. Each resource type has their own
+definition of what it's versions should be. For example, the versions of a
+git resource would be the commits of the github repository and the versions of
+a docker image resource are the image digests.
+
+If you want to figure out what determines the version of a resource type, it is
+typically outlined in the `check` behavior for the resource type. For example, the
+git resource uses commits as versions
+\link{git resource type check
+behavior}{https://github.com/concourse/git-resource#check-check-for-new-commits}.
+
+\section{
+  \title{Where do they come from and what are they used for?}{where-and-what-versions}
+
+  The \reference{check}{resource checker} is responsible for checking for new
+  versions of a resource. These versions are then saved into the database and
+  can be viewed from the resource page in the web UI.
+
+  Resource versions are used by the \reference{scheduler}{build scheduler} in
+  order to schedule new builds for a job.
+}
+
+\section{
+  \title{Version Pinning}{version-pinning}
+
+  A regular job workflow is to use the latest version of a resource in order to
+  trigger new builds. This works most of the time until you run into a
+  situation where you need to run the job using an old version of a resource.
+  Concourse provides a solution to this, which is called resource pinning.
+}

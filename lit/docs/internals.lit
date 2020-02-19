@@ -39,7 +39,7 @@ they are.
   There are multiple components within the ATC that each have their own set of
   responsibilities. The main components consist of the
   \reference{checker}{checker}, \reference{scheduler}{scheduler},
-  \reference{build-tracker}{buildtracker} and the
+  \reference{build-tracker}{build tracker} and the
   \reference{garbage-collector}{garbage collector}.
 
   The \reference{checker}{checker}'s responsibility is to continously checks

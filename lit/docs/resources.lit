@@ -115,6 +115,7 @@ with the following schema.
 
 \split-sections
 
+\include-section{resources/versions.lit}
 \include-section{resources/managing.lit}
 
 \right-side{Examples}{
