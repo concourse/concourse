@@ -27,6 +27,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
+	"github.com/concourse/concourse/atc/handles"
 	"github.com/concourse/concourse/atc/mainredirect"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/wrappa"
@@ -49,6 +50,7 @@ func NewHandler(
 	volumeRepository db.VolumeRepository,
 	containerRepository db.ContainerRepository,
 	destroyer gc.Destroyer,
+	containerSyncer, volumeSyncer handles.Syncer,
 	dbBuildFactory db.BuildFactory,
 	dbCheckFactory db.CheckFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
@@ -93,8 +95,8 @@ func NewHandler(
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
-	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, containerRepository, destroyer)
-	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
+	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, containerRepository, containerSyncer)
+	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer, volumeSyncer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
 	artifactServer := artifactserver.NewServer(logger, workerClient)

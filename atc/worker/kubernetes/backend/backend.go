@@ -11,8 +11,10 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/staging/src/k8s.io/client-go/tools/clientcmd"
 )
 
 type Backend struct {
@@ -21,16 +23,61 @@ type Backend struct {
 	cs  *kubernetes.Clientset
 }
 
-func New(namespace string, config *rest.Config) (backend *Backend, err error) {
+func New(namespace string) (backend *Backend, err error) {
 	backend = &Backend{
 		ns:  namespace,
 		cfg: config,
+	}
+
+	switch {
+	case config != "":
+		cfg, err = clientcmd.BuildConfigFromFlags("", config)
+		if err != nil {
+			return
+		}
+	case inCluster:
+		cfg, err = rest.InClusterConfig()
+		if err != nil {
+			err = fmt.Errorf("incluster cfg: %w", err)
+			return
+		}
+	default:
+		err = fmt.Errorf("incluster or config must be specified")
+		return
 	}
 
 	backend.cs, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		err = fmt.Errorf("k8s new for config: %w", err)
 		return
+	}
+
+	return
+}
+
+// Containers lists pods matching a specific set of labels.
+//
+func (b *Backend) Containers(kvs map[string]string) (containers []*Container, err error) {
+	podList, err := b.cs.CoreV1().Pods(b.ns).List(metav1.ListOptions{
+		LabelSelector: labels.Set(kvs).String(),
+	})
+	if err != nil {
+		err = fmt.Errorf("fetching pods: %w", err)
+		return
+	}
+
+	pods := podList.Items
+
+	for _, pod := range pods {
+		handle, found := pod.Labels[LabelHandleKey]
+		if !found {
+			err = fmt.Errorf("found pod without concourse's handle label - that's weird")
+			return
+		}
+
+		containers = append(containers, NewContainer(
+			b.ns, handle, pod.Status.PodIP, b.cs, b.cfg,
+		))
 	}
 
 	return

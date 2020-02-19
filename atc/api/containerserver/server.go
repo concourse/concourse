@@ -4,7 +4,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/gc"
+	"github.com/concourse/concourse/atc/handles"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -16,7 +16,7 @@ type Server struct {
 	varSourcePool           creds.VarSourcePool
 	interceptTimeoutFactory InterceptTimeoutFactory
 	containerRepository     db.ContainerRepository
-	destroyer               gc.Destroyer
+	containerSyncer         handles.Syncer
 }
 
 func NewServer(
@@ -26,7 +26,7 @@ func NewServer(
 	varSourcePool creds.VarSourcePool,
 	interceptTimeoutFactory InterceptTimeoutFactory,
 	containerRepository db.ContainerRepository,
-	destroyer gc.Destroyer,
+	containerSyncer handles.Syncer,
 ) *Server {
 	return &Server{
 		logger:                  logger,
@@ -35,6 +35,6 @@ func NewServer(
 		varSourcePool:           varSourcePool,
 		interceptTimeoutFactory: interceptTimeoutFactory,
 		containerRepository:     containerRepository,
-		destroyer:               destroyer,
+		containerSyncer:         containerSyncer,
 	}
 }
