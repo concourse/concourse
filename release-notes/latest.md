@@ -2,7 +2,7 @@ This is our first beta/pre release, we wanted to make it very clear that this re
 
 IMPORTANT: Please expect and prepare for some downtime when upgrading to 6.0. On our large scale deployments, we have seen 10-20 minutes of downtime in order to migrate the database but it will vary depending on the size of your deployment.
 
-#### <sub><sup><a name="3602" href="#3602">:link:</a></sup></sub> feature
+#### <sub><sup><a name="3602" href="#3602">:link:</a></sup></sub> feature, breaking
 
 * Has this ever happened to you? "My Concourse is getting slower even though I'm not adding any new pipelines!" "The web nodes are always under such heavy load!" Well have no fear, because Algorithm V3 is here! #3602
 
@@ -60,6 +60,10 @@ IMPORTANT: Please expect and prepare for some downtime when upgrading to 6.0. On
 
 * Along with the new algorithm, we wanted to improve the transparency of showing why inputs are failing to find a proper set of versions for a build. In the preparation view of a pending build, if the algorithm is failing to find an appropriate set of versions it will give an error message for the inputs that it is failing on.
 
+#### <sub><sup><a name="3704" href="#3704">:link:</a></sup></sub> feature, breaking
+
+* LIDAR is now on by default! In fact, not only is it on by default, it is now THE ONLY OPTION. The old and busted 'Radar' resource checking component has been removed. The `--enable-lidar` flag will no longer be recognized. #3704
+
 #### <sub><sup><a name="413" href="#413">:link:</a></sup></sub> feature
 
 * This next feature has been one that has been asked for since the beginning of time. Build rerunning! #413 We finally did it, even though it is only the first iteration.
@@ -81,10 +85,6 @@ IMPORTANT: Please expect and prepare for some downtime when upgrading to 6.0. On
   As a small proof of the performance enhancement this feature adds, these are two metrics of the before and after of an upgrade to this new scheduling logic. On the left side of the graph, it shows the ...........
 
   This is a new feature that is also risky in some ways. Because the "failure" case here would be that the scheduler does not run when it is expected to run and you would see no builds being scheduled. In order to help de-risk this failure case, we added a new fly command `fly schedule-job` that will kick off the scheduler if this ever happens.
-
-#### <sub><sup><a name="3704" href="#3704">:link:</a></sup></sub> feature
-
-* Lidar is now defaulted to be on! This is no longer an experimental feature and the `ENABLE_LIDAR` flag will no longer be recognized. #3704
 
 #### <sub><sup><a name="4973" href="#4973">:link:</a></sup></sub> feature
 
