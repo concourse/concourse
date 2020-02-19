@@ -9,12 +9,12 @@ users that are new to these concepts, we do recommend learning how to set up
 \reference{creds} and \reference{encryption}.
 
 \split-sections
-
 \table-of-contents
-\include-section{./operation/encryption.lit}
-\include-section{./operation/creds.lit}
+
 \include-section{./operation/metrics.lit}
 \include-section{./operation/tracing.lit}
+\include-section{./operation/encryption.lit}
+\include-section{./operation/creds.lit}
 \include-section{./operation/container-placement.lit}
 \include-section{./operation/global-resources.lit}
 \include-section{./operation/administration.lit}
