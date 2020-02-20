@@ -15,6 +15,8 @@ const (
 	Path          = "PATH=/usr/local/bin:/usr/bin:/bin"
 )
 
+const baseCgroupsPath = "garden"
+
 // OciSpec converts a given `garden` container specification to an OCI spec.
 //
 func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
@@ -40,6 +42,7 @@ func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, 
 	}
 
 	resources := OciResources(gdn.Limits)
+	cgroupsPath := OciCgroupsPath(baseCgroupsPath, gdn.Handle, gdn.Privileged)
 
 	oci = merge(
 		defaultGardenOciSpec(gdn.Privileged, maxUid, maxGid),
@@ -54,6 +57,7 @@ func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, 
 			Annotations: map[string]string(gdn.Properties),
 			Linux: &specs.Linux{
 				Resources:   resources,
+				CgroupsPath: cgroupsPath,
 			},
 		},
 	)
@@ -165,6 +169,13 @@ func OciResources(limits garden.Limits) *specs.LinuxResources {
 		Memory: memoryResources,
 		Pids:   pidLimit,
 	}
+}
+
+func OciCgroupsPath(basePath, handle string, privileged bool) string {
+	if privileged {
+		return ""
+	}
+	return filepath.Join(basePath, handle)
 }
 
 // envWithDefaultPath returns the default PATH for a privileged/unprivileged

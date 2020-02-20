@@ -315,6 +315,35 @@ func (s *SpecSuite) TestOciResourceLimits() {
 	}
 }
 
+func (s *SpecSuite) TestOciCgroupsPath() {
+	for _, tc := range []struct {
+		desc       string
+		basePath   string
+		handle     string
+		privileged bool
+		expected   string
+	}{
+		{
+			desc: "not privileged",
+			basePath: "garden",
+			handle: "1234",
+			privileged: false,
+			expected: "garden/1234",
+		},
+		{
+			desc: "privileged",
+			basePath: "garden",
+			handle: "1234",
+			privileged: true,
+			expected: "",
+		},
+	} {
+		s.T().Run(tc.desc, func(t *testing.T) {
+			s.Equal(tc.expected, spec.OciCgroupsPath(tc.basePath, tc.handle, tc.privileged))
+		})
+	}
+}
+
 func (s *SpecSuite) TestContainerSpec() {
 	var minimalContainerSpec = garden.ContainerSpec{
 		Handle: "handle", RootFSPath: "raw:///rootfs",
@@ -447,6 +476,16 @@ func (s *SpecSuite) TestContainerSpec() {
 				s.Equal(int64(1000), oci.Linux.Resources.Pids.Limit)
 
 				s.NotNil(oci.Linux.Resources.Devices)
+			},
+		},
+		{
+			desc: "cgroups path",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: false,
+			},
+			check: func(oci *specs.Spec) {
+				s.Equal("garden/handle", oci.Linux.CgroupsPath)
 			},
 		},
 	} {
