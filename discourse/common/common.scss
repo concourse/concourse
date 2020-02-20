@@ -382,16 +382,6 @@ body {
 li {
   margin-bottom: 0;
 }
-@media (max-width: 925px) {
-  body {
-    grid-template-columns: 5fr 2fr;
-    grid-template-rows: 80px 60px auto;
-    grid-template-areas: "logo search" "primary-nav primary-nav" "content content";
-  }
-  .page-nav {
-    display: none;
-  }
-}
 .cooked img {
   width: auto;
   height: auto;
@@ -407,26 +397,14 @@ aside.onebox .onebox-body img.thumbnail {
 .cooked p {
   margin: 1em 0;
 }
-a:visited {
-  color: #2d76cc;
-}
 #main {
-  max-width: 1200px;
-  grid-area: content;
+  width: 1100px;
   background: white;
+  margin: 0 auto;
 }
 .page-nav {
   background: #2a2929;
   color: #7a7373;
-}
-.docked .d-header {
-  background: #3398dc;
-}
-.docked .d-header .title {
-  display: initial;
-}
-.docked .d-header .d-header-icons .d-icon {
-  color: white;
 }
 .wrap {
   max-width: none;
@@ -439,9 +417,15 @@ a:visited {
   padding-top: 0;
 }
 .d-header {
+  background: #4a90e2;
   box-shadow: none;
-  height: auto;
   margin-bottom: 0;
+  height: 70px;
+  position: absolute;
+  top: -70px;
+  right: 0;
+  left: auto;
+  width: 175px;
 }
 .d-header > .wrap {
   width: 100%;
@@ -459,11 +443,46 @@ a:visited {
 }
 .d-header .d-header-icons {
   height: 40px;
-  margin: 10px;
+  margin: 14px;
 }
 .d-header .d-header-icons .icon {
+  background: #4a90e2;
   margin-left: 8px;
   padding: 0;
+  border: 0;
+  transition: none;
+  border-radius: 50%;
+}
+.d-header .d-header-icons .icon .d-icon {
+  color: white;
+}
+.d-header .d-header-icons .icon:hover,
+.d-header .d-header-icons .icon:focus {
+  border: 0;
+}
+.d-header .d-header-icons .icon:hover .d-icon,
+.d-header .d-header-icons .icon:focus .d-icon {
+  color: white;
+}
+.d-header .d-header-icons .icon:hover {
+  background: #2d76cc;
+}
+.d-header .d-header-icons .active .icon {
+  background: #2d76cc;
+  border: 0;
+}
+.d-header .d-header-icons .active .icon:after {
+  display: none;
+}
+.d-header .d-header-icons .active .icon .d-icon {
+  color: white;
+}
+.d-header .d-header-icons .current-user .icon:hover {
+  background: transparent;
+}
+.d-header .d-header-icons .current-user .icon:hover .avatar {
+  border: 5px solid #2d76cc;
+  box-sizing: content-box;
 }
 .d-header .d-header-icons img.avatar {
   width: 32px;
@@ -491,6 +510,8 @@ a:visited {
 .nav-pills > li > a {
   padding: 8px;
   font-size: 18px;
+  font-family: 'Roboto Slab', serif;
+  transition: none;
 }
 h2,
 h3 {
@@ -509,6 +530,27 @@ h3 {
 .select-kit .select-kit-header.is-focused {
   box-shadow: none !important;
 }
+.topic-list button.bulk-select {
+  margin-right: 10px;
+}
+.topic-list th.bulk-select,
+.topic-list td.bulk-select {
+  text-align: center;
+}
+.topic-list th.bulk-select input,
+.topic-list td.bulk-select input {
+  margin: 0;
+}
+.topic-list th.bulk-select button.bulk-select {
+  margin-right: 0;
+}
+.topic-list td.bulk-select + .main-link {
+  padding-left: 5px;
+}
+.topic-list .bulk-select-topics button {
+  line-height: 14px;
+  margin: -5px 0;
+}
 .topic-post .row {
   display: flex;
   flex-direction: row;
@@ -516,15 +558,6 @@ h3 {
 .topic-avatar {
   float: none;
   width: 45px;
-}
-.post-notice,
-.topic-body {
-  float: none;
-  max-width: none;
-  flex-grow: 1;
-}
-.topic-body {
-  width: 0;
 }
 .post-notice {
   background: #ffffdc;
@@ -538,62 +571,31 @@ h3 {
   padding: 0 5px 22px !important;
 }
 .timeline-container {
-  margin-top: 50px;
-  width: 100px;
-  margin-left: -192px !important;
-  text-align: right;
+  margin-left: 800px;
   color: #9b9b9b;
 }
 .timeline-container .btn {
-  background: #3d3c3c;
+  background: #f6f5f5;
 }
 .timeline-container .btn,
 .timeline-container .btn .d-icon {
   color: #9b9b9b;
 }
 .timeline-container .btn:hover {
-  background: white;
-  color: #3d3c3c;
+  background: #efeeee;
 }
 .timeline-container .btn:hover,
 .timeline-container .btn:hover .d-icon {
-  color: #3d3c3c;
-}
-.timeline-container .select-kit-body,
-.timeline-container .popup-menu {
-  text-align: left;
-}
-.timeline-container .select-kit-body {
-  margin-left: 8px;
-}
-.timeline-container .topic-timeline {
-  margin-left: 0 !important;
+  color: #9b9b9b;
 }
 .timeline-container .topic-timeline .timeline-scrollarea {
-  border-left: 0;
-  border-right: 1px solid #7a7373;
-  margin-left: 0;
-  margin-right: 0.5em;
-}
-.timeline-container .topic-timeline .timeline-scroller {
-  flex-direction: row-reverse;
-  margin-left: 0;
-  margin-right: -0.19em;
-}
-.timeline-container .topic-timeline .timeline-scroller-content {
-  padding-left: 0;
-  padding-right: 1em;
+  border-color: #7a7373;
 }
 .timeline-container .topic-timeline .timeline-handle {
   background-color: #9b9b9b;
 }
-.timeline-container .topic-timeline .timeline-footer-controls {
-  justify-content: flex-end;
-}
 .timeline-container .topic-timeline .timeline-controls button,
 .timeline-container .topic-timeline .timeline-footer-controls button {
-  margin-right: 0;
-  margin-left: 8px;
   width: 34px;
   height: 34px;
 }
@@ -603,12 +605,10 @@ h3 {
 }
 .timeline-container .topic-timeline .timeline-controls .popup-menu,
 .timeline-container .topic-timeline .timeline-footer-controls .popup-menu {
-  margin-left: 50px;
   width: 250px;
 }
 .timeline-container .topic-timeline .timeline-controls .popup-menu button,
 .timeline-container .topic-timeline .timeline-footer-controls .popup-menu button {
-  margin-left: 0;
   width: 100%;
 }
 .timeline-container .topic-timeline .timeline-controls .popup-menu .btn,
@@ -624,13 +624,16 @@ h3 {
 .timeline-container .topic-timeline .timeline-controls .popup-menu .btn:hover,
 .timeline-container .topic-timeline .timeline-footer-controls .popup-menu .btn:hover {
   background: #e6e5e5;
-  color: #3d3c3c;
 }
 .timeline-container .topic-timeline .timeline-controls .popup-menu .btn:hover,
 .timeline-container .topic-timeline .timeline-footer-controls .popup-menu .btn:hover,
 .timeline-container .topic-timeline .timeline-controls .popup-menu .btn:hover .d-icon,
 .timeline-container .topic-timeline .timeline-footer-controls .popup-menu .btn:hover .d-icon {
   color: #3d3c3c;
+}
+.footer-message h3,
+.suggested-topics-message {
+  font-family: inherit;
 }
 .btn,
 .btn .d-icon {

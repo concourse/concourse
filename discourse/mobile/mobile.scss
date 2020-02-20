@@ -1,14 +1,9 @@
-body {
-  grid-template-columns: 10fr;
-  grid-template-rows: auto;
-  grid-template-areas: "content";
-}
 #main-outlet {
   padding: 30px;
   padding-top: 70px;
 }
 .d-header {
-  background: #3398dc;
+  background: #4a90e2;
 }
 .d-header .title {
   display: initial;

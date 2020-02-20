@@ -1,14 +1,14 @@
 {
-  "name": "Concourse",
+  "name": "Concourse v6.0",
   "about_url": null,
   "license_url": null,
   "assets": {
   },
   "color_schemes": {
     "Concourse": {
-      "primary": "2a2929",
+      "primary": "3d3c3c",
       "secondary": "ffffff",
-      "tertiary": "3398dc",
+      "tertiary": "4a90e2",
       "quaternary": "f5a623",
       "header_background": "ffffff",
       "header_primary": "5a5555",
