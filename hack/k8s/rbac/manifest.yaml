@@ -1,0 +1,61 @@
+# manifest.yml - example setup of a service account in the `concourse`
+#                namespace that grants access to any resources / verbs 
+#                in the same namespace (`concourse`).
+#
+# usage:
+#
+#   1. create the objects from this document
+#   
+#        kubectl apply -f ./manifest.yml
+#
+#   2. generate a token
+# 
+#        ./gen-token.sh
+#
+
+# Represent the "concourse" namespace as the kubernetes target to target.
+# 
+# ps.: this could live in any namespace.
+#
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: concourse-target-serviceaccount
+  namespace: concourse
+
+---
+
+# Grant capabilities in that namespace
+# 
+# ps.: this object must live in the namespace we'd like to target.
+#
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: concourse-target-role
+  namespace: concourse
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+
+
+---
+
+# Bind the capabilities to the actor
+#
+# ps.: this object must live in the namespace we'd like to target
+#
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: concourse-target-rolebinding
+  namespace: concourse
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: concourse-target-role
+subjects:
+  - namespace: concourse
+    kind: ServiceAccount
+    name: concourse-target-serviceaccount

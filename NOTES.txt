@@ -1,3 +1,66 @@
+Kubernetes runtime
+
+### challenge
+
+Without having Kubernetes as a native scheduling target, the execution of steps
+in that environment become opaque to Kubernetes, which:
+
+- i. makes impossible for operators to have first-class support for dealing with
+  units of work that Concourse creates (containers)
+
+- ii. forces those operators to grant much bigger permissions that they'd want
+  to give to Concourse just for the sake of allowing workers to be able to do
+  nested containerization.
+
+
+### what would make this better
+
+Being able to target Kuberetes with native workloads.
+
+
+
+### proposal
+
+- a "kubernetes target" maps to a "worker" in our data model
+
+  - access to a "kubernetes target" is granted by giving to `web` either via
+    `kubeconfig` (which contains the information about how to access that
+    cluster's apiserver, with a token of a serviceaccount in that cluster that
+    gives `web` permissions to target a specic namespace), or via service
+    accounts if aiming at the same cluster as where the `web` pod lives
+
+    - being "file-based", these could come from mounts into the `web` pod
+
+    - when using`kubeconfig`, it's possible to target any kubernetes cluster
+      (not necessarily the same as where the `web` pod lives)
+
+      - the `web` pod does not need to be deployed in k8s (as access to those
+	targets is granted through the kubeconfig files)
+
+- Concourse "containers" (from our data model perspective) map to kubernetes
+  pods
+
+  - containers map to "concourse workers", which, in k8s, are kubernetes targets
+
+
+
+
+### questions
+
+> why kubeconfig instead of service account references?
+
+using kubeconfig, we can have a single unit that brings all information that we
+need with regards to getting access to a location to put kubernetes resources
+into, as well as the credentials for doing so.
+
+with a service account, we'd have the credentials, but not the "where"
+(apiserver uri, certs, etc).
+
+
+
+
+
+
 TODO 
 
 	- [x] perform proper `check` in `image_resource` image fetching
