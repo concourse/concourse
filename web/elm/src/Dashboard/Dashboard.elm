@@ -26,6 +26,7 @@ import Dashboard.Styles as Styles
 import Dashboard.Text as Text
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
+import FetchResult exposing (FetchResult(..))
 import HoverState
 import Html exposing (Html)
 import Html.Attributes
@@ -79,8 +80,8 @@ init searchType =
       , highDensity = searchType == Routes.HighDensity
       , query = Routes.extractQuery searchType
       , pipelinesWithResourceErrors = Dict.empty
-      , existingJobs = []
-      , pipelines = []
+      , jobs = None
+      , pipelines = None
       , pipelineLayers = Dict.empty
       , teams = []
       , isUserMenuExpanded = False
@@ -186,30 +187,46 @@ handleCallback callback ( model, effects ) =
             )
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
-            ( if model.existingJobs == allJobsInEntireCluster then
-                model
+            ( let
+                updateJobsResult oldModel =
+                    { oldModel
+                        | jobs =
+                            oldModel.jobs
+                                |> FetchResult.gotResult allJobsInEntireCluster
+                    }
 
-              else
-                let
-                    pipelinesWithJobs =
-                        allJobsInEntireCluster
-                            |> List.map (\j -> ( j.teamName, j.pipelineName ))
-                            |> List.Extra.unique
-                            |> List.map
-                                (\( teamName, pipelineName ) ->
-                                    allJobsInEntireCluster
-                                        |> List.filter (\j -> j.teamName == teamName && j.pipelineName == pipelineName)
-                                        |> Tuple.pair ( teamName, pipelineName )
-                                )
-                in
-                { model
-                    | existingJobs = allJobsInEntireCluster
-                    , pipelineLayers =
-                        pipelinesWithJobs
-                            |> List.map (\( key, jobs ) -> ( key, DashboardPreview.groupByRank jobs ))
-                            |> Dict.fromList
-                    , pipelineJobs = pipelinesWithJobs |> Dict.fromList
-                }
+                updateJobsCache oldModel =
+                    let
+                        pipelinesWithJobs =
+                            allJobsInEntireCluster
+                                |> List.map (\j -> ( j.teamName, j.pipelineName ))
+                                |> List.Extra.unique
+                                |> List.map
+                                    (\( teamName, pipelineName ) ->
+                                        allJobsInEntireCluster
+                                            |> List.filter (\j -> j.teamName == teamName && j.pipelineName == pipelineName)
+                                            |> Tuple.pair ( teamName, pipelineName )
+                                    )
+                    in
+                    { oldModel
+                        | pipelineLayers =
+                            pipelinesWithJobs
+                                |> List.map (\( key, jobs ) -> ( key, DashboardPreview.groupByRank jobs ))
+                                |> Dict.fromList
+                        , pipelineJobs = pipelinesWithJobs |> Dict.fromList
+                    }
+              in
+              updateJobsResult <|
+                case FetchResult.value model.jobs of
+                    Nothing ->
+                        updateJobsCache model
+
+                    Just existingJobs ->
+                        if existingJobs == allJobsInEntireCluster then
+                            model
+
+                        else
+                            updateJobsCache model
             , effects
             )
 
@@ -237,8 +254,8 @@ handleCallback callback ( model, effects ) =
             ( { model | showTurbulence = True }, effects )
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
-            ( { model
-                | pipelines =
+            let
+                newPipelines =
                     allPipelinesInEntireCluster
                         |> List.map
                             (\p ->
@@ -251,6 +268,11 @@ handleCallback callback ( model, effects ) =
                                 , paused = p.paused
                                 }
                             )
+            in
+            ( { model
+                | pipelines =
+                    model.pipelines
+                        |> FetchResult.gotResult newPipelines
               }
             , if List.isEmpty allPipelinesInEntireCluster then
                 effects ++ [ ModifyUrl "/" ]
@@ -341,11 +363,13 @@ updatePipeline updater pipelineId model =
     { model
         | pipelines =
             model.pipelines
-                |> List.Extra.updateIf
-                    (\p ->
-                        p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
+                |> FetchResult.map
+                    (List.Extra.updateIf
+                        (\p ->
+                            p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
+                        )
+                        updater
                     )
-                    updater
     }
 
 
@@ -399,21 +423,25 @@ updateBody msg ( model, effects ) =
                     let
                         teamStartIndex =
                             model.pipelines
+                                |> FetchResult.withDefault []
                                 |> List.Extra.findIndex (\p -> p.teamName == teamName)
 
                         pipelines =
                             case teamStartIndex of
                                 Just teamStartIdx ->
                                     model.pipelines
-                                        |> Drag.drag (teamStartIdx + dragIdx)
-                                            (teamStartIdx
-                                                + (case model.dropState of
-                                                    Dropping dropIdx ->
-                                                        dropIdx
+                                        |> FetchResult.map
+                                            (Drag.drag
+                                                (teamStartIdx + dragIdx)
+                                                (teamStartIdx
+                                                    + (case model.dropState of
+                                                        Dropping dropIdx ->
+                                                            dropIdx
 
-                                                    _ ->
-                                                        dragIdx + 1
-                                                  )
+                                                        _ ->
+                                                            dragIdx + 1
+                                                      )
+                                                )
                                             )
 
                                 _ ->
@@ -426,6 +454,7 @@ updateBody msg ( model, effects ) =
                       }
                     , effects
                         ++ [ pipelines
+                                |> FetchResult.withDefault []
                                 |> List.filter (.teamName >> (==) teamName)
                                 |> List.map .name
                                 |> SendOrderPipelinesRequest teamName
@@ -436,12 +465,13 @@ updateBody msg ( model, effects ) =
                     ( model, effects )
 
         Click LogoutButton ->
-            ( { model | teams = [], pipelines = [] }, effects )
+            ( { model | teams = [], pipelines = None, jobs = None }, effects )
 
         Click (PipelineButton pipelineId) ->
             let
                 isPaused =
                     model.pipelines
+                        |> FetchResult.withDefault []
                         |> List.Extra.find
                             (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
                         |> Maybe.map .paused
@@ -463,6 +493,7 @@ updateBody msg ( model, effects ) =
             let
                 isPublic =
                     model.pipelines
+                        |> FetchResult.withDefault []
                         |> List.Extra.find
                             (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
                         |> Maybe.map .public
@@ -605,7 +636,7 @@ dashboardView session model =
 
 welcomeCard :
     { a | hovered : HoverState.HoverState, userState : UserState.UserState }
-    -> { b | pipelines : List Pipeline }
+    -> { b | pipelines : FetchResult (List Pipeline) }
     -> Html Message
 welcomeCard session { pipelines } =
     let
@@ -628,8 +659,13 @@ welcomeCard session { pipelines } =
                         }
                 )
                 []
+
+        noPipelines =
+            pipelines
+                |> FetchResult.withDefault []
+                |> List.isEmpty
     in
-    if List.isEmpty pipelines then
+    if noPipelines then
         Html.div
             (id "welcome-card" :: Styles.welcomeCard)
             [ Html.div
@@ -722,7 +758,7 @@ pipelinesView :
             , highDensity : Bool
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
-            , pipelines : List Pipeline
+            , pipelines : FetchResult (List Pipeline)
             , dragState : DragState
             , dropState : DropState
             , now : Maybe Time.Posix
@@ -734,8 +770,12 @@ pipelinesView :
     -> List (Html Message)
 pipelinesView session params =
     let
+        pipelines =
+            params.pipelines
+                |> FetchResult.withDefault []
+
         filteredGroups =
-            Filter.filterGroups params.pipelineJobs params.query params.teams params.pipelines
+            Filter.filterGroups params.pipelineJobs params.query params.teams pipelines
                 |> List.sortWith (Group.ordering session)
 
         groupViews =
