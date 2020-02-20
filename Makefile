@@ -13,7 +13,6 @@ CONCOURSE_WEB_FLAGS ?= \
 	--enable-global-resources \
 	--external-url=http://localhost:8080 \
 	--kubernetes-worker-kubeconfig=$(KUBECONFIG) \
-	--kubernetes-worker-namespace=$(NAMESPACE) \
 	--lidar-scanner-interval=10s \
 	--main-team-local-user=test \
 	--postgres-database=concourse \

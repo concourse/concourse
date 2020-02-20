@@ -150,14 +150,7 @@ type RunCommand struct {
 		ResourceTypes   map[string]string `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
 	} `group:"Static Worker (optional)" namespace:"worker"`
 
-	KubernetesWorker struct {
-		ServiceAccount string `long:"service-account" description:"location of the service account mount"`
-
-		// ps.: in the presence of multiple contexts, assume that the current
-		// one is the desired
-		//
-		Kubeconfig string `long:"kubeconfig" default:"~/.kube/config" description:"kubeconfig file location"`
-	} `group:"Kubernetes Worker" namespace:"kubernetes-worker"`
+	KubernetesWorker KubernetesConfig `group:"Kubernetes Worker" namespace:"kubernetes-worker"`
 
 	Metrics struct {
 		HostName            string            `long:"metrics-host-name" description:"Host string to attach to emitted metrics."`
@@ -836,7 +829,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository),
 	)
 
-	k8scfg, err := cmd.KubernetesWorker.KubernetesConfig.Config()
+	k8scfg, err := cmd.KubernetesWorker.Config()
 	if err != nil {
 		return nil, fmt.Errorf("kubernetes config: %w", err)
 	}

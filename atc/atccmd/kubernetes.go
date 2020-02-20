@@ -76,19 +76,24 @@ func fromKubeConfig(fpath string) (*KubernetesTargetConfig, error) {
 		return nil, fmt.Errorf("client config: %w", err)
 	}
 
-	namespace, found, err := cc.Namespace()
+	namespace, _, err := cc.Namespace()
 	if err != nil {
 		return nil, fmt.Errorf("namespace: %w", err)
-	}
-
-	if !found {
-		return nil, fmt.Errorf("kubeconfig %s without namespace specified", fpath)
 	}
 
 	return &KubernetesTargetConfig{
 		RestConfig: config,
 		Namespace:  namespace,
 	}, nil
+}
+
+type KubernetesConfig struct {
+	ServiceAccount string `long:"service-account" description:"location of the service account mount"`
+
+	// ps.: in the presence of multiple contexts, assume that the current
+	// one is the desired
+	//
+	Kubeconfig string `long:"kubeconfig" default:"~/.kube/config" description:"kubeconfig file location"`
 }
 
 func (k KubernetesConfig) Config() (cfg *KubernetesTargetConfig, err error) {
