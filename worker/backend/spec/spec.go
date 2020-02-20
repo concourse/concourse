@@ -39,6 +39,8 @@ func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, 
 		return
 	}
 
+	resources := OciResources(gdn.Limits)
+
 	oci = merge(
 		defaultGardenOciSpec(gdn.Privileged, maxUid, maxGid),
 		&specs.Spec{
@@ -50,6 +52,9 @@ func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, 
 			Root:        &specs.Root{Path: rootfs},
 			Mounts:      mounts,
 			Annotations: map[string]string(gdn.Properties),
+			Linux: &specs.Linux{
+				Resources:   resources,
+			},
 		},
 	)
 
@@ -117,6 +122,48 @@ func OciIDMappings(privileged bool, max uint32) []specs.LinuxIDMapping {
 			HostID:      1,
 			Size:        max - 1,
 		},
+	}
+}
+
+func OciResources(limits garden.Limits) *specs.LinuxResources {
+	var (
+		cpuResources    *specs.LinuxCPU
+		memoryResources *specs.LinuxMemory
+		pidLimit        *specs.LinuxPids
+	)
+	shares := limits.CPU.LimitInShares
+	if limits.CPU.Weight > 0 {
+		shares = limits.CPU.Weight
+	}
+
+	if shares > 0 {
+		cpuResources = &specs.LinuxCPU{
+			Shares: &shares,
+		}
+	}
+
+	memoryLimit := int64(limits.Memory.LimitInBytes)
+	if memoryLimit > 0 {
+		memoryResources = &specs.LinuxMemory{
+			Limit: &memoryLimit,
+			Swap:  &memoryLimit,
+		}
+	}
+
+	maxPids := int64(limits.Pid.Max)
+	if maxPids > 0 {
+		pidLimit = &specs.LinuxPids{
+			Limit: maxPids,
+		}
+	}
+
+	if cpuResources == nil && memoryResources == nil && pidLimit == nil {
+		return nil
+	}
+	return &specs.LinuxResources{
+		CPU:    cpuResources,
+		Memory: memoryResources,
+		Pids:   pidLimit,
 	}
 }
 
