@@ -84,6 +84,24 @@ var _ = Describe("Garden Config", func() {
 		})
 	})
 
+	Context("passing the CONCOURSE_GARDEN_DENY_NETWORK env var to the gdn server", func() {
+		BeforeEach(func() {
+			helmDeployTestFlags = []string{
+				`--set=worker.replicas=1`,
+				`--set=worker.env[0].name=CONCOURSE_GARDEN_DENY_NETWORK`,
+				`--set=worker.env[0].value="8.8.8.8/24"`,
+			}
+		})
+
+		It("causes requests to the specified IP range to fail", func() {
+			atc := waitAndLogin(namespace, releaseName+"-web")
+			defer atc.Close()
+			buildSession := fly.Start("execute", "-c", "tasks/garden-deny-network.yml")
+			<-buildSession.Exited
+
+			Expect(buildSession.ExitCode()).NotTo(Equal(0))
+		})
+	})
 })
 
 type gardenCap struct {
