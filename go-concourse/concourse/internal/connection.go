@@ -233,7 +233,7 @@ func (connection *connection) populateResponse(response *http.Response, returnRe
 		}
 	}
 
-	if returnResponseBody { // THIS IS SO CONFUSING
+	if returnResponseBody {
 		passedResponse.Result = response.Body
 		return nil
 	}

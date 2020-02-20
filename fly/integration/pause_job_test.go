@@ -117,7 +117,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
-		Context("when a job fails to be paused using the API", func() {
+		Context("when pause-job fails", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(

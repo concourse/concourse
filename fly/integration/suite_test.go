@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -15,7 +14,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 )
@@ -24,10 +22,8 @@ var flyPath string
 var homeDir string
 
 var atcServer *ghttp.Server
-var adminAtcServer *ghttp.Server
 
 const targetName = "testserver"
-const adminTarget = "admin-target"
 const teamName = "main"
 const atcVersion = "4.0.0"
 const workerVersion = "4.5.6"
@@ -76,43 +72,6 @@ func tokenHandler() http.HandlerFunc {
 	)
 }
 
-func adminTokenHandler(encodedString string) http.HandlerFunc {
-	credentials := base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))
-	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("POST", "/sky/token"),
-		ghttp.VerifyHeaderKV("Content-Type", "application/x-www-form-urlencoded"),
-		ghttp.VerifyHeaderKV("Authorization", fmt.Sprintf("Basic %s", credentials)),
-		ghttp.VerifyFormKV("grant_type", "password"),
-		ghttp.VerifyFormKV("username", "test"),
-		ghttp.VerifyFormKV("password", "test"),
-		ghttp.VerifyFormKV("scope", "openid profile email federated:id groups"),
-		ghttp.RespondWithJSONEncoded(200, map[string]string{
-			"token_type":   "Bearer",
-			"access_token": "foo." + encodedString,
-		}),
-	)
-}
-
-func encodedTokenString(isAdmin bool) string {
-	return base64.RawStdEncoding.EncodeToString([]byte(fmt.Sprintf(`{
-					"teams": {
-						"main": ["owner"],
-						"other-team": ["owner"]
-					},
-					"user_id": "test",
-					"is_admin": %t,
-					"user_name": "test"
-			}`, isAdmin)))
-}
-
-func teamHandler(teams []atc.Team, encodedString string) http.HandlerFunc {
-	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("GET", "/api/v1/teams"),
-		ghttp.VerifyHeaderKV("Authorization", "Bearer foo."+encodedString),
-		ghttp.RespondWithJSONEncoded(200, teams),
-	)
-}
-
 func token() map[string]string {
 	return map[string]string{
 		"token_type":   "Bearer",
@@ -143,33 +102,11 @@ var _ = BeforeEach(func() {
 	<-session.Exited
 
 	Expect(session.ExitCode()).To(Equal(0))
-
-	// Login as a super admin
-	adminAtcServer = ghttp.NewServer()
-	adminAtcServer.AppendHandlers(
-		infoHandler(),
-		adminTokenHandler(encodedTokenString(true)),
-		teamHandler(teams, encodedTokenString(true)),
-		infoHandler(),
-	)
-
-	flyLoginCmd := exec.Command(flyPath, "-t", adminTarget, "login", "-c", adminAtcServer.URL(), "-n", "main", "-u", "test", "-p", "test")
-	sess, err := gexec.Start(flyLoginCmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-
-	Eventually(sess).Should(gbytes.Say("logging in to team 'main'"))
-
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(Equal(0))
-	Expect(sess.Out).To(gbytes.Say("target saved"))
-
 })
 
 var _ = AfterEach(func() {
 	atcServer.Close()
 	os.RemoveAll(homeDir)
-	adminAtcServer.Close()
-
 })
 
 func TestIntegration(t *testing.T) {

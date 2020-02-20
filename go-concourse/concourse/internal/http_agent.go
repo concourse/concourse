@@ -1,20 +1,21 @@
 package internal
 
 import (
-	"github.com/concourse/concourse/atc"
-	"github.com/tedsuo/rata"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"strings"
+
+	"github.com/concourse/concourse/atc"
+	"github.com/tedsuo/rata"
 )
 
 type HTTPAgent interface {
 	Send(request Request) (http.Response, error)
 }
 
-type httpAgent struct { // Make http requests and return the response to me
+type httpAgent struct {
 	url        string
 	httpClient *http.Client
 	tracing    bool
@@ -71,10 +72,6 @@ func (a *httpAgent) send(req *http.Request) (http.Response, error) {
 
 		log.Println(string(b))
 	}
-
-	//if !returnResponseBody {
-	//	defer response.Body.Close()
-	//}
 
 	return *response, nil
 }
