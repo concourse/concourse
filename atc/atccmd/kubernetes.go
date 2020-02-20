@@ -2,27 +2,24 @@ package atccmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net"
+	"os"
 
 	"github.com/mitchellh/go-homedir"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/cert"
 )
 
 type KubernetesConfig struct {
-	InCluster  bool   `long:"in-cluster"`
-	Kubeconfig string `long:"kubeconfig" default:"~/.kube/config"`
-
-	ClusterUrl string
-	ClusterCA  string
-	Token      string
-
-	// TODO host, ca certs, token, etc
-	//
+	ServiceAccount string `long:"service-account" description:"location of the service account mount"`
+	Kubeconfig     string `long:"kubeconfig" default:"~/.kube/config" description:"kubeconfig file location"`
 }
 
 func (k KubernetesConfig) Config() (cfg *rest.Config, err error) {
 	switch {
-	case k.InCluster:
+	case k.ServiceAccount != "":
 		cfg, err = rest.InClusterConfig()
 		if err != nil {
 			err = fmt.Errorf("incluster cfg: %w", err)
@@ -42,9 +39,41 @@ func (k KubernetesConfig) Config() (cfg *rest.Config, err error) {
 			return
 		}
 	default:
-		err = fmt.Errorf("kubeconfig or in-cluster must be specified")
+		err = fmt.Errorf("kubeconfig or service-account must be specified")
 		return
 	}
 
 	return
+}
+
+// const (
+// 	tokenFile  = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+// 	rootCAFile = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+// )
+func InClusterConfig(tokenPath, rootcaPath string) (*rest.Config, error) {
+	host, port := os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT")
+	if len(host) == 0 || len(port) == 0 {
+		return nil, fmt.Errorf("not in cluster")
+	}
+
+	token, err := ioutil.ReadFile(tokenPath)
+	if err != nil {
+		return nil, fmt.Errorf("read file %s: %w", tokenPath, err)
+	}
+
+	_, err = cert.NewPool(rootcaPath)
+	if err != nil {
+		return nil, fmt.Errorf("root ca %s: %w", rootcaPath, err)
+	}
+
+	tlsClientConfig := rest.TLSClientConfig{
+		CAFile: rootcaPath,
+	}
+
+	return &rest.Config{
+		Host:            "https://" + net.JoinHostPort(host, port),
+		TLSClientConfig: tlsClientConfig,
+		BearerToken:     string(token),
+		BearerTokenFile: tokenPath,
+	}, nil
 }
