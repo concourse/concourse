@@ -83,10 +83,24 @@ func (k Kubernetes) findOrCreateContainer(
 			return nil, err
 		}
 
-		inputs := make(map[string]string, len(containerSpec.ArtifactByPath))
-		inputSources := make(map[string]string, len(containerSpec.ArtifactByPath))
+		inputs := make(map[string]string, len(containerSpec.Inputs))
+		inputSources := make(map[string]string, len(containerSpec.Inputs))
 
 		for dest, artifact := range containerSpec.ArtifactByPath {
+
+			// only deal w/ artifacts that are inputs
+			// (e.g., task caches would break us for now)
+			//
+			inputFound := false
+			for _, input := range containerSpec.Inputs {
+				if input.DestinationPath() == dest {
+					inputFound = true
+				}
+			}
+			if !inputFound {
+				continue
+			}
+
 			artf := UnmarshalPodArtifact(artifact.ID())
 			uri := "http://" + artf.Ip + ":7788/volumes/" + artf.Handle + "/stream-out"
 			name := filepath.Base(dest)

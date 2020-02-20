@@ -54,7 +54,7 @@ type FileConfigSource struct {
 }
 
 // FetchConfig reads the specified file from the artifact.Repository and loads the
-// TaskConfig contained therein (expecting it to be YAML format).
+// TaskConfig container therein (expecting it to be YAML format).
 //
 // The path must be in the format SOURCE_NAME/FILE/PATH.yml. The SOURCE_NAME
 // will be used to determine the StreamableArtifactSource in the artifact.Repository to

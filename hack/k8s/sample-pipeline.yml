@@ -21,36 +21,36 @@ jobs:
         - task: unit
           image: alpine
           file: baggageclaim/ci/unit-linux.yml
-        - task: task-with-inputs
-          config:
-            platform: linux
-            rootfs_uri: busybox
-            inputs:
-              - name: baggageclaim
-              - name: alpine
-            run:
-              path: ls
-        - task: task-rootfs-uri
-          config:
-            platform: linux
-            rootfs_uri: busybox
-            run:
-              path: echo
-              args: [ "hello world!" ]
-        - task: task-image-resource
-          config:
-            platform: linux
-            image_resource:
-             type: registry-image
-             source: {repository: ubuntu}
-             params: {format: oci}
-            run:
-              path: cat
-              args: [ /etc/lsb-release ]
-        - task: task-image
-          image: alpine
-          config:
-            platform: linux
-            run:
-              path: cat
-              args: [ /etc/os-release ]
+        # - task: task-with-inputs
+        #   config:
+        #     platform: linux
+        #     rootfs_uri: busybox
+        #     inputs:
+        #       - name: baggageclaim
+        #       - name: alpine
+        #     run:
+        #       path: ls
+        # - task: task-rootfs-uri
+        #   config:
+        #     platform: linux
+        #     rootfs_uri: busybox
+        #     run:
+        #       path: echo
+        #       args: [ "hello world!" ]
+        # - task: task-image-resource
+        #   config:
+        #     platform: linux
+        #     image_resource:
+        #      type: registry-image
+        #      source: {repository: ubuntu}
+        #      params: {format: oci}
+        #     run:
+        #       path: cat
+        #       args: [ /etc/lsb-release ]
+        # - task: task-image
+        #   image: alpine
+        #   config:
+        #     platform: linux
+        #     run:
+        #       path: cat
+        #       args: [ /etc/os-release ]
