@@ -281,10 +281,20 @@ func (b *Backend) Lookup(handle string) (garden.Container, error) {
 	), nil
 }
 
-// GraceTime - Not Implemented
+// GraceTime returns the value of the "garden.grace-time" property
 //
 func (b *Backend) GraceTime(container garden.Container) (duration time.Duration) {
-	return
+	property, err := container.Property(GraceTimeKey)
+	if err != nil {
+		return 0
+	}
+
+	_, err = fmt.Sscanf(property, "%d", &duration)
+	if err != nil {
+		return 0
+	}
+
+	return duration
 }
 
 // Capacity - Not Implemented

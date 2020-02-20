@@ -3,8 +3,10 @@ package backend_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"code.cloudfoundry.org/garden"
+	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/worker/backend"
 	"github.com/concourse/concourse/worker/backend/backendfakes"
 	"github.com/concourse/concourse/worker/backend/libcontainerd/libcontainerdfakes"
@@ -384,4 +386,25 @@ func (s *BackendSuite) TestStartInitError() {
 func (s *BackendSuite) TestStop() {
 	s.backend.Stop()
 	s.Equal(1, s.client.StopCallCount())
+}
+
+func (s *BackendSuite) TestGraceTimeGetPropertyFails() {
+	fakeContainer := new(gardenfakes.FakeContainer)
+	fakeContainer.PropertyReturns("", errors.New("error"))
+	result := s.backend.GraceTime(fakeContainer)
+	s.Equal(time.Duration(0), result)
+}
+
+func (s *BackendSuite) TestGraceTimeInvalidInteger() {
+	fakeContainer := new(gardenfakes.FakeContainer)
+	fakeContainer.PropertyReturns("not a number", nil)
+	result := s.backend.GraceTime(fakeContainer)
+	s.Equal(time.Duration(0), result)
+}
+
+func (s *BackendSuite) TestGraceTimeReturnsDuration() {
+	fakeContainer := new(gardenfakes.FakeContainer)
+	fakeContainer.PropertyReturns("123", nil)
+	result := s.backend.GraceTime(fakeContainer)
+	s.Equal(time.Duration(123), result)
 }
