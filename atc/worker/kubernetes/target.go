@@ -26,7 +26,19 @@ type target struct {
 }
 
 var (
-	resourceTypes = map[string]string{}
+	// default resource types
+	// TODO male this configurable per-worker
+	//
+	resourceTypes = []atc.WorkerResourceType{
+		{
+			Type:  "registry-image",
+			Image: "concourse/registry-image-resource",
+		},
+		{
+			Type:  "git",
+			Image: "concourse/git-resource",
+		},
+	}
 )
 
 func NewTarget(
@@ -40,17 +52,8 @@ func NewTarget(
 		GardenAddr:      "k8s",
 		Name:            "k8s",
 		Platform:        "linux",
-		ResourceTypes: []atc.WorkerResourceType{
-			{
-				Type:  "registry-image",
-				Image: "concourse/registry-image-resource",
-			},
-			{
-				Type:  "git",
-				Image: "concourse/git-resource",
-			},
-		}, // TODO get this configured
-		Tags: nil,
+		ResourceTypes:   resourceTypes,
+		Tags:            nil,
 	}
 
 	return &target{

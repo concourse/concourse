@@ -1,5 +1,5 @@
 resources:
-  - name: repository
+  - name: baggageclaim
     type: git
     source: 
       uri: "https://github.com/concourse/baggageclaim"
@@ -12,7 +12,7 @@ jobs:
   - name: test
     plan:
       - in_parallel:
-        - get: repository
+        - get: baggageclaim
           trigger: true
         - get: alpine
           trigger: true
@@ -20,13 +20,13 @@ jobs:
       - in_parallel:
         - task: unit
           image: alpine
-          file: repository/ci/unit-linux.yml
+          file: baggageclaim/ci/unit-linux.yml
         - task: task-with-inputs
           config:
             platform: linux
             rootfs_uri: busybox
             inputs:
-              - name: repository
+              - name: baggageclaim
               - name: alpine
             run:
               path: ls
