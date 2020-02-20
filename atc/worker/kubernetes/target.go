@@ -25,18 +25,32 @@ type target struct {
 	be     *backend.Backend
 }
 
+var (
+	resourceTypes = map[string]string{}
+)
+
 func NewTarget(
 	wf db.WorkerFactory,
 	syncer handles.Syncer,
 	be *backend.Backend,
+	// should we make this registerable in a per-cluster manner? if so, how?
 ) *target {
 	info := atc.Worker{
 		BaggageclaimURL: "baggageclaim",
 		GardenAddr:      "k8s",
 		Name:            "k8s",
 		Platform:        "linux",
-		ResourceTypes:   nil,
-		Tags:            nil,
+		ResourceTypes: []atc.WorkerResourceType{
+			{
+				Type:  "registry-image",
+				Image: "concourse/registry-image-resource",
+			},
+			{
+				Type:  "git",
+				Image: "concourse/git-resource",
+			},
+		}, // TODO get this configured
+		Tags: nil,
 	}
 
 	return &target{
