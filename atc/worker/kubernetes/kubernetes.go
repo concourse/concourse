@@ -36,7 +36,7 @@ type Kubernetes struct {
 }
 
 func NewClient(
-	be *Backend,
+	be *backend.Backend,
 	dbWorkerFactory db.WorkerFactory,
 	resourceFactory resource.ResourceFactory,
 	containerSyncer handles.Syncer,

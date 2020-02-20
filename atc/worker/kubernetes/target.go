@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/handles"
+	"github.com/concourse/concourse/atc/worker/kubernetes/backend"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -21,11 +22,13 @@ type target struct {
 	wf     db.WorkerFactory
 	syncer handles.Syncer
 	info   atc.Worker
+	be     *backend.Backend
 }
 
 func NewTarget(
 	wf db.WorkerFactory,
 	syncer handles.Syncer,
+	be *backend.Backend,
 ) *target {
 	info := atc.Worker{
 		BaggageclaimURL: "baggageclaim",
@@ -37,9 +40,10 @@ func NewTarget(
 	}
 
 	return &target{
-		wf:     wf,
+		be:     be,
 		info:   info,
 		syncer: syncer,
+		wf:     wf,
 	}
 }
 

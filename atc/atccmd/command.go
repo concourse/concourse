@@ -46,6 +46,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/worker/kubernetes"
+	kbackend "github.com/concourse/concourse/atc/worker/kubernetes/backend"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/concourse/concourse/skymarshal"
 	"github.com/concourse/concourse/skymarshal/skycmd"
@@ -150,9 +151,9 @@ type RunCommand struct {
 	} `group:"Static Worker (optional)" namespace:"worker"`
 
 	KubernetesWorker struct {
-		InCluster  bool      `long:"in-cluster"`
-		Namespace  string    `long:"namespace" default:"concourse"`
-		Kubeconfig flag.File `long:"kubeconfig" required:"true"`
+		KubernetesConfig
+
+		Namespace string `long:"namespace" default:"concourse"`
 	} `group:"Kubernetes Worker" namespace:"kubernetes-worker"`
 
 	Metrics struct {
@@ -832,10 +833,18 @@ func (cmd *RunCommand) constructBackendMembers(
 		gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository),
 	)
 
-	k8sWorkerClient, err := kubernetes.NewClient(
-		cmd.KubernetesWorker.InCluster,
-		cmd.KubernetesWorker.Kubeconfig.Path(),
-		cmd.KubernetesWorker.Namespace,
+	k8scfg, err := cmd.KubernetesWorker.KubernetesConfig.Config()
+	if err != nil {
+		return nil, fmt.Errorf("kubernetes config: %w", err)
+	}
+
+	k8sbackend, err := kbackend.New(cmd.KubernetesWorker.Namespace, k8scfg)
+	if err != nil {
+		return nil, fmt.Errorf("kubernetes backend: %w", err)
+	}
+
+	k8sWorkerClient := kubernetes.NewClient(
+		k8sbackend,
 		dbWorkerFactory,
 		resourceFactory,
 		containerSyncer,
@@ -981,6 +990,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	target := kubernetes.NewTarget(
 		dbWorkerFactory,
 		containerSyncer,
+		k8sbackend,
 	)
 
 	// cc: k8s worker -- replace this by a "beacon"

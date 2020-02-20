@@ -11,7 +11,6 @@ TODO
 		this way, each "registration" takes care of itself
 			(and we can deal with getting rid of leftovers from "stalled"  --> "retired")
 
-
 	- [ ] worker lifecycle
 
 		- [ ] retire?
@@ -61,23 +60,38 @@ TODO
 
 	- [ ] test custom resource types
 
-	- [ ] container limits
+	- [ ] pod spec stuff
 
-	- [ ] user in task definition
+		- [ ] container limits
+		- [ ] user in task definition
+		- [ ] privileged
+			- demonstrate how we're able to go from source to container
+			  image without the need of any privileges (that's a very basic
+			  thing we should be able to do nowadays)
 
-	- [ ] privileged
-		- demonstrate how we're able to go from source to container
-		  image without the need of any privileges (that's a very basic
-		  thing we should be able to do nowadays)
-
-	- [ ] having non-k8s workers together
-		- as a user, would you even choose that?
 
 	- [ ] add logs to where it's important to extract info from
 
 	- [ ] multiple namespaces / clusters?
 
 		- argocd: https://github.com/argoproj/argo-cd/issues/1673
+
+		- spinnaker!  https://docs.armory.io/spinnaker-install-admin-guides/add-kubernetes-account/
+
+			- each "worker" registers against the cluster by providing its own kubeconfig,
+			  that has everything set to reach out to the cluster/target
+
+
+				=> you create the svc account, token, etc, and then give us
+				   the locations of the kubeconfigs.
+
+					==> being a file on disk, that could come from a set of
+					    secrets.
+
+
+			use SelfSubjectAccessReview to determine if we can do what we want
+			https://kubernetes.io/docs/reference/access-authn-authz/authorization/#checking-api-access
+
 
 		- [ ] tags?
 			
@@ -94,6 +108,46 @@ TODO
 
 	- [ ] fly execute
 
+	- [ ] configure client-go's BPS
 
-THOUGHTS
+	- [ ] having non-k8s workers together
+		- as a user, would you even choose that?
+
+BENEFITS OF K8S 
+
+
+	- [ ] if we DO use kubernetes CRDs for certain things (treat it as "THE
+	  API" for control plane) Concourse-related, tools that have been built
+	  around that ecosystem (e.g., vmware's octant) can than leverage that
+	  (e.g., for visualization)
+
+		=> e.g., if all inputs to concourse are k8s objects, you could
+		have your tools that validates inputs to k8s as now validators
+		to Concourse too
+
+			-> even if `fly` acts just as a proxy for creating
+			those objects.. :thinking:
+
+
+	- [ ] how do we consume k8s secrets nowadays?
+	  	(forgot)
+
+
+	- [ ] automount of service accounts
+		(better disable this thing)
+
+			(what if you actually wanted a `task` to have a given
+			serviceAccount mounted? :thinking:)
+				- could we provide some "Extensions points"
+				  somehow?
+					- would break that nice abstraction we
+					  have right now though
+
+			--> you as the owner of a given namespace, could
+			configure this stuff.
+
+				-> because you can mutate your pod definitions
+				w/ controllers, you can, e.g., inject a GPU
+
+
 

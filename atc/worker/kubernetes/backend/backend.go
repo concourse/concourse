@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 type Backend struct {
@@ -23,30 +22,13 @@ type Backend struct {
 	cs  *kubernetes.Clientset
 }
 
-func New(namespace string) (backend *Backend, err error) {
-	backend = &Backend{
+func New(namespace string, cfg *rest.Config) (be *Backend, err error) {
+	be = &Backend{
 		ns:  namespace,
-		cfg: config,
+		cfg: cfg,
 	}
 
-	switch {
-	case config != "":
-		cfg, err = clientcmd.BuildConfigFromFlags("", config)
-		if err != nil {
-			return
-		}
-	case inCluster:
-		cfg, err = rest.InClusterConfig()
-		if err != nil {
-			err = fmt.Errorf("incluster cfg: %w", err)
-			return
-		}
-	default:
-		err = fmt.Errorf("incluster or config must be specified")
-		return
-	}
-
-	backend.cs, err = kubernetes.NewForConfig(config)
+	be.cs, err = kubernetes.NewForConfig(cfg)
 	if err != nil {
 		err = fmt.Errorf("k8s new for config: %w", err)
 		return
