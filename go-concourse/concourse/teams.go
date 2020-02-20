@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -105,4 +106,41 @@ func (client *client) ListTeams() ([]atc.Team, error) {
 	})
 
 	return teams, err
+}
+
+func (client *client) FindTeam(teamName string) (Team, error) {
+	var atcTeam atc.Team
+	resp, err := client.httpAgent.Send(internal.Request{
+		RequestName: atc.GetTeam,
+		Params:      rata.Params{"team_name": teamName},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		err = json.NewDecoder(resp.Body).Decode(&atcTeam)
+		if err != nil {
+			return nil, err
+		}
+		return &team{
+			name:       atcTeam.Name,
+			connection: client.connection,
+			httpAgent:  client.httpAgent,
+			auth:       atcTeam.Auth,
+		}, nil
+	case http.StatusForbidden:
+		return nil, fmt.Errorf("you do not have a role on team '%s'", teamName)
+	case http.StatusNotFound:
+		return nil, fmt.Errorf("team '%s' does not exist", teamName)
+	default:
+		body, _ := ioutil.ReadAll(resp.Body)
+		return nil, internal.UnexpectedResponseError{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+			Body:       string(body),
+		}
+	}
 }

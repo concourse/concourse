@@ -67,7 +67,7 @@ var _ = Describe("ATC Handler Teams", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWith(http.StatusUnauthorized, ""),
+						ghttp.RespondWith(http.StatusNotFound, ""),
 					),
 				)
 			})
