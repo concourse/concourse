@@ -110,27 +110,44 @@ app.ports.tooltipHd.subscribe(function (pipelineInfo) {
   title.parentNode.setAttribute('data-tooltip', pipelineName);
 });
 
-var storageKey = "csrf_token";
-app.ports.saveToken.subscribe(function(value) {
-  localStorage.setItem(storageKey, value);
+app.ports.saveToLocalStorage.subscribe(function(params) {
+  if (!params || params.length !== 2) {
+    return;
+  }
+  const [key, value] = params;
+  localStorage.setItem(key, value);
 });
-app.ports.loadToken.subscribe(function() {
-  app.ports.tokenReceived.send(localStorage.getItem(storageKey));
+
+app.ports.saveToSessionStorage.subscribe(function(params) {
+  if (!params || params.length !== 2) {
+    return;
+  }
+  const [key, value] = params;
+  sessionStorage.setItem(key, value);
 });
+
+app.ports.loadFromLocalStorage.subscribe(function(key) {
+  const value = localStorage.getItem(key);
+  if (value === null) {
+    return;
+  }
+  app.ports.receivedFromLocalStorage.send([key, value]);
+});
+
+app.ports.loadFromSessionStorage.subscribe(function(key) {
+  const value = sessionStorage.getItem(key);
+  if (value === null) {
+    return;
+  }
+  app.ports.receivedFromSessionStorage.send([key, value]);
+});
+
+const csrfTokenKey = "csrf_token";
 window.addEventListener('storage', function(event) {
-  if (event.key == storageKey) {
-    app.ports.tokenReceived.send(localStorage.getItem(storageKey));
+  if (event.key === csrfTokenKey) {
+    app.ports.receivedFromLocalStorage.send([csrfTokenKey, localStorage.getItem(csrfTokenKey)]);
   }
 }, false);
-
-var sideBarStateKey = "is_sidebar_open";
-app.ports.loadSideBarState.subscribe(function() {
-  var sideBarState = sessionStorage.getItem(sideBarStateKey);
-  app.ports.sideBarStateReceived.send(sideBarState);
-});
-app.ports.saveSideBarState.subscribe(function(isOpen) {
-  sessionStorage.setItem(sideBarStateKey, isOpen);
-});
 
 app.ports.openEventStream.subscribe(function(config) {
   var buffer = [];

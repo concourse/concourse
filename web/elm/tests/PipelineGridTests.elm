@@ -105,7 +105,7 @@ all =
         , test "fetches the viewport of the scrollable area when the sidebar state is loaded" <|
             \_ ->
                 Common.init "/"
-                    |> Application.handleDelivery (SideBarStateReceived Nothing)
+                    |> Application.handleDelivery (SideBarStateReceived (Ok True))
                     |> Tuple.second
                     |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
         , test "renders pipeline cards in a single column grid when the viewport is narrow" <|

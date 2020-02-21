@@ -122,7 +122,7 @@ handleCallback callback currentPipeline ( model, effects ) =
 handleDelivery : Delivery -> ET (Model m)
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        SideBarStateReceived (Just "true") ->
+        SideBarStateReceived (Ok True) ->
             ( { model | isSideBarOpen = True }, effects )
 
         _ ->

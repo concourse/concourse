@@ -14,6 +14,13 @@ import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
 import Json.Encode
 import Keyboard
+import Message.Storage as Storage
+    exposing
+        ( receivedFromLocalStorage
+        , receivedFromSessionStorage
+        , sideBarStateKey
+        , tokenKey
+        )
 import Routes
 import Time
 import Url
@@ -22,16 +29,10 @@ import Url
 port newUrl : (String -> msg) -> Sub msg
 
 
-port tokenReceived : (Maybe String -> msg) -> Sub msg
-
-
 port eventSource : (Json.Encode.Value -> msg) -> Sub msg
 
 
 port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
-
-
-port sideBarStateReceived : (Maybe String -> msg) -> Sub msg
 
 
 port rawHttpResponse : (String -> msg) -> Sub msg
@@ -52,10 +53,10 @@ type Subscription
     | OnWindowResize
     | FromEventSource ( String, List String )
     | OnNonHrefLinkClicked
-    | OnTokenReceived
     | OnElementVisible
-    | OnSideBarStateReceived
     | OnTokenSentToFly
+    | OnTokenReceived
+    | OnSideBarStateReceived
 
 
 type Delivery
@@ -65,13 +66,14 @@ type Delivery
     | ClockTicked Interval Time.Posix
     | WindowResized Float Float
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
-    | TokenReceived (Maybe String)
     | EventsReceived (Result Json.Decode.Error (List BuildEventEnvelope))
     | RouteChanged Routes.Route
     | UrlRequest Browser.UrlRequest
     | ElementVisible ( String, Bool )
-    | SideBarStateReceived (Maybe String)
     | TokenSentToFly RawHttpResponse
+    | TokenReceived (Result Json.Decode.Error String)
+    | SideBarStateReceived (Result Json.Decode.Error Bool)
+    | Noop
 
 
 type Interval
@@ -131,16 +133,33 @@ runSubscription s =
                 )
 
         OnTokenReceived ->
-            tokenReceived TokenReceived
+            receivedFromLocalStorage <|
+                decodeStorageResponse tokenKey
+                    Json.Decode.string
+                    TokenReceived
+
+        OnSideBarStateReceived ->
+            receivedFromSessionStorage <|
+                decodeStorageResponse sideBarStateKey
+                    Json.Decode.bool
+                    SideBarStateReceived
 
         OnElementVisible ->
             reportIsVisible ElementVisible
 
-        OnSideBarStateReceived ->
-            sideBarStateReceived SideBarStateReceived
-
         OnTokenSentToFly ->
             rawHttpResponse (decodeHttpResponse >> TokenSentToFly)
+
+
+decodeStorageResponse : Storage.Key -> Json.Decode.Decoder a -> (Result Json.Decode.Error a -> Delivery) -> ( Storage.Key, Storage.Value ) -> Delivery
+decodeStorageResponse expectedKey decoder toDelivery ( key, value ) =
+    if key /= expectedKey then
+        Noop
+
+    else
+        value
+            |> Json.Decode.decodeString decoder
+            |> toDelivery
 
 
 decodeHttpResponse : String -> RawHttpResponse
