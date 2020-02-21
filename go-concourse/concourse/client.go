@@ -29,6 +29,7 @@ type Client interface {
 	GetCLIReader(arch, platform string) (io.ReadCloser, http.Header, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	ListTeams() ([]atc.Team, error)
+	FindTeam(teamName string) (Team, error)
 	Team(teamName string) Team
 	UserInfo() (map[string]interface{}, error)
 	ListActiveUsersSince(since time.Time) ([]atc.User, error)
@@ -36,12 +37,14 @@ type Client interface {
 }
 
 type client struct {
-	connection internal.Connection
+	connection internal.Connection //Deprecated
+	httpAgent  internal.HTTPAgent
 }
 
 func NewClient(apiURL string, httpClient *http.Client, tracing bool) Client {
 	return &client{
 		connection: internal.NewConnection(apiURL, httpClient, tracing),
+		httpAgent:  internal.NewHTTPAgent(apiURL, httpClient, tracing),
 	}
 }
 

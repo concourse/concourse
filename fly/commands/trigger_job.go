@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/concourse/fly/eventstream"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type TriggerJobCommand struct {
@@ -32,8 +33,19 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 		return err
 	}
 
-	var build atc.Build
-	team := GetTeam(target, command.Team)
+	var (
+		build atc.Build
+		team  concourse.Team
+	)
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
+		if err != nil {
+			return err
+		}
+	} else {
+		team = target.Team()
+	}
+
 	build, err = team.CreateJobBuild(pipelineName, jobName)
 	if err != nil {
 		return err

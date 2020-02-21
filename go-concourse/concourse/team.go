@@ -12,7 +12,8 @@ import (
 type Team interface {
 	Name() string
 
-	Team(teamName string) (atc.Team, bool, error)
+	Auth() atc.TeamAuth
+
 	CreateOrUpdate(team atc.Team) (atc.Team, bool, bool, error)
 	RenameTeam(teamName, name string) (bool, error)
 	DestroyTeam(teamName string) error
@@ -75,7 +76,9 @@ type Team interface {
 
 type team struct {
 	name       string
-	connection internal.Connection
+	connection internal.Connection //Deprecated
+	httpAgent  internal.HTTPAgent
+	auth       atc.TeamAuth
 }
 
 func (team *team) Name() string {
@@ -87,4 +90,8 @@ func (client *client) Team(name string) Team {
 		name:       name,
 		connection: client.connection,
 	}
+}
+
+func (team *team) Auth() atc.TeamAuth {
+	return team.auth
 }

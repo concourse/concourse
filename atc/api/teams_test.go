@@ -280,8 +280,8 @@ var _ = Describe("Teams API", func() {
 				fakeaccess.IsAuthenticatedReturns(true)
 			})
 
-			It("return 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			It("return 403", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 			})
 		})
 	})

@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -30,13 +29,9 @@ func (command *GetTeamCommand) Execute(args []string) error {
 	}
 
 	teamName := command.Team.Name()
-	team, found, err := target.Team().Team(teamName)
+	team, err := target.FindTeam(teamName)
 	if err != nil {
 		return err
-	}
-
-	if !found {
-		return errors.New("team not found")
 	}
 
 	if command.JSON {
@@ -52,9 +47,9 @@ func (command *GetTeamCommand) Execute(args []string) error {
 		{Contents: "groups", Color: color.New(color.Bold)},
 	}
 	table := ui.Table{Headers: headers}
-	for role, auth := range team.Auth {
+	for role, auth := range team.Auth() {
 		row := ui.TableRow{
-			{Contents: fmt.Sprintf("%s/%s", team.Name, role)},
+			{Contents: fmt.Sprintf("%s/%s", team.Name(), role)},
 		}
 		var usersCell, groupsCell ui.TableCell
 		hasUsers := len(auth["users"]) != 0

@@ -1,10 +1,12 @@
 package concourse_test
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse/internal"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -12,38 +14,34 @@ import (
 )
 
 var _ = Describe("ATC Handler Teams", func() {
-	Describe("Team", func() {
-		var expectedTeam atc.Team
+	Describe("FindTeam", func() {
 		teamName := "myTeam"
 		expectedURL := "/api/v1/teams/myTeam"
-
-		BeforeEach(func() {
-			expectedTeam = atc.Team{
-				ID:   1,
-				Name: "myTeam",
-				Auth: atc.TeamAuth{
-					"owner": map[string][]string{
-						"groups": {}, "users": {"local:username"},
-					},
-				},
-			}
-		})
+		expectedAuth := atc.TeamAuth{
+			"owner": map[string][]string{
+				"groups": {}, "users": {"local:username"},
+			},
+		}
 
 		Context("when the team is found", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedTeam),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+							ID:   1,
+							Name: teamName,
+							Auth: expectedAuth,
+						}),
 					),
 				)
 			})
 
 			It("returns the requested team", func() {
-				team, found, err := team.Team(teamName)
+				team, err := client.FindTeam(teamName)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(team).To(Equal(expectedTeam))
+				Expect(team.Name()).To(Equal(teamName))
+				Expect(team.Auth()).To(Equal(expectedAuth))
 			})
 		})
 
@@ -57,10 +55,10 @@ var _ = Describe("ATC Handler Teams", func() {
 				)
 			})
 
-			It("returns false", func() {
-				_, found, err := team.Team(teamName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
+			It("returns an error", func() {
+				_, err := client.FindTeam(teamName)
+				Expect(err).To(Equal(errors.New("team 'myTeam' does not exist")))
+
 			})
 		})
 
@@ -69,15 +67,33 @@ var _ = Describe("ATC Handler Teams", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWith(http.StatusUnauthorized, ""),
+						ghttp.RespondWith(http.StatusNotFound, ""),
 					),
 				)
 			})
 
 			It("returns false and error", func() {
-				_, found, err := team.Team(teamName)
-				Expect(found).To(BeFalse())
-				Expect(err).To(HaveOccurred())
+				_, err := client.FindTeam(teamName)
+				Expect(err).To(Equal(errors.New("team 'myTeam' does not exist")))
+			})
+		})
+
+		Context("when an unhandled HTTP status code is returned", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusInternalServerError, "server issue"),
+					),
+				)
+			})
+			It("returns an UnexpectedResponseError", func() {
+				_, err := client.FindTeam(teamName)
+				Expect(err).To(Equal(internal.UnexpectedResponseError{
+					StatusCode: http.StatusInternalServerError,
+					Status:     "500 Internal Server Error",
+					Body:       "server issue",
+				}))
 			})
 		})
 	})
