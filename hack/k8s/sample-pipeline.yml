@@ -1,56 +1,103 @@
 resources:
-  - name: baggageclaim
-    type: git
-    source: 
-      uri: "https://github.com/concourse/baggageclaim"
+- name: specified-input
+  type: mock
+  source: { initial_version: v1 }
 
-  - name: alpine
-    type: registry-image
-    source: { repository: "alpine" }
+- name: all-input
+  type: mock
+  source: { initial_version: v1 }
+
+- name: some-resource
+  type: mock
+  source: { initial_version: v1 }
+
+- name: baggageclaim
+  type: git
+  icon: github-circle
+  source: { uri: "https://github.com/concourse/baggageclaim" }
+
+- name: alpine
+  icon: docker
+  type: registry-image
+  source: { repository: "alpine" }
+
+- name: task-config-provider
+  type: mock
+  source:
+    create_files:
+      task.yml:
+        platform: linux
+        params:
+          SOURCE_PARAM: file_source
+        run:
+          path: echo
+          args: ["hellooooo"]
+
 
 jobs:
-  - name: test
-    plan:
-      - in_parallel:
+- name: test
+  plan:
+  - in_parallel:
+      fail_fast: true
+      steps:
         - get: baggageclaim
-          trigger: true
+        - get: task-config-provider
         - get: alpine
-          trigger: true
           params: {format: "oci"}
-      - in_parallel:
-        - task: unit
+        - get: specified-input
+        - get: all-input
+  - in_parallel:
+      fail_fast: true
+      steps:
+        - put: some-resource
+          params: {version: "v2"}
+          inputs: all
+        - task: task-with-config-from-file
           image: alpine
-          file: baggageclaim/ci/unit-linux.yml
-        # - task: task-with-inputs
-        #   config:
-        #     platform: linux
-        #     rootfs_uri: busybox
-        #     inputs:
-        #       - name: baggageclaim
-        #       - name: alpine
-        #     run:
-        #       path: ls
-        # - task: task-rootfs-uri
-        #   config:
-        #     platform: linux
-        #     rootfs_uri: busybox
-        #     run:
-        #       path: echo
-        #       args: [ "hello world!" ]
-        # - task: task-image-resource
-        #   config:
-        #     platform: linux
-        #     image_resource:
-        #      type: registry-image
-        #      source: {repository: ubuntu}
-        #      params: {format: oci}
-        #     run:
-        #       path: cat
-        #       args: [ /etc/lsb-release ]
-        # - task: task-image
-        #   image: alpine
-        #   config:
-        #     platform: linux
-        #     run:
-        #       path: cat
-        #       args: [ /etc/os-release ]
+          file: task-config-provider/task.yml
+        - task: task-with-inputs
+          config:
+            platform: linux
+            rootfs_uri: busybox
+            inputs:
+              - name: baggageclaim
+              - name: alpine
+            run:
+              path: ls
+        - task: task-rootfs-uri
+          config:
+            platform: linux
+            rootfs_uri: busybox
+            run:
+              path: echo
+              args: [ "hello world!" ]
+        - task: task-image-resource
+          config:
+            platform: linux
+            image_resource:
+             type: registry-image
+             source: {repository: ubuntu}
+             params: {format: oci}
+            run:
+              path: cat
+              args: [ /etc/lsb-release ]
+        - task: task-image
+          image: alpine
+          config:
+            platform: linux
+            outputs:
+              - name: output
+            run:
+              path: /bin/sh
+              args:
+                - -cex
+                - echo "helllooo" > output/file.txt
+  - task: show-output
+    image: alpine
+    config:
+      platform: linux
+      inputs:
+        - name: output
+      run:
+        path: cat
+        args: [output/file.txt]

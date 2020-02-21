@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/worker/image"
 )
 
-func (k Kubernetes) fetchImageForContainer(
+func (k Client) fetchImageForContainer(
 	containerSpec worker.ContainerSpec,
 	worker db.Worker,
 	container db.CreatingContainer,
@@ -51,7 +51,7 @@ func (k Kubernetes) fetchImageForContainer(
 
 // TODO get resource factory w/ us
 //
-func (k Kubernetes) version(
+func (k Client) version(
 	imageResource *worker.ImageResource,
 	teamID int,
 	container db.CreatingContainer,
@@ -108,7 +108,7 @@ func (k Kubernetes) version(
 	return
 }
 
-func (k Kubernetes) imageResource(
+func (k Client) imageResource(
 	imageResource *worker.ImageResource,
 	w db.Worker,
 	container db.CreatingContainer,

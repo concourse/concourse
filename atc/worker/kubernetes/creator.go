@@ -6,12 +6,13 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/kubernetes/backend"
 	"github.com/hashicorp/go-multierror"
 )
 
-func (k Kubernetes) findOrCreateContainer(
+func (k Client) findOrCreateContainer(
 	owner db.ContainerOwner,
 	containerMetadata db.ContainerMetadata,
 	containerSpec worker.ContainerSpec,
@@ -83,21 +84,15 @@ func (k Kubernetes) findOrCreateContainer(
 			return nil, err
 		}
 
-		inputs := make(map[string]string, len(containerSpec.Inputs))
-		inputSources := make(map[string]string, len(containerSpec.Inputs))
+		inputs := map[string]string{}
+		inputSources := map[string]string{}
 
 		for dest, artifact := range containerSpec.ArtifactByPath {
 
-			// only deal w/ artifacts that are inputs
-			// (e.g., task caches would break us for now)
-			//
-			inputFound := false
-			for _, input := range containerSpec.Inputs {
-				if input.DestinationPath() == dest {
-					inputFound = true
-				}
-			}
-			if !inputFound {
+			switch artifact.(type) {
+			case runtime.GetArtifact:
+			case runtime.TaskArtifact:
+			default:
 				continue
 			}
 

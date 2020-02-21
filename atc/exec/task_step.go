@@ -240,15 +240,54 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 
 	if err != nil {
 		if err == context.Canceled || err == context.DeadlineExceeded {
-			step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
+			// TODO cc: look at result even here (although that's weird)
+			//
+			// step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 		}
 		return err
 	}
 
+	// cc: shouldn't this be conditional on exit status == 0?
+	//
+
+	// ------------
+
+	for output, artifact := range result.TaskArtifacts {
+		repository.RegisterArtifact(build.ArtifactName(output), artifact)
+	}
+
+	// for _, output := range config.Outputs {
+	// 	outputName := output.Name
+	// 	if destinationName, ok := step.plan.OutputMapping[output.Name]; ok {
+	// 		outputName = destinationName
+	// 	}
+
+	// 	state.ArtifactRepository().RegisterArtifact(
+	// 		build.ArtifactName(step.plan.Name),
+	// 		getResult.GetArtifact,
+	// 	)
+	// outputPath := artifactsPath(output, metadata.WorkingDirectory)
+
+	// for _, mount := range volumeMounts {
+	// 	if filepath.Clean(mount.MountPath) == filepath.Clean(outputPath) {
+	// 		art := &runtime.TaskArtifact{
+	// 			VolumeHandle: mount.Volume.Handle(),
+	// 		}
+	// 		repository.RegisterArtifact(build.ArtifactName(outputName), art)
+	// 	}
+	// }
+	// }
+
+	// -----------
+
 	step.succeeded = result.ExitStatus == 0
 	step.delegate.Finished(logger, ExitStatus(result.ExitStatus))
 
-	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
+	// cc: for non-kubernetes, could be similar to `get`, where the
+	// "volumeWithFetchedBits" iterates over volume mounts and stuff, but
+	// you're the one ultimately providing the handle
+	//
+	// step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 
 	// Do not initialize caches for one-off builds
 	if step.metadata.JobID != 0 {

@@ -38,6 +38,10 @@ var (
 			Type:  "git",
 			Image: "concourse/git-resource",
 		},
+		{
+			Type:  "mock",
+			Image: "concourse/mock-resource",
+		},
 	}
 )
 

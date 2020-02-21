@@ -26,9 +26,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// TODO rename this to `Client`
-//
-type Kubernetes struct {
+type Client struct {
 	be *backend.Backend
 	wf db.WorkerFactory
 	rf resource.ResourceFactory
@@ -40,8 +38,8 @@ func NewClient(
 	dbWorkerFactory db.WorkerFactory,
 	resourceFactory resource.ResourceFactory,
 	containerSyncer handles.Syncer,
-) (k Kubernetes) {
-	k = Kubernetes{
+) (k Client) {
+	k = Client{
 		be: be,
 		wf: dbWorkerFactory,
 		rf: resourceFactory,
@@ -50,9 +48,9 @@ func NewClient(
 	return
 }
 
-var _ worker.Client = Kubernetes{}
+var _ worker.Client = Client{}
 
-func (k Kubernetes) RunTaskStep(
+func (k Client) RunTaskStep(
 	ctx context.Context,
 	logger lager.Logger,
 	owner db.ContainerOwner,
@@ -101,13 +99,64 @@ func (k Kubernetes) RunTaskStep(
 	)
 
 	result = worker.TaskResult{
-		ExitStatus: 0, // TODO not have this hardcoded
+		ExitStatus:    0, // TODO not have this hardcoded
+		TaskArtifacts: make(map[string]runtime.TaskArtifact, len(containerSpec.Outputs)),
+	}
+
+	for output := range containerSpec.Outputs {
+		result.TaskArtifacts[output] = runtime.TaskArtifact{
+			VolumeHandle: (PodArtifact{
+				Pod:    container.Handle(),
+				Ip:     container.IP(),
+				Handle: output, // TODO [cc] fix this
+			}).String(),
+		}
 	}
 
 	return
 }
 
-func (k Kubernetes) RunGetStep(
+func (k Client) RunPutStep(
+	ctx context.Context,
+	logger lager.Logger,
+	owner db.ContainerOwner,
+	containerSpec worker.ContainerSpec,
+	workerSpec worker.WorkerSpec,
+	strategy worker.ContainerPlacementStrategy,
+	containerMetadata db.ContainerMetadata,
+	imageFetcherSpec worker.ImageFetcherSpec,
+	processSpec runtime.ProcessSpec,
+	eventDelegate runtime.StartingEventDelegate,
+	resource resource.Resource,
+) (result worker.PutResult, err error) {
+	eventDelegate.Starting(logger)
+
+	container, err := k.findOrCreateContainer(
+		owner,
+		containerMetadata,
+		containerSpec,
+	)
+	if err != nil {
+		err = fmt.Errorf("find or create container: %w", err)
+		return
+	}
+
+	vr, err := resource.Put(ctx, processSpec, container)
+	if err != nil {
+		err = fmt.Errorf("put: %w", err)
+		return
+	}
+
+	// TODO handle `ErrResourceScriptFailed` (exit status != 0)
+	//
+	result = worker.PutResult{
+		ExitStatus:    0,
+		VersionResult: vr,
+	}
+	return
+}
+
+func (k Client) RunGetStep(
 	ctx context.Context,
 	logger lager.Logger,
 	owner db.ContainerOwner,
@@ -168,7 +217,7 @@ func (k Kubernetes) RunGetStep(
 	return
 }
 
-func (k Kubernetes) RunCheckStep(
+func (k Client) RunCheckStep(
 	ctx context.Context,
 	logger lager.Logger,
 	owner db.ContainerOwner,
@@ -203,24 +252,7 @@ func (k Kubernetes) RunCheckStep(
 	return result, nil
 }
 
-func (k Kubernetes) RunPutStep(
-	ctx context.Context,
-	logger lager.Logger,
-	owner db.ContainerOwner,
-	containerSpec worker.ContainerSpec,
-	workerSpec worker.WorkerSpec,
-	strategy worker.ContainerPlacementStrategy,
-	containerMetadata db.ContainerMetadata,
-	imageFetcherSpec worker.ImageFetcherSpec,
-	processSpec runtime.ProcessSpec,
-	eventDelegate runtime.StartingEventDelegate,
-	resource resource.Resource,
-) (result worker.PutResult, err error) {
-	err = fmt.Errorf("not implemented")
-	return
-}
-
-func (k Kubernetes) FindContainer(
+func (k Client) FindContainer(
 	logger lager.Logger, teamID int, handle string,
 ) (
 	container worker.Container, found bool, err error,
@@ -228,14 +260,14 @@ func (k Kubernetes) FindContainer(
 	return
 }
 
-func (k Kubernetes) FindVolume(
+func (k Client) FindVolume(
 	logger lager.Logger,
 	teamID int,
 	handle string,
 ) (vol worker.Volume, found bool, err error) {
 	return
 }
-func (k Kubernetes) CreateVolume(
+func (k Client) CreateVolume(
 	logger lager.Logger,
 	vSpec worker.VolumeSpec,
 	wSpec worker.WorkerSpec,
@@ -243,7 +275,7 @@ func (k Kubernetes) CreateVolume(
 ) (vol worker.Volume, err error) {
 	return
 }
-func (k Kubernetes) StreamFileFromArtifact(
+func (k Client) StreamFileFromArtifact(
 	ctx context.Context,
 	logger lager.Logger,
 	artifact runtime.Artifact,

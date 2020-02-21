@@ -67,6 +67,17 @@ TODO
 
 	- [x] container state transition
 
+	- [x] ignore task caches in list of artifact inputs
+
+	- [x] put step
+
+	- [ ] is there a `kpack` resource type? that'd be interesting
+		
+		... you don't even need one - as long as you can create the CRD
+		.........
+
+	- [x] task outputs
+
 	- [ ] add label that identifies the set of pods as owned by the "worker"
 
 		e.g., `org.concourse-ci.worker=blabla`
@@ -118,8 +129,6 @@ TODO
 	      that identify the builds themselves
 
 	- [ ] get back the exit status of the script executions
-
-	- [ ] put step
 
 	- [ ] test custom resource types
 
