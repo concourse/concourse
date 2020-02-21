@@ -47,6 +47,53 @@ The subcomponent used to figure out whether a build can be scheduled is called t
 }
 
 \section{
+  \title{Scheduling behavior}{scheduling-behavior}
+
+  The scheduler will schedule a new build if any of the versions produced by
+  the algorithm for \reference{schema.step.get-step.trigger}{\code{trigger:
+  true}} resources is not equal to the version used by the \bold{previous
+  build} of the job.
+
+  What this means is if the algorithm runs and computes an
+  input version, the scheduler will create a new build as long as that version
+  is different than the previous build's version for that same input. Even if
+  that version has been used by a build 2 months ago, the scheduler will
+  schedule a new build as long as it has not been used by the previous build.
+
+  If there are any input versions that are different than the previous build,
+  it will trigger a new build. This can affect some users that are using the
+  pinning functionality to run older versions.
+
+  Let's say you have a job that takes a resource as an input. It currently has
+  two builds, build 1 has ran with version \code{v1} of the resource and build
+  2 has ran with \code{v2}.
+
+  \diagram{images/new-pinning-behavior-1.png}{80%}
+
+  If I pin the input to an older version, a new build is produced because the
+  pinned version \code{v1} is not equivalent to the version of the previous
+  build \code{v2}.
+
+  \diagram{images/new-pinning-behavior-3.png}{90%}
+
+  Then if I unpin the version, another build would be triggered again using the
+  latest version.
+
+  \diagram{images/new-pinning-behavior-4.png}{90%}
+
+  This is because after unpinning the resource, the input version for the next
+  build becomes the latest version \code{v2} which is not equal to the version
+  \code{v1} used by the previous build.
+
+  This is to allow the current state of the builds to always reflect the
+  current state of the versions. That being said, this behavior can be
+  undesirable if the goal is to only run a job using an old version. In this
+  case, build rerunning is the better choice. If you would like to learn more
+  about build rerunning, you can read more about it in the
+  \reference{build-rerunning}{build rerunning section}.
+}
+
+\section{
   \title{Scheduling on demand}{scheduling-on-demand}
 
   The scheduler runs on an interval, but rather than scheduling all the jobs
