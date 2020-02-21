@@ -26,9 +26,9 @@ const (
 	MainContainerName = "main"
 
 	// TODO labels for ... build, pipeline, team, get, etc  info
-	LabelHandleKey    = "org.concourse-ci.handle"
-	LabelConcourseKey = "org.concourse-ci"
-	Subdomain         = "container"
+	LabelHandleKey                         = "org.concourse-ci.handle"
+	LabelConcourseKey, LabelConcourseValue = "org.concourse-ci", "yes"
+	Subdomain                              = "container"
 )
 
 type PodMutationOpt func(*apiv1.Pod)
@@ -54,7 +54,7 @@ func WithBase(handle string) PodMutationOpt {
 			Name: handle,
 			Labels: map[string]string{
 				LabelHandleKey:    handle,
-				LabelConcourseKey: "yes",
+				LabelConcourseKey: LabelConcourseValue,
 			},
 		}
 

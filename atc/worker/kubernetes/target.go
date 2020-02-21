@@ -102,11 +102,10 @@ func (t target) Sync() error {
 	sess.Info("start")
 	defer sess.Info("finished")
 
-	// retrieve all handles we know about
-	// syncer.Sync(handles, w.info.name)
-
+	// TODO - validate that this query is really working
+	//
 	containers, err := t.be.Containers(map[string]string{
-		backend.LabelConcourseKey: "true",
+		backend.LabelConcourseKey: backend.LabelConcourseValue,
 	})
 	if err != nil {
 		return fmt.Errorf("containers: %w", err)
@@ -117,16 +116,22 @@ func (t target) Sync() error {
 		handles = append(handles, container.Handle())
 	}
 
+	// "report" current state
+	//
 	err = t.syncer.Sync(handles, t.name)
 	if err != nil {
 		return fmt.Errorf("sync: %w", err)
 	}
 
+	// get back info about what we should destroy
+	//
 	handlesToDestroy, err := t.cr.FindDestroyingContainers(t.name)
 	if err != nil {
 		return fmt.Errorf("find destroying containers: %w", err)
 	}
 
+	// actually destroy
+	//
 	err = t.destroyHandles(handlesToDestroy)
 	if err != nil {
 		return fmt.Errorf("destroy handles: %w", err)
