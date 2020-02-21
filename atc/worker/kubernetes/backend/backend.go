@@ -6,6 +6,7 @@ package backend
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	apiv1 "k8s.io/api/core/v1"
@@ -23,6 +24,10 @@ type Backend struct {
 }
 
 func New(namespace string, cfg *rest.Config) (be *Backend, err error) {
+	cfg.QPS = 40.0
+	cfg.Burst = 50
+	cfg.Timeout = 1 * time.Minute
+
 	be = &Backend{
 		ns:  namespace,
 		cfg: cfg,

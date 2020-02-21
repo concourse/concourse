@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/handles"
 	"github.com/concourse/concourse/atc/worker/kubernetes/backend"
+	log "github.com/sirupsen/logrus"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -43,6 +44,10 @@ var (
 		{
 			Type:  "mock",
 			Image: "concourse/mock-resource",
+		},
+		{
+			Type:  "time",
+			Image: "concourse/time-resource",
 		},
 	}
 )
@@ -89,6 +94,13 @@ func (t target) Retire() error {
 }
 
 func (t target) Sync() error {
+	sess := log.WithFields(log.Fields{
+		"who":    "target",
+		"action": "sync",
+	})
+
+	sess.Info("start")
+	defer sess.Info("finished")
 
 	// retrieve all handles we know about
 	// syncer.Sync(handles, w.info.name)

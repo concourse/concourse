@@ -100,20 +100,20 @@ TODO
 		- [ ] retire?
 			
 			this makes sense... e.g., when it comes to getting a cluster out
-
 				-> clean the environment w/ a certain grace period
 			
 		- [ ] land?
-
 			e.g., when peforming a "known" maintenance?
 
+				==> would mark the target to not receive any
+				"creation calls", I guess?
 
 		- [ ] stalled?
 
 			?
 
 
-	- [ ] garbage collection of containers
+	- [x] garbage collection of containers
 
 		- currently, `report`, list destroying, destroy.
 				|
