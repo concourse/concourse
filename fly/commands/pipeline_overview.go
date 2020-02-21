@@ -15,6 +15,12 @@ type PipelineOverviewCommand struct {
 	Json     bool   `long:"json" description:"Print command result as JSON"`
 }
 
+type overview struct {
+	PipelineName string         `json:"pipeline_name"`
+	Resources    []atc.Resource `json:"resources"`
+	Jobs         []atc.Job      `json:"jobs"`
+}
+
 func (command *PipelineOverviewCommand) Execute(args []string) error {
 	pipelineName := command.Pipeline
 
@@ -44,9 +50,12 @@ func (command *PipelineOverviewCommand) Execute(args []string) error {
 	}
 
 	if command.Json {
-		var resources_and_jobs []interface{}
-		resources_and_jobs = append(resources_and_jobs, resources)
-		resources_and_jobs = append(resources_and_jobs, jobs)
+		resources_and_jobs := overview{
+			PipelineName: pipelineName,
+			Resources:    resources,
+			Jobs:         jobs,
+		}
+
 		err = displayhelpers.JsonPrint(resources_and_jobs)
 		if err != nil {
 			return err
