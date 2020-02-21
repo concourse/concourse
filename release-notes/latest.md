@@ -52,3 +52,7 @@ errors from the library we used before.
 #### <sub><sup><a name="4847" href="#4847">:link:</a></sup></sub> fix
 
 * Set a default value of `4h` for `rebalance-interval`. Previously, this value was unset. With the new default, the workers will reconnect to a randomly selected TSA (SSH Gateway) every 4h.
+
+#### <sub><sup><a name="5216" href="#5216">:link:</a></sup></sub> fix
+
+* Bump golang.org/x/crypto module from `v0.0.0-20191119213627-4f8c1d86b1ba` to `v0.0.0-20200220183623-bac4c82f6975` to address vulnerability in ssh package.
