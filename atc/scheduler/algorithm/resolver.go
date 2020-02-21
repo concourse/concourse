@@ -1,7 +1,7 @@
 package algorithm
 
 import (
-	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -52,7 +52,7 @@ func constructResolvers(
 	for _, input := range inputs {
 		resource, found := resources.Lookup(input.Resource)
 		if !found {
-			return nil, errors.New("input resource not found")
+			return nil, fmt.Errorf("input resource %s not found", input.Resource)
 		}
 
 		inputConfig := InputConfig{
@@ -61,28 +61,32 @@ func constructResolvers(
 			JobID:      job.ID(),
 		}
 
-		var pinnedVersion atc.Version
-		if resource.CurrentPinnedVersion() != nil {
-			pinnedVersion = resource.CurrentPinnedVersion()
-		}
-
 		if input.Version != nil {
 			inputConfig.UseEveryVersion = input.Version.Every
-
-			if input.Version.Pinned != nil {
-				pinnedVersion = input.Version.Pinned
-			}
 		}
 
-		inputConfig.PinnedVersion = pinnedVersion
-
 		if len(input.Passed) == 0 {
+			var pinnedVersion atc.Version
+			if resource.CurrentPinnedVersion() != nil {
+				pinnedVersion = resource.CurrentPinnedVersion()
+			}
+
+			if input.Version != nil && input.Version.Pinned != nil {
+				pinnedVersion = input.Version.Pinned
+			}
+
+			inputConfig.PinnedVersion = pinnedVersion
+
 			if inputConfig.PinnedVersion != nil {
 				resolvers = append(resolvers, NewPinnedResolver(versions, inputConfig))
 			} else {
 				resolvers = append(resolvers, NewIndividualResolver(versions, inputConfig))
 			}
 		} else {
+			if input.Version != nil && input.Version.Pinned != nil {
+				return nil, fmt.Errorf("input %s cannot be pinned with passed constraints", input.Name)
+			}
+
 			jobs := db.JobSet{}
 			for _, passedJobName := range input.Passed {
 				jobID := relatedJobs[passedJobName]

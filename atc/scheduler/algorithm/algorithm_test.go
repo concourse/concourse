@@ -1,6 +1,9 @@
 package algorithm_test
 
 import (
+	"errors"
+	"fmt"
+
 	. "github.com/onsi/ginkgo/extensions/table"
 )
 
@@ -1857,7 +1860,7 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	Entry("resolves the version that is pinned with passed", Example{
+	Entry("when the input is pinned on the get step and passed, it errors", Example{
 		DB: DB{
 			BuildOutputs: []DBRow{
 				{Job: "some-job", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
@@ -1883,96 +1886,7 @@ var _ = DescribeTable("Input resolving",
 			},
 		},
 
-		Result: Result{
-			OK: true,
-			Values: map[string]string{
-				"resource-x": "rxv2",
-			},
-		},
-	}),
-
-	Entry("does not resolve a version when the pinned version has not passed the constraint", Example{
-		DB: DB{
-			BuildOutputs: []DBRow{
-				{Job: "some-job", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-			},
-
-			Resources: []DBRow{
-				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
-				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
-			},
-		},
-
-		Inputs: Inputs{
-			{
-				Name:     "resource-x",
-				Resource: "resource-x",
-				Version:  Version{Pinned: "rxv2"},
-				Passed:   []string{"some-job"},
-			},
-		},
-
-		Result: Result{
-			OK: false,
-			Errors: map[string]string{
-				"resource-x": "no satisfiable builds from passed jobs found for set of inputs",
-			},
-		},
-	}),
-
-	Entry("uses the build that includes the pinned with passed while there are multiple inputs", Example{
-		DB: DB{
-			BuildOutputs: []DBRow{
-				{Job: "shared-job", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Job: "shared-job", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
-
-				{Job: "shared-job", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Job: "shared-job", BuildID: 2, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
-
-				{Job: "shared-job", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Job: "shared-job", BuildID: 3, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
-
-				{Job: "shared-job", BuildID: 4, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Job: "shared-job", BuildID: 4, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
-			},
-
-			Resources: []DBRow{
-				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
-				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
-
-				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
-				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
-			},
-		},
-
-		Inputs: Inputs{
-			{
-				Name:     "resource-x",
-				Resource: "resource-x",
-				Version:  Version{Pinned: "rxv3"},
-				Passed:   []string{"shared-job"},
-			},
-			{
-				Name:     "resource-y",
-				Resource: "resource-y",
-				Version:  Version{Pinned: "ryv1"},
-				Passed:   []string{"shared-job"},
-			},
-		},
-
-		Result: Result{
-			OK: true,
-			Values: map[string]string{
-				"resource-x": "rxv3",
-				"resource-y": "ryv1",
-			},
-		},
+		Error: fmt.Errorf("construct resolvers: %w", errors.New("input resource-x cannot be pinned with passed constraints")),
 	}),
 
 	Entry("resolves to the api pinned version when it exists", Example{
@@ -2022,6 +1936,39 @@ var _ = DescribeTable("Input resolving",
 			OK: true,
 			Values: map[string]string{
 				"resource-x": "rxv1",
+			},
+		},
+	}),
+
+	Entry("input with passed constraint ignores api pinned versions", Example{
+		DB: DB{
+			BuildOutputs: []DBRow{
+				{Job: "some-job", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "some-job", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "some-job", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Job: "some-job", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2, Pinned: true},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Passed:   []string{"some-job"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv4",
 			},
 		},
 	}),

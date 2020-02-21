@@ -61,26 +61,6 @@ func (r *groupResolver) Resolve(ctx context.Context) (map[string]*versionCandida
 	})
 	defer span.End()
 
-	for i, cfg := range r.inputConfigs {
-		if cfg.PinnedVersion == nil {
-			continue
-		}
-
-		version, found, err := r.vdb.FindVersionOfResource(ctx, cfg.ResourceID, cfg.PinnedVersion)
-		if err != nil {
-			tracing.End(span, err)
-			return nil, "", err
-		}
-
-		if !found {
-			notFoundErr := db.PinnedVersionNotFound{PinnedVersion: cfg.PinnedVersion}
-			span.SetStatus(codes.InvalidArgument)
-			return nil, notFoundErr.String(), nil
-		}
-
-		r.pins[i] = version
-	}
-
 	resolved, failure, err := r.tryResolve(ctx)
 	if err != nil {
 		tracing.End(span, err)
@@ -444,21 +424,6 @@ func (r *groupResolver) outputIsRelatedAndMatches(ctx context.Context, span trac
 			key.New("resourceID").Int(output.ResourceID),
 			key.New("version").String(string(output.Version)),
 		)
-		return false, false, nil
-	}
-
-	if inputConfig.PinnedVersion != nil && r.pins[candidateIdx] != output.Version {
-		// input is both pinned and assigned a 'passed' constraint, but the pinned
-		// version doesn't match the job's output version
-
-		span.AddEvent(
-			ctx,
-			"pin mismatch",
-			key.New("resourceID").Int(output.ResourceID),
-			key.New("outputHas").String(string(output.Version)),
-			key.New("pinHas").String(string(r.pins[candidateIdx])),
-		)
-
 		return false, false, nil
 	}
 
