@@ -232,7 +232,9 @@ func (client *client) RunTaskStep(
 		return TaskResult{}, err
 	}
 
-	// container already exited
+	// process already exited
+	// TODO we need to implement this, actually
+	//
 	exitStatusProp, _ := container.Properties()
 	code := exitStatusProp[taskExitStatusPropertyName]
 	if code != "" {

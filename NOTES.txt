@@ -58,7 +58,17 @@ with a service account, we'd have the credentials, but not the "where"
 
 
 
+DEMO
 
+	src -> 	testing	-> kpack -> deploy...
+		audit?
+
+
+	kpack creds:
+		-> service account that exists in that namespace
+
+			(leveraging concourse k8s-based cred mgmt,
+			could retrieve the necessary stuff for it)
 
 
 TODO 
@@ -91,6 +101,7 @@ TODO
 			
 			this makes sense... e.g., when it comes to getting a cluster out
 
+				-> clean the environment w/ a certain grace period
 			
 		- [ ] land?
 
@@ -98,7 +109,8 @@ TODO
 
 
 		- [ ] stalled?
-		
+
+			?
 
 
 	- [ ] garbage collection of containers

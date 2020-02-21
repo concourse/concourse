@@ -50,7 +50,6 @@ func (k Client) findOrCreateContainer(
 		handle = creating.Handle()
 	}
 
-	// TODO tell that it's a not found
 	container, err := k.be.Lookup(handle)
 	if err != nil {
 		_, ok := err.(garden.ContainerNotFoundError)
@@ -60,10 +59,32 @@ func (k Client) findOrCreateContainer(
 	}
 
 	if created != nil {
-		if container == nil {
-			// how come?
-			return nil, fmt.Errorf("couldn't find pod of container marked as created: %s", handle)
+		if container != nil {
+			// it is created, and it has been found - nothing to do
+			//
+			return container, nil
 		}
+
+		// TODO log an error
+
+		_, err := created.Destroying()
+		if err != nil {
+			return nil, fmt.Errorf("tranistioning orphan created to destroying: %w", err)
+		}
+
+		// get a new handle from the db
+		//
+
+		container = nil
+		creating, err = w.CreateContainer(
+			owner,
+			containerMetadata,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("creating db container: %w", err)
+		}
+
+		handle = creating.Handle()
 	}
 
 	if container == nil {
@@ -88,7 +109,6 @@ func (k Client) findOrCreateContainer(
 		inputSources := map[string]string{}
 
 		for dest, artifact := range containerSpec.ArtifactByPath {
-
 			switch artifact.(type) {
 			case runtime.GetArtifact:
 			case runtime.TaskArtifact:

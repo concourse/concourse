@@ -229,6 +229,7 @@ func (k Client) RunCheckStep(
 	timeout time.Duration,
 	checkable resource.Resource,
 ) ([]atc.Version, error) {
+
 	container, err := k.findOrCreateContainer(
 		owner,
 		containerMetadata,

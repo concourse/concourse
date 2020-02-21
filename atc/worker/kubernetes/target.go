@@ -23,6 +23,8 @@ type target struct {
 	syncer handles.Syncer
 	info   atc.Worker
 	be     *backend.Backend
+	cr     db.ContainerRepository
+	name   string
 }
 
 var (
@@ -49,6 +51,7 @@ func NewTarget(
 	wf db.WorkerFactory,
 	syncer handles.Syncer,
 	be *backend.Backend,
+	cr db.ContainerRepository,
 	// should we make this registerable in a per-cluster manner? if so, how?
 ) *target {
 	info := atc.Worker{
@@ -61,10 +64,12 @@ func NewTarget(
 	}
 
 	return &target{
+		name:   "k8s",
 		be:     be,
 		info:   info,
 		syncer: syncer,
 		wf:     wf,
+		cr:     cr,
 	}
 }
 
@@ -85,8 +90,47 @@ func (t target) Retire() error {
 
 func (t target) Sync() error {
 
-	// retrieve handles (backend `list` with properties)
+	// retrieve all handles we know about
 	// syncer.Sync(handles, w.info.name)
+
+	containers, err := t.be.Containers(map[string]string{
+		backend.LabelConcourseKey: "true",
+	})
+	if err != nil {
+		return fmt.Errorf("containers: %w", err)
+	}
+
+	handles := make([]string, 0, len(containers))
+	for _, container := range containers {
+		handles = append(handles, container.Handle())
+	}
+
+	err = t.syncer.Sync(handles, t.name)
+	if err != nil {
+		return fmt.Errorf("sync: %w", err)
+	}
+
+	handlesToDestroy, err := t.cr.FindDestroyingContainers(t.name)
+	if err != nil {
+		return fmt.Errorf("find destroying containers: %w", err)
+	}
+
+	err = t.destroyHandles(handlesToDestroy)
+	if err != nil {
+		return fmt.Errorf("destroy handles: %w", err)
+	}
+
+	return nil
+}
+
+func (t target) destroyHandles(handles []string) error {
+	for _, handle := range handles {
+		err := t.be.Destroy(handle)
+		if err != nil {
+			return fmt.Errorf("delete %s: %w", handle, err)
+		}
+	}
+
 	return nil
 }
 
@@ -103,6 +147,11 @@ func NewTargetRunner(t Target) ifrit.RunFunc {
 				err := t.Heartbeat()
 				if err != nil {
 					return fmt.Errorf("target heartbeat: %w", err)
+				}
+
+				err = t.Sync()
+				if err != nil {
+					return fmt.Errorf("sync: %w", err)
 				}
 			case <-signals:
 				err := t.Retire()

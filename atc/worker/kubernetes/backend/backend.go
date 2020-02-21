@@ -89,6 +89,8 @@ func (b *Backend) Lookup(handle string) (container *Container, err error) {
 // Destroy gracefully terminates a container named "handle" in the configured
 // namespace.
 //
+// ps.: the deletion is async.
+//
 func (b *Backend) Destroy(handle string) (err error) {
 	err = b.cs.CoreV1().Pods(b.ns).Delete(handle, &metav1.DeleteOptions{
 		GracePeriodSeconds: int64Ref(10),
