@@ -12,7 +12,7 @@ import Api.Endpoints as Endpoints
 import Base64
 import Browser.Dom exposing (Element, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
-import Concourse exposing (encodeJob, encodePipeline)
+import Concourse exposing (encodeJob, encodePipeline, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Json.Decode
@@ -35,6 +35,7 @@ import Message.Storage
         , saveToLocalStorage
         , saveToSessionStorage
         , sideBarStateKey
+        , teamsKey
         , tokenKey
         )
 import Process
@@ -168,6 +169,8 @@ type Effect
     | LoadCachedJobs
     | SaveCachedPipelines (List Concourse.Pipeline)
     | LoadCachedPipelines
+    | SaveCachedTeams (List Concourse.Team)
+    | LoadCachedTeams
     | GetViewportOf DomID TooltipPolicy
     | GetElement DomID
 
@@ -587,6 +590,12 @@ runEffect effect key csrfToken =
 
         LoadCachedPipelines ->
             loadFromLocalStorage pipelinesKey
+
+        SaveCachedTeams teams ->
+            saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )
+
+        LoadCachedTeams ->
+            loadFromLocalStorage teamsKey
 
         GetViewportOf domID tooltipPolicy ->
             Browser.Dom.getViewportOf (toHtmlID domID)

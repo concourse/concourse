@@ -10,6 +10,7 @@ port module Message.Storage exposing
     , saveToLocalStorage
     , saveToSessionStorage
     , sideBarStateKey
+    , teamsKey
     , tokenKey
     )
 
@@ -60,3 +61,8 @@ jobsKey =
 pipelinesKey : Key
 pipelinesKey =
     "pipelines"
+
+
+teamsKey : Key
+teamsKey =
+    "teams"

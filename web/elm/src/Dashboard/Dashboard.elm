@@ -73,7 +73,6 @@ init : Routes.SearchType -> ( Model, List Effect )
 init searchType =
     ( { showTurbulence = False
       , now = Nothing
-      , groups = []
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
@@ -83,7 +82,7 @@ init searchType =
       , jobs = None
       , pipelines = None
       , pipelineLayers = Dict.empty
-      , teams = []
+      , teams = None
       , isUserMenuExpanded = False
       , dropdown = Hidden
       , dragState = Models.NotDragging
@@ -105,6 +104,7 @@ init searchType =
       , FetchAllPipelines
       , LoadCachedJobs
       , LoadCachedPipelines
+      , LoadCachedTeams
       , GetViewportOf Dashboard AlwaysShow
       ]
     )
@@ -174,18 +174,18 @@ handleCallback callback ( model, effects ) =
             ( { model | showTurbulence = True }, effects )
 
         AllTeamsFetched (Ok teams) ->
-            ( { model
-                | groups =
-                    List.map
-                        (\team ->
-                            { pipelines = []
-                            , teamName = team.name
-                            }
-                        )
-                        teams
-                , teams = teams
-              }
+            let
+                newTeams =
+                    Fetched teams
+            in
+            ( { model | teams = newTeams }
             , effects
+                ++ (if newTeams |> changedFrom model.teams then
+                        [ SaveCachedTeams teams ]
+
+                    else
+                        []
+                   )
             )
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
@@ -388,6 +388,17 @@ handleDeliveryBody delivery ( model, effects ) =
             else
                 ( model, effects )
 
+        CachedTeamsReceived (Ok teams) ->
+            let
+                newTeams =
+                    Cached teams
+            in
+            if newTeams |> changedFrom model.teams then
+                ( { model | teams = newTeams }, effects )
+
+            else
+                ( model, effects )
+
         _ ->
             ( model, effects )
 
@@ -498,7 +509,7 @@ updateBody msg ( model, effects ) =
                     ( model, effects )
 
         Click LogoutButton ->
-            ( { model | teams = [], pipelines = None, jobs = None }, effects )
+            ( { model | teams = None, pipelines = None, jobs = None }, effects )
 
         Click (PipelineButton pipelineId) ->
             let
@@ -569,6 +580,7 @@ subscriptions =
     , OnWindowResize
     , OnCachedJobsReceived
     , OnCachedPipelinesReceived
+    , OnCachedTeamsReceived
     ]
 
 
@@ -788,7 +800,7 @@ pipelinesView :
     }
     ->
         { b
-            | teams : List Concourse.Team
+            | teams : FetchResult (List Concourse.Team)
             , query : String
             , highDensity : Bool
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
@@ -809,8 +821,12 @@ pipelinesView session params =
             params.pipelines
                 |> FetchResult.withDefault []
 
+        teams =
+            params.teams
+                |> FetchResult.withDefault []
+
         filteredGroups =
-            Filter.filterGroups params.pipelineJobs params.query params.teams pipelines
+            Filter.filterGroups params.pipelineJobs params.query teams pipelines
                 |> List.sortWith (Group.ordering session)
 
         groupViews =

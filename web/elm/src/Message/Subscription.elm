@@ -10,7 +10,7 @@ port module Message.Subscription exposing
 import Browser
 import Browser.Events exposing (onClick, onKeyDown, onKeyUp, onMouseMove, onResize)
 import Build.StepTree.Models exposing (BuildEventEnvelope)
-import Concourse exposing (decodeJob, decodePipeline)
+import Concourse exposing (decodeJob, decodePipeline, decodeTeam)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
 import Json.Encode
@@ -22,6 +22,7 @@ import Message.Storage as Storage
         , receivedFromLocalStorage
         , receivedFromSessionStorage
         , sideBarStateKey
+        , teamsKey
         , tokenKey
         )
 import Routes
@@ -62,6 +63,7 @@ type Subscription
     | OnSideBarStateReceived
     | OnCachedJobsReceived
     | OnCachedPipelinesReceived
+    | OnCachedTeamsReceived
 
 
 type Delivery
@@ -80,6 +82,7 @@ type Delivery
     | SideBarStateReceived (Result Json.Decode.Error Bool)
     | CachedJobsReceived (Result Json.Decode.Error (List Concourse.Job))
     | CachedPipelinesReceived (Result Json.Decode.Error (List Concourse.Pipeline))
+    | CachedTeamsReceived (Result Json.Decode.Error (List Concourse.Team))
     | Noop
 
 
@@ -162,6 +165,12 @@ runSubscription s =
                 decodeStorageResponse pipelinesKey
                     (Json.Decode.list decodePipeline)
                     CachedPipelinesReceived
+
+        OnCachedTeamsReceived ->
+            receivedFromLocalStorage <|
+                decodeStorageResponse teamsKey
+                    (Json.Decode.list decodeTeam)
+                    CachedTeamsReceived
 
         OnElementVisible ->
             reportIsVisible ElementVisible

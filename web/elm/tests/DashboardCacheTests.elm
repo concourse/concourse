@@ -8,7 +8,7 @@ import Message.Effects exposing (Effect(..))
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (class, containing, id, style, text)
+import Test.Html.Selector exposing (class, containing, text)
 import Url
 
 
@@ -51,6 +51,24 @@ all =
                     }
                     |> Tuple.second
                     |> Common.contains LoadCachedPipelines
+        , test "requests the cached teams on page load" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , pipelineRunningKeyframes = ""
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.second
+                    |> Common.contains LoadCachedTeams
         , test "subscribes to receive cached jobs" <|
             \_ ->
                 Common.init "/"
@@ -61,6 +79,11 @@ all =
                 Common.init "/"
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnCachedPipelinesReceived
+        , test "subscribes to receive cached teams" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.subscriptions
+                    |> Common.contains Subscription.OnCachedTeamsReceived
         , test "renders pipelines when receive cached pipelines delivery" <|
             \_ ->
                 Common.init "/"
@@ -90,6 +113,17 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "pipeline-wrapper" ]
                     |> Query.has [ class "parallel-grid" ]
+        , test "renders team sections when receive cached teams delivery" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleDelivery
+                        (CachedTeamsReceived <|
+                            Ok <|
+                                [ { id = 0, name = "team-0" } ]
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ class "dashboard-team-group", containing [ text "team-0" ] ]
         , test "ignores the job cache after fetching successfully" <|
             \_ ->
                 Common.init "/"
@@ -163,6 +197,32 @@ all =
                         (AllPipelinesFetched <|
                             Ok <|
                                 [ Data.pipeline "team" 0 ]
+                        )
+                    |> Tuple.second
+                    |> Common.notContains (SaveCachedPipelines [ Data.pipeline "team" 0 ])
+        , test "saves teams to cache when fetched" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (AllTeamsFetched <|
+                            Ok <|
+                                [ { id = 0, name = "team-0" } ]
+                        )
+                    |> Tuple.second
+                    |> Common.contains (SaveCachedTeams [ { id = 0, name = "team-0" } ])
+        , test "does not save teams to cache when fetched with no change" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleDelivery
+                        (CachedTeamsReceived <|
+                            Ok <|
+                                [ { id = 0, name = "team-0" } ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (AllTeamsFetched <|
+                            Ok <|
+                                [ { id = 0, name = "team-0" } ]
                         )
                     |> Tuple.second
                     |> Common.notContains (SaveCachedPipelines [ Data.pipeline "team" 0 ])

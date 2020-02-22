@@ -41,4 +41,16 @@ all =
                     |> Concourse.encodePipeline
                     |> Json.Decode.decodeValue Concourse.decodePipeline
                     |> Expect.equal (Ok pipeline)
+        , test "team encoding/decoding are inverses" <|
+            \_ ->
+                let
+                    team =
+                        { id = 1
+                        , name = "team"
+                        }
+                in
+                team
+                    |> Concourse.encodeTeam
+                    |> Json.Decode.decodeValue Concourse.decodeTeam
+                    |> Expect.equal (Ok team)
         ]

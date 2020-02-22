@@ -61,6 +61,7 @@ module Concourse exposing
     , encodeBuild
     , encodeJob
     , encodePipeline
+    , encodeTeam
     , retrieveCSRFToken
     )
 
@@ -914,6 +915,14 @@ type alias Team =
     { id : Int
     , name : TeamName
     }
+
+
+encodeTeam : Team -> Json.Encode.Value
+encodeTeam team =
+    Json.Encode.object
+        [ ( "id", team.id |> Json.Encode.int )
+        , ( "name", team.name |> Json.Encode.string )
+        ]
 
 
 decodeTeam : Json.Decode.Decoder Team

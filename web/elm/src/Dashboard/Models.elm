@@ -24,6 +24,7 @@ type alias Model =
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             , jobs : FetchResult (List Concourse.Job)
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
+            , teams : FetchResult (List Concourse.Team)
             , dragState : DragState
             , dropState : DropState
             , isJobsRequestFinished : Bool
@@ -58,8 +59,6 @@ type alias FooterModel r =
         | hideFooter : Bool
         , hideFooterCounter : Int
         , showHelp : Bool
-        , teams : List Concourse.Team
-        , groups : List Dashboard.Group.Models.Group
         , pipelines : FetchResult (List Dashboard.Group.Models.Pipeline)
         , dropdown : Dropdown
         , highDensity : Bool
