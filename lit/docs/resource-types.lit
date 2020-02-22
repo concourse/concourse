@@ -20,8 +20,8 @@ always be using the \resource{registry-image} when doing this.
 
 A somewhat exhaustive list of all available resource types - both from the
 Concourse core project and from external contributors - is available in the
-\link{Resource Types wiki
-page}{https://github.com/concourse/concourse/wiki/Resource-Types}.
+\link{resource types}{https://resource-types.concourse-ci.org} section of the
+site.
 
 Similar to \reference{resources}, each configured resource type consists of the
 following attributes:
