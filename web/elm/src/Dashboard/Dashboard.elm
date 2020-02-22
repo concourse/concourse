@@ -26,7 +26,7 @@ import Dashboard.Styles as Styles
 import Dashboard.Text as Text
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
-import FetchResult exposing (FetchResult(..))
+import FetchResult exposing (FetchResult(..), changedFrom)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes
@@ -103,6 +103,8 @@ init searchType =
       , FetchAllResources
       , FetchAllJobs
       , FetchAllPipelines
+      , LoadCachedJobs
+      , LoadCachedPipelines
       , GetViewportOf Dashboard AlwaysShow
       ]
     )
@@ -187,48 +189,20 @@ handleCallback callback ( model, effects ) =
             )
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
-            ( let
-                updateJobsResult oldModel =
-                    { oldModel
-                        | jobs =
-                            oldModel.jobs
-                                |> FetchResult.gotResult allJobsInEntireCluster
-                    }
+            let
+                newJobs =
+                    Fetched allJobsInEntireCluster
 
-                updateJobsCache oldModel =
-                    let
-                        pipelinesWithJobs =
-                            allJobsInEntireCluster
-                                |> List.map (\j -> ( j.teamName, j.pipelineName ))
-                                |> List.Extra.unique
-                                |> List.map
-                                    (\( teamName, pipelineName ) ->
-                                        allJobsInEntireCluster
-                                            |> List.filter (\j -> j.teamName == teamName && j.pipelineName == pipelineName)
-                                            |> Tuple.pair ( teamName, pipelineName )
-                                    )
-                    in
-                    { oldModel
-                        | pipelineLayers =
-                            pipelinesWithJobs
-                                |> List.map (\( key, jobs ) -> ( key, DashboardPreview.groupByRank jobs ))
-                                |> Dict.fromList
-                        , pipelineJobs = pipelinesWithJobs |> Dict.fromList
-                    }
-              in
-              updateJobsResult <|
-                case FetchResult.value model.jobs of
-                    Nothing ->
-                        updateJobsCache model
+                newModel =
+                    { model | jobs = newJobs }
+            in
+            if newJobs |> changedFrom model.jobs then
+                ( newModel |> precomputeJobMetadata
+                , effects ++ [ SaveCachedJobs allJobsInEntireCluster ]
+                )
 
-                    Just existingJobs ->
-                        if existingJobs == allJobsInEntireCluster then
-                            model
-
-                        else
-                            updateJobsCache model
-            , effects
-            )
+            else
+                ( newModel, effects )
 
         AllJobsFetched (Err _) ->
             ( { model | showTurbulence = True }, effects )
@@ -257,28 +231,23 @@ handleCallback callback ( model, effects ) =
             let
                 newPipelines =
                     allPipelinesInEntireCluster
-                        |> List.map
-                            (\p ->
-                                { id = p.id
-                                , name = p.name
-                                , teamName = p.teamName
-                                , public = p.public
-                                , isToggleLoading = False
-                                , isVisibilityLoading = False
-                                , paused = p.paused
-                                }
-                            )
+                        |> List.map toDashboardPipeline
+                        |> Fetched
             in
-            ( { model
-                | pipelines =
-                    model.pipelines
-                        |> FetchResult.gotResult newPipelines
-              }
-            , if List.isEmpty allPipelinesInEntireCluster then
-                effects ++ [ ModifyUrl "/" ]
+            ( { model | pipelines = newPipelines }
+            , effects
+                ++ (if List.isEmpty allPipelinesInEntireCluster then
+                        [ ModifyUrl "/" ]
 
-              else
-                effects
+                    else
+                        []
+                   )
+                ++ (if newPipelines |> changedFrom model.pipelines then
+                        [ SaveCachedPipelines allPipelinesInEntireCluster ]
+
+                    else
+                        []
+                   )
             )
 
         AllPipelinesFetched (Err _) ->
@@ -393,8 +362,72 @@ handleDeliveryBody delivery ( model, effects ) =
         SideBarStateReceived _ ->
             ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
 
+        CachedPipelinesReceived (Ok pipelines) ->
+            let
+                newPipelines =
+                    pipelines
+                        |> List.map toDashboardPipeline
+                        |> Cached
+            in
+            if newPipelines |> changedFrom model.pipelines then
+                ( { model | pipelines = newPipelines }, effects )
+
+            else
+                ( model, effects )
+
+        CachedJobsReceived (Ok jobs) ->
+            let
+                newJobs =
+                    Cached jobs
+            in
+            if newJobs |> changedFrom model.jobs then
+                ( { model | jobs = newJobs } |> precomputeJobMetadata
+                , effects
+                )
+
+            else
+                ( model, effects )
+
         _ ->
             ( model, effects )
+
+
+toDashboardPipeline : Concourse.Pipeline -> Pipeline
+toDashboardPipeline p =
+    { id = p.id
+    , name = p.name
+    , teamName = p.teamName
+    , public = p.public
+    , isToggleLoading = False
+    , isVisibilityLoading = False
+    , paused = p.paused
+    }
+
+
+precomputeJobMetadata : Model -> Model
+precomputeJobMetadata model =
+    let
+        allJobs =
+            model.jobs |> FetchResult.withDefault []
+
+        pipelinesWithJobs =
+            allJobs
+                |> List.map (\j -> ( j.teamName, j.pipelineName ))
+                |> List.Extra.unique
+                |> List.map
+                    (\( teamName, pipelineName ) ->
+                        allJobs
+                            |> List.filter (\j -> j.teamName == teamName && j.pipelineName == pipelineName)
+                            |> Tuple.pair ( teamName, pipelineName )
+                    )
+    in
+    { model
+        | pipelineLayers =
+            pipelinesWithJobs
+                |> List.map (\( key, jobs ) -> ( key, DashboardPreview.groupByRank jobs ))
+                |> Dict.fromList
+        , pipelineJobs = pipelinesWithJobs |> Dict.fromList
+    }
 
 
 update : Session -> Message -> ET Model
@@ -534,6 +567,8 @@ subscriptions =
     , OnKeyDown
     , OnKeyUp
     , OnWindowResize
+    , OnCachedJobsReceived
+    , OnCachedPipelinesReceived
     ]
 
 

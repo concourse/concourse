@@ -115,7 +115,7 @@ app.ports.saveToLocalStorage.subscribe(function(params) {
     return;
   }
   const [key, value] = params;
-  localStorage.setItem(key, value);
+  localStorage.setItem(key, JSON.stringify(value));
 });
 
 app.ports.saveToSessionStorage.subscribe(function(params) {
@@ -123,7 +123,7 @@ app.ports.saveToSessionStorage.subscribe(function(params) {
     return;
   }
   const [key, value] = params;
-  sessionStorage.setItem(key, value);
+  sessionStorage.setItem(key, JSON.stringify(value));
 });
 
 app.ports.loadFromLocalStorage.subscribe(function(key) {

@@ -1,9 +1,7 @@
 module FetchResult exposing
     ( FetchResult(..)
-    , gotCache
-    , gotResult
+    , changedFrom
     , map
-    , value
     , withDefault
     )
 
@@ -12,21 +10,6 @@ type FetchResult a
     = None
     | Cached a
     | Fetched a
-
-
-gotCache : a -> FetchResult a -> FetchResult a
-gotCache cachedValue result =
-    case result of
-        Fetched _ ->
-            result
-
-        _ ->
-            Cached cachedValue
-
-
-gotResult : a -> FetchResult a -> FetchResult a
-gotResult fetchedValue _ =
-    Fetched fetchedValue
 
 
 value : FetchResult a -> Maybe a
@@ -58,3 +41,25 @@ map fn result =
 
         Fetched fetchedValue ->
             Fetched (fn fetchedValue)
+
+
+changedFrom : FetchResult a -> FetchResult a -> Bool
+changedFrom oldResult newResult =
+    case ( oldResult, newResult ) of
+        ( Fetched old, Fetched new ) ->
+            old /= new
+
+        ( Cached old, Cached new ) ->
+            old /= new
+
+        ( Cached old, Fetched new ) ->
+            old /= new
+
+        ( None, Cached _ ) ->
+            True
+
+        ( None, Fetched _ ) ->
+            True
+
+        _ ->
+            False

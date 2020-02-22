@@ -10,13 +10,16 @@ port module Message.Subscription exposing
 import Browser
 import Browser.Events exposing (onClick, onKeyDown, onKeyUp, onMouseMove, onResize)
 import Build.StepTree.Models exposing (BuildEventEnvelope)
+import Concourse exposing (decodeJob, decodePipeline)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
 import Json.Encode
 import Keyboard
 import Message.Storage as Storage
     exposing
-        ( receivedFromLocalStorage
+        ( jobsKey
+        , pipelinesKey
+        , receivedFromLocalStorage
         , receivedFromSessionStorage
         , sideBarStateKey
         , tokenKey
@@ -57,6 +60,8 @@ type Subscription
     | OnTokenSentToFly
     | OnTokenReceived
     | OnSideBarStateReceived
+    | OnCachedJobsReceived
+    | OnCachedPipelinesReceived
 
 
 type Delivery
@@ -73,6 +78,8 @@ type Delivery
     | TokenSentToFly RawHttpResponse
     | TokenReceived (Result Json.Decode.Error String)
     | SideBarStateReceived (Result Json.Decode.Error Bool)
+    | CachedJobsReceived (Result Json.Decode.Error (List Concourse.Job))
+    | CachedPipelinesReceived (Result Json.Decode.Error (List Concourse.Pipeline))
     | Noop
 
 
@@ -143,6 +150,18 @@ runSubscription s =
                 decodeStorageResponse sideBarStateKey
                     Json.Decode.bool
                     SideBarStateReceived
+
+        OnCachedJobsReceived ->
+            receivedFromLocalStorage <|
+                decodeStorageResponse jobsKey
+                    (Json.Decode.list decodeJob)
+                    CachedJobsReceived
+
+        OnCachedPipelinesReceived ->
+            receivedFromLocalStorage <|
+                decodeStorageResponse pipelinesKey
+                    (Json.Decode.list decodePipeline)
+                    CachedPipelinesReceived
 
         OnElementVisible ->
             reportIsVisible ElementVisible

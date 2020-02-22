@@ -1,8 +1,10 @@
 port module Message.Storage exposing
     ( Key
     , Value
+    , jobsKey
     , loadFromLocalStorage
     , loadFromSessionStorage
+    , pipelinesKey
     , receivedFromLocalStorage
     , receivedFromSessionStorage
     , saveToLocalStorage
@@ -48,3 +50,13 @@ sideBarStateKey =
 tokenKey : Key
 tokenKey =
     "csrf_token"
+
+
+jobsKey : Key
+jobsKey =
+    "jobs"
+
+
+pipelinesKey : Key
+pipelinesKey =
+    "pipelines"

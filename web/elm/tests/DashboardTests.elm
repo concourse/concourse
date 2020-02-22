@@ -731,7 +731,7 @@ all =
                         )
                     |> Expect.all
                         [ Tuple.second
-                            >> Expect.equal [ Effects.ModifyUrl "/" ]
+                            >> Common.contains (Effects.ModifyUrl "/")
                         , Tuple.first
                             >> Common.queryView
                             >> Query.has [ text "welcome to concourse!" ]
