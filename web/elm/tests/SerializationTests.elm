@@ -6,6 +6,7 @@ import Data
 import Expect
 import Json.Decode
 import Test exposing (Test, describe, test)
+import Time
 
 
 all : Test
@@ -24,8 +25,18 @@ all =
         , test "build encoding/decoding are inverses" <|
             \_ ->
                 let
-                    build =
+                    buildWithoutDuration =
                         Data.jobBuild BuildStatus.BuildStatusPending
+
+                    build =
+                        { buildWithoutDuration
+                            | duration =
+                                { startedAt =
+                                    Just <| Time.millisToPosix 1000
+                                , finishedAt =
+                                    Just <| Time.millisToPosix 2000
+                                }
+                        }
                 in
                 build
                     |> Concourse.encodeBuild

@@ -985,7 +985,7 @@ dateFromSeconds =
 
 secondsFromDate : Time.Posix -> Int
 secondsFromDate =
-    Time.posixToMillis >> (//) 1000
+    Time.posixToMillis >> (\m -> m // 1000)
 
 
 lazy : (() -> Json.Decode.Decoder a) -> Json.Decode.Decoder a
