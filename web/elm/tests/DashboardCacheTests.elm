@@ -2,6 +2,7 @@ module DashboardCacheTests exposing (all)
 
 import Application.Application as Application
 import Common
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Data
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
@@ -158,6 +159,27 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains (SaveCachedJobs [ Data.job 0 ])
+        , test "removes build information from jobs when saving to cache" <|
+            \_ ->
+                let
+                    jobWithoutBuild =
+                        Data.job 0
+
+                    jobWithBuild =
+                        { jobWithoutBuild
+                            | finishedBuild = Just <| Data.jobBuild BuildStatusSucceeded
+                            , transitionBuild = Just <| Data.jobBuild BuildStatusSucceeded
+                            , nextBuild = Just <| Data.jobBuild BuildStatusSucceeded
+                        }
+                in
+                Common.init "/"
+                    |> Application.handleCallback
+                        (AllJobsFetched <|
+                            Ok <|
+                                [ jobWithBuild ]
+                        )
+                    |> Tuple.second
+                    |> Common.contains (SaveCachedJobs [ jobWithoutBuild ])
         , test "does not save jobs to cache when fetched with no change" <|
             \_ ->
                 Common.init "/"

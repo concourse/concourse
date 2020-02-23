@@ -190,6 +190,13 @@ handleCallback callback ( model, effects ) =
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
             let
+                removeBuild job =
+                    { job
+                        | finishedBuild = Nothing
+                        , transitionBuild = Nothing
+                        , nextBuild = Nothing
+                    }
+
                 newJobs =
                     Fetched allJobsInEntireCluster
 
@@ -198,7 +205,11 @@ handleCallback callback ( model, effects ) =
             in
             if newJobs |> changedFrom model.jobs then
                 ( newModel |> precomputeJobMetadata
-                , effects ++ [ SaveCachedJobs allJobsInEntireCluster ]
+                , effects
+                    ++ [ allJobsInEntireCluster
+                            |> List.map removeBuild
+                            |> SaveCachedJobs
+                       ]
                 )
 
             else
