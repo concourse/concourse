@@ -33,7 +33,12 @@ test('shows abort hooks', async t => {
 
   await t.context.web.page.waitFor('button[title="Abort Build"]');
   await t.context.web.page.click('button[title="Abort Build"]');
-  await t.context.web.page.waitForSelector( '.build-header[style*="rgb(139, 87, 42)"]', {timeout: 360000}); // brown
+
+  const yellow = "rgb(241, 196, 15)";
+  const brown = "rgb(139, 87, 42)";
+  await t.context.web.page.waitFor(({yellow}) => (document.querySelector('.build-header').style.backgroundColor) !== yellow, {timeout: 60000}, {yellow});
+  const newColour = await t.context.web.page.$eval('.build-header', el => el.style.backgroundColor);
+  t.is(newColour, brown);
   await t.context.web.page.waitFor('[data-step-name="say-bye-from-step"] [data-step-state="succeeded"]');
   await t.context.web.page.waitFor('[data-step-name="say-bye-from-job"] [data-step-state="succeeded"]');
 

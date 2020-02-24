@@ -1,5 +1,15 @@
 const renderingModulePromise = import('./index.mjs');
 
+const node = document.getElementById("elm-app-embed");
+if (node == null) {
+  throw "missing #elm-app-embed";
+}
+
+const app = Elm.Main.init({
+  node: node,
+  flags: window.elmFlags,
+});
+
 var resizeTimer;
 
 app.ports.pinTeamNames.subscribe(function(config) {

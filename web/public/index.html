@@ -68,21 +68,17 @@
   </head>
   <body>
     <div id="elm-app-embed"></div>
-    <script type="text/javascript">
-      var node = document.getElementById("elm-app-embed");
-      var app = Elm.Main.init({
-        node : node,
-        flags : {
-          turbulenceImgSrc: {{asset "images/buckleup.svg"}},
-          notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
-          csrfToken: {{ .CSRFToken }},
-          authToken: {{ .AuthToken }},
-          pipelineRunningKeyframes: "pipeline-running"
-        }
-      });
+    <script>
+      window.elmFlags = {
+        turbulenceImgSrc: {{asset "images/buckleup.svg"}},
+        notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
+        csrfToken: {{ .CSRFToken }},
+        authToken: {{ .AuthToken }},
+        pipelineRunningKeyframes: "pipeline-running",
+      };
     </script>
     <script src="{{asset "bundle.js"}}" nomodule></script>
-    <script src="{{asset "elm-setup.mjs"}}" type="module"></script>
+    <script src="{{asset "elm-setup.js"}}" type="module"></script>
     <div id="icon-store" style="display: none;"></div>
   </body>
 </html>
