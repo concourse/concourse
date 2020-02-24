@@ -22,6 +22,10 @@ var (
 		// we allow this
 		{Access: "rwm", Type: "c", Major: intRef(10), Minor: intRef(229), Allow: true}, // /dev/fuse
 	}
+
+	PrivilegedOnlyDevices = []specs.LinuxDeviceCgroup{
+		{Allow: false, Access: "rwm"},
+	}
 )
 
 func intRef(i int64) *int64  { return &i }
