@@ -20,6 +20,14 @@ func NewScanner(
 	defaultCheckInterval time.Duration,
 	defaultWithWebhookCheckInterval time.Duration,
 ) *scanner {
+	// In case users are not aware of defaultWithWebhookCheckInterval and set defaultCheckInterval
+	// only, make sure defaultWithWebhookCheckInterval to not be smaller than defaultCheckInterval.
+	if defaultWithWebhookCheckInterval < defaultCheckInterval {
+		logger.Info("update-default-with-webhook-check-interface",
+			lager.Data{"oldValue": defaultWithWebhookCheckInterval, "newValue": defaultCheckInterval})
+		defaultWithWebhookCheckInterval = defaultCheckInterval
+	}
+
 	return &scanner{
 		logger:                          logger,
 		checkFactory:                    checkFactory,
