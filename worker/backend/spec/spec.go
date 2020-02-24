@@ -167,6 +167,10 @@ func defaultGardenOciSpec(privileged bool, maxUid, maxGid uint32) *specs.Spec {
 		Mounts: AnyContainerMounts,
 	}
 
+	if !privileged {
+		spec.Linux.Seccomp = seccomp
+	}
+
 	return spec
 }
 
