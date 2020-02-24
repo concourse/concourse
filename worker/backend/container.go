@@ -261,7 +261,7 @@ func (c *Container) getOCISpec() (*specs.Spec, error) {
 
 	v, err := typeurl.UnmarshalAny(info.Spec)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal any: %w", err)
 	}
 	spec, ok := v.(*specs.Spec)
 	if !ok {
