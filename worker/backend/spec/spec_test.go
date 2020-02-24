@@ -314,6 +314,26 @@ func (s *SpecSuite) TestContainerSpec() {
 				})
 			},
 		},
+		{
+			desc: "seccomp is not empty for unprivileged",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: false,
+			},
+			check: func(oci *specs.Spec) {
+				s.NotEmpty(oci.Linux.Seccomp)
+			},
+		},
+		{
+			desc: "seccomp is empty for privileged",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			check: func(oci *specs.Spec) {
+				s.Empty(oci.Linux.Seccomp)
+			},
+		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
 			actual, err := spec.OciSpec(tc.gdn, dummyMaxUid, dummyMaxGid)
