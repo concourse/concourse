@@ -8,8 +8,11 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/garden"
+	"github.com/concourse/concourse/atc/runtime"
 )
 
+// TODO handle recoverable
+//
 func (c *Container) RunScript(
 	ctx context.Context,
 	path string,
@@ -25,11 +28,7 @@ func (c *Container) RunScript(
 	}
 
 	stdout := new(bytes.Buffer)
-	var stderr io.Writer = new(bytes.Buffer)
-
-	if logDest != nil {
-		stderr = logDest
-	}
+	stderr := new(bytes.Buffer)
 
 	procIO := garden.ProcessIO{
 		Stdout: stdout,
@@ -37,10 +36,22 @@ func (c *Container) RunScript(
 		Stdin:  bytes.NewBuffer(input),
 	}
 
-	_, err = c.Run(procSpec, procIO)
+	if logDest != nil {
+		procIO.Stderr = logDest
+	}
+
+	exitStatus, err := c.Run(procSpec, procIO)
 	if err != nil {
 		err = fmt.Errorf("container run: %w", err)
 		return
+	}
+	if exitStatus != 0 {
+		err = runtime.ErrResourceScriptFailed{
+			Path:       path,
+			Args:       args,
+			ExitStatus: exitStatus,
+			Stderr:     stderr.String(),
+		}
 	}
 
 	err = json.Unmarshal(stdout.Bytes(), output)

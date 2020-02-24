@@ -80,7 +80,7 @@ func (k Client) RunTaskStep(
 		Stdin:  stdin,
 	}
 
-	_, err = container.Run(
+	exitStatus, err := container.Run(
 		garden.ProcessSpec{
 			ID: "task",
 
@@ -99,7 +99,7 @@ func (k Client) RunTaskStep(
 	)
 
 	result = worker.TaskResult{
-		ExitStatus:    0, // TODO not have this hardcoded
+		ExitStatus:    exitStatus,
 		TaskArtifacts: make(map[string]runtime.TaskArtifact, len(containerSpec.Outputs)),
 	}
 

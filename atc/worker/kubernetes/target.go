@@ -1,10 +1,12 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/handles"
@@ -144,7 +146,11 @@ func (t target) destroyHandles(handles []string) error {
 	for _, handle := range handles {
 		err := t.be.Destroy(handle)
 		if err != nil {
-			return fmt.Errorf("delete %s: %w", handle, err)
+			if !errors.Is(err, garden.ContainerNotFoundError{handle}) {
+				return fmt.Errorf("delete %s: %w", handle, err)
+			}
+
+			// log?
 		}
 	}
 

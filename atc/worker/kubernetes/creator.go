@@ -88,6 +88,8 @@ func (k Client) findOrCreateContainer(
 	}
 
 	if container == nil {
+		// -- it could be that it's create'in, but it didn't finish
+
 		// figure the image out
 		imageUri, err := k.fetchImageForContainer(containerSpec, w, creating)
 		if err != nil {

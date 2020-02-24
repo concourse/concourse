@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/transport/spdy"
+	"k8s.io/client-go/util/exec"
 )
 
 type Container struct {
@@ -69,7 +70,7 @@ func (c *Container) PortForward(remotePort string) (sess ForwardingSession, port
 	return
 }
 
-func (c *Container) Run(procSpec garden.ProcessSpec, procIO garden.ProcessIO) (process garden.Process, err error) {
+func (c *Container) Run(procSpec garden.ProcessSpec, procIO garden.ProcessIO) (status int, err error) {
 	sess := log.WithFields(log.Fields{
 		"action": "run",
 		"ns":     c.ns,
@@ -95,17 +96,26 @@ func (c *Container) Run(procSpec garden.ProcessSpec, procIO garden.ProcessIO) (p
 		Stderr:    true,
 	}, scheme.ParameterCodec)
 
-	exec, err := remotecommand.NewSPDYExecutor(c.cfg, "POST", req.URL())
+	executor, err := remotecommand.NewSPDYExecutor(c.cfg, "POST", req.URL())
 	if err != nil {
+		err = fmt.Errorf("new spdy executor: %w", err)
 		return
 	}
 
-	err = exec.Stream(remotecommand.StreamOptions{
+	err = executor.Stream(remotecommand.StreamOptions{
 		Stdin:  procIO.Stdin,
 		Stdout: procIO.Stdout,
 		Stderr: procIO.Stderr,
 	})
 	if err != nil {
+		exitErr, ok := err.(exec.ExitError)
+		if !ok {
+			err = fmt.Errorf("stream: %w", err)
+			return
+		}
+
+		err = nil
+		status = exitErr.ExitStatus()
 		return
 	}
 

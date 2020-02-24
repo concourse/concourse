@@ -11,7 +11,7 @@ import (
 
 const (
 	baggageclaimContainerName = "baggageclaim"
-	baggageclaimImage         = "cirocosta/baggageclaim@sha256:00a4ab8137388073723047811d6149be12035435eff9e5bb47684a0a2a3cefdc"
+	baggageclaimImage         = "cirocosta/baggageclaim@sha256:a28a21890b0829679857ddb75269ccdad9b9f611622b4730e89ab9456b4d624f"
 	baggageclaimVolumeName    = "baggageclaim"
 	baggageclaimVolumesPath   = "/vols"
 

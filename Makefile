@@ -52,7 +52,8 @@ db:
 #
 test:
 	fly -t local login -u test -p test
-	fly -t local set-pipeline -n -p test -c ./hack/k8s/sample-pipeline.yml
+	fly -t local set-pipeline -n -p test -c /tmp/pipeline.yml
+	# fly -t local set-pipeline -n -p test -c ./hack/k8s/sample-pipeline.yml
 	fly -t local unpause-pipeline -p test
 	fly -t local trigger-job -j test/test
 

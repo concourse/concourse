@@ -2,32 +2,132 @@ Kubernetes runtime
 
 ### challenge
 
-Without having Kubernetes as a native scheduling target, the execution of steps
-in that environment become opaque to Kubernetes, which:
+Without having [`kubernetes`] as a native scheduling target, the execution of
+[`steps`] in that environment become opaque to Kubernetes, which:
 
 - i. makes impossible for operators to have first-class support for dealing with
   units of work that Concourse creates (containers)
 
-- ii. forces those operators to grant much bigger permissions that they'd want
+- ii. forces those operators to grant much broader permissions that they'd want
   to give to Concourse just for the sake of allowing workers to be able to do
   nested containerization.
 
 
-### what would make this better
+[`kubernetes`]: https://kubernetes.io/
+[`steps`]: https://concourse-ci.org/steps.html
 
-Being able to target Kuberetes with native workloads.
 
+### goal
+
+Being able to target Kubernetes with native workloads, without forcing Concourse
+users to change their pipelines / task configs (i.e., not breaking "userspace").
+
+
+### context
+
+the folks in the runtime domain have been working on making possible to have a
+clear separation between the concerns of what "runtime" (materializing
+"workloads"), and "core" (deciding when things should happen) of concourse are
+responsible for.
+
+
+	"concourse"
+		|
+		'------(workload)-------> worker
+
+
+		
+			VS
+
+
+	"core"
+		schedules work to be done
+
+	"runtime"
+		takes the work, makes it run, somewhoe
+			|
+			'-----------------> worker
+
+
+
+most of that started with the work of getting that separation regardless of
+where those workloads would be scheduled to run on top of (see [RFC: runtime
+interface]), while having in mind that we'd like to see how we could better
+integrate with kubernetes ([RFC: how do we best leverage k8s as a runtime]).
+
+in between that time and today, the team has also worked on making *possible*
+for users to have Concourse running on Kubernetes, even if not in the best way
+possible, by having a [helm] chart (see [concourse-chart]) that'd run the
+current form of Concourse, running pods as workers, having Concourse scheduling
+containers within those pods.
+
+	web pod ..............	(from a deployment)
+	.
+	.  concourse web
+	.      atc
+	.      tsa
+	.
+
+
+	worker pod ............. (from a statefulset)
+	.
+	.  concourse worker
+	.     baggageclaim	(vol mgmt)
+	.     gdn		(container mgmt)
+	.       garden container
+	.       garden container
+	.       garden container
+	.       garden container
+	.       garden container
+	.
+
+
+here I intend to document a possible approach that we could take to move from
+that, to a native integration where we can leverage the benefits of targetting
+Kubernetes with constructs that it understands
+
+	web pod ..............	(from a deployment)
+	.
+	.  concourse web
+	.      atc
+	.      tsa
+	.
+
+
+	get step pod .........	(submitted by atc, handled by k8s)
+	.
+	.  /opt/resource/in
+	.
+
+	task step pod ......... (submitted by atc, handled by k8s)
+	.
+	.  /my-executable
+	.
+
+
+ps.: `web` should not even necessarily be a pod - it could be outside
+kubernetes.
+
+
+[helm]: https://helm.sh
+[concourse-chart]: https://github.com/concourse/concourse-chart
 
 
 ### proposal
 
-- a "kubernetes target" maps to a "worker" in our data model
+Here I propose a way that we could get to a scenario where Concourse runs each
+step of a job (as well as check containers) as pods in a kubernetes namespace
+that has been registered. 
 
-  - access to a "kubernetes target" is granted by giving to `web` either via
+
+- a "kubernetes target" maps to a "worker" in our current data model
+
+  - access to a "kubernetes target" is granted by giving to `web` credentials to
+    a namespace in a kubernetes cluster. That can be done either via
     `kubeconfig` (which contains the information about how to access that
     cluster's apiserver, with a token of a serviceaccount in that cluster that
-    gives `web` permissions to target a specic namespace), or via service
-    accounts if aiming at the same cluster as where the `web` pod lives
+    gives `web` permissions to target a specic namespace), or service accounts
+    (if aiming at the same cluster as where the `web` pod lives)
 
     - being "file-based", these could come from mounts into the `web` pod
 
@@ -37,12 +137,102 @@ Being able to target Kuberetes with native workloads.
       - the `web` pod does not need to be deployed in k8s (as access to those
 	targets is granted through the kubeconfig files)
 
+  - reporting of "concourse handles" takes place from `atc` itself by querying
+    the target (same as today, but without going through `tsa`)
+
+  - gc of "concourse handles" takes place from `atc` by querying the database
+    (same as today, but w/out then need of tsa in between), and then deleting
+    the pods as needed
+
+- kubernetes targets have their lifecycle management performed by `atc`
+  - healthchecking: verifying that the credentials and apiserver info we have
+    are still valid & control plane is responding
+  - gc: reporting pods that it knows about, and cleaning up those that should be
+    removed
+  - retiring: remove those assets created in a namespace in a cluster
+
+
 - Concourse "containers" (from our data model perspective) map to kubernetes
   pods
+  - "concourse containers" would still be related to "concourse workers", which,
+    are kubernetes targets
 
-  - containers map to "concourse workers", which, in k8s, are kubernetes targets
+
+- step pods that provide data (e.g., `get` or `task` steps with outputs) have a
+  `baggageclaim` sidecar container that shares a volume mount with the main
+  container that brings the step funcionality.
 
 
+	get step pod...............
+	.
+	.   baggageclaim container
+	.       baggageclaim --volumes=/volumes --bind-port=7788
+	.
+	.   main container
+	.       /opt/resource/in /volumes/volume
+	.
+	.	(`/volumes` being a shared volume mount in the pod)
+
+
+
+- step pods that retrieve data (e.g., a `task` with `inputs`) does so by pulling
+  the data it needs from other task pods
+  - this means that those pods need to be have connectivity one between each
+    other (as the streaming is performed in a direct manner).
+
+  	task step pod............
+	.
+	. beltloader container
+	.    beltloader src=get-step:7788/volumes/volume/stream-out,dst=/volumes/volume
+	.
+	. main container
+	.    /my-execuable (possibly looking at its inputs - under /volumes - if it wants)
+	.
+	.	(`/volumes` being a shared volume mount in the pod)
+
+
+- step pods that provide container images do so via baggageclaim acting as a
+  container registry (following [oci distribution spec])
+  - `registry-image` provide to formats: `oci` (docker archive), and `rootfs`
+    (concourse's own format): baggageclaim needs to convert both
+  - pods that depend on that image are then creating with the `image` field of
+    the pod spec referencing that step's baggageclaim server.
+    - this means that the kubelet's CRI implementation (or docker) should be
+      able to pull from the pods CIDR range.
+
+
+  	task step pod............
+	.
+	.   main container
+	.       img build -f Dockerfile --dest /volumes/image    (builds an image)
+	.
+	.   baggageclaim container
+	.       baggageclaim --volumes=/volumes --bind-port=7788
+	.
+	.	(`/volumes` being a shared volume mount in the pod)
+
+	podSpec:
+	   image: task-step:7788/concourse/image:latest
+
+- execution of steps follow the same pattern as garden:
+  1. a "sandbox" is created (the pod with the necessary containers)
+    - this is kept together by an `init` process that waits forever
+  2. content is retrieved, if necessary (in this case, w/ direct streaming)
+  3. a process is executed (`/opt/resource/{chekc,in,out}` or custom executable)
+  4. "sandbox" is deleted during `gc`
+
+- single files (e.g., `task config`) can be streamed from pods either by
+  leveraging the fact that those pods are created with baggageclaim.
+  - if `web` is outside the network, a port-forwarding sessions can solve the
+    problem of getting into the nework
+
+
+### current exploration
+
+[oci distribution spec]: https://github.com/opencontainers/distribution-spec
+[refactor exec/*_step.go to remove exposure to runtime/garden componentes]: https://github.com/concourse/concourse/issues/4265
+[refactor check step]: https://github.com/concourse/concourse/issues/4957
+[implement a kubernetes runtime for each type of step]: https://github.com/concourse/concourse/issues/4391
 
 
 ### questions
@@ -55,6 +245,60 @@ into, as well as the credentials for doing so.
 
 with a service account, we'd have the credentials, but not the "where"
 (apiserver uri, certs, etc).
+
+
+
+> is it bad to have each execution taking place in the form of execs through the
+> API server?
+
+:thinking:
+
+
+> inter-cluster communication (e.g., `get` in one cluster providing data for a
+> `task` in another cluster).
+
+this seems a lot like "how should we form our 'mesh'" - in a non-k8s world,
+that's that `web` nodes did by having every worker registering against TSA's
+that are all reachable by themselves.
+
+I wonder if some form of gateway would be needed in this scenario ...
+
+:thinking:
+
+
+> ks8 and non-k8s communication (e.g., `get` in a 8s cluster providing data for a
+> `task` in a macOS machine under the desk).
+
+
+aside from the "establishing network connectivity" (i) question per-se, there's also
+the question of having multiple implementations of the runtime interface
+"active" at the same time, but that doesn't seem a big deal after (i) is solved.
+
+:thinking:
+
+
+> what about the operations that are *volume*-related? e.g., resource caches,
+> task caches, and `fly execute`?
+
+:thinking:
+
+
+
+## extra
+
+- [RFC: extract core resource types] not having base resource types coming from workers would make us not have to
+  worry even about `registry-image-resource`
+
+
+[RFC: tasks queue]: https://github.com/concourse/rfcs/pull/43
+[RFC: extract core resource types]: https://github.com/concourse/rfcs/pull/30
+[RFC: OPA integration proposal]: https://github.com/concourse/rfcs/pull/41
+[RFC: how do we best leverage k8s as a runtime]: https://github.com/concourse/rfcs/pull/22
+[RFC: runtime interface]: https://github.com/concourse/rfcs/pull/20
+
+
+
+
 
 
 
@@ -73,20 +317,16 @@ DEMO
 
 TODO 
 
-	- [x] perform proper `check` in `image_resource` image fetching
+	- [ ] add some minimal resource requests
 
-	- [x] container state transition
-
-	- [x] ignore task caches in list of artifact inputs
-
-	- [x] put step
+	- [ ] prepare an issue documenting the work performed, what to do next,
+	      the approach, etc
 
 	- [ ] is there a `kpack` resource type? that'd be interesting
 		
 		... you don't even need one - as long as you can create the CRD
 		.........
 
-	- [x] task outputs
 
 	- [ ] add label that identifies the set of pods as owned by the "worker"
 
@@ -112,6 +352,21 @@ TODO
 
 			?
 
+	- [x] get back the exit status of the script executions
+
+	- [x] consume "rootfs" images (concourse own format)
+
+	- [x] configure client-go's BPS
+
+	- [x] perform proper `check` in `image_resource` image fetching
+
+	- [x] container state transition
+
+	- [x] ignore task caches in list of artifact inputs
+
+	- [x] put step
+
+	- [x] task outputs
 
 	- [x] garbage collection of containers
 
@@ -134,13 +389,8 @@ TODO
 
 
 
-	- [ ] prepare an issue documenting the work performed, what to do next,
-	      the approach, etc
-
 	- [ ] see if we can influence scheduling by putting annotations / labels
 	      that identify the builds themselves
-
-	- [ ] get back the exit status of the script executions
 
 	- [ ] test custom resource types
 
@@ -184,7 +434,7 @@ TODO
 			selects based on that and tags
 
 
-	- [ ] should thee worker regitration bring `nodeSelector` stuff?
+	- [ ] should the worker regitration bring `nodeSelector` stuff?
 
 	- [ ] caches?
 
@@ -192,10 +442,10 @@ TODO
 
 	- [ ] fly execute
 
-	- [ ] configure client-go's BPS
 
 	- [ ] having non-k8s workers together
 		- as a user, would you even choose that?
+
 
 BENEFITS OF K8S 
 

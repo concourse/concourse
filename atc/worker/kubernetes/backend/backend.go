@@ -101,7 +101,12 @@ func (b *Backend) Destroy(handle string) (err error) {
 		GracePeriodSeconds: int64Ref(10),
 	})
 	if err != nil {
-		err = fmt.Errorf("delete: %w", err)
+		if !errors.IsNotFound(err) {
+			err = fmt.Errorf("delete: %w", err)
+			return
+		}
+
+		err = fmt.Errorf("delete: %w", garden.ContainerNotFoundError{handle})
 		return
 	}
 
