@@ -131,7 +131,9 @@ app.ports.loadFromLocalStorage.subscribe(function(key) {
   if (value === null) {
     return;
   }
-  app.ports.receivedFromLocalStorage.send([key, value]);
+  setTimeout(function() {
+    app.ports.receivedFromLocalStorage.send([key, value]);
+  }, 0);
 });
 
 app.ports.loadFromSessionStorage.subscribe(function(key) {
@@ -139,13 +141,18 @@ app.ports.loadFromSessionStorage.subscribe(function(key) {
   if (value === null) {
     return;
   }
-  app.ports.receivedFromSessionStorage.send([key, value]);
+  setTimeout(function() {
+    app.ports.receivedFromSessionStorage.send([key, value]);
+  }, 0);
 });
 
 const csrfTokenKey = "csrf_token";
 window.addEventListener('storage', function(event) {
   if (event.key === csrfTokenKey) {
-    app.ports.receivedFromLocalStorage.send([csrfTokenKey, localStorage.getItem(csrfTokenKey)]);
+    const value = localStorage.getItem(csrfTokenKey);
+    setTimeout(function() {
+      app.ports.receivedFromLocalStorage.send([csrfTokenKey, value]);
+    }, 0);
   }
 }, false);
 
