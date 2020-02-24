@@ -8,6 +8,8 @@ import (
 	"github.com/concourse/concourse/worker/backend/backendfakes"
 	"github.com/concourse/concourse/worker/backend/libcontainerd/libcontainerdfakes"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/containers"
+	"github.com/containerd/typeurl"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -224,4 +226,110 @@ func (s *ContainerSuite) TestPropertyReturnsValue() {
 	result, err := s.container.Property("any")
 	s.NoError(err)
 	s.Equal("some-value", result)
+}
+
+func (s *ContainerSuite) TestCurrentCPULimitsGetInfoFails() {
+	expectedErr := errors.New("get-info-error")
+	s.containerdContainer.InfoReturns(containers.Container{}, expectedErr)
+	_, err := s.container.CurrentCPULimits()
+	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ContainerSuite) TestCurrentCPULimitsNoSpec() {
+	s.containerdContainer.InfoReturns(containers.Container{}, nil)
+	limits, err := s.container.CurrentCPULimits()
+	s.NoError(err)
+	s.Equal(garden.CPULimits{}, limits)
+}
+
+func (s *ContainerSuite) TestCurrentCPULimitsNoCPUShares() {
+	spec, err := typeurl.MarshalAny(&specs.Spec{
+		Linux: &specs.Linux{
+			Resources: &specs.LinuxResources{
+				CPU: &specs.LinuxCPU{},
+			},
+		},
+	})
+	s.NoError(err)
+
+	s.containerdContainer.InfoReturns(containers.Container{
+		Spec: spec,
+	}, nil)
+	limits, err := s.container.CurrentCPULimits()
+	s.NoError(err)
+	s.Equal(garden.CPULimits{}, limits)
+}
+
+func (s *ContainerSuite) TestCurrentCPULimitsReturnsCPUShares() {
+	cpuShares := uint64(512)
+	spec, err := typeurl.MarshalAny(&specs.Spec{
+		Linux: &specs.Linux{
+			Resources: &specs.LinuxResources{
+				CPU: &specs.LinuxCPU{
+					Shares: &cpuShares,
+				},
+			},
+		},
+	})
+	s.NoError(err)
+
+	s.containerdContainer.InfoReturns(containers.Container{
+		Spec: spec,
+	}, nil)
+	limits, err := s.container.CurrentCPULimits()
+	s.NoError(err)
+	s.Equal(garden.CPULimits{Weight: cpuShares}, limits)
+}
+
+func (s *ContainerSuite) TestCurrentMemoryLimitsGetInfoFails() {
+	expectedErr := errors.New("get-info-error")
+	s.containerdContainer.InfoReturns(containers.Container{}, expectedErr)
+	_, err := s.container.CurrentMemoryLimits()
+	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ContainerSuite) TestCurrentMemoryLimitsNoSpec() {
+	s.containerdContainer.InfoReturns(containers.Container{}, nil)
+	limits, err := s.container.CurrentMemoryLimits()
+	s.NoError(err)
+	s.Equal(garden.MemoryLimits{}, limits)
+}
+
+func (s *ContainerSuite) TestCurrentMemoryLimitsNoCPUShares() {
+	spec, err := typeurl.MarshalAny(&specs.Spec{
+		Linux: &specs.Linux{
+			Resources: &specs.LinuxResources{
+				Memory: &specs.LinuxMemory{},
+			},
+		},
+	})
+	s.NoError(err)
+
+	s.containerdContainer.InfoReturns(containers.Container{
+		Spec: spec,
+	}, nil)
+	limits, err := s.container.CurrentMemoryLimits()
+	s.NoError(err)
+	s.Equal(garden.MemoryLimits{}, limits)
+}
+
+func (s *ContainerSuite) TestCurrentMemoryLimitsReturnsLimit() {
+	limitBytes := int64(512)
+	spec, err := typeurl.MarshalAny(&specs.Spec{
+		Linux: &specs.Linux{
+			Resources: &specs.LinuxResources{
+				Memory: &specs.LinuxMemory{
+					Limit: &limitBytes,
+				},
+			},
+		},
+	})
+	s.NoError(err)
+
+	s.containerdContainer.InfoReturns(containers.Container{
+		Spec: spec,
+	}, nil)
+	limits, err := s.container.CurrentMemoryLimits()
+	s.NoError(err)
+	s.Equal(garden.MemoryLimits{LimitInBytes: uint64(limitBytes)}, limits)
 }

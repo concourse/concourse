@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
+	"github.com/containerd/typeurl"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -243,28 +244,75 @@ func (c *Container) SetGraceTime(graceTime time.Duration) error {
 	return nil
 }
 
-// CurrentBandwidthLimits - Not Implemented
-func (c *Container) CurrentBandwidthLimits() (limits garden.BandwidthLimits, err error) {
-	err = ErrNotImplemented
-	return
+// CurrentBandwidthLimits returns no limits (achieves parity with Guardian)
+func (c *Container) CurrentBandwidthLimits() (garden.BandwidthLimits, error) {
+	return garden.BandwidthLimits{}, nil
 }
 
-// CurrentCPULimits - Not Implemented
-func (c *Container) CurrentCPULimits() (limits garden.CPULimits, err error) {
-	err = ErrNotImplemented
-	return
+func (c *Container) getOCISpec() (*specs.Spec, error) {
+	info, err := c.container.Info(context.Background(), containerd.WithoutRefreshedMetadata)
+	if err != nil {
+		return nil, fmt.Errorf("get info: %w", err)
+	}
+
+	if info.Spec == nil || info.Spec.Value == nil {
+		return nil, nil
+	}
+
+	v, err := typeurl.UnmarshalAny(info.Spec)
+	if err != nil {
+		return nil, err
+	}
+	spec, ok := v.(*specs.Spec)
+	if !ok {
+		return nil, fmt.Errorf("get info returned %T, expected *specs.Spec", spec)
+	}
+	return spec, nil
 }
 
-// CurrentDiskLimits - Not Implemented
-func (c *Container) CurrentDiskLimits() (limits garden.DiskLimits, err error) {
-	err = ErrNotImplemented
-	return
+// CurrentCPULimits returns the CPU shares allocated to the container
+func (c *Container) CurrentCPULimits() (garden.CPULimits, error) {
+	spec, err := c.getOCISpec()
+	if err != nil {
+		return garden.CPULimits{}, err
+	}
+
+	if spec == nil ||
+		spec.Linux == nil ||
+		spec.Linux.Resources == nil ||
+		spec.Linux.Resources.CPU == nil ||
+		spec.Linux.Resources.CPU.Shares == nil {
+		return garden.CPULimits{}, nil
+	}
+
+	return garden.CPULimits{
+		Weight: *spec.Linux.Resources.CPU.Shares,
+	}, nil
 }
 
-// CurrentMemoryLimits - Not Implemented
+// CurrentDiskLimits returns no limits (achieves parity with Guardian)
+func (c *Container) CurrentDiskLimits() (garden.DiskLimits, error) {
+	return garden.DiskLimits{}, nil
+}
+
+// CurrentMemoryLimits returns the memory limit in bytes allocated to the container
 func (c *Container) CurrentMemoryLimits() (limits garden.MemoryLimits, err error) {
-	err = ErrNotImplemented
-	return
+	spec, err := c.getOCISpec()
+	if err != nil {
+		return garden.MemoryLimits{}, err
+	}
+
+	if spec == nil ||
+		spec.Linux == nil ||
+		spec.Linux.Resources == nil ||
+		spec.Linux.Resources.Memory == nil ||
+		spec.Linux.Resources.Memory.Limit == nil {
+		return garden.MemoryLimits{}, nil
+	}
+
+	return garden.MemoryLimits{
+		LimitInBytes: uint64(*spec.Linux.Resources.Memory.Limit),
+	}, nil
 }
 
 // NetIn - Not Implemented
