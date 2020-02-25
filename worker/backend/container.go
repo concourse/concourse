@@ -243,28 +243,54 @@ func (c *Container) SetGraceTime(graceTime time.Duration) error {
 	return nil
 }
 
-// CurrentBandwidthLimits - Not Implemented
-func (c *Container) CurrentBandwidthLimits() (limits garden.BandwidthLimits, err error) {
-	err = ErrNotImplemented
-	return
+// CurrentBandwidthLimits returns no limits (achieves parity with Guardian)
+func (c *Container) CurrentBandwidthLimits() (garden.BandwidthLimits, error) {
+	return garden.BandwidthLimits{}, nil
 }
 
-// CurrentCPULimits - Not Implemented
-func (c *Container) CurrentCPULimits() (limits garden.CPULimits, err error) {
-	err = ErrNotImplemented
-	return
+// CurrentCPULimits returns the CPU shares allocated to the container
+func (c *Container) CurrentCPULimits() (garden.CPULimits, error) {
+	spec, err := c.container.Spec(context.Background())
+	if err != nil {
+		return garden.CPULimits{}, err
+	}
+
+	if spec == nil ||
+		spec.Linux == nil ||
+		spec.Linux.Resources == nil ||
+		spec.Linux.Resources.CPU == nil ||
+		spec.Linux.Resources.CPU.Shares == nil {
+		return garden.CPULimits{}, nil
+	}
+
+	return garden.CPULimits{
+		Weight: *spec.Linux.Resources.CPU.Shares,
+	}, nil
 }
 
-// CurrentDiskLimits - Not Implemented
-func (c *Container) CurrentDiskLimits() (limits garden.DiskLimits, err error) {
-	err = ErrNotImplemented
-	return
+// CurrentDiskLimits returns no limits (achieves parity with Guardian)
+func (c *Container) CurrentDiskLimits() (garden.DiskLimits, error) {
+	return garden.DiskLimits{}, nil
 }
 
-// CurrentMemoryLimits - Not Implemented
+// CurrentMemoryLimits returns the memory limit in bytes allocated to the container
 func (c *Container) CurrentMemoryLimits() (limits garden.MemoryLimits, err error) {
-	err = ErrNotImplemented
-	return
+	spec, err := c.container.Spec(context.Background())
+	if err != nil {
+		return garden.MemoryLimits{}, err
+	}
+
+	if spec == nil ||
+		spec.Linux == nil ||
+		spec.Linux.Resources == nil ||
+		spec.Linux.Resources.Memory == nil ||
+		spec.Linux.Resources.Memory.Limit == nil {
+		return garden.MemoryLimits{}, nil
+	}
+
+	return garden.MemoryLimits{
+		LimitInBytes: uint64(*spec.Linux.Resources.Memory.Limit),
+	}, nil
 }
 
 // NetIn - Not Implemented
