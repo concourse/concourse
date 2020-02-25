@@ -318,6 +318,10 @@ deployment.
 
 * The dashboard page refreshes its data every 5 seconds. Until now, it was possible (especially for admin users) for the dashboard to initiate an ever-growing number of API calls, unnecessarily consuming browser, network and API resources. Now the dashboard will not initiate a request for more data until the previous request finishes. #5023
 
+#### <sub><sup><a name="4862" href="#4862">:link:</a></sup></sub> feature
+
+* Whenever the dashboard page is loaded, it would decrypt and unmarshal all the job configs for all the teams that the user has access to. This would be slow if there are a ton of jobs. We made a change that would result in the dashboard no longer needing to decrypt or unmarshal the config of jobs, which will help speed up the loading of the dashboard page. #4862
+
 #### <sub><sup><a name="4406" href="#4406">:link:</a></sup></sub> feature
 
 * We added a `--team-name` flag to a few fly commands which will allow users that have access to multiple teams to not need to login to each team in order to run a command against it! #4406
@@ -325,6 +329,10 @@ deployment.
 #### <sub><sup><a name="5075" href="#5075">:link:</a></sup></sub> fix
 
 * Previously, the build tracker would unconditionally fire off a goroutine for each in-flight build (which then locks and short-circuits if the build is already tracked). We changed it so that the build tracker will only do so if we don't have a goroutine for it already. #5075
+
+#### <sub><sup><a name="2724" href="#2724">:link:</a></sup></sub> fix
+
+* We fixed a bug for job that have any type of serial groups set (`serial: true`, `serial_groups` or `max_in_flight`). Whenever a build for that job would be scheduled and we check for if the job has hit max in flight, it would unnecessarily recreate all the serial groups in the database. #2724
 
 #### <sub><sup><a name="5039" href="#5039">:link:</a></sup></sub> fix
 
