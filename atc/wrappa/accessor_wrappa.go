@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/auditor"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
 
@@ -12,16 +11,16 @@ func NewAccessorWrappa(
 	logger lager.Logger,
 	accessorFactory accessor.AccessFactory,
 	aud auditor.Auditor,
-	userFactory db.UserFactory,
+	userTracker accessor.UserTracker,
 ) *AccessorWrappa {
-	return &AccessorWrappa{logger, accessorFactory, aud, userFactory}
+	return &AccessorWrappa{logger, accessorFactory, aud, userTracker}
 }
 
 type AccessorWrappa struct {
 	logger          lager.Logger
 	accessorFactory accessor.AccessFactory
 	auditor         auditor.Auditor
-	userFactory     db.UserFactory
+	userTracker     accessor.UserTracker
 }
 
 func (w *AccessorWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
@@ -34,7 +33,7 @@ func (w *AccessorWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			w.accessorFactory,
 			name,
 			w.auditor,
-			w.userFactory,
+			w.userTracker,
 		)
 	}
 

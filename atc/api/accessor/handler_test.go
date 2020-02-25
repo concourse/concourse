@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
-	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,7 +22,7 @@ var _ = Describe("Handler", func() {
 		fakeAccessorFactory *accessorfakes.FakeAccessFactory
 		fakeHandler         *accessorfakes.FakeHandler
 		fakeAuditor         *auditorfakes.FakeAuditor
-		fakeUserFactory     *dbfakes.FakeUserFactory
+		fakeUserTracker     *accessorfakes.FakeUserTracker
 		fakeAccess          *accessorfakes.FakeAccess
 		accessorHandler     http.Handler
 
@@ -37,7 +36,7 @@ var _ = Describe("Handler", func() {
 		fakeAccessorFactory = new(accessorfakes.FakeAccessFactory)
 		fakeHandler = new(accessorfakes.FakeHandler)
 		fakeAuditor = new(auditorfakes.FakeAuditor)
-		fakeUserFactory = new(dbfakes.FakeUserFactory)
+		fakeUserTracker = new(accessorfakes.FakeUserTracker)
 		fakeAccess = new(accessorfakes.FakeAccess)
 
 		var err error
@@ -59,7 +58,7 @@ var _ = Describe("Handler", func() {
 				fakeAccessorFactory,
 				"some-action",
 				fakeAuditor,
-				fakeUserFactory,
+				fakeUserTracker,
 			)
 		})
 
@@ -84,7 +83,7 @@ var _ = Describe("Handler", func() {
 				})
 
 				It("doesn't track the request", func() {
-					Expect(fakeUserFactory.CreateOrUpdateUserCallCount()).To(Equal(0))
+					Expect(fakeUserTracker.CreateOrUpdateUserCallCount()).To(Equal(0))
 				})
 
 				It("audits the anonymous request", func() {
@@ -113,7 +112,7 @@ var _ = Describe("Handler", func() {
 
 				Context("when the user factory fails", func() {
 					BeforeEach(func() {
-						fakeUserFactory.CreateOrUpdateUserReturns(nil, errors.New("nope"))
+						fakeUserTracker.CreateOrUpdateUserReturns(errors.New("nope"))
 					})
 
 					It("returns a server error", func() {
@@ -123,13 +122,12 @@ var _ = Describe("Handler", func() {
 
 				Context("when the user factory succeeds", func() {
 					BeforeEach(func() {
-						fakeUser := new(dbfakes.FakeUser)
-						fakeUserFactory.CreateOrUpdateUserReturns(fakeUser, nil)
+						fakeUserTracker.CreateOrUpdateUserReturns(nil)
 					})
 
 					It("updates the requesting user's activity", func() {
-						Expect(fakeUserFactory.CreateOrUpdateUserCallCount()).To(Equal(1))
-						username, connector, sub := fakeUserFactory.CreateOrUpdateUserArgsForCall(0)
+						Expect(fakeUserTracker.CreateOrUpdateUserCallCount()).To(Equal(1))
+						username, connector, sub := fakeUserTracker.CreateOrUpdateUserArgsForCall(0)
 						Expect(username).To(Equal("some-user"))
 						Expect(connector).To(Equal("some-connector"))
 						Expect(sub).To(Equal("some-sub"))
