@@ -3,260 +3,176 @@ package exec_test
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
-	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars/varsfakes"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("CheckStep", func() {
-	var (
-		ctx    context.Context
-		cancel func()
 
-		fakeWorker          *workerfakes.FakeWorker
+	var (
+		fakeRunState        *execfakes.FakeRunState
+		fakeResourceFactory *resourcefakes.FakeResourceFactory
 		fakePool            *workerfakes.FakePool
 		fakeStrategy        *workerfakes.FakeContainerPlacementStrategy
-		fakeResourceFactory *resourcefakes.FakeResourceFactory
-		fakeSecretManager   *credsfakes.FakeSecrets
 		fakeDelegate        *execfakes.FakeCheckDelegate
-		checkPlan           *atc.CheckPlan
-
-		interpolatedResourceTypes atc.VersionedResourceTypes
-
-		containerMetadata = db.ContainerMetadata{
-			Type:     db.ContainerTypeCheck,
-			StepName: "some-step",
-		}
-
-		stepMetadata = exec.StepMetadata{
-			ResourceConfigID:   1,
-			BaseResourceTypeID: 1,
-			TeamID:             123,
-		}
-
-		owner = db.NewResourceConfigCheckSessionContainerOwner(stepMetadata.ResourceConfigID, stepMetadata.BaseResourceTypeID, db.ContainerOwnerExpiries{
-			Min: 5 * time.Minute,
-			Max: 1 * time.Hour,
-		})
-
-		repo  *build.Repository
-		state *execfakes.FakeRunState
+		fakeClient          *workerfakes.FakeClient
 
 		checkStep *exec.CheckStep
-		stepErr   error
+		checkPlan atc.CheckPlan
 
-		planID atc.PlanID
+		err error
 	)
 
 	BeforeEach(func() {
-		ctx, cancel = context.WithCancel(context.Background())
-
-		planID = atc.PlanID("some-plan-id")
-
-		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
-		fakePool = new(workerfakes.FakePool)
-		fakeWorker = new(workerfakes.FakeWorker)
+		fakeRunState = new(execfakes.FakeRunState)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
-
-		fakeSecretManager = new(credsfakes.FakeSecrets)
-		fakeSecretManager.GetReturnsOnCall(0, "super-secret-source", nil, true, nil)
-		fakeSecretManager.GetReturnsOnCall(1, "source", nil, true, nil)
-
+		fakePool = new(workerfakes.FakePool)
+		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeDelegate = new(execfakes.FakeCheckDelegate)
-
-		repo = build.NewRepository()
-		state = new(execfakes.FakeRunState)
-		state.ArtifactRepositoryReturns(repo)
-
-		interpolatedResourceTypes = atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "super-secret-source"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-		}
-
-		checkPlan = &atc.CheckPlan{
-			Name:                   "some-name",
-			Type:                   "some-resource-type",
-			Source:                 atc.Source{"some": "super-secret-source"},
-			Tags:                   []string{"some", "tags"},
-			Timeout:                "10s",
-			FromVersion:            atc.Version{"some-custom": "version"},
-			VersionedResourceTypes: interpolatedResourceTypes,
-		}
-	})
-
-	AfterEach(func() {
-		cancel()
+		fakeClient = new(workerfakes.FakeClient)
 	})
 
 	JustBeforeEach(func() {
-		plan := atc.Plan{
-			ID:    atc.PlanID(planID),
-			Check: checkPlan,
-		}
+		containerMetadata := db.ContainerMetadata{}
+		stepMetadata := exec.StepMetadata{}
+		planID := atc.PlanID("some-plan-id")
 
 		checkStep = exec.NewCheckStep(
-			plan.ID,
-			*plan.Check,
+			planID,
+			checkPlan,
 			stepMetadata,
 			fakeResourceFactory,
 			containerMetadata,
 			fakeStrategy,
 			fakePool,
 			fakeDelegate,
+			fakeClient,
 		)
 
-		stepErr = checkStep.Run(ctx, state)
+		err = checkStep.Run(context.Background(), fakeRunState)
 	})
 
-	Context("when find or choosing worker succeeds", func() {
-		var (
-			fakeResource *resourcefakes.FakeResource
-			versions     []atc.Version
-		)
-
+	Context("having credentials in the config", func() {
 		BeforeEach(func() {
-			fakeWorker.NameReturns("some-worker")
-			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
-
-			fakeResource = new(resourcefakes.FakeResource)
-			fakeResourceFactory.NewResourceReturns(fakeResource)
+			checkPlan = atc.CheckPlan{
+				Source: atc.Source{"some": "((super-secret-source))"},
+			}
 		})
 
-		It("finds or chooses a worker", func() {
-			Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-			_, _, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
-
-			Expect(actualOwner).To(Equal(owner))
-
-			Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-				ResourceType: "some-resource-type",
-			}))
-			Expect(actualContainerSpec.Tags).To(Equal([]string{"some", "tags"}))
-			Expect(actualContainerSpec.TeamID).To(Equal(123))
-			Expect(actualContainerSpec.Env).To(Equal(stepMetadata.Env()))
-
-			Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
-				ResourceType:  "some-resource-type",
-				Tags:          atc.Tags{"some", "tags"},
-				TeamID:        stepMetadata.TeamID,
-				ResourceTypes: interpolatedResourceTypes,
-			}))
-
-			Expect(strategy).To(Equal(fakeStrategy))
-		})
-
-		It("creates a container with the correct type and owner", func() {
-			_, _, delegate, actualOwner, actualContainerMetadata, actualContainerSpec, actualResourceTypes := fakeWorker.FindOrCreateContainerArgsForCall(0)
-
-			Expect(actualOwner).To(Equal(owner))
-
-			Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-				ResourceType: "some-resource-type",
-			}))
-			Expect(actualContainerMetadata).To(Equal(containerMetadata))
-			Expect(actualContainerSpec.Tags).To(Equal([]string{"some", "tags"}))
-			Expect(actualContainerSpec.TeamID).To(Equal(123))
-			Expect(actualContainerSpec.Env).To(Equal(stepMetadata.Env()))
-
-			Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
-			Expect(delegate).To(Equal(fakeDelegate))
-		})
-
-		Context("when the timeout cannot be parsed", func() {
-			BeforeEach(func() {
-				checkPlan.Timeout = "bad-value"
-			})
-
-			It("fails to parse the timeout and returns the error", func() {
-				Expect(stepErr).To(HaveOccurred())
-				Expect(stepErr).To(MatchError("time: invalid duration bad-value"))
-			})
-		})
-
-		It("times out after the specified timeout", func() {
-			now := time.Now()
-			ctx, _, _ := fakeResource.CheckArgsForCall(0)
-			deadline, _ := ctx.Deadline()
-			Expect(deadline).Should(BeTemporally("~", now.Add(10*time.Second), time.Second))
-		})
-
-		It("invokes resourceFactory -> NewResource with the correct arguments", func() {
-			actualSource, actualParams, actualFromVersion := fakeResourceFactory.NewResourceArgsForCall(0)
-			Expect(actualSource).To(Equal(checkPlan.Source))
-			Expect(actualParams).To(BeNil())
-			Expect(actualFromVersion).To(Equal(checkPlan.FromVersion))
-		})
-
-		It("runs the check resource action", func() {
-			Expect(fakeResource.CheckCallCount()).To(Equal(1))
-		})
-
-		Context("when resource check succeeds", func() {
-			BeforeEach(func() {
-				fakeResource.CheckReturns(versions, nil)
-			})
-
-			It("saves the versions", func() {
-				Expect(fakeDelegate.SaveVersionsCallCount()).To(Equal(1))
-
-				actualVersions := fakeDelegate.SaveVersionsArgsForCall(0)
-				Expect(actualVersions).To(Equal(versions))
-			})
-		})
-
-		Context("when performing the check fails", func() {
-			BeforeEach(func() {
-				fakeResource.CheckReturns(nil, errors.New("nope"))
-			})
-
-			It("returns error", func() {
-				Expect(stepErr).To(HaveOccurred())
-			})
-
-			It("is not successful", func() {
-				Expect(checkStep.Succeeded()).To(BeFalse())
-			})
-		})
-
-		Context("when find or choosing a worker fails", func() {
-			disaster := errors.New("nope")
+		Context("having cred evaluation failing", func() {
+			var expectedErr error
 
 			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerForContainerReturns(nil, disaster)
+				expectedErr = errors.New("creds-err")
+
+				fakeCredVarsTracker := new(varsfakes.FakeCredVarsTracker)
+				fakeCredVarsTracker.GetReturns(nil, false, expectedErr)
+
+				fakeDelegate.VariablesReturns(fakeCredVarsTracker)
 			})
 
-			It("returns the failure", func() {
-				Expect(stepErr).To(Equal(disaster))
-			})
-		})
-
-		Context("when find or creating a container fails", func() {
-			disaster := errors.New("nope")
-
-			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
-				fakeWorker.FindOrCreateContainerReturns(nil, disaster)
-			})
-
-			It("returns the failure", func() {
-				Expect(stepErr).To(Equal(disaster))
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(errors.Is(err, expectedErr)).To(BeTrue())
 			})
 		})
 	})
+
+	Context("having credentials in a resource type", func() {
+		BeforeEach(func() {
+			resTypes := atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Source: atc.Source{
+							"some-custom": "((super-secret-source))",
+						},
+					},
+				},
+			}
+
+			checkPlan = atc.CheckPlan{
+				Source:                 atc.Source{"some": "super-secret-source"},
+				VersionedResourceTypes: resTypes,
+			}
+		})
+
+		Context("having cred evaluation failing", func() {
+			var expectedErr error
+
+			BeforeEach(func() {
+				expectedErr = errors.New("creds-err")
+
+				fakeCredVarsTracker := new(varsfakes.FakeCredVarsTracker)
+				fakeCredVarsTracker.GetReturns(nil, false, expectedErr)
+
+				fakeDelegate.VariablesReturns(fakeCredVarsTracker)
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(errors.Is(err, expectedErr)).To(BeTrue())
+			})
+		})
+	})
+
+	Context("having a timeout that fails parsing", func() {
+		BeforeEach(func() {
+			checkPlan = atc.CheckPlan{
+				Timeout: "th1s_15_n07_r1gh7",
+			}
+		})
+
+		It("errors", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid duration"))
+		})
+	})
+
+	Context("with a resonable configuration", func() {
+		BeforeEach(func() {
+			checkPlan = atc.CheckPlan{
+				Timeout: "10s",
+			}
+		})
+
+		Context("having RunCheckStep erroring", func() {
+			var expectedErr error
+
+			BeforeEach(func() {
+				expectedErr = errors.New("run-check-step-err")
+
+				fakeClient.RunCheckStepReturns(nil, expectedErr)
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(errors.Is(err, expectedErr)).To(BeTrue())
+			})
+		})
+
+		Context("having SaveVersions failing", func() {
+			var expectedErr error
+
+			BeforeEach(func() {
+				expectedErr = errors.New("save-versions-err")
+
+				fakeDelegate.SaveVersionsReturns(expectedErr)
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(errors.Is(err, expectedErr)).To(BeTrue())
+			})
+		})
+	})
+
 })

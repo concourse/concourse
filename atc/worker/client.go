@@ -36,6 +36,19 @@ type Client interface {
 		filePath string,
 	) (io.ReadCloser, error)
 
+	RunCheckStep(
+		ctx context.Context,
+		logger lager.Logger,
+		owner db.ContainerOwner,
+		containerSpec ContainerSpec,
+		workerSpec WorkerSpec,
+		strategy ContainerPlacementStrategy,
+		containerMetadata db.ContainerMetadata,
+		resourceTypes atc.VersionedResourceTypes,
+		timeout time.Duration,
+		checkable resource.Resource,
+	) (result []atc.Version, err error)
+
 	RunTaskStep(
 		context.Context,
 		lager.Logger,
@@ -154,6 +167,66 @@ func (client *client) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, w
 	}
 
 	return worker.CreateVolume(logger, volumeSpec, workerSpec.TeamID, volumeType)
+}
+
+var checkProcessSpec = runtime.ProcessSpec{
+	Path: "/opt/resource/check",
+}
+
+func (client *client) RunCheckStep(
+	ctx context.Context,
+	logger lager.Logger,
+	owner db.ContainerOwner,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec,
+	strategy ContainerPlacementStrategy,
+	containerMetadata db.ContainerMetadata,
+	resourceTypes atc.VersionedResourceTypes,
+	timeout time.Duration,
+	checkable resource.Resource,
+) (result []atc.Version, err error) {
+	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
+		ctx,
+		logger,
+		owner,
+		containerSpec,
+		workerSpec,
+		strategy,
+	)
+	if err != nil {
+		err = fmt.Errorf("find or choose worker for container: %w", err)
+		return
+	}
+
+	container, err := chosenWorker.FindOrCreateContainer(
+		ctx,
+		logger,
+		&NoopImageFetchingDelegate{},
+		owner,
+		containerMetadata,
+		containerSpec,
+		resourceTypes,
+	)
+	if err != nil {
+		err = fmt.Errorf("find or create container: %w", err)
+		return
+	}
+
+	deadline, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	result, err = checkable.Check(deadline, checkProcessSpec, container)
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			err = fmt.Errorf("timed out after %v checking for new versions", timeout)
+			return
+		}
+
+		err = fmt.Errorf("check: %w", err)
+		return
+	}
+
+	return
 }
 
 func (client *client) RunTaskStep(

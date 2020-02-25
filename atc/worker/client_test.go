@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
@@ -214,6 +215,93 @@ var _ = Describe("Client", func() {
 				Expect(t).To(Equal(volumeType))
 			})
 		})
+	})
+
+	Describe("RunCheckStep", func() {
+		var (
+			// result []atc.Version
+			err, expectedErr error
+			fakeResource     *resourcefakes.FakeResource
+		)
+
+		BeforeEach(func() {
+			fakeResource = new(resourcefakes.FakeResource)
+		})
+
+		JustBeforeEach(func() {
+			owner := new(dbfakes.FakeContainerOwner)
+			containerSpec := worker.ContainerSpec{}
+			fakeStrategy := new(workerfakes.FakeContainerPlacementStrategy)
+			workerSpec := worker.WorkerSpec{}
+			fakeResourceTypes := atc.VersionedResourceTypes{}
+
+			_, err = client.RunCheckStep(
+				context.Background(),
+				logger,
+				owner,
+				containerSpec,
+				workerSpec,
+				fakeStrategy,
+				metadata,
+				fakeResourceTypes,
+				1*time.Nanosecond,
+				fakeResource,
+			)
+		})
+
+		Context("faling to find worker for container", func() {
+			BeforeEach(func() {
+				expectedErr = errors.New("find-worker-err")
+
+				fakePool.FindOrChooseWorkerForContainerReturns(nil, expectedErr)
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(errors.Is(err, expectedErr)).To(BeTrue())
+			})
+		})
+
+		Context("having found a worker", func() {
+			var fakeWorker *workerfakes.FakeWorker
+
+			BeforeEach(func() {
+				fakeWorker = new(workerfakes.FakeWorker)
+				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
+			})
+
+			Context("failing to find or create container in the worker", func() {
+				BeforeEach(func() {
+					expectedErr = errors.New("find-or-create-container-err")
+					fakeWorker.FindOrCreateContainerReturns(nil, expectedErr)
+				})
+
+				It("errors", func() {
+					Expect(errors.Is(err, expectedErr)).To(BeTrue())
+				})
+			})
+
+			Context("having found a container", func() {
+				var fakeContainer *workerfakes.FakeContainer
+
+				BeforeEach(func() {
+					fakeContainer = new(workerfakes.FakeContainer)
+					fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+				})
+
+				Context("check failing", func() {
+					BeforeEach(func() {
+						expectedErr = errors.New("check-err")
+						fakeResource.CheckReturns(nil, expectedErr)
+					})
+
+					It("errors", func() {
+						Expect(errors.Is(err, expectedErr)).To(BeTrue())
+					})
+				})
+			})
+		})
+
 	})
 
 	Describe("RunGetStep", func() {

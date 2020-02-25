@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 )
 
@@ -25,6 +24,7 @@ type CheckStep struct {
 	pool              worker.Pool
 	delegate          CheckDelegate
 	succeeded         bool
+	workerClient      worker.Client
 }
 
 //go:generate counterfeiter . CheckDelegate
@@ -44,6 +44,7 @@ func NewCheckStep(
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
 	delegate CheckDelegate,
+	client worker.Client,
 ) *CheckStep {
 	return &CheckStep{
 		planID:            planID,
@@ -54,6 +55,7 @@ func NewCheckStep(
 		pool:              pool,
 		strategy:          strategy,
 		delegate:          delegate,
+		workerClient:      client,
 	}
 }
 
@@ -72,6 +74,12 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
+		return err
+	}
+
+	timeout, err := time.ParseDuration(step.plan.Timeout)
+	if err != nil {
+		logger.Error("failed-to-parse-timeout", err)
 		return err
 	}
 
@@ -105,56 +113,31 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 		expires,
 	)
 
-	chosenWorker, err := step.pool.FindOrChooseWorkerForContainer(
+	checkable := step.resourceFactory.NewResource(
+		source,
+		nil,
+		step.plan.FromVersion,
+	)
+
+	result, err := step.workerClient.RunCheckStep(
 		ctx,
 		logger,
 		owner,
 		containerSpec,
 		workerSpec,
 		step.strategy,
-	)
-	if err != nil {
-		logger.Error("failed-to-find-or-choose-worker", err)
-		return err
-	}
 
-	container, err := chosenWorker.FindOrCreateContainer(
-		ctx,
-		logger,
-		step.delegate,
-		owner,
 		step.containerMetadata,
-		containerSpec,
 		resourceTypes,
+
+		timeout,
+		checkable,
 	)
 	if err != nil {
-		logger.Error("failed-to-find-or-create-container", err)
-		return err
+		return fmt.Errorf("run check step: %w", err)
 	}
 
-	timeout, err := time.ParseDuration(step.plan.Timeout)
-	if err != nil {
-		logger.Error("failed-to-parse-timeout", err)
-		return err
-	}
-
-	deadline, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	processSpec := runtime.ProcessSpec{
-		Path: "/opt/resource/check",
-	}
-
-	checkable := step.resourceFactory.NewResource(source, nil, step.plan.FromVersion)
-	versions, err := checkable.Check(deadline, processSpec, container)
-	if err != nil {
-		if err == context.DeadlineExceeded {
-			return fmt.Errorf("Timed out after %v while checking for new versions", timeout)
-		}
-		return err
-	}
-
-	err = step.delegate.SaveVersions(versions)
+	err = step.delegate.SaveVersions(result)
 	if err != nil {
 		logger.Error("failed-to-save-versions", err)
 		return err
