@@ -55,6 +55,7 @@ view :
         , dropAreas : List PipelineGrid.DropArea
         , groupCardsHeight : Float
         , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
+        , isCached : Bool
         }
     -> Group
     -> Html Message
@@ -131,11 +132,12 @@ hdView :
     { pipelineRunningKeyframes : String
     , pipelinesWithResourceErrors : Dict ( String, String ) Bool
     , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
+    , isCached : Bool
     }
     -> { a | userState : UserState }
     -> Group
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs } session g =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, isCached } session g =
     let
         orderedPipelines =
             g.pipelines
@@ -165,6 +167,7 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs } s
                                     pipelineJobs
                                         |> Dict.get ( p.teamName, p.name )
                                         |> Maybe.withDefault []
+                                , isCached = isCached
                                 }
                         )
     in
@@ -207,6 +210,7 @@ pipelineCardView :
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
             , query : String
             , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
+            , isCached : Bool
         }
     ->
         { bounds : PipelineGrid.Bounds
@@ -262,7 +266,7 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
              , style "width" "100%"
              , attribute "data-pipeline-name" pipeline.name
              ]
-                ++ (if String.isEmpty params.query then
+                ++ (if not params.isCached && String.isEmpty params.query then
                         [ attribute
                             "ondragstart"
                             "event.dataTransfer.setData('text/plain', '');"
@@ -310,6 +314,7 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
                 , pipelineRunningKeyframes = params.pipelineRunningKeyframes
                 , userState = session.userState
                 , query = params.query
+                , isCached = params.isCached
                 }
             ]
         ]

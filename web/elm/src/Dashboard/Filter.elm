@@ -100,10 +100,10 @@ pipelineFilter pf existingJobs pipeline =
         Status sf ->
             case sf of
                 PipelineStatus ps ->
-                    pipeline |> Pipeline.pipelineStatus jobsForPipeline |> equal ps
+                    pipeline |> Pipeline.pipelineStatus False jobsForPipeline |> equal ps
 
                 PipelineRunning ->
-                    pipeline |> Pipeline.pipelineStatus jobsForPipeline |> isRunning
+                    pipeline |> Pipeline.pipelineStatus False jobsForPipeline |> isRunning
 
         FuzzyName term ->
             pipeline.name |> Simple.Fuzzy.match term

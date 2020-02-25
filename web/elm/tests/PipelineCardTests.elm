@@ -4,6 +4,7 @@ import Application.Application as Application
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import DashboardTests exposing (afterSeconds, amber, apiData, blue, brown, circularJobs, darkGrey, fadedGreen, givenDataAndUser, givenDataUnauthenticated, green, iconSelector, job, jobWithNameTransitionedAt, lightGrey, middleGrey, orange, otherJob, red, running, userWithRoles, whenOnDashboard, white)
+import Data
 import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
@@ -197,7 +198,7 @@ all =
                         , style "height" "47px"
                         ]
             ]
-        , test "has 'move' cursor when not searching" <|
+        , test "has 'move' cursor when not searching and result fetched" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -241,6 +242,30 @@ all =
                     |> Tuple.first
                     |> Application.update
                         (ApplicationMsgs.Update <| Msgs.FilterMsg "pipeline")
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find
+                        [ class "card"
+                        , containing [ text "pipeline" ]
+                        ]
+                    |> Query.hasNot [ style "cursor" "move" ]
+        , test "does not have 'move' cursor when rendering based on cache" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (CachedPipelinesReceived <|
+                            Ok
+                                [ { id = 0
+                                  , name = "pipeline"
+                                  , paused = False
+                                  , public = True
+                                  , teamName = "team"
+                                  , groups = []
+                                  }
+                                ]
+                        )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find
@@ -367,6 +392,27 @@ all =
                             |> Common.queryView
                             |> findBanner
                             |> Query.has [ style "height" "7px" ]
+                , test "is grey when pipeline is cached" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (CachedPipelinesReceived <|
+                                    Ok
+                                        [ { id = 0
+                                          , name = "pipeline"
+                                          , paused = True
+                                          , public = True
+                                          , teamName = "team"
+                                          , groups = []
+                                          }
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> findBanner
+                            |> isSolid lightGrey
                 , test "is blue when pipeline is paused" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -590,6 +636,27 @@ all =
                                 |> Common.queryView
                                 |> findBanner
                                 |> Query.has [ style "width" "8px" ]
+                    , test "is grey when pipeline is cached" <|
+                        \_ ->
+                            whenOnDashboard { highDensity = True }
+                                |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
+                                |> Tuple.first
+                                |> Application.handleDelivery
+                                    (CachedPipelinesReceived <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = True
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
+                                    )
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> findBanner
+                                |> isSolid lightGrey
                     , test "is blue when pipeline is paused" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
@@ -1262,6 +1329,55 @@ all =
                                 |> findStatusText
                                 |> Query.has [ text "paused" ]
                     ]
+                , describe "when a pipeline is based on cache" <|
+                    let
+                        setup =
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    [ { id = 0, name = "team" } ]
+                                |> Tuple.first
+                                |> Application.handleDelivery
+                                    (CachedPipelinesReceived <|
+                                        Ok
+                                            [ { id = 0
+                                              , name = "pipeline"
+                                              , paused = True
+                                              , public = True
+                                              , teamName = "team"
+                                              , groups = []
+                                              }
+                                            ]
+                                    )
+                                |> Tuple.first
+                                |> Common.queryView
+                    in
+                    [ test "status icon is grey pending" <|
+                        \_ ->
+                            setup
+                                |> findStatusIcon
+                                |> Query.has
+                                    (iconSelector
+                                        { size = "20px"
+                                        , image = "ic-pending-grey.svg"
+                                        }
+                                        ++ [ style "background-size" "contain" ]
+                                    )
+                    , test "status text is grey" <|
+                        \_ ->
+                            setup
+                                |> findStatusText
+                                |> Query.has [ style "color" lightGrey ]
+                    , test "status text says 'cached'" <|
+                        \_ ->
+                            setup
+                                |> findStatusText
+                                |> Query.has [ text "cached" ]
+                    , test "pipeline card is faded" <|
+                        \_ ->
+                            setup
+                                |> Query.find [ class "card" ]
+                                |> Query.has [ style "opacity" "0.45" ]
+                    ]
                 , describe "when pipeline is pending" <|
                     [ test "status icon is grey" <|
                         \_ ->
@@ -1294,7 +1410,7 @@ all =
                                 |> findStatusText
                                 |> Query.has
                                     [ text "pending" ]
-                    , test "when running, status text says 'pending'" <|
+                    , test "when running, status text says 'running'" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> pipelineWithStatus

@@ -448,7 +448,9 @@ precomputeJobMetadata model =
             pipelinesWithJobs
                 |> List.map (\( key, jobs ) -> ( key, DashboardPreview.groupByRank jobs ))
                 |> Dict.fromList
-        , pipelineJobs = pipelinesWithJobs |> Dict.fromList
+        , pipelineJobs =
+            pipelinesWithJobs
+                |> Dict.fromList
     }
 
 
@@ -817,6 +819,7 @@ pipelinesView :
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
             , pipelines : FetchResult (List Pipeline)
+            , jobs : FetchResult (List Concourse.Job)
             , dragState : DragState
             , dropState : DropState
             , now : Maybe Time.Posix
@@ -840,6 +843,17 @@ pipelinesView session params =
             Filter.filterGroups params.pipelineJobs params.query teams pipelines
                 |> List.sortWith (Group.ordering session)
 
+        isCached =
+            case ( params.pipelines, params.jobs ) of
+                ( Cached _, _ ) ->
+                    True
+
+                ( _, Cached _ ) ->
+                    True
+
+                _ ->
+                    False
+
         groupViews =
             filteredGroups
                 |> (if params.highDensity then
@@ -848,6 +862,7 @@ pipelinesView session params =
                                 { pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                 , pipelineJobs = params.pipelineJobs
+                                , isCached = isCached
                                 }
                                 session
                             )
@@ -881,6 +896,7 @@ pipelinesView session params =
                                     , dropAreas = layout.dropAreas
                                     , groupCardsHeight = layout.height
                                     , pipelineJobs = params.pipelineJobs
+                                    , isCached = isCached
                                     }
                                     g
                                     |> (\html ->
