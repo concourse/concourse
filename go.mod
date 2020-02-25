@@ -199,7 +199,7 @@ require (
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
-	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
+	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6
 	google.golang.org/api v0.1.0 // indirect
