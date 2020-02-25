@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
-	"github.com/containerd/typeurl"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -249,30 +248,9 @@ func (c *Container) CurrentBandwidthLimits() (garden.BandwidthLimits, error) {
 	return garden.BandwidthLimits{}, nil
 }
 
-func (c *Container) getOCISpec() (*specs.Spec, error) {
-	info, err := c.container.Info(context.Background(), containerd.WithoutRefreshedMetadata)
-	if err != nil {
-		return nil, fmt.Errorf("get info: %w", err)
-	}
-
-	if info.Spec == nil || info.Spec.Value == nil {
-		return nil, nil
-	}
-
-	v, err := typeurl.UnmarshalAny(info.Spec)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal any: %w", err)
-	}
-	spec, ok := v.(*specs.Spec)
-	if !ok {
-		return nil, fmt.Errorf("get info returned %T, expected *specs.Spec", spec)
-	}
-	return spec, nil
-}
-
 // CurrentCPULimits returns the CPU shares allocated to the container
 func (c *Container) CurrentCPULimits() (garden.CPULimits, error) {
-	spec, err := c.getOCISpec()
+	spec, err := c.container.Spec(context.Background())
 	if err != nil {
 		return garden.CPULimits{}, err
 	}
@@ -297,7 +275,7 @@ func (c *Container) CurrentDiskLimits() (garden.DiskLimits, error) {
 
 // CurrentMemoryLimits returns the memory limit in bytes allocated to the container
 func (c *Container) CurrentMemoryLimits() (limits garden.MemoryLimits, err error) {
-	spec, err := c.getOCISpec()
+	spec, err := c.container.Spec(context.Background())
 	if err != nil {
 		return garden.MemoryLimits{}, err
 	}
