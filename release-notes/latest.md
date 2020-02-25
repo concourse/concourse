@@ -1,64 +1,245 @@
-This is our first beta/pre release, we wanted to make it very clear that this release has some huge changes to a core component of Concourse; the build scheduler and the algorithm. Even though this release was thoroughly tested for months, we want to be cautious about relaying that the algorithm component is responsible for finding input versions for a job, and that is a dangerous place for any bug because it can result in unexpected builds being scheduled. If you are running a production environment, it might be wise to wait on a future stable release before upgrading to this major version.
+> **If you are running a production environment, it is probably wise to wait on
+> a future stable release before upgrading to this major version.**
 
-IMPORTANT: Please expect and prepare for some downtime when upgrading to 6.0. On our large scale deployments, we have seen 10-20 minutes of downtime in order to migrate the database but it will vary depending on the size of your deployment.
+This release bumps us to v6.0 for good reason: it's the first time we've
+changed how Concourse decides on the inputs for your jobs.
+
+A whole new algorithm for deciding job inputs has been implemented, which
+performs much better for large-scale Concourse instances with a ton of versions
+and builds. This algorithm works in a fundamentally different way, and in some
+situations will yield different results than the previous algorithm. Read on
+for more information!
+
+Even though this release has been tested at scale and in all kinds of ways, we
+want to be very cautious with it because we've pretty much replaced the "brain"
+of Concourse. If there *are* any bugs, given the nature of the beast, they
+could result in undesireable behavior such as shipping the wrong version from
+your pipeline.
+
+**IMPORTANT**: Please expect and prepare for some downtime when upgrading to
+v6.0. On our large scale deployments, we have seen 10-20 minutes of downtime in
+order to migrate the database but it will vary depending on the size of your
+deployment.
 
 #### <sub><sup><a name="3602" href="#3602">:link:</a></sup></sub> feature, breaking
 
-* Has this ever happened to you? "My Concourse is getting slower even though I'm not adding any new pipelines!" "The web nodes are always under such heavy load!" Well have no fear, because Algorithm V3 is here! #3602
+* > **vito**: Hey Clara, want to write the release notes for the new algorithm?  \
+  > **clarafu**: yeah sure whatever  \
+  > **vito**: Try to spice it up a bit, it's not really a sexy feature.  \
+  > **clarafu**: you got it boss
 
-  ![You'll say WOW every time!](https://concourse-ci.org/images/wow.gif)
+  Has this ever happened to you? "My Concourse is getting slower and slower
+  even though I'm not adding any new pipelines!" "The web nodes are always
+  under such heavy load!" "My database is constantly overloaded!"
 
-  You might be wondering, what is the algorithm and why do I care about it? Well, it is the heart and soul of Concourse because it is what determines the inputs for every build in your pipeline. If you want to read more about how the algorithm works, you can read [this section of the docs](_____).
+  Well have no fear, because Algorithm v3 is here! #3602
 
-  We have completely revamped the algorithm in order to increase scalibility and efficiency. The old algorithm used to load up all the resource versions, build inputs and build outputs into memory then number crunch to figure out what the next inputs would be. This method was fine until you have a huge deployment with thousands or even millions of versions or build inputs/outputs, which the algorithm would need to hold in memory. 
+  <p align="center">
+    <img width="460" height="300" src="https://storage.googleapis.com/concourse-media-assets/wow.gif">
+  </p>
 
-  With the new algorithm, it will only query for the specific data that it needs at the time it needs it. This will allow it to be scalable, as the `web` node resource usage will no longer be dependent on the size of the dataset.
+  You might be wondering, what is the algorithm and why do I care about it? YOU
+  FOOL! The algorithm is the heart and soul of Concourse! The algorithm is what
+  determines the inputs for every newly created build in your pipeline.
 
-  You can think of the difference in the context of going to the grocery store to buy a specific brand of bacon. The old algorithm would've gone to the grocery store and bought all the different brands of bacon that it had ever purchased. It would then bring home all the bacon and then figure out which brand it actually needed. It's possible that it didn't need to use the majority of the bacon, and most of it goes to waste. Think about how much money would be spent doing this and how inefficient it is! By comparison, the new algorithm would first figure out which brand of bacon it needs then go to the grocery store and grab that brand. It might need to take multiple trips to the store if it figures out that the brand isn't the one it wants, but in the end, it'll still be more efficient.
+  The main goals of the new algorithm is efficiency and correctness.
 
-  If you still are not convinced with the bacon metaphor, here is a few metrics to show the difference between the old and new algorithm. These metrics were taken off our large scale environment and the first metric is showing the database CPU usage. The database was completely pegged before the upgrade and after the upgrade, it has been sitting at an average of 65% CPU usage.
+  The old algorithm used to load up all the resource versions, build inputs,
+  and build outputs into memory then use brute-force to figure out what the
+  next inputs would be. This method worked well enough in most cases, but with
+  a long-lived deployment with thousands or even millions of versions or builds
+  it would start to put a lot of strain on the `web` and `db` nodes just to
+  load up the data set. This would theoretically get even worse when we change
+  resources to [collect all versions][collect-all-versions-issue] as more
+  versions would mean a larger dataset to process.
 
-  ![Database CPU Usage](https://concourse-ci.org/images/new-vs-old-db-cpu.png)
+  The new algorithm takes a very different approach which does not require the
+  entire dataset to be held in memory and cuts out nearly all of the "brute
+  force" aspect of the old algorithm. We even make use of fancy [`jsonb`
+  index][jsonb-index] functionality in Postgres; a successful build's set of
+  resource versions are stored in a table which we can quickly search to find
+  matching candidates when evaluating `passed` constraints.
 
-  This next metrics is showing database data transfer, where the left side of the graph shows the metric for the old algorithm and the right side shows the data transfer for the new algorithm after the upgrade.
+  Overall, this new approach dramatically reduces resource utilization of both
+  the `web` and `db` nodes. For a more detailed explanation of how the new
+  algorithm works, check out the [section on this in the v10 blog
+  post][v10-alg-update].
 
-  ![Database Data Transfer](https://concourse-ci.org/images/new-vs-old-data-transfer.png)
+  Before we get into the shiny charts showing the improved performance, let's
+  cover the breaking changes that the new algorithm needed.
 
-  There are two key breaking change with the behaviour of this new algorithm. The first breaking change is that for inputs with passed constraints, rather than using resource versions to determine the versions considered to be inputs, it will use the passed constraints job's build inputs. It might make more sense with an example.
+  [jsonb-index]: https://www.postgresql.org/docs/current/datatype-json.html#JSON-INDEXING
+  [v10-alg-update]: https://blog.concourse-ci.org/core-roadmap-towards-v10/#issue-3602-a-new-algorithm
+  [collect-all-versions-issue]: https://github.com/concourse/concourse/issues/5238
 
-  ![Difference in behavior between old and new algorithm](https://concourse-ci.org/images/old-vs-new-algorithm.png)
+* **Breaking change #1:** for inputs with `passed` constraints, the algorithm
+  now chooses versions based on the *build history* of each job in the `passed`
+  constraint, rather than *version history* of the input's resource.
 
-  Let's say we have a pipeline that has one resource that is used as an input to two jobs and one of the job is a passed constraint to the other. This resource has three versions and the first job that directly depends on that resource has ran twice producing two builds, each with different resource versions; v3 and v1. The difference between the old and new algorithm comes in when we take a look at what version will be used for a new build of the second job.
+  This might make more sense with an example. Let's say we have a pipeline with
+  a resource (`Resource`) that is used as an input to two jobs (`Job 1` and
+  `Job 2`):
 
-  In the old algorithm, it would use v3 as the input version to the second job (as shown by the orange line). This is because the old algorithm would use the resource versions to figure out what version will be next, and since there are no version constraints, it grabs the latest. And as long as that latest version has passed through the first job, it satisfies the passed constraint.
+  ![Difference in behavior between old and new algorithm](https://storage.googleapis.com/concourse-media-assets/old-vs-new-algorithm-diagram.png)
 
-  Now, in the new algorithm it will use v1 as the input version (as shown by the green line). The new algorithm figures out the input versions for inputs with passed constraints using the build inputs of the passed constraint job. This means that if the latest build of the first job used an old version of the resource, that will be the version used to trigger off the downstream jobs.
+  `Resource` has three versions: `v1` (oldest), `v2`, and `v3` (newest).
 
-  The second breaking change is a difference between the rules behind whether or not a new build will be scheduled for a set on versions. What that means is after the algorithm determines a set of input versions that will be used for the next build of this job, the scheduler will take that set of versions and figure out whether or not a new build should be scheduled.
+  `Job 1` has `Resource` as an unconstrained input, so it will always grab the
+  latest version available - `v3`.
 
-  In the old algorithm, the scheduler would only schedule a new build if any of the versions for the [triggerable]() resources has never been run before by **any past builds** of the job. In other words, if the algorithm runs and computes an input version has been used to run a build 2 months ago, the scheduler would not schedule a new build because the version has been used by a past build already.
+  `Job 2`, however, has `Resource` as an input but with a `passed` constraint
+  that lists `Job 1`. `Job 1` has run twice, producing two builds such that the
+  most recent build has actually used an *older* version than the prior build -
+  perhaps due to `v1` being pinned by a pipeline operator. The difference
+  between the old and new algorithm is in which version will be used for a new
+  build of `Job 2`.
 
-  In the new algorithm, the scheduler will schedule a new build if any of the versions for the [triggerable]() resources has never run by the **previous build** of the job. What this means is if the algorithm runs and computes an input version, the scheduler will create a new build as long as that version is different than the previous build's version for that same input. Even if that version has been used by a build 2 months ago, the scheduler will schedule a new build as long as it has not been used by the previous build.
+  With the old algorithm, `Job 2` would end up with `v3` as the input version
+  as shown by the orange line. This is because the old algorithm would start
+  from the *latest version* and then check if that version satisfies the
+  `passed` constraints.
 
-  With this new behavior of the algorithm, if there are any input versions that are different than the previous build, it will trigger a new build. This can be undesirable for some users with the way many of you are using [pinning]() in order to run a build with old versions, because it would result in the situation where input versions that have previously run in an old build being triggered again unexpectedly. Here's an example to describe the kind of situation that can happen:
+  With the new algorithm, `Job 2` will instead end up with `v1`, as shown by
+  the green line. This is because the new algorithm starts with the versions
+  from the *latest build* of the jobs listed in `passed` constraints, searching
+  through older builds if necessary.
 
-  Let's say you have a job with an input and it has run twice, producing two builds.
+  The resulting behavior is that pipelines will now "converge" on whatever
+  inputs were decided upstream, propagating things like pinned versions
+  downstream more effectively.
 
-  ![Example job with two builds](https://concourse-ci.org/images/new-pinning-behavior-1.png)
+  This approach to selecting versions is much more efficient because it cuts
+  out the "brute force" aspect: by treating the `passed` jobs as the source of
+  versions, we *inherently* only attempt versions which already satisfy the
+  constraints *and* passed through the same build together.
 
-  If I pin the input to an older version and trigger a new build (now theres a total of three builds) and then I unpin the version, with the old algorithm, we would expect that no more builds will be scheduled because we have previously ran with version v2 before. 
+  The remaining challenge then is to find versions which satisfy *all* of the
+  `passed` constraints, which the new algorithm does with a simple query
+  utilizing a `jsonb` index to perform a sort of 'set intersection' at the
+  database level. It's pretty neato!
 
-  ![Pin and unpin with old algorithm](https://concourse-ci.org/images/new-pinning-behavior-2.png)
+* **Breaking change #2:** for inputs with `trigger: true`, a new build will be
+  now triggered if the computed version is different from the version used in
+  the *prior build*, rather than searching the entire build history.
 
-  But with the new algorithm, another build would be triggered again for the latest version. This is because the versions determined for the next build of the job (which is v2 since it grabbed the latest version of the resource) is different than the last build's input versions (which is v1).
+  We think that this makes the pipeline easier to grok; as it allows you to
+  trust that the latest build of each job has used the currently desired
+  versions, rather than having to figure out that it didn't run because it ran
+  with your newly-pinned versions 2 months ago, when some of the other
+  non-trigger input versions may have been different.
 
-  ![Pin and unpin with new algorithm](https://concourse-ci.org/images/new-pinning-behavior-3.png)
+  To give an example, let's say you have a job that takes a resource as an
+  input with `trigger: true`. It currently has two builds: build 1 has run with
+  version `v1` of the resource and build 2 has run with `v2`.
 
-  This is to allow the current state of the builds to always reflect the current state of the versions. That being said, this behavior can be undesirable if I don't want another build to be created with the latest version everytime I pin and unpin a resource version because all I really care about is rerunning the job using an old version. This is where the next big feature of 6.0 comes in, the next feature outlined in these release notes will be the solution to this problem!
+  ![Example job with two builds](https://storage.googleapis.com/concourse-media-assets/new-pinning-behavior-1.png)
 
-  One thing to note is that with this huge restructuring of a major component of Concourse, there ought to be a lot of concern over the data migration that might happen along with it. This was something that was taken into huge consideration and rather than having one giant migration to move over all the build and input versions into a new format that is useable by the new algorithm, we decided to incrementally migrate it on demand. The algorithm will migrate data over to the new format only if it needs to, which means a less risky upgrade migration and possibly less data that needs to be moved over to this new format because of old data that is no longer used is not needed to be copied.
+  (TODO: make those borders solid)
 
-* Along with the new algorithm, we wanted to improve the transparency of showing why inputs are failing to find a proper set of versions for a build. In the preparation view of a pending build, if the algorithm is failing to find an appropriate set of versions it will give an error message for the inputs that it is failing on.
+  Next, let's say I pin the resource to `v1` because `v2` had an unintentional
+  breaking change and we need to wait for a later version to have a fix.
+  (Alternatively I could just disable the `v2` version and roll the dice on
+  `v3` - they both have the same net effect with the algorithm.)
+
+  With the old algorithm, I would need to manually trigger the job in order to
+  produce a build using the pinned version. This is because there already
+  existed a build using the pinned version `v1` so the old algorithm determined
+  that a new build was not needed to be scheduled.
+
+  With the new algorithm, a new build is produced automatically because the
+  pinned version `v1` is not equivalent to the version of the previous build,
+  `v2`.
+
+  ![Pinning with the new algorithm](https://storage.googleapis.com/concourse-media-assets/new-pinning-behavior-3.png)
+
+  Now if I unpin the version, another build would be triggered using the latest
+  version. This is because after unpinning the resource, the input version for
+  the next build becomes the latest version `v2` which is not equal to the
+  version `v1` used by the previous build.
+
+  ![Unpin with new algorithm](https://storage.googleapis.com/concourse-media-assets/new-pinning-behavior-4.png)
+
+  This is to allow the current state of the builds to always reflect the
+  current state of the versions.
+
+* **Breaking change #2:** version pinning and disabling now **only** affects
+  version selection for jobs which are immediately downstream of the resource.
+
+  Pinning and disabling versions should no longer be used as a way to choose
+  inputs for a specific job to re-run. It should only be used for when you want
+  to control an upstream dependency and propagate the newly desired version
+  through your entire pipeline.
+
+  To re-run a failed build with old versions, you should use the new build
+  re-running feature described later in the release notes. We found that this
+  was one of the most common use cases of pinning, and it's not what pinning
+  was originally designed for.
+
+  This change builds on the previous breaking change. Without this change, upon
+  pinning an old version that had gone through through a large pipeline with
+  `passed` constraints, all of the jobs would fire at once. That seemed unwise
+  and felt pretty unintuitive.
+
+  The new behavior is that the pinned version will be used for the first job,
+  which will trigger if the input has `trigger: true`. Upon the build
+  succeeding, this version would then propagate to downstream jobs by way of
+  the new `passed` constraint semantics (assuming they also have `trigger:
+  true`).
+
+* Ok, now that we're done with the breaking changes, let's take a look at the
+  metrics from our large-scale test environment and see if the whole thing was
+  worth it from an efficiency standpoint.
+
+  The first metric shows the database CPU utilization:
+
+  ![Database CPU Usage](https://storage.googleapis.com/concourse-media-assets/new-vs-old-db-cpu.png)
+
+  The left side shows that the CPU was completely pegged at 100% before the
+  upgrade. (Users were complaining.) On the right side, it shows the usage
+  after upgrading to 6.0, sitting around 65% CPU usage. This is still pretty
+  high, but keep in mind that we intentionally gave this environment a pretty
+  weak database machine so we don't just keep scaling up and pretending our
+  users have unlimited funds. Anything less than 100% usage here is a win.
+
+  This next metric is shows database data transfer:
+
+  ![Database Data Transfer](https://storage.googleapis.com/concourse-media-assets/new-vs-old-data-transfer.png)
+
+  This shows that after upgrading to 6.0 we do a *lot* less data transfer from
+  the database, because we no longer have to load the full algorithm dataset
+  into memory.
+
+  Not having to load the versions DB is also reflected in the amount of time it
+  took just do do it as part of scheduling:
+
+  ![Load VersionsDB machine hours](https://storage.googleapis.com/concourse-media-assets/algorithm-machine-hours.png)
+
+  This graph shows that at the time just before the upgrade, the `web` node was
+  spending 1 hour and 11 minutes of time per half-hour *just loading the
+  dataset*. This entire step is gone, as reflected by the graph ending upon the
+  upgrade to 6.0.
+
+* You may be wondering how the upgrade's data migration works with such a huge
+  change to how the algorithm deals with the data.
+
+  The answer is: *very carefully*.
+
+  If we were to do an in-place migration of all of the data to the new format
+  used by the algorithm, the upgrade would take forever. To give you an idea of
+  how long, even just adding a column to the `builds` table in our environment
+  took about 16 minutes. Now imagine that multiplied by all of the inputs and
+  outputs for each build.
+
+  So instead of doing it all at once in a migration on startup, the algorithm
+  will lazily migrate data for builds as it needs to. Overall, this should
+  result in very little work to do as most jobs will have a satisfiable set of
+  inputs without having to go too far back in the history of upstream jobs.
+
+* Along with the new algorithm, we wanted to improve the transparency of
+  showing why a build is pending and unable to determine its inputs. In the
+  preparation view of a pending build, if the algorithm is failing to find an
+  appropriate set of versions the UI will show the error message for the inputs
+  that cannot be satisfied.
 
 #### <sub><sup><a name="3704" href="#3704">:link:</a></sup></sub> feature, breaking
 
