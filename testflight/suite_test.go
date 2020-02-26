@@ -146,7 +146,7 @@ func downloadFly(atcUrl string) (string, error) {
 		return "", err
 	}
 	outFile.Close()
-	err = os.Chmod(outFile.Name(), 755)
+	err = outFile.Chmod(0755)
 	if err != nil {
 		return "", err
 	}
