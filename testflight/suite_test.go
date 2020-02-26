@@ -5,11 +5,14 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -40,7 +43,6 @@ type suiteConfig struct {
 
 var (
 	config = suiteConfig{
-		FlyBin:      "fly",
 		ATCURL:      "http://localhost:8080",
 		ATCUsername: "test",
 		ATCPassword: "test",
@@ -56,14 +58,14 @@ func TestTestflight(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	var err error
-	config.FlyBin, err = gexec.Build("github.com/concourse/concourse/fly")
-	Expect(err).ToNot(HaveOccurred())
-
 	atcURL := os.Getenv("ATC_URL")
 	if atcURL != "" {
 		config.ATCURL = atcURL
 	}
+
+	flyPath, err := downloadFly(config.ATCURL)
+	Expect(err).ToNot(HaveOccurred())
+	config.FlyBin = flyPath
 
 	atcUsername := os.Getenv("ATC_USERNAME")
 	if atcUsername != "" {
@@ -132,6 +134,35 @@ var _ = AfterEach(func() {
 
 	fly("destroy-pipeline", "-n", "-p", pipelineName)
 })
+
+func downloadFly(atcUrl string) (string, error) {
+	var flyPath string
+	client := concourse.NewClient(atcUrl, http.DefaultClient, false)
+	readCloser, _, err := client.GetCLIReader("amd64", runtime.GOOS)
+	if err != nil {
+		return flyPath, err
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return flyPath, err
+	}
+	flyPath = path.Join(cwd, "fly")
+	os.Remove(flyPath)
+	outFile, err := os.Create(flyPath)
+	if err != nil {
+		return flyPath, err
+	}
+	_, err = io.Copy(outFile, readCloser)
+	if err != nil {
+		return flyPath, err
+	}
+	outFile.Close()
+	err = os.Chmod(flyPath, 755)
+	if err != nil {
+		return flyPath, err
+	}
+	return flyPath, nil
+}
 
 func randomPipelineName() string {
 	guid, err := uuid.NewV4()
