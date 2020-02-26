@@ -426,31 +426,32 @@ toDashboardPipeline p =
     }
 
 
+groupBy : (a -> comparable) -> List a -> Dict comparable (List a)
+groupBy keyfn list =
+    -- From https://github.com/elm-community/dict-extra/blob/2.3.0/src/Dict/Extra.elm
+    List.foldr
+        (\x acc ->
+            Dict.update (keyfn x) (Maybe.map ((::) x) >> Maybe.withDefault [ x ] >> Just) acc
+        )
+        Dict.empty
+        list
+
+
 precomputeJobMetadata : Model -> Model
 precomputeJobMetadata model =
     let
         allJobs =
             model.jobs |> FetchResult.withDefault []
 
-        pipelinesWithJobs =
-            allJobs
-                |> List.map (\j -> ( j.teamName, j.pipelineName ))
-                |> List.Extra.unique
-                |> List.map
-                    (\( teamName, pipelineName ) ->
-                        allJobs
-                            |> List.filter (\j -> j.teamName == teamName && j.pipelineName == pipelineName)
-                            |> Tuple.pair ( teamName, pipelineName )
-                    )
+        pipelineJobs =
+            allJobs |> groupBy (\j -> ( j.teamName, j.pipelineName ))
     in
     { model
         | pipelineLayers =
-            pipelinesWithJobs
-                |> List.map (\( key, jobs ) -> ( key, DashboardPreview.groupByRank jobs ))
-                |> Dict.fromList
+            pipelineJobs
+                |> Dict.map (\_ jobs -> DashboardPreview.groupByRank jobs)
         , pipelineJobs =
-            pipelinesWithJobs
-                |> Dict.fromList
+            pipelineJobs
     }
 
 
