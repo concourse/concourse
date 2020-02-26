@@ -22,7 +22,7 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 			limit      int
 		)
 
-		logger := s.logger.Session("list-job-builds")
+		_ = s.logger.Session("list-job-builds")
 
 		jobName := r.FormValue(":job_name")
 		teamName := r.FormValue(":team_name")
