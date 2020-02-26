@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
 	"regexp"
 	"runtime"
 	"strings"
@@ -111,7 +110,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 var _ = SynchronizedAfterSuite(func() {
 }, func() {
-	gexec.CleanupBuildArtifacts()
+	os.Remove(config.FlyBin)
 })
 
 var _ = BeforeEach(func() {
@@ -136,32 +135,22 @@ var _ = AfterEach(func() {
 })
 
 func downloadFly(atcUrl string) (string, error) {
-	var flyPath string
 	client := concourse.NewClient(atcUrl, http.DefaultClient, false)
 	readCloser, _, err := client.GetCLIReader("amd64", runtime.GOOS)
 	if err != nil {
-		return flyPath, err
+		return "", err
 	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return flyPath, err
-	}
-	flyPath = path.Join(cwd, "fly")
-	os.Remove(flyPath)
-	outFile, err := os.Create(flyPath)
-	if err != nil {
-		return flyPath, err
-	}
+	outFile, err := ioutil.TempFile("", "fly")
 	_, err = io.Copy(outFile, readCloser)
 	if err != nil {
-		return flyPath, err
+		return "", err
 	}
 	outFile.Close()
-	err = os.Chmod(flyPath, 755)
+	err = os.Chmod(outFile.Name(), 755)
 	if err != nil {
-		return flyPath, err
+		return "", err
 	}
-	return flyPath, nil
+	return outFile.Name(), nil
 }
 
 func randomPipelineName() string {
