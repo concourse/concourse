@@ -69,18 +69,17 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 
 	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
 	if err != nil {
-		return err
+		return fmt.Errorf("resource config creds evaluation: %w", err)
 	}
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
-		return err
+		return fmt.Errorf("resource types creds evaluation: %w", err)
 	}
 
 	timeout, err := time.ParseDuration(step.plan.Timeout)
 	if err != nil {
-		logger.Error("failed-to-parse-timeout", err)
-		return err
+		return fmt.Errorf("timeout parse: %w", err)
 	}
 
 	containerSpec := worker.ContainerSpec{
@@ -139,8 +138,7 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 
 	err = step.delegate.SaveVersions(result)
 	if err != nil {
-		logger.Error("failed-to-save-versions", err)
-		return err
+		return fmt.Errorf("save versions: %w", err)
 	}
 
 	step.succeeded = true
