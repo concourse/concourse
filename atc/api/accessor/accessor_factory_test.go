@@ -99,8 +99,8 @@ var _ = Describe("AccessorFactory", func() {
 
 		JustBeforeEach(func() {
 			customData := accessor.CustomActionRoleMap{
-				"pipeline-operator": []string{atc.HijackContainer, atc.CreatePipelineBuild},
-				"viewer":            []string{atc.GetPipeline},
+				"pipeline-OperatorRole": []string{atc.HijackContainer, atc.CreatePipelineBuild},
+				"ViewerRole":            []string{atc.GetPipeline},
 			}
 
 			logger := lager.NewLogger("test")
@@ -109,15 +109,15 @@ var _ = Describe("AccessorFactory", func() {
 		})
 
 		It("should correctly customized", func() {
-			Expect(accessorFactory.RoleOfAction(atc.HijackContainer)).To(Equal("pipeline-operator"))
-			Expect(accessorFactory.RoleOfAction(atc.CreatePipelineBuild)).To(Equal("pipeline-operator"))
-			Expect(accessorFactory.RoleOfAction(atc.GetPipeline)).To(Equal("viewer"))
+			Expect(accessorFactory.RoleOfAction(atc.HijackContainer)).To(Equal("pipeline-OperatorRole"))
+			Expect(accessorFactory.RoleOfAction(atc.CreatePipelineBuild)).To(Equal("pipeline-OperatorRole"))
+			Expect(accessorFactory.RoleOfAction(atc.GetPipeline)).To(Equal("ViewerRole"))
 		})
 
 		It("should keep un-customized actions", func() {
-			Expect(accessorFactory.RoleOfAction(atc.SaveConfig)).To(Equal("member"))
-			Expect(accessorFactory.RoleOfAction(atc.GetConfig)).To(Equal("viewer"))
-			Expect(accessorFactory.RoleOfAction(atc.GetCC)).To(Equal("viewer"))
+			Expect(accessorFactory.RoleOfAction(atc.SaveConfig)).To(Equal("MEMBER_ROLE"))
+			Expect(accessorFactory.RoleOfAction(atc.GetConfig)).To(Equal("ViewerRole"))
+			Expect(accessorFactory.RoleOfAction(atc.GetCC)).To(Equal("ViewerRole"))
 		})
 	})
 })

@@ -102,43 +102,43 @@ var _ = Describe("Accessor", func() {
 			access = accessorFactory.Create(req, "some-action")
 		})
 
-		Context("when request has system claim set", func() {
+		Context("when request has System claim set", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"system": true}
+				claims = &jwt.MapClaims{"System": true}
 			})
 			It("returns true", func() {
 				Expect(access.IsSystem()).To(BeTrue())
 			})
 		})
 
-		Context("when request has system claim set to empty", func() {
+		Context("when request has System claim set to empty", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"system": ""}
+				claims = &jwt.MapClaims{"System": ""}
 			})
 			It("returns false", func() {
 				Expect(access.IsSystem()).To(BeFalse())
 			})
 		})
 
-		Context("when request has system claim set to nil", func() {
+		Context("when request has System claim set to nil", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"system": nil}
+				claims = &jwt.MapClaims{"System": nil}
 			})
 			It("returns false", func() {
 				Expect(access.IsSystem()).To(BeFalse())
 			})
 		})
 
-		Context("when request has system claim set to false", func() {
+		Context("when request has System claim set to false", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"system": false}
+				claims = &jwt.MapClaims{"System": false}
 			})
 			It("returns false", func() {
 				Expect(access.IsSystem()).To(BeFalse())
 			})
 		})
 
-		Context("when request does not have system claim set", func() {
+		Context("when request does not have System claim set", func() {
 			BeforeEach(func() {
 				claims = &jwt.MapClaims{}
 			})
@@ -213,7 +213,7 @@ var _ = Describe("Accessor", func() {
 		})
 	})
 
-	Describe("Is Authorized owner action", func() {
+	Describe("Is Authorized OwnerRole action", func() {
 		JustBeforeEach(func() {
 			token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 			tokenString, err := token.SignedString(key)
@@ -223,9 +223,9 @@ var _ = Describe("Accessor", func() {
 			access = accessorFactory.Create(req, atc.SetTeam)
 		})
 
-		Context("when request has team name claim set for some-team as owner", func() {
+		Context("when request has team name claim set for some-team as OwnerRole", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teams": map[string][]string{"some-team": {"owner"}}}
+				claims = &jwt.MapClaims{"teams": map[string][]string{"some-team": {"OwnerRole"}}}
 			})
 			It("returns true", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeTrue())
@@ -236,7 +236,7 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				claims = &jwt.MapClaims{"teams": []string{"some-team"}}
 			})
-			It("returns true and defaults to role 'owner'", func() {
+			It("returns true and defaults to role 'OwnerRole'", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeTrue())
 			})
 		})
@@ -259,9 +259,9 @@ var _ = Describe("Accessor", func() {
 			})
 		})
 
-		Context("when request has team name claim set to other-team:owner", func() {
+		Context("when request has team name claim set to other-team:OwnerRole", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"teams": map[string][]string{"other-team": {"owner"}}}
+				claims = &jwt.MapClaims{"teams": map[string][]string{"other-team": {"OwnerRole"}}}
 			})
 			It("returns false", func() {
 				Expect(access.IsAuthorized("some-team")).To(BeFalse())
@@ -367,8 +367,8 @@ var _ = Describe("Accessor", func() {
 		Context("when request has teams with multiple roles", func() {
 			BeforeEach(func() {
 				claims = &jwt.MapClaims{"teams": map[string][]string{
-					"team-1": {"owner", "member"},
-					"team-2": {"viewer"},
+					"team-1": {"OwnerRole", "MEMBER_ROLE"},
+					"team-2": {"ViewerRole"},
 				}}
 			})
 			It("returns empty list", func() {
@@ -420,19 +420,19 @@ var _ = Describe("Accessor", func() {
 				Expect(access.UserName()).To(BeEmpty())
 			})
 		})
-		Context("when request has the system claim set", func() {
+		Context("when request has the System claim set", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"system": true}
+				claims = &jwt.MapClaims{"System": true}
 			})
-			It("returns as a system call", func() {
-				Expect(access.UserName()).To(Equal("system"))
+			It("returns as a System call", func() {
+				Expect(access.UserName()).To(Equal("System"))
 			})
 		})
-		Context("when request has the system claim set as false", func() {
+		Context("when request has the System claim set as false", func() {
 			BeforeEach(func() {
-				claims = &jwt.MapClaims{"system": false}
+				claims = &jwt.MapClaims{"System": false}
 			})
-			It("returns as a system call", func() {
+			It("returns as a System call", func() {
 				Expect(access.UserName()).To(BeEmpty())
 			})
 		})
@@ -449,430 +449,430 @@ var _ = Describe("Accessor", func() {
 
 			Expect(access.IsAuthorized("some-team")).To(Equal(authorized))
 		},
-		Entry("owner :: table has no entry", "some-role", "owner", false),
-		Entry("member :: table has no entry", "some-role", "member", false),
-		Entry("pipeline-operator :: table has no entry", "some-role", "pipeline-operator", false),
-		Entry("viewer :: table has no entry", "some-role", "viewer", false),
-
-		Entry("owner :: "+atc.SaveConfig, atc.SaveConfig, "owner", true),
-		Entry("member :: "+atc.SaveConfig, atc.SaveConfig, "member", true),
-		Entry("pipeline-operator :: "+atc.SaveConfig, atc.SaveConfig, "pipeline-operator", false),
-		Entry("viewer :: "+atc.SaveConfig, atc.SaveConfig, "viewer", false),
-
-		Entry("owner :: "+atc.GetConfig, atc.GetConfig, "owner", true),
-		Entry("member :: "+atc.GetConfig, atc.GetConfig, "member", true),
-		Entry("pipeline-operator :: "+atc.GetConfig, atc.GetConfig, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetConfig, atc.GetConfig, "viewer", true),
-
-		Entry("owner :: "+atc.GetCC, atc.GetCC, "owner", true),
-		Entry("member :: "+atc.GetCC, atc.GetCC, "member", true),
-		Entry("pipeline-operator :: "+atc.GetCC, atc.GetCC, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetCC, atc.GetCC, "viewer", true),
-
-		Entry("owner :: "+atc.GetBuild, atc.GetBuild, "owner", true),
-		Entry("member :: "+atc.GetBuild, atc.GetBuild, "member", true),
-		Entry("pipeline-operator :: "+atc.GetBuild, atc.GetBuild, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetBuild, atc.GetBuild, "viewer", true),
-
-		Entry("owner :: "+atc.GetBuildPlan, atc.GetBuildPlan, "owner", true),
-		Entry("member :: "+atc.GetBuildPlan, atc.GetBuildPlan, "member", true),
-		Entry("pipeline-operator :: "+atc.GetBuildPlan, atc.GetBuildPlan, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetBuildPlan, atc.GetBuildPlan, "viewer", true),
-
-		Entry("owner :: "+atc.CreateBuild, atc.CreateBuild, "owner", true),
-		Entry("member :: "+atc.CreateBuild, atc.CreateBuild, "member", true),
-		Entry("pipeline-operator :: "+atc.CreateBuild, atc.CreateBuild, "pipeline-operator", false),
-		Entry("viewer :: "+atc.CreateBuild, atc.CreateBuild, "viewer", false),
-
-		Entry("owner :: "+atc.ListBuilds, atc.ListBuilds, "owner", true),
-		Entry("member :: "+atc.ListBuilds, atc.ListBuilds, "member", true),
-		Entry("pipeline-operator :: "+atc.ListBuilds, atc.ListBuilds, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListBuilds, atc.ListBuilds, "viewer", true),
-
-		Entry("owner :: "+atc.BuildEvents, atc.BuildEvents, "owner", true),
-		Entry("member :: "+atc.BuildEvents, atc.BuildEvents, "member", true),
-		Entry("pipeline-operator :: "+atc.BuildEvents, atc.BuildEvents, "pipeline-operator", true),
-		Entry("viewer :: "+atc.BuildEvents, atc.BuildEvents, "viewer", true),
-
-		Entry("owner :: "+atc.BuildResources, atc.BuildResources, "owner", true),
-		Entry("member :: "+atc.BuildResources, atc.BuildResources, "member", true),
-		Entry("pipeline-operator :: "+atc.BuildResources, atc.BuildResources, "pipeline-operator", true),
-		Entry("viewer :: "+atc.BuildResources, atc.BuildResources, "viewer", true),
-
-		Entry("owner :: "+atc.AbortBuild, atc.AbortBuild, "owner", true),
-		Entry("member :: "+atc.AbortBuild, atc.AbortBuild, "member", true),
-		Entry("pipeline-operator :: "+atc.AbortBuild, atc.AbortBuild, "pipeline-operator", true),
-		Entry("viewer :: "+atc.AbortBuild, atc.AbortBuild, "viewer", false),
-
-		Entry("owner :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "owner", true),
-		Entry("member :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "member", true),
-		Entry("pipeline-operator :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "viewer", true),
-
-		Entry("owner :: "+atc.GetJob, atc.GetJob, "owner", true),
-		Entry("member :: "+atc.GetJob, atc.GetJob, "member", true),
-		Entry("pipeline-operator :: "+atc.GetJob, atc.GetJob, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetJob, atc.GetJob, "viewer", true),
-
-		Entry("owner :: "+atc.CreateJobBuild, atc.CreateJobBuild, "owner", true),
-		Entry("member :: "+atc.CreateJobBuild, atc.CreateJobBuild, "member", true),
-		Entry("pipeline-operator :: "+atc.CreateJobBuild, atc.CreateJobBuild, "pipeline-operator", true),
-		Entry("viewer :: "+atc.CreateJobBuild, atc.CreateJobBuild, "viewer", false),
-
-		Entry("owner :: "+atc.RerunJobBuild, atc.RerunJobBuild, "owner", true),
-		Entry("member :: "+atc.RerunJobBuild, atc.RerunJobBuild, "member", true),
-		Entry("pipeline-operator :: "+atc.RerunJobBuild, atc.RerunJobBuild, "pipeline-operator", true),
-		Entry("viewer :: "+atc.RerunJobBuild, atc.RerunJobBuild, "viewer", false),
-
-		Entry("owner :: "+atc.ListAllJobs, atc.ListAllJobs, "owner", true),
-		Entry("member :: "+atc.ListAllJobs, atc.ListAllJobs, "member", true),
-		Entry("pipeline-operator :: "+atc.ListAllJobs, atc.ListAllJobs, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListAllJobs, atc.ListAllJobs, "viewer", true),
-
-		Entry("owner :: "+atc.ListJobs, atc.ListJobs, "owner", true),
-		Entry("member :: "+atc.ListJobs, atc.ListJobs, "member", true),
-		Entry("pipeline-operator :: "+atc.ListJobs, atc.ListJobs, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListJobs, atc.ListJobs, "viewer", true),
-
-		Entry("owner :: "+atc.ListJobBuilds, atc.ListJobBuilds, "owner", true),
-		Entry("member :: "+atc.ListJobBuilds, atc.ListJobBuilds, "member", true),
-		Entry("pipeline-operator :: "+atc.ListJobBuilds, atc.ListJobBuilds, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListJobBuilds, atc.ListJobBuilds, "viewer", true),
-
-		Entry("owner :: "+atc.ListJobInputs, atc.ListJobInputs, "owner", true),
-		Entry("member :: "+atc.ListJobInputs, atc.ListJobInputs, "member", true),
-		Entry("pipeline-operator :: "+atc.ListJobInputs, atc.ListJobInputs, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListJobInputs, atc.ListJobInputs, "viewer", true),
-
-		Entry("owner :: "+atc.GetJobBuild, atc.GetJobBuild, "owner", true),
-		Entry("member :: "+atc.GetJobBuild, atc.GetJobBuild, "member", true),
-		Entry("pipeline-operator :: "+atc.GetJobBuild, atc.GetJobBuild, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetJobBuild, atc.GetJobBuild, "viewer", true),
-
-		Entry("owner :: "+atc.PauseJob, atc.PauseJob, "owner", true),
-		Entry("member :: "+atc.PauseJob, atc.PauseJob, "member", true),
-		Entry("pipeline-operator :: "+atc.PauseJob, atc.PauseJob, "pipeline-operator", true),
-		Entry("viewer :: "+atc.PauseJob, atc.PauseJob, "viewer", false),
-
-		Entry("owner :: "+atc.UnpauseJob, atc.UnpauseJob, "owner", true),
-		Entry("member :: "+atc.UnpauseJob, atc.UnpauseJob, "member", true),
-		Entry("pipeline-operator :: "+atc.UnpauseJob, atc.UnpauseJob, "pipeline-operator", true),
-		Entry("viewer :: "+atc.UnpauseJob, atc.UnpauseJob, "viewer", false),
-
-		Entry("owner :: "+atc.ScheduleJob, atc.ScheduleJob, "owner", true),
-		Entry("member :: "+atc.ScheduleJob, atc.ScheduleJob, "member", true),
-		Entry("pipeline-operator :: "+atc.ScheduleJob, atc.ScheduleJob, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ScheduleJob, atc.ScheduleJob, "viewer", false),
-
-		Entry("owner :: "+atc.GetVersionsDB, atc.GetVersionsDB, "owner", true),
-		Entry("member :: "+atc.GetVersionsDB, atc.GetVersionsDB, "member", true),
-		Entry("pipeline-operator :: "+atc.GetVersionsDB, atc.GetVersionsDB, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetVersionsDB, atc.GetVersionsDB, "viewer", true),
-
-		Entry("owner :: "+atc.JobBadge, atc.JobBadge, "owner", true),
-		Entry("member :: "+atc.JobBadge, atc.JobBadge, "member", true),
-		Entry("pipeline-operator :: "+atc.JobBadge, atc.JobBadge, "pipeline-operator", true),
-		Entry("viewer :: "+atc.JobBadge, atc.JobBadge, "viewer", true),
-
-		Entry("owner :: "+atc.MainJobBadge, atc.MainJobBadge, "owner", true),
-		Entry("member :: "+atc.MainJobBadge, atc.MainJobBadge, "member", true),
-		Entry("pipeline-operator :: "+atc.MainJobBadge, atc.MainJobBadge, "pipeline-operator", true),
-		Entry("viewer :: "+atc.MainJobBadge, atc.MainJobBadge, "viewer", true),
-
-		Entry("owner :: "+atc.ClearTaskCache, atc.ClearTaskCache, "owner", true),
-		Entry("member :: "+atc.ClearTaskCache, atc.ClearTaskCache, "member", true),
-		Entry("pipeline-operator :: "+atc.ClearTaskCache, atc.ClearTaskCache, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ClearTaskCache, atc.ClearTaskCache, "viewer", false),
-
-		Entry("owner :: "+atc.ListAllResources, atc.ListAllResources, "owner", true),
-		Entry("member :: "+atc.ListAllResources, atc.ListAllResources, "member", true),
-		Entry("pipeline-operator :: "+atc.ListAllResources, atc.ListAllResources, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListAllResources, atc.ListAllResources, "viewer", true),
-
-		Entry("owner :: "+atc.ListResources, atc.ListResources, "owner", true),
-		Entry("member :: "+atc.ListResources, atc.ListResources, "member", true),
-		Entry("pipeline-operator :: "+atc.ListResources, atc.ListResources, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListResources, atc.ListResources, "viewer", true),
-
-		Entry("owner :: "+atc.ListResourceTypes, atc.ListResourceTypes, "owner", true),
-		Entry("member :: "+atc.ListResourceTypes, atc.ListResourceTypes, "member", true),
-		Entry("pipeline-operator :: "+atc.ListResourceTypes, atc.ListResourceTypes, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListResourceTypes, atc.ListResourceTypes, "viewer", true),
-
-		Entry("owner :: "+atc.GetResource, atc.GetResource, "owner", true),
-		Entry("member :: "+atc.GetResource, atc.GetResource, "member", true),
-		Entry("pipeline-operator :: "+atc.GetResource, atc.GetResource, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetResource, atc.GetResource, "viewer", true),
-
-		Entry("owner :: "+atc.CheckResource, atc.CheckResource, "owner", true),
-		Entry("member :: "+atc.CheckResource, atc.CheckResource, "member", true),
-		Entry("pipeline-operator :: "+atc.CheckResource, atc.CheckResource, "pipeline-operator", true),
-		Entry("viewer :: "+atc.CheckResource, atc.CheckResource, "viewer", false),
-
-		Entry("owner :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "owner", true),
-		Entry("member :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "member", true),
-		Entry("pipeline-operator :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "pipeline-operator", true),
-		Entry("viewer :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "viewer", false),
-
-		Entry("owner :: "+atc.CheckResourceType, atc.CheckResourceType, "owner", true),
-		Entry("member :: "+atc.CheckResourceType, atc.CheckResourceType, "member", true),
-		Entry("pipeline-operator :: "+atc.CheckResourceType, atc.CheckResourceType, "pipeline-operator", true),
-		Entry("viewer :: "+atc.CheckResourceType, atc.CheckResourceType, "viewer", false),
-
-		Entry("owner :: "+atc.ListResourceVersions, atc.ListResourceVersions, "owner", true),
-		Entry("member :: "+atc.ListResourceVersions, atc.ListResourceVersions, "member", true),
-		Entry("pipeline-operator :: "+atc.ListResourceVersions, atc.ListResourceVersions, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListResourceVersions, atc.ListResourceVersions, "viewer", true),
-
-		Entry("owner :: "+atc.GetResourceVersion, atc.GetResourceVersion, "owner", true),
-		Entry("member :: "+atc.GetResourceVersion, atc.GetResourceVersion, "member", true),
-		Entry("pipeline-operator :: "+atc.GetResourceVersion, atc.GetResourceVersion, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetResourceVersion, atc.GetResourceVersion, "viewer", true),
-
-		Entry("owner :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "owner", true),
-		Entry("member :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "member", true),
-		Entry("pipeline-operator :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "pipeline-operator", true),
-		Entry("viewer :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "viewer", false),
-
-		Entry("owner :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "owner", true),
-		Entry("member :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "member", true),
-		Entry("pipeline-operator :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "pipeline-operator", true),
-		Entry("viewer :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "viewer", false),
-
-		Entry("owner :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "owner", true),
-		Entry("member :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "member", true),
-		Entry("pipeline-operator :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "viewer", true),
-
-		Entry("owner :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "owner", true),
-		Entry("member :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "member", true),
-		Entry("pipeline-operator :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "viewer", true),
-
-		Entry("owner :: "+atc.GetResourceCausality, atc.GetResourceCausality, "owner", true),
-		Entry("member :: "+atc.GetResourceCausality, atc.GetResourceCausality, "member", true),
-		Entry("pipeline-operator :: "+atc.GetResourceCausality, atc.GetResourceCausality, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetResourceCausality, atc.GetResourceCausality, "viewer", true),
-
-		Entry("owner :: "+atc.ListAllPipelines, atc.ListAllPipelines, "owner", true),
-		Entry("member :: "+atc.ListAllPipelines, atc.ListAllPipelines, "member", true),
-		Entry("pipeline-operator :: "+atc.ListAllPipelines, atc.ListAllPipelines, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListAllPipelines, atc.ListAllPipelines, "viewer", true),
-
-		Entry("owner :: "+atc.ListPipelines, atc.ListPipelines, "owner", true),
-		Entry("member :: "+atc.ListPipelines, atc.ListPipelines, "member", true),
-		Entry("pipeline-operator :: "+atc.ListPipelines, atc.ListPipelines, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListPipelines, atc.ListPipelines, "viewer", true),
-
-		Entry("owner :: "+atc.GetPipeline, atc.GetPipeline, "owner", true),
-		Entry("member :: "+atc.GetPipeline, atc.GetPipeline, "member", true),
-		Entry("pipeline-operator :: "+atc.GetPipeline, atc.GetPipeline, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetPipeline, atc.GetPipeline, "viewer", true),
-
-		Entry("owner :: "+atc.DeletePipeline, atc.DeletePipeline, "owner", true),
-		Entry("member :: "+atc.DeletePipeline, atc.DeletePipeline, "member", true),
-		Entry("pipeline-operator :: "+atc.DeletePipeline, atc.DeletePipeline, "pipeline-operator", false),
-		Entry("viewer :: "+atc.DeletePipeline, atc.DeletePipeline, "viewer", false),
-
-		Entry("owner :: "+atc.OrderPipelines, atc.OrderPipelines, "owner", true),
-		Entry("member :: "+atc.OrderPipelines, atc.OrderPipelines, "member", true),
-		Entry("pipeline-operator :: "+atc.OrderPipelines, atc.OrderPipelines, "pipeline-operator", false),
-		Entry("viewer :: "+atc.OrderPipelines, atc.OrderPipelines, "viewer", false),
-
-		Entry("owner :: "+atc.PausePipeline, atc.PausePipeline, "owner", true),
-		Entry("member :: "+atc.PausePipeline, atc.PausePipeline, "member", true),
-		Entry("pipeline-operator :: "+atc.PausePipeline, atc.PausePipeline, "pipeline-operator", true),
-		Entry("viewer :: "+atc.PausePipeline, atc.PausePipeline, "viewer", false),
-
-		Entry("owner :: "+atc.UnpausePipeline, atc.UnpausePipeline, "owner", true),
-		Entry("member :: "+atc.UnpausePipeline, atc.UnpausePipeline, "member", true),
-		Entry("pipeline-operator :: "+atc.UnpausePipeline, atc.UnpausePipeline, "pipeline-operator", true),
-		Entry("viewer :: "+atc.UnpausePipeline, atc.UnpausePipeline, "viewer", false),
-
-		Entry("owner :: "+atc.ExposePipeline, atc.ExposePipeline, "owner", true),
-		Entry("member :: "+atc.ExposePipeline, atc.ExposePipeline, "member", true),
-		Entry("pipeline-operator :: "+atc.ExposePipeline, atc.ExposePipeline, "pipeline-operator", false),
-		Entry("viewer :: "+atc.ExposePipeline, atc.ExposePipeline, "viewer", false),
-
-		Entry("owner :: "+atc.HidePipeline, atc.HidePipeline, "owner", true),
-		Entry("member :: "+atc.HidePipeline, atc.HidePipeline, "member", true),
-		Entry("pipeline-operator :: "+atc.HidePipeline, atc.HidePipeline, "pipeline-operator", false),
-		Entry("viewer :: "+atc.HidePipeline, atc.HidePipeline, "viewer", false),
-
-		Entry("owner :: "+atc.RenamePipeline, atc.RenamePipeline, "owner", true),
-		Entry("member :: "+atc.RenamePipeline, atc.RenamePipeline, "member", true),
-		Entry("pipeline-operator :: "+atc.RenamePipeline, atc.RenamePipeline, "pipeline-operator", false),
-		Entry("viewer :: "+atc.RenamePipeline, atc.RenamePipeline, "viewer", false),
-
-		Entry("owner :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "owner", true),
-		Entry("member :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "member", true),
-		Entry("pipeline-operator :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "viewer", true),
-
-		Entry("owner :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "owner", true),
-		Entry("member :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "member", true),
-		Entry("pipeline-operator :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "pipeline-operator", false),
-		Entry("viewer :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "viewer", false),
-
-		Entry("owner :: "+atc.PipelineBadge, atc.PipelineBadge, "owner", true),
-		Entry("member :: "+atc.PipelineBadge, atc.PipelineBadge, "member", true),
-		Entry("pipeline-operator :: "+atc.PipelineBadge, atc.PipelineBadge, "pipeline-operator", true),
-		Entry("viewer :: "+atc.PipelineBadge, atc.PipelineBadge, "viewer", true),
-
-		Entry("owner :: "+atc.RegisterWorker, atc.RegisterWorker, "owner", true),
-		Entry("member :: "+atc.RegisterWorker, atc.RegisterWorker, "member", true),
-		Entry("pipeline-operator :: "+atc.RegisterWorker, atc.RegisterWorker, "pipeline-operator", false),
-		Entry("viewer :: "+atc.RegisterWorker, atc.RegisterWorker, "viewer", false),
-
-		Entry("owner :: "+atc.LandWorker, atc.LandWorker, "owner", true),
-		Entry("member :: "+atc.LandWorker, atc.LandWorker, "member", true),
-		Entry("pipeline-operator :: "+atc.LandWorker, atc.LandWorker, "pipeline-operator", false),
-		Entry("viewer :: "+atc.LandWorker, atc.LandWorker, "viewer", false),
-
-		Entry("owner :: "+atc.RetireWorker, atc.RetireWorker, "owner", true),
-		Entry("member :: "+atc.RetireWorker, atc.RetireWorker, "member", true),
-		Entry("pipeline-operator :: "+atc.RetireWorker, atc.RetireWorker, "pipeline-operator", false),
-		Entry("viewer :: "+atc.RetireWorker, atc.RetireWorker, "viewer", false),
-
-		Entry("owner :: "+atc.PruneWorker, atc.PruneWorker, "owner", true),
-		Entry("member :: "+atc.PruneWorker, atc.PruneWorker, "member", true),
-		Entry("pipeline-operator :: "+atc.PruneWorker, atc.PruneWorker, "pipeline-operator", false),
-		Entry("viewer :: "+atc.PruneWorker, atc.PruneWorker, "viewer", false),
-
-		Entry("owner :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "owner", true),
-		Entry("member :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "member", true),
-		Entry("pipeline-operator :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "pipeline-operator", false),
-		Entry("viewer :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "viewer", false),
-
-		Entry("owner :: "+atc.ListWorkers, atc.ListWorkers, "owner", true),
-		Entry("member :: "+atc.ListWorkers, atc.ListWorkers, "member", true),
-		Entry("pipeline-operator :: "+atc.ListWorkers, atc.ListWorkers, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListWorkers, atc.ListWorkers, "viewer", true),
-
-		Entry("owner :: "+atc.DeleteWorker, atc.DeleteWorker, "owner", true),
-		Entry("member :: "+atc.DeleteWorker, atc.DeleteWorker, "member", true),
-		Entry("pipeline-operator :: "+atc.DeleteWorker, atc.DeleteWorker, "pipeline-operator", false),
-		Entry("viewer :: "+atc.DeleteWorker, atc.DeleteWorker, "viewer", false),
-
-		Entry("owner :: "+atc.SetLogLevel, atc.SetLogLevel, "owner", true),
-		Entry("member :: "+atc.SetLogLevel, atc.SetLogLevel, "member", true),
-		Entry("pipeline-operator :: "+atc.SetLogLevel, atc.SetLogLevel, "pipeline-operator", false),
-		Entry("viewer :: "+atc.SetLogLevel, atc.SetLogLevel, "viewer", false),
-
-		Entry("owner :: "+atc.GetLogLevel, atc.GetLogLevel, "owner", true),
-		Entry("member :: "+atc.GetLogLevel, atc.GetLogLevel, "member", true),
-		Entry("pipeline-operator :: "+atc.GetLogLevel, atc.GetLogLevel, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetLogLevel, atc.GetLogLevel, "viewer", true),
-
-		Entry("owner :: "+atc.DownloadCLI, atc.DownloadCLI, "owner", true),
-		Entry("member :: "+atc.DownloadCLI, atc.DownloadCLI, "member", true),
-		Entry("pipeline-operator :: "+atc.DownloadCLI, atc.DownloadCLI, "pipeline-operator", true),
-		Entry("viewer :: "+atc.DownloadCLI, atc.DownloadCLI, "viewer", true),
-
-		Entry("owner :: "+atc.GetInfo, atc.GetInfo, "owner", true),
-		Entry("member :: "+atc.GetInfo, atc.GetInfo, "member", true),
-		Entry("pipeline-operator :: "+atc.GetInfo, atc.GetInfo, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetInfo, atc.GetInfo, "viewer", true),
-
-		Entry("owner :: "+atc.GetInfoCreds, atc.GetInfoCreds, "owner", true),
-		Entry("member :: "+atc.GetInfoCreds, atc.GetInfoCreds, "member", true),
-		Entry("pipeline-operator :: "+atc.GetInfoCreds, atc.GetInfoCreds, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetInfoCreds, atc.GetInfoCreds, "viewer", true),
-
-		Entry("owner :: "+atc.ListContainers, atc.ListContainers, "owner", true),
-		Entry("member :: "+atc.ListContainers, atc.ListContainers, "member", true),
-		Entry("pipeline-operator :: "+atc.ListContainers, atc.ListContainers, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListContainers, atc.ListContainers, "viewer", true),
-
-		Entry("owner :: "+atc.GetContainer, atc.GetContainer, "owner", true),
-		Entry("member :: "+atc.GetContainer, atc.GetContainer, "member", true),
-		Entry("pipeline-operator :: "+atc.GetContainer, atc.GetContainer, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetContainer, atc.GetContainer, "viewer", true),
-
-		Entry("owner :: "+atc.HijackContainer, atc.HijackContainer, "owner", true),
-		Entry("member :: "+atc.HijackContainer, atc.HijackContainer, "member", true),
-		Entry("pipeline-operator :: "+atc.HijackContainer, atc.HijackContainer, "pipeline-operator", false),
-		Entry("viewer :: "+atc.HijackContainer, atc.HijackContainer, "viewer", false),
-
-		Entry("owner :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "owner", true),
-		Entry("member :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "member", true),
-		Entry("pipeline-operator :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "viewer", true),
-
-		Entry("owner :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "owner", true),
-		Entry("member :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "member", true),
-		Entry("pipeline-operator :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "pipeline-operator", false),
-		Entry("viewer :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "viewer", false),
-
-		Entry("owner :: "+atc.ListVolumes, atc.ListVolumes, "owner", true),
-		Entry("member :: "+atc.ListVolumes, atc.ListVolumes, "member", true),
-		Entry("pipeline-operator :: "+atc.ListVolumes, atc.ListVolumes, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListVolumes, atc.ListVolumes, "viewer", true),
-
-		Entry("owner :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "owner", true),
-		Entry("member :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "member", true),
-		Entry("pipeline-operator :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "viewer", true),
-
-		Entry("owner :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "owner", true),
-		Entry("member :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "member", true),
-		Entry("pipeline-operator :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "pipeline-operator", false),
-		Entry("viewer :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "viewer", false),
-
-		Entry("owner :: "+atc.ListTeams, atc.ListTeams, "owner", true),
-		Entry("member :: "+atc.ListTeams, atc.ListTeams, "member", true),
-		Entry("pipeline-operator :: "+atc.ListTeams, atc.ListTeams, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListTeams, atc.ListTeams, "viewer", true),
-
-		Entry("owner :: "+atc.GetTeam, atc.GetTeam, "owner", true),
-		Entry("member :: "+atc.GetTeam, atc.GetTeam, "member", true),
-		Entry("viewer :: "+atc.GetTeam, atc.GetTeam, "viewer", true),
-
-		Entry("owner :: "+atc.SetTeam, atc.SetTeam, "owner", true),
-		Entry("member :: "+atc.SetTeam, atc.SetTeam, "member", false),
-		Entry("pipeline-operator :: "+atc.SetTeam, atc.SetTeam, "pipeline-operator", false),
-		Entry("viewer :: "+atc.SetTeam, atc.SetTeam, "viewer", false),
-
-		Entry("owner :: "+atc.RenameTeam, atc.RenameTeam, "owner", true),
-		Entry("member :: "+atc.RenameTeam, atc.RenameTeam, "member", false),
-		Entry("pipeline-operator :: "+atc.RenameTeam, atc.RenameTeam, "pipeline-operator", false),
-		Entry("viewer :: "+atc.RenameTeam, atc.RenameTeam, "viewer", false),
-
-		Entry("owner :: "+atc.DestroyTeam, atc.DestroyTeam, "owner", true),
-		Entry("member :: "+atc.DestroyTeam, atc.DestroyTeam, "member", false),
-		Entry("pipeline-operator :: "+atc.DestroyTeam, atc.DestroyTeam, "pipeline-operator", false),
-		Entry("viewer :: "+atc.DestroyTeam, atc.DestroyTeam, "viewer", false),
-
-		Entry("owner :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "owner", true),
-		Entry("member :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "member", true),
-		Entry("pipeline-operator :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "viewer", true),
-
-		Entry("owner :: "+atc.CreateArtifact, atc.CreateArtifact, "owner", true),
-		Entry("member :: "+atc.CreateArtifact, atc.CreateArtifact, "member", true),
-		Entry("pipeline-operator :: "+atc.CreateArtifact, atc.CreateArtifact, "pipeline-operator", false),
-		Entry("viewer :: "+atc.CreateArtifact, atc.CreateArtifact, "viewer", false),
-
-		Entry("owner :: "+atc.GetArtifact, atc.GetArtifact, "owner", true),
-		Entry("member :: "+atc.GetArtifact, atc.GetArtifact, "member", true),
-		Entry("pipeline-operator :: "+atc.GetArtifact, atc.GetArtifact, "pipeline-operator", false),
-		Entry("viewer :: "+atc.GetArtifact, atc.GetArtifact, "viewer", false),
-
-		Entry("owner :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "owner", true),
-		Entry("member :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "member", true),
-		Entry("pipeline-operator :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "pipeline-operator", true),
-		Entry("viewer :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "viewer", true),
-
-		Entry("owner :: "+atc.GetWall, atc.GetWall, "owner", true),
-		Entry("member :: "+atc.GetWall, atc.GetWall, "member", true),
-		Entry("pipeline-operator :: "+atc.GetWall, atc.GetWall, "pipeline-operator", true),
-		Entry("viewer :: "+atc.GetWall, atc.GetWall, "viewer", true),
+		Entry("OwnerRole :: table has no entry", "some-role", "OwnerRole", false),
+		Entry("MEMBER_ROLE :: table has no entry", "some-role", "MEMBER_ROLE", false),
+		Entry("pipeline-OperatorRole :: table has no entry", "some-role", "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: table has no entry", "some-role", "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.SaveConfig, atc.SaveConfig, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.SaveConfig, atc.SaveConfig, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.SaveConfig, atc.SaveConfig, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.SaveConfig, atc.SaveConfig, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.GetConfig, atc.GetConfig, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetConfig, atc.GetConfig, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetConfig, atc.GetConfig, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetConfig, atc.GetConfig, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetCC, atc.GetCC, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetCC, atc.GetCC, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetCC, atc.GetCC, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetCC, atc.GetCC, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetBuild, atc.GetBuild, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetBuild, atc.GetBuild, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetBuild, atc.GetBuild, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetBuild, atc.GetBuild, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetBuildPlan, atc.GetBuildPlan, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetBuildPlan, atc.GetBuildPlan, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetBuildPlan, atc.GetBuildPlan, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetBuildPlan, atc.GetBuildPlan, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.CreateBuild, atc.CreateBuild, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.CreateBuild, atc.CreateBuild, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.CreateBuild, atc.CreateBuild, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.CreateBuild, atc.CreateBuild, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListBuilds, atc.ListBuilds, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListBuilds, atc.ListBuilds, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListBuilds, atc.ListBuilds, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListBuilds, atc.ListBuilds, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.BuildEvents, atc.BuildEvents, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.BuildEvents, atc.BuildEvents, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.BuildEvents, atc.BuildEvents, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.BuildEvents, atc.BuildEvents, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.BuildResources, atc.BuildResources, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.BuildResources, atc.BuildResources, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.BuildResources, atc.BuildResources, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.BuildResources, atc.BuildResources, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.AbortBuild, atc.AbortBuild, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.AbortBuild, atc.AbortBuild, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.AbortBuild, atc.AbortBuild, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.AbortBuild, atc.AbortBuild, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetBuildPreparation, atc.GetBuildPreparation, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetJob, atc.GetJob, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetJob, atc.GetJob, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetJob, atc.GetJob, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetJob, atc.GetJob, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.CreateJobBuild, atc.CreateJobBuild, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.CreateJobBuild, atc.CreateJobBuild, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.CreateJobBuild, atc.CreateJobBuild, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.CreateJobBuild, atc.CreateJobBuild, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.RerunJobBuild, atc.RerunJobBuild, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.RerunJobBuild, atc.RerunJobBuild, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.RerunJobBuild, atc.RerunJobBuild, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.RerunJobBuild, atc.RerunJobBuild, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListAllJobs, atc.ListAllJobs, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListAllJobs, atc.ListAllJobs, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListAllJobs, atc.ListAllJobs, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListAllJobs, atc.ListAllJobs, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ListJobs, atc.ListJobs, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListJobs, atc.ListJobs, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListJobs, atc.ListJobs, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListJobs, atc.ListJobs, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ListJobBuilds, atc.ListJobBuilds, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListJobBuilds, atc.ListJobBuilds, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListJobBuilds, atc.ListJobBuilds, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListJobBuilds, atc.ListJobBuilds, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ListJobInputs, atc.ListJobInputs, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListJobInputs, atc.ListJobInputs, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListJobInputs, atc.ListJobInputs, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListJobInputs, atc.ListJobInputs, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetJobBuild, atc.GetJobBuild, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetJobBuild, atc.GetJobBuild, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetJobBuild, atc.GetJobBuild, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetJobBuild, atc.GetJobBuild, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.PauseJob, atc.PauseJob, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.PauseJob, atc.PauseJob, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.PauseJob, atc.PauseJob, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.PauseJob, atc.PauseJob, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.UnpauseJob, atc.UnpauseJob, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.UnpauseJob, atc.UnpauseJob, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.UnpauseJob, atc.UnpauseJob, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.UnpauseJob, atc.UnpauseJob, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ScheduleJob, atc.ScheduleJob, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ScheduleJob, atc.ScheduleJob, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ScheduleJob, atc.ScheduleJob, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ScheduleJob, atc.ScheduleJob, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.GetVersionsDB, atc.GetVersionsDB, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetVersionsDB, atc.GetVersionsDB, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetVersionsDB, atc.GetVersionsDB, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetVersionsDB, atc.GetVersionsDB, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.JobBadge, atc.JobBadge, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.JobBadge, atc.JobBadge, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.JobBadge, atc.JobBadge, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.JobBadge, atc.JobBadge, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.MainJobBadge, atc.MainJobBadge, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.MainJobBadge, atc.MainJobBadge, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.MainJobBadge, atc.MainJobBadge, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.MainJobBadge, atc.MainJobBadge, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ClearTaskCache, atc.ClearTaskCache, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ClearTaskCache, atc.ClearTaskCache, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ClearTaskCache, atc.ClearTaskCache, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ClearTaskCache, atc.ClearTaskCache, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListAllResources, atc.ListAllResources, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListAllResources, atc.ListAllResources, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListAllResources, atc.ListAllResources, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListAllResources, atc.ListAllResources, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ListResources, atc.ListResources, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListResources, atc.ListResources, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListResources, atc.ListResources, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListResources, atc.ListResources, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ListResourceTypes, atc.ListResourceTypes, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListResourceTypes, atc.ListResourceTypes, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListResourceTypes, atc.ListResourceTypes, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListResourceTypes, atc.ListResourceTypes, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetResource, atc.GetResource, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetResource, atc.GetResource, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetResource, atc.GetResource, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetResource, atc.GetResource, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.CheckResource, atc.CheckResource, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.CheckResource, atc.CheckResource, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.CheckResource, atc.CheckResource, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.CheckResource, atc.CheckResource, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.CheckResourceWebHook, atc.CheckResourceWebHook, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.CheckResourceType, atc.CheckResourceType, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.CheckResourceType, atc.CheckResourceType, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.CheckResourceType, atc.CheckResourceType, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.CheckResourceType, atc.CheckResourceType, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListResourceVersions, atc.ListResourceVersions, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListResourceVersions, atc.ListResourceVersions, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListResourceVersions, atc.ListResourceVersions, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListResourceVersions, atc.ListResourceVersions, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetResourceVersion, atc.GetResourceVersion, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetResourceVersion, atc.GetResourceVersion, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetResourceVersion, atc.GetResourceVersion, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetResourceVersion, atc.GetResourceVersion, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.EnableResourceVersion, atc.EnableResourceVersion, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.DisableResourceVersion, atc.DisableResourceVersion, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListBuildsWithVersionAsInput, atc.ListBuildsWithVersionAsInput, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListBuildsWithVersionAsOutput, atc.ListBuildsWithVersionAsOutput, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetResourceCausality, atc.GetResourceCausality, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetResourceCausality, atc.GetResourceCausality, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetResourceCausality, atc.GetResourceCausality, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetResourceCausality, atc.GetResourceCausality, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ListAllPipelines, atc.ListAllPipelines, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListAllPipelines, atc.ListAllPipelines, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListAllPipelines, atc.ListAllPipelines, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListAllPipelines, atc.ListAllPipelines, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ListPipelines, atc.ListPipelines, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListPipelines, atc.ListPipelines, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListPipelines, atc.ListPipelines, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListPipelines, atc.ListPipelines, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetPipeline, atc.GetPipeline, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetPipeline, atc.GetPipeline, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetPipeline, atc.GetPipeline, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetPipeline, atc.GetPipeline, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.DeletePipeline, atc.DeletePipeline, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.DeletePipeline, atc.DeletePipeline, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.DeletePipeline, atc.DeletePipeline, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.DeletePipeline, atc.DeletePipeline, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.OrderPipelines, atc.OrderPipelines, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.OrderPipelines, atc.OrderPipelines, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.OrderPipelines, atc.OrderPipelines, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.OrderPipelines, atc.OrderPipelines, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.PausePipeline, atc.PausePipeline, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.PausePipeline, atc.PausePipeline, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.PausePipeline, atc.PausePipeline, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.PausePipeline, atc.PausePipeline, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.UnpausePipeline, atc.UnpausePipeline, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.UnpausePipeline, atc.UnpausePipeline, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.UnpausePipeline, atc.UnpausePipeline, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.UnpausePipeline, atc.UnpausePipeline, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ExposePipeline, atc.ExposePipeline, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ExposePipeline, atc.ExposePipeline, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ExposePipeline, atc.ExposePipeline, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.ExposePipeline, atc.ExposePipeline, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.HidePipeline, atc.HidePipeline, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.HidePipeline, atc.HidePipeline, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.HidePipeline, atc.HidePipeline, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.HidePipeline, atc.HidePipeline, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.RenamePipeline, atc.RenamePipeline, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.RenamePipeline, atc.RenamePipeline, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.RenamePipeline, atc.RenamePipeline, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.RenamePipeline, atc.RenamePipeline, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListPipelineBuilds, atc.ListPipelineBuilds, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.PipelineBadge, atc.PipelineBadge, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.PipelineBadge, atc.PipelineBadge, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.PipelineBadge, atc.PipelineBadge, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.PipelineBadge, atc.PipelineBadge, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.RegisterWorker, atc.RegisterWorker, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.RegisterWorker, atc.RegisterWorker, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.RegisterWorker, atc.RegisterWorker, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.RegisterWorker, atc.RegisterWorker, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.LandWorker, atc.LandWorker, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.LandWorker, atc.LandWorker, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.LandWorker, atc.LandWorker, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.LandWorker, atc.LandWorker, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.RetireWorker, atc.RetireWorker, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.RetireWorker, atc.RetireWorker, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.RetireWorker, atc.RetireWorker, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.RetireWorker, atc.RetireWorker, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.PruneWorker, atc.PruneWorker, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.PruneWorker, atc.PruneWorker, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.PruneWorker, atc.PruneWorker, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.PruneWorker, atc.PruneWorker, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.HeartbeatWorker, atc.HeartbeatWorker, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListWorkers, atc.ListWorkers, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListWorkers, atc.ListWorkers, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListWorkers, atc.ListWorkers, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListWorkers, atc.ListWorkers, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.DeleteWorker, atc.DeleteWorker, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.DeleteWorker, atc.DeleteWorker, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.DeleteWorker, atc.DeleteWorker, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.DeleteWorker, atc.DeleteWorker, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.SetLogLevel, atc.SetLogLevel, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.SetLogLevel, atc.SetLogLevel, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.SetLogLevel, atc.SetLogLevel, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.SetLogLevel, atc.SetLogLevel, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.GetLogLevel, atc.GetLogLevel, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetLogLevel, atc.GetLogLevel, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetLogLevel, atc.GetLogLevel, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetLogLevel, atc.GetLogLevel, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.DownloadCLI, atc.DownloadCLI, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.DownloadCLI, atc.DownloadCLI, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.DownloadCLI, atc.DownloadCLI, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.DownloadCLI, atc.DownloadCLI, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetInfo, atc.GetInfo, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetInfo, atc.GetInfo, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetInfo, atc.GetInfo, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetInfo, atc.GetInfo, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetInfoCreds, atc.GetInfoCreds, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetInfoCreds, atc.GetInfoCreds, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetInfoCreds, atc.GetInfoCreds, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetInfoCreds, atc.GetInfoCreds, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ListContainers, atc.ListContainers, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListContainers, atc.ListContainers, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListContainers, atc.ListContainers, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListContainers, atc.ListContainers, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetContainer, atc.GetContainer, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetContainer, atc.GetContainer, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetContainer, atc.GetContainer, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetContainer, atc.GetContainer, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.HijackContainer, atc.HijackContainer, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.HijackContainer, atc.HijackContainer, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.HijackContainer, atc.HijackContainer, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.HijackContainer, atc.HijackContainer, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListDestroyingContainers, atc.ListDestroyingContainers, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.ReportWorkerContainers, atc.ReportWorkerContainers, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListVolumes, atc.ListVolumes, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListVolumes, atc.ListVolumes, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListVolumes, atc.ListVolumes, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListVolumes, atc.ListVolumes, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListDestroyingVolumes, atc.ListDestroyingVolumes, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.ReportWorkerVolumes, atc.ReportWorkerVolumes, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListTeams, atc.ListTeams, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListTeams, atc.ListTeams, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListTeams, atc.ListTeams, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListTeams, atc.ListTeams, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetTeam, atc.GetTeam, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetTeam, atc.GetTeam, "MEMBER_ROLE", true),
+		Entry("ViewerRole :: "+atc.GetTeam, atc.GetTeam, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.SetTeam, atc.SetTeam, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.SetTeam, atc.SetTeam, "MEMBER_ROLE", false),
+		Entry("pipeline-OperatorRole :: "+atc.SetTeam, atc.SetTeam, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.SetTeam, atc.SetTeam, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.RenameTeam, atc.RenameTeam, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.RenameTeam, atc.RenameTeam, "MEMBER_ROLE", false),
+		Entry("pipeline-OperatorRole :: "+atc.RenameTeam, atc.RenameTeam, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.RenameTeam, atc.RenameTeam, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.DestroyTeam, atc.DestroyTeam, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.DestroyTeam, atc.DestroyTeam, "MEMBER_ROLE", false),
+		Entry("pipeline-OperatorRole :: "+atc.DestroyTeam, atc.DestroyTeam, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.DestroyTeam, atc.DestroyTeam, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListTeamBuilds, atc.ListTeamBuilds, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.CreateArtifact, atc.CreateArtifact, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.CreateArtifact, atc.CreateArtifact, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.CreateArtifact, atc.CreateArtifact, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.CreateArtifact, atc.CreateArtifact, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.GetArtifact, atc.GetArtifact, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetArtifact, atc.GetArtifact, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetArtifact, atc.GetArtifact, "pipeline-OperatorRole", false),
+		Entry("ViewerRole :: "+atc.GetArtifact, atc.GetArtifact, "ViewerRole", false),
+
+		Entry("OwnerRole :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "ViewerRole", true),
+
+		Entry("OwnerRole :: "+atc.GetWall, atc.GetWall, "OwnerRole", true),
+		Entry("MEMBER_ROLE :: "+atc.GetWall, atc.GetWall, "MEMBER_ROLE", true),
+		Entry("pipeline-OperatorRole :: "+atc.GetWall, atc.GetWall, "pipeline-OperatorRole", true),
+		Entry("ViewerRole :: "+atc.GetWall, atc.GetWall, "ViewerRole", true),
 	)
 
 	Describe("Customize RBAC", func() {
 		JustBeforeEach(func() {
 			customData := accessor.CustomActionRoleMap{
-				"pipeline-operator": []string{atc.HijackContainer, atc.CreatePipelineBuild},
+				"pipeline-OperatorRole": []string{atc.HijackContainer, atc.CreatePipelineBuild},
 			}
 
 			logger := lager.NewLogger("test")
@@ -891,21 +891,21 @@ var _ = Describe("Accessor", func() {
 
 				Expect(access.IsAuthorized("some-team")).To(Equal(authorized))
 			},
-			Entry("owner :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "owner", true),
-			Entry("member :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "member", true),
-			Entry("pipeline-operator :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "pipeline-operator", true),
-			Entry("viewer :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "viewer", false),
+			Entry("OwnerRole :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "OwnerRole", true),
+			Entry("MEMBER_ROLE :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "MEMBER_ROLE", true),
+			Entry("pipeline-OperatorRole :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "pipeline-OperatorRole", true),
+			Entry("ViewerRole :: "+atc.CreatePipelineBuild, atc.CreatePipelineBuild, "ViewerRole", false),
 
-			Entry("owner :: "+atc.HijackContainer, atc.HijackContainer, "owner", true),
-			Entry("member :: "+atc.HijackContainer, atc.HijackContainer, "member", true),
-			Entry("pipeline-operator :: "+atc.HijackContainer, atc.HijackContainer, "pipeline-operator", true),
-			Entry("viewer :: "+atc.HijackContainer, atc.HijackContainer, "viewer", false),
+			Entry("OwnerRole :: "+atc.HijackContainer, atc.HijackContainer, "OwnerRole", true),
+			Entry("MEMBER_ROLE :: "+atc.HijackContainer, atc.HijackContainer, "MEMBER_ROLE", true),
+			Entry("pipeline-OperatorRole :: "+atc.HijackContainer, atc.HijackContainer, "pipeline-OperatorRole", true),
+			Entry("ViewerRole :: "+atc.HijackContainer, atc.HijackContainer, "ViewerRole", false),
 
 			// Verify one un-customized action just in case.
-			Entry("owner :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "owner", true),
-			Entry("member :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "member", true),
-			Entry("pipeline-operator :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "pipeline-operator", true),
-			Entry("viewer :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "viewer", true),
+			Entry("OwnerRole :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "OwnerRole", true),
+			Entry("MEMBER_ROLE :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "MEMBER_ROLE", true),
+			Entry("pipeline-OperatorRole :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "pipeline-OperatorRole", true),
+			Entry("ViewerRole :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "ViewerRole", true),
 		)
 	})
 })
