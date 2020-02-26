@@ -35,9 +35,9 @@ func NewServer(
 	}
 }
 
-func (s *Server) checkErrorAndLogMessage(err error, logger lager.Logger, w http.ResponseWriter, message string, statusCode int) bool {
+func (s *Server) logIfErrorAndRespond(err error, w http.ResponseWriter, message string, statusCode int) bool {
 	if err != nil {
-		logger.Error(message, err)
+		s.logger.Error(message, err)
 		w.WriteHeader(statusCode)
 		return true
 	}

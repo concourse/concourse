@@ -16,7 +16,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		jobName := r.FormValue(":job_name")
 
 		job, found, err := pipeline.Job(jobName)
-		if s.checkErrorAndLogMessage(err, logger, w, "failed-to-get-resource-types", http.StatusInternalServerError) {
+		if s.logIfErrorAndRespond(err, w, "failed-to-get-resource-types", http.StatusInternalServerError) {
 			return
 		}
 
@@ -29,25 +29,23 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		}
 
 		build, err := job.CreateBuild()
-		if s.checkErrorAndLogMessage(err, logger, w, "failed-to-create-job-build", http.StatusInternalServerError) {
+		if s.logIfErrorAndRespond(err, w, "failed-to-create-job-build", http.StatusInternalServerError) {
 			return
 		}
 
 		resources, err := pipeline.Resources()
 
-		if s.checkErrorAndLogMessage(err, logger, w, "failed-to-get-resources", http.StatusInternalServerError) {
+		if s.logIfErrorAndRespond(err, w, "failed-to-get-resources", http.StatusInternalServerError) {
 			return
 		}
 
 		resourceTypes, err := pipeline.ResourceTypes()
-		if s.checkErrorAndLogMessage(err, logger, w, "failed-to-get-resource-types", http.StatusInternalServerError) {
+		if s.logIfErrorAndRespond(err, w, "failed-to-get-resource-types", http.StatusInternalServerError) {
 			return
 		}
 
 		inputs, err := job.Inputs()
-		if err != nil {
-			logger.Error("failed-to-get-job-inputs", err)
-			w.WriteHeader(http.StatusInternalServerError)
+		if s.logIfErrorAndRespond(err, w, "failed-to-get-job-inputs", http.StatusInternalServerError) {
 			return
 		}
 
@@ -68,6 +66,6 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		}
 
 		err = json.NewEncoder(w).Encode(present.Build(build))
-		s.checkErrorAndLogMessage(err, logger, w, "failed-to-encode-build", http.StatusInternalServerError)
+		s.logIfErrorAndRespond(err, w, "failed-to-encode-build", http.StatusInternalServerError)
 	})
 }

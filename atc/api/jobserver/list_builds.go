@@ -42,7 +42,7 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 		}
 
 		job, found, err := pipeline.Job(jobName)
-		if s.checkErrorAndLogMessage(err, logger, w, "failed-to-get-job", http.StatusInternalServerError) {
+		if s.logIfErrorAndRespond(err, w, "failed-to-get-job", http.StatusInternalServerError) {
 			return
 		}
 
@@ -84,7 +84,7 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 		}
 
 		err = json.NewEncoder(w).Encode(jobBuilds)
-		s.checkErrorAndLogMessage(err, logger, w, "failed-to-encode-job-builds", http.StatusInternalServerError)
+		s.logIfErrorAndRespond(err, w, "failed-to-encode-job-builds", http.StatusInternalServerError)
 	})
 }
 
