@@ -45,9 +45,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		}
 
 		inputs, err := job.Inputs()
-		if err != nil {
-			logger.Error("failed-to-get-job-inputs", err)
-			w.WriteHeader(http.StatusInternalServerError)
+		if s.checkErrorAndLogMessage(err, logger, w, "failed-to-get-job-inputs", http.StatusInternalServerError) {
 			return
 		}
 
