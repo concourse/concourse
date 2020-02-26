@@ -29,7 +29,7 @@ type Certs struct {
 
 type GardenBackend struct {
 	UseHoudini    bool `long:"use-houdini"    description:"Use the insecure Houdini Garden backend."`
-	UseContainerd bool `long:"use-containerd" description:"Use the containerd backend."`
+	UseContainerd bool `long:"use-containerd" description:"Use the containerd backend. (experimental)"`
 
 	Bin    string    `long:"bin"    description:"Path to a garden backend executable (non-absolute names get resolved from $PATH)."`
 	Config flag.File `long:"config" description:"Path to a config file to use for the Garden backend. Guardian flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
@@ -75,7 +75,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 	case cmd.Garden.UseHoudini:
 		runner, err = cmd.houdiniRunner(logger)
 	case cmd.Garden.UseContainerd:
-		runner = cmd.containerdRunner(logger)
+		runner, err = cmd.containerdRunner(logger)
 	default:
 		runner, err = cmd.gdnRunner(logger)
 	}
@@ -178,7 +178,7 @@ func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 		Name: "gdn",
 		Runner: concourseCmd.NewLoggingRunner(
 			logger.Session("gdn-runner"),
-			cmdRunner{gdnCmd},
+			CmdRunner{gdnCmd},
 		),
 	})
 

@@ -87,11 +87,7 @@ init session route =
                 |> Tuple.mapFirst PipelineModel
 
         Routes.Dashboard searchType ->
-            Dashboard.init
-                { turbulencePath = session.turbulenceImgSrc
-                , searchType = searchType
-                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
-                }
+            Dashboard.init searchType
                 |> Tuple.mapFirst DashboardModel
 
         Routes.FlySuccess noop flyPort ->

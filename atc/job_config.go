@@ -51,18 +51,6 @@ func (config JobConfig) MaxInFlight() int {
 	return 0
 }
 
-func (config JobConfig) GetSerialGroups() []string {
-	if len(config.SerialGroups) > 0 {
-		return config.SerialGroups
-	}
-
-	if config.Serial || config.RawMaxInFlight > 0 {
-		return []string{config.Name}
-	}
-
-	return []string{}
-}
-
 func (config JobConfig) Plans() []PlanConfig {
 	plan := collectPlans(PlanConfig{
 		Do:      &config.Plan,
@@ -148,8 +136,8 @@ func (config JobConfig) OutputPlans() []PlanConfig {
 	return outputs
 }
 
-func (config JobConfig) Inputs() []JobInput {
-	var inputs []JobInput
+func (config JobConfig) Inputs() []JobInputParams {
+	var inputs []JobInputParams
 
 	for _, plan := range config.Plans() {
 		if plan.Get != "" {
@@ -160,14 +148,16 @@ func (config JobConfig) Inputs() []JobInput {
 				resource = plan.Resource
 			}
 
-			inputs = append(inputs, JobInput{
-				Name:     get,
-				Resource: resource,
-				Passed:   plan.Passed,
-				Version:  plan.Version,
-				Trigger:  plan.Trigger,
-				Params:   plan.Params,
-				Tags:     plan.Tags,
+			inputs = append(inputs, JobInputParams{
+				JobInput: JobInput{
+					Name:     get,
+					Resource: resource,
+					Passed:   plan.Passed,
+					Version:  plan.Version,
+					Trigger:  plan.Trigger,
+				},
+				Params: plan.Params,
+				Tags:   plan.Tags,
 			})
 		}
 	}

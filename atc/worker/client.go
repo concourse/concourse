@@ -48,7 +48,7 @@ type Client interface {
 		runtime.ProcessSpec,
 		runtime.StartingEventDelegate,
 		lock.LockFactory,
-	) TaskResult
+	) (TaskResult, error)
 
 	RunPutStep(
 		context.Context,
@@ -62,7 +62,7 @@ type Client interface {
 		runtime.ProcessSpec,
 		runtime.StartingEventDelegate,
 		resource.Resource,
-	) PutResult
+	) (PutResult, error)
 
 	RunGetStep(
 		context.Context,
@@ -93,25 +93,19 @@ type client struct {
 }
 
 type TaskResult struct {
-	Status       int
+	ExitStatus   int
 	VolumeMounts []VolumeMount
-	Err          error
 }
 
 type PutResult struct {
-	Status        int
+	ExitStatus    int
 	VersionResult runtime.VersionResult
-	Err           error
 }
 
 type GetResult struct {
-	Status        int
+	ExitStatus    int
 	VersionResult runtime.VersionResult
 	GetArtifact   runtime.GetArtifact
-}
-
-func (result GetResult) ExitSuccessful() bool {
-	return result.Status == 0
 }
 
 type ImageFetcherSpec struct {
@@ -174,16 +168,16 @@ func (client *client) RunTaskStep(
 	processSpec runtime.ProcessSpec,
 	eventDelegate runtime.StartingEventDelegate,
 	lockFactory lock.LockFactory,
-) TaskResult {
+) (TaskResult, error) {
 	err := client.wireInputsAndCaches(logger, &containerSpec)
 	if err != nil {
-		return TaskResult{Status: -1, Err: err}
+		return TaskResult{}, err
 	}
 
 	if containerSpec.ImageSpec.ImageArtifact != nil {
 		err = client.wireImageVolume(logger, &containerSpec.ImageSpec)
 		if err != nil {
-			return TaskResult{Status: -1, Err: err}
+			return TaskResult{}, err
 		}
 	}
 
@@ -198,10 +192,7 @@ func (client *client) RunTaskStep(
 		processSpec.StdoutWriter,
 	)
 	if err != nil {
-		// todo: should we return a -1 exit code our tests assert we do
-		// 		 leaving it empty isnt great, ints default to 0 which
-		//       indicates success
-		return TaskResult{Status: -1, Err: err}
+		return TaskResult{}, err
 	}
 
 	if strategy.ModifiesActiveTasks() {
@@ -219,7 +210,7 @@ func (client *client) RunTaskStep(
 	)
 
 	if err != nil {
-		return TaskResult{Status: -1, Err: err}
+		return TaskResult{}, err
 	}
 
 	// container already exited
@@ -230,14 +221,13 @@ func (client *client) RunTaskStep(
 
 		status, err := strconv.Atoi(code)
 		if err != nil {
-			return TaskResult{Status: -1, Err: err}
+			return TaskResult{}, err
 		}
 
 		return TaskResult{
-			Status:       status,
+			ExitStatus:   status,
 			VolumeMounts: container.VolumeMounts(),
-			Err:          nil,
-		}
+		}, err
 	}
 
 	processIO := garden.ProcessIO{
@@ -272,7 +262,7 @@ func (client *client) RunTaskStep(
 		)
 
 		if err != nil {
-			return TaskResult{Status: -1, Err: err}
+			return TaskResult{}, err
 		}
 	}
 
@@ -295,25 +285,27 @@ func (client *client) RunTaskStep(
 
 		status := <-exitStatusChan
 		return TaskResult{
-			Status:       status.processStatus,
+			ExitStatus:   status.processStatus,
 			VolumeMounts: container.VolumeMounts(),
-			Err:          ctx.Err(),
-		}
+		}, ctx.Err()
 
 	case status := <-exitStatusChan:
 		if status.processErr != nil {
 			return TaskResult{
-				Status:       status.processStatus,
-				VolumeMounts: []VolumeMount{},
-				Err:          status.processErr,
-			}
+				ExitStatus: status.processStatus,
+			}, status.processErr
 		}
 
 		err = container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", status.processStatus))
 		if err != nil {
-			return TaskResult{Status: status.processStatus, VolumeMounts: []VolumeMount{}, Err: err}
+			return TaskResult{
+				ExitStatus: status.processStatus,
+			}, err
 		}
-		return TaskResult{Status: status.processStatus, VolumeMounts: container.VolumeMounts(), Err: nil}
+		return TaskResult{
+			ExitStatus:   status.processStatus,
+			VolumeMounts: container.VolumeMounts(),
+		}, err
 	}
 }
 
@@ -505,14 +497,12 @@ func (client *client) RunPutStep(
 	spec runtime.ProcessSpec,
 	eventDelegate runtime.StartingEventDelegate,
 	resource resource.Resource,
-) PutResult {
+) (PutResult, error) {
 
 	vr := runtime.VersionResult{}
 	err := client.wireInputsAndCaches(logger, &containerSpec)
 	if err != nil {
-
-		// TODO (runtime) Does it make sense to return -1 here?
-		return PutResult{Status: -1, VersionResult: runtime.VersionResult{}, Err: err}
+		return PutResult{}, err
 	}
 
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
@@ -524,7 +514,7 @@ func (client *client) RunPutStep(
 		strategy,
 	)
 	if err != nil {
-		return PutResult{Status: -1, VersionResult: runtime.VersionResult{}, Err: err}
+		return PutResult{}, err
 	}
 
 	container, err := chosenWorker.FindOrCreateContainer(
@@ -537,7 +527,7 @@ func (client *client) RunPutStep(
 		imageFetcherSpec.ResourceTypes,
 	)
 	if err != nil {
-		return PutResult{Status: -1, VersionResult: runtime.VersionResult{}, Err: err}
+		return PutResult{}, err
 	}
 
 	// container already exited
@@ -547,10 +537,13 @@ func (client *client) RunPutStep(
 
 		status, err := strconv.Atoi(exitStatusProp)
 		if err != nil {
-			// TODO (runtime) This is more confusing. We should differentiate failure vs. error very explicitly
-			return PutResult{-1, runtime.VersionResult{}, err}
+			return PutResult{}, err
 		}
-		return PutResult{Status: status, VersionResult: runtime.VersionResult{}, Err: nil}
+
+		return PutResult{
+			ExitStatus:    status,
+			VersionResult: runtime.VersionResult{},
+		}, nil
 	}
 
 	eventDelegate.Starting(logger)
@@ -558,12 +551,18 @@ func (client *client) RunPutStep(
 	vr, err = resource.Put(ctx, spec, container)
 	if err != nil {
 		if failErr, ok := err.(runtime.ErrResourceScriptFailed); ok {
-			return PutResult{failErr.ExitStatus, runtime.VersionResult{}, failErr}
+			return PutResult{
+				ExitStatus:    failErr.ExitStatus,
+				VersionResult: runtime.VersionResult{},
+			}, nil
 		} else {
-			return PutResult{-1, runtime.VersionResult{}, err}
+			return PutResult{}, err
 		}
 	}
-	return PutResult{0, vr, nil}
+	return PutResult{
+		ExitStatus:    0,
+		VersionResult: vr,
+	}, nil
 }
 
 // TODO (runtime) don't modify spec inside here, Specs don't change after you write them

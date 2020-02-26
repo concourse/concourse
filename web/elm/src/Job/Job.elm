@@ -115,7 +115,7 @@ init flags =
       , FetchJobBuilds flags.jobId flags.paging
       , GetCurrentTime
       , GetCurrentTimeZone
-      , FetchPipelines
+      , FetchAllPipelines
       ]
     )
 
@@ -248,7 +248,7 @@ handleDelivery delivery ( model, effects ) =
             , effects
                 ++ [ FetchJobBuilds model.jobIdentifier model.currentPage
                    , FetchJob model.jobIdentifier
-                   , FetchPipelines
+                   , FetchAllPipelines
                    ]
             )
 

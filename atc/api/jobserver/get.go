@@ -25,6 +25,20 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
+		inputs, err := job.Inputs()
+		if err != nil {
+			logger.Error("could-not-get-job-inputs", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		outputs, err := job.Outputs()
+		if err != nil {
+			logger.Error("could-not-get-job-inputs", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		finished, next, err := job.FinishedAndNextBuild()
 		if err != nil {
 			logger.Error("could-not-get-job-finished-and-next-build", err)
@@ -40,6 +54,8 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 		err = json.NewEncoder(w).Encode(present.Job(
 			teamName,
 			job,
+			inputs,
+			outputs,
 			finished,
 			next,
 			nil,

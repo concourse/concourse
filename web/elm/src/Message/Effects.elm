@@ -14,8 +14,8 @@ import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
-import Dashboard.Group.Models
 import Json.Encode
+import Maybe exposing (Maybe)
 import Message.Callback exposing (Callback(..), TooltipPolicy(..))
 import Message.Message
     exposing
@@ -27,11 +27,11 @@ import Network.Build
 import Network.BuildPlan
 import Network.BuildPrep
 import Network.BuildResources
-import Network.DashboardAPIData
 import Network.Info
 import Network.Job
 import Network.Pipeline
 import Network.Resource
+import Network.Team
 import Network.User
 import Process
 import Routes
@@ -117,10 +117,11 @@ type Effect
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
+    | FetchPipelines String
     | FetchClusterInfo
     | FetchInputTo Concourse.VersionedResourceIdentifier
     | FetchOutputOf Concourse.VersionedResourceIdentifier
-    | FetchData
+    | FetchAllTeams
     | FetchUser
     | FetchBuild Float Int
     | FetchJobBuild Concourse.JobBuildIdentifier
@@ -129,10 +130,13 @@ type Effect
     | FetchBuildPrep Float Int
     | FetchBuildPlan Concourse.BuildId
     | FetchBuildPlanAndResources Concourse.BuildId
-    | FetchPipelines
+    | FetchAllPipelines
+    | FetchAllResources
+    | FetchAllJobs
     | GetCurrentTime
     | GetCurrentTimeZone
     | DoTriggerBuild Concourse.JobIdentifier
+    | RerunJobBuild Concourse.JobBuildIdentifier
     | DoAbortBuild Int
     | PauseJob Concourse.JobIdentifier
     | UnpauseJob Concourse.JobIdentifier
@@ -151,7 +155,7 @@ type Effect
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
     | ShowTooltip ( String, String )
     | ShowTooltipHd ( String, String )
-    | SendOrderPipelinesRequest String (List Dashboard.Group.Models.Pipeline)
+    | SendOrderPipelinesRequest String (List String)
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames StickyHeaderConfig
@@ -226,6 +230,20 @@ runEffect effect key csrfToken =
             Network.Pipeline.fetchPipeline id
                 |> Task.attempt PipelineFetched
 
+        FetchPipelines team ->
+            Network.Pipeline.fetchPipelinesForTeam team
+                |> Task.attempt PipelinesFetched
+
+        FetchAllResources ->
+            Network.Resource.fetchAllResources
+                |> Task.map (Maybe.withDefault [])
+                |> Task.attempt AllResourcesFetched
+
+        FetchAllJobs ->
+            Network.Job.fetchAllJobs
+                |> Task.map (Maybe.withDefault [])
+                |> Task.attempt AllJobsFetched
+
         FetchClusterInfo ->
             Network.Info.fetch
                 |> Task.attempt ClusterInfoFetched
@@ -240,14 +258,13 @@ runEffect effect key csrfToken =
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt OutputOfFetched
 
-        FetchData ->
-            Network.DashboardAPIData.remoteData
-                |> Task.map2 (\a b -> ( a, b )) Time.now
-                |> Task.attempt APIDataFetched
+        FetchAllTeams ->
+            Network.Team.fetchTeams
+                |> Task.attempt AllTeamsFetched
 
-        FetchPipelines ->
+        FetchAllPipelines ->
             Network.Pipeline.fetchPipelines
-                |> Task.attempt PipelinesFetched
+                |> Task.attempt AllPipelinesFetched
 
         GetCurrentTime ->
             Task.perform GotCurrentTime Time.now
@@ -257,6 +274,10 @@ runEffect effect key csrfToken =
 
         DoTriggerBuild id ->
             Network.Job.triggerBuild id csrfToken
+                |> Task.attempt BuildTriggered
+
+        RerunJobBuild id ->
+            Network.Job.rerunJobBuild id csrfToken
                 |> Task.attempt BuildTriggered
 
         PauseJob id ->
@@ -322,9 +343,9 @@ runEffect effect key csrfToken =
         ShowTooltipHd ( teamName, pipelineName ) ->
             tooltipHd ( teamName, pipelineName )
 
-        SendOrderPipelinesRequest teamName pipelines ->
-            Network.Pipeline.order teamName (List.map .name pipelines) csrfToken
-                |> Task.attempt (always EmptyCallback)
+        SendOrderPipelinesRequest teamName pipelineNames ->
+            Network.Pipeline.order teamName pipelineNames csrfToken
+                |> Task.attempt (PipelinesOrdered teamName)
 
         SendLogOutRequest ->
             Task.attempt LoggedOut Network.User.logOut
@@ -437,7 +458,7 @@ runEffect effect key csrfToken =
 
         GetViewportOf domID tooltipPolicy ->
             Browser.Dom.getViewportOf (toHtmlID domID)
-                |> Task.attempt (GotViewport tooltipPolicy)
+                |> Task.attempt (GotViewport domID tooltipPolicy)
 
         GetElement domID ->
             Browser.Dom.getElement (toHtmlID domID)
@@ -458,6 +479,12 @@ toHtmlID domId =
 
         StepState stepID ->
             stepID ++ "_state"
+
+        Dashboard ->
+            "dashboard"
+
+        DashboardGroup teamName ->
+            teamName
 
         _ ->
             ""

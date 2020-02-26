@@ -127,6 +127,28 @@ func (team *team) UnpauseJob(pipelineName string, jobName string) (bool, error) 
 	}
 }
 
+func (team *team) ScheduleJob(pipelineName string, jobName string) (bool, error) {
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"job_name":      jobName,
+		"team_name":     team.name,
+	}
+
+	err := team.connection.Send(internal.Request{
+		RequestName: atc.ScheduleJob,
+		Params:      params,
+	}, &internal.Response{})
+
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
 func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (int64, error) {
 	params := rata.Params{
 		"team_name":     team.name,

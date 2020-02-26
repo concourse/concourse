@@ -32,9 +32,9 @@ var _ = Describe("Hijacking", func() {
 
 	upgrader := websocket.Upgrader{}
 
-	hijackHandler := func(id string, didHijack chan<- struct{}, errorMessages []string) http.HandlerFunc {
+	hijackHandler := func(id string, didHijack chan<- struct{}, errorMessages []string, teamName string) http.HandlerFunc {
 		return ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/main/containers/%s/hijack", id)),
+			ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/"+teamName+"/containers/%s/hijack", id)),
 			func(w http.ResponseWriter, r *http.Request) {
 				defer GinkgoRecover()
 
@@ -153,7 +153,7 @@ var _ = Describe("Hijacking", func() {
 						{ID: "container-id-1", State: atc.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", User: user},
 					}),
 				),
-				hijackHandler("container-id-1", didHijack, nil),
+				hijackHandler("container-id-1", didHijack, nil, "main"),
 			)
 		})
 
@@ -185,7 +185,7 @@ var _ = Describe("Hijacking", func() {
 						{ID: "container-id-1", State: atc.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", WorkingDirectory: workingDirectory, User: user},
 					}),
 				),
-				hijackHandler("container-id-1", didHijack, nil),
+				hijackHandler("container-id-1", didHijack, nil, "main"),
 			)
 		})
 
@@ -213,7 +213,7 @@ var _ = Describe("Hijacking", func() {
 						{ID: "container-id-1", State: atc.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", User: "amelia"},
 					}),
 				),
-				hijackHandler("container-id-1", didHijack, nil),
+				hijackHandler("container-id-1", didHijack, nil, "main"),
 			)
 		})
 
@@ -238,7 +238,7 @@ var _ = Describe("Hijacking", func() {
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=1&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{}),
 				),
-				hijackHandler("container-id-1", didHijack, nil),
+				hijackHandler("container-id-1", didHijack, nil, "main"),
 			)
 		})
 
@@ -383,7 +383,7 @@ var _ = Describe("Hijacking", func() {
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "pipeline_name=pipeline-name-1&job_name=some-job"),
 					ghttp.RespondWithJSONEncoded(200, containerList),
 				),
-				hijackHandler("container-id-2", didHijack, nil),
+				hijackHandler("container-id-2", didHijack, nil, "main"),
 			)
 		})
 
@@ -609,6 +609,7 @@ var _ = Describe("Hijacking", func() {
 			jobName            string
 			buildName          string
 			attempt            string
+			hijackTeamName     string
 		)
 
 		BeforeEach(func() {
@@ -622,6 +623,7 @@ var _ = Describe("Hijacking", func() {
 			resourceName = ""
 			containerArguments = ""
 			attempt = ""
+			hijackTeamName = "main"
 		})
 
 		JustBeforeEach(func() {
@@ -630,12 +632,12 @@ var _ = Describe("Hijacking", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", containerArguments),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName+"/containers", containerArguments),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
 						{ID: "container-id-1", State: atc.ContainerStateCreated, WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, Type: stepType, StepName: stepName, ResourceName: resourceName, Attempt: attempt, User: user},
 					}),
 				),
-				hijackHandler("container-id-1", didHijack, hijackHandlerError),
+				hijackHandler("container-id-1", didHijack, hijackHandlerError, hijackTeamName),
 			)
 		})
 
@@ -645,15 +647,44 @@ var _ = Describe("Hijacking", func() {
 				containerArguments = "type=check&resource_name=some-resource-name&pipeline_name=a-pipeline"
 			})
 
-			Context("and with pipeline specified", func() {
-				It("can accept the check resources name and a pipeline", func() {
-					hijack("--check", "a-pipeline/some-resource-name")
+			Context("when the team is 'main'", func() {
+				BeforeEach(func() {
+					hijackTeamName = "main"
+				})
+				Context("and with pipeline specified", func() {
+					It("can accept the check resources name and a pipeline", func() {
+						hijack("--check", "a-pipeline/some-resource-name")
+					})
+				})
+
+				Context("and with url specified", func() {
+					It("hijacks the given check container by URL", func() {
+						hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/a-pipeline/resources/some-resource-name")
+					})
 				})
 			})
 
-			Context("and with url specified", func() {
-				It("hijacks the given check container by URL", func() {
-					hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/a-pipeline/resources/some-resource-name")
+			Context("when the team is 'other'", func() {
+				BeforeEach(func() {
+					hijackTeamName = "other"
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+					)
+				})
+
+				Context("and with pipeline specified", func() {
+					It("can accept the check resources name and a pipeline", func() {
+						hijack("--check", "a-pipeline/some-resource-name", "--team", hijackTeamName)
+					})
+				})
+
+				Context("and with url specified", func() {
+					It("hijacks the given check container by URL", func() {
+						hijack("--url", atcServer.URL()+"/teams/other/pipelines/a-pipeline/resources/some-resource-name", "--team", "other")
+					})
 				})
 			})
 		})
@@ -666,8 +697,29 @@ var _ = Describe("Hijacking", func() {
 				buildID = 2
 			})
 
-			It("hijacks the most recent one-off build", func() {
-				hijack("-b", "2", "-s", "some-step")
+			Context("when the team is 'main'", func() {
+				BeforeEach(func() {
+					hijackTeamName = "main"
+				})
+				It("hijacks the most recent one-off build", func() {
+					hijack("-b", "2", "-s", "some-step")
+				})
+			})
+
+			Context("when the team is 'other'", func() {
+				BeforeEach(func() {
+					hijackTeamName = "other"
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+					)
+				})
+
+				It("hijacks the most recent one-off build", func() {
+					hijack("-b", "2", "-s", "some-step", "--team", hijackTeamName)
+				})
 			})
 		})
 
@@ -681,12 +733,39 @@ var _ = Describe("Hijacking", func() {
 				stepName = "some-step"
 			})
 
-			It("hijacks the job's next build", func() {
-				hijack("--job", "some-pipeline/some-job", "--step", "some-step")
-			})
+			Context("hijacks the job's next build", func() {
+				Context("When the team is 'main'", func() {
+					BeforeEach(func() {
+						hijackTeamName = "main"
+					})
+					It("hijacks the job's next build with 'pipelineName/jobName'", func() {
+						hijack("--job", "some-pipeline/some-job", "--step", "some-step")
+					})
 
-			It("hijacks the job's next build when URL is specified", func() {
-				hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job", "--step", "some-step")
+					It("hijacks the job's next build when URL is specified", func() {
+						hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job", "--step", "some-step")
+					})
+				})
+
+				Context("When the team is 'other'", func() {
+					BeforeEach(func() {
+						hijackTeamName = "other"
+
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+								ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+						)
+					})
+					It("hijacks the job's next build with 'pipelineName/jobName'", func() {
+						hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--team", hijackTeamName)
+					})
+
+					It("hijacks the job's next build when URL is specified", func() {
+						hijack("--url", atcServer.URL()+"/teams/other/pipelines/some-pipeline/jobs/some-job", "--step", "some-step", "--team", hijackTeamName)
+					})
+				})
+
 			})
 
 			Context("with a specific build of the job", func() {
@@ -694,13 +773,36 @@ var _ = Describe("Hijacking", func() {
 					containerArguments = "pipeline_name=some-pipeline&job_name=some-job&build_name=3&step_name=some-step"
 				})
 
-				It("hijacks the given build", func() {
-					hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step")
+				Context("When the team is 'main'", func() {
+					BeforeEach(func() {
+						hijackTeamName = "main"
+					})
+					It("hijacks the given build", func() {
+						hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step")
+					})
+					It("hijacks the given build with URL", func() {
+						hijack("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job/builds/3", "--step", "some-step")
+					})
 				})
 
-				It("hijacks the given build when URL", func() {
-					hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job/builds/3", "--step", "some-step")
+				Context("When the team is 'other'", func() {
+					BeforeEach(func() {
+						hijackTeamName = "other"
+
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+								ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+						)
+					})
+					It("hijacks the given build", func() {
+						hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step", "--team", hijackTeamName)
+					})
+					It("hijacks the given build with URL", func() {
+						hijack("--url", atcServer.URL()+"/teams/other/pipelines/some-pipeline/jobs/some-job/builds/3", "--step", "some-step", "--team", hijackTeamName)
+					})
 				})
+
 			})
 		})
 
@@ -715,8 +817,28 @@ var _ = Describe("Hijacking", func() {
 				attempt = "2.4"
 			})
 
-			It("hijacks the job's next build", func() {
-				hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--attempt", "2.4")
+			Context("When the team is 'main'", func() {
+				BeforeEach(func() {
+					hijackTeamName = "main"
+				})
+				It("hijacks the job's next build", func() {
+					hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--attempt", "2.4")
+				})
+			})
+
+			Context("When the team is 'other'", func() {
+				BeforeEach(func() {
+					hijackTeamName = "other"
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+					)
+				})
+				It("hijacks the job's next build", func() {
+					hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--attempt", "2.4", "--team", hijackTeamName)
+				})
 			})
 		})
 
@@ -786,14 +908,24 @@ var _ = Describe("Hijacking", func() {
 
 	Context("when hijacking a specific container", func() {
 		var (
-			statusCode int
-			id         string
+			hijackHandlerError []string
+			statusCode         int
+			id                 string
+			hijackTeamName     string
 		)
+
+		BeforeEach(func() {
+			hijackHandlerError = nil
+			statusCode = 0
+			id = ""
+			hijackTeamName = "main"
+
+		})
 
 		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers/container-id"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName+"/containers/container-id"),
 					ghttp.RespondWithJSONEncoded(statusCode, atc.Container{
 						ID:   id,
 						User: user,
@@ -808,18 +940,36 @@ var _ = Describe("Hijacking", func() {
 				id = "container-id"
 			})
 
-			Context("when hijact returns no error", func() {
+			Context("when hijack returns no error", func() {
 				JustBeforeEach(func() {
 					didHijack := make(chan struct{})
 					hijacked = didHijack
-
 					atcServer.AppendHandlers(
-						hijackHandler("container-id", didHijack, nil),
+						hijackHandler("container-id", didHijack, hijackHandlerError, hijackTeamName),
 					)
 				})
+				Context("when the team is 'main'", func() {
+					BeforeEach(func() {
+						hijackTeamName = "main"
+					})
+					It("should hijack container with associated handle", func() {
+						hijack("--handle", "container-id")
+					})
+				})
 
-				It("should hijack container with associated handle", func() {
-					hijack("--handle", "container-id")
+				Context("when the team is 'other'", func() {
+					BeforeEach(func() {
+						hijackTeamName = "other"
+
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName),
+								ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: hijackTeamName})),
+						)
+					})
+					It("should hijack container with associated handle to 'other' team", func() {
+						hijack("--handle", "container-id", "--team", hijackTeamName)
+					})
 				})
 			})
 
@@ -850,7 +1000,15 @@ var _ = Describe("Hijacking", func() {
 				statusCode = 404
 			})
 
-			It("should return an approriate error message", func() {
+			JustBeforeEach(func() {
+				didHijack := make(chan struct{})
+				hijacked = didHijack
+				atcServer.AppendHandlers(
+					hijackHandler("container-id", didHijack, hijackHandlerError, hijackTeamName),
+				)
+			})
+
+			It("should return an appropriate error message", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "--handle", "container-id")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())

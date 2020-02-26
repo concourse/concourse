@@ -296,6 +296,7 @@ func (c *VersionConfig) MarshalJSON() ([]byte, error) {
 // job as an input to the put step or specific ones.
 type InputsConfig struct {
 	All       bool
+	Detect    bool
 	Specified []string
 }
 
@@ -310,6 +311,7 @@ func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 	switch actual := data.(type) {
 	case string:
 		c.All = actual == "all"
+		c.Detect = actual == "detect"
 	case []interface{}:
 		inputs := []string{}
 
@@ -331,10 +333,15 @@ func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 }
 
 const InputsAll = "all"
+const InputsDetect = "detect"
 
 func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	if c.All {
 		return json.Marshal(InputsAll)
+	}
+
+	if c.Detect {
+		return json.Marshal(InputsDetect)
 	}
 
 	if c.Specified != nil {
@@ -428,7 +435,7 @@ type PlanConfig struct {
 	VarFiles    []string `json:"var_files,omitempty"`
 
 	// config path, e.g. foo/build.yml. Multiple steps might have this field, e.g. Task step and SetPipeline step.
-	ConfigPath string `json:"file,omitempty"`
+	File string `json:"file,omitempty"`
 	// variables, Multiple steps might have this field, e.g. Task step and SetPipeline step.
 	Vars Params `json:"vars,omitempty"`
 
@@ -477,6 +484,15 @@ type PlanConfig struct {
 	Attempts int `json:"attempts,omitempty"`
 
 	Version *VersionConfig `json:"version,omitempty"`
+
+	// name of 'load_var' step
+	LoadVar string `json:"load_var,omitempty"`
+
+	// format of input file.
+	Format string `json:"format,omitempty"`
+
+	// if true, then it will not be redacted.
+	Reveal bool `json:"reveal,omitempty"`
 }
 
 func (config PlanConfig) Name() string {

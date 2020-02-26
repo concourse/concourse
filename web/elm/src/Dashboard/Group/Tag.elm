@@ -73,12 +73,12 @@ splitFirst delim =
 
 tag : Concourse.User -> String -> Maybe Tag
 tag user teamName =
-    Dict.get teamName user.teams |> Maybe.andThen firstRole
-
-
-firstRole : List String -> Maybe Tag
-firstRole roles =
-    List.head roles |> Maybe.andThen parseRole
+    Dict.get teamName user.teams
+        |> Maybe.withDefault []
+        |> List.map parseRole
+        |> List.sortWith ordering
+        |> List.head
+        |> Maybe.withDefault Nothing
 
 
 parseRole : String -> Maybe Tag

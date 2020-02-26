@@ -2,12 +2,21 @@ package factory
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
 var ErrResourceNotFound = errors.New("resource not found")
+
+type VersionNotFoundError struct {
+	Input string
+}
+
+func (e VersionNotFoundError) Error() string {
+	return fmt.Sprintf("version for input %s not found", e.Input)
+}
 
 //go:generate counterfeiter . BuildFactory
 
@@ -221,6 +230,10 @@ func (factory *buildFactory) constructUnhookedPlan(
 			}
 		}
 
+		if version == nil {
+			return atc.Plan{}, VersionNotFoundError{name}
+		}
+
 		plan = factory.planFactory.NewPlan(atc.GetPlan{
 			Type:     resource.Type,
 			Name:     name,
@@ -238,7 +251,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Name:              planConfig.Task,
 			Privileged:        planConfig.Privileged,
 			Config:            planConfig.TaskConfig,
-			ConfigPath:        planConfig.ConfigPath,
+			ConfigPath:        planConfig.File,
 			Vars:              planConfig.Vars,
 			Tags:              planConfig.Tags,
 			Params:            planConfig.Params,
@@ -253,9 +266,18 @@ func (factory *buildFactory) constructUnhookedPlan(
 		name := planConfig.SetPipeline
 		plan = factory.planFactory.NewPlan(atc.SetPipelinePlan{
 			Name:     name,
-			File:     planConfig.ConfigPath,
+			File:     planConfig.File,
 			Vars:     planConfig.Vars,
 			VarFiles: planConfig.VarFiles,
+		})
+
+	case planConfig.LoadVar != "":
+		name := planConfig.LoadVar
+		plan = factory.planFactory.NewPlan(atc.LoadVarPlan{
+			Name:   name,
+			File:   planConfig.File,
+			Format: planConfig.Format,
+			Reveal: planConfig.Reveal,
 		})
 
 	case planConfig.Try != nil:

@@ -7,15 +7,21 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/fatih/color"
 )
 
 type JobsCommand struct {
 	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Get jobs in this pipeline"`
 	Json     bool   `long:"json" description:"Print command result as JSON"`
+	Team     string `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *JobsCommand) Execute([]string) error {
+	var (
+		headers []string
+		team    concourse.Team
+	)
 	pipelineName := command.Pipeline
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
@@ -28,10 +34,17 @@ func (command *JobsCommand) Execute([]string) error {
 		return err
 	}
 
-	var headers []string
-	var jobs []atc.Job
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
+		if err != nil {
+			return err
+		}
+	} else {
+		team = target.Team()
+	}
 
-	jobs, err = target.Team().ListJobs(pipelineName)
+	var jobs []atc.Job
+	jobs, err = team.ListJobs(pipelineName)
 	if err != nil {
 		return err
 	}

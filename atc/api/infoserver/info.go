@@ -14,7 +14,8 @@ func (s *Server) Info(w http.ResponseWriter, r *http.Request) {
 	err := json.NewEncoder(w).Encode(atc.Info{Version: s.version,
 		WorkerVersion: s.workerVersion,
 		ExternalURL:   s.externalURL,
-		ClusterName:   s.clusterName})
+		ClusterName:   s.clusterName,
+	})
 	if err != nil {
 		logger.Error("failed-to-encode-info", err)
 		w.WriteHeader(http.StatusInternalServerError)

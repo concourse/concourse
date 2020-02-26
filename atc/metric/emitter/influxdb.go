@@ -92,7 +92,6 @@ func emitBatch(emitter *InfluxDBEmitter, logger lager.Logger, events []metric.Ev
 			tags,
 			map[string]interface{}{
 				"value": event.Value,
-				"state": string(event.State),
 			},
 			event.Time,
 		)

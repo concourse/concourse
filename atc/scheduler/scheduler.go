@@ -1,87 +1,102 @@
 package scheduler
 
 import (
-	"time"
+	"context"
+	"fmt"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
-	"github.com/concourse/concourse/atc/scheduler/inputmapper"
+	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
+//go:generate counterfeiter . Algorithm
+
+type Algorithm interface {
+	Compute(
+		context.Context,
+		db.Job,
+		[]atc.JobInput,
+		db.Resources,
+		algorithm.NameToIDMap,
+	) (db.InputMapping, bool, bool, error)
+}
+
 type Scheduler struct {
-	Pipeline     db.Pipeline
-	InputMapper  inputmapper.InputMapper
+	Algorithm    Algorithm
 	BuildStarter BuildStarter
 }
 
 func (s *Scheduler) Schedule(
+	ctx context.Context,
 	logger lager.Logger,
-	versions *algorithm.VersionsDB,
-	jobs []db.Job,
+	pipeline db.Pipeline,
+	job db.Job,
 	resources db.Resources,
-	resourceTypes atc.VersionedResourceTypes,
-) (map[string]time.Duration, error) {
-	jobSchedulingTime := map[string]time.Duration{}
-
-	for _, job := range jobs {
-		jStart := time.Now()
-		err := s.ensurePendingBuildExists(logger, versions, job, resources)
-		jobSchedulingTime[job.Name()] = time.Since(jStart)
-
-		if err != nil {
-			return jobSchedulingTime, err
-		}
-	}
-
-	nextPendingBuilds, err := s.Pipeline.GetAllPendingBuilds()
+	relatedJobs algorithm.NameToIDMap,
+) (bool, error) {
+	jobInputs, err := job.Inputs()
 	if err != nil {
-		logger.Error("failed-to-get-all-next-pending-builds", err)
-		return jobSchedulingTime, err
+		return false, fmt.Errorf("inputs: %w", err)
 	}
 
-	for _, job := range jobs {
-		jStart := time.Now()
-		nextPendingBuildsForJob, ok := nextPendingBuilds[job.Name()]
-		if !ok {
-			continue
-		}
+	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(ctx, job, jobInputs, resources, relatedJobs)
+	if err != nil {
+		return false, fmt.Errorf("compute inputs: %w", err)
+	}
 
-		err := s.BuildStarter.TryStartPendingBuildsForJob(logger, job, resources, resourceTypes, nextPendingBuildsForJob)
-		jobSchedulingTime[job.Name()] = jobSchedulingTime[job.Name()] + time.Since(jStart)
-
+	if runAgain {
+		err = job.RequestSchedule()
 		if err != nil {
-			return jobSchedulingTime, err
+			return false, fmt.Errorf("request schedule: %w", err)
 		}
 	}
 
-	return jobSchedulingTime, nil
+	err = job.SaveNextInputMapping(inputMapping, resolved)
+	if err != nil {
+		return false, fmt.Errorf("save next input mapping: %w", err)
+	}
+
+	err = s.ensurePendingBuildExists(logger, job, jobInputs, resources)
+	if err != nil {
+		return false, err
+	}
+
+	return s.BuildStarter.TryStartPendingBuildsForJob(logger, pipeline, job, jobInputs, resources, relatedJobs)
 }
 
 func (s *Scheduler) ensurePendingBuildExists(
 	logger lager.Logger,
-	versions *algorithm.VersionsDB,
 	job db.Job,
+	jobInputs []atc.JobInput,
 	resources db.Resources,
 ) error {
-	inputMapping, err := s.InputMapper.SaveNextInputMapping(logger, versions, job, resources)
+	buildInputs, satisfiableInputs, err := job.GetFullNextBuildInputs()
 	if err != nil {
-		return err
+		return fmt.Errorf("get next build inputs: %w", err)
+	}
+
+	if !satisfiableInputs {
+		logger.Debug("next-build-inputs-not-determined")
+		return nil
+	}
+
+	inputMapping := map[string]db.BuildInput{}
+	for _, input := range buildInputs {
+		inputMapping[input.Name] = input
 	}
 
 	var hasNewInputs bool
-	for _, inputConfig := range job.Config().Inputs() {
-		inputVersion, ok := inputMapping[inputConfig.Name]
+	for _, inputConfig := range jobInputs {
+		inputSource, ok := inputMapping[inputConfig.Name]
 
 		//trigger: true, and the version has not been used
-		if ok && inputVersion.FirstOccurrence {
+		if ok && inputSource.FirstOccurrence {
 			hasNewInputs = true
 			if inputConfig.Trigger {
 				err := job.EnsurePendingBuildExists()
 				if err != nil {
-					logger.Error("failed-to-ensure-pending-build-exists", err)
-					return err
+					return fmt.Errorf("ensure pending build exists: %w", err)
 				}
 
 				break
@@ -91,7 +106,7 @@ func (s *Scheduler) ensurePendingBuildExists(
 
 	if hasNewInputs != job.HasNewInputs() {
 		if err := job.SetHasNewInputs(hasNewInputs); err != nil {
-			return err
+			return fmt.Errorf("set has new inputs: %w", err)
 		}
 	}
 

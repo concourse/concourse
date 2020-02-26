@@ -33,11 +33,7 @@ update msg ( model, effects ) =
             ( model, effects )
 
 
-view :
-    UserState
-    -> Model r
-    -> Bool
-    -> Html Message
+view : UserState -> Model r -> Bool -> Html Message
 view userState model isPaused =
     Html.div
         (id "login-component" :: Styles.loginComponent)

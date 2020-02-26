@@ -1,15 +1,16 @@
 package accessor_test
 
 import (
-	"code.cloudfoundry.org/lager"
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"net/http"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"net/http"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -518,6 +519,11 @@ var _ = Describe("Accessor", func() {
 		Entry("pipeline-operator :: "+atc.CreateJobBuild, atc.CreateJobBuild, "pipeline-operator", true),
 		Entry("viewer :: "+atc.CreateJobBuild, atc.CreateJobBuild, "viewer", false),
 
+		Entry("owner :: "+atc.RerunJobBuild, atc.RerunJobBuild, "owner", true),
+		Entry("member :: "+atc.RerunJobBuild, atc.RerunJobBuild, "member", true),
+		Entry("pipeline-operator :: "+atc.RerunJobBuild, atc.RerunJobBuild, "pipeline-operator", true),
+		Entry("viewer :: "+atc.RerunJobBuild, atc.RerunJobBuild, "viewer", false),
+
 		Entry("owner :: "+atc.ListAllJobs, atc.ListAllJobs, "owner", true),
 		Entry("member :: "+atc.ListAllJobs, atc.ListAllJobs, "member", true),
 		Entry("pipeline-operator :: "+atc.ListAllJobs, atc.ListAllJobs, "pipeline-operator", true),
@@ -552,6 +558,11 @@ var _ = Describe("Accessor", func() {
 		Entry("member :: "+atc.UnpauseJob, atc.UnpauseJob, "member", true),
 		Entry("pipeline-operator :: "+atc.UnpauseJob, atc.UnpauseJob, "pipeline-operator", true),
 		Entry("viewer :: "+atc.UnpauseJob, atc.UnpauseJob, "viewer", false),
+
+		Entry("owner :: "+atc.ScheduleJob, atc.ScheduleJob, "owner", true),
+		Entry("member :: "+atc.ScheduleJob, atc.ScheduleJob, "member", true),
+		Entry("pipeline-operator :: "+atc.ScheduleJob, atc.ScheduleJob, "pipeline-operator", true),
+		Entry("viewer :: "+atc.ScheduleJob, atc.ScheduleJob, "viewer", false),
 
 		Entry("owner :: "+atc.GetVersionsDB, atc.GetVersionsDB, "owner", true),
 		Entry("member :: "+atc.GetVersionsDB, atc.GetVersionsDB, "member", true),
@@ -851,6 +862,11 @@ var _ = Describe("Accessor", func() {
 		Entry("member :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "member", true),
 		Entry("pipeline-operator :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "pipeline-operator", true),
 		Entry("viewer :: "+atc.ListBuildArtifacts, atc.ListBuildArtifacts, "viewer", true),
+
+		Entry("owner :: "+atc.GetWall, atc.GetWall, "owner", true),
+		Entry("member :: "+atc.GetWall, atc.GetWall, "member", true),
+		Entry("pipeline-operator :: "+atc.GetWall, atc.GetWall, "pipeline-operator", true),
+		Entry("viewer :: "+atc.GetWall, atc.GetWall, "viewer", true),
 	)
 
 	Describe("Customize RBAC", func() {

@@ -2,9 +2,11 @@ package gc
 
 import (
 	"context"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/metric"
 )
 
 type artifactCollector struct {
@@ -22,6 +24,13 @@ func (a *artifactCollector) Run(ctx context.Context) error {
 
 	logger.Debug("start")
 	defer logger.Debug("done")
+
+	start := time.Now()
+	defer func() {
+		metric.ArtifactCollectorDuration{
+			Duration: time.Since(start),
+		}.Emit(logger)
+	}()
 
 	return a.artifactLifecycle.RemoveExpiredArtifacts()
 }

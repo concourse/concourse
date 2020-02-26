@@ -71,8 +71,9 @@ var _ = Describe("PutStep", func() {
 
 		planID atc.PlanID
 
-		versionResult runtime.VersionResult
-		clientErr     error
+		versionResult  runtime.VersionResult
+		clientErr      error
+		someExitStatus int
 	)
 
 	BeforeEach(func() {
@@ -150,6 +151,8 @@ var _ = Describe("PutStep", func() {
 
 		fakeResourceFactory.NewResourceReturns(fakeResource)
 
+		someExitStatus = 0
+
 	})
 
 	AfterEach(func() {
@@ -162,7 +165,10 @@ var _ = Describe("PutStep", func() {
 			Put: putPlan,
 		}
 
-		fakeClient.RunPutStepReturns(worker.PutResult{Status: 0, VersionResult: versionResult, Err: clientErr})
+		fakeClient.RunPutStepReturns(
+			worker.PutResult{ExitStatus: someExitStatus, VersionResult: versionResult},
+			clientErr,
+		)
 
 		putStep = exec.NewPutStep(
 			plan.ID,
@@ -218,6 +224,51 @@ var _ = Describe("PutStep", func() {
 				Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
 				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+			})
+		})
+
+		Context("when the inputs are detected", func() {
+			BeforeEach(func() {
+				putPlan.Inputs = &atc.InputsConfig{
+					Detect: true,
+				}
+			})
+
+			Context("when the params are only strings", func() {
+				BeforeEach(func() {
+					putPlan.Params = atc.Params{
+						"some-param":    "some-source/source",
+						"another-param": "does-not-exist",
+						"number-param":  123,
+					}
+				})
+
+				It("calls RunPutStep with detected inputs", func() {
+					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+					Expect(containerSpec.ArtifactByPath).To(HaveLen(1))
+					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+				})
+			})
+
+			Context("when the params have maps and slices", func() {
+				BeforeEach(func() {
+					putPlan.Params = atc.Params{
+						"some-slice": []interface{}{
+							[]interface{}{"some-source/source", "does-not-exist", 123},
+							[]interface{}{"does not exist-2"},
+						},
+						"some-map": map[string]interface{}{
+							"key": "some-other-source/source",
+						},
+					}
+				})
+
+				It("calls RunPutStep with detected inputs", func() {
+					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+					Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
+					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+				})
 			})
 		})
 	})
@@ -347,9 +398,7 @@ var _ = Describe("PutStep", func() {
 	Context("when RunPutStep exits unsuccessfully", func() {
 		BeforeEach(func() {
 			versionResult = runtime.VersionResult{}
-			clientErr = runtime.ErrResourceScriptFailed{
-				ExitStatus: 42,
-			}
+			someExitStatus = 42
 		})
 
 		It("finishes the step via the delegate", func() {

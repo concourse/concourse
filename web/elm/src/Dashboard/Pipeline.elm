@@ -1,10 +1,12 @@
 module Dashboard.Pipeline exposing
     ( hdPipelineView
     , pipelineNotSetView
+    , pipelineStatus
     , pipelineView
     )
 
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Group.Models exposing (Pipeline)
@@ -25,7 +27,7 @@ import Views.Styles
 
 pipelineNotSetView : Html Message
 pipelineNotSetView =
-    Html.div [ class "card" ]
+    Html.div (class "card" :: Styles.noPipelineCard)
         [ Html.div
             (class "card-header" :: Styles.noPipelineCardHeader)
             [ Html.text "no pipeline set"
@@ -42,9 +44,11 @@ pipelineNotSetView =
 hdPipelineView :
     { pipeline : Pipeline
     , pipelineRunningKeyframes : String
+    , resourceError : Bool
+    , existingJobs : List Concourse.Job
     }
     -> Html Message
-hdPipelineView { pipeline, pipelineRunningKeyframes } =
+hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs } =
     Html.a
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
@@ -52,12 +56,12 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
          , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
          , href <| Routes.toString <| Routes.pipelineRoute pipeline
          ]
-            ++ Styles.pipelineCardHd pipeline.status
+            ++ Styles.pipelineCardHd (pipelineStatus existingJobs pipeline)
         )
     <|
         [ Html.div
             (Styles.pipelineCardBannerHd
-                { status = pipeline.status
+                { status = pipelineStatus existingJobs pipeline
                 , pipelineRunningKeyframes = pipelineRunningKeyframes
                 }
             )
@@ -66,7 +70,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
             (class "dashboardhd-pipeline-name" :: Styles.pipelineCardBodyHd)
             [ Html.text pipeline.name ]
         ]
-            ++ (if pipeline.resourceError then
+            ++ (if resourceError then
                     [ Html.div Styles.resourceErrorTriangle [] ]
 
                 else
@@ -75,32 +79,138 @@ hdPipelineView { pipeline, pipelineRunningKeyframes } =
 
 
 pipelineView :
-    { now : Time.Posix
+    { now : Maybe Time.Posix
     , pipeline : Pipeline
     , hovered : HoverState.HoverState
     , pipelineRunningKeyframes : String
     , userState : UserState
+    , resourceError : Bool
+    , existingJobs : List Concourse.Job
+    , layers : List (List Concourse.Job)
+    , query : String
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query } =
     Html.div
-        Styles.pipelineCard
+        (Styles.pipelineCard
+            ++ (if String.isEmpty query then
+                    [ style "cursor" "move" ]
+
+                else
+                    []
+               )
+        )
         [ Html.div
             (class "banner"
                 :: Styles.pipelineCardBanner
-                    { status = pipeline.status
+                    { status = pipelineStatus existingJobs pipeline
                     , pipelineRunningKeyframes = pipelineRunningKeyframes
                     }
             )
             []
-        , headerView pipeline
-        , bodyView hovered pipeline
-        , footerView userState pipeline now hovered
+        , headerView pipeline resourceError
+        , bodyView hovered layers
+        , footerView userState pipeline now hovered existingJobs
         ]
 
 
-headerView : Pipeline -> Html Message
-headerView pipeline =
+pipelineStatus : List Concourse.Job -> Pipeline -> PipelineStatus.PipelineStatus
+pipelineStatus jobs pipeline =
+    if pipeline.paused then
+        PipelineStatus.PipelineStatusPaused
+
+    else
+        let
+            isRunning =
+                List.any (\job -> job.nextBuild /= Nothing) jobs
+
+            mostImportantJobStatus =
+                jobs
+                    |> List.map jobStatus
+                    |> List.sortWith Concourse.BuildStatus.ordering
+                    |> List.head
+
+            firstNonSuccess =
+                jobs
+                    |> List.filter (jobStatus >> (/=) BuildStatusSucceeded)
+                    |> List.filterMap transition
+                    |> List.sortBy Time.posixToMillis
+                    |> List.head
+
+            lastTransition =
+                jobs
+                    |> List.filterMap transition
+                    |> List.sortBy Time.posixToMillis
+                    |> List.reverse
+                    |> List.head
+
+            transitionTime =
+                case firstNonSuccess of
+                    Just t ->
+                        Just t
+
+                    Nothing ->
+                        lastTransition
+        in
+        case ( mostImportantJobStatus, transitionTime ) of
+            ( _, Nothing ) ->
+                PipelineStatus.PipelineStatusPending isRunning
+
+            ( Nothing, _ ) ->
+                PipelineStatus.PipelineStatusPending isRunning
+
+            ( Just BuildStatusPending, _ ) ->
+                PipelineStatus.PipelineStatusPending isRunning
+
+            ( Just BuildStatusStarted, _ ) ->
+                PipelineStatus.PipelineStatusPending isRunning
+
+            ( Just BuildStatusSucceeded, Just since ) ->
+                if isRunning then
+                    PipelineStatus.PipelineStatusSucceeded PipelineStatus.Running
+
+                else
+                    PipelineStatus.PipelineStatusSucceeded (PipelineStatus.Since since)
+
+            ( Just BuildStatusFailed, Just since ) ->
+                if isRunning then
+                    PipelineStatus.PipelineStatusFailed PipelineStatus.Running
+
+                else
+                    PipelineStatus.PipelineStatusFailed (PipelineStatus.Since since)
+
+            ( Just BuildStatusErrored, Just since ) ->
+                if isRunning then
+                    PipelineStatus.PipelineStatusErrored PipelineStatus.Running
+
+                else
+                    PipelineStatus.PipelineStatusErrored (PipelineStatus.Since since)
+
+            ( Just BuildStatusAborted, Just since ) ->
+                if isRunning then
+                    PipelineStatus.PipelineStatusAborted PipelineStatus.Running
+
+                else
+                    PipelineStatus.PipelineStatusAborted (PipelineStatus.Since since)
+
+
+jobStatus : Concourse.Job -> BuildStatus
+jobStatus job =
+    case job.finishedBuild of
+        Just build ->
+            build.status
+
+        Nothing ->
+            BuildStatusPending
+
+
+transition : Concourse.Job -> Maybe Time.Posix
+transition =
+    .transitionBuild >> Maybe.andThen (.duration >> .finishedAt)
+
+
+headerView : Pipeline -> Bool -> Html Message
+headerView pipeline resourceError =
     Html.a
         [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
@@ -114,7 +224,7 @@ headerView pipeline =
                 [ Html.text pipeline.name ]
             , Html.div
                 [ classList
-                    [ ( "dashboard-resource-error", pipeline.resourceError )
+                    [ ( "dashboard-resource-error", resourceError )
                     ]
                 ]
                 []
@@ -122,20 +232,21 @@ headerView pipeline =
         ]
 
 
-bodyView : HoverState.HoverState -> Pipeline -> Html Message
-bodyView hovered pipeline =
+bodyView : HoverState.HoverState -> List (List Concourse.Job) -> Html Message
+bodyView hovered layers =
     Html.div
         (class "card-body" :: Styles.pipelineCardBody)
-        [ DashboardPreview.view hovered pipeline.jobs ]
+        [ DashboardPreview.view hovered layers ]
 
 
 footerView :
     UserState
     -> Pipeline
-    -> Time.Posix
+    -> Maybe Time.Posix
     -> HoverState.HoverState
+    -> List Concourse.Job
     -> Html Message
-footerView userState pipeline now hovered =
+footerView userState pipeline now hovered existingJobs =
     let
         spacer =
             Html.div [ style "width" "13.5px" ] []
@@ -144,13 +255,16 @@ footerView userState pipeline now hovered =
             { pipelineName = pipeline.name
             , teamName = pipeline.teamName
             }
+
+        status =
+            pipelineStatus existingJobs pipeline
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)
         [ Html.div
             [ style "display" "flex" ]
-            [ PipelineStatus.icon pipeline.status
-            , transitionView now pipeline
+            [ PipelineStatus.icon status
+            , transitionView now status
             ]
         , Html.div
             [ style "display" "flex" ]
@@ -158,7 +272,7 @@ footerView userState pipeline now hovered =
             List.intersperse spacer
                 [ PauseToggle.view
                     { isPaused =
-                        pipeline.status == PipelineStatus.PipelineStatusPaused
+                        status == PipelineStatus.PipelineStatusPaused
                     , pipeline = pipelineId
                     , isToggleHovered =
                         HoverState.isHovered (PipelineButton pipelineId) hovered
@@ -244,35 +358,57 @@ sinceTransitionText details now =
             Duration.format <| Duration.between time now
 
 
-statusAgeText : Pipeline -> Time.Posix -> String
-statusAgeText pipeline now =
-    case pipeline.status of
-        PipelineStatus.PipelineStatusPaused ->
-            "paused"
+transitionView : Maybe Time.Posix -> PipelineStatus.PipelineStatus -> Html Message
+transitionView t status =
+    case ( status, t ) of
+        ( PipelineStatus.PipelineStatusPaused, _ ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text "paused" ]
 
-        PipelineStatus.PipelineStatusPending False ->
-            "pending"
+        ( PipelineStatus.PipelineStatusPending False, _ ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text "pending" ]
 
-        PipelineStatus.PipelineStatusPending True ->
-            "running"
+        ( PipelineStatus.PipelineStatusPending True, _ ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text "running" ]
 
-        PipelineStatus.PipelineStatusAborted details ->
-            sinceTransitionText details now
+        ( PipelineStatus.PipelineStatusAborted details, Just now ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text <| sinceTransitionText details now ]
 
-        PipelineStatus.PipelineStatusErrored details ->
-            sinceTransitionText details now
+        ( PipelineStatus.PipelineStatusErrored details, Just now ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text <| sinceTransitionText details now ]
 
-        PipelineStatus.PipelineStatusFailed details ->
-            sinceTransitionText details now
+        ( PipelineStatus.PipelineStatusFailed details, Just now ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text <| sinceTransitionText details now ]
 
-        PipelineStatus.PipelineStatusSucceeded details ->
-            sinceTransitionText details now
+        ( PipelineStatus.PipelineStatusSucceeded details, Just now ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text <| sinceTransitionText details now ]
 
-
-transitionView : Time.Posix -> Pipeline -> Html Message
-transitionView time pipeline =
-    Html.div
-        (class "build-duration"
-            :: Styles.pipelineCardTransitionAge pipeline.status
-        )
-        [ Html.text <| statusAgeText pipeline time ]
+        _ ->
+            Html.text ""

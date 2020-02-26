@@ -211,17 +211,21 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListAllResources:     authenticateIfTokenProvided(inputHandlers[atc.ListAllResources]),
 				atc.ListTeams:            authenticateIfTokenProvided(inputHandlers[atc.ListTeams]),
 				atc.MainJobBadge:         authenticateIfTokenProvided(inputHandlers[atc.MainJobBadge]),
+				atc.GetWall:              authenticateIfTokenProvided(inputHandlers[atc.GetWall]),
 
 				// authenticated and is admin
 				atc.GetLogLevel:          authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),
 				atc.SetLogLevel:          authenticatedAndAdmin(inputHandlers[atc.SetLogLevel]),
 				atc.GetInfoCreds:         authenticatedAndAdmin(inputHandlers[atc.GetInfoCreds]),
 				atc.ListActiveUsersSince: authenticatedAndAdmin(inputHandlers[atc.ListActiveUsersSince]),
+				atc.SetWall:              authenticatedAndAdmin(inputHandlers[atc.SetWall]),
+				atc.ClearWall:            authenticatedAndAdmin(inputHandlers[atc.ClearWall]),
 
 				// authorized (requested team matches resource team)
 				atc.CheckResource:           authorized(inputHandlers[atc.CheckResource]),
 				atc.CheckResourceType:       authorized(inputHandlers[atc.CheckResourceType]),
 				atc.CreateJobBuild:          authorized(inputHandlers[atc.CreateJobBuild]),
+				atc.RerunJobBuild:           authorized(inputHandlers[atc.RerunJobBuild]),
 				atc.DeletePipeline:          authorized(inputHandlers[atc.DeletePipeline]),
 				atc.DisableResourceVersion:  authorized(inputHandlers[atc.DisableResourceVersion]),
 				atc.EnableResourceVersion:   authorized(inputHandlers[atc.EnableResourceVersion]),
@@ -238,6 +242,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.RenamePipeline:          authorized(inputHandlers[atc.RenamePipeline]),
 				atc.SaveConfig:              authorized(inputHandlers[atc.SaveConfig]),
 				atc.UnpauseJob:              authorized(inputHandlers[atc.UnpauseJob]),
+				atc.ScheduleJob:             authorized(inputHandlers[atc.ScheduleJob]),
 				atc.UnpausePipeline:         authorized(inputHandlers[atc.UnpausePipeline]),
 				atc.ExposePipeline:          authorized(inputHandlers[atc.ExposePipeline]),
 				atc.HidePipeline:            authorized(inputHandlers[atc.HidePipeline]),

@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"fmt"
+	"net/http"
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
@@ -19,6 +20,57 @@ var _ = Describe("Fly CLI", func() {
 		var (
 			flyCmd *exec.Cmd
 		)
+
+		pipelineName := "pipeline"
+		sampleJobJsonString := `[
+              {
+                "id": 0,
+                "name": "job-1",
+                "pipeline_name": "",
+                "team_name": "",
+                "next_build": {
+                  "id": 0,
+                  "team_name": "",
+                  "name": "",
+                  "status": "started",
+                  "api_url": ""
+                },
+                "finished_build": {
+                  "id": 0,
+                  "team_name": "",
+                  "name": "",
+                  "status": "succeeded",
+                  "api_url": ""
+                },
+                "groups": null
+              },
+              {
+                "id": 0,
+                "name": "job-2",
+                "pipeline_name": "",
+                "team_name": "",
+                "paused": true,
+                "next_build": null,
+                "finished_build": {
+                  "id": 0,
+                  "team_name": "",
+                  "name": "",
+                  "status": "failed",
+                  "api_url": ""
+                },
+                "groups": null
+              },
+              {
+                "id": 0,
+                "name": "job-3",
+                "pipeline_name": "",
+                "team_name": "",
+                "next_build": null,
+                "finished_build": null,
+                "groups": null
+              }
+            ]`
+		var sampleJobs []atc.Job
 
 		Context("when not specifying a pipeline name", func() {
 			It("fails and says you should give a pipeline name", func() {
@@ -54,17 +106,19 @@ var _ = Describe("Fly CLI", func() {
 					NextBuild:     nextBuild,
 				}
 			}
+
+			sampleJobs = []atc.Job{
+				createJob(1, false, "succeeded", "started"),
+				createJob(2, true, "failed", ""),
+				createJob(3, false, "", ""),
+			}
+
 			BeforeEach(func() {
-				pipelineName := "pipeline"
 				flyCmd = exec.Command(flyPath, "-t", targetName, "jobs", "--pipeline", pipelineName)
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/jobs"),
-						ghttp.RespondWithJSONEncoded(200, []atc.Job{
-							createJob(1, false, "succeeded", "started"),
-							createJob(2, true, "failed", ""),
-							createJob(3, false, "", ""),
-						}),
+						ghttp.RespondWithJSONEncoded(200, sampleJobs),
 					),
 				)
 			})
@@ -79,60 +133,7 @@ var _ = Describe("Fly CLI", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess).Should(gexec.Exit(0))
-					Expect(sess.Out.Contents()).To(MatchJSON(`[
-              {
-                "id": 0,
-                "name": "job-1",
-                "pipeline_name": "",
-                "team_name": "",
-                "next_build": {
-                  "id": 0,
-                  "team_name": "",
-                  "name": "",
-                  "status": "started",
-                  "api_url": ""
-                },
-                "finished_build": {
-                  "id": 0,
-                  "team_name": "",
-                  "name": "",
-                  "status": "succeeded",
-                  "api_url": ""
-                },
-                "inputs": null,
-                "outputs": null,
-                "groups": null
-              },
-              {
-                "id": 0,
-                "name": "job-2",
-                "pipeline_name": "",
-                "team_name": "",
-                "paused": true,
-                "next_build": null,
-                "finished_build": {
-                  "id": 0,
-                  "team_name": "",
-                  "name": "",
-                  "status": "failed",
-                  "api_url": ""
-                },
-                "inputs": null,
-                "outputs": null,
-                "groups": null
-              },
-              {
-                "id": 0,
-                "name": "job-3",
-                "pipeline_name": "",
-                "team_name": "",
-                "next_build": null,
-                "finished_build": null,
-                "inputs": null,
-                "outputs": null,
-                "groups": null
-              }
-            ]`))
+					Expect(sess.Out.Contents()).To(MatchJSON(sampleJobJsonString))
 				})
 			})
 
@@ -168,6 +169,31 @@ var _ = Describe("Fly CLI", func() {
 
 				Eventually(sess).Should(gexec.Exit(1))
 				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
+			})
+		})
+
+		Context("jobs for 'other-team'", func() {
+			Context("using --team parameter", func() {
+				BeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: "other-team"}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/other-team/pipelines/pipeline/jobs"),
+							ghttp.RespondWithJSONEncoded(200, sampleJobs),
+						),
+					)
+				})
+				It("can list jobs in 'other-team'", func() {
+					flyJobCmd := exec.Command(flyPath, "-t", targetName, "jobs", "-p", pipelineName, "--team", "other-team", "--json")
+					sess, err := gexec.Start(flyJobCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+					Expect(sess.Out.Contents()).To(MatchJSON(sampleJobJsonString))
+				})
 			})
 		})
 	})

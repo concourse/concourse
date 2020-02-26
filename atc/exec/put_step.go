@@ -4,8 +4,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/concourse/concourse/vars"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
@@ -14,6 +12,8 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 )
 
 //go:generate counterfeiter . PutDelegate
@@ -82,6 +82,22 @@ func NewPutStep(
 // The resource's put script is then invoked. If the context is canceled, the
 // script will be interrupted.
 func (step *PutStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "put", tracing.Attrs{
+		"team":     step.metadata.TeamName,
+		"pipeline": step.metadata.PipelineName,
+		"job":      step.metadata.JobName,
+		"build":    step.metadata.BuildName,
+		"resource": step.plan.Resource,
+		"name":     step.plan.Name,
+	})
+
+	err := step.run(ctx, state)
+	tracing.End(span, err)
+
+	return err
+}
+
+func (step *PutStep) run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("put-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -113,6 +129,8 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		putInputs = NewAllInputs()
 	} else if step.plan.Inputs.All {
 		putInputs = NewAllInputs()
+	} else if step.plan.Inputs.Detect {
+		putInputs = NewDetectInputs(step.plan.Params)
 	} else {
 		// Covers both cases where inputs are specified and when there are no
 		// inputs specified and "all" field is given a false boolean, which will
@@ -166,7 +184,7 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 
 	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
 
-	result := step.workerClient.RunPutStep(
+	result, err := step.workerClient.RunPutStep(
 		ctx,
 		logger,
 		owner,
@@ -179,21 +197,17 @@ func (step *PutStep) Run(ctx context.Context, state RunState) error {
 		step.delegate,
 		resourceToPut,
 	)
-
-	versionResult := result.VersionResult
-	err = result.Err
-
 	if err != nil {
 		logger.Error("failed-to-put-resource", err)
-
-		if err, ok := err.(runtime.ErrResourceScriptFailed); ok {
-			step.delegate.Finished(logger, ExitStatus(err.ExitStatus), runtime.VersionResult{})
-			return nil
-		}
-
 		return err
 	}
 
+	if result.ExitStatus != 0 {
+		step.delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
+		return nil
+	}
+
+	versionResult := result.VersionResult
 	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
 	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {

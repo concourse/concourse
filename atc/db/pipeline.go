@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"code.cloudfoundry.org/lager"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/vars"
@@ -60,14 +59,11 @@ type Pipeline interface {
 	CreateOneOffBuild() (Build, error)
 	CreateStartedBuild(plan atc.Plan) (Build, error)
 
-	GetAllPendingBuilds() (map[string][]Build, error)
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
-	AcquireSchedulingLock(lager.Logger, time.Duration) (lock.Lock, bool, error)
-
-	LoadVersionsDB() (*algorithm.VersionsDB, error)
+	LoadDebugVersionsDB() (*atc.DebugVersionsDB, error)
 
 	Resource(name string) (Resource, bool, error)
 	ResourceByID(id int) (Resource, bool, error)
@@ -79,7 +75,7 @@ type Pipeline interface {
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
-	Dashboard() (Dashboard, error)
+	Dashboard() (atc.Dashboard, error)
 
 	Expose() error
 	Hide() error
@@ -103,9 +99,6 @@ type pipeline struct {
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
-
-	cacheIndex int
-	versionsDB *algorithm.VersionsDB
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -230,17 +223,22 @@ func (p *pipeline) Reload() (bool, error) {
 func (p *pipeline) Config() (atc.Config, error) {
 	jobs, err := p.Jobs()
 	if err != nil {
-		return atc.Config{}, fmt.Errorf("failed to get jobs: %s", err)
+		return atc.Config{}, fmt.Errorf("failed to get jobs: %w", err)
 	}
 
 	resources, err := p.Resources()
 	if err != nil {
-		return atc.Config{}, fmt.Errorf("failed to get resources: %s", err)
+		return atc.Config{}, fmt.Errorf("failed to get resources: %w", err)
 	}
 
 	resourceTypes, err := p.ResourceTypes()
 	if err != nil {
-		return atc.Config{}, fmt.Errorf("failed to get resources-types: %s", err)
+		return atc.Config{}, fmt.Errorf("failed to get resources-types: %w", err)
+	}
+
+	jobConfigs, err := jobs.Configs()
+	if err != nil {
+		return atc.Config{}, fmt.Errorf("failed to get job configs: %w", err)
 	}
 
 	config := atc.Config{
@@ -248,7 +246,7 @@ func (p *pipeline) Config() (atc.Config, error) {
 		VarSources:    p.VarSources(),
 		Resources:     resources.Configs(),
 		ResourceTypes: resourceTypes.Configs(),
-		Jobs:          jobs.Configs(),
+		Jobs:          jobConfigs,
 	}
 
 	return config, nil
@@ -301,37 +299,6 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	}
 
 	return build, nil
-}
-
-func (p *pipeline) GetAllPendingBuilds() (map[string][]Build, error) {
-	builds := map[string][]Build{}
-
-	rows, err := buildsQuery.
-		Where(sq.Eq{
-			"b.status":      BuildStatusPending,
-			"j.active":      true,
-			"b.pipeline_id": p.id,
-		}).
-		OrderBy("b.id").
-		RunWith(p.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		build := newEmptyBuild(p.conn, p.lockFactory)
-		err = scanBuild(build, rows, p.conn.EncryptionStrategy())
-		if err != nil {
-			return nil, err
-		}
-
-		builds[build.JobName()] = append(builds[build.JobName()], build)
-	}
-
-	return builds, nil
 }
 
 // ResourceVersion is given a resource config version id and returns the
@@ -584,9 +551,7 @@ func (p *pipeline) Jobs() (Jobs, error) {
 	return jobs, err
 }
 
-func (p *pipeline) Dashboard() (Dashboard, error) {
-	dashboard := Dashboard{}
-
+func (p *pipeline) Dashboard() (atc.Dashboard, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -594,29 +559,11 @@ func (p *pipeline) Dashboard() (Dashboard, error) {
 
 	defer Rollback(tx)
 
-	rows, err := jobsQuery.
-		Where(sq.Eq{
-			"pipeline_id": p.id,
-			"active":      true,
-		}).
-		OrderBy("j.id ASC").
-		RunWith(tx).
-		Query()
-	if err != nil {
-		return nil, err
-	}
+	dashboardFactory := newDashboardFactory(tx, sq.Eq{
+		"j.pipeline_id": p.id,
+	})
 
-	jobs, err := scanJobs(p.conn, p.lockFactory, rows)
-	if err != nil {
-		return nil, err
-	}
-
-	nextBuilds, err := p.getBuildsFrom(tx, "next_build_id")
-	if err != nil {
-		return nil, err
-	}
-
-	finishedBuilds, err := p.getBuildsFrom(tx, "latest_completed_build_id")
+	dashboard, err := dashboardFactory.buildDashboard()
 	if err != nil {
 		return nil, err
 	}
@@ -624,22 +571,6 @@ func (p *pipeline) Dashboard() (Dashboard, error) {
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
-	}
-
-	for _, job := range jobs {
-		dashboardJob := DashboardJob{
-			Job: job,
-		}
-
-		if nextBuild, found := nextBuilds[job.Name()]; found {
-			dashboardJob.NextBuild = nextBuild
-		}
-
-		if finishedBuild, found := finishedBuilds[job.Name()]; found {
-			dashboardJob.FinishedBuild = finishedBuild
-		}
-
-		dashboard = append(dashboard, dashboardJob)
 	}
 
 	return dashboard, nil
@@ -658,15 +589,31 @@ func (p *pipeline) Pause() error {
 }
 
 func (p *pipeline) Unpause() error {
-	_, err := psql.Update("pipelines").
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	_, err = psql.Update("pipelines").
 		Set("paused", false).
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Exec()
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	err = requestScheduleForJobsInPipeline(tx, p.id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (p *pipeline) Hide() error {
@@ -716,38 +663,22 @@ func (p *pipeline) Destroy() error {
 	return err
 }
 
-func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
+func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
+	db := &atc.DebugVersionsDB{
+		BuildOutputs:     []atc.DebugBuildOutput{},
+		BuildInputs:      []atc.DebugBuildInput{},
+		ResourceVersions: []atc.DebugResourceVersion{},
+		BuildReruns:      []atc.DebugBuildRerun{},
+		Resources:        []atc.DebugResource{},
+		Jobs:             []atc.DebugJob{},
+	}
+
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	defer Rollback(tx)
-
-	var cacheIndex int
-	err = psql.Select("cache_index").
-		From("pipelines").
-		Where(sq.Eq{"id": p.id}).
-		RunWith(tx).
-		QueryRow().
-		Scan(&cacheIndex)
-	if err != nil {
-		return nil, err
-	}
-
-	if p.versionsDB != nil && p.cacheIndex == cacheIndex {
-		return p.versionsDB, nil
-	}
-
-	db := &algorithm.VersionsDB{
-		BuildOutputs:     []algorithm.BuildOutput{},
-		BuildInputs:      []algorithm.BuildInput{},
-		ResourceVersions: []algorithm.ResourceVersion{},
-		JobIDs:           map[string]int{},
-		ResourceIDs:      map[string]int{},
-	}
-
-	rows, err := psql.Select("v.id, v.check_order, r.id, o.build_id, b.job_id").
+	rows, err := psql.Select("v.id, v.check_order, r.id, v.resource_config_scope_id, o.build_id, b.job_id").
 		From("build_resource_config_version_outputs o").
 		Join("builds b ON b.id = o.build_id").
 		Join("resource_config_versions v ON v.version_md5 = o.version_md5").
@@ -760,6 +691,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
+			"r.active":      true,
 		}).
 		RunWith(tx).
 		Query()
@@ -770,18 +702,18 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		var output algorithm.BuildOutput
-		err = rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID, &output.BuildID, &output.JobID)
+		var output atc.DebugBuildOutput
+		err = rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID, &output.ScopeID, &output.BuildID, &output.JobID)
 		if err != nil {
 			return nil, err
 		}
 
-		output.ResourceVersion.CheckOrder = output.CheckOrder
+		output.DebugResourceVersion.CheckOrder = output.CheckOrder
 
 		db.BuildOutputs = append(db.BuildOutputs, output)
 	}
 
-	rows, err = psql.Select("v.id, v.check_order, r.id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
+	rows, err = psql.Select("v.id, v.check_order, r.id, v.resource_config_scope_id, i.build_id, i.name, b.job_id, b.status = 'succeeded'").
 		From("build_resource_config_version_inputs i").
 		Join("builds b ON b.id = i.build_id").
 		Join("resource_config_versions v ON v.version_md5 = i.version_md5").
@@ -793,6 +725,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
+			"r.active":      true,
 		}).
 		RunWith(tx).
 		Query()
@@ -805,27 +738,27 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	for rows.Next() {
 		var succeeded bool
 
-		var input algorithm.BuildInput
-		err = rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.BuildID, &input.InputName, &input.JobID, &succeeded)
+		var input atc.DebugBuildInput
+		err = rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.ScopeID, &input.BuildID, &input.InputName, &input.JobID, &succeeded)
 		if err != nil {
 			return nil, err
 		}
 
-		input.ResourceVersion.CheckOrder = input.CheckOrder
+		input.DebugResourceVersion.CheckOrder = input.CheckOrder
 
 		db.BuildInputs = append(db.BuildInputs, input)
 
 		if succeeded {
 			// implicit output
-			db.BuildOutputs = append(db.BuildOutputs, algorithm.BuildOutput{
-				ResourceVersion: input.ResourceVersion,
-				JobID:           input.JobID,
-				BuildID:         input.BuildID,
+			db.BuildOutputs = append(db.BuildOutputs, atc.DebugBuildOutput{
+				DebugResourceVersion: input.DebugResourceVersion,
+				JobID:                input.JobID,
+				BuildID:              input.BuildID,
 			})
 		}
 	}
 
-	rows, err = psql.Select("v.id, v.check_order, r.id").
+	rows, err = psql.Select("v.id, v.check_order, r.id, v.resource_config_scope_id").
 		From("resource_config_versions v").
 		Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
@@ -834,6 +767,7 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
+			"r.active":      true,
 			"d.resource_id": nil,
 			"d.version_md5": nil,
 		}).
@@ -846,8 +780,8 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		var output algorithm.ResourceVersion
-		err = rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID)
+		var output atc.DebugResourceVersion
+		err = rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID, &output.ScopeID)
 		if err != nil {
 			return nil, err
 		}
@@ -855,9 +789,40 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		db.ResourceVersions = append(db.ResourceVersions, output)
 	}
 
+	rows, err = psql.Select("j.id, b.id, b.rerun_of").
+		From("builds b").
+		Join("jobs j ON j.id = b.job_id").
+		Where(sq.Eq{
+			"j.active":      true,
+			"b.pipeline_id": p.id,
+		}).
+		Where(sq.NotEq{
+			"b.rerun_of": nil,
+		}).
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+
+	for rows.Next() {
+		var rerun atc.DebugBuildRerun
+		err = rows.Scan(&rerun.JobID, &rerun.BuildID, &rerun.RerunOf)
+		if err != nil {
+			return nil, err
+		}
+
+		db.BuildReruns = append(db.BuildReruns, rerun)
+	}
+
 	rows, err = psql.Select("j.name, j.id").
 		From("jobs j").
-		Where(sq.Eq{"j.pipeline_id": p.id}).
+		Where(sq.Eq{
+			"j.pipeline_id": p.id,
+			"j.active":      true,
+		}).
 		RunWith(tx).
 		Query()
 	if err != nil {
@@ -867,19 +832,21 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		var name string
-		var id int
-		err = rows.Scan(&name, &id)
+		var job atc.DebugJob
+		err = rows.Scan(&job.Name, &job.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		db.JobIDs[name] = id
+		db.Jobs = append(db.Jobs, job)
 	}
 
-	rows, err = psql.Select("r.name, r.id").
+	rows, err = psql.Select("r.name, r.id, r.resource_config_scope_id").
 		From("resources r").
-		Where(sq.Eq{"r.pipeline_id": p.id}).
+		Where(sq.Eq{
+			"r.pipeline_id": p.id,
+			"r.active":      true,
+		}).
 		RunWith(tx).
 		Query()
 	if err != nil {
@@ -889,23 +856,25 @@ func (p *pipeline) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		var name string
-		var id int
-		err = rows.Scan(&name, &id)
+		var scopeID sql.NullInt64
+		var resource atc.DebugResource
+		err = rows.Scan(&resource.Name, &resource.ID, &scopeID)
 		if err != nil {
 			return nil, err
 		}
 
-		db.ResourceIDs[name] = id
+		if scopeID.Valid {
+			i := int(scopeID.Int64)
+			resource.ScopeID = &i
+		}
+
+		db.Resources = append(db.Resources, resource)
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
-
-	p.versionsDB = db
-	p.cacheIndex = cacheIndex
 
 	return db, nil
 }
@@ -951,55 +920,6 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	err = tx.Commit()
 	return err
-}
-
-func (p *pipeline) AcquireSchedulingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error) {
-	lock, acquired, err := p.lockFactory.Acquire(
-		logger.Session("lock", lager.Data{
-			"pipeline": p.name,
-		}),
-		lock.NewPipelineSchedulingLockLockID(p.id),
-	)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !acquired {
-		return nil, false, nil
-	}
-
-	var keepLock bool
-	defer func() {
-		if !keepLock {
-			err = lock.Release()
-			if err != nil {
-				logger.Error("failed-to-release-lock", err)
-			}
-		}
-	}()
-
-	result, err := p.conn.Exec(`
-		UPDATE pipelines
-		SET last_scheduled = now()
-		WHERE id = $1
-			AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
-	`, p.id, interval.Seconds())
-	if err != nil {
-		return nil, false, err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return nil, false, err
-	}
-
-	if rows == 0 {
-		return nil, false, nil
-	}
-
-	keepLock = true
-
-	return lock, true, nil
 }
 
 func (p *pipeline) CreateOneOffBuild() (Build, error) {
@@ -1087,25 +1007,6 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	return build, nil
 }
 
-func (p *pipeline) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {
-	_, err := tx.Exec(`
-		WITH max_checkorder AS (
-			SELECT max(check_order) co
-			FROM versioned_resources
-			WHERE resource_id = $1
-			AND type = $2
-		)
-
-		UPDATE versioned_resources
-		SET check_order = mc.co + 1
-		FROM max_checkorder mc
-		WHERE resource_id = $1
-		AND type = $2
-		AND version = $3
-		AND check_order <= mc.co;`, resourceID, resourceType, version)
-	return err
-}
-
 func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 	rows, err := buildsQuery.
 		Where(sq.Eq{
@@ -1180,28 +1081,6 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 	return allVars, nil
 }
 
-func bumpCacheIndex(tx Tx, pipelineID int) error {
-	res, err := psql.Update("pipelines").
-		Set("cache_index", sq.Expr("cache_index + 1")).
-		Where(sq.Eq{"id": pipelineID}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return err
-	}
-
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return nonOneRowAffectedError{rows}
-	}
-
-	return nil
-}
-
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {
 	var buildName string
 	var jobID int
@@ -1238,4 +1117,47 @@ func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resourc
 	}
 
 	return resources, nil
+}
+
+// The SELECT query orders the jobs for updating to prevent deadlocking.
+// Updating multiple rows using a SELECT subquery does not preserve the same
+// order for the updates, which can lead to deadlocking.
+func requestScheduleForJobsInPipeline(tx Tx, pipelineID int) error {
+	rows, err := psql.Select("id").
+		From("jobs").
+		Where(sq.Eq{
+			"pipeline_id": pipelineID,
+		}).
+		OrderBy("id DESC").
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	var jobIDs []int
+	for rows.Next() {
+		var id int
+		err = rows.Scan(&id)
+		if err != nil {
+			return err
+		}
+
+		jobIDs = append(jobIDs, id)
+	}
+
+	for _, jID := range jobIDs {
+		_, err := psql.Update("jobs").
+			Set("schedule_requested", sq.Expr("now()")).
+			Where(sq.Eq{
+				"id": jID,
+			}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

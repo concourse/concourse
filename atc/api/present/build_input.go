@@ -5,7 +5,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func BuildInput(input db.BuildInput, config atc.JobInput, resource db.Resource) atc.BuildInput {
+func BuildInput(input db.BuildInput, config atc.JobInputParams, resource db.Resource) atc.BuildInput {
 	return atc.BuildInput{
 		Name:     input.Name,
 		Resource: resource.Name(),

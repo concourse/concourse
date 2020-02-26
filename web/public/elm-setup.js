@@ -69,9 +69,9 @@ app.ports.tooltip.subscribe(function (pipelineInfo) {
   var pipelineTeamName = pipelineInfo[1];
 
   var team = $('div[id="' + pipelineTeamName + '"]');
-  var title = team.find('.card[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name');
+  var title = team.find('.card[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name').get(0);
 
-  if(title.get(0).offsetWidth < title.get(0).scrollWidth){
+  if(title && title.offsetWidth < title.scrollWidth){
       title.parent().attr('data-tooltip', pipelineName);
   }
 });

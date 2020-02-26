@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  web:
+    volumes:
+    - ./hack/vault/certs:/vault-certs
+    environment:
+      CONCOURSE_VAULT_URL: https://vault:8200
+      CONCOURSE_VAULT_AUTH_BACKEND: cert
+      CONCOURSE_VAULT_CA_CERT: /vault-certs/vault-ca.crt
+      CONCOURSE_VAULT_CLIENT_CERT: /vault-certs/concourse.crt
+      CONCOURSE_VAULT_CLIENT_KEY: /vault-certs/concourse.key
+
+  vault:
+    image: vault
+    cap_add: [IPC_LOCK]
+    ports: ["8200:8200"]
+    volumes:
+    - ./hack/vault/certs:/vault/certs
+    - ./hack/vault/config:/vault/config
+    command: server

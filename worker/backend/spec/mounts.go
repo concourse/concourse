@@ -50,6 +50,12 @@ var (
 			Options:     []string{"nosuid", "noexec", "nodev", "ro"},
 		},
 		{
+			Destination: "/sys/fs/cgroup",
+			Type: "cgroup",
+			Source: "cgroup",
+			Options: []string{"ro", "nosuid", "noexec", "nodev"},
+		},
+		{
 			Destination: "/run",
 			Type:        "tmpfs",
 			Source:      "tmpfs",

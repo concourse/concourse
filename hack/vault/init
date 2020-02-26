@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e -u
+
+cd $(dirname $0)/../..
+
+export VAULT_CACERT=$PWD/hack/vault/certs/vault-ca.crt
+
+vault operator init --format=json > hack/vault/init.json
+
+vault operator unseal $(jq -r .unseal_keys_b64[0] < hack/vault/init.json)
+vault operator unseal $(jq -r .unseal_keys_b64[1] < hack/vault/init.json)
+vault operator unseal $(jq -r .unseal_keys_b64[2] < hack/vault/init.json)
+jq -r .root_token < hack/vault/init.json | vault login -
+
+vault policy write concourse ./hack/vault/config/concourse-policy.hcl
+
+vault auth enable cert
+vault write auth/cert/certs/concourse \
+  policies=concourse \
+  certificate=@hack/vault/certs/vault-ca.crt ttl=1h
+
+echo
+echo 'to use the vault CLI, set:'
+echo
+echo '  export VAULT_CACERT=$PWD/hack/vault/certs/vault-ca.crt'

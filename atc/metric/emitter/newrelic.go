@@ -145,19 +145,6 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 		// Ignore the rest
 	}
 
-	// But also log any metric that's not EventStateOK, even if we're not
-	// otherwise recording it. (This won't be easily graphable, that's okay,
-	// this is more for monitoring synthetics)
-	if event.State != metric.EventStateOK {
-		singlePayload := emitter.transformToNewRelicEvent(event, "alert")
-		// We don't have friendly names for all the metrics, and part of the
-		// point of this alert is to catch events we should be logging but
-		// didn't; therefore, be consistently inconsistent and use the
-		// concourse metric names, not our translation layer.
-		singlePayload["metric"] = event.Name
-		emitter.NewRelicBatch = append(emitter.NewRelicBatch, singlePayload)
-	}
-
 	duration := time.Since(emitter.LastEmitTime)
 	if len(emitter.NewRelicBatch) >= emitter.BatchSize || duration >= emitter.BatchDuration {
 		logger.Debug("pre-emit-batch", lager.Data{
@@ -184,7 +171,6 @@ func (emitter *NewRelicEmitter) transformToNewRelicEvent(event metric.Event, nam
 	payload := NewRelicEvent{
 		"eventType": eventType,
 		"value":     event.Value,
-		"state":     string(event.State),
 		"host":      event.Host,
 		"timestamp": event.Time.Unix(),
 	}

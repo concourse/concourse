@@ -82,62 +82,48 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		BeforeEach(func() {
-			build1 := new(dbfakes.FakeBuild)
-			build1.IDReturns(1)
-			build1.NameReturns("1")
-			build1.JobNameReturns("some-job")
-			build1.PipelineNameReturns("some-pipeline")
-			build1.TeamNameReturns("some-team")
-			build1.StatusReturns(db.BuildStatusSucceeded)
-			build1.StartTimeReturns(time.Unix(1, 0))
-			build1.EndTimeReturns(time.Unix(100, 0))
+			dbJobFactory.VisibleJobsReturns(atc.Dashboard{
+				atc.DashboardJob{
+					ID:           1,
+					Name:         "some-job",
+					Paused:       true,
+					PipelineName: "some-pipeline",
+					TeamName:     "some-team",
 
-			build2 := new(dbfakes.FakeBuild)
-			build2.IDReturns(3)
-			build2.NameReturns("2")
-			build2.JobNameReturns("some-job")
-			build2.PipelineNameReturns("some-pipeline")
-			build2.TeamNameReturns("some-team")
-			build2.StatusReturns(db.BuildStatusStarted)
-
-			fakeJob.IDReturns(1)
-			fakeJob.PausedReturns(true)
-			fakeJob.FirstLoggedBuildIDReturns(99)
-			fakeJob.PipelineNameReturns("some-pipeline")
-			fakeJob.NameReturns("some-job")
-			fakeJob.ConfigReturns(atc.JobConfig{
-				Name: "some-job",
-				Plan: atc.PlanSequence{
-					{
-						Get: "some-input",
+					Inputs: []atc.DashboardJobInput{
+						{
+							Name:     "some-input",
+							Resource: "some-input",
+							Trigger:  false,
+						},
+						{
+							Name:     "some-name",
+							Resource: "some-other-input",
+							Passed:   []string{"a", "b"},
+							Trigger:  true,
+						},
 					},
-					{
-						Get:      "some-name",
-						Resource: "some-other-input",
-						Params:   atc.Params{"secret": "params"},
-						Passed:   []string{"a", "b"},
-						Trigger:  true,
-					},
-					{
-						Put: "some-output",
-					},
-					{
-						Put:    "some-other-output",
-						Params: atc.Params{"secret": "params"},
-					},
-				},
-			})
-			fakeJob.TagsReturns([]string{"group-1", "group-2"})
 
-			fakeJob.TeamNameReturns("some-team")
+					NextBuild: &atc.DashboardBuild{
+						ID:           3,
+						Name:         "2",
+						JobName:      "some-job",
+						PipelineName: "some-pipeline",
+						TeamName:     "some-team",
+						Status:       "started",
+					},
+					FinishedBuild: &atc.DashboardBuild{
+						ID:           1,
+						Name:         "1",
+						JobName:      "some-job",
+						PipelineName: "some-pipeline",
+						TeamName:     "some-team",
+						Status:       "succeeded",
+						StartTime:    time.Unix(1, 0),
+						EndTime:      time.Unix(100, 0),
+					},
 
-			fakePipeline.JobReturns(fakeJob, true, nil)
-
-			dbJobFactory.VisibleJobsReturns(db.Dashboard{
-				db.DashboardJob{
-					Job:           fakeJob,
-					NextBuild:     build2,
-					FinishedBuild: build1,
+					Groups: []string{"group-1", "group-2"},
 				},
 			}, nil)
 		})
@@ -161,7 +147,6 @@ var _ = Describe("Jobs API", func() {
 				"pipeline_name": "some-pipeline",
 				"team_name": "some-team",
 				"paused": true,
-				"first_logged_build_id": 99,
 				"next_build": {
 					"id": 3,
 					"team_name": "some-team",
@@ -196,16 +181,6 @@ var _ = Describe("Jobs API", func() {
 							"b"
 						],
 						"trigger": true
-					}
-				],
-				"outputs": [
-					{
-						"name": "some-output",
-						"resource": "some-output"
-					},
-					{
-						"name": "some-other-output",
-						"resource": "some-other-output"
 					}
 				],
 				"groups": ["group-1", "group-2"]
@@ -379,51 +354,87 @@ var _ = Describe("Jobs API", func() {
 						fakeJob.FirstLoggedBuildIDReturns(99)
 						fakeJob.PipelineNameReturns("some-pipeline")
 						fakeJob.NameReturns("some-job")
-						fakeJob.ConfigReturns(atc.JobConfig{
-							Name: "some-job",
-							Plan: atc.PlanSequence{
-								{
-									Get: "some-input",
-								},
-								{
-									Get:      "some-name",
-									Resource: "some-other-input",
-									Params:   atc.Params{"secret": "params"},
-									Passed:   []string{"a", "b"},
-									Trigger:  true,
-								},
-								{
-									Put: "some-output",
-								},
-								{
-									Put:    "some-other-output",
-									Params: atc.Params{"secret": "params"},
-								},
-							},
-						})
 						fakeJob.TagsReturns([]string{"group-1", "group-2"})
 						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 
 						fakePipeline.JobReturns(fakeJob, true, nil)
 					})
 
-					It("fetches by job", func() {
-						Expect(fakeJob.FinishedAndNextBuildCallCount()).To(Equal(1))
+					It("fetches the inputs", func() {
+						Expect(fakeJob.InputsCallCount()).To(Equal(1))
 					})
 
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Context("when getting the inputs fails", func() {
+						BeforeEach(func() {
+							fakeJob.InputsReturns(nil, errors.New("nope"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
 					})
 
-					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-					})
+					Context("when getting the inputs succeeds", func() {
+						BeforeEach(func() {
+							fakeJob.InputsReturns([]atc.JobInput{
+								{
+									Name:     "some-input",
+									Resource: "some-input",
+								},
+								{
+									Name:     "some-name",
+									Resource: "some-other-input",
+									Passed:   []string{"a", "b"},
+									Trigger:  true,
+								},
+							}, nil)
+						})
 
-					It("returns the job's name, if it's paused, and any running and finished builds", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
+						It("fetches the outputs", func() {
+							Expect(fakeJob.OutputsCallCount()).To(Equal(1))
+						})
 
-						Expect(body).To(MatchJSON(`{
+						Context("when getting the outputs fails", func() {
+							BeforeEach(func() {
+								fakeJob.OutputsReturns(nil, errors.New("nope"))
+							})
+
+							It("returns 500", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
+						})
+
+						Context("when getting the outputs succeeds", func() {
+							BeforeEach(func() {
+								fakeJob.OutputsReturns([]atc.JobOutput{
+									{
+										Name:     "some-output",
+										Resource: "some-output",
+									},
+									{
+										Name:     "some-other-output",
+										Resource: "some-other-output",
+									},
+								}, nil)
+							})
+
+							It("fetches by job", func() {
+								Expect(fakeJob.FinishedAndNextBuildCallCount()).To(Equal(1))
+							})
+
+							It("returns 200 OK", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
+
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
+							It("returns the job's name, if it's paused, and any running and finished builds", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchJSON(`{
 							"id": 1,
 							"name": "some-job",
 							"pipeline_name": "some-pipeline",
@@ -476,30 +487,32 @@ var _ = Describe("Jobs API", func() {
 							"groups": ["group-1", "group-2"]
 						}`))
 
-					})
+							})
 
-					Context("when there are no running or finished builds", func() {
-						BeforeEach(func() {
-							fakeJob.FinishedAndNextBuildReturns(nil, nil, nil)
-						})
+							Context("when there are no running or finished builds", func() {
+								BeforeEach(func() {
+									fakeJob.FinishedAndNextBuildReturns(nil, nil, nil)
+								})
 
-						It("returns null as their entries", func() {
-							var job atc.Job
-							err := json.NewDecoder(response.Body).Decode(&job)
-							Expect(err).NotTo(HaveOccurred())
+								It("returns null as their entries", func() {
+									var job atc.Job
+									err := json.NewDecoder(response.Body).Decode(&job)
+									Expect(err).NotTo(HaveOccurred())
 
-							Expect(job.NextBuild).To(BeNil())
-							Expect(job.FinishedBuild).To(BeNil())
-						})
-					})
+									Expect(job.NextBuild).To(BeNil())
+									Expect(job.FinishedBuild).To(BeNil())
+								})
+							})
 
-					Context("when getting the job's builds fails", func() {
-						BeforeEach(func() {
-							fakeJob.FinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
-						})
+							Context("when getting the job's builds fails", func() {
+								BeforeEach(func() {
+									fakeJob.FinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
+								})
 
-						It("returns 500", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+								It("returns 500", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+								})
+							})
 						})
 					})
 				})
@@ -897,7 +910,7 @@ var _ = Describe("Jobs API", func() {
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", func() {
 		var response *http.Response
-		var dashboardResponse db.Dashboard
+		var dashboardResponse atc.Dashboard
 
 		JustBeforeEach(func() {
 			var err error
@@ -907,98 +920,98 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		Context("when getting the dashboard succeeds", func() {
-			var job1 *dbfakes.FakeJob
 
 			BeforeEach(func() {
-				job1 = new(dbfakes.FakeJob)
-				job1.IDReturns(1)
-				job1.PausedReturns(true)
-				job1.PipelineNameReturns("another-pipeline")
-				job1.NameReturns("job-1")
-				job1.ConfigReturns(atc.JobConfig{
-					Name: "job-1",
-					Plan: atc.PlanSequence{{Get: "input-1"}, {Put: "output-1"}},
-				})
-				job1.TagsReturns([]string{"group-1", "group-2"})
 
-				job2 := new(dbfakes.FakeJob)
-				job2.IDReturns(2)
-				job2.PausedReturns(true)
-				job2.PipelineNameReturns("another-pipeline")
-				job2.NameReturns("job-2")
-				job2.ConfigReturns(atc.JobConfig{
-					Name: "job-2",
-					Plan: atc.PlanSequence{{Get: "input-2"}, {Put: "output-2"}},
-				})
-				job2.TagsReturns([]string{"group-2"})
-
-				job3 := new(dbfakes.FakeJob)
-				job3.IDReturns(3)
-				job3.PausedReturns(true)
-				job3.PipelineNameReturns("another-pipeline")
-				job3.NameReturns("job-3")
-				job3.ConfigReturns(atc.JobConfig{
-					Name: "job-3",
-					Plan: atc.PlanSequence{{Get: "input-3"}, {Put: "output-3"}},
-				})
-				job3.TagsReturns([]string{})
-
-				nextBuild1 := new(dbfakes.FakeBuild)
-				nextBuild1.IDReturns(3)
-				nextBuild1.NameReturns("2")
-				nextBuild1.JobNameReturns("job-1")
-				nextBuild1.PipelineNameReturns("another-pipeline")
-				nextBuild1.TeamNameReturns("some-team")
-				nextBuild1.StatusReturns(db.BuildStatusStarted)
-
-				finishedBuild1 := new(dbfakes.FakeBuild)
-				finishedBuild1.IDReturns(1)
-				finishedBuild1.NameReturns("1")
-				finishedBuild1.JobNameReturns("job-1")
-				finishedBuild1.PipelineNameReturns("another-pipeline")
-				finishedBuild1.TeamNameReturns("some-team")
-				finishedBuild1.StatusReturns(db.BuildStatusSucceeded)
-				finishedBuild1.StartTimeReturns(time.Unix(1, 0))
-				finishedBuild1.EndTimeReturns(time.Unix(100, 0))
-
-				finishedBuild2 := new(dbfakes.FakeBuild)
-				finishedBuild2.IDReturns(4)
-				finishedBuild2.NameReturns("1")
-				finishedBuild2.JobNameReturns("job-2")
-				finishedBuild2.PipelineNameReturns("another-pipeline")
-				finishedBuild2.TeamNameReturns("some-team")
-				finishedBuild2.StatusReturns(db.BuildStatusSucceeded)
-				finishedBuild2.StartTimeReturns(time.Unix(101, 0))
-				finishedBuild2.EndTimeReturns(time.Unix(200, 0))
-
-				transitionBuild := new(dbfakes.FakeBuild)
-				transitionBuild.IDReturns(5)
-				transitionBuild.NameReturns("five")
-				transitionBuild.JobNameReturns("job-1")
-				transitionBuild.PipelineNameReturns("another-pipeline")
-				transitionBuild.TeamNameReturns("some-team")
-				transitionBuild.StatusReturns(db.BuildStatusFailed)
-				transitionBuild.StartTimeReturns(time.Unix(101, 0))
-				transitionBuild.EndTimeReturns(time.Unix(200, 0))
-
-				dashboardResponse = db.Dashboard{
+				dashboardResponse = atc.Dashboard{
 					{
-						Job:             job1,
-						NextBuild:       nextBuild1,
-						FinishedBuild:   finishedBuild1,
-						TransitionBuild: transitionBuild,
+						ID:           1,
+						Name:         "job-1",
+						PipelineName: "another-pipeline",
+						TeamName:     "some-team",
+						Paused:       true,
+						NextBuild: &atc.DashboardBuild{
+							ID:           3,
+							Name:         "2",
+							JobName:      "job-1",
+							PipelineName: "another-pipeline",
+							TeamName:     "some-team",
+							Status:       "started",
+						},
+						FinishedBuild: &atc.DashboardBuild{
+							ID:           1,
+							Name:         "1",
+							JobName:      "job-1",
+							PipelineName: "another-pipeline",
+							TeamName:     "some-team",
+							Status:       "succeeded",
+							StartTime:    time.Unix(1, 0),
+							EndTime:      time.Unix(100, 0),
+						},
+						TransitionBuild: &atc.DashboardBuild{
+							ID:           5,
+							Name:         "five",
+							JobName:      "job-1",
+							PipelineName: "another-pipeline",
+							TeamName:     "some-team",
+							Status:       "failed",
+							StartTime:    time.Unix(101, 0),
+							EndTime:      time.Unix(200, 0),
+						},
+						Inputs: []atc.DashboardJobInput{
+							{
+								Name:     "input-1",
+								Resource: "input-1",
+							},
+						},
+						Groups: []string{
+							"group-1", "group-2",
+						},
 					},
 					{
-						Job:             job2,
-						NextBuild:       nil,
-						FinishedBuild:   finishedBuild2,
+						ID:           2,
+						Name:         "job-2",
+						PipelineName: "another-pipeline",
+						TeamName:     "some-team",
+						Paused:       true,
+						NextBuild:    nil,
+						FinishedBuild: &atc.DashboardBuild{
+							ID:           4,
+							Name:         "1",
+							JobName:      "job-2",
+							PipelineName: "another-pipeline",
+							TeamName:     "some-team",
+							Status:       "succeeded",
+							StartTime:    time.Unix(101, 0),
+							EndTime:      time.Unix(200, 0),
+						},
 						TransitionBuild: nil,
+						Inputs: []atc.DashboardJobInput{
+							{
+								Name:     "input-2",
+								Resource: "input-2",
+							},
+						},
+						Groups: []string{
+							"group-2",
+						},
 					},
 					{
-						Job:             job3,
+						ID:              3,
+						Name:            "job-3",
+						PipelineName:    "another-pipeline",
+						TeamName:        "some-team",
+						Paused:          true,
 						NextBuild:       nil,
 						FinishedBuild:   nil,
 						TransitionBuild: nil,
+						Inputs: []atc.DashboardJobInput{
+							{
+								Name:     "input-3",
+								Resource: "input-3",
+							},
+						},
+						Groups: []string{},
 					},
 				}
 				fakePipeline.DashboardReturns(dashboardResponse, nil)
@@ -1093,7 +1106,6 @@ var _ = Describe("Jobs API", func() {
 									"end_time": 200
 								},
 								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": false}],
-								"outputs": [{"name": "output-1", "resource": "output-1"}],
 								"groups": ["group-1", "group-2"]
 							},
 							{
@@ -1115,7 +1127,6 @@ var _ = Describe("Jobs API", func() {
 									"end_time": 200
 								},
 								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": false}],
-								"outputs": [{"name": "output-2", "resource": "output-2"}],
 								"groups": ["group-2"]
 							},
 							{
@@ -1127,7 +1138,6 @@ var _ = Describe("Jobs API", func() {
 								"next_build": null,
 								"finished_build": null,
 								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": false}],
-								"outputs": [{"name": "output-3", "resource": "output-3"}],
 								"groups": []
 							}
 						]`))
@@ -1135,7 +1145,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when there are no jobs in dashboard", func() {
 					BeforeEach(func() {
-						dashboardResponse = db.Dashboard{}
+						dashboardResponse = atc.Dashboard{}
 						fakePipeline.DashboardReturns(dashboardResponse, nil)
 					})
 					It("should return an empty array", func() {
@@ -1143,101 +1153,6 @@ var _ = Describe("Jobs API", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[]`))
-					})
-				})
-
-				Context("when manual triggering of a job is disabled", func() {
-					BeforeEach(func() {
-						job1.ConfigReturns(atc.JobConfig{
-							Name:                 "job-1",
-							Plan:                 atc.PlanSequence{{Get: "input-1"}, {Put: "output-1"}},
-							DisableManualTrigger: true,
-						})
-						fakePipeline.DashboardReturns(dashboardResponse, nil)
-					})
-
-					It("returns each job's name, manual trigger state and any running and finished builds", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(body).To(MatchJSON(`[
-							{
-								"id": 1,
-								"name": "job-1",
-								"pipeline_name": "another-pipeline",
-								"team_name": "some-team",
-								"paused": true,
-								"disable_manual_trigger": true,
-								"next_build": {
-									"id": 3,
-									"name": "2",
-									"job_name": "job-1",
-									"status": "started",
-									"api_url": "/api/v1/builds/3",
-									"pipeline_name":"another-pipeline",
-									"team_name": "some-team"
-								},
-								"finished_build": {
-									"id": 1,
-									"name": "1",
-									"job_name": "job-1",
-									"status": "succeeded",
-									"api_url": "/api/v1/builds/1",
-									"pipeline_name":"another-pipeline",
-									"team_name": "some-team",
-									"start_time": 1,
-									"end_time": 100
-								},
-								"transition_build": {
-									"id": 5,
-									"name": "five",
-									"job_name": "job-1",
-									"status": "failed",
-									"api_url": "/api/v1/builds/5",
-									"pipeline_name":"another-pipeline",
-									"team_name": "some-team",
-									"start_time": 101,
-									"end_time": 200
-								},
-								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": false}],
-								"outputs": [{"name": "output-1", "resource": "output-1"}],
-								"groups": ["group-1", "group-2"]
-							},
-							{
-								"id": 2,
-								"name": "job-2",
-								"pipeline_name": "another-pipeline",
-								"team_name": "some-team",
-								"paused": true,
-								"next_build": null,
-								"finished_build": {
-									"id": 4,
-									"name": "1",
-									"job_name": "job-2",
-									"status": "succeeded",
-									"api_url": "/api/v1/builds/4",
-									"pipeline_name": "another-pipeline",
-									"team_name": "some-team",
-									"start_time": 101,
-									"end_time": 200
-								},
-								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": false}],
-								"outputs": [{"name": "output-2", "resource": "output-2"}],
-								"groups": ["group-2"]
-							},
-							{
-								"id": 3,
-								"name": "job-3",
-								"pipeline_name": "another-pipeline",
-								"team_name": "some-team",
-								"paused": true,
-								"next_build": null,
-								"finished_build": null,
-								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": false}],
-								"outputs": [{"name": "output-3", "resource": "output-3"}],
-								"groups": []
-							}
-						]`))
 					})
 				})
 
@@ -1366,7 +1281,20 @@ var _ = Describe("Jobs API", func() {
 						build2.StartTimeReturns(time.Unix(101, 0))
 						build2.EndTimeReturns(time.Unix(200, 0))
 
-						returnedBuilds = []db.Build{build1, build2}
+						build3 := new(dbfakes.FakeBuild)
+						build3.IDReturns(3)
+						build3.NameReturns("1.1")
+						build3.JobNameReturns("some-job")
+						build3.PipelineNameReturns("some-pipeline")
+						build3.TeamNameReturns("some-team")
+						build3.StatusReturns(db.BuildStatusSucceeded)
+						build3.StartTimeReturns(time.Unix(102, 0))
+						build3.EndTimeReturns(time.Unix(300, 0))
+						build3.RerunOfReturns(2)
+						build3.RerunOfNameReturns("1")
+						build3.RerunNumberReturns(3)
+
+						returnedBuilds = []db.Build{build1, build2, build3}
 						fakeJob.BuildsReturns(returnedBuilds, db.Pagination{}, nil)
 					})
 
@@ -1404,6 +1332,22 @@ var _ = Describe("Jobs API", func() {
 						"team_name": "some-team",
 						"start_time": 101,
 						"end_time": 200
+					},
+					{
+						"id": 3,
+						"name": "1.1",
+						"job_name": "some-job",
+						"status": "succeeded",
+						"api_url": "/api/v1/builds/3",
+						"pipeline_name": "some-pipeline",
+						"team_name": "some-team",
+						"start_time": 102,
+						"end_time": 300,
+						"rerun_of": {
+							"id": 2,
+							"name": "1"
+						},
+						"rerun_number": 3
 					}
 				]`))
 					})
@@ -1510,11 +1454,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when manual triggering is disabled", func() {
 					BeforeEach(func() {
-						fakeJob.ConfigReturns(atc.JobConfig{
-							Name:                 "some-job",
-							DisableManualTrigger: true,
-							Plan:                 atc.PlanSequence{{Get: "some-input"}},
-						})
+						fakeJob.DisableManualTriggerReturns(true)
 					})
 
 					It("should return 409", func() {
@@ -1528,11 +1468,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when manual triggering is enabled", func() {
 					BeforeEach(func() {
-						fakeJob.ConfigReturns(atc.JobConfig{
-							Name:                 "some-job",
-							DisableManualTrigger: false,
-							Plan:                 atc.PlanSequence{{Get: "some-input"}},
-						})
+						fakeJob.DisableManualTriggerReturns(false)
 					})
 
 					Context("when triggering the build fails", func() {
@@ -1604,32 +1540,56 @@ var _ = Describe("Jobs API", func() {
 									fakePipeline.ResourceTypesReturns([]db.ResourceType{fakeResourceType}, nil)
 								})
 
-								It("returns 200 OK", func() {
-									Expect(response.StatusCode).To(Equal(http.StatusOK))
+								It("fetches the job inputs", func() {
+									Expect(fakeJob.InputsCallCount()).To(Equal(1))
 								})
 
-								It("returns Content-Type 'application/json'", func() {
-									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+								Context("when it fails to fetch the job inputs", func() {
+									BeforeEach(func() {
+										fakeJob.InputsReturns(nil, errors.New("nope"))
+									})
+
+									It("returns a 500", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+									})
 								})
 
-								It("creates a check for the resource", func() {
-									Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-								})
+								Context("when the job inputs are successfully fetched", func() {
+									BeforeEach(func() {
+										fakeJob.InputsReturns([]atc.JobInput{
+											{
+												Name:     "some-input",
+												Resource: "some-input",
+											},
+										}, nil)
+									})
 
-								It("runs the check from the current pinned version", func() {
-									_, _, _, fromVersion, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
-									Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
-								})
+									It("returns 200 OK", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusOK))
+									})
 
-								It("notifies the checker to run", func() {
-									Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-								})
+									It("returns Content-Type 'application/json'", func() {
+										Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+									})
 
-								It("returns the build", func() {
-									body, err := ioutil.ReadAll(response.Body)
-									Expect(err).NotTo(HaveOccurred())
+									It("creates a check for the resource", func() {
+										Expect(dbCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+									})
 
-									Expect(body).To(MatchJSON(`{
+									It("runs the check from the current pinned version", func() {
+										_, _, _, fromVersion, _ := dbCheckFactory.TryCreateCheckArgsForCall(0)
+										Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
+									})
+
+									It("notifies the checker to run", func() {
+										Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+									})
+
+									It("returns the build", func() {
+										body, err := ioutil.ReadAll(response.Body)
+										Expect(err).NotTo(HaveOccurred())
+
+										Expect(body).To(MatchJSON(`{
 							"id": 42,
 							"name": "1",
 							"job_name": "some-job",
@@ -1640,6 +1600,7 @@ var _ = Describe("Jobs API", func() {
 							"start_time": 1,
 							"end_time": 100
 						}`))
+									})
 								})
 							})
 						})
@@ -1711,25 +1672,6 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when getting the job succeeds", func() {
 					BeforeEach(func() {
-						fakeJob.ConfigReturns(atc.JobConfig{
-							Name: "some-job",
-							Plan: atc.PlanSequence{
-								{
-									Get:      "some-input",
-									Resource: "some-resource",
-									Passed:   []string{"job-a", "job-b"},
-									Params:   atc.Params{"some": "params"},
-								},
-								{
-									Get:      "some-other-input",
-									Resource: "some-other-resource",
-									Passed:   []string{"job-c", "job-d"},
-									Params:   atc.Params{"some": "other-params"},
-									Tags:     []string{"some-tag"},
-								},
-							},
-						})
-
 						fakePipeline.JobReturns(fakeJob, true, nil)
 					})
 
@@ -1762,7 +1704,7 @@ var _ = Describe("Jobs API", func() {
 
 						Context("when getting the input versions for the job fails", func() {
 							BeforeEach(func() {
-								fakeJob.GetNextBuildInputsReturns(nil, false, errors.New("oh no!"))
+								fakeJob.GetFullNextBuildInputsReturns(nil, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -1772,7 +1714,7 @@ var _ = Describe("Jobs API", func() {
 
 						Context("when the job has no input versions available", func() {
 							BeforeEach(func() {
-								fakeJob.GetNextBuildInputsReturns(nil, false, nil)
+								fakeJob.GetFullNextBuildInputsReturns(nil, false, nil)
 							})
 
 							It("returns 404", func() {
@@ -1795,22 +1737,58 @@ var _ = Describe("Jobs API", func() {
 									},
 								}
 
-								fakeJob.GetNextBuildInputsReturns(inputs, true, nil)
+								fakeJob.GetFullNextBuildInputsReturns(inputs, true, nil)
 							})
 
-							It("returns 200 OK", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							It("fetches the job config", func() {
+								Expect(fakeJob.ConfigCallCount()).To(Equal(1))
 							})
 
-							It("returns Content-Type 'application/json'", func() {
-								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							Context("when it fails to fetch the job config", func() {
+								BeforeEach(func() {
+									fakeJob.ConfigReturns(atc.JobConfig{}, errors.New("nope"))
+								})
+
+								It("returns a 500", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+								})
 							})
 
-							It("returns the inputs", func() {
-								body, err := ioutil.ReadAll(response.Body)
-								Expect(err).NotTo(HaveOccurred())
+							Context("when the job inputs are successfully fetched", func() {
+								BeforeEach(func() {
+									fakeJob.ConfigReturns(atc.JobConfig{
+										Name: "some-job",
+										Plan: atc.PlanSequence{
+											{
+												Get:      "some-input",
+												Resource: "some-resource",
+												Passed:   []string{"job-a", "job-b"},
+												Params:   atc.Params{"some": "params"},
+											},
+											{
+												Get:      "some-other-input",
+												Resource: "some-other-resource",
+												Passed:   []string{"job-c", "job-d"},
+												Params:   atc.Params{"some": "other-params"},
+												Tags:     []string{"some-tag"},
+											},
+										},
+									}, nil)
+								})
 
-								Expect(body).To(MatchJSON(`[
+								It("returns 200 OK", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusOK))
+								})
+
+								It("returns Content-Type 'application/json'", func() {
+									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+								})
+
+								It("returns the inputs", func() {
+									body, err := ioutil.ReadAll(response.Body)
+									Expect(err).NotTo(HaveOccurred())
+
+									Expect(body).To(MatchJSON(`[
 									{
 										"name": "some-input",
 										"resource": "some-resource",
@@ -1829,6 +1807,7 @@ var _ = Describe("Jobs API", func() {
 										"tags": ["some-tag"]
 									}
 								]`))
+								})
 							})
 						})
 					})
@@ -1993,6 +1972,166 @@ var _ = Describe("Jobs API", func() {
 
 				It("returns 200 OK", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+		})
+	})
+
+	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds/:build_name", func() {
+		var request *http.Request
+		var response *http.Response
+
+		BeforeEach(func() {
+			var err error
+
+			request, err = http.NewRequest("POST", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/some-build", nil)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authorized and authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthorizedReturns(true)
+				fakeaccess.IsAuthenticatedReturns(true)
+			})
+
+			Context("when getting the job fails", func() {
+				BeforeEach(func() {
+					fakePipeline.JobReturns(nil, false, errors.New("errorrr"))
+				})
+
+				It("returns a 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the job is not found", func() {
+				BeforeEach(func() {
+					fakePipeline.JobReturns(nil, false, nil)
+				})
+
+				It("returns a 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when getting the job succeeds", func() {
+				BeforeEach(func() {
+					fakeJob.NameReturns("some-job")
+					fakePipeline.JobReturns(fakeJob, true, nil)
+				})
+
+				It("tries to get the build to rerun", func() {
+					Expect(fakeJob.BuildCallCount()).To(Equal(1))
+				})
+
+				Context("when getting the build to rerun fails", func() {
+					BeforeEach(func() {
+						fakeJob.BuildReturns(nil, false, errors.New("oops"))
+					})
+
+					It("returns a 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the build to rerun is not found", func() {
+					BeforeEach(func() {
+						fakeJob.BuildReturns(nil, false, nil)
+					})
+
+					It("returns a 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when getting the build to rerun succeeds", func() {
+					var fakeBuild *dbfakes.FakeBuild
+					BeforeEach(func() {
+						fakeBuild = new(dbfakes.FakeBuild)
+						fakeBuild.IDReturns(1)
+						fakeBuild.NameReturns("1")
+						fakeBuild.JobNameReturns("some-job")
+						fakeBuild.PipelineNameReturns("a-pipeline")
+						fakeBuild.TeamNameReturns("some-team")
+						fakeBuild.StatusReturns(db.BuildStatusStarted)
+						fakeBuild.StartTimeReturns(time.Unix(1, 0))
+						fakeBuild.EndTimeReturns(time.Unix(100, 0))
+
+						fakeJob.BuildReturns(fakeBuild, true, nil)
+					})
+
+					Context("when the build has no inputs", func() {
+						BeforeEach(func() {
+							fakeBuild.InputsReadyReturns(false)
+						})
+
+						It("returns a 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when the build is input ready", func() {
+						BeforeEach(func() {
+							fakeBuild.InputsReadyReturns(true)
+						})
+						Context("when creating the rerun build fails", func() {
+							BeforeEach(func() {
+								fakeJob.RerunBuildReturns(nil, errors.New("nopers"))
+							})
+
+							It("returns a 500", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
+						})
+
+						Context("when creating the rerun build succeeds", func() {
+							BeforeEach(func() {
+								build := new(dbfakes.FakeBuild)
+								build.IDReturns(2)
+								build.NameReturns("1.1")
+								build.JobNameReturns("some-job")
+								build.PipelineNameReturns("a-pipeline")
+								build.TeamNameReturns("some-team")
+								build.StatusReturns(db.BuildStatusStarted)
+								build.StartTimeReturns(time.Unix(1, 0))
+								build.EndTimeReturns(time.Unix(100, 0))
+
+								fakeJob.RerunBuildReturns(build, nil)
+							})
+
+							It("returns 200 OK", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
+
+							It("returns Content-Type 'application/json'", func() {
+								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							})
+
+							It("returns the build", func() {
+								body, err := ioutil.ReadAll(response.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(body).To(MatchJSON(`{
+							"id": 2,
+							"name": "1.1",
+							"job_name": "some-job",
+							"status": "started",
+							"api_url": "/api/v1/builds/2",
+							"pipeline_name": "a-pipeline",
+							"team_name": "some-team",
+							"start_time": 1,
+							"end_time": 100
+						}`))
+							})
+						})
+					})
 				})
 			})
 		})
@@ -2299,6 +2438,83 @@ var _ = Describe("Jobs API", func() {
 				Context("when there are problems removing the db cache entries", func() {
 					BeforeEach(func() {
 						fakeJob.ClearTaskCacheReturns(-1, errors.New("some-error"))
+					})
+
+					It("returns a 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Status Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/schedule", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/job-name/schedule", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(true)
+			})
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAuthorizedReturns(true)
+
+					fakePipeline.JobReturns(fakeJob, true, nil)
+					fakeJob.RequestScheduleReturns(nil)
+				})
+
+				It("finds the job on the pipeline and schedules it", func() {
+					jobName := fakePipeline.JobArgsForCall(0)
+					Expect(jobName).To(Equal("job-name"))
+
+					Expect(fakeJob.RequestScheduleCallCount()).To(Equal(1))
+
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				Context("when the job is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.JobReturns(nil, false, nil)
+					})
+
+					It("returns a 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when finding the job fails", func() {
+					BeforeEach(func() {
+						fakePipeline.JobReturns(nil, false, errors.New("some-error"))
+					})
+
+					It("returns a 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the job fails to be scheduled", func() {
+					BeforeEach(func() {
+						fakeJob.RequestScheduleReturns(errors.New("some-error"))
 					})
 
 					It("returns a 500", func() {

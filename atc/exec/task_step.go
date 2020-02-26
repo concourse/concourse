@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -122,6 +123,21 @@ func NewTaskStep(
 // task's entire working directory is registered as an StreamableArtifactSource under the
 // name of the task.
 func (step *TaskStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "task", tracing.Attrs{
+		"team":     step.metadata.TeamName,
+		"pipeline": step.metadata.PipelineName,
+		"job":      step.metadata.JobName,
+		"build":    step.metadata.BuildName,
+		"name":     step.plan.Name,
+	})
+
+	err := step.run(ctx, state)
+	tracing.End(span, err)
+
+	return err
+}
+
+func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("task-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -208,7 +224,7 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	result := step.workerClient.RunTaskStep(
+	result, err := step.workerClient.RunTaskStep(
 		ctx,
 		logger,
 		owner,
@@ -222,7 +238,6 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		step.lockFactory,
 	)
 
-	err = result.Err
 	if err != nil {
 		if err == context.Canceled || err == context.DeadlineExceeded {
 			step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
@@ -230,8 +245,8 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	step.succeeded = (result.Status == 0)
-	step.delegate.Finished(logger, ExitStatus(result.Status))
+	step.succeeded = result.ExitStatus == 0
+	step.delegate.Finished(logger, ExitStatus(result.ExitStatus))
 
 	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 
@@ -244,7 +259,6 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	return nil
-
 }
 
 func (step *TaskStep) Succeeded() bool {

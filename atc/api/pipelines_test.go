@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/algorithm"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -1317,74 +1316,101 @@ var _ = Describe("Pipelines API", func() {
 				fakeaccess.IsAuthorizedReturns(true)
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				fakeTeam.PipelineReturns(dbPipeline, true, nil)
-				//construct Version db
+			})
 
-				dbPipeline.LoadVersionsDBReturns(
-					&algorithm.VersionsDB{
-						ResourceVersions: []algorithm.ResourceVersion{
-							{
-								VersionID:  73,
-								ResourceID: 127,
-								CheckOrder: 123,
-							},
-						},
-						BuildOutputs: []algorithm.BuildOutput{
-							{
-								ResourceVersion: algorithm.ResourceVersion{
+			Context("when getting the debug versions db works", func() {
+				BeforeEach(func() {
+					scopeID := 789
+
+					dbPipeline.LoadDebugVersionsDBReturns(
+						&atc.DebugVersionsDB{
+							ResourceVersions: []atc.DebugResourceVersion{
+								{
 									VersionID:  73,
 									ResourceID: 127,
 									CheckOrder: 123,
+									ScopeID:    111,
 								},
-								BuildID: 66,
-								JobID:   13,
+							},
+							BuildOutputs: []atc.DebugBuildOutput{
+								{
+									DebugResourceVersion: atc.DebugResourceVersion{
+										VersionID:  73,
+										ResourceID: 127,
+										CheckOrder: 123,
+										ScopeID:    111,
+									},
+									BuildID: 66,
+									JobID:   13,
+								},
+							},
+							BuildInputs: []atc.DebugBuildInput{
+								{
+									DebugResourceVersion: atc.DebugResourceVersion{
+										VersionID:  66,
+										ResourceID: 77,
+										CheckOrder: 88,
+										ScopeID:    222,
+									},
+									BuildID:   66,
+									JobID:     13,
+									InputName: "some-input-name",
+								},
+							},
+							BuildReruns: []atc.DebugBuildRerun{
+								{
+									JobID:   13,
+									BuildID: 111,
+									RerunOf: 222,
+								},
+							},
+							Jobs: []atc.DebugJob{
+								{
+									ID:   13,
+									Name: "bad-luck-job",
+								},
+							},
+							Resources: []atc.DebugResource{
+								{
+									ID:      127,
+									Name:    "resource-127",
+									ScopeID: nil,
+								},
+								{
+									ID:      128,
+									Name:    "resource-128",
+									ScopeID: &scopeID,
+								},
 							},
 						},
-						BuildInputs: []algorithm.BuildInput{
-							{
-								ResourceVersion: algorithm.ResourceVersion{
-									VersionID:  66,
-									ResourceID: 77,
-									CheckOrder: 88,
-								},
-								BuildID:   66,
-								JobID:     13,
-								InputName: "some-input-name",
-							},
-						},
-						JobIDs: map[string]int{
-							"bad-luck-job": 13,
-						},
-						ResourceIDs: map[string]int{
-							"resource-127": 127,
-						},
-					},
-					nil,
-				)
-			})
+						nil,
+					)
+				})
 
-			It("constructs teamDB with provided team name", func() {
-				Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
-				Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
-			})
+				It("constructs teamDB with provided team name", func() {
+					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
+				})
 
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
 
-			It("returns application/json", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-			})
+				It("returns application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
 
-			It("returns a json representation of all the versions in the pipeline", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
+				It("returns a json representation of all the versions in the pipeline", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
 
-				Expect(body).To(MatchJSON(`{
+					Expect(body).To(MatchJSON(`{
 				"ResourceVersions": [
 					{
 						"VersionID": 73,
 						"ResourceID": 127,
-						"CheckOrder": 123
+						"CheckOrder": 123,
+						"ScopeID": 111
 			    }
 				],
 				"BuildOutputs": [
@@ -1393,7 +1419,8 @@ var _ = Describe("Pipelines API", func() {
 						"ResourceID": 127,
 						"BuildID": 66,
 						"JobID": 13,
-						"CheckOrder": 123
+						"CheckOrder": 123,
+						"ScopeID": 111
 					}
 				],
 				"BuildInputs": [
@@ -1403,16 +1430,56 @@ var _ = Describe("Pipelines API", func() {
 						"BuildID": 66,
 						"JobID": 13,
 						"CheckOrder": 88,
+						"ScopeID": 222,
 						"InputName": "some-input-name"
 					}
 				],
-				"JobIDs": {
-						"bad-luck-job": 13
-				},
-				"ResourceIDs": {
-					"resource-127": 127
-				}
+				"BuildReruns": [
+					{
+						"JobID": 13,
+						"BuildID": 111,
+						"RerunOf": 222
+					}
+				],
+				"Jobs": [
+					{
+						"ID": 13,
+						"Name": "bad-luck-job"
+					}
+				],
+				"Resources": [
+					{
+						"ID": 127,
+						"Name": "resource-127",
+						"ScopeID": null
+					},
+					{
+						"ID": 128,
+						"Name": "resource-128",
+						"ScopeID": 789
+					}
+				]
 				}`))
+				})
+			})
+
+			Context("when getting the debug versions db fails", func() {
+				BeforeEach(func() {
+					dbPipeline.LoadDebugVersionsDBReturns(nil, errors.New("nope"))
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
+					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+
+				It("does not return application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(BeEmpty())
+				})
 			})
 		})
 

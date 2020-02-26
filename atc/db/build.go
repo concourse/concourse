@@ -20,12 +20,15 @@ import (
 
 const schema = "exec.v2"
 
+var ErrAdoptRerunBuildHasNoInputs = errors.New("inputs not ready for build to rerun")
+
 type BuildInput struct {
 	Name       string
 	Version    atc.Version
 	ResourceID int
 
 	FirstOccurrence bool
+	ResolveError    string
 }
 
 type BuildOutput struct {
@@ -66,15 +69,24 @@ var buildsQuery = psql.Select(`
 		b.nonce,
 		b.drained,
 		b.aborted,
-		b.completed
+		b.completed,
+		b.inputs_ready,
+		b.rerun_of,
+		r.name,
+		b.rerun_number
 	`).
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
-	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id")
+	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id").
+	JoinClause("LEFT OUTER JOIN builds r ON r.id = b.rerun_of")
 
 var minMaxIdQuery = psql.Select("COALESCE(MAX(b.id), 0)", "COALESCE(MIN(b.id), 0)").
 	From("builds as b")
+
+var latestCompletedBuildQuery = psql.Select("max(id)").
+	From("builds").
+	Where(sq.Expr(`status NOT IN ('pending', 'started')`))
 
 //go:generate counterfeiter . Build
 
@@ -100,6 +112,10 @@ type Build interface {
 	IsScheduled() bool
 	IsRunning() bool
 	IsCompleted() bool
+	InputsReady() bool
+	RerunOf() int
+	RerunOfName() string
+	RerunNumber() int
 
 	Reload() (bool, error)
 
@@ -120,7 +136,8 @@ type Build interface {
 	Artifact(artifactID int) (WorkerArtifact, error)
 
 	SaveOutput(string, atc.Source, atc.VersionedResourceTypes, atc.Version, ResourceConfigMetadataFields, string, string) error
-	UseInputs(inputs []BuildInput) error
+	AdoptInputsAndPipes() ([]BuildInput, bool, error)
+	AdoptRerunInputsAndPipes() ([]BuildInput, bool, error)
 
 	Resources() ([]BuildInput, []BuildOutput, error)
 	SaveImageResourceVersion(UsedResourceCache) error
@@ -129,7 +146,6 @@ type Build interface {
 	MarkAsAborted() error
 	IsAborted() bool
 	AbortNotifier() (Notifier, error)
-	Schedule() (bool, error)
 
 	IsDrained() bool
 	SetDrained(bool) error
@@ -138,10 +154,11 @@ type Build interface {
 type build struct {
 	pipelineRef
 
-	id        int
-	name      string
-	status    BuildStatus
-	scheduled bool
+	id          int
+	name        string
+	status      BuildStatus
+	scheduled   bool
+	inputsReady bool
 
 	teamID   int
 	teamName string
@@ -150,6 +167,10 @@ type build struct {
 	jobName string
 
 	isManuallyTriggered bool
+
+	rerunOf     int
+	rerunOfName string
+	rerunNumber int
 
 	schema      string
 	privatePlan atc.Plan
@@ -205,6 +226,10 @@ func (b *build) IsDrained() bool      { return b.drained }
 func (b *build) IsRunning() bool      { return !b.completed }
 func (b *build) IsAborted() bool      { return b.aborted }
 func (b *build) IsCompleted() bool    { return b.completed }
+func (b *build) InputsReady() bool    { return b.inputsReady }
+func (b *build) RerunOf() int         { return b.rerunOf }
+func (b *build) RerunOfName() string  { return b.rerunOfName }
+func (b *build) RerunNumber() int     { return b.rerunNumber }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -385,15 +410,106 @@ func (b *build) Finish(status BuildStatus) error {
 		if err != nil {
 			return err
 		}
-	}
 
-	if b.jobID != 0 {
-		err = bumpCacheIndex(tx, b.pipelineID)
+		rows, err := psql.Select("o.resource_id", "o.version_md5").
+			From("build_resource_config_version_outputs o").
+			Where(sq.Eq{
+				"o.build_id": b.id,
+			}).
+			RunWith(tx).
+			Query()
 		if err != nil {
 			return err
 		}
 
-		err = updateTransitionBuildForJob(tx, b.jobID, b.id, status)
+		defer Close(rows)
+
+		uniqueVersions := map[AlgorithmVersion]bool{}
+		outputVersions := map[string][]string{}
+		for rows.Next() {
+			var resourceID int
+			var version string
+
+			err = rows.Scan(&resourceID, &version)
+			if err != nil {
+				return err
+			}
+
+			resourceVersion := AlgorithmVersion{
+				ResourceID: resourceID,
+				Version:    ResourceVersion(version),
+			}
+
+			if !uniqueVersions[resourceVersion] {
+				resID := strconv.Itoa(resourceID)
+				outputVersions[resID] = append(outputVersions[resID], version)
+
+				uniqueVersions[resourceVersion] = true
+			}
+		}
+
+		rows, err = psql.Select("i.resource_id", "i.version_md5").
+			From("build_resource_config_version_inputs i").
+			Where(sq.Eq{
+				"i.build_id": b.id,
+			}).
+			RunWith(tx).
+			Query()
+		if err != nil {
+			return err
+		}
+
+		defer Close(rows)
+
+		for rows.Next() {
+			var resourceID int
+			var version string
+
+			err = rows.Scan(&resourceID, &version)
+			if err != nil {
+				return err
+			}
+
+			resourceVersion := AlgorithmVersion{
+				ResourceID: resourceID,
+				Version:    ResourceVersion(version),
+			}
+
+			if !uniqueVersions[resourceVersion] {
+				resID := strconv.Itoa(resourceID)
+				outputVersions[resID] = append(outputVersions[resID], version)
+
+				uniqueVersions[resourceVersion] = true
+			}
+		}
+
+		outputsJSON, err := json.Marshal(outputVersions)
+		if err != nil {
+			return err
+		}
+
+		var rerunOf sql.NullInt64
+		if b.rerunOf != 0 {
+			rerunOf = sql.NullInt64{Int64: int64(b.rerunOf), Valid: true}
+		}
+
+		_, err = psql.Insert("successful_build_outputs").
+			Columns("build_id", "job_id", "rerun_of", "outputs").
+			Values(b.id, b.jobID, rerunOf, outputsJSON).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	if b.jobID != 0 {
+		err = requestScheduleOnDownstreamJobs(tx, b.jobID)
+		if err != nil {
+			return err
+		}
+
+		err = updateTransitionBuildForJob(tx, b.jobID, b.id, status, b.rerunOf)
 		if err != nil {
 			return err
 		}
@@ -492,24 +608,6 @@ func (b *build) AbortNotifier() (Notifier, error) {
 
 		return aborted, err
 	})
-}
-
-func (b *build) Schedule() (bool, error) {
-	result, err := psql.Update("builds").
-		Set("scheduled", true).
-		Where(sq.Eq{"id": b.id}).
-		RunWith(b.conn).
-		Exec()
-	if err != nil {
-		return false, err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return false, err
-	}
-
-	return rows == 1, nil
 }
 
 func (b *build) SaveImageResourceVersion(rc UsedResourceCache) error {
@@ -625,101 +723,70 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	configInputs := job.Config().Inputs()
-
-	nextBuildInputs, found, err := job.GetNextBuildInputs()
+	config, err := job.Config()
 	if err != nil {
 		return BuildPreparation{}, false, err
 	}
 
-	inputsSatisfiedStatus := BuildPreparationStatusBlocking
+	configInputs := config.Inputs()
+
+	buildInputs, err := job.GetNextBuildInputs()
+	if err != nil {
+		return BuildPreparation{}, false, err
+	}
+
+	resolved := true
+	for _, input := range buildInputs {
+		if input.ResolveError != "" {
+			resolved = false
+			break
+		}
+	}
+
+	inputsSatisfiedStatus := BuildPreparationStatusNotBlocking
 	inputs := map[string]BuildPreparationStatus{}
 	missingInputReasons := MissingInputReasons{}
 
-	if found {
+	for _, configInput := range configInputs {
+		buildInput := BuildInput{}
+		found := false
+		for _, b := range buildInputs {
+			if b.Name == configInput.Name {
+				found = true
+				buildInput = b
+				break
+			}
+		}
 
-		inputsSatisfiedStatus = BuildPreparationStatusNotBlocking
+		if found {
+			if buildInput.ResolveError == "" {
+				if b.IsManuallyTriggered() {
+					resource, _, err := pipeline.ResourceByID(buildInput.ResourceID)
+					if err != nil {
+						return BuildPreparation{}, false, err
+					}
 
-		if b.IsManuallyTriggered() {
-			for _, buildInput := range nextBuildInputs {
-				resource, _, err := pipeline.ResourceByID(buildInput.ResourceID)
-				if err != nil {
-					return BuildPreparation{}, false, err
-				}
-
-				// input is blocking if its last check time is before build create time
-				if b.IsNewerThanLastCheckOf(resource) {
-					inputs[buildInput.Name] = BuildPreparationStatusBlocking
-					missingInputReasons.RegisterNoResourceCheckFinished(buildInput.Name)
-					inputsSatisfiedStatus = BuildPreparationStatusBlocking
+					// input is blocking if its last check time is before build create time
+					if b.IsNewerThanLastCheckOf(resource) {
+						inputs[buildInput.Name] = BuildPreparationStatusBlocking
+						missingInputReasons.RegisterNoResourceCheckFinished(buildInput.Name)
+						inputsSatisfiedStatus = BuildPreparationStatusBlocking
+					} else {
+						inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
+					}
 				} else {
 					inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
 				}
-			}
-		} else {
-			for _, buildInput := range nextBuildInputs {
-				inputs[buildInput.Name] = BuildPreparationStatusNotBlocking
-			}
-		}
-	} else {
-		buildInputs, err := job.GetIndependentBuildInputs()
-		if err != nil {
-			return BuildPreparation{}, false, err
-		}
-
-		for _, configInput := range configInputs {
-			found := false
-			for _, buildInput := range buildInputs {
-				if buildInput.Name == configInput.Name {
-					found = true
-					break
-				}
-			}
-			if found {
-				inputs[configInput.Name] = BuildPreparationStatusNotBlocking
 			} else {
 				inputs[configInput.Name] = BuildPreparationStatusBlocking
-				if len(configInput.Passed) > 0 {
-					if configInput.Version != nil && configInput.Version.Pinned != nil {
-						versionJSON, err := json.Marshal(configInput.Version.Pinned)
-						if err != nil {
-							return BuildPreparation{}, false, err
-						}
-
-						resource, found, err := pipeline.Resource(configInput.Resource)
-						if err != nil {
-							return BuildPreparation{}, false, err
-						}
-
-						if found {
-							_, found, err = resource.ResourceConfigVersionID(configInput.Version.Pinned)
-							if err != nil {
-								return BuildPreparation{}, false, err
-							}
-
-							if found {
-								missingInputReasons.RegisterPassedConstraint(configInput.Name)
-							} else {
-								missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
-							}
-						} else {
-							missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
-						}
-					} else {
-						missingInputReasons.RegisterPassedConstraint(configInput.Name)
-					}
-				} else {
-					if configInput.Version != nil && configInput.Version.Pinned != nil {
-						versionJSON, err := json.Marshal(configInput.Version.Pinned)
-						if err != nil {
-							return BuildPreparation{}, false, err
-						}
-
-						missingInputReasons.RegisterPinnedVersionUnavailable(configInput.Name, string(versionJSON))
-					} else {
-						missingInputReasons.RegisterNoVersions(configInput.Name)
-					}
-				}
+				missingInputReasons.RegisterResolveError(configInput.Name, buildInput.ResolveError)
+				inputsSatisfiedStatus = BuildPreparationStatusBlocking
+			}
+		} else {
+			if resolved {
+				inputs[configInput.Name] = BuildPreparationStatusBlocking
+				missingInputReasons.RegisterMissingInput(configInput.Name)
+				inputsSatisfiedStatus = BuildPreparationStatusBlocking
 			}
 		}
 	}
@@ -911,14 +978,15 @@ func (b *build) SaveOutput(
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()
-
 	if err != nil {
 		return err
 	}
 
-	err = bumpCacheIndex(tx, b.pipelineID)
-	if err != nil {
-		return err
+	if newVersion {
+		err = requestScheduleForJobsUsingResourceConfigScope(tx, resourceConfigScope.ID())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = tx.Commit()
@@ -926,62 +994,303 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	err = bumpCacheIndexForPipelinesUsingResourceConfigScope(b.conn, resourceConfigScope.ID())
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (b *build) UseInputs(inputs []BuildInput) error {
+func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
-		return err
+		return nil, false, err
 	}
 
-	defer Rollback(tx)
+	defer tx.Rollback()
+
+	var found bool
+	err = psql.Select("inputs_determined").
+		From("jobs").
+		Where(sq.Eq{
+			"id": b.jobID,
+		}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&found)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
 
 	_, err = psql.Delete("build_resource_config_version_inputs").
 		Where(sq.Eq{"build_id": b.id}).
 		RunWith(tx).
 		Exec()
 	if err != nil {
-		return err
+		return nil, false, err
 	}
 
-	for _, input := range inputs {
-		err = b.saveInputTx(tx, b.id, input)
+	rows, err := psql.Insert("build_resource_config_version_inputs").
+		Columns("resource_id", "version_md5", "name", "first_occurrence", "build_id").
+		Select(psql.Select("i.resource_id", "i.version_md5", "i.input_name", "i.first_occurrence").
+			Column("?", b.id).
+			From("next_build_inputs i").
+			Where(sq.Eq{"i.job_id": b.jobID})).
+		Suffix("ON CONFLICT (build_id, resource_id, version_md5, name) DO UPDATE SET first_occurrence = EXCLUDED.first_occurrence").
+		Suffix("RETURNING name, resource_id, version_md5, first_occurrence").
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, false, err
+	}
+
+	inputs := InputMapping{}
+	for rows.Next() {
+		var (
+			inputName       string
+			firstOccurrence bool
+			versionMD5      string
+			resourceID      int
+		)
+
+		err := rows.Scan(&inputName, &resourceID, &versionMD5, &firstOccurrence)
 		if err != nil {
-			return err
+			return nil, false, err
+		}
+
+		inputs[inputName] = InputResult{
+			Input: &AlgorithmInput{
+				AlgorithmVersion: AlgorithmVersion{
+					ResourceID: resourceID,
+					Version:    ResourceVersion(versionMD5),
+				},
+				FirstOccurrence: firstOccurrence,
+			},
 		}
 	}
 
-	if b.pipelineID != 0 {
-		err = bumpCacheIndex(tx, b.pipelineID)
+	buildInputs := []BuildInput{}
+	for inputName, input := range inputs {
+		var versionBlob string
+
+		err = psql.Select("v.version").
+			From("resource_config_versions v").
+			Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
+			Where(sq.Eq{
+				"v.version_md5": input.Input.Version,
+				"r.id":          input.Input.ResourceID,
+			}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&versionBlob)
 		if err != nil {
-			return err
+			return nil, false, err
+		}
+
+		var version atc.Version
+		err = json.Unmarshal([]byte(versionBlob), &version)
+		if err != nil {
+			return nil, false, err
+		}
+
+		buildInputs = append(buildInputs, BuildInput{
+			Name:            inputName,
+			ResourceID:      input.Input.ResourceID,
+			Version:         version,
+			FirstOccurrence: input.Input.FirstOccurrence,
+		})
+	}
+
+	_, err = psql.Delete("build_pipes").
+		Where(sq.Eq{"to_build_id": b.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, err = psql.Insert("build_pipes").
+		Columns("from_build_id", "to_build_id").
+		Select(psql.Select("nbp.from_build_id").
+			Column("?", b.id).
+			From("next_build_pipes nbp").
+			Where(sq.Eq{"nbp.to_job_id": b.jobID})).
+		Suffix("ON CONFLICT DO NOTHING").
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, err = psql.Update("builds").
+		Set("inputs_ready", true).
+		Where(sq.Eq{
+			"id": b.id,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return buildInputs, true, nil
+}
+
+func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer tx.Rollback()
+
+	var ready bool
+	err = psql.Select("inputs_ready").
+		From("builds").
+		Where(sq.Eq{
+			"id": b.rerunOf,
+		}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&ready)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !ready {
+		return nil, false, nil
+	}
+
+	_, err = psql.Delete("build_resource_config_version_inputs").
+		Where(sq.Eq{"build_id": b.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	rows, err := psql.Insert("build_resource_config_version_inputs").
+		Columns("resource_id", "version_md5", "name", "first_occurrence", "build_id").
+		Select(psql.Select("i.resource_id", "i.version_md5", "i.name", "false").
+			Column("?", b.id).
+			From("build_resource_config_version_inputs i").
+			Where(sq.Eq{"i.build_id": b.rerunOf})).
+		Suffix("ON CONFLICT (build_id, resource_id, version_md5, name) DO NOTHING").
+		Suffix("RETURNING name, resource_id, version_md5, first_occurrence").
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, false, err
+	}
+
+	inputs := InputMapping{}
+	for rows.Next() {
+		var (
+			inputName       string
+			firstOccurrence bool
+			versionMD5      string
+			resourceID      int
+		)
+
+		err := rows.Scan(&inputName, &resourceID, &versionMD5, &firstOccurrence)
+		if err != nil {
+			return nil, false, err
+		}
+
+		inputs[inputName] = InputResult{
+			Input: &AlgorithmInput{
+				AlgorithmVersion: AlgorithmVersion{
+					ResourceID: resourceID,
+					Version:    ResourceVersion(versionMD5),
+				},
+				FirstOccurrence: firstOccurrence,
+			},
 		}
 	}
 
-	return tx.Commit()
+	buildInputs := []BuildInput{}
+	for inputName, input := range inputs {
+		var versionBlob string
+
+		err = psql.Select("v.version").
+			From("resource_config_versions v").
+			Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
+			Where(sq.Eq{
+				"v.version_md5": input.Input.Version,
+				"r.id":          input.Input.ResourceID,
+			}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&versionBlob)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, false, nil
+			}
+			return nil, false, err
+		}
+
+		var version atc.Version
+		err = json.Unmarshal([]byte(versionBlob), &version)
+		if err != nil {
+			return nil, false, err
+		}
+
+		buildInputs = append(buildInputs, BuildInput{
+			Name:            inputName,
+			ResourceID:      input.Input.ResourceID,
+			Version:         version,
+			FirstOccurrence: input.Input.FirstOccurrence,
+		})
+	}
+
+	_, err = psql.Delete("build_pipes").
+		Where(sq.Eq{"to_build_id": b.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, err = psql.Insert("build_pipes").
+		Columns("from_build_id", "to_build_id").
+		Select(psql.Select("bp.from_build_id").
+			Column("?", b.id).
+			From("build_pipes bp").
+			Where(sq.Eq{"bp.to_build_id": b.rerunOf})).
+		Suffix("ON CONFLICT DO NOTHING").
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, err = psql.Update("builds").
+		Set("inputs_ready", true).
+		Where(sq.Eq{
+			"id": b.id,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return buildInputs, true, nil
 }
 
 func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	inputs := []BuildInput{}
 	outputs := []BuildOutput{}
-
-	firstOccurrence := `
-		NOT EXISTS (
-			SELECT 1
-			FROM build_resource_config_version_inputs i, builds b
-			WHERE versions.version_md5 = i.version_md5
-			AND resources.resource_config_scope_id = versions.resource_config_scope_id
-			AND resources.id = i.resource_id
-			AND b.job_id = builds.job_id
-			AND i.build_id = b.id
-			AND i.build_id < builds.id
-		)`
 
 	tx, err := b.conn.Begin()
 	if err != nil {
@@ -990,7 +1299,16 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 
 	defer Rollback(tx)
 
-	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", firstOccurrence).
+	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", `COALESCE(inputs.first_occurrence, NOT EXISTS (
+			SELECT 1
+			FROM build_resource_config_version_inputs i, builds b
+			WHERE versions.version_md5 = i.version_md5
+			AND resources.resource_config_scope_id = versions.resource_config_scope_id
+			AND resources.id = i.resource_id
+			AND b.job_id = builds.job_id
+			AND i.build_id = b.id
+			AND i.build_id < builds.id
+		))`).
 		From("resource_config_versions versions, build_resource_config_version_inputs inputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
 		Where(sq.NotEq{"versions.check_order": 0}).
@@ -1016,14 +1334,14 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 
 	for rows.Next() {
 		var (
-			inputName       string
-			firstOccurrence bool
-			versionBlob     string
-			version         atc.Version
-			resourceID      int
+			inputName   string
+			firstOcc    bool
+			versionBlob string
+			version     atc.Version
+			resourceID  int
 		)
 
-		err = rows.Scan(&inputName, &resourceID, &versionBlob, &firstOccurrence)
+		err = rows.Scan(&inputName, &resourceID, &versionBlob, &firstOcc)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1037,7 +1355,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			Name:            inputName,
 			Version:         version,
 			ResourceID:      resourceID,
-			FirstOccurrence: firstOccurrence,
+			FirstOccurrence: firstOcc,
 		})
 	}
 
@@ -1089,22 +1407,6 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	return inputs, outputs, nil
 }
 
-func (p *build) saveInputTx(tx Tx, buildID int, input BuildInput) error {
-	versionJSON, err := json.Marshal(input.Version)
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Insert("build_resource_config_version_inputs").
-		Columns("build_id", "resource_id", "version_md5", "name").
-		Values(buildID, input.ResourceID, sq.Expr("md5(?)", versionJSON), input.Name).
-		Suffix("ON CONFLICT DO NOTHING").
-		RunWith(tx).
-		Exec()
-
-	return err
-}
-
 func createBuildEventSeq(tx Tx, buildid int) error {
 	_, err := tx.Exec(fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
@@ -1118,12 +1420,12 @@ func buildEventSeq(buildid int) string {
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
-		jobID, pipelineID                                      sql.NullInt64
-		schema, privatePlan, jobName, pipelineName, publicPlan sql.NullString
-		createTime, startTime, endTime, reapTime               pq.NullTime
-		nonce                                                  sql.NullString
-		drained, aborted, completed                            bool
-		status                                                 string
+		jobID, pipelineID, rerunOf, rerunNumber                             sql.NullInt64
+		schema, privatePlan, jobName, pipelineName, publicPlan, rerunOfName sql.NullString
+		createTime, startTime, endTime, reapTime                            pq.NullTime
+		nonce                                                               sql.NullString
+		drained, aborted, completed                                         bool
+		status                                                              string
 	)
 
 	err := row.Scan(
@@ -1149,6 +1451,10 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&drained,
 		&aborted,
 		&completed,
+		&b.inputsReady,
+		&rerunOf,
+		&rerunOfName,
+		&rerunNumber,
 	)
 	if err != nil {
 		return err
@@ -1167,6 +1473,9 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.drained = drained
 	b.aborted = aborted
 	b.completed = completed
+	b.rerunOf = int(rerunOf.Int64)
+	b.rerunOfName = rerunOfName.String
+	b.rerunNumber = int(rerunNumber.Int64)
 
 	var (
 		noncense      *string
@@ -1261,8 +1570,10 @@ func updateNextBuildForJob(tx Tx, jobID int) error {
 		SET next_build_id = (
 			SELECT min(b.id)
 			FROM builds b
+			INNER JOIN jobs j ON j.id = b.job_id
 			WHERE b.job_id = $1
 			AND b.status IN ('pending', 'started')
+			AND (b.rerun_of IS NULL OR b.rerun_of = j.latest_completed_build_id)
 		)
 		WHERE j.id = $1
 	`, jobID)
@@ -1273,16 +1584,43 @@ func updateNextBuildForJob(tx Tx, jobID int) error {
 }
 
 func updateLatestCompletedBuildForJob(tx Tx, jobID int) error {
-	_, err := tx.Exec(`
+	var latestNonRerunId int
+	err := latestCompletedBuildQuery.
+		Where(sq.Eq{"job_id": jobID}).
+		Where(sq.Eq{"rerun_of": nil}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&latestNonRerunId)
+	if err != nil {
+		return err
+	}
+
+	var latestRerunId sql.NullString
+	err = latestCompletedBuildQuery.
+		Where(sq.Eq{"job_id": jobID}).
+		Where(sq.Eq{"rerun_of": latestNonRerunId}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&latestRerunId)
+	if err != nil {
+		return err
+	}
+
+	var id int
+	if latestRerunId.Valid {
+		id, err = strconv.Atoi(latestRerunId.String)
+		if err != nil {
+			return err
+		}
+	} else {
+		id = latestNonRerunId
+	}
+
+	_, err = tx.Exec(`
 		UPDATE jobs AS j
-		SET latest_completed_build_id = (
-			SELECT max(b.id)
-			FROM builds b
-			WHERE b.job_id = $1
-			AND b.status NOT IN ('pending', 'started')
-		)
-		WHERE j.id = $1
-	`, jobID)
+		SET latest_completed_build_id = $1
+		WHERE j.id = $2
+	`, id, jobID)
 	if err != nil {
 		return err
 	}
@@ -1290,7 +1628,7 @@ func updateLatestCompletedBuildForJob(tx Tx, jobID int) error {
 	return nil
 }
 
-func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus BuildStatus) error {
+func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus BuildStatus, rerunID int) error {
 	var shouldUpdateTransition bool
 
 	var latestID int
@@ -1320,7 +1658,7 @@ func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus Buil
 		return nil
 	}
 
-	if latestStatus != buildStatus {
+	if latestStatus != buildStatus && (isNotRerunBuild(rerunID) || rerunID == latestID) {
 		// status has changed; transitioned!
 		shouldUpdateTransition = true
 	}
@@ -1337,4 +1675,8 @@ func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus Buil
 	}
 
 	return nil
+}
+
+func isNotRerunBuild(rerunID int) bool {
+	return rerunID == 0
 }

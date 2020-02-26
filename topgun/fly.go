@@ -48,13 +48,14 @@ type Version struct {
 	Enabled bool              `json:"enabled"`
 }
 
-func (f *FlyCli) Login(user, password, endpoint string) {
+func (f *FlyCli) Login(user, password, endpoint string, loginArgs ...string) {
 	Eventually(func() *gexec.Session {
 		sess := f.Start(
-			"login",
-			"-c", endpoint,
-			"-u", user,
-			"-p", password,
+			append([]string{"login",
+				"-c", endpoint,
+				"-u", user,
+				"-p", password},
+				loginArgs...)...,
 		)
 
 		<-sess.Exited

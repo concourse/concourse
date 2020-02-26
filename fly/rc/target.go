@@ -40,9 +40,12 @@ func (e ErrVersionMismatch) Error() string {
 		ui.Embolden(e.flyVersion), ui.Embolden(e.atcVersion), os.Args[0], e.targetName)
 }
 
+//go:generate counterfeiter . Target
+
 type Target interface {
 	Client() concourse.Client
 	Team() concourse.Team
+	FindTeam(string) (concourse.Team, error)
 	CACert() string
 	Validate() error
 	ValidateWithWarningOnly() error
@@ -66,7 +69,7 @@ type target struct {
 	info      atc.Info
 }
 
-func newTarget(
+func NewTarget(
 	name TargetName,
 	teamName string,
 	url string,
@@ -122,7 +125,7 @@ func LoadTarget(selectedTarget TargetName, tracing bool) (Target, error) {
 	httpClient := defaultHttpClient(targetProps.Token, targetProps.Insecure, caCertPool)
 	client := concourse.NewClient(targetProps.API, httpClient, tracing)
 
-	return newTarget(
+	return NewTarget(
 		selectedTarget,
 		targetProps.TeamName,
 		targetProps.API,
@@ -165,7 +168,7 @@ func LoadUnauthenticatedTarget(
 
 	httpClient := &http.Client{Transport: transport(insecure, caCertPool)}
 
-	return newTarget(
+	return NewTarget(
 		selectedTarget,
 		teamName,
 		targetProps.API,
@@ -192,7 +195,7 @@ func NewUnauthenticatedTarget(
 
 	httpClient := &http.Client{Transport: transport(insecure, caCertPool)}
 	client := concourse.NewClient(url, httpClient, tracing)
-	return newTarget(
+	return NewTarget(
 		name,
 		teamName,
 		url,
@@ -220,7 +223,7 @@ func NewAuthenticatedTarget(
 	httpClient := defaultHttpClient(token, insecure, caCertPool)
 	client := concourse.NewClient(url, httpClient, tracing)
 
-	return newTarget(
+	return NewTarget(
 		name,
 		teamName,
 		url,
@@ -249,7 +252,7 @@ func NewBasicAuthTarget(
 	httpClient := basicAuthHttpClient(username, password, insecure, caCertPool)
 	client := concourse.NewClient(url, httpClient, tracing)
 
-	return newTarget(
+	return NewTarget(
 		name,
 		teamName,
 		url,
@@ -267,6 +270,10 @@ func (t *target) Client() concourse.Client {
 
 func (t *target) Team() concourse.Team {
 	return t.client.Team(t.teamName)
+}
+
+func (t *target) FindTeam(teamName string) (concourse.Team, error) {
+	return t.client.FindTeam(teamName)
 }
 
 func (t *target) CACert() string {

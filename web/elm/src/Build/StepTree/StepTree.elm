@@ -84,6 +84,9 @@ init hl resources buildPlan =
         Concourse.BuildStepSetPipeline name ->
             initBottom hl SetPipeline buildPlan.id name
 
+        Concourse.BuildStepLoadVar name ->
+            initBottom hl LoadVar buildPlan.id name
+
         Concourse.BuildStepAggregate plans ->
             initMultiStep hl resources buildPlan.id Aggregate plans
 
@@ -275,6 +278,9 @@ treeIsActive stepTree =
         SetPipeline step ->
             stepIsActive step
 
+        LoadVar step ->
+            stepIsActive step
+
         ArtifactInput _ ->
             False
 
@@ -406,6 +412,9 @@ viewTree session model tree =
 
         SetPipeline step ->
             viewStep model session step StepHeaderSetPipeline
+
+        LoadVar step ->
+            viewStep model session step StepHeaderLoadVar
 
         Try step ->
             viewTree session model step
@@ -828,6 +837,9 @@ viewStepHeaderLabel headerType stepID =
 
                 StepHeaderSetPipeline ->
                     "set_pipeline:"
+
+                StepHeaderLoadVar ->
+                    "load_var:"
         ]
 
 

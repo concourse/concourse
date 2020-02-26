@@ -62,48 +62,11 @@ var _ = Describe("JobConfig", func() {
 		})
 	})
 
-	Describe("GetSerialGroups", func() {
-		It("Returns the values if SerialGroups is specified", func() {
-			jobConfig := atc.JobConfig{
-				SerialGroups: []string{"one", "two"},
-			}
-
-			Expect(jobConfig.GetSerialGroups()).To(Equal([]string{"one", "two"}))
-		})
-
-		It("Returns the job name if Serial but SerialGroups are not specified", func() {
-			jobConfig := atc.JobConfig{
-				Name:   "some-job",
-				Serial: true,
-			}
-
-			Expect(jobConfig.GetSerialGroups()).To(Equal([]string{"some-job"}))
-		})
-
-		It("Returns the job name if MaxInFlight but SerialGroups are not specified", func() {
-			jobConfig := atc.JobConfig{
-				Name:           "some-job",
-				RawMaxInFlight: 1,
-			}
-
-			Expect(jobConfig.GetSerialGroups()).To(Equal([]string{"some-job"}))
-		})
-
-		It("returns an empty slice of strings if there are no groups and it is not serial and has no max-in-flight", func() {
-			jobConfig := atc.JobConfig{
-				Name:   "some-job",
-				Serial: false,
-			}
-
-			Expect(jobConfig.GetSerialGroups()).To(Equal([]string{}))
-		})
-	})
-
 	Describe("Inputs", func() {
 		var (
 			jobConfig atc.JobConfig
 
-			inputs []atc.JobInput
+			inputs []atc.JobInputParams
 		)
 
 		BeforeEach(func() {
@@ -140,17 +103,21 @@ var _ = Describe("JobConfig", func() {
 				})
 
 				It("uses both for inputs", func() {
-					Expect(inputs).To(Equal([]atc.JobInput{
+					Expect(inputs).To(Equal([]atc.JobInputParams{
 						{
-							Name:     "some-get-plan",
-							Resource: "some-get-plan",
-							Passed:   []string{"a", "b"},
-							Trigger:  true,
+							JobInput: atc.JobInput{
+								Name:     "some-get-plan",
+								Resource: "some-get-plan",
+								Passed:   []string{"a", "b"},
+								Trigger:  true,
+							},
 						},
 						{
-							Name:     "some-other-get-plan",
-							Resource: "some-other-get-plan",
-							Trigger:  false,
+							JobInput: atc.JobInput{
+								Name:     "some-other-get-plan",
+								Resource: "some-other-get-plan",
+								Trigger:  false,
+							},
 						},
 					}))
 
@@ -171,12 +138,14 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config with the version", func() {
 					Expect(inputs).To(Equal(
-						[]atc.JobInput{
+						[]atc.JobInputParams{
 							{
-								Name:     "a",
-								Resource: "a",
-								Version: &atc.VersionConfig{
-									Every: true,
+								JobInput: atc.JobInput{
+									Name:     "a",
+									Resource: "a",
+									Version: &atc.VersionConfig{
+										Every: true,
+									},
 								},
 							},
 						},
@@ -199,13 +168,17 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+							},
 						},
-						atc.JobInput{
-							Name:     "b",
-							Resource: "b",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "b",
+							},
 						},
 					))
 				})
@@ -226,13 +199,17 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+							},
 						},
-						atc.JobInput{
-							Name:     "b",
-							Resource: "b",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "b",
+							},
 						},
 					))
 
@@ -254,13 +231,17 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+							},
 						},
-						atc.JobInput{
-							Name:     "b",
-							Resource: "b",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "b",
+							},
 						},
 					))
 
@@ -282,13 +263,17 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+							},
 						},
-						atc.JobInput{
-							Name:     "b",
-							Resource: "b",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "b",
+							},
 						},
 					))
 
@@ -310,13 +295,17 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+							},
 						},
-						atc.JobInput{
-							Name:     "b",
-							Resource: "b",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "b",
+							},
 						},
 					))
 
@@ -337,13 +326,17 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+							},
 						},
-						atc.JobInput{
-							Name:     "b",
-							Resource: "b",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "b",
+							},
 						},
 					))
 
@@ -364,13 +357,17 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+							},
 						},
-						atc.JobInput{
-							Name:     "b",
-							Resource: "b",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "b",
+							},
 						},
 					))
 
@@ -391,13 +388,17 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+							},
 						},
-						atc.JobInput{
-							Name:     "b",
-							Resource: "b",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "b",
+							},
 						},
 					))
 
@@ -418,13 +419,17 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+							},
 						},
-						atc.JobInput{
-							Name:     "b",
-							Resource: "b",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "b",
+							},
 						},
 					))
 
@@ -445,13 +450,17 @@ var _ = Describe("JobConfig", func() {
 
 				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(ConsistOf(
-						atc.JobInput{
-							Name:     "a",
-							Resource: "a",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+							},
 						},
-						atc.JobInput{
-							Name:     "b",
-							Resource: "b",
+						atc.JobInputParams{
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "b",
+							},
 						},
 					))
 
@@ -469,11 +478,13 @@ var _ = Describe("JobConfig", func() {
 				})
 
 				It("uses it as resource in the input config", func() {
-					Expect(inputs).To(Equal([]atc.JobInput{
+					Expect(inputs).To(Equal([]atc.JobInputParams{
 						{
-							Name:     "some-get-plan",
-							Resource: "some-get-resource",
-							Trigger:  false,
+							JobInput: atc.JobInput{
+								Name:     "some-get-plan",
+								Resource: "some-get-resource",
+								Trigger:  false,
+							},
 						},
 					}))
 
@@ -495,22 +506,28 @@ var _ = Describe("JobConfig", func() {
 				})
 
 				It("returns an input config for all get plans", func() {
-					Expect(inputs).To(Equal([]atc.JobInput{
+					Expect(inputs).To(Equal([]atc.JobInputParams{
 						{
-							Name:     "a",
-							Resource: "a",
-							Trigger:  false,
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+								Trigger:  false,
+							},
 						},
 						{
-							Name:     "b",
-							Resource: "some-resource",
-							Passed:   []string{"x"},
-							Trigger:  false,
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "some-resource",
+								Passed:   []string{"x"},
+								Trigger:  false,
+							},
 						},
 						{
-							Name:     "c",
-							Resource: "c",
-							Trigger:  true,
+							JobInput: atc.JobInput{
+								Name:     "c",
+								Resource: "c",
+								Trigger:  true,
+							},
 						},
 					}))
 
@@ -535,22 +552,28 @@ var _ = Describe("JobConfig", func() {
 				})
 
 				It("returns an input config for all of the get plans present", func() {
-					Expect(inputs).To(Equal([]atc.JobInput{
+					Expect(inputs).To(Equal([]atc.JobInputParams{
 						{
-							Name:     "a",
-							Resource: "a",
-							Trigger:  false,
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+								Trigger:  false,
+							},
 						},
 						{
-							Name:     "b",
-							Resource: "some-resource",
-							Passed:   []string{"x"},
-							Trigger:  false,
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "some-resource",
+								Passed:   []string{"x"},
+								Trigger:  false,
+							},
 						},
 						{
-							Name:     "c",
-							Resource: "c",
-							Trigger:  true,
+							JobInput: atc.JobInput{
+								Name:     "c",
+								Resource: "c",
+								Trigger:  true,
+							},
 						},
 					}))
 
@@ -576,22 +599,28 @@ var _ = Describe("JobConfig", func() {
 				})
 
 				It("returns an input config for all get plans", func() {
-					Expect(inputs).To(Equal([]atc.JobInput{
+					Expect(inputs).To(Equal([]atc.JobInputParams{
 						{
-							Name:     "a",
-							Resource: "a",
-							Trigger:  false,
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+								Trigger:  false,
+							},
 						},
 						{
-							Name:     "b",
-							Resource: "some-resource",
-							Passed:   []string{"x"},
-							Trigger:  false,
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "some-resource",
+								Passed:   []string{"x"},
+								Trigger:  false,
+							},
 						},
 						{
-							Name:     "c",
-							Resource: "c",
-							Trigger:  true,
+							JobInput: atc.JobInput{
+								Name:     "c",
+								Resource: "c",
+								Trigger:  true,
+							},
 						},
 					}))
 
@@ -623,22 +652,28 @@ var _ = Describe("JobConfig", func() {
 				})
 
 				It("returns an input config for all of the get plans present", func() {
-					Expect(inputs).To(Equal([]atc.JobInput{
+					Expect(inputs).To(Equal([]atc.JobInputParams{
 						{
-							Name:     "a",
-							Resource: "a",
-							Trigger:  false,
+							JobInput: atc.JobInput{
+								Name:     "a",
+								Resource: "a",
+								Trigger:  false,
+							},
 						},
 						{
-							Name:     "b",
-							Resource: "some-resource",
-							Passed:   []string{"x"},
-							Trigger:  false,
+							JobInput: atc.JobInput{
+								Name:     "b",
+								Resource: "some-resource",
+								Passed:   []string{"x"},
+								Trigger:  false,
+							},
 						},
 						{
-							Name:     "c",
-							Resource: "c",
-							Trigger:  true,
+							JobInput: atc.JobInput{
+								Name:     "c",
+								Resource: "c",
+								Trigger:  true,
+							},
 						},
 					}))
 

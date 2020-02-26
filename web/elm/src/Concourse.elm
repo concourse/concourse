@@ -1,6 +1,5 @@
 module Concourse exposing
-    ( APIData
-    , AuthSession
+    ( AuthSession
     , AuthToken
     , Build
     , BuildDuration
@@ -301,6 +300,7 @@ type alias StepName =
 type BuildStep
     = BuildStepTask StepName
     | BuildStepSetPipeline StepName
+    | BuildStepLoadVar StepName
     | BuildStepArtifactInput StepName
     | BuildStepGet StepName (Maybe Version)
     | BuildStepArtifactOutput StepName
@@ -373,6 +373,8 @@ decodeBuildPlan_ =
                     lazy (\_ -> decodeBuildStepTimeout)
                 , Json.Decode.field "set_pipeline" <|
                     lazy (\_ -> decodeBuildSetPipeline)
+                , Json.Decode.field "load_var" <|
+                    lazy (\_ -> decodeBuildStepLoadVar)
                 ]
             )
 
@@ -492,6 +494,12 @@ decodeBuildStepTimeout =
 decodeBuildSetPipeline : Json.Decode.Decoder BuildStep
 decodeBuildSetPipeline =
     Json.Decode.succeed BuildStepSetPipeline
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
+
+
+decodeBuildStepLoadVar : Json.Decode.Decoder BuildStep
+decodeBuildStepLoadVar =
+    Json.Decode.succeed BuildStepLoadVar
         |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
@@ -861,20 +869,6 @@ decodeCause =
     Json.Decode.succeed Cause
         |> andMap (Json.Decode.field "versioned_resource_id" Json.Decode.int)
         |> andMap (Json.Decode.field "build_id" Json.Decode.int)
-
-
-
--- APIData
-
-
-type alias APIData =
-    { teams : List Team
-    , pipelines : List Pipeline
-    , jobs : List Job
-    , resources : List Resource
-    , user : Maybe User
-    , version : String
-    }
 
 
 

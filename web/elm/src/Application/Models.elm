@@ -10,6 +10,7 @@ type alias Session =
     SideBar.Model
         { userState : UserState
         , clusterName : String
+        , version : String
         , turbulenceImgSrc : String
         , notFoundImgSrc : String
         , csrfToken : Concourse.CSRFToken

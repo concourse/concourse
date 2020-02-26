@@ -65,7 +65,7 @@ type alias Model =
         , autoScroll : Bool
         , previousKeyPress : Maybe Keyboard.KeyEvent
         , shiftDown : Bool
-        , previousTriggerBuildByKey : Bool
+        , isTriggerBuildKeyDown : Bool
         , showHelp : Bool
         , highlight : Highlight
         , hoveredCounter : Int
@@ -88,7 +88,7 @@ main =
         Benchmark.describe "benchmark suite"
             [ Benchmark.compare "DashboardPreview.view"
                 "current"
-                (\_ -> DP.view HoverState.NoHover sampleJobs)
+                (\_ -> DP.view HoverState.NoHover (DP.groupByRank sampleJobs))
                 "old"
                 (\_ -> dashboardPreviewView sampleJobs)
             , Benchmark.compare "Build.view"
@@ -284,7 +284,7 @@ viewBuildHeader session model build =
                         ]
                             ++ (if buttonDisabled && buttonHovered then
                                     [ Html.div
-                                        Build.Styles.triggerTooltip
+                                        (Build.Styles.buttonTooltip 240)
                                         [ Html.text <|
                                             "manual triggering disabled "
                                                 ++ "in job config"
@@ -578,7 +578,10 @@ viewHistoryItem currentBuild build =
         ([ classList [ ( "current", build.id == currentBuild.id ) ]
          , id <| String.fromInt build.id
          ]
-            ++ Build.Styles.historyItem build.status
+            ++ Build.Styles.historyItem
+                currentBuild.status
+                (build.id == currentBuild.id)
+                build.status
         )
         [ Html.a
             [ onLeftClick <| Click <| BuildTab build.id build.name
@@ -692,6 +695,7 @@ sampleSession =
     , timeZone = Time.utc
     , turbulenceImgSrc = ""
     , userState = UserState.UserStateLoggedOut
+    , version = ""
     }
 
 
@@ -728,7 +732,7 @@ sampleOldModel =
     , autoScroll = True
     , previousKeyPress = Nothing
     , shiftDown = False
-    , previousTriggerBuildByKey = False
+    , isTriggerBuildKeyDown = False
     , showHelp = False
     , highlight = Routes.HighlightNothing
     , hoveredCounter = 0
@@ -762,7 +766,7 @@ sampleModel =
             }
     , autoScroll = True
     , previousKeyPress = Nothing
-    , previousTriggerBuildByKey = False
+    , isTriggerBuildKeyDown = False
     , showHelp = False
     , highlight = Routes.HighlightNothing
     , authorized = True

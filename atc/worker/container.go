@@ -248,7 +248,7 @@ func (container *gardenWorkerContainer) RunScript(
 		return err
 
 	case <-ctx.Done():
-		container.Stop(false)
+		_ = container.Stop(false)
 		<-processExited
 		return ctx.Err()
 	}

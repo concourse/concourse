@@ -80,7 +80,7 @@ func (f *componentFactory) updateInterval(tx Tx, component atc.Component) error 
 	}
 
 	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
+		return NonOneRowAffectedError{rowsAffected}
 	}
 
 	return nil

@@ -16,7 +16,4 @@ jobs:
   plan:
   - get: some-resource
     passed: [upstream-job]
-  - task: run
-    file: some-resource/task.yml
-    input_mapping:
-      mapped-resource: some-resource
+    trigger: true

@@ -12,7 +12,8 @@ import (
 type Team interface {
 	Name() string
 
-	Team(teamName string) (atc.Team, bool, error)
+	Auth() atc.TeamAuth
+
 	CreateOrUpdate(team atc.Team) (atc.Team, bool, bool, error)
 	RenameTeam(teamName, name string) (bool, error)
 	DestroyTeam(teamName string) error
@@ -37,7 +38,9 @@ type Team interface {
 	JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error)
 	JobBuilds(pipelineName string, jobName string, page Page) ([]atc.Build, Pagination, bool, error)
 	CreateJobBuild(pipelineName string, jobName string) (atc.Build, error)
+	RerunJobBuild(pipelineName string, jobName string, buildName string) (atc.Build, error)
 	ListJobs(pipelineName string) ([]atc.Job, error)
+	ScheduleJob(pipelineName string, jobName string) (bool, error)
 
 	PauseJob(pipelineName string, jobName string) (bool, error)
 	UnpauseJob(pipelineName string, jobName string) (bool, error)
@@ -73,7 +76,9 @@ type Team interface {
 
 type team struct {
 	name       string
-	connection internal.Connection
+	connection internal.Connection //Deprecated
+	httpAgent  internal.HTTPAgent
+	auth       atc.TeamAuth
 }
 
 func (team *team) Name() string {
@@ -85,4 +90,8 @@ func (client *client) Team(name string) Team {
 		name:       name,
 		connection: client.connection,
 	}
+}
+
+func (team *team) Auth() atc.TeamAuth {
+	return team.auth
 }

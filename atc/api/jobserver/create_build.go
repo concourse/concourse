@@ -24,7 +24,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		if s.checkResultAndRespond(job.Config().DisableManualTrigger, w, http.StatusConflict) {
+		if s.checkResultAndRespond(job.DisableManualTrigger(), w, http.StatusConflict) {
 			return
 		}
 
@@ -44,7 +44,14 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		for _, input := range job.Config().Inputs() {
+		inputs, err := job.Inputs()
+		if err != nil {
+			logger.Error("failed-to-get-job-inputs", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		for _, input := range inputs {
 			resource, found := resources.Lookup(input.Resource)
 			if found {
 				version := resource.CurrentPinnedVersion()

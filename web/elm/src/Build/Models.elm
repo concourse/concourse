@@ -1,12 +1,14 @@
 module Build.Models exposing
     ( Model
+    , ShortcutsModel
     , StepHeaderType(..)
     , toMaybe
     )
 
-import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
+import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..), HistoryItem)
 import Build.Output.Models exposing (OutputModel)
 import Concourse
+import Concourse.BuildStatus as BuildStatus
 import Keyboard
 import Login.Login as Login
 import Routes exposing (Highlight)
@@ -20,20 +22,34 @@ import Time
 type alias Model =
     Login.Model
         (Build.Header.Models.Model
-            { autoScroll : Bool
-            , previousKeyPress : Maybe Keyboard.KeyEvent
-            , shiftDown : Bool
-            , showHelp : Bool
-            , highlight : Highlight
-            , authorized : Bool
-            , output : CurrentOutput
-            , prep : Maybe Concourse.BuildPrep
-            , page : BuildPageType
-            , hasLoadedYet : Bool
-            , notFound : Bool
-            , reapTime : Maybe Time.Posix
-            }
+            (ShortcutsModel
+                { shiftDown : Bool
+                , highlight : Highlight
+                , authorized : Bool
+                , output : CurrentOutput
+                , prep : Maybe Concourse.BuildPrep
+                , page : BuildPageType
+                , hasLoadedYet : Bool
+                , notFound : Bool
+                , reapTime : Maybe Time.Posix
+                }
+            )
         )
+
+
+type alias ShortcutsModel r =
+    { r
+        | previousKeyPress : Maybe Keyboard.KeyEvent
+        , autoScroll : Bool
+        , showHelp : Bool
+        , id : Int
+        , history : List HistoryItem
+        , name : String
+        , job : Maybe Concourse.JobIdentifier
+        , status : BuildStatus.BuildStatus
+        , isTriggerBuildKeyDown : Bool
+        , duration : Concourse.BuildDuration
+    }
 
 
 toMaybe : CurrentOutput -> Maybe OutputModel
@@ -54,3 +70,4 @@ type StepHeaderType
     | StepHeaderGet Bool
     | StepHeaderTask
     | StepHeaderSetPipeline
+    | StepHeaderLoadVar

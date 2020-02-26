@@ -28,6 +28,17 @@ const teamName = "main"
 const atcVersion = "4.0.0"
 const workerVersion = "4.5.6"
 
+var teams = []atc.Team{
+	atc.Team{
+		ID:   1,
+		Name: "main",
+	},
+	atc.Team{
+		ID:   2,
+		Name: "other-team",
+	},
+}
+
 var _ = SynchronizedBeforeSuite(func() []byte {
 	binPath, err := gexec.Build("github.com/concourse/concourse/fly")
 	Expect(err).NotTo(HaveOccurred())

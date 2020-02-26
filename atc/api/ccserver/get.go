@@ -10,6 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
@@ -82,12 +83,12 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) buildProject(j db.DashboardJob) Project {
+func (s *Server) buildProject(j atc.DashboardJob) Project {
 	var lastBuildStatus string
 	switch {
-	case j.FinishedBuild.Status() == db.BuildStatusSucceeded:
+	case db.BuildStatus(j.FinishedBuild.Status) == db.BuildStatusSucceeded:
 		lastBuildStatus = "Success"
-	case j.FinishedBuild.Status() == db.BuildStatusFailed:
+	case db.BuildStatus(j.FinishedBuild.Status) == db.BuildStatusFailed:
 		lastBuildStatus = "Failure"
 	default:
 		lastBuildStatus = "Exception"
@@ -102,19 +103,19 @@ func (s *Server) buildProject(j db.DashboardJob) Project {
 
 	webUrl := s.createWebUrl([]string{
 		"teams",
-		j.Job.TeamName(),
+		j.TeamName,
 		"pipelines",
-		j.Job.PipelineName(),
+		j.PipelineName,
 		"jobs",
-		j.Job.Name(),
+		j.Name,
 	})
 
-	projectName := fmt.Sprintf("%s/%s", j.Job.PipelineName(), j.Job.Name())
+	projectName := fmt.Sprintf("%s/%s", j.PipelineName, j.Name)
 	return Project{
 		Activity:        activity,
-		LastBuildLabel:  fmt.Sprint(j.FinishedBuild.Name()),
+		LastBuildLabel:  fmt.Sprint(j.FinishedBuild.Name),
 		LastBuildStatus: lastBuildStatus,
-		LastBuildTime:   j.FinishedBuild.EndTime().Format(time.RFC3339),
+		LastBuildTime:   j.FinishedBuild.EndTime.Format(time.RFC3339),
 		Name:            projectName,
 		WebUrl:          webUrl,
 	}

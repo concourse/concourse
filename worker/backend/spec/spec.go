@@ -10,29 +10,16 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
+const (
+	SuperuserPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	Path          = "PATH=/usr/local/bin:/usr/bin:/bin"
+)
+
+const baseCgroupsPath = "garden"
+
 // OciSpec converts a given `garden` container specification to an OCI spec.
 //
-// TODO
-// - limits
-// - masked paths
-// - rootfs propagation
-// - seccomp
-// - user namespaces: uid/gid mappings
-// x capabilities
-// x devices
-// x env
-// x hostname
-// x mounts
-// x namespaces
-// x rootfs
-//
-//
-func OciSpec(gdn garden.ContainerSpec) (oci *specs.Spec, err error) {
-	var (
-		rootfs string
-		mounts []specs.Mount
-	)
-
+func OciSpec(gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
 		return
@@ -42,29 +29,40 @@ func OciSpec(gdn garden.ContainerSpec) (oci *specs.Spec, err error) {
 		gdn.RootFSPath = gdn.Image.URI
 	}
 
+	var rootfs string
 	rootfs, err = rootfsDir(gdn.RootFSPath)
 	if err != nil {
 		return
 	}
 
+	var mounts []specs.Mount
 	mounts, err = OciSpecBindMounts(gdn.BindMounts)
 	if err != nil {
 		return
 	}
 
-	oci = merge(defaultGardenOciSpec(gdn.Privileged), &specs.Spec{
-		Version:  specs.Version,
-		Hostname: gdn.Handle,
-		Process: &specs.Process{
-			Env: gdn.Env,
+	resources := OciResources(gdn.Limits)
+	cgroupsPath := OciCgroupsPath(baseCgroupsPath, gdn.Handle, gdn.Privileged)
+
+	oci = merge(
+		defaultGardenOciSpec(gdn.Privileged, maxUid, maxGid),
+		&specs.Spec{
+			Version:  specs.Version,
+			Hostname: gdn.Handle,
+			Process: &specs.Process{
+				Env: gdn.Env,
+			},
+			Root:        &specs.Root{Path: rootfs},
+			Mounts:      mounts,
+			Annotations: map[string]string(gdn.Properties),
+			Linux: &specs.Linux{
+				Resources:   resources,
+				CgroupsPath: cgroupsPath,
+			},
 		},
-		Root:        &specs.Root{Path: rootfs},
-		Mounts:      mounts,
-		Annotations: map[string]string(gdn.Properties),
-		// Linux: &specs.Linux{
-		// 	Resources: &specs.LinuxResources{Memory: nil, Cpu: nil},
-		// },
-	})
+	)
+
+	oci.Process.Env = envWithDefaultPath(oci.Process.Env, gdn.Privileged)
 
 	return
 }
@@ -109,19 +107,113 @@ func OciSpecBindMounts(bindMounts []garden.BindMount) (mounts []specs.Mount, err
 	return
 }
 
+// OciIDMappings provides the uid/gid mappings for user namespaces (if
+// necessary, based on `privileged`).
+//
+func OciIDMappings(privileged bool, max uint32) []specs.LinuxIDMapping {
+	if privileged {
+		return []specs.LinuxIDMapping{}
+	}
+
+	return []specs.LinuxIDMapping{
+		{ // "root" inside, but non-root outside
+			ContainerID: 0,
+			HostID:      max,
+			Size:        1,
+		},
+		{ // anything else, not root inside & outside
+			ContainerID: 1,
+			HostID:      1,
+			Size:        max - 1,
+		},
+	}
+}
+
+func OciResources(limits garden.Limits) *specs.LinuxResources {
+	var (
+		cpuResources    *specs.LinuxCPU
+		memoryResources *specs.LinuxMemory
+		pidLimit        *specs.LinuxPids
+	)
+	shares := limits.CPU.LimitInShares
+	if limits.CPU.Weight > 0 {
+		shares = limits.CPU.Weight
+	}
+
+	if shares > 0 {
+		cpuResources = &specs.LinuxCPU{
+			Shares: &shares,
+		}
+	}
+
+	memoryLimit := int64(limits.Memory.LimitInBytes)
+	if memoryLimit > 0 {
+		memoryResources = &specs.LinuxMemory{
+			Limit: &memoryLimit,
+			Swap:  &memoryLimit,
+		}
+	}
+
+	maxPids := int64(limits.Pid.Max)
+	if maxPids > 0 {
+		pidLimit = &specs.LinuxPids{
+			Limit: maxPids,
+		}
+	}
+
+	if cpuResources == nil && memoryResources == nil && pidLimit == nil {
+		return nil
+	}
+	return &specs.LinuxResources{
+		CPU:    cpuResources,
+		Memory: memoryResources,
+		Pids:   pidLimit,
+	}
+}
+
+func OciCgroupsPath(basePath, handle string, privileged bool) string {
+	if privileged {
+		return ""
+	}
+	return filepath.Join(basePath, handle)
+}
+
+// envWithDefaultPath returns the default PATH for a privileged/unprivileged
+// user based on the existence of PATH already being set in the initial
+// environment.
+//
+func envWithDefaultPath(env []string, privileged bool) []string {
+	for _, envVar := range env {
+		if strings.HasPrefix(envVar, "PATH=") {
+			return env
+		}
+	}
+
+	if privileged {
+		return append(env, SuperuserPath)
+	}
+
+	return append(env, Path)
+}
+
 // defaultGardenOciSpec represents a default set of properties necessary in
 // order to satisfy the garden interface.
 //
 // ps.: this spec is NOT completed - it must be merged with more properties to
 // form a properly working container.
 //
-func defaultGardenOciSpec(privileged bool) *specs.Spec {
+func defaultGardenOciSpec(privileged bool, maxUid, maxGid uint32) *specs.Spec {
 	var (
 		namespaces   = OciNamespaces(privileged)
 		capabilities = OciCapabilities(privileged)
 	)
 
-	return &specs.Spec{
+	devices := AnyContainerDevices
+	if privileged {
+		devices = append(PrivilegedOnlyDevices, devices...)
+	}
+
+	spec := &specs.Spec{
 		Process: &specs.Process{
 			Args:         []string{"/tmp/gdn-init"},
 			Capabilities: &capabilities,
@@ -130,11 +222,19 @@ func defaultGardenOciSpec(privileged bool) *specs.Spec {
 		Linux: &specs.Linux{
 			Namespaces: namespaces,
 			Resources: &specs.LinuxResources{
-				Devices: AnyContainerDevices,
+				Devices: devices,
 			},
+			UIDMappings: OciIDMappings(privileged, maxUid),
+			GIDMappings: OciIDMappings(privileged, maxGid),
 		},
 		Mounts: AnyContainerMounts,
 	}
+
+	if !privileged {
+		spec.Linux.Seccomp = seccomp
+	}
+
+	return spec
 }
 
 // merge merges an OCI spec `dst` into `src`.
