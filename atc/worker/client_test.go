@@ -218,8 +218,9 @@ var _ = Describe("Client", func() {
 	})
 
 	Describe("RunCheckStep", func() {
+
 		var (
-			// result []atc.Version
+			result           []atc.Version
 			err, expectedErr error
 			fakeResource     *resourcefakes.FakeResource
 		)
@@ -235,7 +236,7 @@ var _ = Describe("Client", func() {
 			workerSpec := worker.WorkerSpec{}
 			fakeResourceTypes := atc.VersionedResourceTypes{}
 
-			_, err = client.RunCheckStep(
+			result, err = client.RunCheckStep(
 				context.Background(),
 				logger,
 				owner,
@@ -297,6 +298,40 @@ var _ = Describe("Client", func() {
 
 					It("errors", func() {
 						Expect(errors.Is(err, expectedErr)).To(BeTrue())
+					})
+				})
+
+				It("runs check w/ timeout", func() {
+					ctx, _, _ := fakeResource.CheckArgsForCall(0)
+					_, hasDeadline := ctx.Deadline()
+
+					Expect(hasDeadline).To(BeTrue())
+				})
+
+				It("uses the right executable path in the proc spec", func() {
+					_, processSpec, _ := fakeResource.CheckArgsForCall(0)
+
+					Expect(processSpec).To(Equal(runtime.ProcessSpec{
+						Path: "/opt/resource/check",
+					}))
+				})
+
+				It("uses the container as the runner", func() {
+					_, _, container := fakeResource.CheckArgsForCall(0)
+
+					Expect(container).To(Equal(fakeContainer))
+				})
+
+				Context("succeeding", func() {
+					BeforeEach(func() {
+						fakeResource.CheckReturns([]atc.Version{
+							{"version": "1"},
+						}, nil)
+					})
+
+					It("returns the versions", func() {
+						Expect(result).To(HaveLen(1))
+						Expect(result[0]).To(Equal(atc.Version{"version": "1"}))
 					})
 				})
 			})
