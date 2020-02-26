@@ -840,7 +840,7 @@ var _ = Describe("login Command", func() {
 
 			Context("when ca cert is not provided this time", func() {
 				It("is using saved ca cert", func() {
-					oginATCServer.AppendHandlers(
+					loginATCServer.AppendHandlers(
 						infoHandler(),
 						adminTokenHandler(),
 						teamHandler(teams),
