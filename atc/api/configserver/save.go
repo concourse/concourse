@@ -18,6 +18,9 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+const jsonContent = "application/json"
+const contentType = "Content-Type"
+
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	session := s.logger.Session("set-config")
 
@@ -39,8 +42,8 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var config atc.Config
-	switch r.Header.Get("Content-type") {
-	case "application/json", "application/x-yaml":
+	switch r.Header.Get(contentType) {
+	case jsonContent, "application/x-yaml":
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			s.handleBadRequest(w, fmt.Sprintf("read failed: %s", err))
@@ -50,7 +53,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		err = atc.UnmarshalConfig(body, &config)
 		if err != nil {
 			session.Error("malformed-request-payload", err, lager.Data{
-				"content-type": r.Header.Get("Content-Type"),
+				"content-type": r.Header.Get(contentType),
 			})
 
 			s.handleBadRequest(w, fmt.Sprintf("malformed config: %s", err))
@@ -112,7 +115,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	session.Info("saved")
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, jsonContent)
 
 	if created {
 		w.WriteHeader(http.StatusCreated)
@@ -191,7 +194,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 }
 
 func (s *Server) handleBadRequest(w http.ResponseWriter, errorMessages ...string) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, jsonContent)
 	w.WriteHeader(http.StatusBadRequest)
 	s.writeSaveConfigResponse(w, atc.SaveConfigResponse{
 		Errors: errorMessages,

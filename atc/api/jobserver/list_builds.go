@@ -42,14 +42,11 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 		}
 
 		job, found, err := pipeline.Job(jobName)
-		if err != nil {
-			logger.Error("failed-to-get-job", err)
-			w.WriteHeader(http.StatusInternalServerError)
+		if s.checkErrorAndLogMessage(err, logger, w, "failed-to-get-job", http.StatusInternalServerError) {
 			return
 		}
 
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
+		if s.checkResultAndRespond(!found, w, http.StatusNotFound) {
 			return
 		}
 
@@ -66,8 +63,7 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 				Limit: limit,
 			})
 		}
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
+		if s.checkResultAndRespond(err != nil, w, http.StatusNotFound) {
 			return
 		}
 
@@ -88,10 +84,7 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 		}
 
 		err = json.NewEncoder(w).Encode(jobBuilds)
-		if err != nil {
-			logger.Error("failed-to-encode-job-builds", err)
-			w.WriteHeader(http.StatusInternalServerError)
-		}
+		s.checkErrorAndLogMessage(err, logger, w, "failed-to-encode-job-builds", http.StatusInternalServerError)
 	})
 }
 

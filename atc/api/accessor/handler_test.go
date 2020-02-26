@@ -50,7 +50,7 @@ var _ = Describe("Handler", func() {
 				fakeAccess = new(accessorfakes.FakeAccess)
 				accessorFactory.CreateReturns(fakeAccess)
 			})
-			It("calls the innder handler", func() {
+			It("calls the inner handler", func() {
 				Expect(innerHandlerCalled).To(BeTrue())
 				Expect(access).To(Equal(fakeAccess))
 			})

@@ -60,14 +60,14 @@ func (a *access) IsAuthorized(team string) bool {
 
 func (a *access) hasPermission(role string) bool {
 	switch a.actionRoleMap.RoleOfAction(a.action) {
-	case "owner":
-		return role == "owner"
-	case "member":
-		return role == "owner" || role == "member"
-	case "pipeline-operator":
-		return role == "owner" || role == "member" || role == "pipeline-operator"
-	case "viewer":
-		return role == "owner" || role == "member" || role == "pipeline-operator" || role == "viewer"
+	case owner:
+		return role == owner
+	case member:
+		return role == owner || role == member
+	case operator:
+		return role == owner || role == member || role == operator
+	case viewer:
+		return role == owner || role == member || role == operator || role == viewer
 	default:
 		return false
 	}
@@ -82,7 +82,7 @@ func (a *access) IsAdmin() bool {
 }
 
 func (a *access) IsSystem() bool {
-	if isSystemClaim, ok := a.Claims()["system"]; ok {
+	if isSystemClaim, ok := a.Claims()[system]; ok {
 		isSystem, ok := isSystemClaim.(bool)
 		return ok && isSystem
 	}
@@ -108,7 +108,7 @@ func (a *access) TeamRoles() map[string][]string {
 		if teamsArr, ok := teamsClaim.([]interface{}); ok {
 			for _, teamObj := range teamsArr {
 				if teamName, ok := teamObj.(string); ok {
-					teamRoles[teamName] = []string{"owner"}
+					teamRoles[teamName] = []string{owner}
 				}
 			}
 		} else {
@@ -133,10 +133,8 @@ func (a *access) UserName() string {
 		if userName, ok := userName.(string); ok {
 			return userName
 		}
-	} else if systemName, ok := a.Claims()["system"]; ok {
-		if systemName == true {
-			return "system"
-		}
+	} else if systemName, ok := a.Claims()[system]; systemName == true && ok {
+		return system
 	}
 	return ""
 }
