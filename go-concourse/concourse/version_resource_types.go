@@ -8,8 +8,8 @@ import (
 
 func (team *team) VersionedResourceTypes(pipelineName string) (atc.VersionedResourceTypes, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		TeamNameParameter:     team.name,
 	}
 
 	var versionedResourceTypes atc.VersionedResourceTypes

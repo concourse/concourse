@@ -16,8 +16,8 @@ import (
 
 func (team *team) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		TeamNameParameter:     team.name,
 	}
 
 	var configResponse atc.ConfigResponse
@@ -57,8 +57,8 @@ type setConfigResponse struct {
 
 func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		TeamNameParameter:     team.name,
 	}
 
 	queryParams := url.Values{}

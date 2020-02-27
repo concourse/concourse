@@ -9,10 +9,12 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+const JobNameParameter = "job_name"
+
 func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		TeamNameParameter:     team.name,
 	}
 
 	var jobs []atc.Job
@@ -28,9 +30,9 @@ func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
 
 func (team *team) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"job_name":      jobName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		JobNameParameter:      jobName,
+		TeamNameParameter:     team.name,
 	}
 
 	var job atc.Job
@@ -52,9 +54,9 @@ func (team *team) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 
 func (team *team) JobBuilds(pipelineName string, jobName string, page Page) ([]atc.Build, Pagination, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"job_name":      jobName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		JobNameParameter:      jobName,
+		TeamNameParameter:     team.name,
 	}
 
 	var builds []atc.Build
@@ -85,9 +87,9 @@ func (team *team) JobBuilds(pipelineName string, jobName string, page Page) ([]a
 
 func (team *team) PauseJob(pipelineName string, jobName string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"job_name":      jobName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		JobNameParameter:      jobName,
+		TeamNameParameter:     team.name,
 	}
 
 	err := team.connection.Send(internal.Request{
@@ -107,9 +109,9 @@ func (team *team) PauseJob(pipelineName string, jobName string) (bool, error) {
 
 func (team *team) UnpauseJob(pipelineName string, jobName string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"job_name":      jobName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		JobNameParameter:      jobName,
+		TeamNameParameter:     team.name,
 	}
 
 	err := team.connection.Send(internal.Request{
@@ -129,9 +131,9 @@ func (team *team) UnpauseJob(pipelineName string, jobName string) (bool, error) 
 
 func (team *team) ScheduleJob(pipelineName string, jobName string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"job_name":      jobName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		JobNameParameter:      jobName,
+		TeamNameParameter:     team.name,
 	}
 
 	err := team.connection.Send(internal.Request{
@@ -151,10 +153,10 @@ func (team *team) ScheduleJob(pipelineName string, jobName string) (bool, error)
 
 func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (int64, error) {
 	params := rata.Params{
-		"team_name":     team.name,
-		"pipeline_name": pipelineName,
-		"job_name":      jobName,
-		"step_name":     stepName,
+		TeamNameParameter:     team.name,
+		PipelineNameParameter: pipelineName,
+		JobNameParameter:      jobName,
+		"step_name":           stepName,
 	}
 
 	queryParams := url.Values{}

@@ -13,9 +13,9 @@ import (
 func (team *team) CheckResource(pipelineName string, resourceName string, version atc.Version) (atc.Check, bool, error) {
 
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"resource_name": resourceName,
-		"team_name":     team.name,
+		PipelineNameParameter:   pipelineName,
+		"ResourceNameParameter": resourceName,
+		TeamNameParameter:       team.name,
 	}
 
 	var check atc.Check

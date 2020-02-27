@@ -8,9 +8,9 @@ import (
 
 func (team *team) Resource(pipelineName string, resourceName string) (atc.Resource, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"resource_name": resourceName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		ResourceNameParameter: resourceName,
+		TeamNameParameter:     team.name,
 	}
 
 	var resource atc.Resource
@@ -32,8 +32,8 @@ func (team *team) Resource(pipelineName string, resourceName string) (atc.Resour
 
 func (team *team) ListResources(pipelineName string) ([]atc.Resource, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		TeamNameParameter:     team.name,
 	}
 
 	var resources []atc.Resource

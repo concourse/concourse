@@ -15,7 +15,7 @@ func (team *team) CreateArtifact(src io.Reader, platform string) (atc.WorkerArti
 	var artifact atc.WorkerArtifact
 
 	params := rata.Params{
-		"team_name": team.Name(),
+		TeamNameParameter: team.Name(),
 	}
 
 	err := team.connection.Send(internal.Request{
@@ -33,8 +33,8 @@ func (team *team) CreateArtifact(src io.Reader, platform string) (atc.WorkerArti
 
 func (team *team) GetArtifact(artifactID int) (io.ReadCloser, error) {
 	params := rata.Params{
-		"team_name":   team.Name(),
-		"artifact_id": strconv.Itoa(artifactID),
+		TeamNameParameter: team.Name(),
+		"artifact_id":     strconv.Itoa(artifactID),
 	}
 
 	response := internal.Response{}

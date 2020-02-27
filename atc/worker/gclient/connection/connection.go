@@ -20,6 +20,8 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+const Handle = "handle"
+
 var ErrDisconnected = errors.New("disconnected")
 var ErrInvalidMessage = errors.New("invalid message payload")
 
@@ -114,7 +116,7 @@ func (c *connection) Capacity() (garden.Capacity, error) {
 
 func (c *connection) Create(spec garden.ContainerSpec) (string, error) {
 	res := struct {
-		Handle string `json:"handle"`
+		Handle string `json:Handle`
 	}{}
 
 	err := c.do(routes.Create, spec, &res, nil, nil)
@@ -133,7 +135,7 @@ func (c *connection) Stop(handle string, kill bool) error {
 		},
 		&struct{}{},
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		nil,
 	)
@@ -145,7 +147,7 @@ func (c *connection) Destroy(handle string) error {
 		nil,
 		&struct{}{},
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		nil,
 	)
@@ -164,7 +166,7 @@ func (c *connection) Run(ctx context.Context, handle string, spec garden.Process
 		routes.Run,
 		reqBody,
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		nil,
 		"application/json",
@@ -184,8 +186,8 @@ func (c *connection) Attach(ctx context.Context, handle string, processID string
 		routes.Attach,
 		reqBody,
 		rata.Params{
-			"handle": handle,
-			"pid":    processID,
+			Handle: handle,
+			"pid":  processID,
 		},
 		nil,
 		"",
@@ -212,7 +214,7 @@ func (c *connection) streamProcess(ctx context.Context, handle string, processIO
 
 	hijack := func(streamType string) (net.Conn, io.Reader, error) {
 		params := rata.Params{
-			"handle":   handle,
+			Handle:     handle,
 			"pid":      processPipeline.ProcessID(),
 			"streamid": payload.StreamID,
 		}
@@ -296,7 +298,7 @@ func (c *connection) NetIn(handle string, hostPort, containerPort uint32) (uint3
 		},
 		res,
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		nil,
 	)
@@ -314,7 +316,7 @@ func (c *connection) BulkNetOut(handle string, rules []garden.NetOutRule) error 
 		rules,
 		&struct{}{},
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		nil,
 	)
@@ -326,7 +328,7 @@ func (c *connection) NetOut(handle string, rule garden.NetOutRule) error {
 		rule,
 		&struct{}{},
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		nil,
 	)
@@ -342,8 +344,8 @@ func (c *connection) Property(handle string, name string) (string, error) {
 		nil,
 		&res,
 		rata.Params{
-			"handle": handle,
-			"key":    name,
+			Handle: handle,
+			"key":  name,
 		},
 		nil,
 	)
@@ -359,8 +361,8 @@ func (c *connection) SetProperty(handle string, name string, value string) error
 		},
 		&struct{}{},
 		rata.Params{
-			"handle": handle,
-			"key":    name,
+			Handle: handle,
+			"key":  name,
 		},
 		nil,
 	)
@@ -378,8 +380,8 @@ func (c *connection) RemoveProperty(handle string, name string) error {
 		nil,
 		&struct{}{},
 		rata.Params{
-			"handle": handle,
-			"key":    name,
+			Handle: handle,
+			"key":  name,
 		},
 		nil,
 	)
@@ -399,7 +401,7 @@ func (c *connection) CurrentBandwidthLimits(handle string) (garden.BandwidthLimi
 		nil,
 		&res,
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		nil,
 	)
@@ -415,7 +417,7 @@ func (c *connection) CurrentCPULimits(handle string) (garden.CPULimits, error) {
 		nil,
 		&res,
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		nil,
 	)
@@ -431,7 +433,7 @@ func (c *connection) CurrentDiskLimits(handle string) (garden.DiskLimits, error)
 		nil,
 		&res,
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		nil,
 	)
@@ -447,7 +449,7 @@ func (c *connection) CurrentMemoryLimits(handle string) (garden.MemoryLimits, er
 		nil,
 		&res,
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		nil,
 	)
@@ -460,7 +462,7 @@ func (c *connection) StreamIn(handle string, spec garden.StreamInSpec) error {
 		routes.StreamIn,
 		spec.TarStream,
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		url.Values{
 			"user":        []string{spec.User},
@@ -480,7 +482,7 @@ func (c *connection) StreamOut(handle string, spec garden.StreamOutSpec) (io.Rea
 		routes.StreamOut,
 		nil,
 		rata.Params{
-			"handle": handle,
+			Handle: handle,
 		},
 		url.Values{
 			"user":   []string{spec.User},
@@ -514,25 +516,25 @@ func (c *connection) List(filterProperties garden.Properties) ([]string, error) 
 }
 
 func (c *connection) SetGraceTime(handle string, graceTime time.Duration) error {
-	return c.do(routes.SetGraceTime, graceTime, &struct{}{}, rata.Params{"handle": handle}, nil)
+	return c.do(routes.SetGraceTime, graceTime, &struct{}{}, rata.Params{Handle: handle}, nil)
 }
 
 func (c *connection) Properties(handle string) (garden.Properties, error) {
 	res := make(garden.Properties)
-	err := c.do(routes.Properties, nil, &res, rata.Params{"handle": handle}, nil)
+	err := c.do(routes.Properties, nil, &res, rata.Params{Handle: handle}, nil)
 	return res, err
 }
 
 func (c *connection) Metrics(handle string) (garden.Metrics, error) {
 	res := garden.Metrics{}
-	err := c.do(routes.Metrics, nil, &res, rata.Params{"handle": handle}, nil)
+	err := c.do(routes.Metrics, nil, &res, rata.Params{Handle: handle}, nil)
 	return res, err
 }
 
 func (c *connection) Info(handle string) (garden.ContainerInfo, error) {
 	res := garden.ContainerInfo{}
 
-	err := c.do(routes.Info, nil, &res, rata.Params{"handle": handle}, nil)
+	err := c.do(routes.Info, nil, &res, rata.Params{Handle: handle}, nil)
 	if err != nil {
 		return garden.ContainerInfo{}, err
 	}

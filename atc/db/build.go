@@ -19,6 +19,7 @@ import (
 )
 
 const schema = "exec.v2"
+const buildsTable = "builds"
 
 var ErrAdoptRerunBuildHasNoInputs = errors.New("inputs not ready for build to rerun")
 
@@ -75,17 +76,17 @@ var buildsQuery = psql.Select(`
 		r.name,
 		b.rerun_number
 	`).
-	From("builds b").
+	From(fmt.Sprintf("%s b", buildsTable)).
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id").
 	JoinClause("LEFT OUTER JOIN builds r ON r.id = b.rerun_of")
 
 var minMaxIdQuery = psql.Select("COALESCE(MAX(b.id), 0)", "COALESCE(MIN(b.id), 0)").
-	From("builds as b")
+	From(fmt.Sprintf("%s as b", buildsTable))
 
 var latestCompletedBuildQuery = psql.Select("max(id)").
-	From("builds").
+	From(buildsTable).
 	Where(sq.Expr(`status NOT IN ('pending', 'started')`))
 
 //go:generate counterfeiter . Build
@@ -251,7 +252,7 @@ func (b *build) Interceptible() (bool, error) {
 	var interceptible bool
 
 	err := psql.Select("interceptible").
-		From("builds").
+		From(buildsTable).
 		Where(sq.Eq{
 			"id": b.id,
 		}).
@@ -266,7 +267,7 @@ func (b *build) Interceptible() (bool, error) {
 }
 
 func (b *build) SetInterceptible(i bool) error {
-	rows, err := psql.Update("builds").
+	rows, err := psql.Update(buildsTable).
 		Set("interceptible", i).
 		Where(sq.Eq{
 			"id": b.id,
@@ -309,7 +310,7 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 
 	var startTime time.Time
 
-	err = psql.Update("builds").
+	err = psql.Update(buildsTable).
 		Set("status", BuildStatusStarted).
 		Set("start_time", sq.Expr("now()")).
 		Set("schema", schema).
@@ -370,7 +371,7 @@ func (b *build) Finish(status BuildStatus) error {
 
 	var endTime time.Time
 
-	err = psql.Update("builds").
+	err = psql.Update(buildsTable).
 		Set("status", status).
 		Set("end_time", sq.Expr("now()")).
 		Set("completed", true).
@@ -539,7 +540,7 @@ func (b *build) Finish(status BuildStatus) error {
 }
 
 func (b *build) SetDrained(drained bool) error {
-	_, err := psql.Update("builds").
+	_, err := psql.Update(buildsTable).
 		Set("drained", drained).
 		Where(sq.Eq{"id": b.id}).
 		RunWith(b.conn).
@@ -552,7 +553,7 @@ func (b *build) SetDrained(drained bool) error {
 }
 
 func (b *build) Delete() (bool, error) {
-	rows, err := psql.Delete("builds").
+	rows, err := psql.Delete(buildsTable).
 		Where(sq.Eq{
 			"id": b.id,
 		}).
@@ -581,7 +582,7 @@ func (b *build) Delete() (bool, error) {
 // Setting status as aborted will also make Start() return false in case where
 // build was aborted before it was started.
 func (b *build) MarkAsAborted() error {
-	_, err := psql.Update("builds").
+	_, err := psql.Update(buildsTable).
 		Set("aborted", true).
 		Where(sq.Eq{"id": b.id}).
 		RunWith(b.conn).
@@ -600,7 +601,7 @@ func (b *build) AbortNotifier() (Notifier, error) {
 	return newConditionNotifier(b.conn.Bus(), buildAbortChannel(b.id), func() (bool, error) {
 		var aborted bool
 		err := psql.Select("aborted = true").
-			From("builds").
+			From(buildsTable).
 			Where(sq.Eq{"id": b.id}).
 			RunWith(b.conn).
 			QueryRow().
@@ -666,7 +667,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		jobName            string
 	)
 	err := psql.Select("p.paused, j.paused, j.max_in_flight_reached, j.pipeline_id, j.name").
-		From("builds b").
+		From(fmt.Sprintf("%s b", buildsTable)).
 		Join("jobs j ON b.job_id = j.id").
 		Join("pipelines p ON j.pipeline_id = p.id").
 		Where(sq.Eq{"b.id": b.id}).
@@ -1122,7 +1123,7 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 		return nil, false, err
 	}
 
-	_, err = psql.Update("builds").
+	_, err = psql.Update(buildsTable).
 		Set("inputs_ready", true).
 		Where(sq.Eq{
 			"id": b.id,
@@ -1151,7 +1152,7 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 
 	var ready bool
 	err = psql.Select("inputs_ready").
-		From("builds").
+		From(buildsTable).
 		Where(sq.Eq{
 			"id": b.rerunOf,
 		}).
@@ -1269,7 +1270,7 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 		return nil, false, err
 	}
 
-	_, err = psql.Update("builds").
+	_, err = psql.Update(buildsTable).
 		Set("inputs_ready", true).
 		Where(sq.Eq{
 			"id": b.id,
@@ -1529,7 +1530,7 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 
 func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	var buildID int
-	err := psql.Insert("builds").
+	err := psql.Insert(buildsTable).
 		SetMap(vals).
 		Suffix("RETURNING id").
 		RunWith(tx).
@@ -1634,7 +1635,7 @@ func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus Buil
 	var latestID int
 	var latestStatus BuildStatus
 	err := psql.Select("b.id", "b.status").
-		From("builds b").
+		From(fmt.Sprintf("%s b", buildsTable)).
 		JoinClause("INNER JOIN jobs j ON j.latest_completed_build_id = b.id").
 		Where(sq.Eq{"j.id": jobID}).
 		RunWith(tx).

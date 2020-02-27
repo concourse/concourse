@@ -10,9 +10,9 @@ import (
 
 func (team *team) BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"job_name":      jobName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		JobNameParameter:      jobName,
+		TeamNameParameter:     team.name,
 	}
 
 	var buildInputs []atc.BuildInput
@@ -35,10 +35,10 @@ func (team *team) BuildInputsForJob(pipelineName string, jobName string) ([]atc.
 
 func (team *team) BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
 	params := rata.Params{
-		"pipeline_name":              pipelineName,
-		"resource_name":              resourceName,
+		PipelineNameParameter:        pipelineName,
+		"ResourceNameParameter":      resourceName,
 		"resource_config_version_id": strconv.Itoa(resourceVersionID),
-		"team_name":                  team.name,
+		TeamNameParameter:            team.name,
 	}
 
 	var builds []atc.Build

@@ -22,6 +22,8 @@ import (
 	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
+const postgres = "postgres"
+
 type Runner struct {
 	Port int
 }
@@ -34,7 +36,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	err := os.MkdirAll(pgBase, 0755)
 	Expect(err).NotTo(HaveOccurred())
 
-	tmpdir, err := ioutil.TempDir(pgBase, "postgres")
+	tmpdir, err := ioutil.TempDir(pgBase, postgres)
 	Expect(err).NotTo(HaveOccurred())
 
 	currentUser, err := user.Current()
@@ -43,14 +45,14 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	initdbPath, err := exec.LookPath("initdb")
 	Expect(err).NotTo(HaveOccurred())
 
-	postgresPath, err := exec.LookPath("postgres")
+	postgresPath, err := exec.LookPath(postgres)
 	Expect(err).NotTo(HaveOccurred())
 
-	initCmd := exec.Command(initdbPath, "-U", "postgres", "-D", tmpdir, "-E", "UTF8", "--no-local")
+	initCmd := exec.Command(initdbPath, "-U", postgres, "-D", tmpdir, "-E", "UTF8", "--no-local")
 	startCmd := exec.Command(postgresPath, "-k", "/tmp", "-D", tmpdir, "-h", "127.0.0.1", "-p", strconv.Itoa(runner.Port))
 
 	if currentUser.Uid == "0" {
-		pgUser, err := user.Lookup("postgres")
+		pgUser, err := user.Lookup(postgres)
 		Expect(err).NotTo(HaveOccurred())
 
 		var uid, gid uint32
@@ -84,7 +86,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	Expect(session).To(gexec.Exit(0))
 
 	ginkgoRunner := &ginkgomon.Runner{
-		Name:          "postgres",
+		Name:          postgres,
 		Command:       startCmd,
 		AnsiColorCode: "90m",
 		StartCheck:    "database system is ready to accept connections",
@@ -98,7 +100,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 func (runner *Runner) MigrateToVersion(version int) {
 	err := migration.NewOpenHelper(
-		"postgres",
+		postgres,
 		runner.DataSourceName(),
 		nil,
 		encryption.NewNoEncryption(),
@@ -108,7 +110,7 @@ func (runner *Runner) MigrateToVersion(version int) {
 
 func (runner *Runner) TryOpenDBAtVersion(version int) (*sql.DB, error) {
 	dbConn, err := migration.NewOpenHelper(
-		"postgres",
+		postgres,
 		runner.DataSourceName(),
 		nil,
 		encryption.NewNoEncryption(),
@@ -133,7 +135,7 @@ func (runner *Runner) OpenDBAtVersion(version int) *sql.DB {
 
 func (runner *Runner) OpenDB() *sql.DB {
 	dbConn, err := migration.NewOpenHelper(
-		"postgres",
+		postgres,
 		runner.DataSourceName(),
 		nil,
 		encryption.NewNoEncryption(),
@@ -150,7 +152,7 @@ func (runner *Runner) OpenDB() *sql.DB {
 func (runner *Runner) OpenConn() db.Conn {
 	dbConn, err := db.Open(
 		lagertest.NewTestLogger("postgres-runner"),
-		"postgres",
+		postgres,
 		runner.DataSourceName(),
 		nil,
 		nil,
@@ -167,7 +169,7 @@ func (runner *Runner) OpenConn() db.Conn {
 }
 
 func (runner *Runner) OpenSingleton() *sql.DB {
-	dbConn, err := sql.Open("postgres", runner.DataSourceName())
+	dbConn, err := sql.Open(postgres, runner.DataSourceName())
 	Expect(err).NotTo(HaveOccurred())
 
 	// only allow one connection, period. this matches production code use case,
@@ -184,7 +186,7 @@ func (runner *Runner) DataSourceName() string {
 }
 
 func (runner *Runner) CreateTestDB() {
-	createdb := exec.Command("createdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
+	createdb := exec.Command("createdb", "-h", "/tmp", "-U", postgres, "-p", strconv.Itoa(runner.Port), "testdb")
 
 	createS, err := gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
@@ -194,7 +196,7 @@ func (runner *Runner) CreateTestDB() {
 	if createS.ExitCode() != 0 {
 		runner.DropTestDB()
 
-		createdb := exec.Command("createdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
+		createdb := exec.Command("createdb", "-h", "/tmp", "-U", postgres, "-p", strconv.Itoa(runner.Port), "testdb")
 		createS, err = gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 	}
@@ -205,7 +207,7 @@ func (runner *Runner) CreateTestDB() {
 }
 
 func (runner *Runner) DropTestDB() {
-	dropdb := exec.Command("dropdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
+	dropdb := exec.Command("dropdb", "-h", "/tmp", "-U", postgres, "-p", strconv.Itoa(runner.Port), "testdb")
 	dropS, err := gexec.Start(dropdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -218,7 +220,7 @@ func (runner *Runner) Truncate() {
 	truncate := exec.Command(
 		"psql",
 		"-h", "/tmp",
-		"-U", "postgres",
+		"-U", postgres,
 		"-p", strconv.Itoa(runner.Port),
 		"testdb",
 		"-c", `

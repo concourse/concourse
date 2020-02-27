@@ -10,7 +10,7 @@ func (team *team) ListVolumes() ([]atc.Volume, error) {
 	var volumes []atc.Volume
 
 	params := rata.Params{
-		"team_name": team.name,
+		TeamNameParameter: team.name,
 	}
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListVolumes,

@@ -18,7 +18,7 @@ var ErrDestroyRefused = errors.New("not-permitted-to-destroy-as-requested")
 // CreateOrUpdate creates or updates team teamName with the settings provided in passedTeam.
 // passedTeam should reflect the desired state of team's configuration.
 func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, error) {
-	params := rata.Params{"team_name": team.name}
+	params := rata.Params{TeamNameParameter: team.name}
 
 	buffer := &bytes.Buffer{}
 	err := json.NewEncoder(buffer).Encode(passedTeam)
@@ -55,7 +55,7 @@ func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, err
 
 // DestroyTeam destroys the team with the name given as argument.
 func (team *team) DestroyTeam(teamName string) error {
-	params := rata.Params{"team_name": teamName}
+	params := rata.Params{TeamNameParameter: teamName}
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.DestroyTeam,
 		Params:      params,
@@ -73,7 +73,7 @@ func (team *team) DestroyTeam(teamName string) error {
 
 func (team *team) RenameTeam(teamName, name string) (bool, error) {
 	params := rata.Params{
-		"team_name": teamName,
+		TeamNameParameter: teamName,
 	}
 
 	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: name})
@@ -112,7 +112,7 @@ func (client *client) FindTeam(teamName string) (Team, error) {
 	var atcTeam atc.Team
 	resp, err := client.httpAgent.Send(internal.Request{
 		RequestName: atc.GetTeam,
-		Params:      rata.Params{"team_name": teamName},
+		Params:      rata.Params{TeamNameParameter: teamName},
 	})
 
 	if err != nil {

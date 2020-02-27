@@ -9,6 +9,8 @@ import (
 
 //go:generate counterfeiter . Team
 
+const TeamNameParameter = "team_name"
+
 type Team interface {
 	Name() string
 

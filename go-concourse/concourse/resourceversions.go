@@ -12,11 +12,15 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+const (
+	ResourceNameParameter = "resource_name"
+)
+
 func (team *team) ResourceVersions(pipelineName string, resourceName string, page Page, filter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"resource_name": resourceName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		ResourceNameParameter: resourceName,
+		TeamNameParameter:     team.name,
 	}
 
 	var resourceVersions []atc.ResourceVersion
@@ -64,9 +68,9 @@ func (team *team) PinResourceVersion(pipelineName string, resourceName string, r
 
 func (team *team) UnpinResource(pipelineName string, resourceName string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"resource_name": resourceName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		ResourceNameParameter: resourceName,
+		TeamNameParameter:     team.name,
 	}
 
 	err := team.connection.Send(internal.Request{
@@ -86,9 +90,9 @@ func (team *team) UnpinResource(pipelineName string, resourceName string) (bool,
 
 func (team *team) SetPinComment(pipelineName string, resourceName string, comment string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"resource_name": resourceName,
-		"team_name":     team.name,
+		PipelineNameParameter: pipelineName,
+		ResourceNameParameter: resourceName,
+		TeamNameParameter:     team.name,
 	}
 
 	pinComment := atc.SetPinCommentRequestBody{
@@ -123,10 +127,10 @@ func (team *team) SetPinComment(pipelineName string, resourceName string, commen
 
 func (team *team) sendResourceVersion(pipelineName string, resourceName string, resourceVersionID int, resourceVersionReq string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name":              pipelineName,
-		"resource_name":              resourceName,
+		PipelineNameParameter:        pipelineName,
+		ResourceNameParameter:        resourceName,
 		"resource_config_version_id": strconv.Itoa(resourceVersionID),
-		"team_name":                  team.name,
+		TeamNameParameter:            team.name,
 	}
 
 	err := team.connection.Send(internal.Request{

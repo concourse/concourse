@@ -10,9 +10,9 @@ import (
 
 func (team *team) BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
 	params := rata.Params{
-		"team_name":                  team.name,
-		"pipeline_name":              pipelineName,
-		"resource_name":              resourceName,
+		TeamNameParameter:            team.name,
+		PipelineNameParameter:        pipelineName,
+		"ResourceNameParameter":      resourceName,
 		"resource_config_version_id": strconv.Itoa(resourceVersionID),
 	}
 

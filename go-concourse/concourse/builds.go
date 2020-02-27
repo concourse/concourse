@@ -23,7 +23,7 @@ func (team *team) CreateBuild(plan atc.Plan) (atc.Build, error) {
 		RequestName: atc.CreateBuild,
 		Body:        buffer,
 		Params: rata.Params{
-			"team_name": team.Name(),
+			TeamNameParameter: team.Name(),
 		},
 		Header: http.Header{
 			"Content-Type": {"application/json"},
@@ -37,9 +37,9 @@ func (team *team) CreateBuild(plan atc.Plan) (atc.Build, error) {
 
 func (team *team) CreateJobBuild(pipelineName string, jobName string) (atc.Build, error) {
 	params := rata.Params{
-		"job_name":      jobName,
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		"job_name":            jobName,
+		PipelineNameParameter: pipelineName,
+		TeamNameParameter:     team.name,
 	}
 
 	var build atc.Build
@@ -55,10 +55,10 @@ func (team *team) CreateJobBuild(pipelineName string, jobName string) (atc.Build
 
 func (team *team) RerunJobBuild(pipelineName string, jobName string, buildName string) (atc.Build, error) {
 	params := rata.Params{
-		"build_name":    buildName,
-		"job_name":      jobName,
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		"build_name":          buildName,
+		"job_name":            jobName,
+		PipelineNameParameter: pipelineName,
+		TeamNameParameter:     team.name,
 	}
 
 	var build atc.Build
@@ -74,10 +74,10 @@ func (team *team) RerunJobBuild(pipelineName string, jobName string, buildName s
 
 func (team *team) JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error) {
 	params := rata.Params{
-		"job_name":      jobName,
-		"build_name":    buildName,
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		"job_name":            jobName,
+		"build_name":          buildName,
+		PipelineNameParameter: pipelineName,
+		TeamNameParameter:     team.name,
 	}
 
 	var build atc.Build
@@ -163,7 +163,7 @@ func (team *team) Builds(page Page) ([]atc.Build, Pagination, error) {
 	headers := http.Header{}
 
 	params := rata.Params{
-		"team_name": team.name,
+		TeamNameParameter: team.name,
 	}
 
 	err := team.connection.Send(internal.Request{

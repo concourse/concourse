@@ -17,6 +17,19 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+const concourseNameSpace = "concourse"
+const (
+	errorSubSystem         = "error"
+	locksSubSystem         = "locks"
+	jobsSubSystem          = "jobs"
+	buildsSubSystem        = "builds"
+	workersSubSystem       = "workers"
+	httpResponsesSubSystem = "http_responses"
+	dbSubSystem            = "db"
+	resourceSubSystem      = "resource"
+	lidarSubSystem         = "lidar"
+)
+
 type PrometheusEmitter struct {
 	jobsScheduled  prometheus.Counter
 	jobsScheduling prometheus.Gauge
@@ -101,8 +114,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	// error log metrics
 	errorLogs := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "error",
+			Namespace: concourseNameSpace,
+			Subsystem: errorSubSystem,
 			Name:      "logs",
 			Help:      "Number of error logged",
 		}, []string{"message"},
@@ -111,8 +124,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	// lock metrics
 	locksHeld := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "concourse",
-		Subsystem: "locks",
+		Namespace: concourseNameSpace,
+		Subsystem: locksSubSystem,
 		Name:      "held",
 		Help:      "Database locks held",
 	}, []string{"type"})
@@ -120,16 +133,16 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	// job metrics
 	jobsScheduled := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "jobs",
+		Namespace: concourseNameSpace,
+		Subsystem: jobsSubSystem,
 		Name:      "scheduled_total",
 		Help:      "Total number of Concourse jobs scheduled.",
 	})
 	prometheus.MustRegister(jobsScheduled)
 
 	jobsScheduling := prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "concourse",
-		Subsystem: "jobs",
+		Namespace: concourseNameSpace,
+		Subsystem: jobsSubSystem,
 		Name:      "scheduling",
 		Help:      "Number of Concourse jobs currently being scheduled.",
 	})
@@ -137,56 +150,56 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	// build metrics
 	buildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
+		Namespace: concourseNameSpace,
+		Subsystem: buildsSubSystem,
 		Name:      "started_total",
 		Help:      "Total number of Concourse builds started.",
 	})
 	prometheus.MustRegister(buildsStarted)
 
 	buildsRunning := prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
+		Namespace: concourseNameSpace,
+		Subsystem: buildsSubSystem,
 		Name:      "running",
 		Help:      "Number of Concourse builds currently running.",
 	})
 	prometheus.MustRegister(buildsRunning)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
+		Namespace: concourseNameSpace,
+		Subsystem: buildsSubSystem,
 		Name:      "finished_total",
 		Help:      "Total number of Concourse builds finished.",
 	})
 	prometheus.MustRegister(buildsFinished)
 
 	buildsSucceeded := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
+		Namespace: concourseNameSpace,
+		Subsystem: buildsSubSystem,
 		Name:      "succeeded_total",
 		Help:      "Total number of Concourse builds succeeded.",
 	})
 	prometheus.MustRegister(buildsSucceeded)
 
 	buildsErrored := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
+		Namespace: concourseNameSpace,
+		Subsystem: buildsSubSystem,
 		Name:      "errored_total",
 		Help:      "Total number of Concourse builds errored.",
 	})
 	prometheus.MustRegister(buildsErrored)
 
 	buildsFailed := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
+		Namespace: concourseNameSpace,
+		Subsystem: buildsSubSystem,
 		Name:      "failed_total",
 		Help:      "Total number of Concourse builds failed.",
 	})
 	prometheus.MustRegister(buildsFailed)
 
 	buildsAborted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "builds",
+		Namespace: concourseNameSpace,
+		Subsystem: buildsSubSystem,
 		Name:      "aborted_total",
 		Help:      "Total number of Concourse builds aborted.",
 	})
@@ -194,8 +207,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	buildsFinishedVec := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "builds",
+			Namespace: concourseNameSpace,
+			Subsystem: buildsSubSystem,
 			Name:      "finished",
 			Help:      "Count of builds finished across various dimensions.",
 		},
@@ -205,8 +218,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	buildDurationsVec := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "concourse",
-			Subsystem: "builds",
+			Namespace: concourseNameSpace,
+			Subsystem: buildsSubSystem,
 			Name:      "duration_seconds",
 			Help:      "Build time in seconds",
 			Buckets:   []float64{1, 60, 180, 300, 600, 900, 1200, 1800, 2700, 3600, 7200, 18000, 36000},
@@ -218,8 +231,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	// worker metrics
 	workerContainers := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
+			Namespace: concourseNameSpace,
+			Subsystem: workersSubSystem,
 			Name:      "containers",
 			Help:      "Number of containers per worker",
 		},
@@ -229,8 +242,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	workerUnknownContainers := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
+			Namespace: concourseNameSpace,
+			Subsystem: workersSubSystem,
 			Name:      "unknown_containers",
 			Help:      "Number of unknown containers found on worker",
 		},
@@ -240,8 +253,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	workerVolumes := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
+			Namespace: concourseNameSpace,
+			Subsystem: workersSubSystem,
 			Name:      "volumes",
 			Help:      "Number of volumes per worker",
 		},
@@ -251,8 +264,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	workerUnknownVolumes := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
+			Namespace: concourseNameSpace,
+			Subsystem: workersSubSystem,
 			Name:      "unknown_volumes",
 			Help:      "Number of unknown volumes found on worker",
 		},
@@ -262,8 +275,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	workerTasks := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
+			Namespace: concourseNameSpace,
+			Subsystem: workersSubSystem,
 			Name:      "tasks",
 			Help:      "Number of active tasks per worker",
 		},
@@ -273,8 +286,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	workersRegistered := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "workers",
+			Namespace: concourseNameSpace,
+			Subsystem: workersSubSystem,
 			Name:      "registered",
 			Help:      "Number of workers per state as seen by the database",
 		},
@@ -285,8 +298,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	// http metrics
 	httpRequestsDuration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "concourse",
-			Subsystem: "http_responses",
+			Namespace: concourseNameSpace,
+			Subsystem: httpResponsesSubSystem,
 			Name:      "duration_seconds",
 			Help:      "Response time in seconds",
 		},
@@ -295,8 +308,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	prometheus.MustRegister(httpRequestsDuration)
 
 	dbQueriesTotal := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "concourse",
-		Subsystem: "db",
+		Namespace: concourseNameSpace,
+		Subsystem: dbSubSystem,
 		Name:      "queries_total",
 		Help:      "Total number of database Concourse database queries",
 	})
@@ -304,8 +317,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	dbConnections := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "db",
+			Namespace: concourseNameSpace,
+			Subsystem: dbSubSystem,
 			Name:      "connections",
 			Help:      "Current number of concourse database connections",
 		},
@@ -315,8 +328,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	resourceChecksVec := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "resource",
+			Namespace: concourseNameSpace,
+			Subsystem: resourceSubSystem,
 			Name:      "checks_total",
 			Help:      "Counts the number of resource checks performed",
 		},
@@ -326,8 +339,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	checksVec := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "concourse",
-			Subsystem: "lidar",
+			Namespace: concourseNameSpace,
+			Subsystem: lidarSubSystem,
 			Name:      "duration_seconds",
 			Help:      "Check time in seconds",
 			Buckets:   []float64{0.001, 0.05, 0.1, 0.5, 1, 60, 180, 360, 720, 1440, 2880},
@@ -338,8 +351,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	checkEnqueueVec := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "concourse",
-			Subsystem: "lidar",
+			Namespace: concourseNameSpace,
+			Subsystem: lidarSubSystem,
 			Name:      "check_enqueue",
 			Help:      "Counts the number of checks enqueued",
 		},
@@ -349,8 +362,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 
 	checkQueueSize := prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace: "concourse",
-			Subsystem: "lidar",
+			Namespace: concourseNameSpace,
+			Subsystem: lidarSubSystem,
 			Name:      "check_queue_size",
 			Help:      "Records the size of check queue",
 		},
