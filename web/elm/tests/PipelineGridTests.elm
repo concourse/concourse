@@ -221,7 +221,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok <|
-                                List.repeat 15 (Data.job 0)
+                                jobsWithHeight 0 15
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -427,7 +427,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok <|
-                                List.repeat 30 (Data.job 0)
+                                jobsWithHeight 0 30
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -613,6 +613,19 @@ all =
                             ]
             ]
         ]
+
+
+jobsWithHeight : Int -> Int -> List Concourse.Job
+jobsWithHeight pipelineID height =
+    List.range 1 height
+        |> List.map
+            (\i ->
+                let
+                    job =
+                        Data.job pipelineID
+                in
+                { job | name = String.fromInt i }
+            )
 
 
 jobsWithDepth : Int -> Int -> List Concourse.Job

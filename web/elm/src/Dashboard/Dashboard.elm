@@ -198,12 +198,27 @@ handleCallback callback ( model, effects ) =
                     }
 
                 newJobs =
-                    Fetched allJobsInEntireCluster
+                    allJobsInEntireCluster
+                        |> List.map
+                            (\job ->
+                                ( ( job.teamName
+                                  , job.pipelineName
+                                  , job.name
+                                  )
+                                , job
+                                )
+                            )
+                        |> Dict.fromList
+                        |> Fetched
+
+                mapToJobIds jobsResult =
+                    jobsResult
+                        |> FetchResult.map (Dict.toList >> List.map Tuple.first)
 
                 newModel =
                     { model | jobs = newJobs }
             in
-            if newJobs |> changedFrom model.jobs then
+            if mapToJobIds newJobs |> changedFrom (mapToJobIds model.jobs) then
                 ( newModel |> precomputeJobMetadata
                 , effects
                     ++ [ allJobsInEntireCluster
@@ -389,9 +404,24 @@ handleDeliveryBody delivery ( model, effects ) =
         CachedJobsReceived (Ok jobs) ->
             let
                 newJobs =
-                    Cached jobs
+                    jobs
+                        |> List.map
+                            (\job ->
+                                ( ( job.teamName
+                                  , job.pipelineName
+                                  , job.name
+                                  )
+                                , job
+                                )
+                            )
+                        |> Dict.fromList
+                        |> Cached
+
+                mapToJobIds jobsResult =
+                    jobsResult
+                        |> FetchResult.map (Dict.toList >> List.map Tuple.first)
             in
-            if newJobs |> changedFrom model.jobs then
+            if mapToJobIds newJobs |> changedFrom (mapToJobIds model.jobs) then
                 ( { model | jobs = newJobs } |> precomputeJobMetadata
                 , effects
                 )
@@ -441,17 +471,31 @@ precomputeJobMetadata : Model -> Model
 precomputeJobMetadata model =
     let
         allJobs =
-            model.jobs |> FetchResult.withDefault []
+            model.jobs
+                |> FetchResult.withDefault Dict.empty
+                |> Dict.values
 
         pipelineJobs =
             allJobs |> groupBy (\j -> ( j.teamName, j.pipelineName ))
+
+        jobToId job =
+            { teamName = job.teamName
+            , pipelineName = job.pipelineName
+            , jobName = job.name
+            }
     in
     { model
         | pipelineLayers =
             pipelineJobs
-                |> Dict.map (\_ jobs -> DashboardPreview.groupByRank jobs)
+                |> Dict.map
+                    (\_ jobs ->
+                        jobs
+                            |> DashboardPreview.groupByRank
+                            |> List.map (List.map jobToId)
+                    )
         , pipelineJobs =
             pipelineJobs
+                |> Dict.map (\_ jobs -> jobs |> List.map jobToId)
     }
 
 
@@ -818,16 +862,16 @@ pipelinesView :
             , query : String
             , highDensity : Bool
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
+            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
             , pipelines : FetchResult (List Pipeline)
-            , jobs : FetchResult (List Concourse.Job)
+            , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
             , dragState : DragState
             , dropState : DropState
             , now : Maybe Time.Posix
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
-            , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
+            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
         }
     -> List (Html Message)
 pipelinesView session params =
@@ -836,12 +880,22 @@ pipelinesView session params =
             params.pipelines
                 |> FetchResult.withDefault []
 
+        jobs =
+            params.jobs
+                |> FetchResult.withDefault Dict.empty
+
         teams =
             params.teams
                 |> FetchResult.withDefault []
 
         filteredGroups =
-            Filter.filterGroups params.pipelineJobs params.query teams pipelines
+            Filter.filterGroups
+                { pipelineJobs = params.pipelineJobs
+                , jobs = jobs
+                , query = params.query
+                , teams = teams
+                , pipelines = pipelines
+                }
                 |> List.sortWith (Group.ordering session)
 
         isCached =
@@ -863,6 +917,7 @@ pipelinesView session params =
                                 { pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                 , pipelineJobs = params.pipelineJobs
+                                , jobs = jobs
                                 , isCached = isCached
                                 }
                                 session
@@ -897,6 +952,7 @@ pipelinesView session params =
                                     , dropAreas = layout.dropAreas
                                     , groupCardsHeight = layout.height
                                     , pipelineJobs = params.pipelineJobs
+                                    , jobs = jobs
                                     , isCached = isCached
                                     }
                                     g

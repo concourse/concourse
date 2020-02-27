@@ -22,8 +22,8 @@ type alias Model =
             , highDensity : Bool
             , query : String
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-            , jobs : FetchResult (List Concourse.Job)
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
+            , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
+            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
             , teams : FetchResult (List Concourse.Team)
             , dragState : DragState
             , dropState : DropState
@@ -34,7 +34,7 @@ type alias Model =
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
-            , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
+            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
             }
         )
 
