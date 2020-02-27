@@ -54,7 +54,7 @@ var (
 	WorkerBaggageclaimClient bclient.Client
 
 	concourseReleaseVersion, bpmReleaseVersion, postgresReleaseVersion string
-	vaultReleaseVersion, credhubReleaseVersion                         string
+	vaultReleaseVersion, credhubReleaseVersion, uaaReleaseVersion      string
 	stemcellVersion                                                    string
 	backupAndRestoreReleaseVersion                                     string
 
@@ -106,6 +106,11 @@ var _ = BeforeEach(func() {
 	credhubReleaseVersion = os.Getenv("CREDHUB_RELEASE_VERSION")
 	if credhubReleaseVersion == "" {
 		credhubReleaseVersion = "latest"
+	}
+
+	uaaReleaseVersion = os.Getenv("UAA_RELEASE_VERSION")
+	if uaaReleaseVersion == "" {
+		uaaReleaseVersion = "latest"
 	}
 
 	stemcellVersion = os.Getenv("STEMCELL_VERSION")
@@ -191,6 +196,7 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 			"-v", "postgres_release_version='" + postgresReleaseVersion + "'",
 			"-v", "vault_release_version='" + vaultReleaseVersion + "'",
 			"-v", "credhub_release_version='" + credhubReleaseVersion + "'",
+			"-v", "uaa_release_version='" + uaaReleaseVersion + "'",
 			"-v", "backup_and_restore_sdk_release_version='" + backupAndRestoreReleaseVersion + "'",
 			"-v", "stemcell_version='" + stemcellVersion + "'",
 		}, args...)...,
