@@ -141,11 +141,11 @@ func downloadFly(atcUrl string) (string, error) {
 		return "", err
 	}
 	outFile, err := ioutil.TempFile("", "fly")
+	defer outFile.Close()
 	_, err = io.Copy(outFile, readCloser)
 	if err != nil {
 		return "", err
 	}
-	outFile.Close()
 	err = outFile.Chmod(0755)
 	if err != nil {
 		return "", err
