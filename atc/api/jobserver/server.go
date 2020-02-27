@@ -5,7 +5,6 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"net/http"
 )
 
 type Server struct {
@@ -33,21 +32,4 @@ func NewServer(
 		jobFactory:    jobFactory,
 		checkFactory:  checkFactory,
 	}
-}
-
-func (s *Server) logIfErrorAndRespond(err error, w http.ResponseWriter, message string, statusCode int) bool {
-	if err != nil {
-		s.logger.Error(message, err)
-		w.WriteHeader(statusCode)
-		return true
-	}
-	return false
-}
-
-func (s *Server) checkResultAndRespond(result bool, w http.ResponseWriter, statusCode int) bool {
-	if result {
-		w.WriteHeader(statusCode)
-		return true
-	}
-	return false
 }

@@ -16,36 +16,47 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		jobName := r.FormValue(":job_name")
 
 		job, found, err := pipeline.Job(jobName)
-		if s.logIfErrorAndRespond(err, w, "failed-to-get-resource-types", http.StatusInternalServerError) {
+		if err != nil {
+			logger.Error("failed-to-get-resource-types", err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		if s.checkResultAndRespond(!found, w, http.StatusNotFound) {
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		if s.checkResultAndRespond(job.DisableManualTrigger(), w, http.StatusConflict) {
+		if job.DisableManualTrigger() {
+			w.WriteHeader(http.StatusConflict)
 			return
 		}
 
 		build, err := job.CreateBuild()
-		if s.logIfErrorAndRespond(err, w, "failed-to-create-job-build", http.StatusInternalServerError) {
+		if err != nil {
+			logger.Error("failed-to-create-job-build", err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		resources, err := pipeline.Resources()
-
-		if s.logIfErrorAndRespond(err, w, "failed-to-get-resources", http.StatusInternalServerError) {
+		if err != nil {
+			logger.Error("failed-to-get-resources", err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		resourceTypes, err := pipeline.ResourceTypes()
-		if s.logIfErrorAndRespond(err, w, "failed-to-get-resource-types", http.StatusInternalServerError) {
+		if err != nil {
+			logger.Error("failed-to-get-resource-types", err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		inputs, err := job.Inputs()
-		if s.logIfErrorAndRespond(err, w, "failed-to-get-job-inputs", http.StatusInternalServerError) {
+		if err != nil {
+			logger.Error("failed-to-get-job-inputs", err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
@@ -66,6 +77,9 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		}
 
 		err = json.NewEncoder(w).Encode(present.Build(build))
-		s.logIfErrorAndRespond(err, w, "failed-to-encode-build", http.StatusInternalServerError)
+		if err != nil {
+			logger.Error("failed-to-encode-build", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }
