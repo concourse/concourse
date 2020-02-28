@@ -36,7 +36,7 @@ func (team *team) BuildInputsForJob(pipelineName string, jobName string) ([]atc.
 func (team *team) BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
 	params := rata.Params{
 		PipelineNameParameter:        pipelineName,
-		"ResourceNameParameter":      resourceName,
+		ResourceNameParameter:        resourceName,
 		"resource_config_version_id": strconv.Itoa(resourceVersionID),
 		TeamNameParameter:            team.name,
 	}

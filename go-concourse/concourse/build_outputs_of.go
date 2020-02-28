@@ -12,7 +12,7 @@ func (team *team) BuildsWithVersionAsOutput(pipelineName string, resourceName st
 	params := rata.Params{
 		TeamNameParameter:            team.name,
 		PipelineNameParameter:        pipelineName,
-		"ResourceNameParameter":      resourceName,
+		ResourceNameParameter:        resourceName,
 		"resource_config_version_id": strconv.Itoa(resourceVersionID),
 	}
 
