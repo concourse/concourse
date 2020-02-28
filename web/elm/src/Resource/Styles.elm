@@ -97,14 +97,21 @@ pinBarTooltip =
     ]
 
 
-pinTools : List (Html.Attribute msg)
-pinTools =
+pinTools : Bool -> List (Html.Attribute msg)
+pinTools pinErrorred =
     [ style "background-color" Colors.pinTools
     , style "height" "28px"
     , style "margin-bottom" "24px"
     , style "display" "flex"
     , style "align-items" "center"
-    , style "border" <| "1px solid " ++ Colors.pinned
+    , style "border" <|
+        "1px solid "
+            ++ (if pinErrorred then
+                    Colors.failure
+
+                else
+                    Colors.pinned
+               )
     , style "box-sizing" "border-box"
     ]
 

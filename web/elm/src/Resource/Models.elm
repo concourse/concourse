@@ -40,6 +40,7 @@ type alias Model =
         , currentPage : Maybe Page
         , versions : Paginated Version
         , pinCommentLoading : Bool
+        , pinErrorred : Bool
         , textAreaFocused : Bool
         , icon : Maybe String
         }
