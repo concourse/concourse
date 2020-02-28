@@ -30,7 +30,7 @@
   "scripts": {
     "format": "elm-format --elm-version=0.19 web/elm --yes",
     "analyse": "cd web/elm && elm-analyse",
-    "build": "yarn run build-less && yarn run build-elm",
+    "build": "yarn run build-less && yarn run build-elm && yarn run build-js",
     "build-debug": "yarn run build-less && yarn run build-elm-debug",
     "build-js": "webpack --mode production",
     "test": "cd web/elm && elm-test",
