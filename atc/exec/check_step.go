@@ -136,7 +136,7 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("run check step: %w", err)
 	}
 
-	err = step.delegate.SaveVersions(result)
+	err = step.delegate.SaveVersions(result.Versions)
 	if err != nil {
 		return fmt.Errorf("save versions: %w", err)
 	}

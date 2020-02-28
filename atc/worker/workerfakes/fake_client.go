@@ -67,7 +67,7 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	RunCheckStepStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, atc.VersionedResourceTypes, time.Duration, resource.Resource) ([]atc.Version, error)
+	RunCheckStepStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, atc.VersionedResourceTypes, time.Duration, resource.Resource) (worker.CheckResult, error)
 	runCheckStepMutex       sync.RWMutex
 	runCheckStepArgsForCall []struct {
 		arg1  context.Context
@@ -82,11 +82,11 @@ type FakeClient struct {
 		arg10 resource.Resource
 	}
 	runCheckStepReturns struct {
-		result1 []atc.Version
+		result1 worker.CheckResult
 		result2 error
 	}
 	runCheckStepReturnsOnCall map[int]struct {
-		result1 []atc.Version
+		result1 worker.CheckResult
 		result2 error
 	}
 	RunGetStepStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, runtime.ProcessSpec, runtime.StartingEventDelegate, db.UsedResourceCache, resource.Resource) (worker.GetResult, error)
@@ -381,7 +381,7 @@ func (fake *FakeClient) FindVolumeReturnsOnCall(i int, result1 worker.Volume, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) RunCheckStep(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ContainerSpec, arg5 worker.WorkerSpec, arg6 worker.ContainerPlacementStrategy, arg7 db.ContainerMetadata, arg8 atc.VersionedResourceTypes, arg9 time.Duration, arg10 resource.Resource) ([]atc.Version, error) {
+func (fake *FakeClient) RunCheckStep(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ContainerSpec, arg5 worker.WorkerSpec, arg6 worker.ContainerPlacementStrategy, arg7 db.ContainerMetadata, arg8 atc.VersionedResourceTypes, arg9 time.Duration, arg10 resource.Resource) (worker.CheckResult, error) {
 	fake.runCheckStepMutex.Lock()
 	ret, specificReturn := fake.runCheckStepReturnsOnCall[len(fake.runCheckStepArgsForCall)]
 	fake.runCheckStepArgsForCall = append(fake.runCheckStepArgsForCall, struct {
@@ -414,7 +414,7 @@ func (fake *FakeClient) RunCheckStepCallCount() int {
 	return len(fake.runCheckStepArgsForCall)
 }
 
-func (fake *FakeClient) RunCheckStepCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, atc.VersionedResourceTypes, time.Duration, resource.Resource) ([]atc.Version, error)) {
+func (fake *FakeClient) RunCheckStepCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, atc.VersionedResourceTypes, time.Duration, resource.Resource) (worker.CheckResult, error)) {
 	fake.runCheckStepMutex.Lock()
 	defer fake.runCheckStepMutex.Unlock()
 	fake.RunCheckStepStub = stub
@@ -427,28 +427,28 @@ func (fake *FakeClient) RunCheckStepArgsForCall(i int) (context.Context, lager.L
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8, argsForCall.arg9, argsForCall.arg10
 }
 
-func (fake *FakeClient) RunCheckStepReturns(result1 []atc.Version, result2 error) {
+func (fake *FakeClient) RunCheckStepReturns(result1 worker.CheckResult, result2 error) {
 	fake.runCheckStepMutex.Lock()
 	defer fake.runCheckStepMutex.Unlock()
 	fake.RunCheckStepStub = nil
 	fake.runCheckStepReturns = struct {
-		result1 []atc.Version
+		result1 worker.CheckResult
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeClient) RunCheckStepReturnsOnCall(i int, result1 []atc.Version, result2 error) {
+func (fake *FakeClient) RunCheckStepReturnsOnCall(i int, result1 worker.CheckResult, result2 error) {
 	fake.runCheckStepMutex.Lock()
 	defer fake.runCheckStepMutex.Unlock()
 	fake.RunCheckStepStub = nil
 	if fake.runCheckStepReturnsOnCall == nil {
 		fake.runCheckStepReturnsOnCall = make(map[int]struct {
-			result1 []atc.Version
+			result1 worker.CheckResult
 			result2 error
 		})
 	}
 	fake.runCheckStepReturnsOnCall[i] = struct {
-		result1 []atc.Version
+		result1 worker.CheckResult
 		result2 error
 	}{result1, result2}
 }

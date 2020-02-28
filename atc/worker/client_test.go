@@ -220,7 +220,7 @@ var _ = Describe("Client", func() {
 	Describe("RunCheckStep", func() {
 
 		var (
-			result           []atc.Version
+			result           worker.CheckResult
 			err, expectedErr error
 			fakeResource     *resourcefakes.FakeResource
 		)
@@ -330,8 +330,8 @@ var _ = Describe("Client", func() {
 					})
 
 					It("returns the versions", func() {
-						Expect(result).To(HaveLen(1))
-						Expect(result[0]).To(Equal(atc.Version{"version": "1"}))
+						Expect(result.Versions).To(HaveLen(1))
+						Expect(result.Versions[0]).To(Equal(atc.Version{"version": "1"}))
 					})
 				})
 			})
