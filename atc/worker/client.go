@@ -184,7 +184,7 @@ func (client *client) RunCheckStep(
 	resourceTypes atc.VersionedResourceTypes,
 	timeout time.Duration,
 	checkable resource.Resource,
-) (result []atc.Version, err error) {
+) ([]atc.Version, error) {
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
 		logger,
@@ -194,8 +194,7 @@ func (client *client) RunCheckStep(
 		strategy,
 	)
 	if err != nil {
-		err = fmt.Errorf("find or choose worker for container: %w", err)
-		return
+		return nil, fmt.Errorf("find or choose worker for container: %w", err)
 	}
 
 	container, err := chosenWorker.FindOrCreateContainer(
@@ -208,25 +207,22 @@ func (client *client) RunCheckStep(
 		resourceTypes,
 	)
 	if err != nil {
-		err = fmt.Errorf("find or create container: %w", err)
-		return
+		return nil, fmt.Errorf("find or create container: %w", err)
 	}
 
 	deadline, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	result, err = checkable.Check(deadline, checkProcessSpec, container)
+	versions, err := checkable.Check(deadline, checkProcessSpec, container)
 	if err != nil {
 		if err == context.DeadlineExceeded {
-			err = fmt.Errorf("timed out after %v checking for new versions", timeout)
-			return
+			return nil, fmt.Errorf("timed out after %v checking for new versions", timeout)
 		}
 
-		err = fmt.Errorf("check: %w", err)
-		return
+		return nil, fmt.Errorf("check: %w", err)
 	}
 
-	return
+	return versions, nil
 }
 
 func (client *client) RunTaskStep(
