@@ -1,15 +1,27 @@
+const renderingModulePromise = import('./index.mjs');
+
+const node = document.getElementById("elm-app-embed");
+if (node == null) {
+  throw "missing #elm-app-embed";
+}
+
+const app = Elm.Main.init({
+  node: node,
+  flags: window.elmFlags,
+});
+
 var resizeTimer;
 
 app.ports.pinTeamNames.subscribe(function(config) {
-  sections = () => Array.from(document.querySelectorAll("." + config.sectionClass));
-  header = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionHeaderClass));
-  body = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionBodyClass));
-  lowestHeaderTop = (section) => body(section).offsetTop + body(section).scrollHeight - header(section).scrollHeight;
+  const sections = () => Array.from(document.querySelectorAll("." + config.sectionClass));
+  const header = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionHeaderClass));
+  const body = (section) => Array.from(section.childNodes).find(n => n.classList && n.classList.contains(config.sectionBodyClass));
+  const lowestHeaderTop = (section) => body(section).offsetTop + body(section).scrollHeight - header(section).scrollHeight;
 
-  pageHeaderHeight = () => config.pageHeaderHeight;
-  viewportTop = () => window.pageYOffset + pageHeaderHeight();
+  const pageHeaderHeight = () => config.pageHeaderHeight;
+  const viewportTop = () => window.pageYOffset + pageHeaderHeight();
 
-  updateHeader = (section) => {
+  const updateHeader = (section) => {
     var scrolledFarEnough = section.offsetTop < viewportTop();
     var scrolledTooFar = lowestHeaderTop(section) < viewportTop();
     if (!scrolledFarEnough && !scrolledTooFar) {
@@ -31,7 +43,7 @@ app.ports.pinTeamNames.subscribe(function(config) {
     }
   }
 
-  updateSticky = () => {
+  const updateSticky = () => {
     document.querySelector("." + config.pageBodyClass).style.marginTop = pageHeaderHeight();
     sections().forEach(updateHeader);
   }
@@ -41,18 +53,17 @@ app.ports.pinTeamNames.subscribe(function(config) {
   window.onscroll = updateSticky;
 });
 
-app.ports.resetPipelineFocus.subscribe(resetPipelineFocus);
+app.ports.resetPipelineFocus.subscribe(function() {
+  renderingModulePromise.then(({resetPipelineFocus}) => resetPipelineFocus());
+});
 
 app.ports.renderPipeline.subscribe(function (values) {
-  setTimeout(function(){ // elm 0.17 bug, see https://github.com/elm-lang/core/issues/595
-    foundSvg = d3.select(".pipeline-graph");
-    var svg = createPipelineSvg(foundSvg)
-    if (svg.node() != null) {
-      var jobs = values[0];
-      var resources = values[1];
-      draw(svg, jobs, resources, app.ports.newUrl);
-    }
-  }, 0)
+  const jobs = values[0];
+  const resources = values[1];
+  renderingModulePromise.then(({renderPipeline}) =>
+    // elm 0.17 bug, see https://github.com/elm-lang/core/issues/595
+    setTimeout(() => renderPipeline(jobs, resources, app.ports.newUrl), 0)
+  );
 });
 
 app.ports.requestLoginRedirect.subscribe(function (message) {
@@ -65,26 +76,38 @@ app.ports.requestLoginRedirect.subscribe(function (message) {
 
 
 app.ports.tooltip.subscribe(function (pipelineInfo) {
-  var pipelineName = pipelineInfo[0];
-  var pipelineTeamName = pipelineInfo[1];
+  const pipelineName = pipelineInfo[0];
+  const pipelineTeamName = pipelineInfo[1];
 
-  var team = $('div[id="' + pipelineTeamName + '"]');
-  var title = team.find('.card[data-pipeline-name="' + pipelineName + '"]').find('.dashboard-pipeline-name').get(0);
-
-  if(title && title.offsetWidth < title.scrollWidth){
-      title.parent().attr('data-tooltip', pipelineName);
+  const team = document.getElementById(pipelineTeamName);
+  if (team == null) {
+    return;
   }
+  const card = team.querySelector(`.card[data-pipeline-name="${pipelineName}"]`);
+  if (card == null) {
+    return;
+  }
+  const title = card.querySelector('.dashboard-pipeline-name');
+  if(title == null || title.offsetWidth >= title.scrollWidth) {
+    return;
+  }
+  title.parentNode.setAttribute('data-tooltip', pipelineName);
 });
 
 app.ports.tooltipHd.subscribe(function (pipelineInfo) {
   var pipelineName = pipelineInfo[0];
   var pipelineTeamName = pipelineInfo[1];
 
-  var title = $('.card[data-pipeline-name="' + pipelineName + '"][data-team-name="' + pipelineTeamName + '"]').find('.dashboardhd-pipeline-name');
-
-  if(title.get(0).offsetWidth < title.get(0).scrollWidth){
-      title.parent().attr('data-tooltip', pipelineName);
+  const card = document.querySelector(`.card[data-pipeline-name="${pipelineName}"][data-team-name="${pipelineTeamName}"]`);
+  if (card == null) {
+    return;
   }
+  const title = card.querySelector('.dashboardhd-pipeline-name');
+
+  if(title == null || title.offsetWidth >= title.scrollWidth){
+    return;
+  }
+  title.parentNode.setAttribute('data-tooltip', pipelineName);
 });
 
 var storageKey = "csrf_token";

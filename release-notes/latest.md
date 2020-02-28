@@ -56,3 +56,11 @@ errors from the library we used before.
 #### <sub><sup><a name="5216" href="#5216">:link:</a></sup></sub> fix
 
 * Bump golang.org/x/crypto module from `v0.0.0-20191119213627-4f8c1d86b1ba` to `v0.0.0-20200220183623-bac4c82f6975` to address vulnerability in ssh package.
+
+#### <sub><sup><a name="5148" href="#5148">:link:</a></sup></sub> feature
+
+* Improve the initial page load time by lazy-loading Javascript that isn't necessary for the first render. #5148
+
+[OpenTelemetry]: https://opentelemetry.io/
+[Jaeger]: https://www.jaegertracing.io/
+[Stackdriver]: https://cloud.google.com/trace/
