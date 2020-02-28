@@ -6,7 +6,9 @@ import Concourse.BuildStatus exposing (BuildStatus(..))
 import Data
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
+import Message.Message as Message
 import Message.Subscription as Subscription exposing (Delivery(..))
+import Message.TopLevelMessage as TopLevelMessage
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, containing, text)
@@ -222,6 +224,25 @@ all =
                         )
                     |> Tuple.second
                     |> Common.notContains (SaveCachedPipelines [ Data.pipeline "team" 0 ])
+        , test "saves pipelines to cache when re-ordered" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (AllPipelinesFetched <|
+                            Ok <|
+                                [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (TopLevelMessage.Update <| Message.DragStart "team" 0)
+                    |> Tuple.first
+                    |> Application.update
+                        (TopLevelMessage.Update <| Message.DragOver "team" 2)
+                    |> Tuple.first
+                    |> Application.update
+                        (TopLevelMessage.Update <| Message.DragEnd)
+                    |> Tuple.second
+                    |> Common.contains (SaveCachedPipelines [ Data.pipeline "team" 1, Data.pipeline "team" 0 ])
         , test "saves teams to cache when fetched" <|
             \_ ->
                 Common.init "/"

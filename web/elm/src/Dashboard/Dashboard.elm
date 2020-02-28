@@ -456,6 +456,17 @@ toDashboardPipeline p =
     }
 
 
+toConcoursePipeline : Pipeline -> Concourse.Pipeline
+toConcoursePipeline p =
+    { id = p.id
+    , name = p.name
+    , teamName = p.teamName
+    , public = p.public
+    , paused = p.paused
+    , groups = []
+    }
+
+
 groupBy : (a -> comparable) -> List a -> Dict comparable (List a)
 groupBy keyfn list =
     -- From https://github.com/elm-community/dict-extra/blob/2.3.0/src/Dict/Extra.elm
@@ -532,34 +543,35 @@ updateBody msg ( model, effects ) =
                             case teamStartIndex of
                                 Just teamStartIdx ->
                                     model.pipelines
-                                        |> FetchResult.map
-                                            (Drag.drag
-                                                (teamStartIdx + dragIdx)
-                                                (teamStartIdx
-                                                    + (case model.dropState of
-                                                        Dropping dropIdx ->
-                                                            dropIdx
+                                        |> FetchResult.withDefault []
+                                        |> Drag.drag
+                                            (teamStartIdx + dragIdx)
+                                            (teamStartIdx
+                                                + (case model.dropState of
+                                                    Dropping dropIdx ->
+                                                        dropIdx
 
-                                                        _ ->
-                                                            dragIdx + 1
-                                                      )
-                                                )
+                                                    _ ->
+                                                        dragIdx + 1
+                                                  )
                                             )
 
                                 _ ->
-                                    model.pipelines
+                                    model.pipelines |> FetchResult.withDefault []
                     in
                     ( { model
-                        | pipelines = pipelines
+                        | pipelines = Fetched pipelines
                         , dragState = NotDragging
                         , dropState = DroppingWhileApiRequestInFlight teamName
                       }
                     , effects
                         ++ [ pipelines
-                                |> FetchResult.withDefault []
                                 |> List.filter (.teamName >> (==) teamName)
                                 |> List.map .name
                                 |> SendOrderPipelinesRequest teamName
+                           , pipelines
+                                |> List.map toConcoursePipeline
+                                |> SaveCachedPipelines
                            ]
                     )
 
