@@ -385,7 +385,7 @@ transitionView t status =
                 (class "build-duration"
                     :: Styles.pipelineCardTransitionAge status
                 )
-                [ Html.text "cached" ]
+                [ Html.text "loading..." ]
 
         ( PipelineStatus.PipelineStatusPending False, _ ) ->
             Html.div

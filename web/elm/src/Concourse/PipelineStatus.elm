@@ -128,7 +128,6 @@ icon status =
                     "ic-error-orange.svg"
 
                 PipelineStatusUnknown ->
-                    -- TODO: change icon
-                    "ic-pending-grey.svg"
+                    "ic-cached-grey.svg"
         }
         [ style "background-size" "contain" ]

@@ -1358,7 +1358,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic-pending-grey.svg"
+                                        , image = "ic-cached-grey.svg"
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1367,11 +1367,11 @@ all =
                             setup
                                 |> findStatusText
                                 |> Query.has [ style "color" lightGrey ]
-                    , test "status text says 'cached'" <|
+                    , test "status text says 'loading...'" <|
                         \_ ->
                             setup
                                 |> findStatusText
-                                |> Query.has [ text "cached" ]
+                                |> Query.has [ text "loading..." ]
                     , test "pipeline card is faded" <|
                         \_ ->
                             setup
