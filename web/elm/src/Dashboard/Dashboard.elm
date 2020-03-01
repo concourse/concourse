@@ -790,9 +790,15 @@ welcomeCard session { pipelines } =
                 []
 
         noPipelines =
-            pipelines
-                |> FetchResult.withDefault []
-                |> List.isEmpty
+            case pipelines of
+                None ->
+                    False
+
+                Cached p ->
+                    List.isEmpty p
+
+                Fetched p ->
+                    List.isEmpty p
     in
     if noPipelines then
         Html.div
