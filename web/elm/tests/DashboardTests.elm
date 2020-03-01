@@ -2198,6 +2198,48 @@ all =
                         (ClockTicked FiveSeconds <| Time.millisToPosix 0)
                     |> Tuple.second
                     |> Common.notContains Effects.FetchAllJobs
+        , test "navigate to non-hd view on logged out when in non-hd view" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.LoggedOut <| Ok ())
+                    |> Tuple.second
+                    |> Common.contains (Effects.NavigateTo "/")
+        , test "navigate to hd view on logged out when in hd view" <|
+            \_ ->
+                Common.init "/hd"
+                    |> Application.handleCallback
+                        (Callback.LoggedOut <| Ok ())
+                    |> Tuple.second
+                    |> Common.contains (Effects.NavigateTo "/hd")
+        , test "fetch all teams on logged out" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.LoggedOut <| Ok ())
+                    |> Tuple.second
+                    |> Common.contains Effects.FetchAllTeams
+        , test "fetch all resources on logged out" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.LoggedOut <| Ok ())
+                    |> Tuple.second
+                    |> Common.contains Effects.FetchAllResources
+        , test "fetch all jobs on logged out" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.LoggedOut <| Ok ())
+                    |> Tuple.second
+                    |> Common.contains Effects.FetchAllJobs
+        , test "fetch all pipelines on logged out" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.LoggedOut <| Ok ())
+                    |> Tuple.second
+                    |> Common.contains Effects.FetchAllPipelines
         ]
 
 

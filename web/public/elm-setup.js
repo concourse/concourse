@@ -146,6 +146,10 @@ app.ports.loadFromSessionStorage.subscribe(function(key) {
   }, 0);
 });
 
+app.ports.deleteFromLocalStorage.subscribe(function(key) {
+  localStorage.removeItem(key);
+});
+
 const csrfTokenKey = "csrf_token";
 window.addEventListener('storage', function(event) {
   if (event.key === csrfTokenKey) {

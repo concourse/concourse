@@ -296,6 +296,12 @@ handleCallback callback ( model, effects ) =
                             Routes.dashboardRoute <|
                                 model.highDensity
                    , FetchAllTeams
+                   , FetchAllResources
+                   , FetchAllJobs
+                   , FetchAllPipelines
+                   , DeleteCachedPipelines
+                   , DeleteCachedJobs
+                   , DeleteCachedTeams
                    ]
             )
 
@@ -579,7 +585,13 @@ updateBody msg ( model, effects ) =
                     ( model, effects )
 
         Click LogoutButton ->
-            ( { model | teams = None, pipelines = None, jobs = None }, effects )
+            ( { model
+                | teams = None
+                , pipelines = None
+                , jobs = None
+              }
+            , effects
+            )
 
         Click (PipelineButton pipelineId) ->
             let

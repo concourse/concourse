@@ -269,4 +269,25 @@ all =
                         )
                     |> Tuple.second
                     |> Common.notContains (SaveCachedPipelines [ Data.pipeline "team" 0 ])
+        , test "deletes cached pipelines on logged out" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (LoggedOut <| Ok ())
+                    |> Tuple.second
+                    |> Common.contains DeleteCachedPipelines
+        , test "deletes cached jobs on logged out" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (LoggedOut <| Ok ())
+                    |> Tuple.second
+                    |> Common.contains DeleteCachedJobs
+        , test "deletes cached teams on logged out" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (LoggedOut <| Ok ())
+                    |> Tuple.second
+                    |> Common.contains DeleteCachedTeams
         ]

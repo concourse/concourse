@@ -1,6 +1,7 @@
 port module Message.Storage exposing
     ( Key
     , Value
+    , deleteFromLocalStorage
     , jobsKey
     , loadFromLocalStorage
     , loadFromSessionStorage
@@ -29,6 +30,9 @@ port saveToLocalStorage : ( Key, Json.Encode.Value ) -> Cmd msg
 
 
 port saveToSessionStorage : ( Key, Json.Encode.Value ) -> Cmd msg
+
+
+port deleteFromLocalStorage : Key -> Cmd msg
 
 
 port loadFromLocalStorage : Key -> Cmd msg
