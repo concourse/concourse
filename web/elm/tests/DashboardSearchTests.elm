@@ -1,4 +1,4 @@
-module DashboardSearchTests exposing (all)
+module DashboardSearchTests exposing (hasData, missingData)
 
 import Application.Application as Application
 import Common exposing (queryView)
@@ -11,8 +11,6 @@ import Message.TopLevelMessage as Msgs
 import Test exposing (Test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, id, style, text)
-import Time
-import Url
 
 
 describe : String -> model -> List (model -> Test) -> Test
@@ -33,8 +31,8 @@ it desc expectationFunc model =
         \_ -> expectationFunc model
 
 
-all : Test
-all =
+hasData : Test
+hasData =
     describe "dashboard search"
         (Common.init "/"
             |> Application.handleCallback
@@ -208,4 +206,25 @@ all =
                     , style "font-size" "13px"
                     , style "margin-top" "20px"
                     ]
+        ]
+
+
+missingData : Test
+missingData =
+    Test.describe "when not all data has come in" <|
+        [ Test.test "does not render 'no results' when awaiting pipelines" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <|
+                            Ok []
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.Update <|
+                            Message.Message.FilterMsg "asdf"
+                        )
+                    |> Tuple.first
+                    |> queryView
+                    |> Query.hasNot [ class "no-results" ]
         ]

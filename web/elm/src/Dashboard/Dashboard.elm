@@ -1000,7 +1000,11 @@ pipelinesView session params =
                             >> List.reverse
                    )
     in
-    if List.isEmpty groupViews && not (String.isEmpty params.query) then
+    if
+        (params.pipelines /= None)
+            && List.isEmpty groupViews
+            && not (String.isEmpty params.query)
+    then
         [ noResultsView params.query ]
 
     else
