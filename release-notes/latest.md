@@ -61,6 +61,10 @@ errors from the library we used before.
 
 * Improve the initial page load time by lazy-loading Javascript that isn't necessary for the first render. #5148
 
+#### <sub><sup><a name="5262" href="#5262">:link:</a></sup></sub> feature
+
+* Improve the dashboard load time by caching API responses to browser `localStorage` and first rendering a stale view of your pipelines. #5262
+
 [OpenTelemetry]: https://opentelemetry.io/
 [Jaeger]: https://www.jaegertracing.io/
 [Stackdriver]: https://cloud.google.com/trace/
