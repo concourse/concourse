@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -38,6 +39,7 @@ type suiteConfig struct {
 	ATCURL      string `json:"atc_url"`
 	ATCUsername string `json:"atc_username"`
 	ATCPassword string `json:"atc_password"`
+	DownloadCLI bool   `json:"download_cli"`
 }
 
 var (
@@ -62,9 +64,20 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		config.ATCURL = atcURL
 	}
 
-	flyPath, err := downloadFly(config.ATCURL)
-	Expect(err).ToNot(HaveOccurred())
-	config.FlyBin = flyPath
+	var err error
+	downloadCLI := os.Getenv("DOWNLOAD_CLI")
+	if downloadCLI != "" {
+		config.DownloadCLI, err = strconv.ParseBool(downloadCLI)
+		Expect(err).ToNot(HaveOccurred())
+	}
+
+	if config.DownloadCLI {
+		config.FlyBin, err = downloadFly(config.ATCURL)
+		Expect(err).ToNot(HaveOccurred())
+	} else {
+		config.FlyBin, err = gexec.Build("github.com/concourse/concourse/fly")
+		Expect(err).ToNot(HaveOccurred())
+	}
 
 	atcUsername := os.Getenv("ATC_USERNAME")
 	if atcUsername != "" {
