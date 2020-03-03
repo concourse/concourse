@@ -65,8 +65,6 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		// pipeline is public or authorized
 		case atc.GetPipeline,
 			atc.GetJobBuild,
-			atc.PipelineBadge,
-			atc.JobBadge,
 			atc.ListJobs,
 			atc.GetJob,
 			atc.ListJobBuilds,
@@ -109,6 +107,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListAllJobs,
 			atc.ListAllResources,
 			atc.ListBuilds,
+			atc.PipelineBadge,
+			atc.JobBadge,
 			atc.MainJobBadge,
 			atc.GetWall:
 			newHandler = auth.CheckAuthenticationIfProvidedHandler(handler, rejector)

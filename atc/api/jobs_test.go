@@ -549,10 +549,11 @@ var _ = Describe("Jobs API", func() {
 			Context("and the pipeline is private", func() {
 				BeforeEach(func() {
 					fakePipeline.PublicReturns(false)
+					fakePipeline.JobReturns(fakeJob, true, nil)
 				})
 
-				It("returns 403", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
