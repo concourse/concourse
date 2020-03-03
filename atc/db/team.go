@@ -382,14 +382,15 @@ func (t *team) SavePipeline(
 	if !existingConfig {
 		err = psql.Insert("pipelines").
 			SetMap(map[string]interface{}{
-				"name":        pipelineName,
-				"groups":      groupsPayload,
-				"var_sources": encryptedVarSourcesPayload,
-				"nonce":       nonce,
-				"version":     sq.Expr("nextval('config_version_seq')"),
-				"ordering":    sq.Expr("currval('pipelines_id_seq')"),
-				"paused":      initiallyPaused,
-				"team_id":     t.id,
+				"name":         pipelineName,
+				"groups":       groupsPayload,
+				"var_sources":  encryptedVarSourcesPayload,
+				"nonce":        nonce,
+				"version":      sq.Expr("nextval('config_version_seq')"),
+				"ordering":     sq.Expr("currval('pipelines_id_seq')"),
+				"paused":       initiallyPaused,
+				"last_updated": sq.Expr("now()"),
+				"team_id":      t.id,
 			}).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -403,6 +404,7 @@ func (t *team) SavePipeline(
 			Set("var_sources", encryptedVarSourcesPayload).
 			Set("nonce", nonce).
 			Set("version", sq.Expr("nextval('config_version_seq')")).
+			Set("last_updated", sq.Expr("now()")).
 			Where(sq.Eq{
 				"name":    pipelineName,
 				"version": from,
@@ -1090,15 +1092,18 @@ func (t *team) findContainer(whereClause sq.Sqlizer) (CreatingContainer, Created
 
 func scanPipeline(p *pipeline, scan scannable) error {
 	var (
-		groups     sql.NullString
-		varSources sql.NullString
-		nonce      sql.NullString
-		nonceStr   *string
+		groups      sql.NullString
+		varSources  sql.NullString
+		nonce       sql.NullString
+		nonceStr    *string
+		lastUpdated pq.NullTime
 	)
-	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &lastUpdated)
 	if err != nil {
 		return err
 	}
+
+	p.lastUpdated = lastUpdated.Time
 
 	if groups.Valid {
 		var pipelineGroups atc.GroupConfigs

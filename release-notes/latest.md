@@ -64,3 +64,9 @@ errors from the library we used before.
 [OpenTelemetry]: https://opentelemetry.io/
 [Jaeger]: https://www.jaegertracing.io/
 [Stackdriver]: https://cloud.google.com/trace/
+
+
+#### <sub><sup><a name="5113" href="#5113">:link:</a></sup></sub> feature
+
+* @aledeganopix4d added a `last updated` column to the output of `fly pipelines` showing
+the last date where the pipeline was set or reset. #5113

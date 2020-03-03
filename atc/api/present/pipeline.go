@@ -7,11 +7,12 @@ import (
 
 func Pipeline(savedPipeline db.Pipeline) atc.Pipeline {
 	return atc.Pipeline{
-		ID:       savedPipeline.ID(),
-		Name:     savedPipeline.Name(),
-		TeamName: savedPipeline.TeamName(),
-		Paused:   savedPipeline.Paused(),
-		Public:   savedPipeline.Public(),
-		Groups:   savedPipeline.Groups(),
+		ID:          savedPipeline.ID(),
+		Name:        savedPipeline.Name(),
+		TeamName:    savedPipeline.TeamName(),
+		Paused:      savedPipeline.Paused(),
+		Public:      savedPipeline.Public(),
+		Groups:      savedPipeline.Groups(),
+		LastUpdated: savedPipeline.LastUpdated().Unix(),
 	}
 }

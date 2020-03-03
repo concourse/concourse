@@ -2,6 +2,7 @@ package commands
 
 import (
 	"os"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
@@ -31,10 +32,10 @@ func (command *PipelinesCommand) Execute([]string) error {
 
 	if command.All {
 		pipelines, err = target.Client().ListPipelines()
-		headers = []string{"name", "team", "paused", "public"}
+		headers = []string{"name", "team", "paused", "public", "last updated"}
 	} else {
 		pipelines, err = target.Team().ListPipelines()
-		headers = []string{"name", "paused", "public"}
+		headers = []string{"name", "paused", "public", "last updated"}
 	}
 	if err != nil {
 		return err
@@ -77,6 +78,7 @@ func (command *PipelinesCommand) Execute([]string) error {
 		}
 		row = append(row, pausedColumn)
 		row = append(row, publicColumn)
+		row = append(row, ui.TableCell{Contents: time.Unix(p.LastUpdated, 0).String()})
 
 		table.Data = append(table.Data, row)
 	}
