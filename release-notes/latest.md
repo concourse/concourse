@@ -28,6 +28,10 @@ other systems soon.
 `fly unpause-pipeline` commands. This allows users to pause or unpause every
 pipeline on a team at the same time. #4092
 
+#### <sub><sup><a name="5252" href="#5252">:link:</a></sup></sub> feature
+
+* @jhosteny changed the [badge endpoints](https://concourse-ci.org/observation.html#badges) to always be accessible when unauthenticated - this means that it is now possible to show the status of a private pipeline or job in a README on a code-hosting site. #5252
+
 #### <sub><sup><a name="5133" href="#5133">:link:</a></sup></sub> fix
 
 * In the case that a user has multiple roles on a team, the pills on the team headers on the dashboard now accurately reflect the logged-in user's most-privileged role on each team. #5133
