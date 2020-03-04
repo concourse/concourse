@@ -149,22 +149,30 @@ subscriptions model =
 
 
 changeToBuild : Flags -> ET Model
-changeToBuild { highlight, pageType } ( model, effects ) =
-    ( { model
-        | prep = Nothing
-        , output = Empty
-        , autoScroll = True
-        , page = pageType
-        , highlight = highlight
-      }
-    , case pageType of
-        OneOffBuildPage buildId ->
-            effects
-                ++ [ CloseBuildEventStream, FetchBuild 0 buildId ]
+changeToBuild { highlight, pageType, fromBuildPage } ( model, effects ) =
+    let
+        newModel =
+            { model | page = pageType }
+    in
+    (if fromBuildPage == Just pageType then
+        ( newModel, effects )
 
-        JobBuildPage jbi ->
-            effects
-                ++ [ CloseBuildEventStream, FetchJobBuild jbi ]
+     else
+        ( { newModel
+            | prep = Nothing
+            , output = Empty
+            , autoScroll = True
+            , highlight = highlight
+          }
+        , case pageType of
+            OneOffBuildPage buildId ->
+                effects
+                    ++ [ CloseBuildEventStream, FetchBuild 0 buildId ]
+
+            JobBuildPage jbi ->
+                effects
+                    ++ [ CloseBuildEventStream, FetchJobBuild jbi ]
+        )
     )
         |> Header.changeToBuild pageType
 

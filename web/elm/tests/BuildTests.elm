@@ -1196,6 +1196,36 @@ all =
                             , buildName = "1"
                             }
                         )
+        , test "does not reload build when highlight is modified" <|
+            \_ ->
+                let
+                    buildParams =
+                        { id =
+                            { teamName = "t"
+                            , pipelineName = "p"
+                            , jobName = "j"
+                            , buildName = "1"
+                            }
+                        , highlight = Routes.HighlightNothing
+                        }
+                in
+                Common.init "/"
+                    |> Application.handleDelivery
+                        (RouteChanged <|
+                            Routes.Build
+                                buildParams
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (RouteChanged <|
+                            Routes.Build
+                                { buildParams
+                                    | highlight = Routes.HighlightLine "step" 1
+                                }
+                        )
+                    |> Tuple.second
+                    |> Common.notContains
+                        (Effects.FetchJobBuild <| buildParams.id)
         , test "gets current timezone on page load" <|
             \_ ->
                 Application.init
