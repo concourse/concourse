@@ -457,6 +457,26 @@ var _ = Describe("Build", func() {
 					It("updates job latest finished build id", func() {
 						Expect(getJobBuildID(latestCompletedBuildCol, job.ID())).To(Equal(pdBuild.ID()))
 					})
+
+					Context("when rerunning the rerun build", func() {
+						var rrBuild2 db.Build
+
+						BeforeEach(func() {
+							err = rrBuild.Finish(db.BuildStatusSucceeded)
+							Expect(err).NotTo(HaveOccurred())
+
+							rrBuild2, err = job.RerunBuild(rrBuild)
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("updates job next build id to the rerun build", func() {
+							Expect(getJobBuildID(nextBuildCol, job.ID())).To(Equal(rrBuild2.ID()))
+						})
+
+						It("updates job latest finished build id", func() {
+							Expect(getJobBuildID(latestCompletedBuildCol, job.ID())).To(Equal(rrBuild.ID()))
+						})
+					})
 				})
 
 				Context("when pending build finished and rerunning a non latest build and it finishes", func() {
