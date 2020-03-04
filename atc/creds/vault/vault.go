@@ -63,6 +63,7 @@ func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 		if found {
 			return secretVal, expiration, true, nil
 		}
+		return nil, nil, false, nil
 	}
 
 	val, found := secret.Data["value"]
