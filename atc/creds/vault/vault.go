@@ -42,14 +42,14 @@ func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowR
 
 // Get retrieves the value and expiration of an individual secret
 func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
-	var secretName, secretRealPath string
+	var secretName string
+	secretRealPath := secretPath
 	if strings.Contains(secretPath, ".") {
 		parsed := strings.Split(secretPath, ".")
 		secretRealPath = parsed[0]
 		secretName = parsed[1]
-	} else {
-		secretRealPath = secretPath
 	}
+
 	secret, expiration, found, err := v.findSecret(secretRealPath)
 	if err != nil {
 		return nil, nil, false, err
@@ -58,7 +58,7 @@ func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 		return nil, nil, false, nil
 	}
 
-	if len(secretName) != 0 {
+	if len(secretName) > 0 {
 		secretVal, found := secret.Data[secretName]
 		if found {
 			return secretVal, expiration, true, nil
