@@ -2,6 +2,7 @@ package vault
 
 import (
 	"path"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
@@ -41,12 +42,29 @@ func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowR
 
 // Get retrieves the value and expiration of an individual secret
 func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
-	secret, expiration, found, err := v.findSecret(secretPath)
+	var secretName, secretRealPath string
+	if strings.Contains(secretPath, ".") {
+		parsed := strings.Split(secretPath, ".")
+		secretRealPath = parsed[0]
+		secretName = parsed[1]
+	} else {
+		secretRealPath = secretPath
+	}
+	secret, expiration, found, err := v.findSecret(secretRealPath)
 	if err != nil {
 		return nil, nil, false, err
 	}
 	if !found {
 		return nil, nil, false, nil
+	}
+
+	if len(secretName) != 0 {
+		secretVal, found := secret.Data[secretName]
+		if found {
+			return secretVal, expiration, true, nil
+		} else {
+			return nil, nil, false, nil
+		}
 	}
 
 	val, found := secret.Data["value"]

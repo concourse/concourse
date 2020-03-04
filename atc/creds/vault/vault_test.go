@@ -123,6 +123,27 @@ var _ = Describe("Vault", func() {
 			Expect(err).To(BeNil())
 		})
 
+		It("should get secret from shared if pipeline defaults not found", func() {
+			v.SecretReader = &MockSecretReader{&[]MockSecret{
+				{
+					path: "/concourse/shared/foo",
+					secret: &vaultapi.Secret{
+						Data: map[string]interface{}{"test": "value"},
+					},
+				},
+				{
+					path: "/concourse/team/foo",
+					secret: &vaultapi.Secret{
+						Data: map[string]interface{}{"value": "bar"},
+					},
+				}},
+			}
+			value, found, err := variables.Get(vars.VariableDefinition{Name: "foo.test"})
+			Expect(value).To(BeEquivalentTo("value"))
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
 		Context("without shared", func() {
 			BeforeEach(func() {
 				v = &vault.Vault{
