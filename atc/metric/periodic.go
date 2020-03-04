@@ -139,6 +139,54 @@ func tick(logger lager.Logger) {
 		},
 	)
 
+	emit(
+		logger.Session("checks-finished-with-error"),
+		Event{
+			Name:  "checks finished",
+			Value: ChecksFinishedWithError.Delta(),
+			Attributes: map[string]string{
+				"status": "error",
+			},
+		},
+	)
+
+	emit(
+		logger.Session("checks-finished-with-success"),
+		Event{
+			Name:  "checks finished",
+			Value: ChecksFinishedWithSuccess.Delta(),
+			Attributes: map[string]string{
+				"status": "success",
+			},
+		},
+	)
+
+	emit(
+
+		logger.Session("checks-started"),
+		Event{
+			Name:  "checks started",
+			Value: ChecksStarted.Delta(),
+		},
+	)
+
+	emit(
+
+		logger.Session("checks-enqueued"),
+		Event{
+			Name:  "checks enqueued",
+			Value: ChecksEnqueued.Delta(),
+		},
+	)
+
+	emit(
+		logger.Session("checks-queue-size"),
+		Event{
+			Name:  "checks queue size",
+			Value: ChecksQueueSize.Max(),
+		},
+	)
+
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
