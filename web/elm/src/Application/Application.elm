@@ -412,7 +412,11 @@ urlUpdate route model =
                 ( model.subModel, [] )
 
             else if routeMatchesModel route model then
-                SubPage.urlUpdate route ( model.subModel, [] )
+                SubPage.urlUpdate
+                    { from = model.route
+                    , to = route
+                    }
+                    ( model.subModel, [] )
 
             else
                 SubPage.init model.session route

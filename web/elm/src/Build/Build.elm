@@ -72,6 +72,7 @@ bodyId =
 type alias Flags =
     { highlight : Routes.Highlight
     , pageType : BuildPageType
+    , fromBuildPage : Maybe Build.Header.Models.BuildPageType
     }
 
 
