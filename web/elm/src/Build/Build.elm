@@ -46,8 +46,9 @@ import List.Extra
 import Login.Login as Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..), TooltipPolicy(..))
-import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
+import Message.Effects as Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
+import Message.ScrollDirection as ScrollDirection
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Routes
@@ -358,14 +359,14 @@ handleDelivery session delivery ( model, effects ) =
                             ScrollWindow ->
                                 effects
                                     ++ [ Effects.Scroll
-                                            Effects.ToBottom
+                                            ScrollDirection.ToBottom
                                             bodyId
                                        ]
 
                             ScrollToID id ->
                                 effects
                                     ++ [ Effects.Scroll
-                                            (Effects.ToId id)
+                                            (ScrollDirection.ToId id)
                                             bodyId
                                        ]
 

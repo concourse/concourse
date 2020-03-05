@@ -8,8 +8,9 @@ import Html exposing (Html)
 import Html.Attributes exposing (class, classList)
 import Keyboard
 import Maybe.Extra
-import Message.Effects exposing (Effect(..), ScrollDirection(..))
+import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
+import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 

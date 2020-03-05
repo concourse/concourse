@@ -1,6 +1,5 @@
 port module Message.Effects exposing
     ( Effect(..)
-    , ScrollDirection(..)
     , renderPipeline
     , renderSvgIcon
     , runEffect
@@ -23,6 +22,7 @@ import Message.Message
         , VersionToggleAction(..)
         , VisibilityAction(..)
         )
+import Message.ScrollDirection exposing (ScrollDirection(..))
 import Network.Build
 import Network.BuildPlan
 import Network.BuildPrep
@@ -178,15 +178,6 @@ type Effect
 
 type alias VersionId =
     Concourse.VersionedResourceIdentifier
-
-
-type ScrollDirection
-    = ToTop
-    | Down
-    | Up
-    | ToBottom
-    | Sideways Float
-    | ToId String
 
 
 runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
@@ -398,23 +389,8 @@ runEffect effect key csrfToken =
             Network.Build.abort buildId csrfToken
                 |> Task.attempt BuildAborted
 
-        Scroll ToTop id ->
-            scroll id id (always 0) (always 0)
-
-        Scroll Down id ->
-            scroll id id (always 0) (.viewport >> .y >> (+) 60)
-
-        Scroll Up id ->
-            scroll id id (always 0) (.viewport >> .y >> (+) -60)
-
-        Scroll ToBottom id ->
-            scroll id id (always 0) (.scene >> .height)
-
-        Scroll (Sideways delta) id ->
-            scroll id id (.viewport >> .x >> (+) -delta) (always 0)
-
-        Scroll (ToId id) idOfThingToScroll ->
-            scroll id idOfThingToScroll (.viewport >> .x) (.viewport >> .y)
+        Scroll direction id ->
+            scroll direction id
 
         SaveToken tokenValue ->
             saveToken tokenValue
@@ -490,13 +466,37 @@ toHtmlID domId =
             ""
 
 
-scroll :
+scroll : ScrollDirection -> String -> Cmd Callback
+scroll direction id =
+    (case direction of
+        ToTop ->
+            scrollCoords id id (always 0) (always 0)
+
+        Down ->
+            scrollCoords id id (always 0) (.viewport >> .y >> (+) 60)
+
+        Up ->
+            scrollCoords id id (always 0) (.viewport >> .y >> (+) -60)
+
+        ToBottom ->
+            scrollCoords id id (always 0) (.scene >> .height)
+
+        Sideways delta ->
+            scrollCoords id id (.viewport >> .x >> (+) -delta) (always 0)
+
+        ToId toId ->
+            scrollCoords toId id (.viewport >> .x) (.viewport >> .y)
+    )
+        |> Task.attempt (\_ -> EmptyCallback)
+
+
+scrollCoords :
     String
     -> String
     -> (Viewport -> Float)
     -> (Viewport -> Float)
-    -> Cmd Callback
-scroll srcId idOfThingToScroll getX getY =
+    -> Task.Task Browser.Dom.Error ()
+scrollCoords srcId idOfThingToScroll getX getY =
     getViewportOf srcId
         |> Task.andThen
             (\info ->
@@ -505,7 +505,6 @@ scroll srcId idOfThingToScroll getX getY =
                     (getX info)
                     (getY info)
             )
-        |> Task.attempt (\_ -> EmptyCallback)
 
 
 faviconName : Maybe BuildStatus -> String

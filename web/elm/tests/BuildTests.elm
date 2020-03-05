@@ -22,6 +22,7 @@ import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message
+import Message.ScrollDirection as ScrollDirection
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as Msgs
 import Routes
@@ -269,7 +270,7 @@ all =
                                     ]
                         )
                     |> Tuple.second
-                    |> Common.contains (Effects.Scroll (Effects.ToId "stepid:1") "build-body")
+                    |> Common.contains (Effects.Scroll (ScrollDirection.ToId "stepid:1") "build-body")
         , test "scrolls to top of highlighted range" <|
             \_ ->
                 Application.init
@@ -320,7 +321,7 @@ all =
                                     ]
                         )
                     |> Tuple.second
-                    |> Common.contains (Effects.Scroll (Effects.ToId "stepid:1") "build-body")
+                    |> Common.contains (Effects.Scroll (ScrollDirection.ToId "stepid:1") "build-body")
         , test "does not scroll to an invalid range" <|
             \_ ->
                 Application.init
@@ -380,7 +381,7 @@ all =
                                     ]
                         )
                     |> Tuple.second
-                    |> Common.notContains (Effects.Scroll (Effects.ToId "stepid:2") "build-body")
+                    |> Common.notContains (Effects.Scroll (ScrollDirection.ToId "stepid:2") "build-body")
         , describe "page title"
             [ test "with a job build" <|
                 \_ ->
@@ -847,7 +848,7 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
-                    |> Common.contains (Effects.Scroll Effects.ToBottom "build-body")
+                    |> Common.contains (Effects.Scroll ScrollDirection.ToBottom "build-body")
         , test "when build is not running it does not scroll on build event" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -938,7 +939,7 @@ all =
                         , data = STModels.StartTask { id = "stepid", source = "" } (Time.millisToPosix 0)
                         }
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToBottom "build-body" ]
+                    |> Expect.equal [ Effects.Scroll ScrollDirection.ToBottom "build-body" ]
         , test "pressing 'T' twice triggers two builds" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1112,7 +1113,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToTop "build-body" ]
+                    |> Expect.equal [ Effects.Scroll ScrollDirection.ToTop "build-body" ]
         , test "pressing 'G' scrolls to the bottom" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1129,7 +1130,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> Expect.equal [ Effects.Scroll Effects.ToBottom "build-body" ]
+                    |> Expect.equal [ Effects.Scroll ScrollDirection.ToBottom "build-body" ]
         , test "pressing 'g' once does nothing" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -2031,7 +2032,7 @@ all =
                         >> Application.handleDelivery
                             (Subscription.ElementVisible ( "1", False ))
                         >> Tuple.second
-                        >> Expect.equal [ Effects.Scroll (Effects.ToId "1") "builds" ]
+                        >> Expect.equal [ Effects.Scroll (ScrollDirection.ToId "1") "builds" ]
                 , test "does not scroll to current build more than once" <|
                     givenBuildFetched
                         >> Tuple.first
