@@ -466,6 +466,11 @@ toHtmlID domId =
             ""
 
 
+scrollToIdPadding : Float
+scrollToIdPadding =
+    60
+
+
 scroll : ScrollDirection -> String -> Cmd Callback
 scroll direction id =
     (case direction of
@@ -479,13 +484,20 @@ scroll direction id =
             scrollCoords id id (always 0) (.srcElem >> .viewport >> .y >> (+) -60)
 
         ToBottom ->
-            scrollCoords id id (always 0) (.srcElem >> .scene >> .height)
+            scrollCoords id id (always 0) (.parentElem >> .scene >> .height)
 
         Sideways delta ->
             scrollCoords id id (.srcElem >> .viewport >> .x >> (+) -delta) (always 0)
 
         ToId toId ->
-            scrollCoords toId id (.srcElem >> .viewport >> .x) (.srcElem >> .viewport >> .y)
+            scrollCoords toId
+                id
+                (\{ srcElem, parentElem } ->
+                    parentElem.viewport.x + srcElem.element.x - parentElem.element.x - scrollToIdPadding
+                )
+                (\{ srcElem, parentElem } ->
+                    parentElem.viewport.y + srcElem.element.y - parentElem.element.y - scrollToIdPadding
+                )
     )
         |> Task.attempt (\_ -> ScrollCompleted direction id)
 
