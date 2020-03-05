@@ -296,6 +296,9 @@ handleCallback action ( model, effects ) =
             -- https://github.com/concourse/concourse/issues/3201
             ( model, effects )
 
+        ScrollCompleted (ScrollDirection.ToId _) _ ->
+            ( { model | highlight = Routes.HighlightNothing }, effects )
+
         _ ->
             ( model, effects )
     )

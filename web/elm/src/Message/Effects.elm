@@ -487,7 +487,7 @@ scroll direction id =
         ToId toId ->
             scrollCoords toId id (.viewport >> .x) (.viewport >> .y)
     )
-        |> Task.attempt (\_ -> EmptyCallback)
+        |> Task.attempt (\_ -> ScrollCompleted direction id)
 
 
 scrollCoords :
