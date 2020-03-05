@@ -1,10 +1,14 @@
 image: cirocosta/concourse
-imageDigest: sha256:cd09d181a016db729006bf0e26d94acc7c782cc9fcacdf5da4464dd540971977
+imageDigest: k8s-iter-1
 
 web:
   env:
     - name: CONCOURSE_KUBERNETES_WORKER_SERVICE_ACCOUNT
       value: /var/run/secrets/kubernetes.io/serviceaccount
+
+postgresql:
+  persistence:
+    enabled: false
 
 concourse:
   web:
