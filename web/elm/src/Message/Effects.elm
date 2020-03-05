@@ -8,7 +8,7 @@ port module Message.Effects exposing
     )
 
 import Base64
-import Browser.Dom exposing (Viewport, getViewport, getViewportOf, setViewportOf)
+import Browser.Dom exposing (Element, getElement, getViewport, setViewportOf)
 import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
@@ -473,19 +473,19 @@ scroll direction id =
             scrollCoords id id (always 0) (always 0)
 
         Down ->
-            scrollCoords id id (always 0) (.viewport >> .y >> (+) 60)
+            scrollCoords id id (always 0) (.srcElem >> .viewport >> .y >> (+) 60)
 
         Up ->
-            scrollCoords id id (always 0) (.viewport >> .y >> (+) -60)
+            scrollCoords id id (always 0) (.srcElem >> .viewport >> .y >> (+) -60)
 
         ToBottom ->
-            scrollCoords id id (always 0) (.scene >> .height)
+            scrollCoords id id (always 0) (.srcElem >> .scene >> .height)
 
         Sideways delta ->
-            scrollCoords id id (.viewport >> .x >> (+) -delta) (always 0)
+            scrollCoords id id (.srcElem >> .viewport >> .x >> (+) -delta) (always 0)
 
         ToId toId ->
-            scrollCoords toId id (.viewport >> .x) (.viewport >> .y)
+            scrollCoords toId id (.srcElem >> .viewport >> .x) (.srcElem >> .viewport >> .y)
     )
         |> Task.attempt (\_ -> ScrollCompleted direction id)
 
@@ -493,17 +493,23 @@ scroll direction id =
 scrollCoords :
     String
     -> String
-    -> (Viewport -> Float)
-    -> (Viewport -> Float)
+    -> ({ srcElem : Element, parentElem : Element } -> Float)
+    -> ({ srcElem : Element, parentElem : Element } -> Float)
     -> Task.Task Browser.Dom.Error ()
 scrollCoords srcId idOfThingToScroll getX getY =
-    getViewportOf srcId
+    Task.sequence [ getElement srcId, getElement idOfThingToScroll ]
         |> Task.andThen
-            (\info ->
-                setViewportOf
-                    idOfThingToScroll
-                    (getX info)
-                    (getY info)
+            (\elems ->
+                case elems of
+                    [ srcInfo, parentInfo ] ->
+                        setViewportOf
+                            idOfThingToScroll
+                            (getX { srcElem = srcInfo, parentElem = parentInfo })
+                            (getY { srcElem = srcInfo, parentElem = parentInfo })
+
+                    _ ->
+                        Task.fail <|
+                            Browser.Dom.NotFound "unexpected number of elements"
             )
 
 
