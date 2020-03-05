@@ -66,14 +66,14 @@ deployment.
   post][v10-alg-update].
 
   Before we get into the shiny charts showing the improved performance, let's
-  cover the breaking changes that the new algorithm needed.
+  cover the breaking change that the new algorithm needed:
 
   [jsonb-index]: https://www.postgresql.org/docs/current/datatype-json.html#JSON-INDEXING
   [v10-alg-update]: https://blog.concourse-ci.org/core-roadmap-towards-v10/#issue-3602-a-new-algorithm
   [collect-all-versions-issue]: https://github.com/concourse/concourse/issues/5238
 
-* **Breaking change #1:** for inputs with `passed` constraints, the algorithm
-  now chooses versions based on the *build history* of each job in the `passed`
+* **Breaking change:** for inputs with `passed` constraints, the algorithm now
+  chooses versions based on the *build history* of each job in the `passed`
   constraint, rather than *version history* of the input's resource.
 
   This might make more sense with an example. Let's say we have a pipeline with
@@ -85,28 +85,27 @@ deployment.
   `Resource` has three versions: `v1` (oldest), `v2`, and `v3` (newest).
 
   `Job 1` has `Resource` as an unconstrained input, so it will always grab the
-  latest version available - `v3`.
+  latest version available - `v3`. In the scenario above, it has done this for
+  `Build 1` but then a pipeline operator pinned `v1`, so `Build 2` then ran
+  with `v1`. So now we have both `v1` and `v3` having "passed" `Job 1`, but in
+  reverse order.
 
-  `Job 2`, however, has `Resource` as an input but with a `passed` constraint
-  that lists `Job 1`. `Job 1` has run twice, producing two builds such that the
-  most recent build has actually used an *older* version than the prior build -
-  perhaps due to `v1` being pinned by a pipeline operator. The difference
-  between the old and new algorithm is in which version will be used for a new
-  build of `Job 2`.
+  The difference between the old algorithm and the new one is which version
+  `Job 2` will use for its next build when `v1` is un-pinned.
 
-  With the old algorithm, `Job 2` would end up with `v3` as the input version
-  as shown by the orange line. This is because the old algorithm would start
-  from the *latest version* and then check if that version satisfies the
-  `passed` constraints.
+  With the old algorithm, `Job 2` would choose `v3` as the input version as
+  shown by the orange line. This is because the old algorithm would start from
+  the *latest version* and then check if that version satisfies the `passed`
+  constraints.
 
   With the new algorithm, `Job 2` will instead end up with `v1`, as shown by
   the green line. This is because the new algorithm starts with the versions
   from the *latest build* of the jobs listed in `passed` constraints, searching
   through older builds if necessary.
 
-  The resulting behavior is that pipelines will now "converge" on whatever
-  inputs were decided upstream, propagating things like pinned versions
-  downstream more effectively.
+  The resulting behavior is that pipelines now flow versions downstream from
+  job to job rather than requiring brute force. Jobs are now treated as the
+  source of truth.
 
   This approach to selecting versions is much more efficient because it cuts
   out the "brute force" aspect: by treating the `passed` jobs as the source of
@@ -118,75 +117,7 @@ deployment.
   utilizing a `jsonb` index to perform a sort of 'set intersection' at the
   database level. It's pretty neato!
 
-* **Breaking change #2:** for inputs with `trigger: true`, a new build will be
-  now triggered if the computed version is different from the version used in
-  the *prior build*, rather than searching the entire build history.
-
-  We think that this makes the pipeline easier to grok; as it allows you to
-  trust that the latest build of each job has used the currently desired
-  versions, rather than having to figure out that it didn't run because it ran
-  with your newly-pinned versions 2 months ago, when some of the other
-  non-trigger input versions may have been different.
-
-  To give an example, let's say you have a job that takes a resource as an
-  input with `trigger: true`. It currently has two builds: build 1 has run with
-  version `v1` of the resource and build 2 has run with `v2`.
-
-  ![Example job with two builds](https://storage.googleapis.com/concourse-media-assets/new-pinning-behavior-1.png)
-
-  (TODO: make those borders solid)
-
-  Next, let's say I pin the resource to `v1` because `v2` had an unintentional
-  breaking change and we need to wait for a later version to have a fix.
-  (Alternatively I could just disable the `v2` version and roll the dice on
-  `v3` - they both have the same net effect with the algorithm.)
-
-  With the old algorithm, I would need to manually trigger the job in order to
-  produce a build using the pinned version. This is because there already
-  existed a build using the pinned version `v1` so the old algorithm determined
-  that a new build was not needed to be scheduled.
-
-  With the new algorithm, a new build is produced automatically because the
-  pinned version `v1` is not equivalent to the version of the previous build,
-  `v2`.
-
-  ![Pinning with the new algorithm](https://storage.googleapis.com/concourse-media-assets/new-pinning-behavior-3.png)
-
-  Now if I unpin the version, another build would be triggered using the latest
-  version. This is because after unpinning the resource, the input version for
-  the next build becomes the latest version `v2` which is not equal to the
-  version `v1` used by the previous build.
-
-  ![Unpin with new algorithm](https://storage.googleapis.com/concourse-media-assets/new-pinning-behavior-4.png)
-
-  This is to allow the current state of the builds to always reflect the
-  current state of the versions.
-
-* **Breaking change #2:** version pinning and disabling now **only** affects
-  version selection for jobs which are immediately downstream of the resource.
-
-  Pinning and disabling versions should no longer be used as a way to choose
-  inputs for a specific job to re-run. It should only be used for when you want
-  to control an upstream dependency and propagate the newly desired version
-  through your entire pipeline.
-
-  To re-run a failed build with old versions, you should use the new build
-  re-running feature described later in the release notes. We found that this
-  was one of the most common use cases of pinning, and it's not what pinning
-  was originally designed for.
-
-  This change builds on the previous breaking change. Without this change, upon
-  pinning an old version that had gone through through a large pipeline with
-  `passed` constraints, all of the jobs would fire at once. That seemed unwise
-  and felt pretty unintuitive.
-
-  The new behavior is that the pinned version will be used for the first job,
-  which will trigger if the input has `trigger: true`. Upon the build
-  succeeding, this version would then propagate to downstream jobs by way of
-  the new `passed` constraint semantics (assuming they also have `trigger:
-  true`).
-
-* Ok, now that we're done with the breaking changes, let's take a look at the
+* Now that the breaking change is out of the way, let's take a look at the
   metrics from our large-scale test environment and see if the whole thing was
   worth it from an efficiency standpoint.
 
@@ -195,11 +126,14 @@ deployment.
   ![Database CPU Usage](https://storage.googleapis.com/concourse-media-assets/new-vs-old-db-cpu.png)
 
   The left side shows that the CPU was completely pegged at 100% before the
-  upgrade. (Users were complaining.) On the right side, it shows the usage
-  after upgrading to 6.0, sitting around 65% CPU usage. This is still pretty
-  high, but keep in mind that we intentionally gave this environment a pretty
-  weak database machine so we don't just keep scaling up and pretending our
-  users have unlimited funds. Anything less than 100% usage here is a win.
+  upgrade. This resulted in a slow web UI, slow pipeline scheduling
+  performance, and complaints from our Concourse tenants.
+
+  The right side shows that after upgrading to v6.0 the usage dropped to ~65%.
+  This is still pretty high, but keep in mind that we intentionally gave this
+  environment a pretty weak database machine so we don't just keep scaling up
+  and pretending our users have unlimited funds for beefy hardware. Anything
+  less than 100% usage here is a win.
 
   This next metric is shows database data transfer:
 
