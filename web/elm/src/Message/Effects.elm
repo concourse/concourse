@@ -8,7 +8,7 @@ port module Message.Effects exposing
     )
 
 import Base64
-import Browser.Dom exposing (Element, getElement, getViewport, setViewportOf)
+import Browser.Dom exposing (Element, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
@@ -512,12 +512,35 @@ scrollCoords srcId idOfThingToScroll getX getY =
     Task.sequence [ getElement srcId, getElement idOfThingToScroll ]
         |> Task.andThen
             (\elems ->
+                getViewportOf idOfThingToScroll
+                    |> Task.andThen
+                        (\parentViewport ->
+                            Task.succeed
+                                { elems = elems
+                                , parentViewport = parentViewport
+                                }
+                        )
+            )
+        |> Task.andThen
+            (\{ elems, parentViewport } ->
                 case elems of
                     [ srcInfo, parentInfo ] ->
+                        let
+                            info =
+                                { srcElem = srcInfo
+
+                                -- https://github.com/elm/browser/issues/86
+                                , parentElem =
+                                    { parentInfo
+                                        | viewport = parentViewport.viewport
+                                        , scene = parentViewport.scene
+                                    }
+                                }
+                        in
                         setViewportOf
                             idOfThingToScroll
-                            (getX { srcElem = srcInfo, parentElem = parentInfo })
-                            (getY { srcElem = srcInfo, parentElem = parentInfo })
+                            (getX info)
+                            (getY info)
 
                     _ ->
                         Task.fail <|
