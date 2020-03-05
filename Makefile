@@ -33,6 +33,7 @@ install:
 #       `$(KUBECONFIG)`.
 #
 run: install init
+	kubectl config set-context --current --namespace $(NAMESPACE)
 	concourse web $(CONCOURSE_WEB_FLAGS)
 
 
