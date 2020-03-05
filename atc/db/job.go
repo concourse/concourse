@@ -684,6 +684,21 @@ func (j *job) CreateBuild() (Build, error) {
 }
 
 func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
+	for {
+		rerunBuild, err := j.tryRerunBuild(buildToRerun)
+		if err != nil {
+			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+				continue
+			}
+
+			return nil, err
+		}
+
+		return rerunBuild, nil
+	}
+}
+
+func (j *job) tryRerunBuild(buildToRerun Build) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
