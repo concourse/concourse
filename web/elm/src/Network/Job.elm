@@ -1,7 +1,5 @@
 module Network.Job exposing
     ( fetchAllJobs
-    , fetchJobs
-    , fetchJobsRaw
     , pause
     , pauseUnpause
     , rerunJobBuild
@@ -16,22 +14,10 @@ import Json.Decode
 import Task exposing (Task)
 
 
-fetchJobs : Concourse.PipelineIdentifier -> Task Http.Error (List Concourse.Job)
-fetchJobs pi =
-    Http.toTask <|
-        Http.get ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs") (Json.Decode.list Concourse.decodeJob)
-
-
 fetchAllJobs : Task Http.Error (Maybe (List Concourse.Job))
 fetchAllJobs =
     Http.toTask <|
         Http.get "/api/v1/jobs" (Json.Decode.nullable <| Json.Decode.list Concourse.decodeJob)
-
-
-fetchJobsRaw : Concourse.PipelineIdentifier -> Task Http.Error Json.Decode.Value
-fetchJobsRaw pi =
-    Http.toTask <|
-        Http.get ("/api/v1/teams/" ++ pi.teamName ++ "/pipelines/" ++ pi.pipelineName ++ "/jobs") Json.Decode.value
 
 
 triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error Concourse.Build

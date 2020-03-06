@@ -17,4 +17,12 @@ all =
                     }
                     |> toUrl
                     |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/jobs/job"
+        , test "Jobs" <|
+            \_ ->
+                Jobs
+                    { pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toUrl
+                    |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/jobs"
         ]
