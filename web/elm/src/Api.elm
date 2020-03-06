@@ -1,4 +1,4 @@
-module Api exposing (Method(..), get, paginatedGet, request)
+module Api exposing (Method(..), get, ignoreResponse, paginatedGet, request)
 
 import Api.Endpoints exposing (Endpoint, toUrl)
 import Concourse.Pagination exposing (Paginated)
@@ -60,3 +60,8 @@ paginatedGet endpoint decoder =
         , body = Http.emptyBody
         , expect = Http.expectStringResponse (parsePagination decoder)
         }
+
+
+ignoreResponse : Http.Expect ()
+ignoreResponse =
+    Http.expectStringResponse <| always <| Ok ()
