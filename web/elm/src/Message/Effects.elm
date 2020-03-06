@@ -15,6 +15,7 @@ import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
+import Http
 import Json.Decode
 import Json.Encode
 import Maybe exposing (Maybe)
@@ -27,15 +28,9 @@ import Message.Message
         )
 import Message.ScrollDirection exposing (ScrollDirection(..))
 import Network.Build
-import Network.BuildPlan
-import Network.BuildPrep
-import Network.BuildResources
-import Network.Info
 import Network.Job
 import Network.Pipeline
 import Network.Resource
-import Network.Team
-import Network.User
 import Process
 import Routes
 import Task
@@ -195,7 +190,7 @@ runEffect effect key csrfToken =
                 |> Task.attempt JobsFetched
 
         FetchJobBuilds id page ->
-            Api.paginatedGet (Endpoints.Builds id page) Concourse.decodeBuild
+            Api.paginatedGet (Endpoints.JobBuilds id page) Concourse.decodeBuild
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
@@ -203,61 +198,73 @@ runEffect effect key csrfToken =
                 |> Task.attempt ResourceFetched
 
         FetchCheck id ->
-            Network.Resource.fetchCheck id
+            Api.get (Endpoints.Check id) Concourse.decodeCheck
                 |> Task.attempt Checked
 
         FetchVersionedResources id paging ->
-            Network.Resource.fetchVersionedResources id paging
+            Api.paginatedGet (Endpoints.ResourceVersions id paging)
+                Concourse.decodeVersionedResource
                 |> Task.map (\b -> ( paging, b ))
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
-            Network.Resource.fetchResourcesRaw id
+            Api.get (Endpoints.Resources id) Json.Decode.value
                 |> Task.attempt ResourcesFetched
 
         FetchBuildResources id ->
-            Network.BuildResources.fetch id
+            Api.get (Endpoints.BuildResources id) Concourse.decodeBuildResources
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt BuildResourcesFetched
 
         FetchPipeline id ->
-            Network.Pipeline.fetchPipeline id
+            Api.get (Endpoints.Pipeline id) Concourse.decodePipeline
                 |> Task.attempt PipelineFetched
 
         FetchPipelines team ->
-            Network.Pipeline.fetchPipelinesForTeam team
+            Api.get (Endpoints.TeamPipelines team)
+                (Json.Decode.list Concourse.decodePipeline)
                 |> Task.attempt PipelinesFetched
 
         FetchAllResources ->
-            Network.Resource.fetchAllResources
+            Api.get Endpoints.AllResources
+                (Json.Decode.nullable <|
+                    Json.Decode.list Concourse.decodeResource
+                )
                 |> Task.map (Maybe.withDefault [])
                 |> Task.attempt AllResourcesFetched
 
         FetchAllJobs ->
-            Network.Job.fetchAllJobs
+            Api.get Endpoints.AllJobs
+                (Json.Decode.nullable <|
+                    Json.Decode.list Concourse.decodeJob
+                )
                 |> Task.map (Maybe.withDefault [])
                 |> Task.attempt AllJobsFetched
 
         FetchClusterInfo ->
-            Network.Info.fetch
+            Api.get Endpoints.ClusterInfo Concourse.decodeInfo
                 |> Task.attempt ClusterInfoFetched
 
         FetchInputTo id ->
-            Network.Resource.fetchInputTo id
+            Api.get (Endpoints.ResourceVersionInputTo id)
+                (Json.Decode.list Concourse.decodeBuild)
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt InputToFetched
 
         FetchOutputOf id ->
-            Network.Resource.fetchOutputOf id
+            Api.get (Endpoints.ResourceVersionOutputOf id)
+                (Json.Decode.list Concourse.decodeBuild)
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt OutputOfFetched
 
         FetchAllTeams ->
-            Network.Team.fetchTeams
+            Api.get Endpoints.AllTeams
+                (Json.Decode.list Concourse.decodeTeam)
                 |> Task.attempt AllTeamsFetched
 
         FetchAllPipelines ->
-            Network.Pipeline.fetchPipelines
+            Api.get Endpoints.AllPipelines
+                (Json.Decode.list Concourse.decodePipeline)
                 |> Task.attempt AllPipelinesFetched
 
         GetCurrentTime ->
@@ -342,7 +349,15 @@ runEffect effect key csrfToken =
                 |> Task.attempt (PipelinesOrdered teamName)
 
         SendLogOutRequest ->
-            Task.attempt LoggedOut Network.User.logOut
+            Api.request
+                { endpoint = Endpoints.Logout
+                , method = Api.Get
+                , expect = Http.expectString
+                , body = Http.emptyBody
+                , headers = []
+                }
+                |> Task.andThen (\_ -> Task.succeed ())
+                |> Task.attempt LoggedOut
 
         GetScreenSize ->
             Task.perform ScreenResized getViewport
@@ -352,11 +367,14 @@ runEffect effect key csrfToken =
 
         FetchBuild delay buildId ->
             Process.sleep delay
-                |> Task.andThen (always <| Network.Build.fetch buildId)
+                |> Task.andThen
+                    (always <|
+                        Api.get (Endpoints.Build buildId) Concourse.decodeBuild
+                    )
                 |> Task.attempt BuildFetched
 
         FetchJobBuild jbi ->
-            Network.Build.fetchJobBuild jbi
+            Api.get (Endpoints.JobBuild jbi) Concourse.decodeBuild
                 |> Task.attempt BuildFetched
 
         FetchBuildJobDetails buildJob ->
@@ -364,25 +382,31 @@ runEffect effect key csrfToken =
                 |> Task.attempt BuildJobDetailsFetched
 
         FetchBuildHistory job page ->
-            Api.paginatedGet (Endpoints.Builds job page) Concourse.decodeBuild
+            Api.paginatedGet (Endpoints.JobBuilds job page) Concourse.decodeBuild
                 |> Task.attempt BuildHistoryFetched
 
         FetchBuildPrep delay buildId ->
             Process.sleep delay
-                |> Task.andThen (always <| Network.BuildPrep.fetch buildId)
+                |> Task.andThen
+                    (always <|
+                        Api.get (Endpoints.BuildPrep buildId)
+                            Concourse.decodeBuildPrep
+                    )
                 |> Task.attempt (BuildPrepFetched buildId)
 
         FetchBuildPlanAndResources buildId ->
-            Task.map2 (\a b -> ( a, b )) (Network.BuildPlan.fetch buildId) (Network.BuildResources.fetch buildId)
+            Task.map2 (\a b -> ( a, b ))
+                (Api.get (Endpoints.BuildPlan buildId) Concourse.decodeBuildPlan)
+                (Api.get (Endpoints.BuildResources buildId) Concourse.decodeBuildResources)
                 |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchBuildPlan buildId ->
-            Network.BuildPlan.fetch buildId
-                |> Task.map (\p -> ( p, Network.BuildResources.empty ))
+            Api.get (Endpoints.BuildPlan buildId) Concourse.decodeBuildPlan
+                |> Task.map (\p -> ( p, Concourse.emptyBuildResources ))
                 |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchUser ->
-            Network.User.fetchUser
+            Api.get Endpoints.UserInfo Concourse.decodeUser
                 |> Task.attempt UserFetched
 
         SetFavIcon status ->

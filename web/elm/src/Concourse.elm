@@ -57,6 +57,7 @@ module Concourse exposing
     , decodeUser
     , decodeVersion
     , decodeVersionedResource
+    , emptyBuildResources
     , retrieveCSRFToken
     )
 
@@ -258,6 +259,13 @@ type alias BuildResourcesInput =
 type alias BuildResourcesOutput =
     { name : String
     , version : Version
+    }
+
+
+emptyBuildResources : BuildResources
+emptyBuildResources =
+    { inputs = []
+    , outputs = []
     }
 
 

@@ -1,6 +1,5 @@
 module Network.Job exposing
-    ( fetchAllJobs
-    , pause
+    ( pause
     , pauseUnpause
     , rerunJobBuild
     , triggerBuild
@@ -10,14 +9,7 @@ module Network.Job exposing
 import Concourse
 import Http
 import HttpBuilder
-import Json.Decode
 import Task exposing (Task)
-
-
-fetchAllJobs : Task Http.Error (Maybe (List Concourse.Job))
-fetchAllJobs =
-    Http.toTask <|
-        Http.get "/api/v1/jobs" (Json.Decode.nullable <| Json.Decode.list Concourse.decodeJob)
 
 
 triggerBuild : Concourse.JobIdentifier -> Concourse.CSRFToken -> Task Http.Error Concourse.Build

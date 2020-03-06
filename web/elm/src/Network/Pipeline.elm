@@ -1,15 +1,11 @@
 module Network.Pipeline exposing
     ( changeVisibility
-    , fetchPipeline
-    , fetchPipelines
-    , fetchPipelinesForTeam
     , order
     , togglePause
     )
 
 import Concourse
 import Http
-import Json.Decode
 import Json.Encode
 import Message.Message exposing (VisibilityAction(..))
 import Task exposing (Task)
@@ -27,30 +23,6 @@ order teamName pipelineNames csrfToken =
             , timeout = Nothing
             , withCredentials = False
             }
-
-
-fetchPipeline : Concourse.PipelineIdentifier -> Task Http.Error Concourse.Pipeline
-fetchPipeline { teamName, pipelineName } =
-    Http.toTask <|
-        Http.get
-            ("/api/v1/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName)
-            Concourse.decodePipeline
-
-
-fetchPipelines : Task Http.Error (List Concourse.Pipeline)
-fetchPipelines =
-    Http.toTask <|
-        Http.get
-            "/api/v1/pipelines"
-            (Json.Decode.list Concourse.decodePipeline)
-
-
-fetchPipelinesForTeam : String -> Task Http.Error (List Concourse.Pipeline)
-fetchPipelinesForTeam teamName =
-    Http.toTask <|
-        Http.get
-            ("/api/v1/teams/" ++ teamName ++ "/pipelines")
-            (Json.Decode.list Concourse.decodePipeline)
 
 
 togglePause :
