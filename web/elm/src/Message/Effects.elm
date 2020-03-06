@@ -7,6 +7,8 @@ port module Message.Effects exposing
     , toHtmlID
     )
 
+import Api
+import Api.Endpoints as Endpoints
 import Base64
 import Browser.Dom exposing (Element, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
@@ -184,7 +186,7 @@ runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
 runEffect effect key csrfToken =
     case effect of
         FetchJob id ->
-            Network.Job.fetchJob id
+            Api.get (Endpoints.Job id) Concourse.decodeJob
                 |> Task.attempt JobFetched
 
         FetchJobs id ->
@@ -357,7 +359,7 @@ runEffect effect key csrfToken =
                 |> Task.attempt BuildFetched
 
         FetchBuildJobDetails buildJob ->
-            Network.Job.fetchJob buildJob
+            Api.get (Endpoints.Job buildJob) Concourse.decodeJob
                 |> Task.attempt BuildJobDetailsFetched
 
         FetchBuildHistory job page ->
