@@ -94,15 +94,8 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 		TeamID:        step.metadata.TeamID,
 	}
 
-	expires := db.ContainerOwnerExpiries{
-		Min: 5 * time.Minute,
-		Max: 1 * time.Hour,
-	}
-
-	owner := db.NewResourceConfigCheckSessionContainerOwner(
-		step.metadata.ResourceConfigID,
-		step.metadata.BaseResourceTypeID,
-		expires,
+	owner := db.NewCheckContainerOwner(
+		step.metadata.CheckID,
 	)
 
 	chosenWorker, err := step.pool.FindOrChooseWorkerForContainer(

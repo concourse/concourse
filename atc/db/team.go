@@ -154,60 +154,6 @@ func (t *team) FindWorkerForVolume(handle string) (Worker, bool, error) {
 }
 
 func (t *team) Containers() ([]Container, error) {
-	rows, err := selectContainers("c").
-		Join("workers w ON c.worker_name = w.name").
-		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
-		Join("resources r ON r.resource_config_id = rccs.resource_config_id").
-		Join("pipelines p ON p.id = r.pipeline_id").
-		Where(sq.Eq{
-			"p.team_id": t.id,
-		}).
-		Where(sq.Or{
-			sq.Eq{
-				"w.team_id": t.id,
-			}, sq.Eq{
-				"w.team_id": nil,
-			},
-		}).
-		Distinct().
-		RunWith(t.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	var containers []Container
-	containers, err = scanContainers(rows, t.conn, containers)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err = selectContainers("c").
-		Join("workers w ON c.worker_name = w.name").
-		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
-		Join("resource_types rt ON rt.resource_config_id = rccs.resource_config_id").
-		Join("pipelines p ON p.id = rt.pipeline_id").
-		Where(sq.Eq{
-			"p.team_id": t.id,
-		}).
-		Where(sq.Or{
-			sq.Eq{
-				"w.team_id": t.id,
-			}, sq.Eq{
-				"w.team_id": nil,
-			},
-		}).
-		Distinct().
-		RunWith(t.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	containers, err = scanContainers(rows, t.conn, containers)
-	if err != nil {
-		return nil, err
-	}
 
 	rows, err = selectContainers("c").
 		Where(sq.Eq{
@@ -249,19 +195,7 @@ func (t *team) IsContainerWithinTeam(handle string, isCheck bool) (bool, error) 
 	var err error
 
 	if isCheck {
-		err = psql.Select("1").
-			From("resources r").
-			Join("pipelines p ON p.id = r.pipeline_id").
-			Join("resource_configs rc ON rc.id = r.resource_config_id").
-			Join("resource_config_check_sessions rccs ON rccs.resource_config_id = rc.id").
-			Join("containers c ON rccs.id = c.resource_config_check_session_id").
-			Where(sq.Eq{
-				"c.handle":  handle,
-				"p.team_id": t.id,
-			}).
-			RunWith(t.conn).
-			QueryRow().
-			Scan(&ok)
+		return false, nil
 	} else {
 		err = psql.Select("1").
 			From("containers c").
@@ -736,104 +670,8 @@ func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
 }
 
 func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) ([]Container, map[int]time.Time, error) {
-	pipeline, found, err := t.Pipeline(pipelineName)
-	if err != nil {
-		return nil, nil, err
-	}
-	if !found {
-		return nil, nil, nil
-	}
 
-	resource, found, err := pipeline.Resource(resourceName)
-	if err != nil {
-		return nil, nil, err
-	}
-	if !found {
-		return nil, nil, nil
-	}
-
-	pipelineResourceTypes, err := pipeline.ResourceTypes()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	variables, err := pipeline.Variables(logger, secretManager, varSourcePool)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	versionedResourceTypes := pipelineResourceTypes.Deserialize()
-
-	source, err := creds.NewSource(variables, resource.Source()).Evaluate()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, versionedResourceTypes).Evaluate()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	resourceConfigFactory := NewResourceConfigFactory(t.conn, t.lockFactory)
-	resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-		resource.Type(),
-		source,
-		resourceTypes,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	rows, err := selectContainers("c").
-		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
-		Where(sq.Eq{
-			"rccs.resource_config_id": resourceConfig.ID(),
-		}).
-		Distinct().
-		RunWith(t.conn).
-		Query()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var containers []Container
-
-	containers, err = scanContainers(rows, t.conn, containers)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	rows, err = psql.Select("c.id", "rccs.expires_at").
-		From("containers c").
-		Join("resource_config_check_sessions rccs ON rccs.id = c.resource_config_check_session_id").
-		Where(sq.Eq{
-			"rccs.resource_config_id": resourceConfig.ID(),
-		}).
-		Distinct().
-		RunWith(t.conn).
-		Query()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	defer Close(rows)
-
-	checkContainersExpiresAt := make(map[int]time.Time)
-	for rows.Next() {
-		var (
-			id        int
-			expiresAt pq.NullTime
-		)
-
-		err = rows.Scan(&id, &expiresAt)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		checkContainersExpiresAt[id] = expiresAt.Time
-	}
-
-	return containers, checkContainersExpiresAt, nil
+	return []Container{}, nil, nil
 }
 
 type UpdateName struct {

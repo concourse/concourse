@@ -326,7 +326,7 @@ var _ = Describe("Worker", func() {
 						Expect(err).ToNot(HaveOccurred())
 					})
 
-					It("does not duplicate the resource config check session", func() {
+					FIt("does not duplicate the resource config check session", func() {
 						var checkSessions int
 						err := dbConn.QueryRow("SELECT COUNT(*) FROM resource_config_check_sessions").Scan(&checkSessions)
 						Expect(err).ToNot(HaveOccurred())
