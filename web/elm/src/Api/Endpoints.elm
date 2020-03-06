@@ -10,6 +10,7 @@ type Endpoint
     = Job Concourse.JobIdentifier
     | Jobs Concourse.PipelineIdentifier
     | Builds Concourse.JobIdentifier (Maybe Page)
+    | Resource Concourse.ResourceIdentifier
 
 
 toUrl : Endpoint -> String
@@ -17,43 +18,27 @@ toUrl endpoint =
     let
         basePath =
             [ "api", "v1" ]
+
+        pipelinePath { pipelineName, teamName } =
+            basePath ++ [ "teams", teamName, "pipelines", pipelineName ]
     in
     case endpoint of
-        Job { teamName, pipelineName, jobName } ->
+        Job id ->
             Url.Builder.absolute
-                (basePath
-                    ++ [ "teams"
-                       , teamName
-                       , "pipelines"
-                       , pipelineName
-                       , "jobs"
-                       , jobName
-                       ]
-                )
+                (pipelinePath id ++ [ "jobs", id.jobName ])
                 []
 
-        Jobs { teamName, pipelineName } ->
+        Jobs id ->
             Url.Builder.absolute
-                (basePath
-                    ++ [ "teams"
-                       , teamName
-                       , "pipelines"
-                       , pipelineName
-                       , "jobs"
-                       ]
-                )
+                (pipelinePath id ++ [ "jobs" ])
                 []
 
-        Builds { teamName, pipelineName, jobName } page ->
+        Builds id page ->
             Url.Builder.absolute
-                (basePath
-                    ++ [ "teams"
-                       , teamName
-                       , "pipelines"
-                       , pipelineName
-                       , "jobs"
-                       , jobName
-                       , "builds"
-                       ]
-                )
+                (pipelinePath id ++ [ "jobs", id.jobName, "builds" ])
                 (Network.Pagination.params page)
+
+        Resource id ->
+            Url.Builder.absolute
+                (pipelinePath id ++ [ "resources", id.resourceName ])
+                []

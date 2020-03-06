@@ -199,7 +199,7 @@ runEffect effect key csrfToken =
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
-            Network.Resource.fetchResource id
+            Api.get (Endpoints.Resource id) Concourse.decodeResource
                 |> Task.attempt ResourceFetched
 
         FetchCheck id ->
