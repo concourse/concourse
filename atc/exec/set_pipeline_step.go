@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -61,6 +62,13 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 
 	step.delegate.Initializing(logger)
 
+	variables := step.delegate.Variables()
+	interpolatedPlan, err := creds.NewSetPipelinePlan(variables, step.plan).Evaluate()
+	if err != nil {
+		return err
+	}
+	step.plan = interpolatedPlan
+
 	stdout := step.delegate.Stdout()
 	stderr := step.delegate.Stderr()
 
@@ -77,7 +85,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 		client: step.client,
 	}
 
-	err := source.Validate()
+	err = source.Validate()
 	if err != nil {
 		return err
 	}
