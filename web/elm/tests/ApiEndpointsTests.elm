@@ -46,4 +46,13 @@ all =
                     (Just { limit = 1, direction = Pagination.Since 1 })
                     |> toUrl
                     |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/jobs/job/builds?limit=1&since=1"
+        , test "Resource" <|
+            \_ ->
+                Resource
+                    { resourceName = "resource"
+                    , pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toUrl
+                    |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource"
         ]

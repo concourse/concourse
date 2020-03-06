@@ -6,7 +6,6 @@ module Network.Resource exposing
     , fetchCheck
     , fetchInputTo
     , fetchOutputOf
-    , fetchResource
     , fetchResourcesRaw
     , fetchVersionedResource
     , fetchVersionedResources
@@ -28,20 +27,6 @@ fetchAllResources : Task Http.Error (Maybe (List Concourse.Resource))
 fetchAllResources =
     Http.toTask <|
         Http.get "/api/v1/resources" (Json.Decode.nullable <| Json.Decode.list Concourse.decodeResource)
-
-
-fetchResource : Concourse.ResourceIdentifier -> Task Http.Error Concourse.Resource
-fetchResource rid =
-    Http.toTask <|
-        Http.get
-            ("/api/v1/teams/"
-                ++ rid.teamName
-                ++ "/pipelines/"
-                ++ rid.pipelineName
-                ++ "/resources/"
-                ++ rid.resourceName
-            )
-            Concourse.decodeResource
 
 
 fetchResourcesRaw : Concourse.PipelineIdentifier -> Task Http.Error Json.Decode.Value
