@@ -46,8 +46,9 @@ import List.Extra
 import Login.Login as Login
 import Maybe.Extra
 import Message.Callback exposing (Callback(..), TooltipPolicy(..))
-import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
+import Message.Effects as Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
+import Message.ScrollDirection as ScrollDirection
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..), Subscription(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Routes
@@ -72,6 +73,7 @@ bodyId =
 type alias Flags =
     { highlight : Routes.Highlight
     , pageType : BuildPageType
+    , fromBuildPage : Maybe Build.Header.Models.BuildPageType
     }
 
 
@@ -148,22 +150,30 @@ subscriptions model =
 
 
 changeToBuild : Flags -> ET Model
-changeToBuild { highlight, pageType } ( model, effects ) =
-    ( { model
-        | prep = Nothing
-        , output = Empty
-        , autoScroll = True
-        , page = pageType
-        , highlight = highlight
-      }
-    , case pageType of
-        OneOffBuildPage buildId ->
-            effects
-                ++ [ CloseBuildEventStream, FetchBuild 0 buildId ]
+changeToBuild { highlight, pageType, fromBuildPage } ( model, effects ) =
+    let
+        newModel =
+            { model | page = pageType }
+    in
+    (if fromBuildPage == Just pageType then
+        ( newModel, effects )
 
-        JobBuildPage jbi ->
-            effects
-                ++ [ CloseBuildEventStream, FetchJobBuild jbi ]
+     else
+        ( { newModel
+            | prep = Nothing
+            , output = Empty
+            , autoScroll = True
+            , highlight = highlight
+          }
+        , case pageType of
+            OneOffBuildPage buildId ->
+                effects
+                    ++ [ CloseBuildEventStream, FetchBuild 0 buildId ]
+
+            JobBuildPage jbi ->
+                effects
+                    ++ [ CloseBuildEventStream, FetchJobBuild jbi ]
+        )
     )
         |> Header.changeToBuild pageType
 
@@ -286,6 +296,9 @@ handleCallback action ( model, effects ) =
             -- https://github.com/concourse/concourse/issues/3201
             ( model, effects )
 
+        ScrollCompleted (ScrollDirection.ToId _) _ ->
+            ( { model | highlight = Routes.HighlightNothing }, effects )
+
         _ ->
             ( model, effects )
     )
@@ -349,14 +362,14 @@ handleDelivery session delivery ( model, effects ) =
                             ScrollWindow ->
                                 effects
                                     ++ [ Effects.Scroll
-                                            Effects.ToBottom
+                                            ScrollDirection.ToBottom
                                             bodyId
                                        ]
 
                             ScrollToID id ->
                                 effects
                                     ++ [ Effects.Scroll
-                                            (Effects.ToId id)
+                                            (ScrollDirection.ToId id)
                                             bodyId
                                        ]
 

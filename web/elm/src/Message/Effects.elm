@@ -1,6 +1,5 @@
 port module Message.Effects exposing
     ( Effect(..)
-    , ScrollDirection(..)
     , renderPipeline
     , renderSvgIcon
     , runEffect
@@ -9,7 +8,7 @@ port module Message.Effects exposing
     )
 
 import Base64
-import Browser.Dom exposing (Viewport, getViewport, getViewportOf, setViewportOf)
+import Browser.Dom exposing (Element, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
@@ -23,6 +22,7 @@ import Message.Message
         , VersionToggleAction(..)
         , VisibilityAction(..)
         )
+import Message.ScrollDirection exposing (ScrollDirection(..))
 import Network.Build
 import Network.BuildPlan
 import Network.BuildPrep
@@ -178,15 +178,6 @@ type Effect
 
 type alias VersionId =
     Concourse.VersionedResourceIdentifier
-
-
-type ScrollDirection
-    = ToTop
-    | Down
-    | Up
-    | ToBottom
-    | Sideways Float
-    | ToId String
 
 
 runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
@@ -398,23 +389,8 @@ runEffect effect key csrfToken =
             Network.Build.abort buildId csrfToken
                 |> Task.attempt BuildAborted
 
-        Scroll ToTop id ->
-            scroll id id (always 0) (always 0)
-
-        Scroll Down id ->
-            scroll id id (always 0) (.viewport >> .y >> (+) 60)
-
-        Scroll Up id ->
-            scroll id id (always 0) (.viewport >> .y >> (+) -60)
-
-        Scroll ToBottom id ->
-            scroll id id (always 0) (.scene >> .height)
-
-        Scroll (Sideways delta) id ->
-            scroll id id (.viewport >> .x >> (+) -delta) (always 0)
-
-        Scroll (ToId id) idOfThingToScroll ->
-            scroll id idOfThingToScroll (.viewport >> .x) (.viewport >> .y)
+        Scroll direction id ->
+            scroll direction id
 
         SaveToken tokenValue ->
             saveToken tokenValue
@@ -490,22 +466,86 @@ toHtmlID domId =
             ""
 
 
-scroll :
+scrollToIdPadding : Float
+scrollToIdPadding =
+    60
+
+
+scroll : ScrollDirection -> String -> Cmd Callback
+scroll direction id =
+    (case direction of
+        ToTop ->
+            scrollCoords id id (always 0) (always 0)
+
+        Down ->
+            scrollCoords id id (always 0) (.srcElem >> .viewport >> .y >> (+) 60)
+
+        Up ->
+            scrollCoords id id (always 0) (.srcElem >> .viewport >> .y >> (+) -60)
+
+        ToBottom ->
+            scrollCoords id id (always 0) (.parentElem >> .scene >> .height)
+
+        Sideways delta ->
+            scrollCoords id id (.srcElem >> .viewport >> .x >> (+) -delta) (always 0)
+
+        ToId toId ->
+            scrollCoords toId
+                id
+                (\{ srcElem, parentElem } ->
+                    parentElem.viewport.x + srcElem.element.x - parentElem.element.x - scrollToIdPadding
+                )
+                (\{ srcElem, parentElem } ->
+                    parentElem.viewport.y + srcElem.element.y - parentElem.element.y - scrollToIdPadding
+                )
+    )
+        |> Task.attempt (\_ -> ScrollCompleted direction id)
+
+
+scrollCoords :
     String
     -> String
-    -> (Viewport -> Float)
-    -> (Viewport -> Float)
-    -> Cmd Callback
-scroll srcId idOfThingToScroll getX getY =
-    getViewportOf srcId
+    -> ({ srcElem : Element, parentElem : Element } -> Float)
+    -> ({ srcElem : Element, parentElem : Element } -> Float)
+    -> Task.Task Browser.Dom.Error ()
+scrollCoords srcId idOfThingToScroll getX getY =
+    Task.sequence [ getElement srcId, getElement idOfThingToScroll ]
         |> Task.andThen
-            (\info ->
-                setViewportOf
-                    idOfThingToScroll
-                    (getX info)
-                    (getY info)
+            (\elems ->
+                getViewportOf idOfThingToScroll
+                    |> Task.andThen
+                        (\parentViewport ->
+                            Task.succeed
+                                { elems = elems
+                                , parentViewport = parentViewport
+                                }
+                        )
             )
-        |> Task.attempt (\_ -> EmptyCallback)
+        |> Task.andThen
+            (\{ elems, parentViewport } ->
+                case elems of
+                    [ srcInfo, parentInfo ] ->
+                        let
+                            info =
+                                { srcElem = srcInfo
+
+                                -- https://github.com/elm/browser/issues/86
+                                , parentElem =
+                                    { parentInfo
+                                        | viewport = parentViewport.viewport
+                                        , scene = parentViewport.scene
+                                    }
+                                }
+                        in
+                        setViewportOf
+                            idOfThingToScroll
+                            (getX info)
+                            (getY info)
+
+                    _ ->
+                        Task.fail <|
+                            Browser.Dom.NotFound "unexpected number of elements"
+            )
 
 
 faviconName : Maybe BuildStatus -> String

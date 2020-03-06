@@ -3,6 +3,7 @@ module Routes exposing
     , Route(..)
     , SearchType(..)
     , StepID
+    , Transition
     , buildRoute
     , dashboardRoute
     , extractPid
@@ -61,6 +62,12 @@ type Highlight
 
 type alias StepID =
     String
+
+
+type alias Transition =
+    { from : Route
+    , to : Route
+    }
 
 
 

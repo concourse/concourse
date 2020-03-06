@@ -70,3 +70,7 @@ errors from the library we used before.
 
 * @aledeganopix4d added a `last updated` column to the output of `fly pipelines` showing
 the last date where the pipeline was set or reset. #5113
+
+#### <sub><sup><a name="5275" href="#5275">:link:</a></sup></sub> fix
+
+* Ensure the build page doesn't get reloaded when you highlight a log line, and fix auto-scrolling to a highlighted log line. #5275

@@ -22,8 +22,9 @@ import Html exposing (Html)
 import List.Extra
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
-import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
+import Message.Effects as Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
+import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Subscription
     exposing
         ( Delivery(..)
