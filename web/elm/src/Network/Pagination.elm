@@ -1,4 +1,4 @@
-module Network.Pagination exposing (fetch, parseLinks)
+module Network.Pagination exposing (fetch, params, parseLinks, parsePagination)
 
 import Concourse.Pagination
     exposing
