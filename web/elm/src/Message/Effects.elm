@@ -352,11 +352,10 @@ runEffect effect key csrfToken =
             Api.request
                 { endpoint = Endpoints.Logout
                 , method = Api.Get
-                , expect = Http.expectString
+                , expect = Api.ignoreResponse
                 , body = Http.emptyBody
                 , headers = []
                 }
-                |> Task.andThen (\_ -> Task.succeed ())
                 |> Task.attempt LoggedOut
 
         GetScreenSize ->
