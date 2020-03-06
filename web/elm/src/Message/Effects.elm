@@ -195,7 +195,7 @@ runEffect effect key csrfToken =
                 |> Task.attempt JobsFetched
 
         FetchJobBuilds id page ->
-            Network.Build.fetchJobBuilds id page
+            Api.paginatedGet (Endpoints.Builds id page) Concourse.decodeBuild
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
@@ -364,7 +364,7 @@ runEffect effect key csrfToken =
                 |> Task.attempt BuildJobDetailsFetched
 
         FetchBuildHistory job page ->
-            Network.Build.fetchJobBuilds job page
+            Api.paginatedGet (Endpoints.Builds job page) Concourse.decodeBuild
                 |> Task.attempt BuildHistoryFetched
 
         FetchBuildPrep delay buildId ->
