@@ -1,4 +1,13 @@
-module Api exposing (Method(..), get, ignoreResponse, paginatedGet, post, request)
+module Api exposing
+    ( Method(..)
+    , Request
+    , expectJson
+    , get
+    , ignoreResponse
+    , paginatedGet
+    , post
+    , request
+    )
 
 import Api.Endpoints exposing (Endpoint, toPath)
 import Concourse
@@ -15,6 +24,16 @@ type Method
     | Post
 
 
+type alias Request a =
+    { endpoint : Endpoint
+    , query : List Url.Builder.QueryParameter
+    , method : Method
+    , headers : List Http.Header
+    , body : Http.Body
+    , expect : Http.Expect a
+    }
+
+
 methodToString : Method -> String
 methodToString m =
     case m of
@@ -25,15 +44,7 @@ methodToString m =
             "POST"
 
 
-request :
-    { endpoint : Endpoint
-    , query : List Url.Builder.QueryParameter
-    , method : Method
-    , headers : List Http.Header
-    , body : Http.Body
-    , expect : Http.Expect a
-    }
-    -> Task Http.Error a
+request : Request a -> Task Http.Error a
 request { endpoint, method, headers, body, expect, query } =
     Http.request
         { method = methodToString method
@@ -47,40 +58,48 @@ request { endpoint, method, headers, body, expect, query } =
         |> Http.toTask
 
 
-get : Endpoint -> Decoder a -> Task Http.Error a
-get endpoint decoder =
-    request
-        { method = Get
-        , headers = []
-        , endpoint = endpoint
-        , query = []
-        , body = Http.emptyBody
-        , expect = Http.expectJson decoder
-        }
+get : Endpoint -> Request ()
+get endpoint =
+    { method = Get
+    , headers = []
+    , endpoint = endpoint
+    , query = []
+    , body = Http.emptyBody
+    , expect = ignoreResponse
+    }
 
 
-paginatedGet : Endpoint -> Maybe Page -> Decoder a -> Task Http.Error (Paginated a)
+paginatedGet : Endpoint -> Maybe Page -> Decoder a -> Request (Paginated a)
 paginatedGet endpoint page decoder =
-    request
-        { method = Get
-        , headers = []
-        , endpoint = endpoint
-        , query = Network.Pagination.params page
-        , body = Http.emptyBody
-        , expect = Http.expectStringResponse (parsePagination decoder)
-        }
+    { method = Get
+    , headers = []
+    , endpoint = endpoint
+    , query = Network.Pagination.params page
+    , body = Http.emptyBody
+    , expect = Http.expectStringResponse (parsePagination decoder)
+    }
 
 
-post : Endpoint -> Concourse.CSRFToken -> Http.Body -> Task Http.Error ()
+post : Endpoint -> Concourse.CSRFToken -> Http.Body -> Request ()
 post endpoint csrfToken body =
-    request
-        { method = Post
-        , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
-        , endpoint = endpoint
-        , query = []
-        , body = body
-        , expect = ignoreResponse
-        }
+    { method = Post
+    , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+    , endpoint = endpoint
+    , query = []
+    , body = body
+    , expect = ignoreResponse
+    }
+
+
+expectJson : Decoder b -> Request a -> Request b
+expectJson decoder r =
+    { method = r.method
+    , headers = r.headers
+    , endpoint = r.endpoint
+    , query = r.query
+    , body = r.body
+    , expect = Http.expectJson decoder
+    }
 
 
 ignoreResponse : Http.Expect ()
