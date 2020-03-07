@@ -15,7 +15,6 @@ import Browser.Navigation as Navigation
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
-import Http
 import Json.Decode
 import Json.Encode
 import Maybe exposing (Maybe)
@@ -182,90 +181,117 @@ runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
 runEffect effect key csrfToken =
     case effect of
         FetchJob id ->
-            Api.get (Endpoints.Job id) Concourse.decodeJob
+            Api.get (Endpoints.Job id)
+                |> Api.expectJson Concourse.decodeJob
+                |> Api.request
                 |> Task.attempt JobFetched
 
         FetchJobs id ->
-            Api.get (Endpoints.Jobs id) Json.Decode.value
+            Api.get (Endpoints.Jobs id)
+                |> Api.expectJson Json.Decode.value
+                |> Api.request
                 |> Task.attempt JobsFetched
 
         FetchJobBuilds id page ->
             Api.paginatedGet (Endpoints.JobBuilds id) page Concourse.decodeBuild
+                |> Api.request
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
-            Api.get (Endpoints.Resource id) Concourse.decodeResource
+            Api.get (Endpoints.Resource id)
+                |> Api.expectJson Concourse.decodeResource
+                |> Api.request
                 |> Task.attempt ResourceFetched
 
         FetchCheck id ->
-            Api.get (Endpoints.Check id) Concourse.decodeCheck
+            Api.get (Endpoints.Check id)
+                |> Api.expectJson Concourse.decodeCheck
+                |> Api.request
                 |> Task.attempt Checked
 
         FetchVersionedResources id paging ->
             Api.paginatedGet (Endpoints.ResourceVersions id)
                 paging
                 Concourse.decodeVersionedResource
+                |> Api.request
                 |> Task.map (\b -> ( paging, b ))
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
-            Api.get (Endpoints.Resources id) Json.Decode.value
+            Api.get (Endpoints.Resources id)
+                |> Api.expectJson Json.Decode.value
+                |> Api.request
                 |> Task.attempt ResourcesFetched
 
         FetchBuildResources id ->
-            Api.get (Endpoints.BuildResources id) Concourse.decodeBuildResources
+            Api.get (Endpoints.BuildResources id)
+                |> Api.expectJson Concourse.decodeBuildResources
+                |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt BuildResourcesFetched
 
         FetchPipeline id ->
-            Api.get (Endpoints.Pipeline id) Concourse.decodePipeline
+            Api.get (Endpoints.Pipeline id)
+                |> Api.expectJson Concourse.decodePipeline
+                |> Api.request
                 |> Task.attempt PipelineFetched
 
         FetchPipelines team ->
             Api.get (Endpoints.TeamPipelines team)
-                (Json.Decode.list Concourse.decodePipeline)
+                |> Api.expectJson (Json.Decode.list Concourse.decodePipeline)
+                |> Api.request
                 |> Task.attempt PipelinesFetched
 
         FetchAllResources ->
             Api.get Endpoints.AllResources
-                (Json.Decode.nullable <|
-                    Json.Decode.list Concourse.decodeResource
-                )
+                |> Api.expectJson
+                    (Json.Decode.nullable <|
+                        Json.Decode.list Concourse.decodeResource
+                    )
+                |> Api.request
                 |> Task.map (Maybe.withDefault [])
                 |> Task.attempt AllResourcesFetched
 
         FetchAllJobs ->
             Api.get Endpoints.AllJobs
-                (Json.Decode.nullable <|
-                    Json.Decode.list Concourse.decodeJob
-                )
+                |> Api.expectJson
+                    (Json.Decode.nullable <|
+                        Json.Decode.list Concourse.decodeJob
+                    )
+                |> Api.request
                 |> Task.map (Maybe.withDefault [])
                 |> Task.attempt AllJobsFetched
 
         FetchClusterInfo ->
-            Api.get Endpoints.ClusterInfo Concourse.decodeInfo
+            Api.get Endpoints.ClusterInfo
+                |> Api.expectJson Concourse.decodeInfo
+                |> Api.request
                 |> Task.attempt ClusterInfoFetched
 
         FetchInputTo id ->
             Api.get (Endpoints.ResourceVersionInputTo id)
-                (Json.Decode.list Concourse.decodeBuild)
+                |> Api.expectJson (Json.Decode.list Concourse.decodeBuild)
+                |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt InputToFetched
 
         FetchOutputOf id ->
             Api.get (Endpoints.ResourceVersionOutputOf id)
-                (Json.Decode.list Concourse.decodeBuild)
+                |> Api.expectJson (Json.Decode.list Concourse.decodeBuild)
+                |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt OutputOfFetched
 
         FetchAllTeams ->
             Api.get Endpoints.AllTeams
-                (Json.Decode.list Concourse.decodeTeam)
+                |> Api.expectJson (Json.Decode.list Concourse.decodeTeam)
+                |> Api.request
                 |> Task.attempt AllTeamsFetched
 
         FetchAllPipelines ->
             Api.get Endpoints.AllPipelines
-                (Json.Decode.list Concourse.decodePipeline)
+                |> Api.expectJson (Json.Decode.list Concourse.decodePipeline)
+                |> Api.request
                 |> Task.attempt AllPipelinesFetched
 
         GetCurrentTime ->
@@ -350,14 +376,8 @@ runEffect effect key csrfToken =
                 |> Task.attempt (PipelinesOrdered teamName)
 
         SendLogOutRequest ->
-            Api.request
-                { endpoint = Endpoints.Logout
-                , method = Api.Get
-                , expect = Api.ignoreResponse
-                , query = []
-                , body = Http.emptyBody
-                , headers = []
-                }
+            Api.get Endpoints.Logout
+                |> Api.request
                 |> Task.attempt LoggedOut
 
         GetScreenSize ->
@@ -369,45 +389,65 @@ runEffect effect key csrfToken =
         FetchBuild delay buildId ->
             Process.sleep delay
                 |> Task.andThen
-                    (always <|
-                        Api.get (Endpoints.Build buildId) Concourse.decodeBuild
+                    (always
+                        (Api.get (Endpoints.Build buildId)
+                            |> Api.expectJson Concourse.decodeBuild
+                            |> Api.request
+                        )
                     )
                 |> Task.attempt BuildFetched
 
         FetchJobBuild jbi ->
-            Api.get (Endpoints.JobBuild jbi) Concourse.decodeBuild
+            Api.get (Endpoints.JobBuild jbi)
+                |> Api.expectJson Concourse.decodeBuild
+                |> Api.request
                 |> Task.attempt BuildFetched
 
         FetchBuildJobDetails buildJob ->
-            Api.get (Endpoints.Job buildJob) Concourse.decodeJob
+            Api.get (Endpoints.Job buildJob)
+                |> Api.expectJson Concourse.decodeJob
+                |> Api.request
                 |> Task.attempt BuildJobDetailsFetched
 
         FetchBuildHistory job page ->
             Api.paginatedGet (Endpoints.JobBuilds job) page Concourse.decodeBuild
+                |> Api.request
                 |> Task.attempt BuildHistoryFetched
 
         FetchBuildPrep delay buildId ->
             Process.sleep delay
                 |> Task.andThen
-                    (always <|
-                        Api.get (Endpoints.BuildPrep buildId)
-                            Concourse.decodeBuildPrep
+                    (always
+                        (Api.get (Endpoints.BuildPrep buildId)
+                            |> Api.expectJson Concourse.decodeBuildPrep
+                            |> Api.request
+                        )
                     )
                 |> Task.attempt (BuildPrepFetched buildId)
 
         FetchBuildPlanAndResources buildId ->
             Task.map2 (\a b -> ( a, b ))
-                (Api.get (Endpoints.BuildPlan buildId) Concourse.decodeBuildPlan)
-                (Api.get (Endpoints.BuildResources buildId) Concourse.decodeBuildResources)
+                (Api.get (Endpoints.BuildPlan buildId)
+                    |> Api.expectJson Concourse.decodeBuildPlan
+                    |> Api.request
+                )
+                (Api.get (Endpoints.BuildResources buildId)
+                    |> Api.expectJson Concourse.decodeBuildResources
+                    |> Api.request
+                )
                 |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchBuildPlan buildId ->
-            Api.get (Endpoints.BuildPlan buildId) Concourse.decodeBuildPlan
+            Api.get (Endpoints.BuildPlan buildId)
+                |> Api.expectJson Concourse.decodeBuildPlan
+                |> Api.request
                 |> Task.map (\p -> ( p, Concourse.emptyBuildResources ))
                 |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchUser ->
-            Api.get Endpoints.UserInfo Concourse.decodeUser
+            Api.get Endpoints.UserInfo
+                |> Api.expectJson Concourse.decodeUser
+                |> Api.request
                 |> Task.attempt UserFetched
 
         SetFavIcon status ->
