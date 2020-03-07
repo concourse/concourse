@@ -1,6 +1,5 @@
 module Api exposing
-    ( Method(..)
-    , Request
+    ( Request
     , expectJson
     , get
     , ignoreResponse
@@ -19,35 +18,20 @@ import Task exposing (Task)
 import Url.Builder
 
 
-type Method
-    = Get
-    | Post
-
-
 type alias Request a =
     { endpoint : Endpoint
     , query : List Url.Builder.QueryParameter
-    , method : Method
+    , method : String
     , headers : List Http.Header
     , body : Http.Body
     , expect : Http.Expect a
     }
 
 
-methodToString : Method -> String
-methodToString m =
-    case m of
-        Get ->
-            "GET"
-
-        Post ->
-            "POST"
-
-
 request : Request a -> Task Http.Error a
 request { endpoint, method, headers, body, expect, query } =
     Http.request
-        { method = methodToString method
+        { method = method
         , headers = headers
         , url = Url.Builder.absolute (toPath endpoint) query
         , body = body
@@ -60,7 +44,7 @@ request { endpoint, method, headers, body, expect, query } =
 
 get : Endpoint -> Request ()
 get endpoint =
-    { method = Get
+    { method = "GET"
     , headers = []
     , endpoint = endpoint
     , query = []
@@ -71,7 +55,7 @@ get endpoint =
 
 paginatedGet : Endpoint -> Maybe Page -> Decoder a -> Request (Paginated a)
 paginatedGet endpoint page decoder =
-    { method = Get
+    { method = "GET"
     , headers = []
     , endpoint = endpoint
     , query = Network.Pagination.params page
@@ -80,13 +64,13 @@ paginatedGet endpoint page decoder =
     }
 
 
-post : Endpoint -> Concourse.CSRFToken -> Http.Body -> Request ()
-post endpoint csrfToken body =
-    { method = Post
+post : Endpoint -> Concourse.CSRFToken -> Request ()
+post endpoint csrfToken =
+    { method = "POST"
     , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
     , endpoint = endpoint
     , query = []
-    , body = body
+    , body = Http.emptyBody
     , expect = ignoreResponse
     }
 
