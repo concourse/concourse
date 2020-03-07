@@ -1,6 +1,7 @@
-module Api exposing (Method(..), get, ignoreResponse, paginatedGet, request)
+module Api exposing (Method(..), get, ignoreResponse, paginatedGet, post, request)
 
 import Api.Endpoints exposing (Endpoint, toUrl)
+import Concourse
 import Concourse.Pagination exposing (Paginated)
 import Http
 import Json.Decode exposing (Decoder)
@@ -10,6 +11,7 @@ import Task exposing (Task)
 
 type Method
     = Get
+    | Post
 
 
 methodToString : Method -> String
@@ -17,6 +19,9 @@ methodToString m =
     case m of
         Get ->
             "GET"
+
+        Post ->
+            "POST"
 
 
 request :
@@ -59,6 +64,17 @@ paginatedGet endpoint decoder =
         , endpoint = endpoint
         , body = Http.emptyBody
         , expect = Http.expectStringResponse (parsePagination decoder)
+        }
+
+
+post : Endpoint -> Concourse.CSRFToken -> Http.Body -> Task Http.Error ()
+post endpoint csrfToken body =
+    request
+        { method = Post
+        , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+        , endpoint = endpoint
+        , body = body
+        , expect = ignoreResponse
         }
 
 
