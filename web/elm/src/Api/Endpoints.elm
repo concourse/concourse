@@ -1,7 +1,6 @@
-module Api.Endpoints exposing (Endpoint(..), toUrl)
+module Api.Endpoints exposing (Endpoint(..), toPath)
 
 import Concourse
-import Concourse.Pagination exposing (Page)
 import Network.Pagination
 import Url.Builder
 
@@ -11,12 +10,12 @@ type Endpoint
     | Jobs Concourse.PipelineIdentifier
     | AllJobs
     | JobBuild Concourse.JobBuildIdentifier
-    | JobBuilds Concourse.JobIdentifier (Maybe Page)
+    | JobBuilds Concourse.JobIdentifier
     | Build Concourse.BuildId
     | BuildPlan Concourse.BuildId
     | BuildPrep Concourse.BuildId
     | Resource Concourse.ResourceIdentifier
-    | ResourceVersions Concourse.ResourceIdentifier (Maybe Page)
+    | ResourceVersions Concourse.ResourceIdentifier
     | ResourceVersionInputTo Concourse.VersionedResourceIdentifier
     | ResourceVersionOutputOf Concourse.VersionedResourceIdentifier
     | Resources Concourse.PipelineIdentifier
@@ -32,8 +31,8 @@ type Endpoint
     | Logout
 
 
-toUrl : Endpoint -> String
-toUrl endpoint =
+toPath : Endpoint -> List String
+toPath endpoint =
     let
         basePath =
             [ "api", "v1" ]
@@ -46,130 +45,82 @@ toUrl endpoint =
     in
     case endpoint of
         Job id ->
-            Url.Builder.absolute
-                (pipelinePath id ++ [ "jobs", id.jobName ])
-                []
+            pipelinePath id ++ [ "jobs", id.jobName ]
 
         Jobs id ->
-            Url.Builder.absolute
-                (pipelinePath id ++ [ "jobs" ])
-                []
+            pipelinePath id ++ [ "jobs" ]
 
         AllJobs ->
-            Url.Builder.absolute
-                (basePath ++ [ "jobs" ])
-                []
+            basePath ++ [ "jobs" ]
 
         JobBuild id ->
-            Url.Builder.absolute
-                (pipelinePath id ++ [ "jobs", id.jobName, "builds", id.buildName ])
-                []
+            pipelinePath id ++ [ "jobs", id.jobName, "builds", id.buildName ]
 
-        JobBuilds id page ->
-            Url.Builder.absolute
-                (pipelinePath id ++ [ "jobs", id.jobName, "builds" ])
-                (Network.Pagination.params page)
+        JobBuilds id ->
+            pipelinePath id ++ [ "jobs", id.jobName, "builds" ]
 
         Build id ->
-            Url.Builder.absolute
-                (basePath ++ [ "builds", String.fromInt id ])
-                []
+            basePath ++ [ "builds", String.fromInt id ]
 
         BuildPlan id ->
-            Url.Builder.absolute
-                (basePath ++ [ "builds", String.fromInt id, "plan" ])
-                []
+            basePath ++ [ "builds", String.fromInt id, "plan" ]
 
         BuildPrep id ->
-            Url.Builder.absolute
-                (basePath ++ [ "builds", String.fromInt id, "preparation" ])
-                []
+            basePath ++ [ "builds", String.fromInt id, "preparation" ]
 
         Resource id ->
-            Url.Builder.absolute
-                (pipelinePath id ++ [ "resources", id.resourceName ])
-                []
+            pipelinePath id ++ [ "resources", id.resourceName ]
 
-        ResourceVersions id page ->
-            Url.Builder.absolute
-                (pipelinePath id ++ [ "resources", id.resourceName, "versions" ])
-                (Network.Pagination.params page)
+        ResourceVersions id ->
+            pipelinePath id ++ [ "resources", id.resourceName, "versions" ]
 
         ResourceVersionInputTo id ->
-            Url.Builder.absolute
-                (pipelinePath id
-                    ++ [ "resources"
-                       , id.resourceName
-                       , "versions"
-                       , String.fromInt id.versionID
-                       , "input_to"
-                       ]
-                )
-                []
+            pipelinePath id
+                ++ [ "resources"
+                   , id.resourceName
+                   , "versions"
+                   , String.fromInt id.versionID
+                   , "input_to"
+                   ]
 
         ResourceVersionOutputOf id ->
-            Url.Builder.absolute
-                (pipelinePath id
-                    ++ [ "resources"
-                       , id.resourceName
-                       , "versions"
-                       , String.fromInt id.versionID
-                       , "output_of"
-                       ]
-                )
-                []
+            pipelinePath id
+                ++ [ "resources"
+                   , id.resourceName
+                   , "versions"
+                   , String.fromInt id.versionID
+                   , "output_of"
+                   ]
 
         Resources id ->
-            Url.Builder.absolute
-                (pipelinePath id ++ [ "resources" ])
-                []
+            pipelinePath id ++ [ "resources" ]
 
         BuildResources id ->
-            Url.Builder.absolute
-                (basePath ++ [ "builds", String.fromInt id, "resources" ])
-                []
+            basePath ++ [ "builds", String.fromInt id, "resources" ]
 
         AllResources ->
-            Url.Builder.absolute
-                (basePath ++ [ "resources" ])
-                []
+            basePath ++ [ "resources" ]
 
         Check id ->
-            Url.Builder.absolute
-                (basePath ++ [ "checks", String.fromInt id ])
-                []
+            basePath ++ [ "checks", String.fromInt id ]
 
         AllPipelines ->
-            Url.Builder.absolute
-                (basePath ++ [ "pipelines" ])
-                []
+            basePath ++ [ "pipelines" ]
 
         Pipeline id ->
-            Url.Builder.absolute
-                (pipelinePath id)
-                []
+            pipelinePath id
 
         AllTeams ->
-            Url.Builder.absolute
-                (basePath ++ [ "teams" ])
-                []
+            basePath ++ [ "teams" ]
 
         TeamPipelines teamName ->
-            Url.Builder.absolute
-                (basePath ++ [ "teams", teamName, "pipelines" ])
-                []
+            basePath ++ [ "teams", teamName, "pipelines" ]
 
         ClusterInfo ->
-            Url.Builder.absolute
-                (basePath ++ [ "info" ])
-                []
+            basePath ++ [ "info" ]
 
         UserInfo ->
-            Url.Builder.absolute
-                (baseSkyPath ++ [ "userinfo" ])
-                []
+            baseSkyPath ++ [ "userinfo" ]
 
         Logout ->
-            Url.Builder.absolute
-                (baseSkyPath ++ [ "logout" ])
-                []
+            baseSkyPath ++ [ "logout" ]
