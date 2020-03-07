@@ -1,12 +1,13 @@
 module Api exposing (Method(..), get, ignoreResponse, paginatedGet, post, request)
 
-import Api.Endpoints exposing (Endpoint, toUrl)
+import Api.Endpoints exposing (Endpoint, toPath)
 import Concourse
-import Concourse.Pagination exposing (Paginated)
+import Concourse.Pagination exposing (Page, Paginated)
 import Http
 import Json.Decode exposing (Decoder)
 import Network.Pagination exposing (parsePagination)
 import Task exposing (Task)
+import Url.Builder
 
 
 type Method
@@ -26,17 +27,18 @@ methodToString m =
 
 request :
     { endpoint : Endpoint
+    , query : List Url.Builder.QueryParameter
     , method : Method
     , headers : List Http.Header
     , body : Http.Body
     , expect : Http.Expect a
     }
     -> Task Http.Error a
-request { endpoint, method, headers, body, expect } =
+request { endpoint, method, headers, body, expect, query } =
     Http.request
         { method = methodToString method
         , headers = headers
-        , url = toUrl endpoint
+        , url = Url.Builder.absolute (toPath endpoint) query
         , body = body
         , expect = expect
         , timeout = Nothing
@@ -51,17 +53,19 @@ get endpoint decoder =
         { method = Get
         , headers = []
         , endpoint = endpoint
+        , query = []
         , body = Http.emptyBody
         , expect = Http.expectJson decoder
         }
 
 
-paginatedGet : Endpoint -> Decoder a -> Task Http.Error (Paginated a)
-paginatedGet endpoint decoder =
+paginatedGet : Endpoint -> Maybe Page -> Decoder a -> Task Http.Error (Paginated a)
+paginatedGet endpoint page decoder =
     request
         { method = Get
         , headers = []
         , endpoint = endpoint
+        , query = Network.Pagination.params page
         , body = Http.emptyBody
         , expect = Http.expectStringResponse (parsePagination decoder)
         }
@@ -73,6 +77,7 @@ post endpoint csrfToken body =
         { method = Post
         , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
         , endpoint = endpoint
+        , query = []
         , body = body
         , expect = ignoreResponse
         }
