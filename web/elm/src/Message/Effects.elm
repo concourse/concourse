@@ -26,10 +26,6 @@ import Message.Message
         , VisibilityAction(..)
         )
 import Message.ScrollDirection exposing (ScrollDirection(..))
-import Network.Build
-import Network.Job
-import Network.Pipeline
-import Network.Resource
 import Process
 import Routes
 import Task
@@ -301,19 +297,25 @@ runEffect effect key csrfToken =
             Task.perform GotCurrentTimeZone Time.here
 
         DoTriggerBuild id ->
-            Network.Job.triggerBuild id csrfToken
+            Api.post (Endpoints.JobBuilds id) csrfToken
+                |> Api.expectJson Concourse.decodeBuild
+                |> Api.request
                 |> Task.attempt BuildTriggered
 
         RerunJobBuild id ->
-            Network.Job.rerunJobBuild id csrfToken
+            Api.post (Endpoints.JobBuild id) csrfToken
+                |> Api.expectJson Concourse.decodeBuild
+                |> Api.request
                 |> Task.attempt BuildTriggered
 
         PauseJob id ->
-            Network.Job.pause id csrfToken
+            Api.put (Endpoints.PauseJob id) csrfToken
+                |> Api.request
                 |> Task.attempt PausedToggled
 
         UnpauseJob id ->
-            Network.Job.unpause id csrfToken
+            Api.put (Endpoints.UnpauseJob id) csrfToken
+                |> Api.request
                 |> Task.attempt PausedToggled
 
         RedirectToLogin ->
@@ -334,36 +336,65 @@ runEffect effect key csrfToken =
         RenderPipeline jobs resources ->
             renderPipeline ( jobs, resources )
 
-        DoPinVersion version ->
-            Network.Resource.pinVersion version csrfToken
+        DoPinVersion id ->
+            Api.put (Endpoints.PinResourceVersion id) csrfToken
+                |> Api.request
                 |> Task.attempt VersionPinned
 
         DoUnpinVersion id ->
-            Network.Resource.unpinVersion id csrfToken
+            Api.put (Endpoints.UnpinResource id) csrfToken
+                |> Api.request
                 |> Task.attempt VersionUnpinned
 
         DoToggleVersion action id ->
-            Network.Resource.enableDisableVersionedResource (action == Enable) id csrfToken
+            let
+                endpoint =
+                    case action of
+                        Enable ->
+                            Endpoints.EnableResourceVersion id
+
+                        Disable ->
+                            Endpoints.DisableResourceVersion id
+            in
+            Api.put endpoint csrfToken
+                |> Api.request
                 |> Task.attempt (VersionToggled action id)
 
         DoCheck rid ->
-            Network.Resource.check rid csrfToken
+            Api.post (Endpoints.CheckResource rid) csrfToken
+                |> Api.withJsonBody
+                    (Json.Encode.object [ ( "from", Json.Encode.null ) ])
+                |> Api.expectJson Concourse.decodeCheck
+                |> Api.request
                 |> Task.attempt Checked
 
         SetPinComment rid comment ->
-            Network.Resource.setPinComment rid csrfToken comment
+            Api.put (Endpoints.PinResourceComment rid) csrfToken
+                |> Api.withJsonBody
+                    (Json.Encode.object
+                        [ ( "pin_comment"
+                          , Json.Encode.string comment
+                          )
+                        ]
+                    )
+                |> Api.request
                 |> Task.attempt CommentSet
 
         SendTokenToFly authToken flyPort ->
             rawHttpRequest <| Routes.tokenToFlyRoute authToken flyPort
 
-        SendTogglePipelineRequest pipelineIdentifier isPaused ->
-            Network.Pipeline.togglePause
-                isPaused
-                pipelineIdentifier.teamName
-                pipelineIdentifier.pipelineName
-                csrfToken
-                |> Task.attempt (PipelineToggled pipelineIdentifier)
+        SendTogglePipelineRequest id isPaused ->
+            let
+                endpoint =
+                    if isPaused then
+                        Endpoints.UnpausePipeline id
+
+                    else
+                        Endpoints.PausePipeline id
+            in
+            Api.put endpoint csrfToken
+                |> Api.request
+                |> Task.attempt (PipelineToggled id)
 
         ShowTooltip ( teamName, pipelineName ) ->
             tooltip ( teamName, pipelineName )
@@ -372,7 +403,10 @@ runEffect effect key csrfToken =
             tooltipHd ( teamName, pipelineName )
 
         SendOrderPipelinesRequest teamName pipelineNames ->
-            Network.Pipeline.order teamName pipelineNames csrfToken
+            Api.put (Endpoints.OrderTeamPipelines teamName) csrfToken
+                |> Api.withJsonBody
+                    (Json.Encode.list Json.Encode.string pipelineNames)
+                |> Api.request
                 |> Task.attempt (PipelinesOrdered teamName)
 
         SendLogOutRequest ->
@@ -454,7 +488,8 @@ runEffect effect key csrfToken =
             setFavicon (faviconName status)
 
         DoAbortBuild buildId ->
-            Network.Build.abort buildId csrfToken
+            Api.put (Endpoints.AbortBuild buildId) csrfToken
+                |> Api.request
                 |> Task.attempt BuildAborted
 
         Scroll direction id ->
@@ -487,11 +522,17 @@ runEffect effect key csrfToken =
             renderSvgIcon icon
 
         ChangeVisibility action pipelineId ->
-            Network.Pipeline.changeVisibility
-                action
-                pipelineId.teamName
-                pipelineId.pipelineName
-                csrfToken
+            let
+                endpoint =
+                    case action of
+                        Hide ->
+                            Endpoints.HidePipeline pipelineId
+
+                        Expose ->
+                            Endpoints.ExposePipeline pipelineId
+            in
+            Api.put endpoint csrfToken
+                |> Api.request
                 |> Task.attempt (VisibilityChanged action pipelineId)
 
         LoadSideBarState ->
