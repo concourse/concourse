@@ -1,12 +1,12 @@
 module PaginationTests exposing (all, responseWithHeaders)
 
 import Ansi.Log
+import Api.Pagination
 import Array
 import Concourse.Pagination exposing (Direction(..), Pagination)
 import Dict exposing (Dict)
 import Expect exposing (..)
 import Http
-import Network.Pagination
 import String
 import Test exposing (..)
 
@@ -18,7 +18,7 @@ all =
             [ test "with no headers present" <|
                 \_ ->
                     responseWithHeaders Dict.empty
-                        |> Network.Pagination.parseLinks
+                        |> Api.Pagination.parseLinks
                         |> Expect.equal
                             { previousPage = Nothing
                             , nextPage = Nothing
@@ -26,7 +26,7 @@ all =
             , test "with a Link rel=\"previous\" present" <|
                 \_ ->
                     responseWithHeaders withPreviousLink
-                        |> Network.Pagination.parseLinks
+                        |> Api.Pagination.parseLinks
                         |> Expect.equal
                             { previousPage =
                                 Just { direction = Until 1, limit = 2 }
@@ -35,7 +35,7 @@ all =
             , test "with a Link rel=\"next\" present" <|
                 \_ ->
                     responseWithHeaders withNextLink
-                        |> Network.Pagination.parseLinks
+                        |> Api.Pagination.parseLinks
                         |> Expect.equal
                             { previousPage = Nothing
                             , nextPage =
@@ -44,7 +44,7 @@ all =
             , test "with a Link rel=\"previous\" and a Link rel=\"next\" present" <|
                 \_ ->
                     responseWithHeaders withPreviousAndNextLink
-                        |> Network.Pagination.parseLinks
+                        |> Api.Pagination.parseLinks
                         |> Expect.equal
                             { previousPage =
                                 Just { direction = Until 1, limit = 2 }
@@ -54,7 +54,7 @@ all =
             , test "with malformed link header" <|
                 \_ ->
                     responseWithHeaders withMalformedLink
-                        |> Network.Pagination.parseLinks
+                        |> Api.Pagination.parseLinks
                         |> Expect.equal
                             { previousPage = Nothing
                             , nextPage = Nothing
