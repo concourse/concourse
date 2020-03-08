@@ -11,12 +11,12 @@ module Api exposing
     )
 
 import Api.Endpoints exposing (Endpoint, toPath)
+import Api.Pagination exposing (parsePagination)
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Http
 import Json.Decode exposing (Decoder)
 import Json.Encode
-import Network.Pagination exposing (parsePagination)
 import Task exposing (Task)
 import Url.Builder
 
@@ -61,7 +61,7 @@ paginatedGet endpoint page decoder =
     { method = "GET"
     , headers = []
     , endpoint = endpoint
-    , query = Network.Pagination.params page
+    , query = Api.Pagination.params page
     , body = Http.emptyBody
     , expect = Http.expectStringResponse (parsePagination decoder)
     }
