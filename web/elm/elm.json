@@ -23,7 +23,6 @@
             "elm-explorations/benchmark": "1.0.1",
             "fapian/elm-html-aria": "1.4.0",
             "krisajenkins/remotedata": "5.0.0",
-            "lukewestby/elm-http-builder": "6.0.0",
             "matthewsj/elm-ordering": "2.0.0",
             "ryannhg/date-format": "2.3.0",
             "truqu/elm-base64": "2.0.4",
