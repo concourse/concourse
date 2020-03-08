@@ -5,7 +5,9 @@ module Api exposing
     , ignoreResponse
     , paginatedGet
     , post
+    , put
     , request
+    , withJsonBody
     )
 
 import Api.Endpoints exposing (Endpoint, toPath)
@@ -13,6 +15,7 @@ import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Http
 import Json.Decode exposing (Decoder)
+import Json.Encode
 import Network.Pagination exposing (parsePagination)
 import Task exposing (Task)
 import Url.Builder
@@ -75,6 +78,17 @@ post endpoint csrfToken =
     }
 
 
+put : Endpoint -> Concourse.CSRFToken -> Request ()
+put endpoint csrfToken =
+    { method = "PUT"
+    , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+    , endpoint = endpoint
+    , query = []
+    , body = Http.emptyBody
+    , expect = ignoreResponse
+    }
+
+
 expectJson : Decoder b -> Request a -> Request b
 expectJson decoder r =
     { method = r.method
@@ -84,6 +98,11 @@ expectJson decoder r =
     , body = r.body
     , expect = Http.expectJson decoder
     }
+
+
+withJsonBody : Json.Encode.Value -> Request a -> Request a
+withJsonBody value r =
+    { r | body = Http.jsonBody value }
 
 
 ignoreResponse : Http.Expect ()

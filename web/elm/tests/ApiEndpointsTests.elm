@@ -1,7 +1,6 @@
 module ApiEndpointsTests exposing (all)
 
 import Api.Endpoints exposing (Endpoint(..), toPath)
-import Concourse.Pagination as Pagination
 import Expect
 import Test exposing (Test, describe, test)
 
@@ -41,16 +40,25 @@ all =
                     }
                     |> toPath
                     |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "jobs", "job", "builds", "build" ]
-        , test "JobBuilds, no page" <|
+        , test "PauseJob" <|
             \_ ->
-                JobBuilds
+                PauseJob
                     { jobName = "job"
                     , pipelineName = "pipeline"
                     , teamName = "team"
                     }
                     |> toPath
-                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "jobs", "job", "builds" ]
-        , test "JobBuilds, has page" <|
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "jobs", "job", "pause" ]
+        , test "UnpauseJob" <|
+            \_ ->
+                UnpauseJob
+                    { jobName = "job"
+                    , pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "jobs", "job", "unpause" ]
+        , test "JobBuilds" <|
             \_ ->
                 JobBuilds
                     { jobName = "job"
@@ -74,6 +82,11 @@ all =
                 BuildPrep 1
                     |> toPath
                     |> Expect.equal [ "api", "v1", "builds", "1", "preparation" ]
+        , test "AbortBuild" <|
+            \_ ->
+                AbortBuild 1
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "builds", "1", "abort" ]
         , test "Resource" <|
             \_ ->
                 Resource
@@ -83,16 +96,7 @@ all =
                     }
                     |> toPath
                     |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "resources", "resource" ]
-        , test "ResourceVersions, no page" <|
-            \_ ->
-                ResourceVersions
-                    { resourceName = "resource"
-                    , pipelineName = "pipeline"
-                    , teamName = "team"
-                    }
-                    |> toPath
-                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "resources", "resource", "versions" ]
-        , test "ResourceVersions, has page" <|
+        , test "ResourceVersions" <|
             \_ ->
                 ResourceVersions
                     { resourceName = "resource"
@@ -121,6 +125,63 @@ all =
                     }
                     |> toPath
                     |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "resources", "resource", "versions", "1", "output_of" ]
+        , test "PinResourceVersion" <|
+            \_ ->
+                PinResourceVersion
+                    { versionID = 1
+                    , resourceName = "resource"
+                    , pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "resources", "resource", "versions", "1", "pin" ]
+        , test "UnpinResource" <|
+            \_ ->
+                UnpinResource
+                    { resourceName = "resource"
+                    , pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "resources", "resource", "unpin" ]
+        , test "EnableResourceVersion" <|
+            \_ ->
+                EnableResourceVersion
+                    { versionID = 1
+                    , resourceName = "resource"
+                    , pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "resources", "resource", "versions", "1", "enable" ]
+        , test "DisableResourceVersion" <|
+            \_ ->
+                DisableResourceVersion
+                    { versionID = 1
+                    , resourceName = "resource"
+                    , pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "resources", "resource", "versions", "1", "disable" ]
+        , test "CheckResource" <|
+            \_ ->
+                CheckResource
+                    { resourceName = "resource"
+                    , pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "resources", "resource", "check" ]
+        , test "PinResourceComment" <|
+            \_ ->
+                PinResourceComment
+                    { resourceName = "resource"
+                    , pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "resources", "resource", "pin_comment" ]
         , test "Resources" <|
             \_ ->
                 Resources
@@ -157,6 +218,38 @@ all =
                     }
                     |> toPath
                     |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline" ]
+        , test "PausePipeline" <|
+            \_ ->
+                PausePipeline
+                    { pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "pause" ]
+        , test "UnpausePipeline" <|
+            \_ ->
+                UnpausePipeline
+                    { pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "unpause" ]
+        , test "ExposePipeline" <|
+            \_ ->
+                ExposePipeline
+                    { pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "expose" ]
+        , test "HidePipeline" <|
+            \_ ->
+                HidePipeline
+                    { pipelineName = "pipeline"
+                    , teamName = "team"
+                    }
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "pipeline", "hide" ]
         , test "AllTeams" <|
             \_ ->
                 AllTeams
@@ -167,6 +260,11 @@ all =
                 TeamPipelines "team"
                     |> toPath
                     |> Expect.equal [ "api", "v1", "teams", "team", "pipelines" ]
+        , test "OrderTeamPipelines" <|
+            \_ ->
+                OrderTeamPipelines "team"
+                    |> toPath
+                    |> Expect.equal [ "api", "v1", "teams", "team", "pipelines", "ordering" ]
         , test "ClusterInfo" <|
             \_ ->
                 ClusterInfo
