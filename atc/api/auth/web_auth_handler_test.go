@@ -6,11 +6,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"code.cloudfoundry.org/lager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/auth/authfakes"
+	"github.com/concourse/concourse/atc/api/buildserver"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
 )
 
@@ -50,6 +55,7 @@ var _ = Describe("WebAuthHandler", func() {
 			var err error
 			response, err = http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
+			defer response.Body.Close()
 		})
 
 		Context("without the auth cookie", func() {
@@ -121,6 +127,31 @@ var _ = Describe("WebAuthHandler", func() {
 					Expect(fakeHandler.ServeHTTPCallCount()).To(Equal(1))
 					_, r := fakeHandler.ServeHTTPArgsForCall(0)
 					Expect(r.Header.Get("Authorization")).To(Equal("foobar"))
+				})
+			})
+
+			Context("the nested handler returns an event stream", func() {
+				BeforeEach(func() {
+					build := new(dbfakes.FakeBuild)
+					fakeEventSource := new(dbfakes.FakeEventSource)
+					fakeEventSource.NextReturns(event.Envelope{}, db.ErrEndOfBuildEventStream)
+					build.EventsReturns(fakeEventSource, nil)
+
+					server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						defer GinkgoRecover()
+						auth.WebAuthHandler{
+							Handler:    buildserver.NewEventHandler(lager.NewLogger("test"), build),
+							Middleware: fakeMiddleware,
+						}.ServeHTTP(w, r)
+					}))
+
+					var err error
+					request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns success", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 

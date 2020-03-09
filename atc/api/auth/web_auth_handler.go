@@ -29,6 +29,10 @@ func (r *responseWrapper) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
+func (r *responseWrapper) Flush() {
+	r.ResponseWriter.(http.Flusher).Flush()
+}
+
 type WebAuthHandler struct {
 	Handler    http.Handler
 	Middleware token.Middleware
