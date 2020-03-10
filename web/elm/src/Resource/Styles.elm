@@ -9,7 +9,6 @@ module Resource.Styles exposing
     , commentBarHeader
     , commentBarIconContainer
     , commentBarMessageIcon
-    , commentBarPinIcon
     , commentSaveButton
     , commentText
     , commentTextArea
@@ -227,9 +226,7 @@ borderColor pinnedState =
 commentBar : List (Html.Attribute msg)
 commentBar =
     [ style "background-color" Colors.frame
-    , style "height" "300px"
     , style "display" "flex"
-    , style "justify-content" "center"
     , style "flex-shrink" "0"
     ]
 
@@ -256,11 +253,6 @@ commentBarMessageIcon =
     [ style "background-size" "contain"
     , style "margin-right" "10px"
     ]
-
-
-commentBarPinIcon : List (Html.Attribute msg)
-commentBarPinIcon =
-    [ style "margin-right" "10px" ]
 
 
 commentTextArea : List (Html.Attribute msg)

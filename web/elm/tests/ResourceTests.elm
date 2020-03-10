@@ -2852,12 +2852,22 @@ all =
                 \_ ->
                     pinTools
                         |> Query.has [ style "box-sizing" "border-box" ]
-            , test "contains pin-bar on the left" <|
+            , test "contains pin bar on the left" <|
                 \_ ->
                     pinTools
                         |> Query.children []
                         |> Query.index 0
                         |> Query.has [ id "pin-bar" ]
+            , test "contains comment bar on the right" <|
+                \_ ->
+                    pinTools
+                        |> Query.children []
+                        |> Query.index 1
+                        |> Query.has [ id "comment-bar" ]
+            , test "pin bar and comment bar each takes 50% width" <|
+                \_ ->
+                    pinTools
+                        |> Query.has [ style "diplay" "flex" ]
             ]
         , describe "check status" <|
             let

@@ -847,7 +847,6 @@ view session model =
                     ]
                     [ header session model
                     , body session model
-                    , commentBar session model
                     ]
             ]
         ]
@@ -1238,7 +1237,6 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                                         { sizePx = 20
                                         , image = "pin-ic-white.svg"
                                         }
-                                        Resource.Styles.commentBarPinIcon
                                     ]
                                 , version
                                 ]
@@ -1320,7 +1318,9 @@ pinTools session model =
             []
 
          else
-            [ pinBar session model ]
+            [ pinBar session model
+              , commentBar session model
+            ]
         )
 
 
