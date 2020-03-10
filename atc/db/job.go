@@ -665,7 +665,12 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
-	err = updateNextBuildForJob(tx, j.id)
+	latestNonRerunID, err := latestCompletedNonRerunBuild(tx, j.id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = updateNextBuildForJob(tx, j.id, latestNonRerunID)
 	if err != nil {
 		return nil, err
 	}
@@ -730,7 +735,12 @@ func (j *job) tryRerunBuild(buildToRerun Build) (Build, error) {
 		return nil, err
 	}
 
-	err = updateNextBuildForJob(tx, j.id)
+	latestNonRerunID, err := latestCompletedNonRerunBuild(tx, j.id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = updateNextBuildForJob(tx, j.id, latestNonRerunID)
 	if err != nil {
 		return nil, err
 	}
