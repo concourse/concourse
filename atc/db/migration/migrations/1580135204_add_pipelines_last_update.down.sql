@@ -1,4 +1,4 @@
 BEGIN;
   ALTER TABLE pipelines
-    DROP COLUMN "last_updated";
+    DROP COLUMN IF EXISTS "last_updated";
 COMMIT;
