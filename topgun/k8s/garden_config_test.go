@@ -7,6 +7,7 @@ import (
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Garden Config", func() {
@@ -100,6 +101,29 @@ var _ = Describe("Garden Config", func() {
 			<-buildSession.Exited
 
 			Expect(buildSession.ExitCode()).NotTo(Equal(0))
+		})
+	})
+
+	Context("passing the CONCOURSE_GARDEN_USE_CONTAINERD env var to the gdn server with non existing work dir", func() {
+		BeforeEach(func() {
+			helmDeployTestFlags = []string{
+				`--set=worker.replicas=1`,
+				`--set=concourse.worker.garden.useContainerd=true`,
+				`--set=concourse.worker.workDir=/dummy-worker-dir`,
+			}
+		})
+
+		It("creates the worker dir and starts running", func() {
+			pods := getPods(namespace, "--selector=app="+releaseName+"-worker")
+			Expect(pods).To(HaveLen(1))
+
+			args := []string{"exec", pods[0].Metadata.Name, "-n", releaseName, "ls", "--", "/"}
+
+			session := Start(nil, "kubectl", args...)
+			<-session.Exited
+
+			Expect(session.Out).To(gbytes.Say(`dummy-worker-dir`))
+			Expect(session.ExitCode()).To(Equal(0))
 		})
 	})
 })
