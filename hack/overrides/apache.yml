@@ -1,0 +1,15 @@
+# apache.yml - a docker-compose override to use apache as a reverse proxy in front of web
+# When enabled, concourse can be accessed at http://localhost/concourse
+#
+version: '3'
+
+services:
+  apache:
+    image: httpd
+    volumes:
+    - ./hack/apache/httpd.conf:/usr/local/apache2/conf/httpd.conf
+    ports:
+    - 80:80
+  web:
+    environment:
+      CONCOURSE_EXTERNAL_URL: http://localhost/concourse

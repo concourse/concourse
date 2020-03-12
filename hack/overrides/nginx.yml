@@ -1,0 +1,15 @@
+# nginx.yml - a docker-compose override to use nginx as a reverse proxy in front of web
+# When enabled, concourse can be accessed at http://localhost/concourse
+#
+version: '3'
+
+services:
+  nginx:
+    image: nginx
+    volumes:
+    - ./hack/nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+    - 80:80
+  web:
+    environment:
+      CONCOURSE_EXTERNAL_URL: http://localhost/concourse
