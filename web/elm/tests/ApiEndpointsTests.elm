@@ -153,6 +153,12 @@ testEndpoints =
                         |> baseBuildEndpoint
                         |> toPath
                         |> Expect.equal "/api/v1/builds/1/resources"
+            , test "EventStream" <|
+                \_ ->
+                    E.BuildEventStream
+                        |> baseBuildEndpoint
+                        |> toPath
+                        |> Expect.equal "/api/v1/builds/1/events"
             ]
         , test "ResourcesList" <|
             \_ ->
