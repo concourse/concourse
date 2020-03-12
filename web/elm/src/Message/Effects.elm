@@ -177,24 +177,28 @@ runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
 runEffect effect key csrfToken =
     case effect of
         FetchJob id ->
-            Api.get (Endpoints.Job id)
+            Api.get (Endpoints.BaseJob |> Endpoints.Job id)
                 |> Api.expectJson Concourse.decodeJob
                 |> Api.request
                 |> Task.attempt JobFetched
 
         FetchJobs id ->
-            Api.get (Endpoints.Jobs id)
+            Api.get
+                (Endpoints.PipelineJobsList |> Endpoints.Pipeline id)
                 |> Api.expectJson Json.Decode.value
                 |> Api.request
                 |> Task.attempt JobsFetched
 
         FetchJobBuilds id page ->
-            Api.paginatedGet (Endpoints.JobBuilds id) page Concourse.decodeBuild
+            Api.paginatedGet
+                (Endpoints.JobBuildsList |> Endpoints.Job id)
+                page
+                Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
-            Api.get (Endpoints.Resource id)
+            Api.get (Endpoints.BaseResource |> Endpoints.Resource id)
                 |> Api.expectJson Concourse.decodeResource
                 |> Api.request
                 |> Task.attempt ResourceFetched
@@ -206,7 +210,8 @@ runEffect effect key csrfToken =
                 |> Task.attempt Checked
 
         FetchVersionedResources id paging ->
-            Api.paginatedGet (Endpoints.ResourceVersions id)
+            Api.paginatedGet
+                (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
                 paging
                 Concourse.decodeVersionedResource
                 |> Api.request
@@ -214,32 +219,34 @@ runEffect effect key csrfToken =
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
-            Api.get (Endpoints.Resources id)
+            Api.get
+                (Endpoints.PipelineResourcesList |> Endpoints.Pipeline id)
                 |> Api.expectJson Json.Decode.value
                 |> Api.request
                 |> Task.attempt ResourcesFetched
 
         FetchBuildResources id ->
-            Api.get (Endpoints.BuildResources id)
+            Api.get
+                (Endpoints.BuildResourcesList |> Endpoints.Build id)
                 |> Api.expectJson Concourse.decodeBuildResources
                 |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt BuildResourcesFetched
 
         FetchPipeline id ->
-            Api.get (Endpoints.Pipeline id)
+            Api.get (Endpoints.BasePipeline |> Endpoints.Pipeline id)
                 |> Api.expectJson Concourse.decodePipeline
                 |> Api.request
                 |> Task.attempt PipelineFetched
 
         FetchPipelines team ->
-            Api.get (Endpoints.TeamPipelines team)
+            Api.get (Endpoints.TeamPipelinesList |> Endpoints.Team team)
                 |> Api.expectJson (Json.Decode.list Concourse.decodePipeline)
                 |> Api.request
                 |> Task.attempt PipelinesFetched
 
         FetchAllResources ->
-            Api.get Endpoints.AllResources
+            Api.get Endpoints.ResourcesList
                 |> Api.expectJson
                     (Json.Decode.nullable <|
                         Json.Decode.list Concourse.decodeResource
@@ -249,7 +256,7 @@ runEffect effect key csrfToken =
                 |> Task.attempt AllResourcesFetched
 
         FetchAllJobs ->
-            Api.get Endpoints.AllJobs
+            Api.get Endpoints.JobsList
                 |> Api.expectJson
                     (Json.Decode.nullable <|
                         Json.Decode.list Concourse.decodeJob
@@ -265,27 +272,29 @@ runEffect effect key csrfToken =
                 |> Task.attempt ClusterInfoFetched
 
         FetchInputTo id ->
-            Api.get (Endpoints.ResourceVersionInputTo id)
+            Api.get
+                (Endpoints.ResourceVersionInputTo |> Endpoints.ResourceVersion id)
                 |> Api.expectJson (Json.Decode.list Concourse.decodeBuild)
                 |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt InputToFetched
 
         FetchOutputOf id ->
-            Api.get (Endpoints.ResourceVersionOutputOf id)
+            Api.get
+                (Endpoints.ResourceVersionOutputOf |> Endpoints.ResourceVersion id)
                 |> Api.expectJson (Json.Decode.list Concourse.decodeBuild)
                 |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt OutputOfFetched
 
         FetchAllTeams ->
-            Api.get Endpoints.AllTeams
+            Api.get Endpoints.TeamsList
                 |> Api.expectJson (Json.Decode.list Concourse.decodeTeam)
                 |> Api.request
                 |> Task.attempt AllTeamsFetched
 
         FetchAllPipelines ->
-            Api.get Endpoints.AllPipelines
+            Api.get Endpoints.PipelinesList
                 |> Api.expectJson (Json.Decode.list Concourse.decodePipeline)
                 |> Api.request
                 |> Task.attempt AllPipelinesFetched
@@ -297,7 +306,9 @@ runEffect effect key csrfToken =
             Task.perform GotCurrentTimeZone Time.here
 
         DoTriggerBuild id ->
-            Api.post (Endpoints.JobBuilds id) csrfToken
+            Api.post
+                (Endpoints.JobBuildsList |> Endpoints.Job id)
+                csrfToken
                 |> Api.expectJson Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt BuildTriggered
@@ -309,12 +320,16 @@ runEffect effect key csrfToken =
                 |> Task.attempt BuildTriggered
 
         PauseJob id ->
-            Api.put (Endpoints.PauseJob id) csrfToken
+            Api.put
+                (Endpoints.PauseJob |> Endpoints.Job id)
+                csrfToken
                 |> Api.request
                 |> Task.attempt PausedToggled
 
         UnpauseJob id ->
-            Api.put (Endpoints.UnpauseJob id) csrfToken
+            Api.put
+                (Endpoints.UnpauseJob |> Endpoints.Job id)
+                csrfToken
                 |> Api.request
                 |> Task.attempt PausedToggled
 
@@ -337,31 +352,38 @@ runEffect effect key csrfToken =
             renderPipeline ( jobs, resources )
 
         DoPinVersion id ->
-            Api.put (Endpoints.PinResourceVersion id) csrfToken
+            Api.put
+                (Endpoints.PinResourceVersion |> Endpoints.ResourceVersion id)
+                csrfToken
                 |> Api.request
                 |> Task.attempt VersionPinned
 
         DoUnpinVersion id ->
-            Api.put (Endpoints.UnpinResource id) csrfToken
+            Api.put
+                (Endpoints.UnpinResource |> Endpoints.Resource id)
+                csrfToken
                 |> Api.request
                 |> Task.attempt VersionUnpinned
 
         DoToggleVersion action id ->
             let
                 endpoint =
-                    case action of
-                        Enable ->
-                            Endpoints.EnableResourceVersion id
+                    Endpoints.ResourceVersion id <|
+                        case action of
+                            Enable ->
+                                Endpoints.EnableResourceVersion
 
-                        Disable ->
-                            Endpoints.DisableResourceVersion id
+                            Disable ->
+                                Endpoints.DisableResourceVersion
             in
             Api.put endpoint csrfToken
                 |> Api.request
                 |> Task.attempt (VersionToggled action id)
 
         DoCheck rid ->
-            Api.post (Endpoints.CheckResource rid) csrfToken
+            Api.post
+                (Endpoints.CheckResource |> Endpoints.Resource rid)
+                csrfToken
                 |> Api.withJsonBody
                     (Json.Encode.object [ ( "from", Json.Encode.null ) ])
                 |> Api.expectJson Concourse.decodeCheck
@@ -369,7 +391,9 @@ runEffect effect key csrfToken =
                 |> Task.attempt Checked
 
         SetPinComment rid comment ->
-            Api.put (Endpoints.PinResourceComment rid) csrfToken
+            Api.put
+                (Endpoints.PinResourceComment |> Endpoints.Resource rid)
+                csrfToken
                 |> Api.withJsonBody
                     (Json.Encode.object
                         [ ( "pin_comment"
@@ -386,11 +410,12 @@ runEffect effect key csrfToken =
         SendTogglePipelineRequest id isPaused ->
             let
                 endpoint =
-                    if isPaused then
-                        Endpoints.UnpausePipeline id
+                    Endpoints.Pipeline id <|
+                        if isPaused then
+                            Endpoints.UnpausePipeline
 
-                    else
-                        Endpoints.PausePipeline id
+                        else
+                            Endpoints.PausePipeline
             in
             Api.put endpoint csrfToken
                 |> Api.request
@@ -403,7 +428,9 @@ runEffect effect key csrfToken =
             tooltipHd ( teamName, pipelineName )
 
         SendOrderPipelinesRequest teamName pipelineNames ->
-            Api.put (Endpoints.OrderTeamPipelines teamName) csrfToken
+            Api.put
+                (Endpoints.OrderTeamPipelines |> Endpoints.Team teamName)
+                csrfToken
                 |> Api.withJsonBody
                     (Json.Encode.list Json.Encode.string pipelineNames)
                 |> Api.request
@@ -424,7 +451,7 @@ runEffect effect key csrfToken =
             Process.sleep delay
                 |> Task.andThen
                     (always
-                        (Api.get (Endpoints.Build buildId)
+                        (Api.get (Endpoints.BaseBuild |> Endpoints.Build buildId)
                             |> Api.expectJson Concourse.decodeBuild
                             |> Api.request
                         )
@@ -438,13 +465,16 @@ runEffect effect key csrfToken =
                 |> Task.attempt BuildFetched
 
         FetchBuildJobDetails buildJob ->
-            Api.get (Endpoints.Job buildJob)
+            Api.get (Endpoints.BaseJob |> Endpoints.Job buildJob)
                 |> Api.expectJson Concourse.decodeJob
                 |> Api.request
                 |> Task.attempt BuildJobDetailsFetched
 
         FetchBuildHistory job page ->
-            Api.paginatedGet (Endpoints.JobBuilds job) page Concourse.decodeBuild
+            Api.paginatedGet
+                (Endpoints.JobBuildsList |> Endpoints.Job job)
+                page
+                Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt BuildHistoryFetched
 
@@ -452,7 +482,8 @@ runEffect effect key csrfToken =
             Process.sleep delay
                 |> Task.andThen
                     (always
-                        (Api.get (Endpoints.BuildPrep buildId)
+                        (Api.get
+                            (Endpoints.BuildPrep |> Endpoints.Build buildId)
                             |> Api.expectJson Concourse.decodeBuildPrep
                             |> Api.request
                         )
@@ -461,18 +492,18 @@ runEffect effect key csrfToken =
 
         FetchBuildPlanAndResources buildId ->
             Task.map2 (\a b -> ( a, b ))
-                (Api.get (Endpoints.BuildPlan buildId)
+                (Api.get (Endpoints.BuildPlan |> Endpoints.Build buildId)
                     |> Api.expectJson Concourse.decodeBuildPlan
                     |> Api.request
                 )
-                (Api.get (Endpoints.BuildResources buildId)
+                (Api.get (Endpoints.BuildResourcesList |> Endpoints.Build buildId)
                     |> Api.expectJson Concourse.decodeBuildResources
                     |> Api.request
                 )
                 |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchBuildPlan buildId ->
-            Api.get (Endpoints.BuildPlan buildId)
+            Api.get (Endpoints.BuildPlan |> Endpoints.Build buildId)
                 |> Api.expectJson Concourse.decodeBuildPlan
                 |> Api.request
                 |> Task.map (\p -> ( p, Concourse.emptyBuildResources ))
@@ -488,7 +519,7 @@ runEffect effect key csrfToken =
             setFavicon (faviconName status)
 
         DoAbortBuild buildId ->
-            Api.put (Endpoints.AbortBuild buildId) csrfToken
+            Api.put (Endpoints.AbortBuild |> Endpoints.Build buildId) csrfToken
                 |> Api.request
                 |> Task.attempt BuildAborted
 
@@ -524,12 +555,13 @@ runEffect effect key csrfToken =
         ChangeVisibility action pipelineId ->
             let
                 endpoint =
-                    case action of
-                        Hide ->
-                            Endpoints.HidePipeline pipelineId
+                    Endpoints.Pipeline pipelineId <|
+                        case action of
+                            Hide ->
+                                Endpoints.HidePipeline
 
-                        Expose ->
-                            Endpoints.ExposePipeline pipelineId
+                            Expose ->
+                                Endpoints.ExposePipeline
             in
             Api.put endpoint csrfToken
                 |> Api.request

@@ -1,166 +1,140 @@
-module Api.Endpoints exposing (Endpoint(..), toPath)
+module Api.Endpoints exposing
+    ( BuildEndpoint(..)
+    , Endpoint(..)
+    , JobEndpoint(..)
+    , PipelineEndpoint(..)
+    , ResourceEndpoint(..)
+    , ResourceVersionEndpoint(..)
+    , TeamEndpoint(..)
+    , toPath
+    )
 
 import Concourse
 
 
 type Endpoint
-    = Job Concourse.JobIdentifier
-    | Jobs Concourse.PipelineIdentifier
-    | AllJobs
-    | PauseJob Concourse.JobIdentifier
-    | UnpauseJob Concourse.JobIdentifier
+    = PipelinesList
+    | Pipeline Concourse.PipelineIdentifier PipelineEndpoint
+    | JobsList
+    | Job Concourse.JobIdentifier JobEndpoint
     | JobBuild Concourse.JobBuildIdentifier
-    | JobBuilds Concourse.JobIdentifier
-    | Build Concourse.BuildId
-    | BuildPlan Concourse.BuildId
-    | BuildPrep Concourse.BuildId
-    | AbortBuild Concourse.BuildId
-    | Resource Concourse.ResourceIdentifier
-    | ResourceVersions Concourse.ResourceIdentifier
-    | ResourceVersionInputTo Concourse.VersionedResourceIdentifier
-    | ResourceVersionOutputOf Concourse.VersionedResourceIdentifier
-    | PinResourceVersion Concourse.VersionedResourceIdentifier
-    | UnpinResource Concourse.ResourceIdentifier
-    | EnableResourceVersion Concourse.VersionedResourceIdentifier
-    | DisableResourceVersion Concourse.VersionedResourceIdentifier
-    | CheckResource Concourse.ResourceIdentifier
-    | PinResourceComment Concourse.ResourceIdentifier
-    | Resources Concourse.PipelineIdentifier
-    | BuildResources Concourse.BuildId
-    | AllResources
+    | Build Concourse.BuildId BuildEndpoint
+    | ResourcesList
+    | Resource Concourse.ResourceIdentifier ResourceEndpoint
+    | ResourceVersion Concourse.VersionedResourceIdentifier ResourceVersionEndpoint
     | Check Int
-    | AllPipelines
-    | Pipeline Concourse.PipelineIdentifier
-    | PausePipeline Concourse.PipelineIdentifier
-    | UnpausePipeline Concourse.PipelineIdentifier
-    | ExposePipeline Concourse.PipelineIdentifier
-    | HidePipeline Concourse.PipelineIdentifier
-    | AllTeams
-    | TeamPipelines Concourse.TeamName
-    | OrderTeamPipelines Concourse.TeamName
+    | TeamsList
+    | Team Concourse.TeamName TeamEndpoint
     | ClusterInfo
     | UserInfo
     | Logout
 
 
+type PipelineEndpoint
+    = BasePipeline
+    | PausePipeline
+    | UnpausePipeline
+    | ExposePipeline
+    | HidePipeline
+    | PipelineJobsList
+    | PipelineResourcesList
+
+
+type JobEndpoint
+    = BaseJob
+    | PauseJob
+    | UnpauseJob
+    | JobBuildsList
+
+
+type BuildEndpoint
+    = BaseBuild
+    | BuildPlan
+    | BuildPrep
+    | AbortBuild
+    | BuildResourcesList
+
+
+type ResourceEndpoint
+    = BaseResource
+    | ResourceVersionsList
+    | UnpinResource
+    | CheckResource
+    | PinResourceComment
+
+
+type ResourceVersionEndpoint
+    = ResourceVersionInputTo
+    | ResourceVersionOutputOf
+    | PinResourceVersion
+    | EnableResourceVersion
+    | DisableResourceVersion
+
+
+type TeamEndpoint
+    = TeamPipelinesList
+    | OrderTeamPipelines
+
+
+basePath : List String
+basePath =
+    [ "api", "v1" ]
+
+
+baseSkyPath : List String
+baseSkyPath =
+    [ "sky" ]
+
+
+pipelinePath : { r | pipelineName : String, teamName : String } -> List String
+pipelinePath { pipelineName, teamName } =
+    basePath ++ [ "teams", teamName, "pipelines", pipelineName ]
+
+
+resourcePath : { r | pipelineName : String, teamName : String, resourceName : String } -> List String
+resourcePath { pipelineName, teamName, resourceName } =
+    pipelinePath { pipelineName = pipelineName, teamName = teamName }
+        ++ [ "resources", resourceName ]
+
+
 toPath : Endpoint -> List String
 toPath endpoint =
-    let
-        basePath =
-            [ "api", "v1" ]
-
-        pipelinePath { pipelineName, teamName } =
-            basePath ++ [ "teams", teamName, "pipelines", pipelineName ]
-
-        resourcePath { pipelineName, teamName, resourceName } =
-            pipelinePath { pipelineName = pipelineName, teamName = teamName }
-                ++ [ "resources", resourceName ]
-
-        baseSkyPath =
-            [ "sky" ]
-    in
     case endpoint of
-        Job id ->
-            pipelinePath id ++ [ "jobs", id.jobName ]
+        PipelinesList ->
+            basePath ++ [ "pipelines" ]
 
-        Jobs id ->
-            pipelinePath id ++ [ "jobs" ]
+        Pipeline id subEndpoint ->
+            pipelinePath id ++ pipelineEndpointToPath subEndpoint
 
-        AllJobs ->
+        JobsList ->
             basePath ++ [ "jobs" ]
 
-        PauseJob id ->
-            pipelinePath id ++ [ "jobs", id.jobName, "pause" ]
-
-        UnpauseJob id ->
-            pipelinePath id ++ [ "jobs", id.jobName, "unpause" ]
+        Job id subEndpoint ->
+            pipelinePath id ++ [ "jobs", id.jobName ] ++ jobEndpointToPath subEndpoint
 
         JobBuild id ->
             pipelinePath id ++ [ "jobs", id.jobName, "builds", id.buildName ]
 
-        JobBuilds id ->
-            pipelinePath id ++ [ "jobs", id.jobName, "builds" ]
+        Build id subEndpoint ->
+            basePath ++ [ "builds", String.fromInt id ] ++ buildEndpointToPath subEndpoint
 
-        Build id ->
-            basePath ++ [ "builds", String.fromInt id ]
-
-        BuildPlan id ->
-            basePath ++ [ "builds", String.fromInt id, "plan" ]
-
-        BuildPrep id ->
-            basePath ++ [ "builds", String.fromInt id, "preparation" ]
-
-        AbortBuild id ->
-            basePath ++ [ "builds", String.fromInt id, "abort" ]
-
-        Resource id ->
-            resourcePath id
-
-        ResourceVersions id ->
-            resourcePath id ++ [ "versions" ]
-
-        ResourceVersionInputTo id ->
-            resourcePath id ++ [ "versions", String.fromInt id.versionID, "input_to" ]
-
-        ResourceVersionOutputOf id ->
-            resourcePath id ++ [ "versions", String.fromInt id.versionID, "output_of" ]
-
-        PinResourceVersion id ->
-            resourcePath id ++ [ "versions", String.fromInt id.versionID, "pin" ]
-
-        UnpinResource id ->
-            resourcePath id ++ [ "unpin" ]
-
-        EnableResourceVersion id ->
-            resourcePath id ++ [ "versions", String.fromInt id.versionID, "enable" ]
-
-        DisableResourceVersion id ->
-            resourcePath id ++ [ "versions", String.fromInt id.versionID, "disable" ]
-
-        CheckResource id ->
-            resourcePath id ++ [ "check" ]
-
-        PinResourceComment id ->
-            resourcePath id ++ [ "pin_comment" ]
-
-        Resources id ->
-            pipelinePath id ++ [ "resources" ]
-
-        BuildResources id ->
-            basePath ++ [ "builds", String.fromInt id, "resources" ]
-
-        AllResources ->
+        ResourcesList ->
             basePath ++ [ "resources" ]
+
+        Resource id subEndpoint ->
+            resourcePath id ++ resourceEndpointToPath subEndpoint
+
+        ResourceVersion id subEndpoint ->
+            resourcePath id ++ [ "versions", String.fromInt id.versionID ] ++ resourceVersionEndpointToPath subEndpoint
 
         Check id ->
             basePath ++ [ "checks", String.fromInt id ]
 
-        AllPipelines ->
-            basePath ++ [ "pipelines" ]
-
-        Pipeline id ->
-            pipelinePath id
-
-        PausePipeline id ->
-            pipelinePath id ++ [ "pause" ]
-
-        UnpausePipeline id ->
-            pipelinePath id ++ [ "unpause" ]
-
-        ExposePipeline id ->
-            pipelinePath id ++ [ "expose" ]
-
-        HidePipeline id ->
-            pipelinePath id ++ [ "hide" ]
-
-        AllTeams ->
+        TeamsList ->
             basePath ++ [ "teams" ]
 
-        TeamPipelines teamName ->
-            basePath ++ [ "teams", teamName, "pipelines" ]
-
-        OrderTeamPipelines teamName ->
-            basePath ++ [ "teams", teamName, "pipelines", "ordering" ]
+        Team teamName subEndpoint ->
+            basePath ++ [ "teams", teamName ] ++ teamEndpointToPath subEndpoint
 
         ClusterInfo ->
             basePath ++ [ "info" ]
@@ -170,3 +144,111 @@ toPath endpoint =
 
         Logout ->
             baseSkyPath ++ [ "logout" ]
+
+
+pipelineEndpointToPath : PipelineEndpoint -> List String
+pipelineEndpointToPath endpoint =
+    case endpoint of
+        BasePipeline ->
+            []
+
+        PausePipeline ->
+            [ "pause" ]
+
+        UnpausePipeline ->
+            [ "unpause" ]
+
+        ExposePipeline ->
+            [ "expose" ]
+
+        HidePipeline ->
+            [ "hide" ]
+
+        PipelineJobsList ->
+            [ "jobs" ]
+
+        PipelineResourcesList ->
+            [ "resources" ]
+
+
+jobEndpointToPath : JobEndpoint -> List String
+jobEndpointToPath endpoint =
+    case endpoint of
+        BaseJob ->
+            []
+
+        PauseJob ->
+            [ "pause" ]
+
+        UnpauseJob ->
+            [ "unpause" ]
+
+        JobBuildsList ->
+            [ "builds" ]
+
+
+buildEndpointToPath : BuildEndpoint -> List String
+buildEndpointToPath endpoint =
+    case endpoint of
+        BaseBuild ->
+            []
+
+        BuildPlan ->
+            [ "plan" ]
+
+        BuildPrep ->
+            [ "preparation" ]
+
+        AbortBuild ->
+            [ "abort" ]
+
+        BuildResourcesList ->
+            [ "resources" ]
+
+
+resourceEndpointToPath : ResourceEndpoint -> List String
+resourceEndpointToPath endpoint =
+    case endpoint of
+        BaseResource ->
+            []
+
+        ResourceVersionsList ->
+            [ "versions" ]
+
+        UnpinResource ->
+            [ "unpin" ]
+
+        CheckResource ->
+            [ "check" ]
+
+        PinResourceComment ->
+            [ "pin_comment" ]
+
+
+resourceVersionEndpointToPath : ResourceVersionEndpoint -> List String
+resourceVersionEndpointToPath endpoint =
+    case endpoint of
+        ResourceVersionInputTo ->
+            [ "input_to" ]
+
+        ResourceVersionOutputOf ->
+            [ "output_of" ]
+
+        PinResourceVersion ->
+            [ "pin" ]
+
+        EnableResourceVersion ->
+            [ "enable" ]
+
+        DisableResourceVersion ->
+            [ "disable" ]
+
+
+teamEndpointToPath : TeamEndpoint -> List String
+teamEndpointToPath endpoint =
+    case endpoint of
+        TeamPipelinesList ->
+            [ "pipelines" ]
+
+        OrderTeamPipelines ->
+            [ "pipelines", "ordering" ]
