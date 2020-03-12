@@ -12,6 +12,7 @@ module Build.Build exposing
     , view
     )
 
+import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
 import Build.Header.Header as Header
 import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
@@ -258,9 +259,9 @@ handleCallback action ( model, effects ) =
                 , effects
                     ++ [ Effects.OpenBuildEventStream
                             { url =
-                                "/api/v1/builds/"
-                                    ++ String.fromInt buildId
-                                    ++ "/events"
+                                Endpoints.BuildEventStream
+                                    |> Endpoints.Build buildId
+                                    |> Endpoints.toString []
                             , eventTypes = [ "end", "event" ]
                             }
                        ]

@@ -54,6 +54,7 @@ type BuildEndpoint
     | BuildPrep
     | AbortBuild
     | BuildResourcesList
+    | BuildEventStream
 
 
 type ResourceEndpoint
@@ -210,6 +211,9 @@ buildEndpointToPath endpoint =
 
         BuildResourcesList ->
             [ "resources" ]
+
+        BuildEventStream ->
+            [ "events" ]
 
 
 resourceEndpointToPath : ResourceEndpoint -> List String
