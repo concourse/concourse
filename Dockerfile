@@ -10,25 +10,6 @@ COPY go.mod .
 COPY go.sum .
 RUN grep '^replace' go.mod || go mod download
 
-
-# containerd tooling
-ARG RUNC_VERSION=v1.0.0-rc9
-ARG CNI_VERSION=v0.8.3
-ARG CONTAINERD_VERSION=1.3.2
-
-# make `ctr` target the default concourse namespace
-ENV CONTAINERD_NAMESPACE=concourse
-
-RUN set -x && \
-	apt install -y curl iptables && \
-	curl -sSL https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION.linux-amd64.tar.gz \
-		| tar -zvxf - -C /usr/local/concourse/bin --strip-components=1 && \
-	curl -sSL https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.amd64 \ 
-		-o /usr/local/concourse/bin/runc && chmod +x /usr/local/concourse/bin/runc && \
-	curl -sSL https://github.com/containernetworking/plugins/releases/download/$CNI_VERSION/cni-plugins-linux-amd64-$CNI_VERSION.tgz \
-		| tar -zvxf - -C /usr/local/concourse/bin
-
-
 # build Concourse without using 'packr' and set up a volume so the web assets
 # live-update
 COPY . .
