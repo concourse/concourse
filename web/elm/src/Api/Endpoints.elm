@@ -27,6 +27,7 @@ type Endpoint
     | TeamsList
     | Team Concourse.TeamName TeamEndpoint
     | ClusterInfo
+    | Cli
     | UserInfo
     | Logout
 
@@ -145,6 +146,9 @@ toPath endpoint =
 
         ClusterInfo ->
             basePath ++ [ "info" ]
+
+        Cli ->
+            basePath ++ [ "cli" ]
 
         UserInfo ->
             baseSkyPath ++ [ "userinfo" ]
