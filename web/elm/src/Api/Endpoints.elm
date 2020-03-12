@@ -6,10 +6,11 @@ module Api.Endpoints exposing
     , ResourceEndpoint(..)
     , ResourceVersionEndpoint(..)
     , TeamEndpoint(..)
-    , toPath
+    , toString
     )
 
 import Concourse
+import Url.Builder
 
 
 type Endpoint
@@ -95,6 +96,11 @@ resourcePath : { r | pipelineName : String, teamName : String, resourceName : St
 resourcePath { pipelineName, teamName, resourceName } =
     pipelinePath { pipelineName = pipelineName, teamName = teamName }
         ++ [ "resources", resourceName ]
+
+
+toString : List Url.Builder.QueryParameter -> Endpoint -> String
+toString query endpoint =
+    Url.Builder.absolute (toPath endpoint) query
 
 
 toPath : Endpoint -> List String
