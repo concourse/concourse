@@ -10,7 +10,7 @@ module Api exposing
     , withJsonBody
     )
 
-import Api.Endpoints exposing (Endpoint, toPath)
+import Api.Endpoints exposing (Endpoint, toString)
 import Api.Pagination exposing (parsePagination)
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
@@ -36,7 +36,7 @@ request { endpoint, method, headers, body, expect, query } =
     Http.request
         { method = method
         , headers = headers
-        , url = Url.Builder.absolute (toPath endpoint) query
+        , url = endpoint |> toString query
         , body = body
         , expect = expect
         , timeout = Nothing
