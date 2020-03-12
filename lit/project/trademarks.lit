@@ -3,7 +3,7 @@
 \use-plugin{concourse-docs}
 
 \trademark-guidelines{
-  \bold{PURPOSE.} Pivotal Software, Inc. (“\bold{Pivotal}”) owns a number of
+  \bold{PURPOSE.} VMware Inc. (“\bold{VMware}”) owns a number of
   international trademarks and logos that identify the Concourse community and
   individual Concourse projects (“\bold{Concourse Marks}”). These trademarks
   include, but are not limited to:
@@ -14,7 +14,7 @@
     \bold{Logos:} \image{images/trademarks/concourse-black.png}
   }
 
-  This policy outlines Pivotal’s policy and guidelines about the use of the
+  This policy outlines VMware’s policy and guidelines about the use of the
   Concourse trademarks by members of the Concourse development and user
   community.
 }{
