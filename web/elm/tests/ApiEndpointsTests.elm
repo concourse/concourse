@@ -279,6 +279,11 @@ testEndpoints =
                 ClusterInfo
                     |> toPath
                     |> Expect.equal "/api/v1/info"
+        , test "Cli" <|
+            \_ ->
+                Cli
+                    |> toPath
+                    |> Expect.equal "/api/v1/cli"
         , test "UserInfo" <|
             \_ ->
                 UserInfo
