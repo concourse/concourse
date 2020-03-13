@@ -57,6 +57,7 @@ module Concourse exposing
     , decodeUser
     , decodeVersion
     , decodeVersionedResource
+    , emptyBuildResources
     , retrieveCSRFToken
     )
 
@@ -258,6 +259,13 @@ type alias BuildResourcesInput =
 type alias BuildResourcesOutput =
     { name : String
     , version : Version
+    }
+
+
+emptyBuildResources : BuildResources
+emptyBuildResources =
+    { inputs = []
+    , outputs = []
     }
 
 
@@ -536,8 +544,7 @@ type alias JobIdentifier =
 
 
 type alias Job =
-    { pipeline : PipelineIdentifier
-    , name : JobName
+    { name : JobName
     , pipelineName : PipelineName
     , teamName : TeamName
     , nextBuild : Maybe Build
@@ -565,9 +572,9 @@ type alias JobOutput =
     }
 
 
-decodeJob : PipelineIdentifier -> Json.Decode.Decoder Job
-decodeJob pi =
-    Json.Decode.succeed (Job pi)
+decodeJob : Json.Decode.Decoder Job
+decodeJob =
+    Json.Decode.succeed Job
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)

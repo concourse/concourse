@@ -1,4 +1,4 @@
-module Network.Pagination exposing (fetch, parseLinks)
+module Api.Pagination exposing (params, parseLinks, parsePagination)
 
 import Concourse.Pagination
     exposing
@@ -29,29 +29,10 @@ import Parser
         , symbol
         )
 import String
-import Task exposing (Task)
 import Url
 import Url.Builder
 import Url.Parser exposing (parse, query)
 import Url.Parser.Query as Query
-
-
-fetch :
-    Json.Decode.Decoder a
-    -> List String
-    -> Maybe Page
-    -> Task Http.Error (Paginated a)
-fetch decoder segments p =
-    Http.toTask <|
-        Http.request
-            { method = "GET"
-            , headers = []
-            , url = Url.Builder.absolute segments (params p)
-            , body = Http.emptyBody
-            , expect = Http.expectStringResponse (parsePagination decoder)
-            , timeout = Nothing
-            , withCredentials = False
-            }
 
 
 params : Maybe Page -> List Url.Builder.QueryParameter

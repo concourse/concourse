@@ -585,11 +585,11 @@ viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
         [ Html.text grp.name ]
 
 
-jobAppearsInGroups : List String -> Concourse.PipelineIdentifier -> Json.Encode.Value -> Bool
-jobAppearsInGroups groupNames pi jobJson =
+jobAppearsInGroups : List String -> Json.Encode.Value -> Bool
+jobAppearsInGroups groupNames jobJson =
     let
         concourseJob =
-            Json.Decode.decodeValue (Concourse.decodeJob pi) jobJson
+            Json.Decode.decodeValue Concourse.decodeJob jobJson
     in
     case concourseJob of
         Ok cj ->
@@ -618,7 +618,7 @@ filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
 filterJobs model value =
     Json.Encode.list identity <|
         List.filter
-            (jobAppearsInGroups (activeGroups model) model.pipelineLocator)
+            (jobAppearsInGroups (activeGroups model))
             (expandJsonList value)
 
 

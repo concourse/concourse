@@ -660,11 +660,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok
-                                [ { pipeline =
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        }
-                                  , name = "job"
+                                [ { name = "job"
                                   , pipelineName = "pipeline"
                                   , teamName = "team"
                                   , nextBuild = Nothing
@@ -2364,11 +2360,7 @@ job =
 
 jobWithNameTransitionedAt : String -> Maybe Time.Posix -> BuildStatus -> Concourse.Job
 jobWithNameTransitionedAt jobName transitionedAt status =
-    { pipeline =
-        { teamName = "team"
-        , pipelineName = "pipeline"
-        }
-    , name = jobName
+    { name = jobName
     , pipelineName = "pipeline"
     , teamName = "team"
     , nextBuild = Nothing
@@ -2419,11 +2411,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
 
 circularJobs : List Concourse.Job
 circularJobs =
-    [ { pipeline =
-            { teamName = "team"
-            , pipelineName = "pipeline"
-            }
-      , name = "jobA"
+    [ { name = "jobA"
       , pipelineName = "pipeline"
       , teamName = "team"
       , nextBuild = Nothing
@@ -2473,11 +2461,7 @@ circularJobs =
       , outputs = []
       , groups = []
       }
-    , { pipeline =
-            { teamName = "team"
-            , pipelineName = "pipeline"
-            }
-      , name = "jobB"
+    , { name = "jobB"
       , pipelineName = "pipeline"
       , teamName = "team"
       , nextBuild = Nothing
