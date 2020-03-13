@@ -3,6 +3,7 @@ package dbfakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/concourse/atc/db"
 )
@@ -52,25 +53,15 @@ type FakeCreatedContainer struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	IsHijackedStub        func() bool
-	isHijackedMutex       sync.RWMutex
-	isHijackedArgsForCall []struct {
+	LastHijackStub        func() time.Time
+	lastHijackMutex       sync.RWMutex
+	lastHijackArgsForCall []struct {
 	}
-	isHijackedReturns struct {
-		result1 bool
+	lastHijackReturns struct {
+		result1 time.Time
 	}
-	isHijackedReturnsOnCall map[int]struct {
-		result1 bool
-	}
-	MarkAsHijackedStub        func() error
-	markAsHijackedMutex       sync.RWMutex
-	markAsHijackedArgsForCall []struct {
-	}
-	markAsHijackedReturns struct {
-		result1 error
-	}
-	markAsHijackedReturnsOnCall map[int]struct {
-		result1 error
+	lastHijackReturnsOnCall map[int]struct {
+		result1 time.Time
 	}
 	MetadataStub        func() db.ContainerMetadata
 	metadataMutex       sync.RWMutex
@@ -91,6 +82,16 @@ type FakeCreatedContainer struct {
 	}
 	stateReturnsOnCall map[int]struct {
 		result1 string
+	}
+	UpdateLastHijackStub        func() error
+	updateLastHijackMutex       sync.RWMutex
+	updateLastHijackArgsForCall []struct {
+	}
+	updateLastHijackReturns struct {
+		result1 error
+	}
+	updateLastHijackReturnsOnCall map[int]struct {
+		result1 error
 	}
 	WorkerNameStub        func() string
 	workerNameMutex       sync.RWMutex
@@ -320,107 +321,55 @@ func (fake *FakeCreatedContainer) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeCreatedContainer) IsHijacked() bool {
-	fake.isHijackedMutex.Lock()
-	ret, specificReturn := fake.isHijackedReturnsOnCall[len(fake.isHijackedArgsForCall)]
-	fake.isHijackedArgsForCall = append(fake.isHijackedArgsForCall, struct {
+func (fake *FakeCreatedContainer) LastHijack() time.Time {
+	fake.lastHijackMutex.Lock()
+	ret, specificReturn := fake.lastHijackReturnsOnCall[len(fake.lastHijackArgsForCall)]
+	fake.lastHijackArgsForCall = append(fake.lastHijackArgsForCall, struct {
 	}{})
-	fake.recordInvocation("IsHijacked", []interface{}{})
-	fake.isHijackedMutex.Unlock()
-	if fake.IsHijackedStub != nil {
-		return fake.IsHijackedStub()
+	fake.recordInvocation("LastHijack", []interface{}{})
+	fake.lastHijackMutex.Unlock()
+	if fake.LastHijackStub != nil {
+		return fake.LastHijackStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isHijackedReturns
+	fakeReturns := fake.lastHijackReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeCreatedContainer) IsHijackedCallCount() int {
-	fake.isHijackedMutex.RLock()
-	defer fake.isHijackedMutex.RUnlock()
-	return len(fake.isHijackedArgsForCall)
+func (fake *FakeCreatedContainer) LastHijackCallCount() int {
+	fake.lastHijackMutex.RLock()
+	defer fake.lastHijackMutex.RUnlock()
+	return len(fake.lastHijackArgsForCall)
 }
 
-func (fake *FakeCreatedContainer) IsHijackedCalls(stub func() bool) {
-	fake.isHijackedMutex.Lock()
-	defer fake.isHijackedMutex.Unlock()
-	fake.IsHijackedStub = stub
+func (fake *FakeCreatedContainer) LastHijackCalls(stub func() time.Time) {
+	fake.lastHijackMutex.Lock()
+	defer fake.lastHijackMutex.Unlock()
+	fake.LastHijackStub = stub
 }
 
-func (fake *FakeCreatedContainer) IsHijackedReturns(result1 bool) {
-	fake.isHijackedMutex.Lock()
-	defer fake.isHijackedMutex.Unlock()
-	fake.IsHijackedStub = nil
-	fake.isHijackedReturns = struct {
-		result1 bool
+func (fake *FakeCreatedContainer) LastHijackReturns(result1 time.Time) {
+	fake.lastHijackMutex.Lock()
+	defer fake.lastHijackMutex.Unlock()
+	fake.LastHijackStub = nil
+	fake.lastHijackReturns = struct {
+		result1 time.Time
 	}{result1}
 }
 
-func (fake *FakeCreatedContainer) IsHijackedReturnsOnCall(i int, result1 bool) {
-	fake.isHijackedMutex.Lock()
-	defer fake.isHijackedMutex.Unlock()
-	fake.IsHijackedStub = nil
-	if fake.isHijackedReturnsOnCall == nil {
-		fake.isHijackedReturnsOnCall = make(map[int]struct {
-			result1 bool
+func (fake *FakeCreatedContainer) LastHijackReturnsOnCall(i int, result1 time.Time) {
+	fake.lastHijackMutex.Lock()
+	defer fake.lastHijackMutex.Unlock()
+	fake.LastHijackStub = nil
+	if fake.lastHijackReturnsOnCall == nil {
+		fake.lastHijackReturnsOnCall = make(map[int]struct {
+			result1 time.Time
 		})
 	}
-	fake.isHijackedReturnsOnCall[i] = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeCreatedContainer) MarkAsHijacked() error {
-	fake.markAsHijackedMutex.Lock()
-	ret, specificReturn := fake.markAsHijackedReturnsOnCall[len(fake.markAsHijackedArgsForCall)]
-	fake.markAsHijackedArgsForCall = append(fake.markAsHijackedArgsForCall, struct {
-	}{})
-	fake.recordInvocation("MarkAsHijacked", []interface{}{})
-	fake.markAsHijackedMutex.Unlock()
-	if fake.MarkAsHijackedStub != nil {
-		return fake.MarkAsHijackedStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.markAsHijackedReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeCreatedContainer) MarkAsHijackedCallCount() int {
-	fake.markAsHijackedMutex.RLock()
-	defer fake.markAsHijackedMutex.RUnlock()
-	return len(fake.markAsHijackedArgsForCall)
-}
-
-func (fake *FakeCreatedContainer) MarkAsHijackedCalls(stub func() error) {
-	fake.markAsHijackedMutex.Lock()
-	defer fake.markAsHijackedMutex.Unlock()
-	fake.MarkAsHijackedStub = stub
-}
-
-func (fake *FakeCreatedContainer) MarkAsHijackedReturns(result1 error) {
-	fake.markAsHijackedMutex.Lock()
-	defer fake.markAsHijackedMutex.Unlock()
-	fake.MarkAsHijackedStub = nil
-	fake.markAsHijackedReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeCreatedContainer) MarkAsHijackedReturnsOnCall(i int, result1 error) {
-	fake.markAsHijackedMutex.Lock()
-	defer fake.markAsHijackedMutex.Unlock()
-	fake.MarkAsHijackedStub = nil
-	if fake.markAsHijackedReturnsOnCall == nil {
-		fake.markAsHijackedReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.markAsHijackedReturnsOnCall[i] = struct {
-		result1 error
+	fake.lastHijackReturnsOnCall[i] = struct {
+		result1 time.Time
 	}{result1}
 }
 
@@ -528,6 +477,58 @@ func (fake *FakeCreatedContainer) StateReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeCreatedContainer) UpdateLastHijack() error {
+	fake.updateLastHijackMutex.Lock()
+	ret, specificReturn := fake.updateLastHijackReturnsOnCall[len(fake.updateLastHijackArgsForCall)]
+	fake.updateLastHijackArgsForCall = append(fake.updateLastHijackArgsForCall, struct {
+	}{})
+	fake.recordInvocation("UpdateLastHijack", []interface{}{})
+	fake.updateLastHijackMutex.Unlock()
+	if fake.UpdateLastHijackStub != nil {
+		return fake.UpdateLastHijackStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.updateLastHijackReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCreatedContainer) UpdateLastHijackCallCount() int {
+	fake.updateLastHijackMutex.RLock()
+	defer fake.updateLastHijackMutex.RUnlock()
+	return len(fake.updateLastHijackArgsForCall)
+}
+
+func (fake *FakeCreatedContainer) UpdateLastHijackCalls(stub func() error) {
+	fake.updateLastHijackMutex.Lock()
+	defer fake.updateLastHijackMutex.Unlock()
+	fake.UpdateLastHijackStub = stub
+}
+
+func (fake *FakeCreatedContainer) UpdateLastHijackReturns(result1 error) {
+	fake.updateLastHijackMutex.Lock()
+	defer fake.updateLastHijackMutex.Unlock()
+	fake.UpdateLastHijackStub = nil
+	fake.updateLastHijackReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCreatedContainer) UpdateLastHijackReturnsOnCall(i int, result1 error) {
+	fake.updateLastHijackMutex.Lock()
+	defer fake.updateLastHijackMutex.Unlock()
+	fake.UpdateLastHijackStub = nil
+	if fake.updateLastHijackReturnsOnCall == nil {
+		fake.updateLastHijackReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateLastHijackReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeCreatedContainer) WorkerName() string {
 	fake.workerNameMutex.Lock()
 	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
@@ -591,14 +592,14 @@ func (fake *FakeCreatedContainer) Invocations() map[string][][]interface{} {
 	defer fake.handleMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
-	fake.isHijackedMutex.RLock()
-	defer fake.isHijackedMutex.RUnlock()
-	fake.markAsHijackedMutex.RLock()
-	defer fake.markAsHijackedMutex.RUnlock()
+	fake.lastHijackMutex.RLock()
+	defer fake.lastHijackMutex.RUnlock()
 	fake.metadataMutex.RLock()
 	defer fake.metadataMutex.RUnlock()
 	fake.stateMutex.RLock()
 	defer fake.stateMutex.RUnlock()
+	fake.updateLastHijackMutex.RLock()
+	defer fake.updateLastHijackMutex.RUnlock()
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

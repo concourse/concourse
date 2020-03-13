@@ -775,7 +775,7 @@ var _ = Describe("Containers API", func() {
 							It("marks container as hijacked", func() {
 								Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-								Expect(fakeContainer.MarkAsHijackedCallCount()).To(Equal(1))
+								Expect(fakeContainer.UpdateLastHijackCallCount()).To(Equal(1))
 							})
 
 							Context("when stdin is sent over the API", func() {

@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -91,7 +92,7 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 		container.handle,
 		container.workerName,
 		container.metadata,
-		false,
+		time.Time{},
 		container.conn,
 	), nil
 }
@@ -137,8 +138,8 @@ type CreatedContainer interface {
 
 	Discontinue() (DestroyingContainer, error)
 	Destroying() (DestroyingContainer, error)
-	IsHijacked() bool
-	MarkAsHijacked() error
+	LastHijack() time.Time
+	UpdateLastHijack() error
 }
 
 type createdContainer struct {
@@ -147,7 +148,7 @@ type createdContainer struct {
 	workerName string
 	metadata   ContainerMetadata
 
-	hijacked bool
+	lastHijack time.Time
 
 	conn Conn
 }
@@ -157,7 +158,7 @@ func newCreatedContainer(
 	handle string,
 	workerName string,
 	metadata ContainerMetadata,
-	hijacked bool,
+	lastHijack time.Time,
 	conn Conn,
 ) *createdContainer {
 	return &createdContainer{
@@ -165,7 +166,7 @@ func newCreatedContainer(
 		handle:     handle,
 		workerName: workerName,
 		metadata:   metadata,
-		hijacked:   hijacked,
+		lastHijack: lastHijack,
 		conn:       conn,
 	}
 }
@@ -176,7 +177,7 @@ func (container *createdContainer) Handle() string              { return contain
 func (container *createdContainer) WorkerName() string          { return container.workerName }
 func (container *createdContainer) Metadata() ContainerMetadata { return container.metadata }
 
-func (container *createdContainer) IsHijacked() bool { return container.hijacked }
+func (container *createdContainer) LastHijack() time.Time { return container.lastHijack }
 
 func (container *createdContainer) Destroying() (DestroyingContainer, error) {
 	var isDiscontinued bool
@@ -248,13 +249,10 @@ func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
 	), nil
 }
 
-func (container *createdContainer) MarkAsHijacked() error {
-	if container.hijacked {
-		return nil
-	}
+func (container *createdContainer) UpdateLastHijack() error {
 
 	rows, err := psql.Update("containers").
-		Set("hijacked", true).
+		Set("last_hijack", sq.Expr("now()")).
 		Where(sq.Eq{
 			"id":    container.id,
 			"state": atc.ContainerStateCreated,

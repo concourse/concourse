@@ -236,9 +236,9 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		return
 	}
 
-	err = request.Container.MarkAsHijacked()
+	err = request.Container.UpdateLastHijack()
 	if err != nil {
-		hLog.Error("failed-to-mark-container-as-hijacked", err)
+		hLog.Error("failed-to-update-container-hijack-time", err)
 		return
 	}
 

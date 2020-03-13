@@ -522,7 +522,6 @@ var _ = Describe("ContainerRepository", func() {
 					"state":        "destroying",
 					"handle":       "123-456-abc-def",
 					"worker_name":  defaultWorker.Name(),
-					"hijacked":     false,
 					"discontinued": false,
 				}).RunWith(dbConn).Exec()
 
@@ -768,7 +767,6 @@ var _ = Describe("ContainerRepository", func() {
 						"state":        atc.ContainerStateDestroying,
 						"handle":       "123-456-abc-def",
 						"worker_name":  defaultWorker.Name(),
-						"hijacked":     false,
 						"discontinued": false,
 					}).RunWith(dbConn).Exec()
 
@@ -797,7 +795,6 @@ var _ = Describe("ContainerRepository", func() {
 						"state":        atc.ContainerStateDestroying,
 						"handle":       "123-456-abc-def",
 						"worker_name":  defaultWorker.Name(),
-						"hijacked":     false,
 						"discontinued": false,
 					}).RunWith(dbConn).Exec()
 
@@ -829,7 +826,6 @@ var _ = Describe("ContainerRepository", func() {
 						"state":        "creating",
 						"handle":       "123-456-abc-def",
 						"worker_name":  defaultWorker.Name(),
-						"hijacked":     false,
 						"discontinued": false,
 					}).RunWith(dbConn).Exec()
 
@@ -861,7 +857,6 @@ var _ = Describe("ContainerRepository", func() {
 						"state":        "destroying",
 						"handle":       "some-handle1",
 						"worker_name":  defaultWorker.Name(),
-						"hijacked":     false,
 						"discontinued": false,
 					},
 				).RunWith(dbConn).Exec()
@@ -873,7 +868,6 @@ var _ = Describe("ContainerRepository", func() {
 						"state":        "destroying",
 						"handle":       "some-handle2",
 						"worker_name":  defaultWorker.Name(),
-						"hijacked":     false,
 						"discontinued": false,
 					},
 				).RunWith(dbConn).Exec()
@@ -928,7 +922,6 @@ var _ = Describe("ContainerRepository", func() {
 				"state":        atc.ContainerStateDestroying,
 				"handle":       "some-handle1",
 				"worker_name":  defaultWorker.Name(),
-				"hijacked":     false,
 				"discontinued": false,
 			}).RunWith(dbConn).Exec()
 
@@ -939,7 +932,6 @@ var _ = Describe("ContainerRepository", func() {
 				"state":        atc.ContainerStateDestroying,
 				"handle":       "some-handle2",
 				"worker_name":  defaultWorker.Name(),
-				"hijacked":     false,
 				"discontinued": false,
 			}).RunWith(dbConn).Exec()
 
@@ -952,7 +944,6 @@ var _ = Describe("ContainerRepository", func() {
 				"state":         atc.ContainerStateCreated,
 				"handle":        "some-handle3",
 				"worker_name":   defaultWorker.Name(),
-				"hijacked":      false,
 				"discontinued":  false,
 				"missing_since": today,
 			}).RunWith(dbConn).Exec()
@@ -1076,7 +1067,6 @@ var _ = Describe("ContainerRepository", func() {
 				"state":        atc.ContainerStateDestroying,
 				"handle":       "some-handle1",
 				"worker_name":  defaultWorker.Name(),
-				"hijacked":     false,
 				"discontinued": false,
 			}).RunWith(dbConn).Exec()
 
@@ -1087,7 +1077,6 @@ var _ = Describe("ContainerRepository", func() {
 				"state":        atc.ContainerStateCreated,
 				"handle":       "some-handle2",
 				"worker_name":  defaultWorker.Name(),
-				"hijacked":     false,
 				"discontinued": false,
 			}).RunWith(dbConn).Exec()
 
