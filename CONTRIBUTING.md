@@ -484,7 +484,9 @@ The tests require a few environment variables to be set:
 when deploying Concourse in the k8s cluster
 - `CONCOURSE_IMAGE_NAME`: the name of the image to use when deploying Concourse
 to the Kubernetes cluster
-- `CHARTS_DIR`: location in the filesystem where a copy of [`the Concourse Helm
+- `HELM_CHARTS_DIR`: path to a clone of the [`helm/charts`][helm-charts] repo. This is used
+to define the postgres chart that Concourse depends on.
+- `CONCOURSE_CHART_DIR`: location in the filesystem where a copy of [`the Concourse Helm
 chart`][concourse-helm-chart] exists.
 
 With those set, go to `topgun/k8s` and run Ginkgo:
@@ -578,4 +580,5 @@ pushed commits without the signature.
 [style-guide]: https://github.com/concourse/concourse/wiki/Concourse-Go-Style-Guide
 [how-to-fork]: https://help.github.com/articles/fork-a-repo/
 [how-to-pr]: https://help.github.com/articles/creating-a-pull-request-from-a-fork/
-[concourse-helm-chart]: https://github.com/helm/charts/blob/master/stable/concourse/README.md
+[concourse-helm-chart]: https://github.com/concourse/concourse-chart/blob/master/README.md
+[helm-charts]: https://github.com/helm/charts/blob/master/README.md
