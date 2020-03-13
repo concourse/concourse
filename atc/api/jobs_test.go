@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -133,7 +134,10 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		It("returns application/json", func() {
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			expectedHeaderEntries := map[string]string{
+				"Content-Type": "application/json",
+			}
+			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 		})
 
 		It("returns all jobs from public pipelines and pipelines in authenticated teams", func() {
@@ -427,7 +431,10 @@ var _ = Describe("Jobs API", func() {
 							})
 
 							It("returns Content-Type 'application/json'", func() {
-								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+								expectedHeaderEntries := map[string]string{
+									"Content-Type": "application/json",
+								}
+								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 							})
 
 							It("returns the job's name, if it's paused, and any running and finished builds", func() {
@@ -586,9 +593,12 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns Content-Type as image/svg+xml and disables caching", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("image/svg+xml"))
-				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
-				Expect(response.Header.Get("Expires")).To(Equal("0"))
+				expectedHeaderEntries := map[string]string{
+					"Content-Type":  "image/svg+xml",
+					"Cache-Control": "no-cache, no-store, must-revalidate",
+					"Expires":       "0",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 			})
 
 			Context("when generates bagde title", func() {
@@ -1060,7 +1070,10 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns Content-Type 'application/json'", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
 				It("returns each job's name and any running and finished builds", func() {
@@ -1303,7 +1316,10 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("returns the builds", func() {
@@ -1569,7 +1585,10 @@ var _ = Describe("Jobs API", func() {
 									})
 
 									It("returns Content-Type 'application/json'", func() {
-										Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+										expectedHeaderEntries := map[string]string{
+											"Content-Type": "application/json",
+										}
+										Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 									})
 
 									It("creates a check for the resource", func() {
@@ -1781,7 +1800,10 @@ var _ = Describe("Jobs API", func() {
 								})
 
 								It("returns Content-Type 'application/json'", func() {
-									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+									expectedHeaderEntries := map[string]string{
+										"Content-Type": "application/json",
+									}
+									Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 								})
 
 								It("returns the inputs", func() {
@@ -1860,7 +1882,10 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("fetches by job and build name", func() {
@@ -2111,7 +2136,10 @@ var _ = Describe("Jobs API", func() {
 							})
 
 							It("returns Content-Type 'application/json'", func() {
-								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+								expectedHeaderEntries := map[string]string{
+									"Content-Type": "application/json",
+								}
+								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 							})
 
 							It("returns the build", func() {
@@ -2343,7 +2371,10 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("it returns the number of rows deleted", func() {
@@ -2391,7 +2422,10 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("it returns the number of rows deleted", func() {

@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
@@ -180,7 +181,10 @@ var _ = Describe("ArtifactRepository API", func() {
 							})
 
 							It("returns Content-Type 'application/json'", func() {
-								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+								expectedHeaderEntries := map[string]string{
+									"Content-Type": "application/json",
+								}
+								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 							})
 
 							It("returns the artifact record", func() {
@@ -347,7 +351,10 @@ var _ = Describe("ArtifactRepository API", func() {
 						})
 
 						It("returns Content-Type 'application/octet-stream'", func() {
-							Expect(response.Header.Get("Content-Type")).To(Equal("application/octet-stream"))
+							expectedHeaderEntries := map[string]string{
+								"Content-Type": "application/octet-stream",
+							}
+							Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 						})
 
 						It("returns the contents of the volume", func() {

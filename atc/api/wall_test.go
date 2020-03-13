@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	. "github.com/concourse/concourse/atc/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,7 +34,10 @@ var _ = Describe("Wall API", func() {
 		})
 
 		It("returns Content-Type 'application/json'", func() {
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			expectedHeaderEntries := map[string]string{
+				"Content-Type": "application/json",
+			}
+			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 		})
 
 		Context("the message does not expire", func() {

@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -123,7 +124,10 @@ var _ = Describe("Versions API", func() {
 				})
 
 				It("returns content type application/json", func() {
-					Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
 				Context("when resource is public", func() {
@@ -369,7 +373,10 @@ var _ = Describe("Versions API", func() {
 					})
 
 					It("returns content type application/json", func() {
-						Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("returns the json", func() {
@@ -921,7 +928,10 @@ var _ = Describe("Versions API", func() {
 					})
 
 					It("returns content type application/json", func() {
-						Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("returns the json", func() {
@@ -1118,7 +1128,10 @@ var _ = Describe("Versions API", func() {
 					})
 
 					It("returns content type application/json", func() {
-						Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("returns the json", func() {

@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo"
@@ -127,7 +128,10 @@ var _ = Describe("Containers API", func() {
 						response, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("returns all containers", func() {
@@ -438,7 +442,10 @@ var _ = Describe("Containers API", func() {
 						response, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("performs lookup by id", func() {
@@ -1148,7 +1155,10 @@ var _ = Describe("Containers API", func() {
 					response, err = client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 			})
 

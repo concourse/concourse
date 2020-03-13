@@ -1,6 +1,7 @@
-package api_test
+package testhelpers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/onsi/gomega/types"
 	"net/http"
@@ -29,13 +30,11 @@ func (h includeHeaderEntries) matchHeaderEntries(header http.Header) (success bo
 
 		_, keyFound := header[expectedKey]
 		if !keyFound {
-			err = fmt.Errorf("response does not contain header '%s'", expectedKey)
 			return false, err
 		}
 
 		actualVal := header.Get(expectedKey)
 		if expectedVal != actualVal {
-			err = fmt.Errorf("expected response header '%s' to have value '%s', but got '%s'", expectedKey, expectedVal, actualVal)
 			return false, err
 		}
 	}
@@ -44,9 +43,23 @@ func (h includeHeaderEntries) matchHeaderEntries(header http.Header) (success bo
 }
 
 func (h includeHeaderEntries) FailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("Expected\n\t%#v\nto include headers\n\t%#v", actual, h.expected)
+	actualResponse, _ := actual.(*http.Response)
+	bytes, _ := json.Marshal(actualResponse.Header)
+	actualHeaders := string(bytes)
+
+	bytes, _ = json.Marshal(h.expected)
+	expectedHeaders := string(bytes)
+
+	return fmt.Sprintf("Expected http response header\n\t%s\nto include headers\n\t%s", actualHeaders, expectedHeaders)
 }
 
 func (h includeHeaderEntries) NegatedFailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("Expected\n\t%#v\nto not include headers\n\t%#v", actual, h.expected)
+	actualResponse, _ := actual.(*http.Response)
+	bytes, _ := json.Marshal(actualResponse.Header)
+	actualHeaders := string(bytes)
+
+	bytes, _ = json.Marshal(h.expected)
+	expectedHeaders := string(bytes)
+
+	return fmt.Sprintf("Expected http response header\n\t%s\nto not include headers\n\t%s", actualHeaders, expectedHeaders)
 }
