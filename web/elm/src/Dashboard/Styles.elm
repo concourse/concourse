@@ -51,6 +51,7 @@ module Dashboard.Styles exposing
     )
 
 import Application.Styles
+import Assets
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -446,7 +447,7 @@ infoCliIcon { hovered, cli } =
     [ style "margin-right" "10px"
     , style "width" "20px"
     , style "height" "20px"
-    , style "background-image" <| Cli.iconUrl cli
+    , Assets.backgroundImageStyle <| Assets.ImageAsset <| Assets.CliIcon cli
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
@@ -467,7 +468,7 @@ topCliIcon { hovered, cli } =
 
         else
             "0.5"
-    , style "background-image" <| Cli.iconUrl cli
+    , Assets.backgroundImageStyle <| Assets.ImageAsset <| Assets.CliIcon cli
     , style "background-position" "50% 50%"
     , style "background-repeat" "no-repeat"
     , style "width" "32px"
