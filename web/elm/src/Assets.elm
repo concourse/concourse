@@ -17,6 +17,8 @@ type Asset
 
 type ImageAsset
     = CliIcon Cli
+    | ChevronLeft
+    | ChevronRight
 
 
 toString : Asset -> String
@@ -57,3 +59,9 @@ imageAssetToPath asset =
                             "linux"
             in
             basePath ++ [ imageName ++ "-logo.svg" ]
+
+        ChevronLeft ->
+            basePath ++ [ "baseline-chevron-left-24px.svg" ]
+
+        ChevronRight ->
+            basePath ++ [ "baseline-chevron-right-24px.svg" ]

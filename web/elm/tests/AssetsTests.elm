@@ -39,6 +39,18 @@ toStringTests =
                             |> toString
                             |> Expect.equal "/public/images/linux-logo.svg"
                 ]
+            , test "ChevronLeft" <|
+                \_ ->
+                    ChevronLeft
+                        |> ImageAsset
+                        |> toString
+                        |> Expect.equal "/public/images/baseline-chevron-left-24px.svg"
+            , test "ChevronRight" <|
+                \_ ->
+                    ChevronRight
+                        |> ImageAsset
+                        |> toString
+                        |> Expect.equal "/public/images/baseline-chevron-right-24px.svg"
             ]
         ]
 

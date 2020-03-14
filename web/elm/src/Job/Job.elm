@@ -20,8 +20,9 @@ import Concourse.Pagination
     exposing
         ( Page
         , Paginated
-        , chevron
         , chevronContainer
+        , chevronLeft
+        , chevronRight
         )
 import Dict
 import EffectTransformer exposing (ET)
@@ -584,9 +585,8 @@ viewPaginationBar session model =
                 Html.div
                     chevronContainer
                     [ Html.div
-                        (chevron
-                            { direction = "left"
-                            , enabled = False
+                        (chevronLeft
+                            { enabled = False
                             , hovered = False
                             }
                         )
@@ -609,9 +609,8 @@ viewPaginationBar session model =
                          , href <| Routes.toString <| jobRoute
                          , attribute "aria-label" "Previous Page"
                          ]
-                            ++ chevron
-                                { direction = "left"
-                                , enabled = True
+                            ++ chevronLeft
+                                { enabled = True
                                 , hovered =
                                     HoverState.isHovered
                                         PreviousPageButton
@@ -625,9 +624,8 @@ viewPaginationBar session model =
                 Html.div
                     chevronContainer
                     [ Html.div
-                        (chevron
-                            { direction = "right"
-                            , enabled = False
+                        (chevronRight
+                            { enabled = False
                             , hovered = False
                             }
                         )
@@ -650,9 +648,8 @@ viewPaginationBar session model =
                          , href <| Routes.toString jobRoute
                          , attribute "aria-label" "Next Page"
                          ]
-                            ++ chevron
-                                { direction = "right"
-                                , enabled = True
+                            ++ chevronRight
+                                { enabled = True
                                 , hovered =
                                     HoverState.isHovered
                                         NextPageButton

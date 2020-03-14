@@ -22,8 +22,9 @@ import Concourse.Pagination
     exposing
         ( Page
         , Paginated
-        , chevron
         , chevronContainer
+        , chevronLeft
+        , chevronRight
         , equal
         )
 import DateFormat
@@ -956,9 +957,8 @@ paginationMenu { hovered } model =
                 Html.div
                     chevronContainer
                     [ Html.div
-                        (chevron
-                            { direction = "left"
-                            , enabled = False
+                        (chevronLeft
+                            { enabled = False
                             , hovered = False
                             }
                         )
@@ -982,9 +982,8 @@ paginationMenu { hovered } model =
                                     }
                          , attribute "aria-label" "Previous Page"
                          ]
-                            ++ chevron
-                                { direction = "left"
-                                , enabled = True
+                            ++ chevronLeft
+                                { enabled = True
                                 , hovered = HoverState.isHovered PreviousPageButton hovered
                                 }
                         )
@@ -995,9 +994,8 @@ paginationMenu { hovered } model =
                 Html.div
                     chevronContainer
                     [ Html.div
-                        (chevron
-                            { direction = "right"
-                            , enabled = False
+                        (chevronRight
+                            { enabled = False
                             , hovered = False
                             }
                         )
@@ -1021,9 +1019,8 @@ paginationMenu { hovered } model =
                                     }
                          , attribute "aria-label" "Next Page"
                          ]
-                            ++ chevron
-                                { direction = "right"
-                                , enabled = True
+                            ++ chevronRight
+                                { enabled = True
                                 , hovered = HoverState.isHovered NextPageButton hovered
                                 }
                         )
