@@ -1,6 +1,5 @@
 module Assets exposing
     ( Asset(..)
-    , ImageAsset(..)
     , backgroundImageStyle
     , toString
     )
@@ -13,10 +12,6 @@ import Url.Builder
 
 
 type Asset
-    = ImageAsset ImageAsset
-
-
-type ImageAsset
     = CliIcon Cli
     | ChevronLeft
     | ChevronRight
@@ -37,13 +32,6 @@ backgroundImageStyle asset =
 
 toPath : Asset -> List String
 toPath asset =
-    case asset of
-        ImageAsset imgAsset ->
-            imageAssetToPath imgAsset
-
-
-imageAssetToPath : ImageAsset -> List String
-imageAssetToPath asset =
     let
         basePath =
             [ "public", "images" ]

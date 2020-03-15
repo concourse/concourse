@@ -103,9 +103,9 @@ chevron asset { enabled, hovered } =
 
 chevronLeft : { enabled : Bool, hovered : Bool } -> List (Html.Attribute msg)
 chevronLeft =
-    chevron <| Assets.ImageAsset Assets.ChevronLeft
+    chevron <| Assets.ChevronLeft
 
 
 chevronRight : { enabled : Bool, hovered : Bool } -> List (Html.Attribute msg)
 chevronRight =
-    chevron <| Assets.ImageAsset Assets.ChevronRight
+    chevron <| Assets.ChevronRight

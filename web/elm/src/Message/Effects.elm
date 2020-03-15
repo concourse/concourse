@@ -529,7 +529,6 @@ runEffect effect key csrfToken =
         SetFavIcon status ->
             status
                 |> Assets.BuildFavicon
-                |> Assets.ImageAsset
                 |> Assets.toString
                 |> setFavicon
 

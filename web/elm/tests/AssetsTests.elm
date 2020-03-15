@@ -3,7 +3,6 @@ module AssetsTests exposing (styleTests, toStringTests)
 import Assets
     exposing
         ( Asset(..)
-        , ImageAsset(..)
         , backgroundImageStyle
         , toString
         )
@@ -19,111 +18,93 @@ import Test.Html.Selector exposing (style)
 toStringTests : Test
 toStringTests =
     describe "Assets"
-        [ describe "ImageAssets"
-            [ describe "CliIcon"
-                [ test "OSX" <|
-                    \_ ->
-                        CliIcon OSX
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/apple-logo.svg"
-                , test "Windows" <|
-                    \_ ->
-                        CliIcon Windows
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/windows-logo.svg"
-                , test "Linux" <|
-                    \_ ->
-                        CliIcon Linux
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/linux-logo.svg"
-                ]
-            , test "ChevronLeft" <|
+        [ describe "CliIcon"
+            [ test "OSX" <|
                 \_ ->
-                    ChevronLeft
-                        |> ImageAsset
+                    CliIcon OSX
                         |> toString
-                        |> Expect.equal "/public/images/baseline-chevron-left-24px.svg"
-            , test "ChevronRight" <|
+                        |> Expect.equal "/public/images/apple-logo.svg"
+            , test "Windows" <|
                 \_ ->
-                    ChevronRight
-                        |> ImageAsset
+                    CliIcon Windows
                         |> toString
-                        |> Expect.equal "/public/images/baseline-chevron-right-24px.svg"
-            , describe "HighDensityIcon"
-                [ test "On" <|
-                    \_ ->
-                        HighDensityIcon True
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/ic-hd-on.svg"
-                , test "Off" <|
-                    \_ ->
-                        HighDensityIcon False
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/ic-hd-off.svg"
-                ]
-            , describe "VisibilityToggleIcon"
-                [ test "Visible" <|
-                    \_ ->
-                        VisibilityToggleIcon True
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/baseline-visibility-24px.svg"
-                , test "Not Visible" <|
-                    \_ ->
-                        VisibilityToggleIcon False
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/baseline-visibility-off-24px.svg"
-                ]
-            , describe "BuildFavicon"
-                [ test "Nothing" <|
-                    \_ ->
-                        BuildFavicon Nothing
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/favicon.png"
-                , test "Pending" <|
-                    \_ ->
-                        BuildFavicon (Just BuildStatusPending)
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/favicon-pending.png"
-                , test "Started" <|
-                    \_ ->
-                        BuildFavicon (Just BuildStatusStarted)
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/favicon-started.png"
-                , test "Succeeded" <|
-                    \_ ->
-                        BuildFavicon (Just BuildStatusSucceeded)
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/favicon-succeeded.png"
-                , test "Failed" <|
-                    \_ ->
-                        BuildFavicon (Just BuildStatusFailed)
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/favicon-failed.png"
-                , test "Errored" <|
-                    \_ ->
-                        BuildFavicon (Just BuildStatusErrored)
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/favicon-errored.png"
-                , test "Aborted" <|
-                    \_ ->
-                        BuildFavicon (Just BuildStatusAborted)
-                            |> ImageAsset
-                            |> toString
-                            |> Expect.equal "/public/images/favicon-aborted.png"
-                ]
+                        |> Expect.equal "/public/images/windows-logo.svg"
+            , test "Linux" <|
+                \_ ->
+                    CliIcon Linux
+                        |> toString
+                        |> Expect.equal "/public/images/linux-logo.svg"
+            ]
+        , test "ChevronLeft" <|
+            \_ ->
+                ChevronLeft
+                    |> toString
+                    |> Expect.equal "/public/images/baseline-chevron-left-24px.svg"
+        , test "ChevronRight" <|
+            \_ ->
+                ChevronRight
+                    |> toString
+                    |> Expect.equal "/public/images/baseline-chevron-right-24px.svg"
+        , describe "HighDensityIcon"
+            [ test "On" <|
+                \_ ->
+                    HighDensityIcon True
+                        |> toString
+                        |> Expect.equal "/public/images/ic-hd-on.svg"
+            , test "Off" <|
+                \_ ->
+                    HighDensityIcon False
+                        |> toString
+                        |> Expect.equal "/public/images/ic-hd-off.svg"
+            ]
+        , describe "VisibilityToggleIcon"
+            [ test "Visible" <|
+                \_ ->
+                    VisibilityToggleIcon True
+                        |> toString
+                        |> Expect.equal "/public/images/baseline-visibility-24px.svg"
+            , test "Not Visible" <|
+                \_ ->
+                    VisibilityToggleIcon False
+                        |> toString
+                        |> Expect.equal "/public/images/baseline-visibility-off-24px.svg"
+            ]
+        , describe "BuildFavicon"
+            [ test "Nothing" <|
+                \_ ->
+                    BuildFavicon Nothing
+                        |> toString
+                        |> Expect.equal "/public/images/favicon.png"
+            , test "Pending" <|
+                \_ ->
+                    BuildFavicon (Just BuildStatusPending)
+                        |> toString
+                        |> Expect.equal "/public/images/favicon-pending.png"
+            , test "Started" <|
+                \_ ->
+                    BuildFavicon (Just BuildStatusStarted)
+                        |> toString
+                        |> Expect.equal "/public/images/favicon-started.png"
+            , test "Succeeded" <|
+                \_ ->
+                    BuildFavicon (Just BuildStatusSucceeded)
+                        |> toString
+                        |> Expect.equal "/public/images/favicon-succeeded.png"
+            , test "Failed" <|
+                \_ ->
+                    BuildFavicon (Just BuildStatusFailed)
+                        |> toString
+                        |> Expect.equal "/public/images/favicon-failed.png"
+            , test "Errored" <|
+                \_ ->
+                    BuildFavicon (Just BuildStatusErrored)
+                        |> toString
+                        |> Expect.equal "/public/images/favicon-errored.png"
+            , test "Aborted" <|
+                \_ ->
+                    BuildFavicon (Just BuildStatusAborted)
+                        |> toString
+                        |> Expect.equal "/public/images/favicon-aborted.png"
             ]
         ]
 
@@ -135,7 +116,6 @@ styleTests =
             \_ ->
                 Html.div
                     [ CliIcon OSX
-                        |> ImageAsset
                         |> backgroundImageStyle
                     ]
                     []
