@@ -175,6 +175,21 @@ deployment.
   appropriate set of versions the UI will show the error message for the inputs
   that cannot be satisfied.
 
+#### <sub><sup><a name="3832" href="#3832">:link:</a></sup></sub> fix
+
+* The new algorithm fixes a case described in #3832. In this case, multiple
+  resources with corresponding versions (e.g. a v1.2.3 semver resource and then
+  a binary in S3 corresponding to that version) are correlated by virtue of
+  being passed along the pipeline together.
+
+  When one of the correlated versions was disabled, the old algorithm would
+  incorrectly continue to use the other versions, matching it with an incorrect
+  version for the resource whose version was disabled. Bad news bears!
+
+  Because the new algorithm always works by selecting entire *sets* of versions
+  at a time, they will always be correlated, and this problem goes away. Good
+  news...uh, goats!
+
 #### <sub><sup><a name="3704" href="#3704">:link:</a></sup></sub> feature, breaking
 
 * LIDAR is now on by default! In fact, not only is it on by default, it is now
