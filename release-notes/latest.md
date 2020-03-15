@@ -1,25 +1,27 @@
-> **If you are running a production environment, it is probably wise to wait on
-> a future stable release before upgrading to this major version.**
-
-This release bumps us to v6.0 for good reason: it's the first time we've
+This release bumps Concourse to v6.0 for good reason: it's the first time we've
 changed how Concourse decides on the inputs for your jobs.
 
-A whole new algorithm for deciding job inputs has been implemented, which
-performs much better for large-scale Concourse instances with a ton of versions
-and builds. This algorithm works in a fundamentally different way, and in some
-situations will yield different results than the previous algorithm. Read on
-for more information!
+A whole new algorithm for deciding job inputs has been implemented which
+performs much better for Concourse instances that have a ton of version and
+build history. This algorithm works in a fundamentally different way, and in
+some situations will yield different results than the previous algorithm. (More
+details follow in the actual release notes below.)
 
-Even though this release has been tested at scale and in all kinds of ways, we
-want to be very cautious with it because we've pretty much replaced the "brain"
-of Concourse. If there *are* any bugs, given the nature of the beast, they
-could result in undesireable behavior such as shipping the wrong version from
-your pipeline.
+In the past we've done major version bumps as a ceremony to celebrate big shiny
+new features. This is the first time it's been done because there are
+technically backwards-incompatible changes to fundamental pipeline semantics.
+
+We have tested this release against larger scale than we ever tried to support
+before, and deployed it to various environments of our own, and we've been
+using it ourselves for a while now. Despite all that we still recommend that
+anyone using Concourse for mission-critical workflows such as shipping security
+updates should wait for the next few releases, *just in case* any edge cases
+are found and fixed.
 
 **IMPORTANT**: Please expect and prepare for some downtime when upgrading to
-v6.0. On our large scale deployments, we have seen 10-20 minutes of downtime in
-order to migrate the database but it will vary depending on the size of your
-deployment.
+v6.0. On our large scale deployments we have observed 10-20 minutes of downtime
+as the database is migrated, but this will obviously vary depending on the
+amount of data.
 
 #### <sub><sup><a name="3602" href="#3602">:link:</a></sup></sub> feature, breaking
 
