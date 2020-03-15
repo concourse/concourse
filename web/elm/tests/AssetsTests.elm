@@ -106,6 +106,11 @@ toStringTests =
                         |> toString
                         |> Expect.equal "/public/images/favicon-aborted.png"
             ]
+        , test "PinIconWhite" <|
+            \_ ->
+                PinIconWhite
+                    |> toString
+                    |> Expect.equal "/public/images/pin-ic-white.svg"
         ]
 
 

@@ -28,6 +28,7 @@ module Resource.Styles exposing
     , versionHeader
     )
 
+import Assets
 import Colors
 import Html
 import Html.Attributes exposing (style)
@@ -169,13 +170,13 @@ pinButton pinState =
 
             Pinned.InTransition ->
                 "default"
-    , style "background-image" <|
+    , Assets.backgroundImageStyle <|
         case pinState of
             Pinned.InTransition ->
-                "none"
+                Nothing
 
             _ ->
-                "url(/public/images/pin-ic-white.svg)"
+                Just Assets.PinIconWhite
     ]
 
 

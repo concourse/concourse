@@ -18,6 +18,7 @@ type Asset
     | HighDensityIcon Bool
     | VisibilityToggleIcon Bool
     | BuildFavicon (Maybe BuildStatus)
+    | PinIconWhite
 
 
 toString : Asset -> String
@@ -99,3 +100,6 @@ toPath asset =
                         Nothing ->
                             [ "favicon.png" ]
                    )
+
+        PinIconWhite ->
+            basePath ++ [ "pin-ic-white.svg" ]
