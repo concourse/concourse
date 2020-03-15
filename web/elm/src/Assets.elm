@@ -25,9 +25,15 @@ toString asset =
     Url.Builder.absolute (toPath asset) []
 
 
-backgroundImageStyle : Asset -> Html.Attribute msg
-backgroundImageStyle asset =
-    style "background-image" <| "url(" ++ toString asset ++ ")"
+backgroundImageStyle : Maybe Asset -> Html.Attribute msg
+backgroundImageStyle maybeAsset =
+    style "background-image" <|
+        case maybeAsset of
+            Nothing ->
+                "none"
+
+            Just asset ->
+                "url(" ++ toString asset ++ ")"
 
 
 toPath : Asset -> List String

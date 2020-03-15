@@ -413,7 +413,7 @@ highDensityToggle =
 highDensityIcon : Bool -> List (Html.Attribute msg)
 highDensityIcon highDensity =
     [ Assets.backgroundImageStyle <|
-        Assets.HighDensityIcon highDensity
+        Just (Assets.HighDensityIcon highDensity)
     , style "background-size" "contain"
     , style "height" "20px"
     , style "width" "35px"
@@ -443,7 +443,7 @@ infoCliIcon { hovered, cli } =
     [ style "margin-right" "10px"
     , style "width" "20px"
     , style "height" "20px"
-    , Assets.backgroundImageStyle <| Assets.CliIcon cli
+    , Assets.backgroundImageStyle <| Just (Assets.CliIcon cli)
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
@@ -464,7 +464,7 @@ topCliIcon { hovered, cli } =
 
         else
             "0.5"
-    , Assets.backgroundImageStyle <| Assets.CliIcon cli
+    , Assets.backgroundImageStyle <| Just (Assets.CliIcon cli)
     , style "background-position" "50% 50%"
     , style "background-repeat" "no-repeat"
     , style "width" "32px"
@@ -688,7 +688,7 @@ visibilityToggle :
     -> List (Html.Attribute msg)
 visibilityToggle { public, isClickable, isHovered } =
     [ Assets.backgroundImageStyle <|
-        Assets.VisibilityToggleIcon public
+        Just (Assets.VisibilityToggleIcon public)
     , style "height" "20px"
     , style "width" "20px"
     , style "background-position" "50% 50%"

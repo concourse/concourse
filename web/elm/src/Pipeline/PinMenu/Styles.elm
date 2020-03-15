@@ -7,6 +7,7 @@ module Pipeline.PinMenu.Styles exposing
     , title
     )
 
+import Assets
 import Colors
 import Html
 import Html.Attributes exposing (style)
@@ -49,7 +50,7 @@ pinIconBackground { background, clickable } =
 
 pinIcon : { a | opacity : SS.Opacity } -> List (Html.Attribute msg)
 pinIcon { opacity } =
-    [ style "background-image" "url(/public/images/pin-ic-white.svg)"
+    [ Assets.backgroundImageStyle <| Just Assets.PinIcon
     , style "width" "18px"
     , style "height" "18px"
     , style "background-repeat" "no-repeat"

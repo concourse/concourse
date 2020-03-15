@@ -1,4 +1,4 @@
-module AssetsTests exposing (styleTests, toStringTests)
+module AssetsTests exposing (backgroundImageStyleTests, toStringTests)
 
 import Assets
     exposing
@@ -109,13 +109,14 @@ toStringTests =
         ]
 
 
-styleTests : Test
-styleTests =
-    describe "Style Tests"
-        [ test "backgroundImageStyle" <|
+backgroundImageStyleTests : Test
+backgroundImageStyleTests =
+    describe "backgroundImageStyle"
+        [ test "Just" <|
             \_ ->
                 Html.div
                     [ CliIcon OSX
+                        |> Just
                         |> backgroundImageStyle
                     ]
                     []
@@ -124,4 +125,9 @@ styleTests =
                         [ style "background-image"
                             "url(/public/images/apple-logo.svg)"
                         ]
+        , test "Nothing" <|
+            \_ ->
+                Html.div [ Nothing |> backgroundImageStyle ] []
+                    |> Query.fromHtml
+                    |> Query.has [ style "background-image" "none" ]
         ]

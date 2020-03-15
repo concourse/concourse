@@ -78,7 +78,7 @@ chevron :
     -> { enabled : Bool, hovered : Bool }
     -> List (Html.Attribute msg)
 chevron asset { enabled, hovered } =
-    [ Assets.backgroundImageStyle asset
+    [ Assets.backgroundImageStyle <| Just asset
     , style "background-position" "50% 50%"
     , style "background-repeat" "no-repeat"
     , style "width" "24px"
