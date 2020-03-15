@@ -42,18 +42,12 @@ func (a *Algorithm) Compute(
 		return nil, false, false, fmt.Errorf("construct resolvers: %w", err)
 	}
 
-	inputMapper, err := newInputMapper(ctx, a.versionsDB, job.ID())
-	if err != nil {
-		return nil, false, false, fmt.Errorf("setting up input mapper: %w", err)
-	}
-
-	return a.computeResolvers(ctx, resolvers, inputMapper)
+	return a.computeResolvers(ctx, resolvers)
 }
 
 func (a *Algorithm) computeResolvers(
 	ctx context.Context,
 	resolvers []Resolver,
-	inputMapper inputMapper,
 ) (db.InputMapping, bool, bool, error) {
 	finalHasNext := false
 	finalResolved := true
@@ -72,7 +66,10 @@ func (a *Algorithm) computeResolvers(
 		// converts the version candidates into an object that is recognizable by
 		// other components. also computes the first occurrence for all satisfiable
 		// inputs
-		finalMapping = inputMapper.candidatesToInputMapping(finalMapping, resolver.InputConfigs(), versionCandidates, resolveErr)
+		finalMapping, err = a.candidatesToInputMapping(ctx, finalMapping, resolver.InputConfigs(), versionCandidates, resolveErr)
+		if err != nil {
+			return nil, false, false, fmt.Errorf("candidates to input mapping: %w", err)
+		}
 
 		// if any one of the resolvers has a version candidate that has an unused
 		// next every version, the algorithm should return true for being able to
@@ -90,4 +87,32 @@ func (a *Algorithm) finalizeHasNext(versionCandidates map[string]*versionCandida
 	}
 
 	return hasNextCombined
+}
+
+func (a *Algorithm) candidatesToInputMapping(ctx context.Context, mapping db.InputMapping, inputConfigs InputConfigs, candidates map[string]*versionCandidate, resolveErr db.ResolutionFailure) (db.InputMapping, error) {
+	for _, input := range inputConfigs {
+		if resolveErr != "" {
+			mapping[input.Name] = db.InputResult{
+				ResolveError: resolveErr,
+			}
+		} else {
+			firstOcc, err := a.versionsDB.IsFirstOccurrence(ctx, input.JobID, input.Name, candidates[input.Name].Version)
+			if err != nil {
+				return nil, err
+			}
+
+			mapping[input.Name] = db.InputResult{
+				Input: &db.AlgorithmInput{
+					AlgorithmVersion: db.AlgorithmVersion{
+						ResourceID: input.ResourceID,
+						Version:    candidates[input.Name].Version,
+					},
+					FirstOccurrence: firstOcc,
+				},
+				PassedBuildIDs: candidates[input.Name].SourceBuildIds,
+			}
+		}
+	}
+
+	return mapping, nil
 }

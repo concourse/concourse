@@ -477,6 +477,52 @@ var _ = Describe("Resolve", func() {
 			}))
 		})
 	})
+
+	Context("when the version computed from the algorithm was the same version and resource of an old build", func() {
+		BeforeEach(func() {
+			buildInputs = []buildInput{
+				{
+					Version:      "v2",
+					ResourceName: "r1",
+					CheckOrder:   2,
+					BuildID:      30,
+					JobName:      "j1",
+					InputName:    "some-input",
+				},
+				{
+					Version:      "v3",
+					ResourceName: "r1",
+					CheckOrder:   3,
+					BuildID:      31,
+					JobName:      "j1",
+					InputName:    "some-input",
+				},
+				{
+					Version:      "v2",
+					ResourceName: "r1",
+					CheckOrder:   2,
+					BuildID:      32,
+					JobName:      "j1",
+					InputName:    "some-input",
+				},
+			}
+		})
+
+		It("sets FirstOccurrence to false", func() {
+			Expect(inputMapping).To(Equal(db.InputMapping{
+				"some-input": db.InputResult{
+					Input: &db.AlgorithmInput{
+						AlgorithmVersion: db.AlgorithmVersion{
+							Version:    db.ResourceVersion(convertToMD5("v3")),
+							ResourceID: 1,
+						},
+						FirstOccurrence: false,
+					},
+					PassedBuildIDs: []int{},
+				},
+			}))
+		})
+	})
 })
 
 func convertToMD5(version string) string {

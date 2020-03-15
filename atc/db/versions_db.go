@@ -32,6 +32,27 @@ func NewVersionsDB(conn Conn, limitRows int, cache *gocache.Cache) VersionsDB {
 	}
 }
 
+func (versions VersionsDB) IsFirstOccurrence(ctx context.Context, jobID int, inputName string, versionMD5 ResourceVersion) (bool, error) {
+	var exists bool
+	err := versions.conn.QueryRowContext(ctx, `
+		WITH builds_of_job AS (
+			SELECT id FROM builds WHERE job_id = $1
+		)
+		SELECT EXISTS (
+			SELECT 1
+			FROM build_resource_config_version_inputs i
+			JOIN builds_of_job b ON b.id = i.build_id
+			WHERE i.name = $2
+			AND i.version_md5 = $3
+		)`, jobID, inputName, versionMD5).
+		Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return !exists, nil
+}
+
 func (versions VersionsDB) VersionIsDisabled(ctx context.Context, resourceID int, versionMD5 ResourceVersion) (bool, error) {
 	var exists bool
 	err := versions.conn.QueryRow(`
@@ -119,58 +140,6 @@ func (versions VersionsDB) SuccessfulBuildsVersionConstrained(
 		limitRows: versions.limitRows,
 		conn:      versions.conn,
 	}, nil
-}
-
-func (versions VersionsDB) BuildOutputs(ctx context.Context, buildID int) ([]AlgorithmOutput, error) {
-	uniqOutputs := map[string]AlgorithmOutput{}
-	rows, err := psql.Select("name", "resource_id", "version_md5").
-		From("build_resource_config_version_inputs").
-		Where(sq.Eq{"build_id": buildID}).
-		RunWith(versions.conn).
-		QueryContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		var output AlgorithmOutput
-		err := rows.Scan(&output.InputName, &output.ResourceID, &output.Version)
-		if err != nil {
-			return nil, err
-		}
-
-		uniqOutputs[output.InputName] = output
-	}
-
-	rows, err = psql.Select("name", "resource_id", "version_md5").
-		From("build_resource_config_version_outputs").
-		Where(sq.Eq{"build_id": buildID}).
-		RunWith(versions.conn).
-		QueryContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		var output AlgorithmOutput
-		err := rows.Scan(&output.InputName, &output.ResourceID, &output.Version)
-		if err != nil {
-			return nil, err
-		}
-
-		uniqOutputs[output.InputName] = output
-	}
-
-	outputs := []AlgorithmOutput{}
-	for _, o := range uniqOutputs {
-		outputs = append(outputs, o)
-	}
-
-	sort.Slice(outputs, func(i, j int) bool {
-		return outputs[i].InputName > outputs[j].InputName
-	})
-
-	return outputs, nil
 }
 
 type resourceOutputs struct {
@@ -276,30 +245,6 @@ func (versions VersionsDB) FindVersionOfResource(ctx context.Context, resourceID
 	versions.cache.Set(cacheKey, version, time.Hour)
 
 	return version, true, err
-}
-
-func (versions VersionsDB) LatestBuildID(ctx context.Context, jobID int) (int, bool, error) {
-	var buildID int
-	err := psql.Select("b.id").
-		From("builds b").
-		Where(sq.Eq{
-			"b.job_id":       jobID,
-			"b.inputs_ready": true,
-			"b.scheduled":    true,
-		}).
-		OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
-		Limit(1).
-		RunWith(versions.conn).
-		QueryRowContext(ctx).
-		Scan(&buildID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return 0, false, nil
-		}
-		return 0, false, err
-	}
-
-	return buildID, true, nil
 }
 
 func (versions VersionsDB) NextEveryVersion(ctx context.Context, jobID int, resourceID int) (ResourceVersion, bool, bool, error) {
