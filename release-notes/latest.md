@@ -280,7 +280,9 @@ amount of data.
 
 #### <sub><sup><a name="4406" href="#4406">:link:</a></sup></sub> feature
 
-* We added a `--team-name` flag to a few fly commands which will allow users that have access to multiple teams to not need to login to each team in order to run a command against it! #4406
+* We have started adding a `--team` flag to Fly commands so that you can run them against different teams that you're authorized to perform actions against, without having to log in to the team with a separate Fly target. (#4406)
+
+  So far, the flag has been added to `intercept`, `trigger-job`, `pause-job`, `unpause-job`, and `jobs`. In the future we will likely either continue with this change or start to re-think the overall Fly flow to see if there's a better alternative.
 
 #### <sub><sup><a name="5075" href="#5075">:link:</a></sup></sub> fix
 
