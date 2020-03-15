@@ -54,6 +54,7 @@ init session route =
             Build.init
                 { highlight = highlight
                 , pageType = Build.Header.Models.JobBuildPage id
+                , fromBuildPage = Nothing
                 }
                 |> Tuple.mapFirst BuildModel
 
@@ -61,6 +62,7 @@ init session route =
             Build.init
                 { highlight = highlight
                 , pageType = Build.Header.Models.OneOffBuildPage id
+                , fromBuildPage = Nothing
                 }
                 |> Tuple.mapFirst BuildModel
 
@@ -241,34 +243,41 @@ handleGoToRoute route ( a, effs ) =
     ( a, effs ++ [ NavigateTo <| Routes.toString route ] )
 
 
-urlUpdate : Routes.Route -> ET Model
-urlUpdate route =
+urlUpdate : Routes.Transition -> ET Model
+urlUpdate routes =
     genericUpdate
-        (case route of
+        (case routes.to of
             Routes.Build { id, highlight } ->
                 Build.changeToBuild
                     { pageType = Build.Header.Models.JobBuildPage id
                     , highlight = highlight
+                    , fromBuildPage =
+                        case routes.from of
+                            Routes.Build params ->
+                                Just <| Build.Header.Models.JobBuildPage params.id
+
+                            _ ->
+                                Nothing
                     }
 
             _ ->
                 identity
         )
-        (case route of
+        (case routes.to of
             Routes.Job { id, page } ->
                 Job.changeToJob { jobId = id, paging = page }
 
             _ ->
                 identity
         )
-        (case route of
+        (case routes.to of
             Routes.Resource { id, page } ->
                 Resource.changeToResource { resourceId = id, paging = page }
 
             _ ->
                 identity
         )
-        (case route of
+        (case routes.to of
             Routes.Pipeline { id, groups } ->
                 Pipeline.changeToPipelineAndGroups
                     { pipelineLocator = id
@@ -278,7 +287,7 @@ urlUpdate route =
             _ ->
                 identity
         )
-        (case route of
+        (case routes.to of
             Routes.Dashboard st ->
                 Tuple.mapFirst
                     (\dm -> { dm | highDensity = st == Routes.HighDensity })

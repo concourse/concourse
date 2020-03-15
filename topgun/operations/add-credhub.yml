@@ -6,6 +6,12 @@
     version: ((credhub_release_version))
 
 - type: replace
+  path: /releases/-
+  value:
+    name: uaa
+    version: ((uaa_release_version))
+
+- type: replace
   path: /instance_groups/name=web/jobs/name=web/properties?/postgresql?/ca_cert?
   value: ((postgres_tls.ca))
 
@@ -35,6 +41,8 @@
     vm_type: test
     stemcell: xenial
     jobs:
+    - release: bpm
+      name: bpm
     - release: credhub
       name: credhub
       properties:
@@ -48,6 +56,7 @@
             host: ((postgres_ip))
             port: 5432
             tls_ca: ((postgres_ca.certificate))
+            tls: enabled
           encryption:
             providers:
             - name: main
@@ -64,7 +73,59 @@
             mutual_tls:
               trusted_cas: [((credhub_ca.certificate))]
             uaa:
-              enabled: false
+              enabled: true
+              url: "https://((credhub_ip)):8443"
+              ca_certs: [((credhub_tls.ca))]
+    - name: uaa
+      release: uaa
+      properties:
+        uaa:
+          ca_certs: [((postgres_ca.certificate))]
+          url: &uaa-url "https://((credhub_ip)):8443"
+          port: 8181
+          scim:
+            users:
+            - name: admin
+              password: ((uaa_users_admin))
+              groups:
+              - scim.write
+              - scim.read
+              - bosh.admin
+              - credhub.read
+              - credhub.write
+          admin: {client_secret: ((uaa_admin))}
+          login: {client_secret: ((uaa_login))}
+          zones: {internal: {hostnames: []}}
+          sslCertificate: ((credhub_tls.certificate))
+          sslPrivateKey: ((credhub_tls.private_key))
+          jwt:
+            revocable: true
+            policy:
+              active_key_id: key-1
+              keys:
+                key-1:
+                  signingKey: ((uaa_jwt.private_key))
+        uaadb:
+          address: ((postgres_ip))
+          port: 5432
+          db_scheme: postgresql
+          databases:
+          - tag: uaa
+            name: &uaa_db uaa
+          roles:
+          - tag: admin
+            name: *uaa_db
+            password: &uaa_db_passwd ((uaa_db_password))
+        encryption:
+          active_key_label: key-1
+          encryption_keys:
+          - label: key-1
+            passphrase: ((uaa_encryption_key))
+        login:
+          saml:
+            serviceProviderCertificate: ((credhub_tls.certificate))
+            serviceProviderKey: ((credhub_tls.private_key))
+            serviceProviderKeyPassword: ""
 
 - type: replace
   path: /instance_groups/name=web/jobs/name=web/properties?/credhub?
@@ -114,3 +175,90 @@
   value:
     name: credhub_encryption_password
     type: password
+
+- type: replace
+  path: /instance_groups/name=db/jobs/name=postgres/properties/databases/databases/-
+  value:
+    name: *uaa_db
+- type: replace
+  path: /instance_groups/name=db/jobs/name=postgres/properties/databases/roles/-
+  value:
+    name: *uaa_db
+    password: *uaa_db_passwd
+
+- type: replace
+  path: /variables?/name=uaa_db_password?
+  value:
+    name: uaa_db_password
+    type: password
+- type: replace
+  path: /variables?/name=uaa_users_admin?
+  value:
+    name: uaa_users_admin
+    type: password
+- type: replace
+  path: /variables?/name=concourse_to_credhub_secret?
+  value:
+    name: concourse_to_credhub_secret
+    type: password
+- type: replace
+  path: /variables?/name=uaa_admin?
+  value:
+    name: uaa_admin
+    type: password
+- type: replace
+  path: /variables?/name=uaa_login?
+  value:
+    name: uaa_login
+    type: password
+- type: replace
+  path: /variables?/name=uaa_jwt?
+  value:
+    name: uaa_jwt
+    type: rsa
+    options:
+      key_length: 4096
+- type: replace
+  path: /variables?/name=uaa_encryption_key?
+  value:
+    name: uaa_encryption_key
+    type: password
+- path: /variables?/name=concourse_to_credhub_client_secret?
+  type: replace
+  value:
+    name: concourse_to_credhub_client_secret
+    type: password
+
+# update UAA job by adding new client(s)
+# concourse_to_credhub_client is used for concourse<->credhub integration
+- path: /instance_groups/name=credhub/jobs/name=uaa/properties/uaa/clients?/concourse_to_credhub_client
+  type: replace
+  value:
+    id: concourse_to_credhub_client
+    secret: ((concourse_to_credhub_client_secret))
+    override: true
+    authorized-grant-types: client_credentials
+    scope: ""
+    authorities: credhub.read,credhub.write
+    access-token-validity: 1200
+    refresh-token-validity: 3600
+
+# add credhub integration with concourse
+- path: /instance_groups/name=web/jobs/name=web/properties/credhub?
+  type: replace
+  value:
+    url: https://((credhub_ip)):8844
+    tls:
+      ca_cert:
+        certificate: ((credhub_tls.ca))
+      client_cert: ((credhub_tls.certificate))
+      insecure_skip_verify: false
+    client_id: concourse_to_credhub_client
+    client_secret: ((concourse_to_credhub_client_secret))
+    path_prefix: /concourse
+
+- type: replace
+  path: /instance_groups/name=web/update?
+  value:
+    update_watch_time: 1000-150000
+    canary_watch_time: 1000-150000

@@ -420,19 +420,16 @@ func (c *engineCheck) clearRunState() {
 }
 
 func (c *engineCheck) trackStarted(logger lager.Logger) {
-	metric.CheckStarted{
-		CheckName:             c.check.Plan().Check.Name,
-		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
-		CheckStatus:           c.check.Status(),
-		CheckPendingDuration:  c.check.StartTime().Sub(c.check.CreateTime()),
-	}.Emit(logger)
+	metric.ChecksStarted.Inc()
 }
 
 func (c *engineCheck) trackFinished(logger lager.Logger) {
-	metric.CheckFinished{
-		CheckName:             c.check.Plan().Check.Name,
-		ResourceConfigScopeID: c.check.ResourceConfigScopeID(),
-		CheckStatus:           c.check.Status(),
-		CheckDuration:         c.check.EndTime().Sub(c.check.StartTime()),
-	}.Emit(logger)
+	switch c.check.Status() {
+	case db.CheckStatusErrored:
+		metric.ChecksFinishedWithError.Inc()
+	case db.CheckStatusSucceeded:
+		metric.ChecksFinishedWithSuccess.Inc()
+	default:
+		logger.Info("unexpected-check-status", lager.Data{"status": c.check.Status()})
+	}
 }

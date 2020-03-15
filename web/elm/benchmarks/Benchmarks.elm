@@ -843,8 +843,7 @@ steps =
 
 sampleJob : String -> List String -> Concourse.Job
 sampleJob name passed =
-    { pipeline = pipelineId
-    , name = name
+    { name = name
     , pipelineName = "pipeline"
     , teamName = "team"
     , nextBuild = Nothing
@@ -872,11 +871,6 @@ sampleJobs =
     , sampleJob "job3" [ "job2a" ]
     , sampleJob "job4" [ "job3" ]
     ]
-
-
-pipelineId : Concourse.PipelineIdentifier
-pipelineId =
-    { pipelineName = "pipeline", teamName = "team" }
 
 
 dashboardPreviewView : List Concourse.Job -> Html msg
@@ -972,8 +966,7 @@ jobByName jobs job =
             a
 
         Nothing ->
-            { pipeline = { pipelineName = "", teamName = "" }
-            , name = ""
+            { name = ""
             , pipelineName = ""
             , teamName = ""
             , nextBuild = Nothing

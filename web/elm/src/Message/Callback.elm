@@ -15,6 +15,7 @@ import Message.Message
         , VersionToggleAction
         , VisibilityAction
         )
+import Message.ScrollDirection exposing (ScrollDirection)
 import Time
 
 
@@ -63,6 +64,7 @@ type Callback
     | AllPipelinesFetched (Fetched (List Concourse.Pipeline))
     | GotViewport DomID TooltipPolicy (Result Browser.Dom.Error Browser.Dom.Viewport)
     | GotElement (Result Browser.Dom.Error Browser.Dom.Element)
+    | ScrollCompleted ScrollDirection String
 
 
 type TooltipPolicy

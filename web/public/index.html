@@ -7,13 +7,8 @@
     <link rel="manifest" href="{{asset "manifest.json"}}" />
     <link rel="stylesheet" type="text/css" media="all" href="{{asset "main.css"}}" />
     <link rel="icon" type="image/png" id="favicon" href="{{asset "images/favicon.png"}}" />
-    <script src="{{asset "index.js"}}"></script>
-    <script src="{{asset "d3.v355.min.js"}}"></script>
-    <script src="{{asset "graph.js"}}"></script>
-    <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
     <script src="{{asset "elm.min.js"}}"></script>
     <script src="{{asset "clipboard.min.js"}}"></script>
-    <script src="{{asset "mdi-svg.min.js"}}"></script>
     <style>
         @keyframes pipeline-running {
           0% { background-position-x: -53.5px; }
@@ -73,20 +68,17 @@
   </head>
   <body>
     <div id="elm-app-embed"></div>
-    <script type="text/javascript">
-      var node = document.getElementById("elm-app-embed");
-      var app = Elm.Main.init({
-        node : node,
-        flags : {
-          turbulenceImgSrc: {{asset "images/buckleup.svg"}},
-          notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
-          csrfToken: {{ .CSRFToken }},
-          authToken: {{ .AuthToken }},
-          pipelineRunningKeyframes: "pipeline-running"
-        }
-      });
+    <script>
+      window.elmFlags = {
+        turbulenceImgSrc: {{asset "images/buckleup.svg"}},
+        notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
+        csrfToken: {{ .CSRFToken }},
+        authToken: {{ .AuthToken }},
+        pipelineRunningKeyframes: "pipeline-running",
+      };
     </script>
-    <script src="{{asset "elm-setup.js"}}"></script>
+    <script src="{{asset "bundle.js"}}" nomodule></script>
+    <script src="{{asset "elm-setup.js"}}" type="module"></script>
     <div id="icon-store" style="display: none;"></div>
   </body>
 </html>

@@ -71,10 +71,6 @@ all =
                     { name = "some-job"
                     , pipelineName = "some-pipeline"
                     , teamName = "some-team"
-                    , pipeline =
-                        { pipelineName = "some-pipeline"
-                        , teamName = "some-team"
-                        }
                     , nextBuild = Nothing
                     , finishedBuild = Just someBuild
                     , transitionBuild = Nothing
@@ -118,10 +114,6 @@ all =
                                     { name = "job"
                                     , pipelineName = "pipeline"
                                     , teamName = "team"
-                                    , pipeline =
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
                                     , nextBuild = Nothing
                                     , finishedBuild = Just someBuild
                                     , transitionBuild = Nothing

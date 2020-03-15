@@ -3,6 +3,7 @@ package dbfakes
 
 import (
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -241,6 +242,16 @@ type FakePipeline struct {
 	jobsReturnsOnCall map[int]struct {
 		result1 db.Jobs
 		result2 error
+	}
+	LastUpdatedStub        func() time.Time
+	lastUpdatedMutex       sync.RWMutex
+	lastUpdatedArgsForCall []struct {
+	}
+	lastUpdatedReturns struct {
+		result1 time.Time
+	}
+	lastUpdatedReturnsOnCall map[int]struct {
+		result1 time.Time
 	}
 	LoadDebugVersionsDBStub        func() (*atc.DebugVersionsDB, error)
 	loadDebugVersionsDBMutex       sync.RWMutex
@@ -1579,6 +1590,58 @@ func (fake *FakePipeline) JobsReturnsOnCall(i int, result1 db.Jobs, result2 erro
 	}{result1, result2}
 }
 
+func (fake *FakePipeline) LastUpdated() time.Time {
+	fake.lastUpdatedMutex.Lock()
+	ret, specificReturn := fake.lastUpdatedReturnsOnCall[len(fake.lastUpdatedArgsForCall)]
+	fake.lastUpdatedArgsForCall = append(fake.lastUpdatedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("LastUpdated", []interface{}{})
+	fake.lastUpdatedMutex.Unlock()
+	if fake.LastUpdatedStub != nil {
+		return fake.LastUpdatedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.lastUpdatedReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) LastUpdatedCallCount() int {
+	fake.lastUpdatedMutex.RLock()
+	defer fake.lastUpdatedMutex.RUnlock()
+	return len(fake.lastUpdatedArgsForCall)
+}
+
+func (fake *FakePipeline) LastUpdatedCalls(stub func() time.Time) {
+	fake.lastUpdatedMutex.Lock()
+	defer fake.lastUpdatedMutex.Unlock()
+	fake.LastUpdatedStub = stub
+}
+
+func (fake *FakePipeline) LastUpdatedReturns(result1 time.Time) {
+	fake.lastUpdatedMutex.Lock()
+	defer fake.lastUpdatedMutex.Unlock()
+	fake.LastUpdatedStub = nil
+	fake.lastUpdatedReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakePipeline) LastUpdatedReturnsOnCall(i int, result1 time.Time) {
+	fake.lastUpdatedMutex.Lock()
+	defer fake.lastUpdatedMutex.Unlock()
+	fake.LastUpdatedStub = nil
+	if fake.lastUpdatedReturnsOnCall == nil {
+		fake.lastUpdatedReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.lastUpdatedReturnsOnCall[i] = struct {
+		result1 time.Time
+	}{result1}
+}
+
 func (fake *FakePipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 	fake.loadDebugVersionsDBMutex.Lock()
 	ret, specificReturn := fake.loadDebugVersionsDBReturnsOnCall[len(fake.loadDebugVersionsDBArgsForCall)]
@@ -2711,6 +2774,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.jobMutex.RUnlock()
 	fake.jobsMutex.RLock()
 	defer fake.jobsMutex.RUnlock()
+	fake.lastUpdatedMutex.RLock()
+	defer fake.lastUpdatedMutex.RUnlock()
 	fake.loadDebugVersionsDBMutex.RLock()
 	defer fake.loadDebugVersionsDBMutex.RUnlock()
 	fake.nameMutex.RLock()

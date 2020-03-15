@@ -1,5 +1,8 @@
 module Concourse.Cli exposing (Cli(..), clis, downloadUrl, iconUrl, id, label)
 
+import Api.Endpoints as Endpoints
+import Url.Builder
+
 
 clis : List Cli
 clis =
@@ -26,7 +29,11 @@ downloadUrl cli =
                 Linux ->
                     "linux"
     in
-    "/api/v1/cli?arch=amd64&platform=" ++ platformName
+    Endpoints.Cli
+        |> Endpoints.toString
+            [ Url.Builder.string "arch" "amd64"
+            , Url.Builder.string "platform" platformName
+            ]
 
 
 iconUrl : Cli -> String

@@ -225,3 +225,75 @@ func (s *ContainerSuite) TestPropertyReturnsValue() {
 	s.NoError(err)
 	s.Equal("some-value", result)
 }
+
+func (s *ContainerSuite) TestCurrentCPULimitsGetInfoFails() {
+	expectedErr := errors.New("get-spec-error")
+	s.containerdContainer.SpecReturns(nil, expectedErr)
+	_, err := s.container.CurrentCPULimits()
+	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ContainerSuite) TestCurrentCPULimitsNoLimitSet() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Linux: &specs.Linux{
+			Resources: &specs.LinuxResources{
+				CPU: &specs.LinuxCPU{},
+			},
+		},
+	}, nil)
+	limits, err := s.container.CurrentCPULimits()
+	s.NoError(err)
+	s.Equal(garden.CPULimits{}, limits)
+}
+
+func (s *ContainerSuite) TestCurrentCPULimitsReturnsCPUShares() {
+	cpuShares := uint64(512)
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Linux: &specs.Linux{
+			Resources: &specs.LinuxResources{
+				CPU: &specs.LinuxCPU{
+					Shares: &cpuShares,
+				},
+			},
+		},
+	}, nil)
+	limits, err := s.container.CurrentCPULimits()
+	s.NoError(err)
+	s.Equal(garden.CPULimits{Weight: cpuShares}, limits)
+}
+
+func (s *ContainerSuite) TestCurrentMemoryLimitsGetSpecFails() {
+	expectedErr := errors.New("get-spec-error")
+	s.containerdContainer.SpecReturns(nil, expectedErr)
+	_, err := s.container.CurrentMemoryLimits()
+	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ContainerSuite) TestCurrentMemoryLimitsNoLimitSet() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Linux: &specs.Linux{
+			Resources: &specs.LinuxResources{
+				Memory: &specs.LinuxMemory{},
+			},
+		},
+	}, nil)
+	limits, err := s.container.CurrentMemoryLimits()
+	s.NoError(err)
+	s.Equal(garden.MemoryLimits{}, limits)
+}
+
+func (s *ContainerSuite) TestCurrentMemoryLimitsReturnsLimit() {
+	limitBytes := int64(512)
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Linux: &specs.Linux{
+			Resources: &specs.LinuxResources{
+				Memory: &specs.LinuxMemory{
+					Limit: &limitBytes,
+				},
+			},
+		},
+	}, nil)
+	limits, err := s.container.CurrentMemoryLimits()
+	s.NoError(err)
+	s.Equal(garden.MemoryLimits{LimitInBytes: uint64(limitBytes)}, limits)
+}

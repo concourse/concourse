@@ -117,10 +117,7 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes, 
 		s.logger.Debug("check-already-exists")
 	}
 
-	metric.CheckEnqueue{
-		CheckName:             checkable.Name(),
-		ResourceConfigScopeID: checkable.ResourceConfigScopeID(),
-	}.Emit(s.logger)
+	metric.ChecksEnqueued.Inc()
 
 	return nil
 }

@@ -25,7 +25,7 @@ GEM
       addressable (~> 2.3)
     mini_mime (1.0.1)
     mini_portile2 (2.4.0)
-    nokogiri (1.10.4)
+    nokogiri (1.10.8)
       mini_portile2 (~> 2.4.0)
     parallel (1.12.1)
     parser (2.5.3.0)

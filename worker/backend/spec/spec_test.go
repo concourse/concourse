@@ -20,6 +20,9 @@ type SpecSuite struct {
 	*require.Assertions
 }
 
+func uint64Ptr(i uint64) *uint64 { return &i }
+func int64Ptr(i int64) *int64 { return &i }
+
 func (s *SpecSuite) TestContainerSpecValidations() {
 	for _, tc := range []struct {
 		desc string
@@ -227,6 +230,120 @@ func (s *SpecSuite) TestOciCapabilities() {
 	}
 }
 
+func (s *SpecSuite) TestOciResourceLimits() {
+	for _, tc := range []struct {
+		desc     string
+		limits   garden.Limits
+		expected *specs.LinuxResources
+	}{
+		{
+			desc: "CPU limit in weight",
+			limits: garden.Limits{
+				CPU: garden.CPULimits{
+					Weight: 512,
+				},
+			},
+			expected: &specs.LinuxResources{
+				CPU: &specs.LinuxCPU{
+					Shares: uint64Ptr(512),
+				},
+			},
+		},
+		{
+			desc: "CPU limit in shares",
+			limits: garden.Limits{
+				CPU: garden.CPULimits{
+					LimitInShares: 512,
+				},
+			},
+			expected: &specs.LinuxResources{
+				CPU: &specs.LinuxCPU{
+					Shares: uint64Ptr(512),
+				},
+			},
+		},
+		{
+			desc: "CPU limit prefers weight",
+			limits: garden.Limits{
+				CPU: garden.CPULimits{
+					LimitInShares: 512,
+					Weight:        1024,
+				},
+			},
+			expected: &specs.LinuxResources{
+				CPU: &specs.LinuxCPU{
+					Shares: uint64Ptr(1024),
+				},
+			},
+		},
+		{
+			desc: "Memory limit",
+			limits: garden.Limits{
+				Memory: garden.MemoryLimits{
+					LimitInBytes: 10000,
+				},
+			},
+			expected: &specs.LinuxResources{
+				Memory: &specs.LinuxMemory{
+					Limit: int64Ptr(10000),
+					Swap:  int64Ptr(10000),
+				},
+			},
+		},
+		{
+			desc: "PID limit",
+			limits: garden.Limits{
+				Pid: garden.PidLimits {
+					Max: 1000,
+				},
+			},
+			expected: &specs.LinuxResources{
+				Pids: &specs.LinuxPids{
+					Limit: 1000,
+				},
+			},
+		},
+		{
+			desc: "No limits specified",
+			limits: garden.Limits{},
+			expected: nil,
+		},
+	} {
+		s.T().Run(tc.desc, func(t *testing.T) {
+			s.Equal(tc.expected, spec.OciResources(tc.limits))
+		})
+	}
+}
+
+func (s *SpecSuite) TestOciCgroupsPath() {
+	for _, tc := range []struct {
+		desc       string
+		basePath   string
+		handle     string
+		privileged bool
+		expected   string
+	}{
+		{
+			desc: "not privileged",
+			basePath: "garden",
+			handle: "1234",
+			privileged: false,
+			expected: "garden/1234",
+		},
+		{
+			desc: "privileged",
+			basePath: "garden",
+			handle: "1234",
+			privileged: true,
+			expected: "",
+		},
+	} {
+		s.T().Run(tc.desc, func(t *testing.T) {
+			s.Equal(tc.expected, spec.OciCgroupsPath(tc.basePath, tc.handle, tc.privileged))
+		})
+	}
+}
+
 func (s *SpecSuite) TestContainerSpec() {
 	var minimalContainerSpec = garden.ContainerSpec{
 		Handle: "handle", RootFSPath: "raw:///rootfs",
@@ -247,6 +364,16 @@ func (s *SpecSuite) TestContainerSpec() {
 
 				s.Equal(minimalContainerSpec.Handle, oci.Hostname)
 				s.Equal(spec.AnyContainerDevices, oci.Linux.Resources.Devices)
+			},
+		},
+		{
+			desc: "default devices privileged",
+			gdn:  garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			check: func(oci *specs.Spec) {
+				s.Equal(append(spec.PrivilegedOnlyDevices, spec.AnyContainerDevices...), oci.Linux.Resources.Devices)
 			},
 		},
 		{
@@ -312,6 +439,63 @@ func (s *SpecSuite) TestContainerSpec() {
 					Type:        "bind",
 					Options:     []string{"bind", "rw"},
 				})
+			},
+		},
+		{
+			desc: "seccomp is not empty for unprivileged",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: false,
+			},
+			check: func(oci *specs.Spec) {
+				s.NotEmpty(oci.Linux.Seccomp)
+			},
+		},
+		{
+			desc: "seccomp is empty for privileged",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			check: func(oci *specs.Spec) {
+				s.Empty(oci.Linux.Seccomp)
+			},
+		},
+		{
+			desc: "limits",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Limits: garden.Limits{
+					CPU: garden.CPULimits{
+						Weight: 512,
+					},
+					Memory: garden.MemoryLimits{
+						LimitInBytes: 10000,
+					},
+					Pid: garden.PidLimits{
+						Max: 1000,
+					},
+				},
+			},
+			check: func(oci *specs.Spec) {
+				s.NotNil(oci.Linux.Resources.CPU)
+				s.Equal(uint64Ptr(512), oci.Linux.Resources.CPU.Shares)
+				s.NotNil(oci.Linux.Resources.Memory)
+				s.Equal(int64Ptr(10000), oci.Linux.Resources.Memory.Limit)
+				s.NotNil(oci.Linux.Resources.Pids)
+				s.Equal(int64(1000), oci.Linux.Resources.Pids.Limit)
+
+				s.NotNil(oci.Linux.Resources.Devices)
+			},
+		},
+		{
+			desc: "cgroups path",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: false,
+			},
+			check: func(oci *specs.Spec) {
+				s.Equal("garden/handle", oci.Linux.CgroupsPath)
 			},
 		},
 	} {

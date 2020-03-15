@@ -33,7 +33,7 @@ var _ = Describe("A resource check which times out", func() {
 			<-check.Exited
 			Expect(check).To(gexec.Exit(1))
 			Expect(check.Out).To(gbytes.Say("errored"))
-			Expect(check.Out).To(gbytes.Say("Timed out"))
+			Expect(check.Out).To(gbytes.Say("timed out"))
 		})
 	})
 

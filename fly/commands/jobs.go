@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/fatih/color"
 )
 
@@ -17,6 +18,10 @@ type JobsCommand struct {
 }
 
 func (command *JobsCommand) Execute([]string) error {
+	var (
+		headers []string
+		team    concourse.Team
+	)
 	pipelineName := command.Pipeline
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
@@ -29,8 +34,14 @@ func (command *JobsCommand) Execute([]string) error {
 		return err
 	}
 
-	var headers []string
-	team := GetTeam(target, command.Team)
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
+		if err != nil {
+			return err
+		}
+	} else {
+		team = target.Team()
+	}
 
 	var jobs []atc.Job
 	jobs, err = team.ListJobs(pipelineName)

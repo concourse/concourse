@@ -371,7 +371,7 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 				continue
 			}
 
-			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, "some-name", "succeeded")
+			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, row.BuildID, "succeeded")
 			Expect(err).ToNot(HaveOccurred())
 
 			imported[row.BuildID] = true
@@ -384,7 +384,7 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 
 			// any builds not created at this point must have failed as they weren't
 			// present via outputs
-			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, "some-name", "failed")
+			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, row.BuildID, "failed")
 			Expect(err).ToNot(HaveOccurred())
 
 			imported[row.BuildID] = true
@@ -888,7 +888,7 @@ func (s setupDB) insertRowBuild(row DBRow, needsV6Migration bool) {
 	var existingJobID int
 	err := s.psql.Insert("builds").
 		Columns("team_id", "id", "job_id", "name", "status", "scheduled", "inputs_ready", "rerun_of", "needs_v6_migration").
-		Values(s.teamID, row.BuildID, jobID, "some-name", buildStatus, true, true, rerunOf, needsV6Migration).
+		Values(s.teamID, row.BuildID, jobID, row.BuildID, buildStatus, true, true, rerunOf, needsV6Migration).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = excluded.name").
 		Suffix("RETURNING job_id").
 		QueryRow().

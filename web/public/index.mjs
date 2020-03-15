@@ -1,3 +1,16 @@
+import "./d3.v355.min.js";
+import { Graph, GraphNode } from './graph.mjs';
+
+const iconsModulePromise = import("./mdi-svg.min.js");
+
+export function renderPipeline(jobs, resources, newUrl){
+  const foundSvg = d3.select(".pipeline-graph");
+  const svg = createPipelineSvg(foundSvg)
+  if (svg.node() != null) {
+    draw(svg, jobs, resources, newUrl);
+  }
+}
+
 var currentHighlight;
 
 var redraw;
@@ -155,7 +168,7 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     var graphNodes = graph.nodes()
     for (var i in graphNodes) {
       if (graphNodes[i].status == "failed") {
-        xCenter = graphNodes[i].position().x + (graphNodes[i].width() / 2)
+        var xCenter = graphNodes[i].position().x + (graphNodes[i].width() / 2)
         var found = false
         for (var i in failureCenters) {
           if (Math.abs(xCenter - failureCenters[i]) < epsilon) {
@@ -170,8 +183,8 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     }
 
     svg.selectAll("g.fail-triangle-node").remove()
-    failTriangleBottom = 20
-    failTriangleHeight = 24
+    const failTriangleBottom = 20
+    const failTriangleHeight = 24
     for (var i in failureCenters) {
       var triangleNode = svg.append("g")
         .attr("class", "fail-triangle-node")
@@ -219,31 +232,44 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     d3.select(svg.node().parentNode)
       .attr("viewBox", "" + (bbox.x - 20) + " " + (bbox.y - 20) + " " + (bbox.width + 40) + " " + (bbox.height + 40))
 
-    var $jobs = $(".job")
-    var jobAnimations = $jobs.clone();
-    var largestEdge = Math.max(bbox.width, bbox.height);
+    const originalJobs = [...document.querySelectorAll(".job")];
+    const jobAnimations = originalJobs.map(el => el.cloneNode(true));
+    jobAnimations.forEach(el => {
+      const foreignObject = el.querySelector('foreignObject');
+      if (foreignObject != null) {
+        removeElement(foreignObject);
+      }
+      el.classList.remove('job');
+      el.classList.add('job-animation-node');
+      el.querySelectorAll('a').forEach(removeElement);
+      if (foreignObject != null) {
+        removeElement(foreignObject);
+      }
+      el.appendChild(foreignObject);
 
-    jobAnimations.each(function(i, el){
-      var $el = $(el);
-      var $foreignObject = $el.find('foreignObject').detach();
-      $el.attr('class', $el.attr('class').replace('job', 'job-animation-node'));
-      $el.find('a').remove();
-      $el.append($foreignObject);
+      el.querySelectorAll('text').forEach(removeElement);
     });
-    jobAnimations.find("text").remove();
-    $jobs.find('.js-animation-wrapper').remove();
-    $("svg > g").prepend(jobAnimations);
-
-
-    if (largestEdge < 500) {
-      $(".animation").addClass("animation-small");
-    } else if (largestEdge < 1500) {
-      $(".animation").addClass("animation-medium");
-    } else if (largestEdge < 3000) {
-      $(".animation").addClass("animation-large");
-    } else {
-      $(".animation").addClass("animation-xlarge");
+    originalJobs.forEach(el => 
+      el.querySelectorAll('.js-animation-wrapper').forEach(removeElement)
+    );
+    const canvas = document.querySelector('svg > g');
+    if (canvas != null) {
+      canvas.prepend(...jobAnimations);
     }
+
+    const largestEdge = Math.max(bbox.width, bbox.height);
+    const animations = document.querySelectorAll('.animation');
+    animations.forEach(el => {
+      if (largestEdge < 500) {
+        el.classList.add("animation-small");
+      } else if (largestEdge < 1500) {
+        el.classList.add("animation-medium");
+      } else if (largestEdge < 3000) {
+        el.classList.add("animation-large");
+      } else {
+        el.classList.add("animation-xlarge");
+      }
+    })
 
     if (currentHighlight) {
       svgNodes.each(function(node) {
@@ -260,6 +286,16 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     }
   }
 };
+
+function removeElement(el) {
+  if (el == null) {
+    return;
+  }
+  if (el.parentNode == null) {
+    return;
+  }
+  el.parentNode.removeChild(el);
+}
 
 var zoom = (function() {
   var z;
@@ -298,7 +334,7 @@ function createPipelineSvg(svg) {
   return g
 }
 
-function resetPipelineFocus() {
+export function resetPipelineFocus() {
   var g = d3.select("g.test");
 
   if (!g.empty()) {
@@ -504,22 +540,16 @@ function createGraph(svg, jobs, resources) {
 }
 
 function addIcon(iconName, nodeId) {
-  var id = nodeId + "-svg-icon";
-  if (document.getElementById(id) === null) {
-    var svg = icons.svg(iconName, id);
-    var template = document.createElement('template');
-    template.innerHTML = svg;
-    var icon = template.content.firstChild;
-    document.getElementById("icon-store").appendChild(icon)
-  }
-}
-
-function objectIsEmpty(o) {
-  for (var x in o) {
-    return false;
-  }
-
-  return true;
+  iconsModulePromise.then(icons => {
+    var id = nodeId + "-svg-icon";
+    if (document.getElementById(id) === null) {
+      var svg = icons.svg(iconName, id);
+      var template = document.createElement('template');
+      template.innerHTML = svg;
+      var icon = template.content.firstChild;
+      document.getElementById("icon-store").appendChild(icon)
+    }
+  })
 }
 
 function groupNode(name) {

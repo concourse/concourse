@@ -35,7 +35,7 @@ func (s *Server) GetTeam(w http.ResponseWriter, r *http.Request) {
 		presentedTeam = present.Team(team)
 	} else {
 		hLog.Error("unauthorized", errors.New("not authorized to "+team.Name()))
-		w.WriteHeader(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 

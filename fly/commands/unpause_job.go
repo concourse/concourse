@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type UnpauseJobCommand struct {
@@ -24,7 +25,16 @@ func (command *UnpauseJobCommand) Execute(args []string) error {
 		return err
 	}
 
-	team := GetTeam(target, command.Team)
+	var team concourse.Team
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
+		if err != nil {
+			return err
+		}
+	} else {
+		team = target.Team()
+	}
+
 	found, err := team.UnpauseJob(pipelineName, jobName)
 	if err != nil {
 		return err

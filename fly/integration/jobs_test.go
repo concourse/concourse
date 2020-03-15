@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"fmt"
+	"net/http"
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
@@ -174,7 +175,11 @@ var _ = Describe("Fly CLI", func() {
 		Context("jobs for 'other-team'", func() {
 			Context("using --team parameter", func() {
 				BeforeEach(func() {
-					loginATCServer.AppendHandlers(
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: "other-team"}),
+						),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/teams/other-team/pipelines/pipeline/jobs"),
 							ghttp.RespondWithJSONEncoded(200, sampleJobs),
@@ -182,7 +187,7 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 				It("can list jobs in 'other-team'", func() {
-					flyJobCmd := exec.Command(flyPath, "-t", "some-target", "jobs", "-p", pipelineName, "--team", "other-team", "--json")
+					flyJobCmd := exec.Command(flyPath, "-t", targetName, "jobs", "-p", pipelineName, "--team", "other-team", "--json")
 					sess, err := gexec.Start(flyJobCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 

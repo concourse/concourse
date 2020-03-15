@@ -30,6 +30,12 @@ var JobsScheduling = &Gauge{}
 var BuildsStarted = &Counter{}
 var BuildsRunning = &Gauge{}
 
+var ChecksFinishedWithError = &Counter{}
+var ChecksFinishedWithSuccess = &Counter{}
+var ChecksQueueSize = &Gauge{}
+var ChecksStarted = &Counter{}
+var ChecksEnqueued = &Counter{}
+
 type BuildCollectorDuration struct {
 	Duration time.Duration
 }
@@ -514,106 +520,6 @@ func (event HTTPResponseTime) Emit(logger lager.Logger) {
 				"method": event.Method,
 				"status": strconv.Itoa(event.StatusCode),
 			},
-		},
-	)
-}
-
-type ResourceCheck struct {
-	PipelineName string
-	ResourceName string
-	TeamName     string
-	Success      bool
-}
-
-func (event ResourceCheck) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("resource-check"),
-		Event{
-			Name:  "resource checked",
-			Value: 1,
-			Attributes: map[string]string{
-				"pipeline":  event.PipelineName,
-				"resource":  event.ResourceName,
-				"team_name": event.TeamName,
-			},
-		},
-	)
-}
-
-type CheckStarted struct {
-	ResourceConfigScopeID int
-	CheckName             string
-	CheckStatus           db.CheckStatus
-	CheckPendingDuration  time.Duration
-}
-
-func (event CheckStarted) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("check-started"),
-		Event{
-			Name:  "check started",
-			Value: ms(event.CheckPendingDuration),
-			Attributes: map[string]string{
-				"scope_id":     strconv.Itoa(event.ResourceConfigScopeID),
-				"check_name":   event.CheckName,
-				"check_status": string(event.CheckStatus),
-			},
-		},
-	)
-}
-
-type CheckFinished struct {
-	ResourceConfigScopeID int
-	CheckName             string
-	CheckStatus           db.CheckStatus
-	CheckDuration         time.Duration
-}
-
-func (event CheckFinished) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("check-finished"),
-		Event{
-			Name:  "check finished",
-			Value: ms(event.CheckDuration),
-			Attributes: map[string]string{
-				"scope_id":     strconv.Itoa(event.ResourceConfigScopeID),
-				"check_name":   event.CheckName,
-				"check_status": string(event.CheckStatus),
-			},
-		},
-	)
-}
-
-type CheckEnqueue struct {
-	CheckName             string
-	ResourceConfigScopeID int
-}
-
-func (event CheckEnqueue) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("check-enqueued"),
-		Event{
-			Name:  "check enqueued",
-			Value: 1,
-			Attributes: map[string]string{
-				"scope_id":   strconv.Itoa(event.ResourceConfigScopeID),
-				"check_name": event.CheckName,
-			},
-		},
-	)
-}
-
-type CheckQueueSize struct {
-	Checks int
-}
-
-func (event CheckQueueSize) Emit(logger lager.Logger) {
-	emit(
-		logger.Session("check-queue-size"),
-		Event{
-			Name:       "check queue size",
-			Value:      float64(event.Checks),
-			Attributes: map[string]string{},
 		},
 	)
 }

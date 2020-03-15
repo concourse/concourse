@@ -1,13 +1,13 @@
 package vars
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -97,7 +97,7 @@ func (i interpolator) Interpolate(node interface{}, varsLookup varsLookup) (inte
 		for _, name := range i.extractVarNames(typedNode) {
 			foundVal, found, err := varsLookup.Get(name)
 			if err != nil {
-				return nil, errors.WithMessagef(err, "Finding variable '%s'", name)
+				return nil, fmt.Errorf("var lookup '%s': %w", name, err)
 			}
 
 			if found {

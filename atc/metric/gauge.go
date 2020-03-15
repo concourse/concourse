@@ -22,6 +22,19 @@ func (c *Gauge) Inc() {
 	}
 }
 
+func (c *Gauge) Set(val int64) {
+	for {
+		max := atomic.LoadInt64(&c.max)
+		if val > max {
+			if atomic.CompareAndSwapInt64(&c.max, max, val) {
+				break
+			}
+		} else {
+			break
+		}
+	}
+}
+
 func (c *Gauge) Dec() {
 	atomic.AddInt64(&c.cur, -1)
 }

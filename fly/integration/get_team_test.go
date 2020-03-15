@@ -5,30 +5,31 @@ import (
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/ui"
+	"github.com/fatih/color"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/rata"
-	"sigs.k8s.io/yaml"
 )
 
-var _ = Describe("GetPipeline", func() {
-	var (
-		team atc.Team
-	)
+var _ = Describe("Fly CLI", func() {
+	Describe("get-team", func() {
+		var team atc.Team
 
-	BeforeEach(func() {
-		team = atc.Team{
-			ID:   1,
-			Name: "myTeam",
-			Auth: atc.TeamAuth{
-				"owner": map[string][]string{
-					"groups": {}, "users": {"local:username"},
+		BeforeEach(func() {
+			team = atc.Team{
+				ID:   1,
+				Name: "myTeam",
+				Auth: atc.TeamAuth{
+					"owner": map[string][]string{
+						"groups": {}, "users": {"local:username"},
+					},
 				},
-			},
-		}
+			}
+		})
 
 		Context("when not specifying a team name", func() {
 			It("fails and says you should give a team name", func() {
@@ -39,8 +40,7 @@ var _ = Describe("GetPipeline", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
-
-				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("n", "team") + "' was not specified"))
+				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("n", "team-name") + "' was not specified"))
 			})
 		})
 
@@ -83,20 +83,23 @@ var _ = Describe("GetPipeline", func() {
 					)
 				})
 
-				It("prints the config as yaml to stdout", func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "get-team", "myTeam")
+				It("prints the team config to stdout", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "get-team", "-n", "myTeam")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gexec.Exit(0))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
-
-					var printedConfig atc.Team
-					err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(printedConfig).To(Equal(team))
+					Expect(sess.Out).To(PrintTable(ui.Table{
+						Headers: ui.TableRow{
+							{Contents: "name/role", Color: color.New(color.Bold)},
+							{Contents: "users", Color: color.New(color.Bold)},
+							{Contents: "groups", Color: color.New(color.Bold)},
+						},
+						Data: []ui.TableRow{
+							{{Contents: "myTeam/owner"}, {Contents: "local:username"}, {Contents: "none"}},
+						},
+					}))
 				})
 			})
 		})

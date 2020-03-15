@@ -7,6 +7,7 @@ module Build.Header.Header exposing
     , view
     )
 
+import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
 import Build.Header.Models exposing (BuildPageType(..), HistoryItem, Model)
 import Build.Header.Views as Views
@@ -22,8 +23,9 @@ import Html exposing (Html)
 import List.Extra
 import Maybe.Extra
 import Message.Callback exposing (Callback(..))
-import Message.Effects as Effects exposing (Effect(..), ScrollDirection(..))
+import Message.Effects as Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
+import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Subscription
     exposing
         ( Delivery(..)
@@ -323,9 +325,9 @@ handleDelivery delivery ( model, effects ) =
                     (List.filter
                         (.url
                             >> String.endsWith
-                                ("/api/v1/builds/"
-                                    ++ String.fromInt model.id
-                                    ++ "/events"
+                                (Endpoints.BuildEventStream
+                                    |> Endpoints.Build model.id
+                                    |> Endpoints.toString []
                                 )
                         )
                     )

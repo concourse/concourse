@@ -346,3 +346,20 @@ pipeline on a team at the same time. #4092
 #### <sub><sup><a name="5015" href="#5015">:link:</a></sup></sub> fix
 
 * With #5015, worker state metrics will be emitted even for states with 0 workers, rather than not emitting the metric at all. This should make it easier to confirm that there are in fact 0 stalled workers as opposed to not having any knowledge of it.
+
+#### <sub><sup><a name="5216" href="#5216">:link:</a></sup></sub> fix
+
+* Bump golang.org/x/crypto module from `v0.0.0-20191119213627-4f8c1d86b1ba` to `v0.0.0-20200220183623-bac4c82f6975` to address vulnerability in ssh package.
+
+#### <sub><sup><a name="5148" href="#5148">:link:</a></sup></sub> feature
+
+* Improve the initial page load time by lazy-loading Javascript that isn't necessary for the first render. #5148
+
+#### <sub><sup><a name="5113" href="#5113">:link:</a></sup></sub> feature
+
+* @aledeganopix4d added a `last updated` column to the output of `fly pipelines` showing
+the last date where the pipeline was set or reset. #5113
+
+#### <sub><sup><a name="5275" href="#5275">:link:</a></sup></sub> fix
+
+* Ensure the build page doesn't get reloaded when you highlight a log line, and fix auto-scrolling to a highlighted log line. #5275
