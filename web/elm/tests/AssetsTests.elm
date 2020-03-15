@@ -7,6 +7,7 @@ import Assets
         , backgroundImageStyle
         , toString
         )
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli exposing (Cli(..))
 import Expect
 import Html
@@ -78,6 +79,50 @@ toStringTests =
                             |> ImageAsset
                             |> toString
                             |> Expect.equal "/public/images/baseline-visibility-off-24px.svg"
+                ]
+            , describe "BuildFavicon"
+                [ test "Nothing" <|
+                    \_ ->
+                        BuildFavicon Nothing
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/favicon.png"
+                , test "Pending" <|
+                    \_ ->
+                        BuildFavicon (Just BuildStatusPending)
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/favicon-pending.png"
+                , test "Started" <|
+                    \_ ->
+                        BuildFavicon (Just BuildStatusStarted)
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/favicon-started.png"
+                , test "Succeeded" <|
+                    \_ ->
+                        BuildFavicon (Just BuildStatusSucceeded)
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/favicon-succeeded.png"
+                , test "Failed" <|
+                    \_ ->
+                        BuildFavicon (Just BuildStatusFailed)
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/favicon-failed.png"
+                , test "Errored" <|
+                    \_ ->
+                        BuildFavicon (Just BuildStatusErrored)
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/favicon-errored.png"
+                , test "Aborted" <|
+                    \_ ->
+                        BuildFavicon (Just BuildStatusAborted)
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/favicon-aborted.png"
                 ]
             ]
         ]

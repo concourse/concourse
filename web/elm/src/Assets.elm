@@ -5,6 +5,7 @@ module Assets exposing
     , toString
     )
 
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli exposing (Cli(..))
 import Html
 import Html.Attributes exposing (style)
@@ -21,6 +22,7 @@ type ImageAsset
     | ChevronRight
     | HighDensityIcon Bool
     | VisibilityToggleIcon Bool
+    | BuildFavicon (Maybe BuildStatus)
 
 
 toString : Asset -> String
@@ -89,3 +91,17 @@ imageAssetToPath asset =
                         "off-"
             in
             basePath ++ [ "baseline-visibility-" ++ imageName ++ "24px.svg" ]
+
+        BuildFavicon maybeStatus ->
+            basePath
+                ++ (case maybeStatus of
+                        Just status ->
+                            let
+                                imageName =
+                                    Concourse.BuildStatus.show status
+                            in
+                            [ "favicon-" ++ imageName ++ ".png" ]
+
+                        Nothing ->
+                            [ "favicon.png" ]
+                   )
