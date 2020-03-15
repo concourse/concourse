@@ -182,6 +182,11 @@ deployment.
   been removed and the `--enable-lidar` flag will no longer be recognized.
   #3704
 
+  With the switch to LIDAR, the metrics pertaining to resource checking have
+  also changed (via #5171). Please consult the now-updated [Metrics
+  documentation](https://concourse-ci.org/metrics.html) and update your
+  dashboards accordingly!
+
 #### <sub><sup><a name="413" href="#413">:link:</a></sup></sub> feature
 
 * This next feature is one that has been asked for since the beginning of time. Build rerunning! #413 We finally did it, even though it is only the first iteration.
