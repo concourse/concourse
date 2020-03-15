@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/concourse/atc/api/containerserver/containerserverfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/creds"
@@ -32,34 +33,35 @@ var (
 	externalURL = "https://example.com"
 	clusterName = "Test Cluster"
 
-	fakeWorkerClient        *workerfakes.FakeClient
-	fakeVolumeRepository    *dbfakes.FakeVolumeRepository
-	fakeContainerRepository *dbfakes.FakeContainerRepository
-	fakeDestroyer           *gcfakes.FakeDestroyer
-	dbTeamFactory           *dbfakes.FakeTeamFactory
-	dbPipelineFactory       *dbfakes.FakePipelineFactory
-	dbJobFactory            *dbfakes.FakeJobFactory
-	dbResourceFactory       *dbfakes.FakeResourceFactory
-	dbResourceConfigFactory *dbfakes.FakeResourceConfigFactory
-	fakePipeline            *dbfakes.FakePipeline
-	fakeAccess              *accessorfakes.FakeAccess
-	fakeAccessor            *accessorfakes.FakeAccessFactory
-	dbWorkerFactory         *dbfakes.FakeWorkerFactory
-	dbWorkerLifecycle       *dbfakes.FakeWorkerLifecycle
-	build                   *dbfakes.FakeBuild
-	dbBuildFactory          *dbfakes.FakeBuildFactory
-	dbUserFactory           *dbfakes.FakeUserFactory
-	dbCheckFactory          *dbfakes.FakeCheckFactory
-	dbTeam                  *dbfakes.FakeTeam
-	dbWall                  *dbfakes.FakeWall
-	fakeSecretManager       *credsfakes.FakeSecrets
-	fakeVarSourcePool       *credsfakes.FakeVarSourcePool
-	credsManagers           creds.Managers
-	interceptTimeoutFactory *containerserverfakes.FakeInterceptTimeoutFactory
-	interceptTimeout        *containerserverfakes.FakeInterceptTimeout
-	isTLSEnabled            bool
-	cliDownloadsDir         string
-	logger                  *lagertest.TestLogger
+	fakeWorkerClient              *workerfakes.FakeClient
+	fakeVolumeRepository          *dbfakes.FakeVolumeRepository
+	fakeContainerRepository       *dbfakes.FakeContainerRepository
+	fakeDestroyer                 *gcfakes.FakeDestroyer
+	dbTeamFactory                 *dbfakes.FakeTeamFactory
+	dbPipelineFactory             *dbfakes.FakePipelineFactory
+	dbJobFactory                  *dbfakes.FakeJobFactory
+	dbResourceFactory             *dbfakes.FakeResourceFactory
+	dbResourceConfigFactory       *dbfakes.FakeResourceConfigFactory
+	fakePipeline                  *dbfakes.FakePipeline
+	fakeAccess                    *accessorfakes.FakeAccess
+	fakeAccessor                  *accessorfakes.FakeAccessFactory
+	dbWorkerFactory               *dbfakes.FakeWorkerFactory
+	dbWorkerLifecycle             *dbfakes.FakeWorkerLifecycle
+	build                         *dbfakes.FakeBuild
+	dbBuildFactory                *dbfakes.FakeBuildFactory
+	dbUserFactory                 *dbfakes.FakeUserFactory
+	dbCheckFactory                *dbfakes.FakeCheckFactory
+	dbTeam                        *dbfakes.FakeTeam
+	defaultBadgeVisibilityFactory *authfakes.FakeDefaultBadgeVisibilityFactory
+	dbWall                        *dbfakes.FakeWall
+	fakeSecretManager             *credsfakes.FakeSecrets
+	fakeVarSourcePool             *credsfakes.FakeVarSourcePool
+	credsManagers                 creds.Managers
+	interceptTimeoutFactory       *containerserverfakes.FakeInterceptTimeoutFactory
+	interceptTimeout              *containerserverfakes.FakeInterceptTimeout
+	isTLSEnabled                  bool
+	cliDownloadsDir               string
+	logger                        *lagertest.TestLogger
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -97,6 +99,7 @@ var _ = BeforeEach(func() {
 	dbUserFactory = new(dbfakes.FakeUserFactory)
 	dbCheckFactory = new(dbfakes.FakeCheckFactory)
 	dbWall = new(dbfakes.FakeWall)
+	defaultBadgeVisibilityFactory = new(authfakes.FakeDefaultBadgeVisibilityFactory)
 
 	interceptTimeoutFactory = new(containerserverfakes.FakeInterceptTimeoutFactory)
 	interceptTimeout = new(containerserverfakes.FakeInterceptTimeout)
@@ -149,6 +152,8 @@ var _ = BeforeEach(func() {
 
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
+	checkBadgeAccessHandlerFactory := auth.NewCheckBadgeAccessHandlerFactory(dbTeamFactory, defaultBadgeVisibilityFactory)
+
 	handler, err := api.NewHandler(
 		logger,
 
@@ -160,6 +165,7 @@ var _ = BeforeEach(func() {
 			checkBuildReadAccessHandlerFactory,
 			checkBuildWriteAccessHandlerFactory,
 			checkWorkerTeamAccessHandlerFactory,
+			checkBadgeAccessHandlerFactory,
 		),
 
 		dbTeamFactory,

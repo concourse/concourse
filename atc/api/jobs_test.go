@@ -552,8 +552,8 @@ var _ = Describe("Jobs API", func() {
 					fakePipeline.JobReturns(fakeJob, true, nil)
 				})
 
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 

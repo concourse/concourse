@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/wrappa"
 	. "github.com/onsi/ginkgo"
@@ -19,6 +20,7 @@ var _ = Describe("APIAuthWrappa", func() {
 		fakeCheckBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
 		fakeCheckBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory
 		fakeCheckWorkerTeamAccessHandlerFactory auth.CheckWorkerTeamAccessHandlerFactory
+		fakeCheckBadgeAccessHandlerFactory      auth.CheckBadgeAccessHandlerFactory
 		fakeBuildFactory                        *dbfakes.FakeBuildFactory
 	)
 
@@ -26,8 +28,13 @@ var _ = Describe("APIAuthWrappa", func() {
 		fakeTeamFactory := new(dbfakes.FakeTeamFactory)
 		workerFactory := new(dbfakes.FakeWorkerFactory)
 		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
+		fakeDefaultBadgeVisibilityFactory := new(authfakes.FakeDefaultBadgeVisibilityFactory)
 		fakeCheckPipelineAccessHandlerFactory = auth.NewCheckPipelineAccessHandlerFactory(
 			fakeTeamFactory,
+		)
+		fakeCheckBadgeAccessHandlerFactory = auth.NewCheckBadgeAccessHandlerFactory(
+			fakeTeamFactory,
+			fakeDefaultBadgeVisibilityFactory,
 		)
 		rejector = auth.UnauthorizedRejector{}
 
@@ -79,6 +86,16 @@ var _ = Describe("APIAuthWrappa", func() {
 	openForPublicPipelineOrAuthorized := func(handler http.Handler) http.Handler {
 		return auth.CSRFValidationHandler(
 			fakeCheckPipelineAccessHandlerFactory.HandlerFor(
+				handler,
+				rejector,
+			),
+			rejector,
+		)
+	}
+
+	openForPublicPipelineOrAuthorizedOrPublicBadges := func(handler http.Handler) http.Handler {
+		return auth.CSRFValidationHandler(
+			fakeCheckBadgeAccessHandlerFactory.HandlerFor(
 				handler,
 				rejector,
 			),
@@ -208,10 +225,12 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListAllJobs:          authenticateIfTokenProvided(inputHandlers[atc.ListAllJobs]),
 				atc.ListAllResources:     authenticateIfTokenProvided(inputHandlers[atc.ListAllResources]),
 				atc.ListTeams:            authenticateIfTokenProvided(inputHandlers[atc.ListTeams]),
-				atc.PipelineBadge:        authenticateIfTokenProvided(inputHandlers[atc.PipelineBadge]),
-				atc.JobBadge:             authenticateIfTokenProvided(inputHandlers[atc.JobBadge]),
-				atc.MainJobBadge:         authenticateIfTokenProvided(inputHandlers[atc.MainJobBadge]),
 				atc.GetWall:              authenticateIfTokenProvided(inputHandlers[atc.GetWall]),
+
+				// belongs to public pipeline or authorized or public badges
+				atc.PipelineBadge: openForPublicPipelineOrAuthorizedOrPublicBadges(inputHandlers[atc.PipelineBadge]),
+				atc.JobBadge:      openForPublicPipelineOrAuthorizedOrPublicBadges(inputHandlers[atc.JobBadge]),
+				atc.MainJobBadge:  openForPublicPipelineOrAuthorizedOrPublicBadges(inputHandlers[atc.MainJobBadge]),
 
 				// authenticated and is admin
 				atc.GetLogLevel:          authenticatedAndAdmin(inputHandlers[atc.GetLogLevel]),
@@ -259,6 +278,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				fakeCheckBuildReadAccessHandlerFactory,
 				fakeCheckBuildWriteAccessHandlerFactory,
 				fakeCheckWorkerTeamAccessHandlerFactory,
+				fakeCheckBadgeAccessHandlerFactory,
 			).Wrap(inputHandlers)
 
 		})

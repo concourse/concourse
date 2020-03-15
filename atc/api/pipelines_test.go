@@ -589,8 +589,8 @@ var _ = Describe("Pipelines API", func() {
 					BeforeEach(func() {
 						fakeaccess.IsAuthenticatedReturns(true)
 					})
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					It("returns 403 Forbidden", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					})
 				})
 
@@ -599,8 +599,8 @@ var _ = Describe("Pipelines API", func() {
 						fakeaccess.IsAuthenticatedReturns(false)
 					})
 
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 			})

@@ -11,6 +11,7 @@ type APIAuthWrappa struct {
 	checkBuildReadAccessHandlerFactory  auth.CheckBuildReadAccessHandlerFactory
 	checkBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory
 	checkWorkerTeamAccessHandlerFactory auth.CheckWorkerTeamAccessHandlerFactory
+	checkBadgeAccessHandlerFactory      auth.CheckBadgeAccessHandlerFactory
 }
 
 func NewAPIAuthWrappa(
@@ -18,12 +19,14 @@ func NewAPIAuthWrappa(
 	checkBuildReadAccessHandlerFactory auth.CheckBuildReadAccessHandlerFactory,
 	checkBuildWriteAccessHandlerFactory auth.CheckBuildWriteAccessHandlerFactory,
 	checkWorkerTeamAccessHandlerFactory auth.CheckWorkerTeamAccessHandlerFactory,
+	checkBadgeAccessHandlerFactory auth.CheckBadgeAccessHandlerFactory,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
 		checkPipelineAccessHandlerFactory:   checkPipelineAccessHandlerFactory,
 		checkBuildReadAccessHandlerFactory:  checkBuildReadAccessHandlerFactory,
 		checkBuildWriteAccessHandlerFactory: checkBuildWriteAccessHandlerFactory,
 		checkWorkerTeamAccessHandlerFactory: checkWorkerTeamAccessHandlerFactory,
+		checkBadgeAccessHandlerFactory:      checkBadgeAccessHandlerFactory,
 	}
 }
 
@@ -107,11 +110,15 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListAllJobs,
 			atc.ListAllResources,
 			atc.ListBuilds,
-			atc.PipelineBadge,
-			atc.JobBadge,
-			atc.MainJobBadge,
 			atc.GetWall:
 			newHandler = auth.CheckAuthenticationIfProvidedHandler(handler, rejector)
+
+		// unauthenticated / delegating to handler (validate token if provided)
+		// pipeline is public, authorized or badge is public
+		case atc.PipelineBadge,
+			atc.JobBadge,
+			atc.MainJobBadge:
+			newHandler = wrappa.checkBadgeAccessHandlerFactory.HandlerFor(handler, rejector)
 
 		case atc.GetLogLevel,
 			atc.ListActiveUsersSince,
