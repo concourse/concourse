@@ -67,590 +67,54 @@ metrics pipeline.
     concourse_builds_succeeded_total 0
     # HELP concourse_db_connections Current number of concourse database connections
     # TYPE concourse_db_connections gauge
-    concourse_db_connections{dbname="api"} 5
-    concourse_db_connections{dbname="backend"} 11
-    concourse_db_connections{dbname="gc"} 2
+    concourse_db_connections{dbname="api"} 1
+    concourse_db_connections{dbname="backend"} 1
+    concourse_db_connections{dbname="gc"} 1
     # HELP concourse_db_queries_total Total number of database Concourse database queries
     # TYPE concourse_db_queries_total counter
-    concourse_db_queries_total 577584
+    concourse_db_queries_total 81
     # HELP concourse_http_responses_duration_seconds Response time in seconds
     # TYPE concourse_http_responses_duration_seconds histogram
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="0.005"} 323
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="0.01"} 1794
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="0.025"} 2063
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="0.05"} 2077
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="0.1"} 2077
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="0.25"} 2077
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="0.5"} 2077
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="1"} 2077
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="2.5"} 2077
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="5"} 2077
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="10"} 2077
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="200",le="+Inf"} 2077
-    concourse_http_responses_duration_seconds_sum{method="GET",route="GetConfig",status="200"} 15.85702071299999
-    concourse_http_responses_duration_seconds_count{method="GET",route="GetConfig",status="200"} 2077
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="0.005"} 4886
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="0.01"} 4998
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="0.025"} 5006
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="0.05"} 5006
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="0.1"} 5006
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="0.25"} 5006
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="0.5"} 5006
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="1"} 5006
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="2.5"} 5006
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="5"} 5006
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="10"} 5006
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="GetConfig",status="404",le="+Inf"} 5006
-    concourse_http_responses_duration_seconds_sum{method="GET",route="GetConfig",status="404"} 9.607940552999985
-    concourse_http_responses_duration_seconds_count{method="GET",route="GetConfig",status="404"} 5006
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="0.005"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="0.01"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="0.025"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="0.05"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="0.1"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="0.25"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="0.5"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="1"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="2.5"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="5"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="10"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="Info",status="200",le="+Inf"} 7103
-    concourse_http_responses_duration_seconds_sum{method="GET",route="Info",status="200"} 0.20437954000000103
-    concourse_http_responses_duration_seconds_count{method="GET",route="Info",status="200"} 7103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="0.005"} 0
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="0.01"} 7
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="0.025"} 31
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="0.05"} 46
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="0.1"} 53
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="0.25"} 75
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="0.5"} 93
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="1"} 120
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="2.5"} 530
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="5"} 533
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="10"} 533
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllJobs",status="200",le="+Inf"} 533
-    concourse_http_responses_duration_seconds_sum{method="GET",route="ListAllJobs",status="200"} 691.9043764819999
-    concourse_http_responses_duration_seconds_count{method="GET",route="ListAllJobs",status="200"} 533
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="0.005"} 25
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="0.01"} 39
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="0.025"} 66
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="0.05"} 83
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="0.1"} 112
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="0.25"} 403
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="0.5"} 539
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="1"} 541
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="2.5"} 541
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="5"} 541
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="10"} 541
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllPipelines",status="200",le="+Inf"} 541
-    concourse_http_responses_duration_seconds_sum{method="GET",route="ListAllPipelines",status="200"} 103.92331849199999
-    concourse_http_responses_duration_seconds_count{method="GET",route="ListAllPipelines",status="200"} 541
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="0.005"} 10
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="0.01"} 23
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="0.025"} 45
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="0.05"} 50
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="0.1"} 56
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="0.25"} 82
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="0.5"} 115
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="1"} 438
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="2.5"} 537
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="5"} 537
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="10"} 537
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListAllResources",status="200",le="+Inf"} 537
-    concourse_http_responses_duration_seconds_sum{method="GET",route="ListAllResources",status="200"} 413.86867519900005
-    concourse_http_responses_duration_seconds_count{method="GET",route="ListAllResources",status="200"} 537
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="0.005"} 952
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="0.01"} 1002
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="0.025"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="0.05"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="0.1"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="0.25"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="0.5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="1"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="2.5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="10"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingContainers",status="200",le="+Inf"} 1012
-    concourse_http_responses_duration_seconds_sum{method="GET",route="ListDestroyingContainers",status="200"} 1.8695911129999998
-    concourse_http_responses_duration_seconds_count{method="GET",route="ListDestroyingContainers",status="200"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="0.005"} 920
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="0.01"} 998
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="0.025"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="0.05"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="0.1"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="0.25"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="0.5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="1"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="2.5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="10"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListDestroyingVolumes",status="200",le="+Inf"} 1012
-    concourse_http_responses_duration_seconds_sum{method="GET",route="ListDestroyingVolumes",status="200"} 2.492936349
-    concourse_http_responses_duration_seconds_count{method="GET",route="ListDestroyingVolumes",status="200"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="0.005"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="0.01"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="0.025"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="0.05"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="0.1"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="0.25"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="0.5"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="1"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="2.5"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="5"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="10"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListPipelines",status="200",le="+Inf"} 9
-    concourse_http_responses_duration_seconds_sum{method="GET",route="ListPipelines",status="200"} 0.020393175
-    concourse_http_responses_duration_seconds_count{method="GET",route="ListPipelines",status="200"} 9
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="0.005"} 507
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="0.01"} 532
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="0.025"} 541
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="0.05"} 544
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="0.1"} 544
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="0.25"} 544
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="0.5"} 544
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="1"} 544
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="2.5"} 544
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="5"} 544
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="10"} 544
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="ListTeams",status="200",le="+Inf"} 544
-    concourse_http_responses_duration_seconds_sum{method="GET",route="ListTeams",status="200"} 1.3442794330000007
-    concourse_http_responses_duration_seconds_count{method="GET",route="ListTeams",status="200"} 544
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="0.005"} 65
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="0.01"} 74
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="0.025"} 92
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="0.05"} 102
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="0.1"} 103
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="0.25"} 105
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="0.5"} 106
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="1"} 106
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="2.5"} 106
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="5"} 106
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="10"} 106
-    concourse_http_responses_duration_seconds_bucket{method="GET",route="web",status="200",le="+Inf"} 106
-    concourse_http_responses_duration_seconds_sum{method="GET",route="web",status="200"} 1.4359358420000004
-    concourse_http_responses_duration_seconds_count{method="GET",route="web",status="200"} 106
     concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.005"} 0
     concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.01"} 0
-    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.025"} 0
-    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.05"} 2
-    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.1"} 3
-    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.25"} 3
-    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.5"} 3
-    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="1"} 3
-    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="2.5"} 3
-    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="5"} 3
-    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="10"} 3
-    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="+Inf"} 3
-    concourse_http_responses_duration_seconds_sum{method="POST",route="RegisterWorker",status="200"} 0.131935654
-    concourse_http_responses_duration_seconds_count{method="POST",route="RegisterWorker",status="200"} 3
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="0.005"} 28
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="0.01"} 230
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="0.025"} 963
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="0.05"} 1010
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="0.1"} 1010
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="0.25"} 1010
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="0.5"} 1010
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="1"} 1010
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="2.5"} 1010
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="5"} 1010
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="10"} 1010
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="HeartbeatWorker",status="200",le="+Inf"} 1010
-    concourse_http_responses_duration_seconds_sum{method="PUT",route="HeartbeatWorker",status="200"} 15.508048177999978
-    concourse_http_responses_duration_seconds_count{method="PUT",route="HeartbeatWorker",status="200"} 1010
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="0.005"} 1
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="0.01"} 1
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="0.025"} 9
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="0.05"} 9
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="0.1"} 9
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="0.25"} 9
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="0.5"} 9
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="1"} 9
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="2.5"} 9
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="5"} 9
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="10"} 9
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="OrderPipelines",status="200",le="+Inf"} 9
-    concourse_http_responses_duration_seconds_sum{method="PUT",route="OrderPipelines",status="200"} 0.11956213499999999
-    concourse_http_responses_duration_seconds_count{method="PUT",route="OrderPipelines",status="200"} 9
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="0.005"} 179
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="0.01"} 652
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="0.025"} 997
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="0.05"} 1010
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="0.1"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="0.25"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="0.5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="1"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="2.5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="10"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerContainers",status="204",le="+Inf"} 1012
-    concourse_http_responses_duration_seconds_sum{method="PUT",route="ReportWorkerContainers",status="204"} 9.358772007000017
-    concourse_http_responses_duration_seconds_count{method="PUT",route="ReportWorkerContainers",status="204"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="0.005"} 657
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="0.01"} 958
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="0.025"} 1011
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="0.05"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="0.1"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="0.25"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="0.5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="1"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="2.5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="5"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="10"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="ReportWorkerVolumes",status="500",le="+Inf"} 1012
-    concourse_http_responses_duration_seconds_sum{method="PUT",route="ReportWorkerVolumes",status="500"} 4.995304332000002
-    concourse_http_responses_duration_seconds_count{method="PUT",route="ReportWorkerVolumes",status="500"} 1012
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="0.005"} 0
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="0.01"} 0
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="0.025"} 278
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="0.05"} 1455
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="0.1"} 1775
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="0.25"} 1793
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="0.5"} 1793
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="1"} 1793
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="2.5"} 1793
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="5"} 1793
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="10"} 1793
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="200",le="+Inf"} 1793
-    concourse_http_responses_duration_seconds_sum{method="PUT",route="SaveConfig",status="200"} 68.43993370700002
-    concourse_http_responses_duration_seconds_count{method="PUT",route="SaveConfig",status="200"} 1793
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="0.005"} 0
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="0.01"} 0
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="0.025"} 674
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="0.05"} 3351
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="0.1"} 4807
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="0.25"} 5002
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="0.5"} 5002
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="1"} 5002
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="2.5"} 5002
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="5"} 5002
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="10"} 5002
-    concourse_http_responses_duration_seconds_bucket{method="PUT",route="SaveConfig",status="201",le="+Inf"} 5002
-    concourse_http_responses_duration_seconds_sum{method="PUT",route="SaveConfig",status="201"} 233.04481606700003
-    concourse_http_responses_duration_seconds_count{method="PUT",route="SaveConfig",status="201"} 5002
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.025"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.05"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.1"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.25"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.5"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="1"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="2.5"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="5"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="10"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="+Inf"} 1
+    concourse_http_responses_duration_seconds_sum{method="POST",route="RegisterWorker",status="200"} 0.016757433
+    concourse_http_responses_duration_seconds_count{method="POST",route="RegisterWorker",status="200"} 1
     # HELP concourse_jobs_scheduled_total Total number of Concourse jobs scheduled.
     # TYPE concourse_jobs_scheduled_total counter
-    concourse_jobs_scheduled_total 1682
+    concourse_jobs_scheduled_total 0
     # HELP concourse_jobs_scheduling Number of Concourse jobs currently being scheduled.
     # TYPE concourse_jobs_scheduling gauge
-    concourse_jobs_scheduling 1
-    # HELP concourse_lidar_check_enqueue Counts the number of checks enqueued
-    # TYPE concourse_lidar_check_enqueue counter
-    concourse_lidar_check_enqueue{name="booklit",scope_id="12"} 320
-    concourse_lidar_check_enqueue{name="booklit",scope_id="5"} 388
-    concourse_lidar_check_enqueue{name="booklit",scope_id="6"} 338
-    concourse_lidar_check_enqueue{name="booklit",scope_id="7"} 467
-    concourse_lidar_check_enqueue{name="release",scope_id="11"} 343
-    concourse_lidar_check_enqueue{name="release-notes",scope_id="8"} 466
-    concourse_lidar_check_enqueue{name="version",scope_id="9"} 318
-    # HELP concourse_lidar_check_queue_size Records the size of check queue
+    concourse_jobs_scheduling 0
+    # HELP concourse_lidar_check_queue_size The size of the checks queue
     # TYPE concourse_lidar_check_queue_size gauge
     concourse_lidar_check_queue_size 0
-    # HELP concourse_lidar_duration_seconds Check time in seconds
-    # TYPE concourse_lidar_duration_seconds histogram
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="0.05"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="0.1"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="0.5"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="1"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="60"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="180"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="360"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="720"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="1440"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="2880"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="errored",le="+Inf"} 3
-    concourse_lidar_duration_seconds_sum{scope_id="11",status="errored"} 303.19739500000003
-    concourse_lidar_duration_seconds_count{scope_id="11",status="errored"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="0.05"} 239
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="0.1"} 239
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="0.5"} 239
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="1"} 239
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="60"} 336
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="180"} 336
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="360"} 336
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="720"} 336
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="1440"} 336
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="2880"} 336
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="started",le="+Inf"} 336
-    concourse_lidar_duration_seconds_sum{scope_id="11",status="started"} 1921.893374999999
-    concourse_lidar_duration_seconds_count{scope_id="11",status="started"} 336
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="0.05"} 52
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="0.1"} 289
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="0.5"} 326
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="1"} 330
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="60"} 333
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="180"} 333
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="360"} 333
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="720"} 333
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="1440"} 333
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="2880"} 333
-    concourse_lidar_duration_seconds_bucket{scope_id="11",status="succeeded",le="+Inf"} 333
-    concourse_lidar_duration_seconds_sum{scope_id="11",status="succeeded"} 31.164165000000004
-    concourse_lidar_duration_seconds_count{scope_id="11",status="succeeded"} 333
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="0.05"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="0.1"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="0.5"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="1"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="60"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="180"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="360"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="720"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="1440"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="2880"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="errored",le="+Inf"} 3
-    concourse_lidar_duration_seconds_sum{scope_id="12",status="errored"} 340.1612590000001
-    concourse_lidar_duration_seconds_count{scope_id="12",status="errored"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="0.05"} 128
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="0.1"} 128
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="0.5"} 128
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="1"} 128
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="60"} 277
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="180"} 277
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="360"} 278
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="720"} 278
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="1440"} 278
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="2880"} 279
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="started",le="+Inf"} 279
-    concourse_lidar_duration_seconds_sum{scope_id="12",status="started"} 7127.015610000002
-    concourse_lidar_duration_seconds_count{scope_id="12",status="started"} 279
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="0.05"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="0.1"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="0.5"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="1"} 31
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="60"} 276
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="180"} 276
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="360"} 276
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="720"} 276
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="1440"} 276
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="2880"} 276
-    concourse_lidar_duration_seconds_bucket{scope_id="12",status="succeeded",le="+Inf"} 276
-    concourse_lidar_duration_seconds_sum{scope_id="12",status="succeeded"} 327.8724440000001
-    concourse_lidar_duration_seconds_count{scope_id="12",status="succeeded"} 276
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="0.05"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="0.1"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="0.5"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="1"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="60"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="180"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="360"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="720"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="1440"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="2880"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="errored",le="+Inf"} 4
-    concourse_lidar_duration_seconds_sum{scope_id="5",status="errored"} 309.501975
-    concourse_lidar_duration_seconds_count{scope_id="5",status="errored"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="0.05"} 182
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="0.1"} 182
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="0.5"} 182
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="1"} 182
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="60"} 305
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="180"} 305
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="360"} 306
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="720"} 306
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="1440"} 306
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="2880"} 306
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="started",le="+Inf"} 307
-    concourse_lidar_duration_seconds_sum{scope_id="5",status="started"} 71035.415114
-    concourse_lidar_duration_seconds_count{scope_id="5",status="started"} 307
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="0.05"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="0.1"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="0.5"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="1"} 20
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="60"} 303
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="180"} 303
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="360"} 303
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="720"} 303
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="1440"} 303
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="2880"} 303
-    concourse_lidar_duration_seconds_bucket{scope_id="5",status="succeeded",le="+Inf"} 303
-    concourse_lidar_duration_seconds_sum{scope_id="5",status="succeeded"} 369.7252380000001
-    concourse_lidar_duration_seconds_count{scope_id="5",status="succeeded"} 303
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="0.05"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="0.1"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="0.5"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="1"} 2
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="60"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="180"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="360"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="720"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="1440"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="2880"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="errored",le="+Inf"} 4
-    concourse_lidar_duration_seconds_sum{scope_id="6",status="errored"} 13.014650000000001
-    concourse_lidar_duration_seconds_count{scope_id="6",status="errored"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="0.05"} 122
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="0.1"} 122
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="0.5"} 122
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="1"} 123
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="60"} 275
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="180"} 275
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="360"} 277
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="720"} 277
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="1440"} 277
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="2880"} 278
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="started",le="+Inf"} 278
-    concourse_lidar_duration_seconds_sum{scope_id="6",status="started"} 7290.629122999998
-    concourse_lidar_duration_seconds_count{scope_id="6",status="started"} 278
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="0.05"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="0.1"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="0.5"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="1"} 26
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="60"} 274
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="180"} 274
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="360"} 274
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="720"} 274
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="1440"} 274
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="2880"} 274
-    concourse_lidar_duration_seconds_bucket{scope_id="6",status="succeeded",le="+Inf"} 274
-    concourse_lidar_duration_seconds_sum{scope_id="6",status="succeeded"} 330.44307100000003
-    concourse_lidar_duration_seconds_count{scope_id="6",status="succeeded"} 274
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="0.05"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="0.1"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="0.5"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="1"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="60"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="180"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="360"} 5
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="720"} 5
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="1440"} 5
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="2880"} 5
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="errored",le="+Inf"} 5
-    concourse_lidar_duration_seconds_sum{scope_id="7",status="errored"} 303.21628100000004
-    concourse_lidar_duration_seconds_count{scope_id="7",status="errored"} 5
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="0.05"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="0.1"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="0.5"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="1"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="60"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="180"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="360"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="720"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="1440"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="2880"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="started",le="+Inf"} 432
-    concourse_lidar_duration_seconds_sum{scope_id="7",status="started"} 4.4184519999999985
-    concourse_lidar_duration_seconds_count{scope_id="7",status="started"} 432
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="0.05"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="0.1"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="0.5"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="1"} 1
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="60"} 427
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="180"} 427
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="360"} 427
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="720"} 427
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="1440"} 427
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="2880"} 427
-    concourse_lidar_duration_seconds_bucket{scope_id="7",status="succeeded",le="+Inf"} 427
-    concourse_lidar_duration_seconds_sum{scope_id="7",status="succeeded"} 562.4289029999998
-    concourse_lidar_duration_seconds_count{scope_id="7",status="succeeded"} 427
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="0.05"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="0.1"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="0.5"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="1"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="60"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="180"} 4
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="360"} 5
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="720"} 5
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="1440"} 5
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="2880"} 5
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="errored",le="+Inf"} 5
-    concourse_lidar_duration_seconds_sum{scope_id="8",status="errored"} 303.21159
-    concourse_lidar_duration_seconds_count{scope_id="8",status="errored"} 5
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="0.05"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="0.1"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="0.5"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="1"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="60"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="180"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="360"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="720"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="1440"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="2880"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="started",le="+Inf"} 431
-    concourse_lidar_duration_seconds_sum{scope_id="8",status="started"} 4.329439000000001
-    concourse_lidar_duration_seconds_count{scope_id="8",status="started"} 431
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="0.05"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="0.1"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="0.5"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="1"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="60"} 426
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="180"} 426
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="360"} 426
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="720"} 426
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="1440"} 426
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="2880"} 426
-    concourse_lidar_duration_seconds_bucket{scope_id="8",status="succeeded",le="+Inf"} 426
-    concourse_lidar_duration_seconds_sum{scope_id="8",status="succeeded"} 559.5215800000002
-    concourse_lidar_duration_seconds_count{scope_id="8",status="succeeded"} 426
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="0.05"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="0.1"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="0.5"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="1"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="60"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="180"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="360"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="720"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="1440"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="2880"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="errored",le="+Inf"} 3
-    concourse_lidar_duration_seconds_sum{scope_id="9",status="errored"} 0.018633999999999998
-    concourse_lidar_duration_seconds_count{scope_id="9",status="errored"} 3
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="0.05"} 193
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="0.1"} 193
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="0.5"} 193
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="1"} 193
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="60"} 310
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="180"} 310
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="360"} 311
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="720"} 311
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="1440"} 311
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="2880"} 312
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="started",le="+Inf"} 312
-    concourse_lidar_duration_seconds_sum{scope_id="9",status="started"} 5101.978209999995
-    concourse_lidar_duration_seconds_count{scope_id="9",status="started"} 312
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="0.001"} 0
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="0.05"} 52
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="0.1"} 277
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="0.5"} 303
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="1"} 309
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="60"} 309
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="180"} 309
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="360"} 309
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="720"} 309
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="1440"} 309
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="2880"} 309
-    concourse_lidar_duration_seconds_bucket{scope_id="9",status="succeeded",le="+Inf"} 309
-    concourse_lidar_duration_seconds_sum{scope_id="9",status="succeeded"} 26.809204000000005
-    concourse_lidar_duration_seconds_count{scope_id="9",status="succeeded"} 309
+    # HELP concourse_lidar_checks_enqueued_total Total number of checks enqueued
+    # TYPE concourse_lidar_checks_enqueued_total counter
+    concourse_lidar_checks_enqueued_total 0
+    # HELP concourse_lidar_checks_finished_total Total number of checks finished
+    # TYPE concourse_lidar_checks_finished_total counter
+    concourse_lidar_checks_finished_total{status="error"} 0
+    concourse_lidar_checks_finished_total{status="success"} 0
+    # HELP concourse_lidar_checks_started_total Total number of checks started
+    # TYPE concourse_lidar_checks_started_total counter
+    concourse_lidar_checks_started_total 0
     # HELP concourse_locks_held Database locks held
     # TYPE concourse_locks_held gauge
     concourse_locks_held{type="Batch"} 0
     concourse_locks_held{type="DatabaseMigration"} 0
-    concourse_locks_held{type="JobScheduling"} 0
-    concourse_locks_held{type="ResourceConfigChecking"} 0
-    concourse_locks_held{type="VolumeCreating"} 0
     # HELP concourse_workers_containers Number of containers per worker
     # TYPE concourse_workers_containers gauge
-    concourse_workers_containers{platform="linux",tags="",team="",worker="3ad28045f1ef"} 4
+    concourse_workers_containers{platform="linux",tags="",team="",worker="39d19eebdddb"} 0
     # HELP concourse_workers_registered Number of workers per state as seen by the database
     # TYPE concourse_workers_registered gauge
     concourse_workers_registered{state="landed"} 0
@@ -660,73 +124,70 @@ metrics pipeline.
     concourse_workers_registered{state="stalled"} 1
     # HELP concourse_workers_tasks Number of active tasks per worker
     # TYPE concourse_workers_tasks gauge
-    concourse_workers_tasks{platform="linux",worker="3ad28045f1ef"} 0
-    # HELP concourse_workers_unknown_containers Number of unknown containers found on worker
-    # TYPE concourse_workers_unknown_containers gauge
-    concourse_workers_unknown_containers{worker="3ad28045f1ef"} 0
+    concourse_workers_tasks{platform="linux",worker="39d19eebdddb"} 0
     # HELP concourse_workers_volumes Number of volumes per worker
     # TYPE concourse_workers_volumes gauge
-    concourse_workers_volumes{platform="linux",tags="",team="",worker="3ad28045f1ef"} 27
+    concourse_workers_volumes{platform="linux",tags="",team="",worker="39d19eebdddb"} 4
     # HELP go_gc_duration_seconds A summary of the GC invocation durations.
     # TYPE go_gc_duration_seconds summary
-    go_gc_duration_seconds{quantile="0"} 8.949e-06
-    go_gc_duration_seconds{quantile="0.25"} 1.5776e-05
-    go_gc_duration_seconds{quantile="0.5"} 3.0294e-05
-    go_gc_duration_seconds{quantile="0.75"} 8.1427e-05
-    go_gc_duration_seconds{quantile="1"} 0.004881078
-    go_gc_duration_seconds_sum 1.607056135
-    go_gc_duration_seconds_count 13267
+    go_gc_duration_seconds{quantile="0"} 1.7691e-05
+    go_gc_duration_seconds{quantile="0.25"} 2.658e-05
+    go_gc_duration_seconds{quantile="0.5"} 3.1544e-05
+    go_gc_duration_seconds{quantile="0.75"} 5.8253e-05
+    go_gc_duration_seconds{quantile="1"} 0.000472771
+    go_gc_duration_seconds_sum 0.001205599
+    go_gc_duration_seconds_count 13
     # HELP go_goroutines Number of goroutines that currently exist.
     # TYPE go_goroutines gauge
-    go_goroutines 140
+    go_goroutines 129
     # HELP go_info Information about the Go environment.
     # TYPE go_info gauge
-    go_info{version="go1.13.6"} 1
+    go_info{version="go1.14"} 1
     # HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
     # TYPE go_memstats_alloc_bytes gauge
-    go_memstats_alloc_bytes 1.718932e+07
+    go_memstats_alloc_bytes 7.279464e+06
     # HELP go_memstats_alloc_bytes_total Total number of bytes allocated, even if freed.
     # TYPE go_memstats_alloc_bytes_total counter
-    go_memstats_alloc_bytes_total 2.0242057452e+11
+    go_memstats_alloc_bytes_total 3.9906496e+07
     # HELP go_memstats_buck_hash_sys_bytes Number of bytes used by the profiling bucket hash table.
     # TYPE go_memstats_buck_hash_sys_bytes gauge
-    go_memstats_buck_hash_sys_bytes 4.27987e+06
+    go_memstats_buck_hash_sys_bytes 1.462814e+06
     # HELP go_memstats_frees_total Total number of frees.
     # TYPE go_memstats_frees_total counter
-    go_memstats_frees_total 2.476813319e+09
+    go_memstats_frees_total 162143
     # HELP go_memstats_gc_cpu_fraction The fraction of this program's available CPU time used by the GC since the program started.
     # TYPE go_memstats_gc_cpu_fraction gauge
-    go_memstats_gc_cpu_fraction 0.0016051714144401565
+    go_memstats_gc_cpu_fraction 0.0008474863559755615
     # HELP go_memstats_gc_sys_bytes Number of bytes used for garbage collection system metadata.
     # TYPE go_memstats_gc_sys_bytes gauge
-    go_memstats_gc_sys_bytes 9.78944e+06
+    go_memstats_gc_sys_bytes 3.586312e+06
     # HELP go_memstats_heap_alloc_bytes Number of heap bytes allocated and still in use.
     # TYPE go_memstats_heap_alloc_bytes gauge
-    go_memstats_heap_alloc_bytes 1.718932e+07
+    go_memstats_heap_alloc_bytes 7.279464e+06
     # HELP go_memstats_heap_idle_bytes Number of heap bytes waiting to be used.
     # TYPE go_memstats_heap_idle_bytes gauge
-    go_memstats_heap_idle_bytes 2.4547328e+08
+    go_memstats_heap_idle_bytes 5.5525376e+07
     # HELP go_memstats_heap_inuse_bytes Number of heap bytes that are in use.
     # TYPE go_memstats_heap_inuse_bytes gauge
-    go_memstats_heap_inuse_bytes 2.076672e+07
+    go_memstats_heap_inuse_bytes 9.91232e+06
     # HELP go_memstats_heap_objects Number of allocated objects.
     # TYPE go_memstats_heap_objects gauge
-    go_memstats_heap_objects 53280
+    go_memstats_heap_objects 34933
     # HELP go_memstats_heap_released_bytes Number of heap bytes released to OS.
     # TYPE go_memstats_heap_released_bytes gauge
-    go_memstats_heap_released_bytes 2.41844224e+08
+    go_memstats_heap_released_bytes 5.2813824e+07
     # HELP go_memstats_heap_sys_bytes Number of heap bytes obtained from system.
     # TYPE go_memstats_heap_sys_bytes gauge
-    go_memstats_heap_sys_bytes 2.6624e+08
+    go_memstats_heap_sys_bytes 6.5437696e+07
     # HELP go_memstats_last_gc_time_seconds Number of seconds since 1970 of last garbage collection.
     # TYPE go_memstats_last_gc_time_seconds gauge
-    go_memstats_last_gc_time_seconds 1.5821321842756402e+09
+    go_memstats_last_gc_time_seconds 1.5842847322165985e+09
     # HELP go_memstats_lookups_total Total number of pointer lookups.
     # TYPE go_memstats_lookups_total counter
     go_memstats_lookups_total 0
     # HELP go_memstats_mallocs_total Total number of mallocs.
     # TYPE go_memstats_mallocs_total counter
-    go_memstats_mallocs_total 2.476866599e+09
+    go_memstats_mallocs_total 197076
     # HELP go_memstats_mcache_inuse_bytes Number of bytes in use by mcache structures.
     # TYPE go_memstats_mcache_inuse_bytes gauge
     go_memstats_mcache_inuse_bytes 13888
@@ -735,46 +196,46 @@ metrics pipeline.
     go_memstats_mcache_sys_bytes 16384
     # HELP go_memstats_mspan_inuse_bytes Number of bytes in use by mspan structures.
     # TYPE go_memstats_mspan_inuse_bytes gauge
-    go_memstats_mspan_inuse_bytes 188904
+    go_memstats_mspan_inuse_bytes 164832
     # HELP go_memstats_mspan_sys_bytes Number of bytes used for mspan structures obtained from system.
     # TYPE go_memstats_mspan_sys_bytes gauge
-    go_memstats_mspan_sys_bytes 1.163264e+06
+    go_memstats_mspan_sys_bytes 196608
     # HELP go_memstats_next_gc_bytes Number of heap bytes when next garbage collection will take place.
     # TYPE go_memstats_next_gc_bytes gauge
-    go_memstats_next_gc_bytes 2.4178144e+07
+    go_memstats_next_gc_bytes 1.1293728e+07
     # HELP go_memstats_other_sys_bytes Number of bytes used for other system allocations.
     # TYPE go_memstats_other_sys_bytes gauge
-    go_memstats_other_sys_bytes 1.436346e+06
+    go_memstats_other_sys_bytes 2.16009e+06
     # HELP go_memstats_stack_inuse_bytes Number of bytes in use by the stack allocator.
     # TYPE go_memstats_stack_inuse_bytes gauge
-    go_memstats_stack_inuse_bytes 2.195456e+06
+    go_memstats_stack_inuse_bytes 1.671168e+06
     # HELP go_memstats_stack_sys_bytes Number of bytes obtained from system for stack allocator.
     # TYPE go_memstats_stack_sys_bytes gauge
-    go_memstats_stack_sys_bytes 2.195456e+06
+    go_memstats_stack_sys_bytes 1.671168e+06
     # HELP go_memstats_sys_bytes Number of bytes obtained from system.
     # TYPE go_memstats_sys_bytes gauge
-    go_memstats_sys_bytes 2.8512076e+08
+    go_memstats_sys_bytes 7.4531072e+07
     # HELP go_threads Number of OS threads created.
     # TYPE go_threads gauge
-    go_threads 25
+    go_threads 14
     # HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
     # TYPE process_cpu_seconds_total counter
-    process_cpu_seconds_total 2862.1
+    process_cpu_seconds_total 0.93
     # HELP process_max_fds Maximum number of open file descriptors.
     # TYPE process_max_fds gauge
     process_max_fds 1.048576e+06
     # HELP process_open_fds Number of open file descriptors.
     # TYPE process_open_fds gauge
-    process_open_fds 48
+    process_open_fds 30
     # HELP process_resident_memory_bytes Resident memory size in bytes.
     # TYPE process_resident_memory_bytes gauge
-    process_resident_memory_bytes 2.664448e+08
+    process_resident_memory_bytes 6.4331776e+07
     # HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
     # TYPE process_start_time_seconds gauge
-    process_start_time_seconds 1.58198957016e+09
+    process_start_time_seconds 1.58428471564e+09
     # HELP process_virtual_memory_bytes Virtual memory size in bytes.
     # TYPE process_virtual_memory_bytes gauge
-    process_virtual_memory_bytes 1.282207744e+09
+    process_virtual_memory_bytes 1.322156032e+09
     # HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.
     # TYPE process_virtual_memory_max_bytes gauge
     process_virtual_memory_max_bytes -1
@@ -783,7 +244,7 @@ metrics pipeline.
     promhttp_metric_handler_requests_in_flight 1
     # HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
     # TYPE promhttp_metric_handler_requests_total counter
-    promhttp_metric_handler_requests_total{code="200"} 6076
+    promhttp_metric_handler_requests_total{code="200"} 3
     promhttp_metric_handler_requests_total{code="500"} 0
     promhttp_metric_handler_requests_total{code="503"} 0
   }}}
