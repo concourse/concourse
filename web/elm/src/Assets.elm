@@ -19,6 +19,8 @@ type ImageAsset
     = CliIcon Cli
     | ChevronLeft
     | ChevronRight
+    | HighDensityIcon Bool
+    | VisibilityToggleIcon Bool
 
 
 toString : Asset -> String
@@ -65,3 +67,25 @@ imageAssetToPath asset =
 
         ChevronRight ->
             basePath ++ [ "baseline-chevron-right-24px.svg" ]
+
+        HighDensityIcon on ->
+            let
+                imageName =
+                    if on then
+                        "on"
+
+                    else
+                        "off"
+            in
+            basePath ++ [ "ic-hd-" ++ imageName ++ ".svg" ]
+
+        VisibilityToggleIcon visible ->
+            let
+                imageName =
+                    if visible then
+                        ""
+
+                    else
+                        "off-"
+            in
+            basePath ++ [ "baseline-visibility-" ++ imageName ++ "24px.svg" ]

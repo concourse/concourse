@@ -51,6 +51,34 @@ toStringTests =
                         |> ImageAsset
                         |> toString
                         |> Expect.equal "/public/images/baseline-chevron-right-24px.svg"
+            , describe "HighDensityIcon"
+                [ test "On" <|
+                    \_ ->
+                        HighDensityIcon True
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/ic-hd-on.svg"
+                , test "Off" <|
+                    \_ ->
+                        HighDensityIcon False
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/ic-hd-off.svg"
+                ]
+            , describe "VisibilityToggleIcon"
+                [ test "Visible" <|
+                    \_ ->
+                        VisibilityToggleIcon True
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/baseline-visibility-24px.svg"
+                , test "Not Visible" <|
+                    \_ ->
+                        VisibilityToggleIcon False
+                            |> ImageAsset
+                            |> toString
+                            |> Expect.equal "/public/images/baseline-visibility-off-24px.svg"
+                ]
             ]
         ]
 

@@ -412,12 +412,9 @@ highDensityToggle =
 
 highDensityIcon : Bool -> List (Html.Attribute msg)
 highDensityIcon highDensity =
-    [ style "background-image" <|
-        if highDensity then
-            "url(/public/images/ic-hd-on.svg)"
-
-        else
-            "url(/public/images/ic-hd-off.svg)"
+    [ Assets.backgroundImageStyle <|
+        Assets.ImageAsset <|
+            Assets.HighDensityIcon highDensity
     , style "background-size" "contain"
     , style "height" "20px"
     , style "width" "35px"
@@ -691,15 +688,9 @@ visibilityToggle :
     }
     -> List (Html.Attribute msg)
 visibilityToggle { public, isClickable, isHovered } =
-    let
-        image =
-            if public then
-                "baseline-visibility-24px.svg"
-
-            else
-                "baseline-visibility-off-24px.svg"
-    in
-    [ style "background-image" ("url(/public/images/" ++ image ++ ")")
+    [ Assets.backgroundImageStyle <|
+        Assets.ImageAsset <|
+            Assets.VisibilityToggleIcon public
     , style "height" "20px"
     , style "width" "20px"
     , style "background-position" "50% 50%"
