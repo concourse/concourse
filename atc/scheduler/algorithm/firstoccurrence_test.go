@@ -492,9 +492,9 @@ var _ = Describe("Resolve", func() {
 				{
 					Version:      "v3",
 					ResourceName: "r1",
-					CheckOrder:   2,
+					CheckOrder:   3,
 					BuildID:      31,
-					JobName:      "j2",
+					JobName:      "j1",
 					InputName:    "some-input",
 				},
 				{
@@ -502,7 +502,7 @@ var _ = Describe("Resolve", func() {
 					ResourceName: "r1",
 					CheckOrder:   2,
 					BuildID:      32,
-					JobName:      "j2",
+					JobName:      "j1",
 					InputName:    "some-input",
 				},
 			}
@@ -513,7 +513,7 @@ var _ = Describe("Resolve", func() {
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5("v2")),
+							Version:    db.ResourceVersion(convertToMD5("v3")),
 							ResourceID: 1,
 						},
 						FirstOccurrence: false,
