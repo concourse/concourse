@@ -18,8 +18,8 @@ body {
   color: @darker-grey;
   background: white;
 
-  display: grid;
-  grid-auto-rows: @top-nav-height auto auto;
+  // display: grid;
+  // grid-auto-rows: @top-nav-height auto auto;
 }
 
 .page-top {
@@ -28,6 +28,32 @@ body {
   .top-nav {
     max-width: @page-width;
     margin: 0 auto;
+  }
+
+}
+
+.top-banner {
+  background-color: @darkest-grey;
+  color: white;
+  font-family: 'Roboto Slab', serif;
+  font-weight: bold;
+
+  .banner-text {
+    max-width: @page-width;
+    margin: 0 auto;
+    padding: 10px 0;
+  }
+
+  a {
+    font-weight: normal;
+
+    &, &:visited {
+      color: @offest-white;
+    }
+
+    &:hover {
+      color: white;
+    }
   }
 }
 
