@@ -237,9 +237,10 @@ pipeline =
 
 pipelineIcon : Opacity -> List (Html.Attribute msg)
 pipelineIcon opacity =
-    [ Assets.backgroundImageStyle <|
-        Just <|
-            Assets.BreadcrumbIcon Assets.PipelineComponent
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just <|
+                Assets.BreadcrumbIcon Assets.PipelineComponent
     , style "background-repeat" "no-repeat"
     , style "height" "16px"
     , style "width" "32px"

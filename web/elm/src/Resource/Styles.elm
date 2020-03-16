@@ -128,16 +128,17 @@ enabledCheckbox { enabled, pinState } =
     , style "cursor" "pointer"
     , style "border" <| "1px solid " ++ borderColor pinState
     , style "background-color" Colors.sectionHeader
-    , Assets.backgroundImageStyle <|
-        case enabled of
-            Models.Enabled ->
-                Just Assets.CheckmarkIcon
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            case enabled of
+                Models.Enabled ->
+                    Just Assets.CheckmarkIcon
 
-            Models.Changing ->
-                Nothing
+                Models.Changing ->
+                    Nothing
 
-            Models.Disabled ->
-                Nothing
+                Models.Disabled ->
+                    Nothing
     ]
 
 
@@ -170,13 +171,14 @@ pinButton pinState =
 
             Pinned.InTransition ->
                 "default"
-    , Assets.backgroundImageStyle <|
-        case pinState of
-            Pinned.InTransition ->
-                Nothing
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            case pinState of
+                Pinned.InTransition ->
+                    Nothing
 
-            _ ->
-                Just Assets.PinIconWhite
+                _ ->
+                    Just Assets.PinIconWhite
     ]
 
 

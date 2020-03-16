@@ -1,21 +1,18 @@
-module AssetsTests exposing (backgroundImageStyleTests, toStringTests)
+module AssetsTests exposing (backgroundImageTests, toStringTests)
 
 import Assets
     exposing
         ( Asset(..)
         , CircleOutlineIcon(..)
         , ComponentType(..)
-        , backgroundImageStyle
+        , backgroundImage
         , toString
         )
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli exposing (Cli(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
 import Expect
-import Html
 import Test exposing (Test, describe, test)
-import Test.Html.Query as Query
-import Test.Html.Selector exposing (style)
 
 
 toStringTests : Test
@@ -335,25 +332,18 @@ toStringTests =
         ]
 
 
-backgroundImageStyleTests : Test
-backgroundImageStyleTests =
-    describe "backgroundImageStyle"
+backgroundImageTests : Test
+backgroundImageTests =
+    describe "backgroundImage"
         [ test "Just" <|
             \_ ->
-                Html.div
-                    [ CliIcon OSX
-                        |> Just
-                        |> backgroundImageStyle
-                    ]
-                    []
-                    |> Query.fromHtml
-                    |> Query.has
-                        [ style "background-image"
-                            "url(/public/images/apple-logo.svg)"
-                        ]
+                CliIcon OSX
+                    |> Just
+                    |> Assets.backgroundImage
+                    |> Expect.equal "url(/public/images/apple-logo.svg)"
         , test "Nothing" <|
             \_ ->
-                Html.div [ Nothing |> backgroundImageStyle ] []
-                    |> Query.fromHtml
-                    |> Query.has [ style "background-image" "none" ]
+                Nothing
+                    |> Assets.backgroundImage
+                    |> Expect.equal "none"
         ]

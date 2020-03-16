@@ -418,8 +418,9 @@ highDensityToggle =
 
 highDensityIcon : Bool -> List (Html.Attribute msg)
 highDensityIcon highDensity =
-    [ Assets.backgroundImageStyle <|
-        Just (Assets.HighDensityIcon highDensity)
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.HighDensityIcon highDensity)
     , style "background-size" "contain"
     , style "height" "20px"
     , style "width" "35px"
@@ -449,7 +450,9 @@ infoCliIcon { hovered, cli } =
     [ style "margin-right" "10px"
     , style "width" "20px"
     , style "height" "20px"
-    , Assets.backgroundImageStyle <| Just (Assets.CliIcon cli)
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.CliIcon cli)
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
@@ -470,7 +473,9 @@ topCliIcon { hovered, cli } =
 
         else
             "0.5"
-    , Assets.backgroundImageStyle <| Just (Assets.CliIcon cli)
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.CliIcon cli)
     , style "background-position" "50% 50%"
     , style "background-repeat" "no-repeat"
     , style "width" "32px"
@@ -573,7 +578,9 @@ searchInput screenSize =
                     [ style "width" "220px" ]
     in
     [ style "background-color" "transparent"
-    , Assets.backgroundImageStyle <| Just Assets.SearchIcon
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.SearchIcon
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "30px"
@@ -597,7 +604,9 @@ searchClearButton active =
             else
                 "0.2"
     in
-    [ Assets.backgroundImageStyle <| Just Assets.CloseIcon
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.CloseIcon
     , style "background-repeat" "no-repeat"
     , style "background-position" "10px 10px"
     , style "border" "0"
@@ -676,7 +685,9 @@ showSearchContainer { highDensity } =
 
 searchButton : List (Html.Attribute msg)
 searchButton =
-    [ Assets.backgroundImageStyle <| Just Assets.SearchIcon
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.SearchIcon
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "32px"
@@ -693,8 +704,9 @@ visibilityToggle :
     }
     -> List (Html.Attribute msg)
 visibilityToggle { public, isClickable, isHovered } =
-    [ Assets.backgroundImageStyle <|
-        Just (Assets.VisibilityToggleIcon public)
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.VisibilityToggleIcon public)
     , style "height" "20px"
     , style "width" "20px"
     , style "background-position" "50% 50%"

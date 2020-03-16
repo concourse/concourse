@@ -101,7 +101,9 @@ topBar isPaused =
 
 concourseLogo : List (Html.Attribute msg)
 concourseLogo =
-    [ Assets.backgroundImageStyle <| Just Assets.ConcourseLogoWhite
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.ConcourseLogoWhite
     , style "background-position" "50% 50%"
     , style "background-repeat" "no-repeat"
     , style "background-size" "42px 42px"
@@ -118,7 +120,10 @@ breadcrumbContainer =
 
 breadcrumbComponent : Assets.ComponentType -> List (Html.Attribute msg)
 breadcrumbComponent componentType =
-    [ Assets.backgroundImageStyle <| Just <| Assets.BreadcrumbIcon componentType
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just <|
+                Assets.BreadcrumbIcon componentType
     , style "background-repeat" "no-repeat"
     , style "background-size" "contain"
     , style "display" "inline-block"

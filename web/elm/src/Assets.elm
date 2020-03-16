@@ -2,15 +2,13 @@ module Assets exposing
     ( Asset(..)
     , CircleOutlineIcon(..)
     , ComponentType(..)
-    , backgroundImageStyle
+    , backgroundImage
     , toString
     )
 
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli exposing (Cli(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
-import Html
-import Html.Attributes exposing (style)
 import Url.Builder
 
 
@@ -72,15 +70,14 @@ toString asset =
     Url.Builder.absolute (toPath asset) []
 
 
-backgroundImageStyle : Maybe Asset -> Html.Attribute msg
-backgroundImageStyle maybeAsset =
-    style "background-image" <|
-        case maybeAsset of
-            Nothing ->
-                "none"
+backgroundImage : Maybe Asset -> String
+backgroundImage maybeAsset =
+    case maybeAsset of
+        Nothing ->
+            "none"
 
-            Just asset ->
-                "url(" ++ toString asset ++ ")"
+        Just asset ->
+            "url(" ++ toString asset ++ ")"
 
 
 toPath : Asset -> List String

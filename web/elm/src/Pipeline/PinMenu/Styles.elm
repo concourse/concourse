@@ -50,7 +50,9 @@ pinIconBackground { background, clickable } =
 
 pinIcon : { a | opacity : SS.Opacity } -> List (Html.Attribute msg)
 pinIcon { opacity } =
-    [ Assets.backgroundImageStyle <| Just Assets.PinIconWhite
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.PinIconWhite
     , style "width" "18px"
     , style "height" "18px"
     , style "background-repeat" "no-repeat"

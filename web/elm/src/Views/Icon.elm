@@ -20,7 +20,9 @@ iconWithTooltip :
     -> Html msg
 iconWithTooltip { sizePx, image } attrs tooltipContent =
     Html.div
-        ([ Assets.backgroundImageStyle <| Just image
+        ([ style "background-image" <|
+            Assets.backgroundImage <|
+                Just image
          , style "height" (String.fromInt sizePx ++ "px")
          , style "width" (String.fromInt sizePx ++ "px")
          , style "background-position" "50% 50%"
