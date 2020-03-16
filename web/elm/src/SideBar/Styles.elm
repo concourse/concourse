@@ -22,6 +22,7 @@ module SideBar.Styles exposing
     , tooltipBody
     )
 
+import Assets
 import Colors
 import Html
 import Html.Attributes exposing (style)
@@ -239,8 +240,9 @@ pipeline =
 
 pipelineIcon : Opacity -> List (Html.Attribute msg)
 pipelineIcon opacity =
-    [ style "background-image"
-        "url(/public/images/ic-breadcrumb-pipeline.svg)"
+    [ Assets.backgroundImageStyle <|
+        Just <|
+            Assets.BreadcrumbIcon Assets.PipelineComponent
     , style "background-repeat" "no-repeat"
     , style "height" "16px"
     , style "width" "32px"

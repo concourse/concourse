@@ -3,6 +3,7 @@ module Views.TopBar exposing
     , concourseLogo
     )
 
+import Assets
 import Concourse
 import Html exposing (Html)
 import Html.Attributes
@@ -66,7 +67,7 @@ breadcrumbs route =
                 []
 
 
-breadcrumbComponent : String -> String -> List (Html Message)
+breadcrumbComponent : Assets.ComponentType -> String -> List (Html Message)
 breadcrumbComponent componentType name =
     [ Html.div
         (Styles.breadcrumbComponent componentType)
@@ -92,21 +93,21 @@ pipelineBreadcumb pipelineId =
          ]
             ++ Styles.breadcrumbItem True
         )
-        (breadcrumbComponent "pipeline" pipelineId.pipelineName)
+        (breadcrumbComponent Assets.PipelineComponent pipelineId.pipelineName)
 
 
 jobBreadcrumb : String -> Html Message
 jobBreadcrumb jobName =
     Html.li
         (id "breadcrumb-job" :: Styles.breadcrumbItem False)
-        (breadcrumbComponent "job" jobName)
+        (breadcrumbComponent Assets.JobComponent jobName)
 
 
 resourceBreadcrumb : String -> Html Message
 resourceBreadcrumb resourceName =
     Html.li
         (id "breadcrumb-resource" :: Styles.breadcrumbItem False)
-        (breadcrumbComponent "resource" resourceName)
+        (breadcrumbComponent Assets.ResourceComponent resourceName)
 
 
 decodeName : String -> String

@@ -1,5 +1,6 @@
 module Assets exposing
     ( Asset(..)
+    , ComponentType(..)
     , backgroundImageStyle
     , toString
     )
@@ -19,6 +20,16 @@ type Asset
     | VisibilityToggleIcon Bool
     | BuildFavicon (Maybe BuildStatus)
     | PinIconWhite
+    | CheckmarkIcon
+    | BreadcrumbIcon ComponentType
+    | PassportOfficerIcon
+    | ConcourseLogoWhite
+
+
+type ComponentType
+    = PipelineComponent
+    | JobComponent
+    | ResourceComponent
 
 
 toString : Asset -> String
@@ -103,3 +114,27 @@ toPath asset =
 
         PinIconWhite ->
             basePath ++ [ "pin-ic-white.svg" ]
+
+        CheckmarkIcon ->
+            basePath ++ [ "checkmark-ic.svg" ]
+
+        BreadcrumbIcon component ->
+            let
+                imageName =
+                    case component of
+                        PipelineComponent ->
+                            "pipeline"
+
+                        JobComponent ->
+                            "job"
+
+                        ResourceComponent ->
+                            "resource"
+            in
+            basePath ++ [ "ic-breadcrumb-" ++ imageName ++ ".svg" ]
+
+        PassportOfficerIcon ->
+            basePath ++ [ "passport-officer-ic.svg" ]
+
+        ConcourseLogoWhite ->
+            basePath ++ [ "concourse-logo-white.svg" ]

@@ -3,6 +3,7 @@ module AssetsTests exposing (backgroundImageStyleTests, toStringTests)
 import Assets
     exposing
         ( Asset(..)
+        , ComponentType(..)
         , backgroundImageStyle
         , toString
         )
@@ -111,6 +112,38 @@ toStringTests =
                 PinIconWhite
                     |> toString
                     |> Expect.equal "/public/images/pin-ic-white.svg"
+        , test "CheckmarkIcon" <|
+            \_ ->
+                CheckmarkIcon
+                    |> toString
+                    |> Expect.equal "/public/images/checkmark-ic.svg"
+        , describe "BreadcrumbIcon"
+            [ test "Pipeline" <|
+                \_ ->
+                    BreadcrumbIcon PipelineComponent
+                        |> toString
+                        |> Expect.equal "/public/images/ic-breadcrumb-pipeline.svg"
+            , test "Job" <|
+                \_ ->
+                    BreadcrumbIcon JobComponent
+                        |> toString
+                        |> Expect.equal "/public/images/ic-breadcrumb-job.svg"
+            , test "Resource" <|
+                \_ ->
+                    BreadcrumbIcon ResourceComponent
+                        |> toString
+                        |> Expect.equal "/public/images/ic-breadcrumb-resource.svg"
+            ]
+        , test "PassportOfficerIcon" <|
+            \_ ->
+                PassportOfficerIcon
+                    |> toString
+                    |> Expect.equal "/public/images/passport-officer-ic.svg"
+        , test "ConcourseLogoWhite" <|
+            \_ ->
+                ConcourseLogoWhite
+                    |> toString
+                    |> Expect.equal "/public/images/concourse-logo-white.svg"
         ]
 
 

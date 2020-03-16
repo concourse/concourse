@@ -128,16 +128,16 @@ enabledCheckbox { enabled, pinState } =
     , style "cursor" "pointer"
     , style "border" <| "1px solid " ++ borderColor pinState
     , style "background-color" Colors.sectionHeader
-    , style "background-image" <|
+    , Assets.backgroundImageStyle <|
         case enabled of
             Models.Enabled ->
-                "url(/public/images/checkmark-ic.svg)"
+                Just Assets.CheckmarkIcon
 
             Models.Changing ->
-                "none"
+                Nothing
 
             Models.Disabled ->
-                "none"
+                Nothing
     ]
 
 
