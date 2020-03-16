@@ -14,9 +14,9 @@ body {
   background: white;
   width: 100%;
   display: grid;
-  grid-template-rows: 80px auto;
+  grid-template-rows: 80px 60px auto;
   grid-template-columns: 2fr 5fr 3fr;
-  grid-template-areas: "logo primary-nav search" "secondary-nav content aside";
+  grid-template-areas: "logo primary-nav search" "banner banner banner" "secondary-nav content aside";
 }
 a {
   color: #2d76cc;
@@ -140,6 +140,21 @@ h3 {
   color: white;
   font-family: 'Roboto Slab', serif;
   line-height: 80px;
+}
+.top-banner {
+  background-color: #3d3c3c;
+  color: white;
+  font-family: 'Roboto Slab', serif;
+  font-weight: bold;
+  grid-area: banner;
+  padding: 16px 70px;
+}
+.top-banner a {
+  color: lightgray;
+  font-weight: normal;
+}
+.top-banner a:hover {
+  color: white;
 }
 .page-nav,
 .page-partial {
