@@ -1,81 +1,27 @@
-\title{Install}{install}{installing}{binaries}{concourse-cli}
+\title{Install}{install}
 
 \use-plugin{concourse-docs}
-
-\split-sections
 
 A Concourse installation is composed of a \reference{web-node}, a
 \reference{worker-node}, and a \reference{postgresql-node}.
 
-The \code{web} and \code{worker} nodes both run via a single \code{concourse}
-CLI, which can be downloaded from the \link{latest GitHub
-release}{https://github.com/concourse/concourse/releases/latest} - be sure to
-grab the appropriate archive for your platform of choice.
+There are many ways to deploy Concourse, depending on your personal preference.
+The \reference{quick-start} guide shows how to get Concourse up and running
+quickly via Docker Compose, and there is also an official \link{Concourse Helm
+chart}{https://github.com/concourse/concourse-chart}.
 
-Each archive contains the following:
+The documentation found here will primarily focus on the \code{concourse} CLI,
+which is the lowest common denominator, and can also be directly used if you
+want to just run Concourse yourself on real hardware or your own managed VMs.
 
-\codeblock{sh}{{
-concourse/bin/concourse
-concourse/bin/gdn            # on Linux
-concourse/fly-assets/...
-concourse/resource-types/... # on Linux
-}}
+\table-of-contents
 
-When extracted, the \code{concourse} binary will auto-discover its sibling
-assets based on its file location, so you may extract it anywhere.
+\split-sections
 
-On Linux a typical install location is \code{/usr/local/concourse}:
-
-\codeblock{sh}{{
-tar -zxf concourse-*.tgz -C /usr/local
-}}
-
-From there, you can either add \code{/usr/local/concourse/bin} to your
-\code{$PATH}, or just execute \code{/usr/local/concourse/bin/concourse}
-directly.
-
-
-\inline-header{Configuration basics}
-
-All Concourse node configuration is defined statically via flags. For a
-full list of flags, you can pass \code{--help} to any command.
-
-Each flag can also be set via an environment variable. The env var for each
-flag is based on the flag name, preceded with \code{CONCOURSE_}. These are
-also shown in \code{--help}.
-
-Various sections in documentation may refer to configuration via env vars
-rather than flags, but they are both equivalent and interchangeable. Env
-vars are just easier to reference in isolation and are more useful to
-copy-paste.
-
-\right-side{Quick Start}{
-  Alternatively, if you'd just like to get a Concourse running and don't really
-  care how, you can use
-  \link{\code{docker-compose}}{https://docs.docker.com/compose/} to run a
-  quick-and-dirty Concourse cluster:
-
-  \codeblock{bash}{{{
-  $ wget https://concourse-ci.org/docker-compose.yml
-  $ docker-compose up -d
-  Creating docs_concourse-db_1 ...
-  Creating docs_concourse-db_1 ... done
-  Creating docs_concourse_1 ...
-  Creating docs_concourse_1 ... done
-  }}}
-
-  Concourse will be running at \link{localhost:8080}{http://localhost:8080}.
-
-  This instance is configured with a single user with the username and password
-  as \code{test}. If you'd like to change these credentials you can edit the
-  \code{docker-compose.yml} - check out \reference{configuring-auth} to learn
-  how.
-
-  From here you can continue on to \reference{fly-cli} to get started.
-}
-
-\include-section{install/generating-keys.lit}
+\include-section{install/quickstart.lit}
 \include-section{install/db.lit}
+\include-section{install/concourse-cli.lit}
+\include-section{install/generating-keys.lit}
 \include-section{install/web.lit}
 \include-section{install/worker.lit}
 \include-section{install/upgrading.lit}

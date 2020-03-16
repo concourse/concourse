@@ -47,7 +47,6 @@ on, start kicking the tires a bit, and use the above as a quick reference of
 the "big picture" as the mental model sets in.
 
 
-\include-section{./quickstart.lit}
 \include-section{./docs/install.lit}
 \include-section{./docs/auth.lit}
 \include-section{./docs/fly.lit}

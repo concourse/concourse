@@ -5,6 +5,9 @@
 Concourse is distributed as a single \code{concourse} binary, making it easy
 to run just about anywhere, especially with Docker.
 
+If you'd like to just get Concourse running somewhere quickly so you can start
+to kick the tires, the easiest way is to use the Docker Compose quick-start:
+
 \codeblock{bash}{{
 $ wget https://concourse-ci.org/docker-compose.yml
 $ docker-compose up -d
@@ -27,6 +30,7 @@ logging in to team 'main'
 target saved
 }}
 
-Then, head to \link{Hello
-World}{https://concoursetutorial.com/basics/task-hello-world/} to kick the
-tires!
+Once you've confirmed everything is up and running, you can skip the rest of
+the Install section and head straight to the \link{Concourse
+Tutorial}{https://concoursetutorial.com/basics/task-hello-world/} or to the
+rest of the Concourse docs.
