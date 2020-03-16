@@ -322,6 +322,16 @@ toStringTests =
                 PauseIcon
                     |> toString
                     |> Expect.equal "/public/images/ic-pause-white.svg"
+        , test "SearchIcon" <|
+            \_ ->
+                SearchIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-search-white-24px.svg"
+        , test "CloseIcon" <|
+            \_ ->
+                CloseIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-close-white-24px.svg"
         ]
 
 

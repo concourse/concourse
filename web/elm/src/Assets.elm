@@ -50,6 +50,8 @@ type Asset
     | KeyboardArrowRight
     | PlayIcon
     | PauseIcon
+    | SearchIcon
+    | CloseIcon
 
 
 type ComponentType
@@ -282,3 +284,9 @@ toPath asset =
 
         PauseIcon ->
             basePath ++ [ "ic-pause-white.svg" ]
+
+        SearchIcon ->
+            basePath ++ [ "ic-search-white-24px.svg" ]
+
+        CloseIcon ->
+            basePath ++ [ "ic-close-white-24px.svg" ]

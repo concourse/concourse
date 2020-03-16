@@ -573,7 +573,7 @@ searchInput screenSize =
                     [ style "width" "220px" ]
     in
     [ style "background-color" "transparent"
-    , style "background-image" "url('public/images/ic-search-white-24px.svg')"
+    , Assets.backgroundImageStyle <| Just Assets.SearchIcon
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "30px"
@@ -597,7 +597,7 @@ searchClearButton active =
             else
                 "0.2"
     in
-    [ style "background-image" "url('public/images/ic-close-white-24px.svg')"
+    [ Assets.backgroundImageStyle <| Just Assets.CloseIcon
     , style "background-repeat" "no-repeat"
     , style "background-position" "10px 10px"
     , style "border" "0"
@@ -676,7 +676,7 @@ showSearchContainer { highDensity } =
 
 searchButton : List (Html.Attribute msg)
 searchButton =
-    [ style "background-image" "url('public/images/ic-search-white-24px.svg')"
+    [ Assets.backgroundImageStyle <| Just Assets.SearchIcon
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "32px"

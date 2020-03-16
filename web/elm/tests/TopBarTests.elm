@@ -662,7 +662,7 @@ all =
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
                             [ style "background-image"
-                                "url('public/images/ic-search-white-24px.svg')"
+                                "url(/public/images/ic-search-white-24px.svg)"
                             , style "background-position" "12px 8px"
                             , style "background-repeat" "no-repeat"
                             ]
@@ -716,7 +716,7 @@ all =
                     Query.find [ id "search-clear" ]
                         >> Query.has
                             [ style "background-image"
-                                "url('public/images/ic-close-white-24px.svg')"
+                                "url(/public/images/ic-close-white-24px.svg)"
                             , style "background-position" "10px 10px"
                             , style "background-repeat" "no-repeat"
                             ]
@@ -755,7 +755,7 @@ all =
                         >> Query.find [ id "show-search-button" ]
                         >> Query.has
                             [ style "background-image"
-                                "url('public/images/ic-search-white-24px.svg')"
+                                "url(/public/images/ic-search-white-24px.svg)"
                             , style "background-position" "12px 8px"
                             , style "background-repeat" "no-repeat"
                             ]
@@ -808,7 +808,7 @@ all =
                             Query.find [ id "search-clear" ]
                                 >> Query.has
                                     [ style "background-image"
-                                        "url('public/images/ic-close-white-24px.svg')"
+                                        "url(/public/images/ic-close-white-24px.svg)"
                                     , style "background-position" "10px 10px"
                                     , style "background-repeat" "no-repeat"
                                     ]
@@ -857,7 +857,7 @@ all =
                                 Query.find [ id "show-search-button" ]
                                     >> Query.has
                                         [ style "background-image"
-                                            "url('public/images/ic-search-white-24px.svg')"
+                                            "url(/public/images/ic-search-white-24px.svg)"
                                         , style "background-position" "12px 8px"
                                         , style "background-repeat" "no-repeat"
                                         ]
