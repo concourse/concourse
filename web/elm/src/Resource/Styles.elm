@@ -9,6 +9,7 @@ module Resource.Styles exposing
     , commentBarHeader
     , commentBarIconContainer
     , commentBarMessageIcon
+    , commentBarPinIcon
     , commentSaveButton
     , commentText
     , commentTextArea
@@ -39,22 +40,12 @@ headerHeight =
     60
 
 
-pinBar : Bool -> List (Html.Attribute msg)
-pinBar isPinned =
-    let
-        pinBarBorderColor =
-            if isPinned then
-                Colors.pinned
-
-            else
-                Colors.background
-    in
-    [ style "flex-grow" "1"
-    , style "display" "flex"
+pinBar : List (Html.Attribute msg)
+pinBar =
+    [ style "display" "flex"
     , style "align-items" "center"
     , style "position" "relative"
     , style "background-color" Colors.pinTools
-    , style "border" <| "1px solid " ++ pinBarBorderColor
     ]
 
 
@@ -97,20 +88,21 @@ pinBarTooltip =
 
 
 pinTools : Bool -> List (Html.Attribute msg)
-pinTools pinErrorred =
+pinTools isPinned =
+    let
+        pinToolsBorderColor =
+            if isPinned then
+                Colors.pinned
+
+            else
+                Colors.background
+    in
     [ style "background-color" Colors.pinTools
     , style "height" "28px"
     , style "margin-bottom" "24px"
     , style "display" "flex"
     , style "align-items" "center"
-    , style "border" <|
-        "1px solid "
-            ++ (if pinErrorred then
-                    Colors.failure
-
-                else
-                    Colors.pinned
-               )
+    , style "border" <| "1px solid " ++ pinToolsBorderColor
     , style "box-sizing" "border-box"
     ]
 
@@ -226,7 +218,9 @@ borderColor pinnedState =
 commentBar : List (Html.Attribute msg)
 commentBar =
     [ style "background-color" Colors.frame
+    , style "height" "300px"
     , style "display" "flex"
+    , style "justify-content" "center"
     , style "flex-shrink" "0"
     ]
 
@@ -253,6 +247,11 @@ commentBarMessageIcon =
     [ style "background-size" "contain"
     , style "margin-right" "10px"
     ]
+
+
+commentBarPinIcon : List (Html.Attribute msg)
+commentBarPinIcon =
+    [ style "margin-right" "10px" ]
 
 
 commentTextArea : List (Html.Attribute msg)

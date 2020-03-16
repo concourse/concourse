@@ -830,13 +830,6 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-bar" ]
                             |> Query.has [ text version ]
-                , test "then pin bar has purple border" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> queryView
-                            |> Query.find [ id "pin-bar" ]
-                            |> Query.has purpleOutlineSelector
                 , test "pin icon on pin bar has default cursor" <|
                     \_ ->
                         init
@@ -1216,18 +1209,25 @@ all =
                             |> Application.handleCallback (Callback.VersionUnpinned (Ok ()))
                             |> Tuple.first
                             |> queryView
-                            |> Query.hasNot [ id "pin-bar" ]
-
-                -- , test "pin bar shows unpinned state upon receiving failing (VersionUnpinned) msg" <|
-                --     \_ ->
-                --         init
-                --             |> givenResourcePinnedDynamically
-                --             |> givenVersionsWithoutPagination
-                --             |> clickToUnpin
-                --             |> Application.handleCallback (Callback.VersionUnpinned badResponse)
-                --             |> Tuple.first
-                --             |> queryView
-                --             |> pinBarHasPinnedState version
+                            |> Query.findAll [ id "pin-bar" ]
+                            |> Query.count (Expect.equal 0)
+                , test "pin bar shows unpinned state upon receiving failing (VersionUnpinned) msg" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> givenVersionsWithoutPagination
+                            |> clickToUnpin
+                            |> Application.handleCallback (Callback.VersionUnpinned badResponse)
+                            |> Tuple.first
+                            |> queryView
+                            |> pinBarHasPinnedState version
+                , test "pin icon on pin bar is white" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
                 ]
             , describe "versions list"
                 [ test "version pin states reflect resource pin state" <|
@@ -2562,6 +2562,15 @@ all =
                                     [ style "padding-left" "10px" ]
                             )
                 ]
+            , test "clicking pin icon on pin bar does nothing" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.find [ id "pin-icon" ]
+                        |> Event.simulate Event.click
+                        |> Event.toResult
+                        |> Expect.err
             , test "mousing over pin icon does nothing" <|
                 \_ ->
                     init
@@ -2668,7 +2677,7 @@ all =
                     , test "pin bar shows unpinned state" <|
                         afterClick
                             >> queryView
-                            >> pinBarHasUnpinnedState
+                            >> pinToolsHasTransitionState
                     , test "autorefresh respects transition state" <|
                         afterClick
                             >> givenResourceIsNotPinned
@@ -2710,99 +2719,17 @@ all =
                                         "pinned by some-user at Jan 1 1970 12:00:00 AM"
                                     ]
                         ]
-                    , test "pin tools is visible when pinning fails" <|
+                    , test "clicked button shows unpinned state when pinning fails" <|
                         afterClick
                             >> Application.handleCallback
                                 (Callback.VersionPinned badResponse)
                             >> Tuple.first
                             >> queryView
-                            >> Query.has [ id "pin-tools" ]
-                    , test "pin tools has a red border when pinning fails" <|
-                        afterClick
-                            >> Application.handleCallback
-                                (Callback.VersionPinned badResponse)
-                            >> Tuple.first
-                            >> queryView
-                            >> Query.find [ id "pin-tools" ]
-                            >> Query.has redOutlineSelector
-                    , test "pin bar is invisible when pinning fails" <|
-                        afterClick
-                            >> Application.handleCallback
-                                (Callback.VersionPinned badResponse)
-                            >> Tuple.first
-                            >> queryView
-                            >> Query.hasNot [ id "pin-bar" ]
-
-                    -- , test "pin tools displays an X error icon when pinning fails" <|
-                    --     afterClick
-                    --         >> Application.handleCallback
-                    --             (Callback.VersionPinned badResponse)
-                    --         >> Tuple.first
-                    --         >> queryView
-                    --         >> Query.find [ id "pin-tools" ]
-                    --         >> Query.has
-                    --             (iconSelector
-                    --                 { size = "28px"
-                    --                 , image = "ic-failure-times.svg"
-                    --                 }
-                    --                 ++ [ style "background-size" "14px 14px" ]
-                    --             )
-                    --
-                    -- , test "pin tools displays proper error messages when pinning fails" <|
-                    --     afterClick
-                    --         >> Application.handleCallback
-                    --             (Callback.VersionPinned badResponse)
-                    --         >> Tuple.first
-                    --         >> queryView
-                    --         >> Query.find [ id "pin-tools" ]
-                    --         >> Query.has pinToolsErrorMessage
-                    --
-                    -- , test "clicked button shows unpinned state when pinning fails" <|
-                    --     afterClick
-                    --         >> Application.handleCallback
-                    --             (Callback.VersionPinned badResponse)
-                    --         >> Tuple.first
-                    --         >> queryView
-                    --         >> Query.find (versionSelector version)
-                    --         >> Query.find pinButtonSelector
-                    --         >> pinButtonHasUnpinnedState
-                    -- tests for unpinning fails
-                    --  , test "pin tools is visible when pinning fails" <|
-                    --      afterClick
-                    --          >> Application.handleCallback
-                    --              (Callback.VersionPinned badResponse)
-                    --          >> Tuple.first
-                    --          >> queryView
-                    --          >> Query.has [ id "pin-tools" ]
-                    --  , test "pin tools has a red border when pinning fails" <|
-                    --      afterClick
-                    --          >> Application.handleCallback
-                    --              (Callback.VersionPinned badResponse)
-                    --          >> Tuple.first
-                    --          >> queryView
-                    --          >> Query.find [ id "pin-tools" ]
-                    --          >> Query.has redOutlineSelector
-                    -- , test "pin bar is invisible when pinning fails" <|
-                    --     afterClick
-                    --         >> Application.handleCallback
-                    --             (Callback.VersionPinned badResponse)
-                    --         >> Tuple.first
-                    --         >> queryView
-                    --         >> Query.find [ id "pin-bar" ]
-                    --         >> Query.has redOutlineSelector
+                            >> Query.find (versionSelector version)
+                            >> Query.find pinButtonSelector
+                            >> pinButtonHasUnpinnedState
                     ]
                 ]
-            ]
-        , describe "given versioned resource fetched"
-            [ test "there is a pin button for each version" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
-                        |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.findAll pinButtonSelector
-                        |> Query.count (Expect.equal 1)
             ]
         , describe "pin tools" <|
             let
@@ -2858,16 +2785,6 @@ all =
                         |> Query.children []
                         |> Query.index 0
                         |> Query.has [ id "pin-bar" ]
-            , test "contains comment bar on the right" <|
-                \_ ->
-                    pinTools
-                        |> Query.children []
-                        |> Query.index 1
-                        |> Query.has [ id "comment-bar" ]
-            , test "pin bar and comment bar each takes 50% width" <|
-                \_ ->
-                    pinTools
-                        |> Query.has [ style "diplay" "flex" ]
             ]
         , describe "check status" <|
             let
@@ -3918,18 +3835,17 @@ pinButtonHasTransitionState =
         ]
 
 
+pinButtonHasUnpinnedState : Query.Single msg -> Expectation
+pinButtonHasUnpinnedState =
+    Expect.all
+        [ Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+        , Query.hasNot purpleOutlineSelector
+        ]
 
--- pinButtonHasUnpinnedState : Query.Single msg -> Expectation
--- pinButtonHasUnpinnedState =
---     Expect.all
---         [ Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
---         , Query.hasNot purpleOutlineSelector
---         ]
 
-
-pinBarHasUnpinnedState : Query.Single msg -> Expectation
-pinBarHasUnpinnedState =
-    Query.find [ id "pin-bar" ]
+pinToolsHasTransitionState : Query.Single msg -> Expectation
+pinToolsHasTransitionState =
+    Query.find [ id "pin-tools" ]
         >> Expect.all
             [ Query.has [ style "border" <| "1px solid " ++ lightGreyHex ]
             , Query.findAll [ style "background-image" "url(/public/images/pin-ic-grey.svg)" ]
@@ -3942,8 +3858,7 @@ pinBarHasPinnedState : String -> Query.Single msg -> Expectation
 pinBarHasPinnedState v =
     Query.find [ id "pin-bar" ]
         >> Expect.all
-            [ Query.has [ style "border" <| "1px solid " ++ purpleHex ]
-            , Query.has [ text v ]
+            [ Query.has [ text v ]
             , Query.findAll [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
                 >> Query.count (Expect.equal 1)
             ]

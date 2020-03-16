@@ -108,7 +108,6 @@ init flags =
             , checkSetupError = ""
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
-            , pinErrorred = False
             , currentPage = flags.paging
             , versions =
                 { content = []
@@ -396,7 +395,6 @@ handleCallback callback session ( model, effects ) =
                                         }
                                     )
                                 |> Maybe.withDefault NotPinned
-                        , pinErrorred = False
                       }
                     , effects
                         ++ [ SetPinComment
@@ -409,17 +407,17 @@ handleCallback callback session ( model, effects ) =
                     ( model, effects )
 
         VersionPinned (Err _) ->
-            ( { model | pinnedVersion = NotPinned, pinErrorred = True }
+            ( { model | pinnedVersion = NotPinned }
             , effects
             )
 
         VersionUnpinned (Ok ()) ->
-            ( { model | pinnedVersion = NotPinned, pinErrorred = False }
+            ( { model | pinnedVersion = NotPinned }
             , effects ++ [ FetchResource model.resourceIdentifier ]
             )
 
         VersionUnpinned (Err _) ->
-            ( { model | pinnedVersion = Pinned.quitUnpinning model.pinnedVersion, pinErrorred = True }
+            ( { model | pinnedVersion = Pinned.quitUnpinning model.pinnedVersion }
             , effects
             )
 
@@ -847,6 +845,7 @@ view session model =
                     ]
                     [ header session model
                     , body session model
+                    , commentBar session model
                     ]
             ]
         ]
@@ -911,7 +910,7 @@ body session model =
     Html.div
         (id "body" :: Resource.Styles.body)
     <|
-        (if model.pinnedVersion == NotPinned && model.pinErrorred == False then
+        (if model.pinnedVersion == NotPinned then
             [ checkSection sectionModel ]
 
          else
@@ -1031,28 +1030,6 @@ paginationMenu { hovered } model =
                         []
                     ]
         ]
-
-
-concourseVersion : Models.PinnedVersion -> Maybe Concourse.Version
-concourseVersion pinnedVersion =
-    case pinnedVersion of
-        NotPinned ->
-            Nothing
-
-        PinningTo _ ->
-            Nothing
-
-        PinnedDynamicallyTo _ version ->
-            Just version
-
-        UnpinningFrom _ version ->
-            Just version
-
-        PinnedStaticallyTo version ->
-            Just version
-
-        Switching _ version _ ->
-            Just version
 
 
 checkSection :
@@ -1237,6 +1214,7 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                                         { sizePx = 20
                                         , image = "pin-ic-white.svg"
                                         }
+                                        Resource.Styles.commentBarPinIcon
                                     ]
                                 , version
                                 ]
@@ -1308,20 +1286,16 @@ pinTools :
             | pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
             , pinCommentLoading : Bool
-            , pinErrorred : Bool
         }
     -> Html Message
 pinTools session model =
+    let
+        pinBarVersion =
+            Pinned.stable model.pinnedVersion
+    in
     Html.div
-        (id "pin-tools" :: Resource.Styles.pinTools model.pinErrorred)
-        (if model.pinErrorred then
-            []
-
-         else
-            [ pinBar session model
-              , commentBar session model
-            ]
-        )
+        (id "pin-tools" :: Resource.Styles.pinTools (ME.isJust pinBarVersion))
+        [ pinBar session model ]
 
 
 pinBar :
@@ -1359,7 +1333,7 @@ pinBar { hovered } { pinnedVersion } =
             , ( onMouseEnter <| Hover <| Just PinBar, isPinnedStatically )
             , ( onMouseLeave <| Hover Nothing, isPinnedStatically )
             ]
-            ++ Resource.Styles.pinBar (ME.isJust pinBarVersion)
+            ++ Resource.Styles.pinBar
         )
         (Icon.icon
             { sizePx = 25
