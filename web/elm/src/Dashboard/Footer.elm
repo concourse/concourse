@@ -1,5 +1,6 @@
 module Dashboard.Footer exposing (handleDelivery, view)
 
+import Assets
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group.Models exposing (Pipeline)
@@ -167,7 +168,7 @@ legend session model =
                     Styles.legendItem
                     [ Icon.icon
                         { sizePx = 20
-                        , image = "ic-running-legend.svg"
+                        , image = Assets.RunningLegend
                         }
                         []
                     , Html.div [ style "width" "10px" ] []
@@ -211,7 +212,9 @@ legendItem : PipelineStatus -> Html Message
 legendItem status =
     Html.div
         Styles.legendItem
-        [ PipelineStatus.icon status
+        [ Icon.icon
+            { sizePx = 20, image = Assets.PipelineStatusIcon status }
+            Styles.pipelineStatusIcon
         , Html.div [ style "width" "10px" ] []
         , Html.text <| PipelineStatus.show status
         ]

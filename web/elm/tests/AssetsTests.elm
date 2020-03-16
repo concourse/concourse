@@ -3,12 +3,14 @@ module AssetsTests exposing (backgroundImageStyleTests, toStringTests)
 import Assets
     exposing
         ( Asset(..)
+        , CircleOutlineIcon(..)
         , ComponentType(..)
         , backgroundImageStyle
         , toString
         )
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli exposing (Cli(..))
+import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
 import Expect
 import Html
 import Test exposing (Test, describe, test)
@@ -112,6 +114,11 @@ toStringTests =
                 PinIconWhite
                     |> toString
                     |> Expect.equal "/public/images/pin-ic-white.svg"
+        , test "PinIconGrey" <|
+            \_ ->
+                PinIconGrey
+                    |> toString
+                    |> Expect.equal "/public/images/pin-ic-grey.svg"
         , test "CheckmarkIcon" <|
             \_ ->
                 CheckmarkIcon
@@ -144,6 +151,177 @@ toStringTests =
                 ConcourseLogoWhite
                     |> toString
                     |> Expect.equal "/public/images/concourse-logo-white.svg"
+        , describe "CircleOutlineIcon"
+            [ test "Play" <|
+                \_ ->
+                    CircleOutlineIcon PlayCircleIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-play-circle-outline-white.svg"
+            , test "Pause" <|
+                \_ ->
+                    CircleOutlineIcon PauseCircleIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-pause-circle-outline-white.svg"
+            , test "Add" <|
+                \_ ->
+                    CircleOutlineIcon AddCircleIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-add-circle-outline-white.svg"
+            , test "Abort" <|
+                \_ ->
+                    CircleOutlineIcon AbortCircleIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-abort-circle-outline-white.svg"
+            ]
+        , test "CogsIcon" <|
+            \_ ->
+                CogsIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-cogs.svg"
+        , test "RunningLegend" <|
+            \_ ->
+                RunningLegend
+                    |> toString
+                    |> Expect.equal "/public/images/ic-running-legend.svg"
+        , test "NotBlockingCheckIcon" <|
+            \_ ->
+                NotBlockingCheckIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-not-blocking-check.svg"
+        , test "RerunIcon" <|
+            \_ ->
+                RerunIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-rerun.svg"
+        , test "PendingIcon" <|
+            \_ ->
+                PendingIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-pending.svg"
+        , test "InterruptedIcon" <|
+            \_ ->
+                InterruptedIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-interrupted.svg"
+        , test "CancelledIcon" <|
+            \_ ->
+                CancelledIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-cancelled.svg"
+        , test "SuccessCheckIcon" <|
+            \_ ->
+                SuccessCheckIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-success-check.svg"
+        , test "FailureTimesIcon" <|
+            \_ ->
+                FailureTimesIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-failure-times.svg"
+        , test "ExclamationTriangleIcon" <|
+            \_ ->
+                ExclamationTriangleIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-exclamation-triangle.svg"
+        , describe "PipelineStatusIcon"
+            [ test "Paused" <|
+                \_ ->
+                    PipelineStatusPaused
+                        |> PipelineStatusIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-pause-blue.svg"
+            , test "Pending" <|
+                \_ ->
+                    PipelineStatusPending True
+                        |> PipelineStatusIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-pending-grey.svg"
+            , test "Succeeded" <|
+                \_ ->
+                    PipelineStatusSucceeded Running
+                        |> PipelineStatusIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-running-green.svg"
+            , test "Failed" <|
+                \_ ->
+                    PipelineStatusFailed Running
+                        |> PipelineStatusIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-failing-red.svg"
+            , test "Aborted" <|
+                \_ ->
+                    PipelineStatusAborted Running
+                        |> PipelineStatusIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-aborted-brown.svg"
+            , test "Errored" <|
+                \_ ->
+                    PipelineStatusErrored Running
+                        |> PipelineStatusIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-error-orange.svg"
+            , test "Unknown" <|
+                \_ ->
+                    PipelineStatusUnknown
+                        |> PipelineStatusIcon
+                        |> toString
+                        |> Expect.equal "/public/images/ic-cached-grey.svg"
+            ]
+        , test "ClippyIcon" <|
+            \_ ->
+                ClippyIcon
+                    |> toString
+                    |> Expect.equal "/public/images/clippy.svg"
+        , test "UpArrow" <|
+            \_ ->
+                UpArrow
+                    |> toString
+                    |> Expect.equal "/public/images/ic-arrow-upward.svg"
+        , test "DownArrow" <|
+            \_ ->
+                DownArrow
+                    |> toString
+                    |> Expect.equal "/public/images/ic-arrow-downward.svg"
+        , test "RefreshIcon" <|
+            \_ ->
+                RefreshIcon
+                    |> toString
+                    |> Expect.equal "/public/images/baseline-refresh-24px.svg"
+        , test "MessageIcon" <|
+            \_ ->
+                MessageIcon
+                    |> toString
+                    |> Expect.equal "/public/images/baseline-message.svg"
+        , test "HamburgerMenuIcon" <|
+            \_ ->
+                HamburgerMenuIcon
+                    |> toString
+                    |> Expect.equal "/public/images/baseline-menu-24px.svg"
+        , test "PeopleIcon" <|
+            \_ ->
+                PeopleIcon
+                    |> toString
+                    |> Expect.equal "/public/images/baseline-people-24px.svg"
+        , test "KeyboardArrowDown" <|
+            \_ ->
+                KeyboardArrowDown
+                    |> toString
+                    |> Expect.equal "/public/images/baseline-keyboard-arrow-down-24px.svg"
+        , test "KeyboardArrowRight" <|
+            \_ ->
+                KeyboardArrowRight
+                    |> toString
+                    |> Expect.equal "/public/images/baseline-keyboard-arrow-right-24px.svg"
+        , test "PlayIcon" <|
+            \_ ->
+                PlayIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-play-white.svg"
+        , test "PauseIcon" <|
+            \_ ->
+                PauseIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-pause-white.svg"
         ]
 
 

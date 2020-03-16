@@ -1,11 +1,12 @@
 module Views.Icon exposing (icon, iconWithTooltip)
 
+import Assets
 import Html exposing (Html)
 import Html.Attributes exposing (style)
 
 
 icon :
-    { sizePx : Int, image : String }
+    { sizePx : Int, image : Assets.Asset }
     -> List (Html.Attribute msg)
     -> Html msg
 icon { sizePx, image } attrs =
@@ -13,13 +14,13 @@ icon { sizePx, image } attrs =
 
 
 iconWithTooltip :
-    { sizePx : Int, image : String }
+    { sizePx : Int, image : Assets.Asset }
     -> List (Html.Attribute msg)
     -> List (Html msg)
     -> Html msg
 iconWithTooltip { sizePx, image } attrs tooltipContent =
     Html.div
-        ([ style "background-image" ("url(/public/images/" ++ image ++ ")")
+        ([ Assets.backgroundImageStyle <| Just image
          , style "height" (String.fromInt sizePx ++ "px")
          , style "width" (String.fromInt sizePx ++ "px")
          , style "background-position" "50% 50%"

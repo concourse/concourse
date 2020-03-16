@@ -1,5 +1,6 @@
 module Assets exposing
     ( Asset(..)
+    , CircleOutlineIcon(..)
     , ComponentType(..)
     , backgroundImageStyle
     , toString
@@ -7,6 +8,7 @@ module Assets exposing
 
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli exposing (Cli(..))
+import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Html
 import Html.Attributes exposing (style)
 import Url.Builder
@@ -20,16 +22,47 @@ type Asset
     | VisibilityToggleIcon Bool
     | BuildFavicon (Maybe BuildStatus)
     | PinIconWhite
+    | PinIconGrey
     | CheckmarkIcon
     | BreadcrumbIcon ComponentType
     | PassportOfficerIcon
     | ConcourseLogoWhite
+    | CircleOutlineIcon CircleOutlineIcon
+    | CogsIcon
+    | RunningLegend
+    | NotBlockingCheckIcon
+    | RerunIcon
+    | PendingIcon
+    | InterruptedIcon
+    | CancelledIcon
+    | SuccessCheckIcon
+    | FailureTimesIcon
+    | ExclamationTriangleIcon
+    | PipelineStatusIcon PipelineStatus
+    | ClippyIcon
+    | UpArrow
+    | DownArrow
+    | RefreshIcon
+    | MessageIcon
+    | HamburgerMenuIcon
+    | PeopleIcon
+    | KeyboardArrowDown
+    | KeyboardArrowRight
+    | PlayIcon
+    | PauseIcon
 
 
 type ComponentType
     = PipelineComponent
     | JobComponent
     | ResourceComponent
+
+
+type CircleOutlineIcon
+    = PlayCircleIcon
+    | PauseCircleIcon
+    | AddCircleIcon
+    | AbortCircleIcon
 
 
 toString : Asset -> String
@@ -115,6 +148,9 @@ toPath asset =
         PinIconWhite ->
             basePath ++ [ "pin-ic-white.svg" ]
 
+        PinIconGrey ->
+            basePath ++ [ "pin-ic-grey.svg" ]
+
         CheckmarkIcon ->
             basePath ++ [ "checkmark-ic.svg" ]
 
@@ -138,3 +174,111 @@ toPath asset =
 
         ConcourseLogoWhite ->
             basePath ++ [ "concourse-logo-white.svg" ]
+
+        CircleOutlineIcon icon ->
+            let
+                imageName =
+                    case icon of
+                        PlayCircleIcon ->
+                            "play"
+
+                        PauseCircleIcon ->
+                            "pause"
+
+                        AddCircleIcon ->
+                            "add"
+
+                        AbortCircleIcon ->
+                            "abort"
+            in
+            basePath ++ [ "ic-" ++ imageName ++ "-circle-outline-white.svg" ]
+
+        CogsIcon ->
+            basePath ++ [ "ic-cogs.svg" ]
+
+        RunningLegend ->
+            basePath ++ [ "ic-running-legend.svg" ]
+
+        NotBlockingCheckIcon ->
+            basePath ++ [ "ic-not-blocking-check.svg" ]
+
+        RerunIcon ->
+            basePath ++ [ "ic-rerun.svg" ]
+
+        PendingIcon ->
+            basePath ++ [ "ic-pending.svg" ]
+
+        InterruptedIcon ->
+            basePath ++ [ "ic-interrupted.svg" ]
+
+        CancelledIcon ->
+            basePath ++ [ "ic-cancelled.svg" ]
+
+        SuccessCheckIcon ->
+            basePath ++ [ "ic-success-check.svg" ]
+
+        FailureTimesIcon ->
+            basePath ++ [ "ic-failure-times.svg" ]
+
+        ExclamationTriangleIcon ->
+            basePath ++ [ "ic-exclamation-triangle.svg" ]
+
+        PipelineStatusIcon status ->
+            let
+                imageName =
+                    case status of
+                        PipelineStatusPaused ->
+                            "ic-pause-blue.svg"
+
+                        PipelineStatusPending _ ->
+                            "ic-pending-grey.svg"
+
+                        PipelineStatusSucceeded _ ->
+                            "ic-running-green.svg"
+
+                        PipelineStatusFailed _ ->
+                            "ic-failing-red.svg"
+
+                        PipelineStatusAborted _ ->
+                            "ic-aborted-brown.svg"
+
+                        PipelineStatusErrored _ ->
+                            "ic-error-orange.svg"
+
+                        PipelineStatusUnknown ->
+                            "ic-cached-grey.svg"
+            in
+            basePath ++ [ imageName ]
+
+        ClippyIcon ->
+            basePath ++ [ "clippy.svg" ]
+
+        UpArrow ->
+            basePath ++ [ "ic-arrow-upward.svg" ]
+
+        DownArrow ->
+            basePath ++ [ "ic-arrow-downward.svg" ]
+
+        RefreshIcon ->
+            basePath ++ [ "baseline-refresh-24px.svg" ]
+
+        MessageIcon ->
+            basePath ++ [ "baseline-message.svg" ]
+
+        HamburgerMenuIcon ->
+            basePath ++ [ "baseline-menu-24px.svg" ]
+
+        PeopleIcon ->
+            basePath ++ [ "baseline-people-24px.svg" ]
+
+        KeyboardArrowDown ->
+            basePath ++ [ "baseline-keyboard-arrow-down-24px.svg" ]
+
+        KeyboardArrowRight ->
+            basePath ++ [ "baseline-keyboard-arrow-right-24px.svg" ]
+
+        PlayIcon ->
+            basePath ++ [ "ic-play-white.svg" ]
+
+        PauseIcon ->
+            basePath ++ [ "ic-pause-white.svg" ]

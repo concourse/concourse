@@ -13,6 +13,7 @@ module Build.Build exposing
     )
 
 import Api.Endpoints as Endpoints
+import Assets
 import Application.Models exposing (Session)
 import Build.Header.Header as Header
 import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
@@ -877,7 +878,7 @@ viewBuildPrep buildPrep =
                     , style "align-items" "center"
                     ]
                     [ Icon.icon
-                        { sizePx = 15, image = "ic-cogs.svg" }
+                        { sizePx = 15, image = Assets.CogsIcon }
                         [ style "margin" "6.5px"
                         , style "margin-right" "0.5px"
                         , style "background-size" "contain"
@@ -974,7 +975,7 @@ viewBuildPrepStatus status =
         Concourse.BuildPrepStatusNotBlocking ->
             Icon.icon
                 { sizePx = 12
-                , image = "ic-not-blocking-check.svg"
+                , image = Assets.NotBlockingCheckIcon
                 }
                 [ style "margin-right" "8px"
                 , style "background-size" "contain"

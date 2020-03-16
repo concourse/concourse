@@ -13,6 +13,7 @@ module Job.Job exposing
     )
 
 import Application.Models exposing (Session)
+import Assets
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -475,11 +476,12 @@ viewMainJobsSection session model =
                                 [ Icon.icon
                                     { sizePx = 40
                                     , image =
-                                        if job.paused then
-                                            "ic-play-circle-outline.svg"
+                                        Assets.CircleOutlineIcon <|
+                                            if job.paused then
+                                                Assets.PlayCircleIcon
 
-                                        else
-                                            "ic-pause-circle-outline-white.svg"
+                                            else
+                                                Assets.PauseCircleIcon
                                     }
                                     (Styles.icon toggleHovered)
                                 ]
@@ -504,7 +506,7 @@ viewMainJobsSection session model =
                           <|
                             [ Icon.icon
                                 { sizePx = 40
-                                , image = "ic-add-circle-outline-white.svg"
+                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                                 (Styles.icon <|
                                     triggerHovered
@@ -720,7 +722,7 @@ viewBuildResources buildWithResources =
             Styles.buildResourceHeader
             [ Icon.icon
                 { sizePx = 12
-                , image = "ic-arrow-downward.svg"
+                , image = Assets.DownArrow
                 }
                 Styles.buildResourceIcon
             , Html.text "inputs"
@@ -732,7 +734,7 @@ viewBuildResources buildWithResources =
             Styles.buildResourceHeader
             [ Icon.icon
                 { sizePx = 12
-                , image = "ic-arrow-upward.svg"
+                , image = Assets.UpArrow
                 }
                 Styles.buildResourceIcon
             , Html.text "outputs"

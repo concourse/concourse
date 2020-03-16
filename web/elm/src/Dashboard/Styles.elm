@@ -33,6 +33,7 @@ module Dashboard.Styles exposing
     , pipelineCardTransitionAge
     , pipelineName
     , pipelinePreviewGrid
+    , pipelineStatusIcon
     , previewPlaceholder
     , resourceErrorTriangle
     , searchButton
@@ -116,6 +117,11 @@ pipelineCardBanner { status, pipelineRunningKeyframes } =
             Concourse.PipelineStatus.isRunning status
     in
     style "height" "7px" :: texture pipelineRunningKeyframes isRunning color
+
+
+pipelineStatusIcon : List (Html.Attribute msg)
+pipelineStatusIcon =
+    [ style "background-size" "contain" ]
 
 
 noPipelineCard : List (Html.Attribute msg)

@@ -95,7 +95,7 @@ teamIcon : Opacity -> Html.Html msg
 teamIcon opacity =
     Icon.icon
         { sizePx = 20
-        , image = "baseline-people-24px.svg"
+        , image = Assets.PeopleIcon
         }
         [ style "margin-left" "10px"
         , style "background-size" "contain"
@@ -114,15 +114,12 @@ arrow { opacity, icon } =
     Icon.icon
         { sizePx = 12
         , image =
-            "baseline-keyboard-arrow-"
-                ++ (case icon of
-                        Right ->
-                            "right"
+            case icon of
+                Right ->
+                    Assets.KeyboardArrowRight
 
-                        Down ->
-                            "down"
-                   )
-                ++ "-24px.svg"
+                Down ->
+                    Assets.KeyboardArrowDown
         }
         [ style "margin-left" "10px"
         , style "flex-shrink" "0"

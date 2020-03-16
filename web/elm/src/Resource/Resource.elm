@@ -16,6 +16,7 @@ module Resource.Resource exposing
     )
 
 import Application.Models exposing (Session)
+import Assets
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -1094,10 +1095,10 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
                         { sizePx = 28
                         , image =
                             if failingToCheck then
-                                "ic-exclamation-triangle.svg"
+                                Assets.ExclamationTriangleIcon
 
                             else
-                                "ic-success-check.svg"
+                                Assets.SuccessCheckIcon
                         }
                         Resource.Styles.checkStatusIcon
 
@@ -1169,7 +1170,7 @@ checkButton ({ hovered, userState, checkStatus } as params) =
         )
         [ Icon.icon
             { sizePx = 20
-            , image = "baseline-refresh-24px.svg"
+            , image = Assets.RefreshIcon
             }
             (Resource.Styles.checkButtonIcon isHighlighted)
         ]
@@ -1204,12 +1205,12 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                                     Resource.Styles.commentBarIconContainer
                                     [ Icon.icon
                                         { sizePx = 24
-                                        , image = "baseline-message.svg"
+                                        , image = Assets.MessageIcon
                                         }
                                         Resource.Styles.commentBarMessageIcon
                                     , Icon.icon
                                         { sizePx = 20
-                                        , image = "pin-ic-white.svg"
+                                        , image = Assets.PinIconWhite
                                         }
                                         Resource.Styles.commentBarPinIcon
                                     ]
@@ -1336,10 +1337,10 @@ pinBar { hovered } { pinnedVersion } =
             { sizePx = 25
             , image =
                 if ME.isJust pinBarVersion then
-                    "pin-ic-white.svg"
+                    Assets.PinIconWhite
 
                 else
-                    "pin-ic-grey.svg"
+                    Assets.PinIconGrey
             }
             (attrList
                 [ ( id "pin-icon", True )

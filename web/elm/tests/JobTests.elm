@@ -305,7 +305,7 @@ all =
                         [ style "opacity" "0.5" ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-play-circle-outline.svg"
+                                , image = "ic-play-circle-outline-white.svg"
                                 }
                     }
                 , hoveredSelector =
@@ -314,7 +314,7 @@ all =
                         [ style "opacity" "1" ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-play-circle-outline.svg"
+                                , image = "ic-play-circle-outline-white.svg"
                                 }
                     }
                 , hoverable = Message.Message.ToggleJobButton
