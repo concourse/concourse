@@ -888,7 +888,6 @@ header session model =
         , Html.div
             Resource.Styles.headerLastCheckedSection
             [ lastCheckedView ]
-        , pinBar session model
         , paginationMenu session model
         ]
 
@@ -910,9 +909,14 @@ body session model =
     in
     Html.div
         (id "body" :: Resource.Styles.body)
-        [ checkSection sectionModel
-        , viewVersionedResources session model
-        ]
+    <|
+        (if model.pinnedVersion == NotPinned then
+            [ checkSection sectionModel ]
+
+         else
+            [ pinTools session model ]
+        )
+            ++ [ viewVersionedResources session model ]
 
 
 paginationMenu :
@@ -1275,6 +1279,25 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
             Html.text ""
 
 
+pinTools :
+    { s | hovered : HoverState.HoverState, userState : UserState }
+    ->
+        { b
+            | pinnedVersion : Models.PinnedVersion
+            , resourceIdentifier : Concourse.ResourceIdentifier
+            , pinCommentLoading : Bool
+        }
+    -> Html Message
+pinTools session model =
+    let
+        pinBarVersion =
+            Pinned.stable model.pinnedVersion
+    in
+    Html.div
+        (id "pin-tools" :: Resource.Styles.pinTools (ME.isJust pinBarVersion))
+        [ pinBar session model ]
+
+
 pinBar :
     { a | hovered : HoverState.HoverState }
     -> { b | pinnedVersion : Models.PinnedVersion }
@@ -1310,7 +1333,7 @@ pinBar { hovered } { pinnedVersion } =
             , ( onMouseEnter <| Hover <| Just PinBar, isPinnedStatically )
             , ( onMouseLeave <| Hover Nothing, isPinnedStatically )
             ]
-            ++ Resource.Styles.pinBar (ME.isJust pinBarVersion)
+            ++ Resource.Styles.pinBar
         )
         (Icon.icon
             { sizePx = 25

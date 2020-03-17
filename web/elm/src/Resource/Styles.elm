@@ -24,6 +24,7 @@ module Resource.Styles exposing
     , pinButton
     , pinButtonTooltip
     , pinIcon
+    , pinTools
     , versionHeader
     )
 
@@ -39,23 +40,12 @@ headerHeight =
     60
 
 
-pinBar : Bool -> List (Html.Attribute msg)
-pinBar isPinned =
-    let
-        pinBarBorderColor =
-            if isPinned then
-                Colors.pinned
-
-            else
-                Colors.background
-    in
-    [ style "flex-grow" "1"
-    , style "margin" "10px"
-    , style "padding-left" "7px"
-    , style "display" "flex"
+pinBar : List (Html.Attribute msg)
+pinBar =
+    [ style "display" "flex"
     , style "align-items" "center"
     , style "position" "relative"
-    , style "border" <| "1px solid " ++ pinBarBorderColor
+    , style "background-color" Colors.pinTools
     ]
 
 
@@ -94,6 +84,26 @@ pinBarTooltip =
     , style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "2"
+    ]
+
+
+pinTools : Bool -> List (Html.Attribute msg)
+pinTools isPinned =
+    let
+        pinToolsBorderColor =
+            if isPinned then
+                Colors.pinned
+
+            else
+                Colors.background
+    in
+    [ style "background-color" Colors.pinTools
+    , style "height" "28px"
+    , style "margin-bottom" "24px"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "border" <| "1px solid " ++ pinToolsBorderColor
+    , style "box-sizing" "border-box"
     ]
 
 
@@ -350,6 +360,7 @@ pagination : List (Html.Attribute msg)
 pagination =
     [ style "display" "flex"
     , style "align-items" "stretch"
+    , style "margin-left" "auto"
     ]
 
 
