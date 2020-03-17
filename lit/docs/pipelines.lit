@@ -1,14 +1,16 @@
 \title{Pipelines}{pipelines}
 
 \use-plugin{concourse-docs}
+\split-sections
 
 A pipeline is the result of configuring \reference{jobs} and
 \reference{resources} together. When you configure a pipeline, it takes on a
 life of its own, to continuously detect resource versions and automatically
 queue new builds for jobs as they have new available inputs.
 
-Pipelines are configured as declarative YAML files, fitting the following
-schema:
+Pipelines are configured via \reference{fly-set-pipeline} or the
+\reference{set-pipeline-step} as declarative \reference{intro-to-yaml}{YAML
+files} which conform to the following schema:
 
 \schema{pipeline}{
   \optional-attribute{jobs}{[job]}{
@@ -78,7 +80,10 @@ schema:
   }
 }
 
-\split-sections
+Once configured, pipelines may be interacted with through various
+\reference{fly-cli} commands:
+
+\table-of-contents
 
 \include-section{pipelines/configuring.lit}
 \include-section{pipelines/managing.lit}

@@ -564,12 +564,6 @@ body {
   padding: 1em;
   margin: 2em;
 }
-.schema-content {
-  display: none;
-}
-.schema-content:target {
-  display: block;
-}
 .definition {
   margin-top: 2em;
 }
@@ -914,9 +908,11 @@ body.index .page-content h2:first-child {
   }
 }
 .schema {
-  margin-top: 2em;
+  margin: 1.5em 0;
+  margin-bottom: 1.5em;
 }
 .schema .schema-header {
+  margin-top: 0;
   margin-bottom: 1.5rem;
 }
 .schema .schema .schema-header {

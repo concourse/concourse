@@ -15,6 +15,7 @@ the user to determine which \reference{user-roles}{role}, if any, to grant for
 the team. This information is then stored in the user's token to determine
 access control for future requests.
 
+\table-of-contents
 \include-section{auth/main-team.lit}
 \include-section{auth/configuring.lit}
 \include-section{auth/managing-teams.lit}
