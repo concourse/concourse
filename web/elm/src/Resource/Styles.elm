@@ -9,7 +9,6 @@ module Resource.Styles exposing
     , commentBarHeader
     , commentBarIconContainer
     , commentBarMessageIcon
-    , commentBarPinIcon
     , commentSaveButton
     , commentText
     , commentTextArea
@@ -41,12 +40,22 @@ headerHeight =
     60
 
 
-pinBar : List (Html.Attribute msg)
-pinBar =
+pinBar : Bool -> List (Html.Attribute msg)
+pinBar isPinned =
+    let
+        pinBarBorderColor =
+            if isPinned then
+                Colors.pinned
+
+            else
+                Colors.background
+    in
     [ style "display" "flex"
     , style "align-items" "center"
     , style "position" "relative"
     , style "background-color" Colors.pinTools
+    , style "border" <| "1px solid" ++ pinBarBorderColor
+    , style "flex" "1"
     ]
 
 
@@ -220,19 +229,16 @@ borderColor pinnedState =
 
 commentBar : List (Html.Attribute msg)
 commentBar =
-    [ style "background-color" Colors.frame
-    , style "height" "300px"
+    [ style "background-color" Colors.pinTools
+    , style "height" "25px"
     , style "display" "flex"
-    , style "justify-content" "center"
-    , style "flex-shrink" "0"
+    , style "flex" "1"
     ]
 
 
 commentBarContent : List (Html.Attribute msg)
 commentBarContent =
-    [ style "width" "700px"
-    , style "padding" "20px 0"
-    , style "display" "flex"
+    [ style "display" "flex"
     , style "flex-direction" "column"
     ]
 
@@ -248,13 +254,8 @@ commentBarHeader =
 commentBarMessageIcon : List (Html.Attribute msg)
 commentBarMessageIcon =
     [ style "background-size" "contain"
-    , style "margin-right" "10px"
+    , style "margin" "4px 10px"
     ]
-
-
-commentBarPinIcon : List (Html.Attribute msg)
-commentBarPinIcon =
-    [ style "margin-right" "10px" ]
 
 
 commentTextArea : List (Html.Attribute msg)
