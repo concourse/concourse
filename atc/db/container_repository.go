@@ -152,9 +152,8 @@ func (repository *containerRepository) FindDestroyingContainers(workerName strin
 	destroyingContainers, err := repository.queryContainerHandles(
 		tx,
 		sq.Eq{
-			"state":        atc.ContainerStateDestroying,
-			"worker_name":  workerName,
-			"discontinued": false,
+			"state":       atc.ContainerStateDestroying,
+			"worker_name": workerName,
 		},
 	)
 
@@ -294,7 +293,7 @@ func (repository *containerRepository) FindOrphanedContainers() ([]CreatingConta
 }
 
 func selectContainers(asOptional ...string) sq.SelectBuilder {
-	columns := []string{"id", "handle", "worker_name", "last_hijack", "discontinued", "state"}
+	columns := []string{"id", "handle", "worker_name", "last_hijack", "state"}
 	columns = append(columns, containerMetadataColumns...)
 
 	table := "containers"
@@ -312,17 +311,16 @@ func selectContainers(asOptional ...string) sq.SelectBuilder {
 
 func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedContainer, DestroyingContainer, FailedContainer, error) {
 	var (
-		id             int
-		handle         string
-		workerName     string
-		isDiscontinued bool
-		lastHijack     pq.NullTime
-		state          string
+		id         int
+		handle     string
+		workerName string
+		lastHijack pq.NullTime
+		state      string
 
 		metadata ContainerMetadata
 	)
 
-	columns := []interface{}{&id, &handle, &workerName, &lastHijack, &isDiscontinued, &state}
+	columns := []interface{}{&id, &handle, &workerName, &lastHijack, &state}
 	columns = append(columns, metadata.ScanTargets()...)
 
 	err := row.Scan(columns...)
@@ -354,7 +352,6 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 			handle,
 			workerName,
 			metadata,
-			isDiscontinued,
 			conn,
 		), nil, nil
 	case atc.ContainerStateFailed:

@@ -150,8 +150,12 @@ var _ = Describe("ContainerCollector", func() {
 					createdContainer.LastHijackReturns(time.Now())
 				})
 
-				It("marks container as discontinued in database", func() {
-					Expect(createdContainer.DiscontinueCallCount()).To(Equal(1))
+				It("succeeds", func() {
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("does not destroy them", func() {
+					Expect(createdContainer.DestroyingCallCount()).To(Equal(0))
 				})
 			})
 

@@ -122,12 +122,6 @@ func (c *containerCollector) cleanupOrphanedContainers(logger lager.Logger) erro
 				logger.Error("failed-to-transition", err, lager.Data{"container": createdContainer.Handle()})
 				continue
 			}
-		} else {
-			_, err = createdContainer.Discontinue()
-			if err != nil {
-				logger.Error("failed-to-discontinue-container", err)
-				continue
-			}
 		}
 	}
 
