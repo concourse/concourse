@@ -21,31 +21,43 @@ sure you intercept while it's running if you want to debug.
 
   Concourse supports build rerunning, which means to run a new build using the
   exact same set of input versions as the original build. There are two ways to
-  rerun a build, through the web UI on the builds page and through the
-  \reference{fly-cli}{fly cli}.
+  rerun a build: through the web UI on the builds page and through the
+  \reference{fly-rerun-build}.
 
   When a build is rerun, it will create a new build using the name of the
-  original build with the rerun number appended to it.
+  original build with the rerun number appended to it, e.g. \code{3.1} for the
+  first rerun of build \code{3}.
 
-  The rerun build will be ordered with the original build, so that it isn't
-  treated as the "latest" build of the job (unless it is a rerun of the latest
-  build) but rather as another run of that original build. This means that if
-  you rerun an old build, the status of the build will not show up in the
-  pipeline page for the status of the job. This is because the status of the
-  job represents the current state of the job, which a rerun of an old build is
-  not treated as the current state.
+  Rerun builds are ordered chronologically after the original build, rather
+  than becoming a new "latest" build. Similarly, when the scheduler is
+  resolving \reference{schema.step.get-step.passed}{\code{passed}} constraints
+  which reference a job which has rerun builds, those rerun builds are
+  processed in this same order. This is so that the versions which made it
+  through a rerun build do not become the new "latest versions" - instead, they
+  act as if the original had succeeded at its point in the build history.
 
-  This is currently a first pass at build retriggering, as it only supports
-  retriggering builds using the \bold{current state of the job config}. If you
-  have an old build that only had two inputs and you have recently updated your
-  job config to now have 3 inputs, it will fail to rerun an old build that only
-  used two inputs.
+  This may sound a little confusing, but the summary is that reruns should
+  behave as if they replace the original failed build.
 
-  There are future plans to have retriggering execute an exact rerun of a build
-  including all the versions and job config that it used to run with
-  originally. If you are interested in tracking the progress for the second
-  pass at retriggering, the project epic is called \link{Build Lifecycle
-  View}{https://project.concourse-ci.org/projects/MDc6UHJvamVjdDM3NjI5MTk=}.
+  \section{
+    \title{Current caveats with rerunning}
+
+    The current implementation of re-running is an early iteration with one key
+    limitation: a rerun build will use the \bold{current state of the job
+    config}, instead of running the exact build plan the original build ran
+    with.
+
+    This means that if the \reference{schema.job.plan} has changed in a way
+    that is backwards-incompatible, the rerun build may error. For example, if
+    a new input is added, its version will not be available as the original
+    build did not use it.
+
+    There are future plans to have reruns execute the exact build plan from the
+    original build. If you are interested in tracking the progress for the
+    second pass at rerunning builds - or contributing yourself! - the project
+    epic is called \link{Build Lifecycle
+    View}{https://project.concourse-ci.org/projects/MDc6UHJvamVjdDM3NjI5MTk=}.
+  }
 }
 
 \section{
