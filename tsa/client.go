@@ -405,19 +405,34 @@ func (client *Client) checkHostKey(hostname string, remote net.Addr, remoteKey s
 	return errors.New("remote host public key mismatch")
 }
 
+
 func (client *Client) keepAlive(ctx context.Context, sshClient *ssh.Client, tcpConn *net.TCPConn) {
 	logger := lagerctx.WithSession(ctx, "keepalive")
-
+	keepAliveRequestTimeout := 5 * time.Second
 	kas := time.NewTicker(5 * time.Second)
 
 	for {
 		// ignore reply; server may just not have handled it, since there's no
 		// standard keepalive request name
 
-		_, _, err := sshClient.Conn.SendRequest("keepalive", true, []byte("sup"))
-		if err != nil {
-			logger.Error("failed", err)
+		sendKeepAliveRequest := make(chan error,1)
+		go func (){
+			defer close(sendKeepAliveRequest)
+			_, _, err := sshClient.Conn.SendRequest("keepalive", true, []byte("sup"))
+			sendKeepAliveRequest <- err
+		}()
+
+		select {
+		case <-time.After(keepAliveRequestTimeout):
+			logger.Error("timeout", errors.New("timed out sending keepalive request"))
+			sshClient.Close()
 			return
+		case err := <-sendKeepAliveRequest:
+			if err != nil {
+				logger.Error("failed sending keepalive request", err)
+				sshClient.Close()
+				return
+			}
 		}
 
 		select {
