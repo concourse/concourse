@@ -227,9 +227,15 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oauth2.Token, redirectURI string) {
 	logger := s.config.Logger.Session("redirect")
 
-	redirectURL, err := url.Parse(redirectURI)
+	redirectURL, err := url.ParseRequestURI(redirectURI)
 	if err != nil {
 		logger.Error("failed-to-parse-redirect-url", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if redirectURL.Host != "" {
+		logger.Error("invalid-redirect", fmt.Errorf("Unsupported redirect uri: %s", redirectURI))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -248,17 +254,10 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oaut
 		return
 	}
 
-	if redirectURL.Host != "" {
-		logger.Error("invalid-redirect", fmt.Errorf("Unsupported redirect uri: %s", redirectURI))
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
 	params := redirectURL.Query()
 	params.Set("csrf_token", csrfToken)
-	redirectURL.RawQuery = params.Encode()
 
-	http.Redirect(w, r, redirectURL.String(), http.StatusTemporaryRedirect)
+	http.Redirect(w, r, redirectURL.Path+"?"+params.Encode(), http.StatusTemporaryRedirect)
 }
 
 func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
