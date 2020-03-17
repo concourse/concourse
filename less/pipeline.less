@@ -1,221 +1,126 @@
-@base00: #1E1D1D;
-@base01: #2A2929;
-@base02: #3D3C3C;
-@base03: #504B4B;
+@base00: #1e1d1d;
+@base01: #2a2929;
+@base02: #3d3c3c;
+@base03: #504b4b;
 @base04: #868585;
-@base05: #E6E7E8; // not legit
+@base05: #e6e7e8;
+@base06: #f5f5f5;
+@base07: #ecf0f1; /* light grey (pending) */
+@base08: #e74c3c; /* red */
+@base09: #e67e22; /* orange */
+@base0A: #f1c40f; /* yellow */
+@base0B: #2ecc71; /* green */
+@base0C: #1abc9c; /* cyan */
+@base0D: #3498db; /* blue */
+@base0E: #9b59b6; /* purple */
+@base0F: #8f4b2d; /* brown */
+@base0G: #3d4a58; /* 17 color palettes are 1 better than 16 */
 
-@white: #ffffff;
-
-@amber-primary: #F5A623;
-@amber-secondary: #D58808;
-@blue-primary: #4A90E2;
-@blue-secondary: #2D76CC;
-@brown-primary: #8B572A;
-@brown-secondary: #6A401C;
-@grey-primary: #9B9B9B;
-@grey-secondary: #7A7373;
-@green-primary: #11C560;
+@white: #fff;
+@amber-primary: #f5a623;
+@amber-secondary: #d58808;
+@blue-primary: #4a90e2;
+@blue-secondary: #2d76cc;
+@brown-primary: #8b572a;
+@brown-secondary: #6a401c;
+@grey-primary: #9b9b9b;
+@grey-secondary: #7a7373;
+@green-primary: #11c560;
 @green-secondary: #419867;
-@red-primary: #ED4B35;
-@red-secondary: #BD3826;
+@red-primary: #ed4b35;
+@red-secondary: #bd3826;
 
-.pending { background: @base04; }
-.started { background: red; }
-.no-builds { background: @base03; }
-.succeeded { background: @green-primary; }
-.failed { background: @red-primary; }
-.errored { background: @amber-primary; }
-.aborted { background: @brown-primary; }
-.paused { background: @blue-primary; }
+.pipeline-svg {
+  display: block;
+  font-family: 'Iosevka', monospace;
+  letter-spacing: .0425em;
+  font-weight: bold;
+  font-size: 12px;
+  line-height: 1.4;
+  background: @base02;
+  flex-grow: 1;
+  justify-self: stretch;
+  padding: 32px;
 
-.pipeline-grid {
-  padding: 20px;
-  padding-bottom: 10px; // account for node margins
-  float: left;
+  .node rect { fill: @base00; }
+  .node text { fill: white; }
+  .node.pending rect { fill: @grey-primary; }
+  .node.succeeded rect { fill: @green-primary; }
+  .node.failed rect { fill: @red-primary; }
+  .node.errored rect { fill: @amber-primary; }
+  .node.aborted rect { fill: @brown-primary; }
+  .node.failing rect { fill: @amber-primary; }
+  .node.paused rect { fill: @blue-primary; }
+  .node.job.no-builds rect { fill: @grey-primary; }
+  .node.resource a { color: @base06; }
+  .node.pinned rect { fill: #5C3BD1; }
+  .node.constrained-input.pinned {
+    rect {
+      fill: #5C3BD1;
+      opacity: 0.8;
+    }
 
-  > * {
-    align-items: flex-start;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  .node {
-    display: flex; /* this does interesting but maybe good things? */
-    flex-grow: 1;
-
-    a {
-      flex-grow: 1;
-      white-space: nowrap;
-      // width: 150px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      // padding: 0 5px;
-      // font-size: 14px;
-      // vertical-align: top;
-      display: inline-block;
+    image {
+      opacity: 0.7;
     }
   }
 
-  .pipeline-table {
-    padding: 20px;
-    border-spacing: 0;
+  .edge { stroke: @grey-secondary; }
+  .edge.pending { stroke: @base04; }
+  .edge.succeeded { stroke: @green-primary; }
+  .edge.failed { stroke: @red-primary; }
+  .edge.errored { stroke: @amber-primary; }
+  .edge.aborted { stroke: @brown-primary; }
+  .edge.paused { stroke: @blue-primary; }
+  .edge.trigger-false { stroke-dasharray: 5, 5; }
 
-    tr {
-      vertical-align: top;
+  .node a {
+    cursor: pointer;
+  }
+
+  .node rect {
+    shape-rendering: crispEdges;
+  }
+
+  .edge path {
+    stroke-width: 2px;
+    fill: none;
+  }
+
+  .node text {
+    fill: #fff;
+  }
+
+  .node.constrained-input {
+    text {
+      fill: @base04;
     }
 
-    td {
-      padding: 0;
-    }
-  }
-
-  .spacer {
-    height: 30px;
-  }
-
-  .parallel-grid {
-    display: flex;
-    flex-direction: column;
-    // border: 1px solid red;
-    flex-grow: 1;
-    justify-content: flex-start;
-    align-items: flex-start;
-  }
-
-  .serial-grid {
-    display: flex;
-    flex-direction: row;
-    flex-grow: 1;
-    // border: 1px solid green;
-    justify-content: flex-start;
-  }
-
-  .job, .input, .output {
-    margin-bottom: 10px;
-  }
-
-  .input, .output {
-    a {
-      margin-top: 10px;
-      // margin-bottom: 10px;
-      max-height: 30px;
-      border-bottom: 1px solid @grey-secondary;
-      color: @base05;
-      font-size: 10px;
-      padding: 15px 10px 5px;
-      line-height: 10px;
+    &.pinned {
+      text {
+        fill: #fff;
+        opacity: 0.7;
+      }
     }
   }
 
-  .job a {
-    font-size: 12px;
+  .active path {
+    stroke-width: 4px;
   }
 
-  .output {
-    flex-grow: 0;
+  .active.node rect {
+    filter: url(#embiggen);
   }
 
-  .job {
-    flex-grow: 0;
-    width: 140px;
-    min-height: 80px;
-    // margin-bottom: 10px;
-
-    display: flex;
-    flex-direction: column;
-
-    .job-name {
-      flex-grow: 0;
-      display: block;
-      line-height: 30px;
-      padding: 0 10px;
-      color: @white;
-      background: @base01;
-      font-weight: normal;
-    }
-
-    .job-status {
-      flex-grow: 1;
-      display: block;
-    }
-
-    &.failed .job-status {
-      .striped-background(@red-secondary, @red-primary);
-      border: 2px solid @red-primary;
-    }
-
-    &.no-builds.started .job-status {
-      .running-animation(@base02, @base01);
-      border: 2px solid @base03;
-    }
-
-    &.succeeded.started .job-status {
-      .running-animation(@green-primary, @green-secondary);
-      border: 2px solid @green-primary;
-    }
-
-    &.failed.started .job-status {
-      .running-animation(@red-primary, @red-secondary);
-      border: 2px solid @red-primary;
-    }
-
-    &.aborted.started .job-status {
-      .running-animation(@brown-primary, @brown-secondary);
-      border: 2px solid @brown-primary;
-    }
-
-    &.errored.started .job-status {
-      .running-animation(@amber-primary, @amber-secondary);
-      border: 2px solid @amber-primary;
-    }
-
-    &.paused.started .job-status {
-      .running-animation(@blue-primary, @blue-secondary);
-      border: 2px solid @blue-primary;
-    }
+  .active.node image {
+    transform: scale(1.09) translate(-5px, -1px);
   }
 
-  .serial-grid > .input {
-    align-self: flex-start;
+  .active.node text {
+    font-size: 1.06em;
   }
 
-  .parallel-grid > .input {
-    align-self: flex-end;
+  .active.node use {
+    transform: scale(1.09) translate(-5px, -1px);
   }
-
-  .input {
-    text-align: right;
-    margin-left: 10px;
-    min-width: 130px;
-  }
-
-  .input.constrained {
-    align-self: stretch;
-    text-align: left;
-    margin-left: 0px;
-    min-width: 140px;
-
-    a {
-      padding-left: 10px;
-      color: @base04;
-    }
-  }
-}
-
-@keyframes pipeline-running {
-  0%   {  background-position-x: (-53.5px) }
-  100% {  background-position-x: 0px }
-}
-
-.running-animation(@color1, @color2) {
-  .striped-background(@color2, @color1);
-  animation: pipeline-running 3s linear infinite;
-}
-
-.striped-background(@color1, @color2) {
-  background-image: repeating-linear-gradient(-115deg, @color1 0, @color1 10px, @color2 0, @color2 16px);
-  background-size: (53px * 2) (57px * 2);
 }

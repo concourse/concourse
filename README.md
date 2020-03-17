@@ -16,14 +16,14 @@ engine](https://vito.github.io/booklit/).
 - hooks [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/hooks/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/hooks)
 - java [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/java/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/java)
 - job [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/job/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/job)
+- manual-trigger [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/manual-trigger/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/manual-trigger)
 - nodejs [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/nodejs/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/nodejs)
-- parameters [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/parameters/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/parameters)
 - php [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/php/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/php)
+- pipeline-vars [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/pipeline-vars/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/pipeline-vars)
 - rails [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/rails/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/rails)
 - serial-job [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/serial-job/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/serial-job)
 - task-passing-artifact [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/task-passing-artifact/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/task-passing-artifact)
 - time-triggered [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/time-triggered/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/time-triggered)
-- trigger-then-continue [![](https://ci.concourse-ci.org/api/v1/teams/examples/pipelines/trigger-then-continue/badge)](https://ci.concourse-ci.org/teams/examples/pipelines/trigger-then-continue)
 
 # Building the Docs Locally
 
@@ -60,11 +60,13 @@ You will be now be able to see the rendered site if you navigate to
 [http://localhost:8000](http://localhost:8000).
 
 # Docs Styling
+
 You can find all of the styling assets for the Concourse website and documentation under the [`css/`](https://github.com/concourse/docs/tree/master/css) folder. 
 
 If you are planning to make changes to the site, [`css/booklit.css`](https://github.com/concourse/docs/blob/master/css/booklit.css) is usually a good place to start. 
 
 # Content Layout
+
 All of the website content can be found under the [`lit/`](https://github.com/concourse/docs/tree/master/lit) folder of this repository. 
 
 The content layout for the site is qute simple, and for the most part self-explanatory. If you want to change a specific page on the website you can usually jump straight to it by looking for the `.lit` version of the page. For example you can make changes to https://concourse-ci.org/fly.html by editing `lit/fly.lit`. 
@@ -75,3 +77,26 @@ The content layout for the site is qute simple, and for the most part self-expla
 * **`lit/release-notes/`** Release notes separated by Concourse version. These `.lit` snippets are ultimately loaded into `lit/download.lit`
 * **`lit/download.lit/`** Concourse Downloads page
 * **`lit/docs/resource-types/community-resources.lit`** A listing of Concourse community-supported resources
+
+# Updating the Blog Theme
+
+```sh
+$ make blog/concourse.zip
+# and then upload it in the Ghost admin UI
+```
+
+# Updating the Discourse Theme
+
+```sh
+$ gem install discourse_theme
+$ discourse_theme watch concourse
+? What is the root URL of your Discourse site? https://discuss.concourse-ci.org
+? Would you like this site name stored in /home/.../.discourse_theme? Yes
+» Using api key from /home/.../.discourse_theme
+? How would you like to sync this theme? Select a different theme
+? Which theme would you like to sync with? Concourse (id:12)
+» Uploading theme from /home/alex/src/docs/discourse
+✔ Theme uploaded (id:12)
+» Watching for changes in /home/alex/src/docs/discourse...
+^C✘ Interrupted
+```

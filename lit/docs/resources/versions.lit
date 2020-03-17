@@ -1,0 +1,103 @@
+\title{Resource Versions}{resource-versions}
+
+\use-plugin{concourse-docs}
+
+As you may know, resources represent external state that changes over time.
+But how do we track those changes in a generic way that will properly represent
+all the different resource types? That is where resource versions are
+introduced. Concourse uses versions to represent the exact changes of a
+resource over time.
+
+The versions of a resource is directly dependent on it's resource configuration
+and \reference{resource-types}{resource type}. Each resource type has their own
+definition of what it's versions should be. For example, the versions of a
+git resource would be the commits of the github repository and the versions of
+a docker image resource are the image digests.
+
+If you want to figure out what determines the version of a resource type, it is
+typically outlined in the `check` behavior for the resource type. For example, the
+git resource uses commits as versions
+\link{git resource type check
+behavior}{https://github.com/concourse/git-resource#check-check-for-new-commits}.
+
+\section{
+  \title{Where do they come from and what are they used for?}{where-and-what-versions}
+
+  The \reference{checker}{resource checker} is responsible for checking for new
+  versions of a resource. These versions are then saved into the database and
+  can be viewed from the resource page in the web UI.
+
+  Resource versions are used by the \reference{scheduler}{build scheduler} in
+  order to schedule new builds for a job.
+}
+
+\section{
+  \title{Version Pinning}{version-pinning}
+
+  A regular job workflow is to use the latest version of a resource in order to
+  trigger new builds. This works most of the time until you run into a
+  situation where you need to run the job using an old version of a resource.
+  Concourse provides a solution to this, which is called resource pinning.
+
+  There are two different ways to pin a resource: through the pipeline config
+  and through the web UI. Within the pipeline config, you can either pin the
+  resource to a version through the
+  \reference{schema.resource.version}{resource configuration} or through a
+  \reference{schema.step.get-step.version}{get step version configuration}. If
+  you would like to pin through the web UI, the functionality can be found in
+  the resource version history page which is accessed through clicking into the
+  resource within the pipeline page.
+
+  Pinning through the pipeline config is useful for a more permanant pinned
+  state. If a resource is pinned through the pipeline config, it cannot be
+  modified through the web UI and can only be changed through modifiying and
+  resetting the pipeline config.
+
+  Pinning through the web UI is useful for reactionary pinning of a resource.
+  For example, it can be used in the event of a broken upstream dependency.
+
+  If you had a version pinned in the web UI and then pinned it through the
+  pipeline config, the pipeline config pinned version will take precendence.
+
+  A pinned version is associated to a resource and can be viewed in the
+  resource page (excluding the case that the version was pinned on a get step).
+  This pinned version will be propagated throughout the pipeline, and used
+  by the jobs that take that pinned resource as an input. If there is a job
+  that has a passed constraint on a pinned resource, this means that the input
+  is only valid if that pinned version has been used by the passed constraint
+  job.
+
+  Lets say we have a pipeline with two jobs and one resource that is being used
+  as a passed constraint between the two jobs. If that resource is pinned to a
+  version, the first job will produce a build using the pinned version of the
+  resource. After that build succeeds, the second job that has a passed
+  constraint on the first will then be able to trigger off a build because the
+  pinned version has successfully used by the first job.
+
+  \section{
+    \title{Unpinning}{version-unpinning}
+
+    When a version is unpinned, Concourse will go back to using the latest
+    available version. This means a new build will be queued up if the most
+    recent build used the old pinned version and the input has \code{trigger:
+    true}.
+
+    If you would like to learn more about how version pinning and unpinning
+    works with the build scheduler, you can read more about it in the
+    \reference{scheduling-behavior}{scheduling behavior section}.
+  }
+}
+
+\section{
+  \title{Disabling a Version}{disable-version}
+
+  A resource version can also be disabled through the web UI on the resource
+  version history page. These disabled versions will be not be used to schedule
+  any further builds for any jobs that use the resource as an input.
+
+  Disabled versions can also be re-enabled through the resource version history
+  page.
+
+  Disabling a version is useful for cases where you know that the version is
+  broken or incompatible.
+}

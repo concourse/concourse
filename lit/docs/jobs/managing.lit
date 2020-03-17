@@ -88,8 +88,8 @@
 \section{
   \title{\code{fly clear-task-cache}}{fly-clear-task-cache}
 
-  If you've got a \reference{task-caches}{task cache} that you need to clear
-  out for whatever reason, this can be done like so:
+  If you've got a \reference{schema.task.caches}{task cache} that you need to
+  clear out for whatever reason, this can be done like so:
 
   \codeblock{bash}{{
   $ fly -t example clear-task-cache --job my-pipeline/my-job --step my-step-name

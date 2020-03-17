@@ -17,6 +17,38 @@ If the build is a one-off, its containers will be removed immediately, so make
 sure you intercept while it's running if you want to debug.
 
 \section{
+  \title{Rerunning a Build}{build-rerunning}
+
+  Concourse supports build rerunning, which means to run a new build using the
+  exact same set of input versions as the original build. There are two ways to
+  rerun a build, through the web UI on the builds page and through the
+  \reference{fly-cli}{fly cli}.
+
+  When a build is rerun, it will create a new build using the name of the
+  original build with the rerun number appended to it.
+
+  The rerun build will be ordered with the original build, so that it isn't
+  treated as the "latest" build of the job (unless it is a rerun of the latest
+  build) but rather as another run of that original build. This means that if
+  you rerun an old build, the status of the build will not show up in the
+  pipeline page for the status of the job. This is because the status of the
+  job represents the current state of the job, which a rerun of an old build is
+  not treated as the current state.
+
+  This is currently a first pass at build retriggering, as it only supports
+  retriggering builds using the \bold{current state of the job config}. If you
+  have an old build that only had two inputs and you have recently updated your
+  job config to now have 3 inputs, it will fail to rerun an old build that only
+  used two inputs.
+
+  There are future plans to have retriggering execute an exact rerun of a build
+  including all the versions and job config that it used to run with
+  originally. If you are interested in tracking the progress for the second
+  pass at retriggering, the project epic is called \link{Build Lifecycle
+  View}{https://project.concourse-ci.org/projects/MDc6UHJvamVjdDM3NjI5MTk=}.
+}
+
+\section{
   \title{\code{fly builds}}{fly-builds}
 
   To list the most recent builds, run:
@@ -105,7 +137,7 @@ sure you intercept while it's running if you want to debug.
   current build's task, even as the "current build" changes.
 
   The working directory and any relevant environment variables (e.g. those
-  having come from \reference{task-params}) used by the original process will
+  having come from \reference{schema.step.task-step.params}) used by the original process will
   also be used for the process run by intercept.
 }
 

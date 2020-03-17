@@ -1,0 +1,114 @@
+\title{Basic Schemas}
+
+\use-plugin{concourse-docs}
+
+Throughout the Concourse documentation you will find come across schema
+definitions for each API.
+
+The following are basic schema definitions that the other schemas refer to. You
+can probably skip past this and just make assumptions along the way; this is
+just here for completeness!
+
+\schema{number}{
+  Any integer, i.e. \code{1000}.
+}
+
+\schema{string}{
+  An arbitrary string value with no content restrictions.
+}
+
+\schema{config}{
+  An arbitrary object representing configuration that is not directly
+  interpreted by Concourse - typically given to a
+  \reference{resource-types}{resource type}.
+
+  \codeblock{yaml}{{{
+  uri: https://github.com/vito/booklit
+  branch: master
+  }}}
+
+  All object keys must be strings, preferably \code{snake_cased}.
+}
+
+\schema{vars}{
+  An arbitrary object representing key-value definitions for
+  \reference{vars}{\code{((vars))}}.
+
+  As with \reference{schema.config}, all object keys must be strings,
+  preferably \code{snake_cased}.
+}
+
+\schema{env-vars}{
+  An object containing string keys and string values. Each pair represents an
+  environment variable to set to the given value.
+
+  \codeblock{yaml}{{{
+  SOME_SIMPLE_VAR: simple-var
+  SOME_LONG_VAR: |
+    This is an example of using YAML multi-line string syntax to set a very
+    long environment variable value.
+  SOME_NUMERIC_VALUE: "1"
+  }}}
+
+  Note that in the last example we took special care to quote the number.
+}
+
+\schema{boolean}{
+  \code{true} or \code{false}.
+
+  YAML also supports the alias \code{yes}, \code{no}, \code{on}, or \code{off},
+  but...please don't.
+}
+
+\schema{identifier}{
+  An \italic{identifier} is string value. Currently, there are no validations
+  for what makes a string a valid identifier.
+
+  \link{RFC #40}{https://github.com/concourse/rfcs/pull/40} proposes a much
+  more limited character set, so for the sake of future-proofing you may want
+  to conform to it.
+
+  The proposed valid character set is as follows:
+
+  \codeblock{regex}{{{
+    ^\p{L}[\p{L}\d\-.]*$
+  }}}
+
+  (Don't worry - if you currently have pipelines that do \italic{not} conform
+  to the above regexp validation, they will be permitted to function; this
+  validation will only be peformed for newly configured pipelines.)
+}
+
+\schema{dir-path}{
+  A string value specifying a (typically relative) path of a directory.
+}
+
+\schema{file-path}{
+  A string value specifying a (typically relative) path of a file.
+}
+
+\schema{duration}{
+  A string value in \link{Go \code{time.ParseDuration}
+  format}{https://golang.org/pkg/time/#ParseDuration}. \code{1h} for one hour,
+  \code{5m} for 5 minutes.
+}
+
+\schema{version}{
+  An object with string keys and string values.
+
+  The following is an array of versions:
+
+  \codeblock{yaml}{{{
+    - {"ref": "33042e15e930b6786fc9b0a9ea5dec78689c5e4b"}
+    - ref: v1.2.0,
+      sha: 33042e15e930b6786fc9b0a9ea5dec78689c5e4b
+    - foo: "0"
+  }}}
+
+  Note that in the last example we took special care to quote the number.
+
+  In many scenarios where a version can be specified, e.g.
+  \reference{schema.step.get-step.version}, only a subset of the full set of
+  fields is necessary. The latest version matching the fields specified will be
+  chosen.
+}

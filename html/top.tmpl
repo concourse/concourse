@@ -1,25 +1,21 @@
-<div class="top-logo">
-  <a href="/"><img src="images/logo-white.svg" />Concourse</a>
-</div>
-
 <nav class="top-nav">
+  <a class="top-link logo-link" href="/"><img src="images/logo-white.svg" />Concourse</a>
   {{range .Top.Children}}
   <a class="top-link{{if .Contains $}} active{{end}}" href="{{.PrimaryTag | url}}">{{.Title | stripAux | render}}</a>
   {{end}}
   <a class="top-link" href="https://blog.concourse-ci.org">blog</a>
   <a class="top-link" href="https://discuss.concourse-ci.org">discuss</a>
-</nav>
+  <a class="top-link" href="https://resource-types.concourse-ci.org">Resource Types</a>
 
-<div class="top-search">
   <div id="search"></div>
-</div>
 
-<script type="text/javascript">
-  var app = Elm.Main.init({
-    node: document.getElementById('search')
-  });
+  <script type="text/javascript">
+    var app = Elm.Main.init({
+      node: document.getElementById('search')
+    });
 
-  app.ports.emitSearchTerm.subscribe(function(term) {
-    gtag('event', 'search', {search_term: term});
-  });
-</script>
+    app.ports.emitSearchTerm.subscribe(function(term) {
+      gtag('event', 'search', {search_term: term});
+    });
+  </script>
+</nav>

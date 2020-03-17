@@ -1,8 +1,8 @@
-{{define "section-link"}}
+{{define "section-link" -}}
   <a href="{{.Section.PrimaryTag | url}}" {{if eq .Section.PrimaryTag.Name .Current.PrimaryTag.Name}} class="self"{{else if .Section.Contains .Current}} class="active"{{end}}>
     {{- .Section.Title | render -}}
   </a>
-{{end}}
+{{- end}}
 
 {{define "context"}}
   {{if gt .Section.Depth 1}}
@@ -13,10 +13,8 @@
   <div class="context">
     <nav>
       <div class="top">
-        {{if eq .Section.PageDepth 0}}
-        <span class="section-number">{{.Section.Number}}</span>
-        {{end}}
-        {{template "section-link" .}}
+        {{if eq .Section.PageDepth 0}}<span class="section-number">{{.Section.Number}}</span>{{end -}}
+        {{- template "section-link" .}}
       </div>
 
       <div class="children">
@@ -24,7 +22,7 @@
         {{range .Section.Children}}
           <tr>
             {{if eq .PageDepth 0}}
-              <td class="number-cell" align="right">{{.Number}}&nbsp;</td>
+              <td class="number-cell" align="right">{{.Number}}</td>
             {{else}}
               <td class="number-cell" align="left"></td>
             {{end}}
@@ -58,30 +56,7 @@
   {{end}}
 {{end}}
 
-{{if and .Parent .Parent.Parent}}
-{{template "context" walkContext $ .Parent}}
-{{else}}
 {{template "context" walkContext $ .}}
-{{end}}
-
-{{if gt .Depth 1 }}
-{{if and .Children (not .OmitChildrenFromTableOfContents)}}
-<div class="context">
-  <div class="page-toc">
-    <nav>
-      <div class="top">
-        {{if eq .PageDepth 0}}
-        <span class="section-number">{{.Number}}</span>
-        {{end}}
-        {{template "section-link" walkContext $ .}}
-      </div>
-
-      {{template "page-toc.tmpl" .}}
-    </nav>
-  </div>
-</div>
-{{end}}
-{{end}}
 
 {{if .HasAnchors}}
 <div class="context">

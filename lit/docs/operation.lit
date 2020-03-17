@@ -1,16 +1,20 @@
 \title{Operation}{operation}
 
-The following sections are available to provide a deeper understanding of some
-of the concepts surrounding Concourse. They aren't necessary for using
-Concourse and understanding its general concept of pipelines and how to use
-them, but we do recommend at least learning how to set up \reference{creds} and
-\reference{encryption}.
+The following sections describes operator-focused features and tools that
+Concourse provides, such as monitoring and credential management.
+
+These concepts are not required to operate Concourse, but are for users that
+are looking to extend the capabilities of managing a Concourse deployment. For
+users that are new to these concepts, we do recommend learning how to set up
+\reference{creds} and \reference{encryption}.
 
 \split-sections
+\table-of-contents
 
+\include-section{./operation/metrics.lit}
+\include-section{./operation/tracing.lit}
 \include-section{./operation/encryption.lit}
 \include-section{./operation/creds.lit}
-\include-section{./operation/metrics.lit}
 \include-section{./operation/container-placement.lit}
 \include-section{./operation/global-resources.lit}
 \include-section{./operation/administration.lit}

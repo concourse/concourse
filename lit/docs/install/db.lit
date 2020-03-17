@@ -53,7 +53,7 @@ data and coordinating work in a multi-\reference{web-node} installation.
   keeping track of jobs, builds, resources, containers, and volumes. In
   addition, \bold{all build logs are stored in the database}. This is the
   primary source of disk usage. To mitigate this, users can configure
-  \reference{job-build-logs-to-retain} on a job, but currently there is no
+  \reference{schema.job.build_logs_to_retain} on a job, but currently there is no
   operator control for this setting. As a result, disk usage on the database
   can grow arbitrarily large.
 

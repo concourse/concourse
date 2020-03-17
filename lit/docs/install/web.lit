@@ -93,9 +93,9 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   \title{Properties}{web-properties}
 
   CPU usage: peaks during pipeline scheduling, primarily when scheduling
-  \reference{pipeline-jobs}. Mitigated by adding more \code{web} nodes. In this
-  regard, \code{web} nodes can be considered compute-heavy more than anything
-  else at large scale.
+  \reference{jobs}. Mitigated by adding more \code{web} nodes. In this regard,
+  \code{web} nodes can be considered compute-heavy more than anything else at
+  large scale.
 
   Memory usage: not very well classified at the moment as it's not generally a
   concern. Give it a few gigabytes and keep an eye on it.
@@ -120,10 +120,6 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   }{
     \code{db} on its configured port for locking and coordinating in a
     multi-\code{web} node deployment
-  }{
-    directly-registered \code{worker} nodes on ports \code{7777}, \code{7788},
-    and \code{7799} for checking \reference{pipeline-resources}, executing
-    builds, and performing garbage-collection
   }{
     other \code{web} nodes (possibly itself) on an ephemeral port when a worker
     is forwarded through the web node's TSA
@@ -195,7 +191,7 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
 
     The \code{web} nodes can be killed and restarted willy-nilly. No draining
     is necessary; if the \code{web} node was orchestrating a build it will just
-    continue where it left off when it comes back or, or the build will be
+    continue where it left off when it comes back, or the build will be
     picked up by one of the other \code{web} nodes.
 
     To upgrade a \code{web} node, stop its process and start a new one using
@@ -284,7 +280,7 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     }
 
     By default, Concourse will reach out to \link{Let's Encrypt's ACME CA
-    directory}{https://acme-v01.api.letsencrypt.org/directory}. An alernative
+    directory}{https://acme-v02.api.letsencrypt.org/directory}. An alernative
     URL can be configured like so:
 
     \codeblock{bash}{{{

@@ -18,19 +18,21 @@ will error.
 The following configurations can be parameterized with a credential manager:
 
 \list{
-  \reference{resource-source} under \reference{resources} in a pipeline
+  \reference{schema.resource.source} under
+  \reference{schema.pipeline.resources}
 }{
-  \reference{resource-type-source} under \reference{resource-types} in a
-  pipeline
+  \reference{schema.resource_type.source} under
+  \reference{schema.pipeline.resource_types}
 }{
-  \reference{resource-webhook-token} under \reference{resources} in a
-  pipeline
+  \reference{schema.resource.webhook_token} under
+  \reference{schema.pipeline.resources}
 }{
-  \reference{task-step-params} on a task step in a pipeline
+  \reference{schema.step.task-step.params} on a task step in a pipeline
 }{
   \reference{tasks} in their entirety - whether from
-  \reference{task-step-file} or \reference{task-step-config} in a pipeline,
-  or a config executed with \reference{fly-execute}
+  \reference{schema.step.task-step.file} or
+  \reference{schema.step.task-step.config} in a pipeline, or a config executed
+  with \reference{fly-execute}
 }
 
 Where these values are looked up and how the credential manager is configured

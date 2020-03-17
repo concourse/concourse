@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-60508041-1"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-60508041-2"></script>
 
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      gtag('config', 'UA-60508041-1');
+      gtag('config', 'UA-60508041-2');
     </script>
 
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
@@ -17,37 +17,35 @@
     <link rel="stylesheet" type="text/css" href="{{asset "css/normalize.css"}}" />
     <link rel="stylesheet" type="text/css" href="{{asset "css/iosevka.css"}}" />
     <link rel="stylesheet" type="text/css" href="{{asset "css/blog.css"}}" />
+    <link rel="stylesheet" type="text/css" href="{{asset "css/prism.css"}}" />
     <link href="https://fonts.googleapis.com/css?family=Barlow:400,400i,700|Roboto+Slab:300,400,700" rel="stylesheet" />
     {{ghost_head}}
   </head>
   <body class="{{body_class}}">
-    <div class="top-logo">
-      <a href="https://concourse-ci.org"><img src="{{asset "images/logo-white.svg"}}" />Concourse</a>
+    <div class="page-top">
+      <nav class="top-nav">
+        <a class="top-link logo-link" href="/"><img src="{{asset "images/logo-white.svg"}}" />Concourse</a>
+        <a class="top-link" href="https://concourse-ci.org/docs.html">docs</a>
+        <a class="top-link" href="https://concourse-ci.org/examples.html">examples</a>
+        <a class="top-link" href="https://concourse-ci.org/project.html">project</a>
+        <a class="top-link active" href="https://blog.concourse-ci.org">blog</a>
+        <a class="top-link" href="https://discuss.concourse-ci.org">discuss</a>
+        <a class="top-link" href="https://resource-types.concourse-ci.org">resource types</a>
+      </nav>
     </div>
 
-    <nav class="top-nav">
-      <a class="top-link" href="https://concourse-ci.org/docs.html">docs</a>
-      <a class="top-link" href="https://concourse-ci.org/examples.html">examples</a>
-      <a class="top-link" href="https://concourse-ci.org/project.html">project</a>
-      <a class="top-link active" href="https://blog.concourse-ci.org">blog</a>
-      <a class="top-link" href="https://discuss.concourse-ci.org">discuss</a>
-    </nav>
+    <div class="page-body">
+      <div class="page-nav">
+        {{navigation}}
+      </div>
 
-    <div class="top-search">
+      <div class="page-content">
+        {{{body}}}
+      </div>
     </div>
-
-    <div class="page-nav">
-      {{navigation}}
-    </div>
-
-    <div class="page-aside">
-    </div>
-
-    <div class="page-content">
-      {{{body}}}
-    </div>
-
 
     {{ghost_foot}}
+
+    <script async type="text/javascript" src="{{asset "js/prism.js"}}"></script>
   </body>
 </html>

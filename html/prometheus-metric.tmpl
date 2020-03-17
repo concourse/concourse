@@ -1,0 +1,14 @@
+{{define "labels" -}}
+{{if .}}<span class="metric-labels">{ {{- range $i, $l := .}}{{if $i}},{{end}}<span class="metric-label">{{$l | render}}</span>{{end -}} }</span>{{end}}
+{{- end}}
+
+<div class="toggleable metric">
+  <input id="toggle-{{.Partial "Name" | render}}" type="checkbox" class="toggle" checked />
+  <label for="toggle-{{.Partial "Name" | render}}" class="toggle-title">
+    <code><span class="metric-name">{{.Partial "Name" | render}}</span>{{template "labels" .Partial "Labels"}}</code>
+    <a class="metric-type" href="https://prometheus.io/docs/concepts/metric_types/#{{.Partial "Type" | render}}">{{.Partial "Type" | render}}</a>
+  </label>
+  <div class="toggle-content">
+    {{.Content | render}}
+  </div>
+</div>

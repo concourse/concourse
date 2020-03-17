@@ -1,15 +1,14 @@
 @import "colors.less";
 
-@3d-width: 5px;
-@3d-hover-width: 7px;
-
-.3d-block(@color) {
+.3d-block(@color, @3d-width, @3d-hover-width) {
   position: relative;
   top: -@3d-width;
   left: -@3d-width;
 
+  transition: all 0.1s ease-out;
 
   &:before {
+    transition: all 0.1s ease-out;
     content: " ";
     position: absolute;
     right: -@3d-width;
@@ -20,6 +19,7 @@
   }
 
   &:after {
+    transition: all 0.1s ease-out;
     content: " ";
     position: absolute;
     bottom: -@3d-width;
@@ -50,12 +50,14 @@
   }
 
   &:active {
+    transition: none;
     top: 0;
     left: 0;
 
     background-color: @color;
 
     &:before, &:after {
+      transition: none;
       border-width: 0;
       bottom: 0;
       right: 0;

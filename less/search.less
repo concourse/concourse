@@ -1,0 +1,120 @@
+@import "vars.less";
+
+@search-size: 32px;
+
+.top-nav {
+  position: relative;
+}
+
+.search-input {
+  z-index: 101;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.25) url('../images/search_icon.svg') no-repeat top 3.5px right 2.5px;
+  padding: 5px;
+  transition: all 0.25s ease-out;
+  width: @search-size;
+  height: @search-size;
+  position: absolute;
+  right: (@top-nav-height - @search-size) / 2;
+  top: (@top-nav-height - @search-size) / 2;
+}
+
+.search-input::placeholder {
+  color: transparent;
+}
+
+.search-input:focus::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.search-input:focus, .search-input:valid {
+  outline: none;
+  background: white;
+  border-color: @offest-white;
+  width: 500px;
+}
+
+.search-results {
+  background: white;
+  list-style-type: none;
+  box-shadow: 0 0 10px rgba(0, 0, 0, .125);
+  padding: 0;
+  z-index: 100;
+  border-left: 1px solid @offest-white;
+  border-right: 1px solid @offest-white;
+  color: @darker-grey;
+  width: 500px;
+  position: absolute;
+  top: (@top-nav-height - @search-size) / 2 + @search-size;
+  right: (@top-nav-height - @search-size) / 2;
+  margin: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  line-height: 1.6;
+  height: 90vh;
+}
+
+.search-results li {
+  margin-bottom: 0;
+}
+
+.search-results:empty {
+  display: none;
+}
+
+.search-results mark {
+  font-weight: bold;
+  border-bottom: 1px solid;
+  background: transparent;
+}
+
+.search-results li a {
+  padding: 10px;
+  margin: 0;
+  display: block;
+  border-bottom: 1px solid @offer-white;
+  text-decoration: none;
+}
+
+.search-results li a:hover {
+  background: @highlight;
+  border-color: @offer-white;
+  text-decoration: none;
+}
+
+.search-results li .result-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.search-results li h3, .search-results li h4 {
+  margin: 0;
+  line-height: 1;
+}
+
+.search-results li h3 {
+  font-size: 18px;
+}
+
+.search-results li h4 {
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.search-results li h4:before {
+  content: "in ";
+  font-size: 12px;
+}
+
+.search-results li p {
+  margin: 0;
+  margin-top: 6px;
+  font-family: 'PT Sans', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: @grey-secondary;
+}
+
+.search-results a, .search-results a:visited {
+  color: @darker-grey;
+}

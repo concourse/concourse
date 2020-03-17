@@ -1,4 +1,4 @@
-objects = js/search.js css/booklit.css css/blog.css css/pipeline.css discourse/common/common.scss discourse/desktop/desktop.scss discourse/mobile/mobile.scss blog/concourse.zip
+objects = js/search.js css/booklit.css css/blog.css css/prism.css css/pipeline.css discourse/common/common.scss discourse/desktop/desktop.scss discourse/mobile/mobile.scss blog/concourse.zip
 
 all: $(objects)
 
@@ -16,6 +16,9 @@ css/booklit.css: less/booklit.less less/*.less
 css/blog.css: less/blog.less less/*.less
 	yarn run lessc $< $@
 
+css/prism.css: less/prism.less less/*.less
+	yarn run lessc $< $@
+
 css/pipeline.css: less/pipeline.less
 	yarn run lessc $< $@
 
@@ -30,6 +33,7 @@ discourse/mobile/mobile.scss: less/discourse/mobile.less less/*.less
 
 blog/concourse.zip: blog/package.json blog/*.hbs css/*.css images/* blog/partials/*.hbs
 	cp css/*.css blog/assets/css/
+	cp js/prism.js blog/assets/js/
 	cp -r images/* blog/assets/images/
 	yarn run gscan ./blog
 	cd blog && zip -r concourse.zip package.json *.hbs assets partials

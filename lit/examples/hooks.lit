@@ -84,17 +84,17 @@ jobs:
 	\title{References}{references}
 
 	\list{
-		\reference{job-on-success}
+		\reference{schema.job.on_success}
 	}{
-		\reference{job-on-failure}
+		\reference{schema.job.on_failure}
 	}{
-		\reference{job-on-abort}
+		\reference{schema.job.on_abort}
 	}{
-		\reference{on-success-step-hook}
+		\reference{schema.step.on_success}
 	}{
-		\reference{on-failure-step-hook}
+		\reference{schema.step.on_failure}
 	}{
-		\reference{on-abort-step-hook}
+		\reference{schema.step.on_abort}
 	}{
 		\reference{jobs}
 	}{

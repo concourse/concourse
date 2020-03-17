@@ -5,7 +5,7 @@
 
 A job can be triggered by a resource. After it's complete, the next job can run automatically or manually.
 
-\frame{https://ci.concourse-ci.org/teams/examples/pipelines/trigger-then-continue}
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/manual-trigger}
 
 \section{
   \title{Pipeline Configuration}{configuration}

@@ -57,7 +57,7 @@ jobs:
         config:
           image_resource:
             type: registry-image
-            source: { repository: ruby, tag: 2.5.3 }
+            source: { repository: ruby, tag: 2.6 }
           << : *task-config
 	}}}
 }

@@ -1,0 +1,79 @@
+@import "colors.less";
+
+.token {
+  &.comment,
+  &.prolog,
+  &.doctype,
+  &.cdata {
+    color: @grey-secondary;
+  }
+
+  &.punctuation,
+  &.anchor {
+    color: @grey-primary;
+  }
+
+  &.selector,
+  &.quantifier,
+  &.tag {
+    color: @red-primary;
+  }
+
+  &.property,
+  &.boolean,
+  &.number,
+  &.constant,
+  &.symbol,
+  &.attr-name,
+  &.deleted {
+    color: @amber-primary;
+  }
+
+  &.string,
+  &.char,
+  &.attr-value,
+  &.builtin,
+  &.inserted {
+    color: @grey-secondary;
+  }
+
+  &.operator,
+  &.entity,
+  &.url {
+    color: @blue-secondary;
+  }
+
+  &.atrule,
+  &.keyword {
+    color: @blue-primary;
+  }
+
+  &.function {
+    color: @blue-primary;
+  }
+
+  &.regex,
+  &.important,
+  &.variable,
+  &.charset-punctuation {
+    color: @blue-primary;
+  }
+
+  &.escape,
+  &.charclass {
+    color: @green-primary;
+  }
+
+  &.important,
+  &.bold {
+    font-weight: bold;
+  }
+
+  &.italic {
+    font-style: italic;
+  }
+
+  &.entity {
+    cursor: help;
+  }
+}

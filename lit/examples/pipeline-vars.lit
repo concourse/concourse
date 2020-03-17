@@ -44,7 +44,7 @@ jobs:
 	\codeblock{yaml}{{{
 ---
 first: initial
-number: 9000
+number: "9000"
 hello: HAL
 	}}}
 }

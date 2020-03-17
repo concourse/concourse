@@ -17,8 +17,8 @@ metrics pipeline.
 
   The \reference{web-node} can be configured to emit metrics on start.
 
-  Currently supported metrics emitters are InfluxDB, NewRelic, Prometheus, Datadog, and
-  Riemann. There is also a dummy emitter that will just spit the metrics out in
+  Currently supported metrics emitters are InfluxDB, NewRelic, Prometheus, and
+  Datadog. There is also a dummy emitter that will just spit the metrics out in
   to the logs at \code{DEBUG} level, which can be enabled with the
   \code{--emit-to-logs} flag.
 
@@ -35,203 +35,217 @@ metrics pipeline.
 \section{
   \title{What's emitted?}
 
-  This reference section lists of all of the metrics that Concourse emits. We
-  don't include the warning and critical levels as they will keep changing as
-  we optimise the system. To find those, please refer to the source of truth:
-  \link{the code}{https://github.com/concourse/concourse/blob/master/atc/metric/metrics.go}.
+  This reference section lists of all of the metrics that Concourse emits via
+  the Prometheus emitter.
 
-  \define-metric{scheduling: full duration (ms)}{
-    This is the time taken (in milliseconds) to schedule an entire pipeline
-    including the time taken to load the version information from the database
-    and calculate the latest valid versions for each job.
+  To make this document easy to maintain, Prometheus is used as the "source of
+  truth" - primarily because it has help text built-in, making this list easy
+  to generate. Treat this list as a reference when looking for the equivalent
+  metric names for your emitter of choice.
 
-    \larger{Attributes}
-    \definitions{
-      \definition{
-        \code{pipeline}
-      }{
-        The pipeline which was being scheduled.
-      }
-    }
-  }
-
-  \define-metric{scheduling: loading versions duration (ms)}{
-    This is the time taken (in milliseconds) to load the version information
-    from the database.
-
-    \larger{Attributes}
-    \definitions{
-      \definition{
-        \code{pipeline}
-      }{
-        The pipeline which was being scheduled.
-      }
-    }
-  }
-
-  \define-metric{scheduling: job duration (ms)}{
-    This is the time taken (in milliseconds) to calculate the set of valid
-    input versions when scheduling a job. It is emitted once for each job per
-    pipeline scheduling tick.
-
-    \larger{Attributes}
-    \definitions{
-      \definition{
-        \code{pipeline}
-      }{
-        The pipeline which was being scheduled.
-      }
-    }{
-      \definition{
-        \code{job}
-      }{
-        The job which was being scheduled.
-      }
-    }
-  }
-
-  \define-metric{worker containers}{
-    The number of containers that are currently running on your workers.
-
-    \larger{Attributes}
-    \definitions{
-      \definition{
-        \code{worker}
-      }{
-        The name of the worker.
-      }
-    }
-  }
-
-  \define-metric{worker volumes}{
-    The number of volumes that are currently present on your workers.
-
-    \larger{Attributes}
-    \definitions{
-      \definition{
-        \code{worker}
-      }{
-        The name of the worker.
-      }
-    }
-  }
-
-  \define-metric{build started}{
-    This event is emitted when a build starts. Its value is the build ID of the
-    build. However, it is most useful for annotating your metrics with the
-    start and end of different jobs.
-
-    \larger{Attributes}
-    \definitions{
-      \definition{
-        \code{pipeline}
-      }{
-        The pipeline which contains the build being started.
-      }
-    }{
-      \definition{
-        \code{job}
-      }{
-        The job which configured the build being started.
-      }
-    }{
-      \definition{
-        \code{build_name}
-      }{
-        The name of the build being started. (Remember that build numbers in
-        Concourse are actually names and are strings).
-      }
-    }{
-      \definition{
-        \code{build_id}
-      }{
-        The ID of the build being started.
-      }
-    }
-  }
-
-  \define-metric{build finished}{
-    This event is emitted when a build ends. Its value is the duration of the
-    build in milliseconds. You can use this metric in conjunction with
-    \code{build started} to annotate your metrics with when builds started and
-    stopped.
-
-    \larger{Attributes}
-    \definitions{
-      \definition{
-        \code{pipeline}
-      }{
-        The pipeline which contains the build that finished.
-      }
-    }{
-      \definition{
-        \code{job}
-      }{
-        The job which configured the build that finished.
-      }
-    }{
-      \definition{
-        \code{build_name}
-      }{
-        The name of the build that finished. (Remember that build numbers in
-        Concourse are actually names and are strings).
-      }
-    }{
-      \definition{
-        \code{build_id}
-      }{
-        The ID of the build that finished.
-      }
-    }{
-      \definition{
-        \code{build_status}
-      }{
-        The resulting status of the build; one of "succeeded", "failed",
-        "errored", or "aborted".
-      }
-    }
-  }
-
-  \define-metric{http response time}{
-    This metric is emitted for each HTTP request to an ATC (both API and web
-    requests). It contains the duration (in milliseconds) for each request and
-    is useful for finding slow requests.
-
-    \larger{Attributes}
-    \definitions{
-      \definition{
-        \code{route}
-      }{
-        The route which the HTTP request matched. i.e. /builds/:id
-      }
-    }{
-      \definition{
-        \code{path}
-      }{
-        The literal path of the HTTP request. i.e. /builds/1234
-      }
-    }
-  }
-
-  \define-metric{worker tasks}{
-    This metric is emitted each time a worker registers or heartbeats. It
-    contains the number of active task containers on the worker in question.
-    Particularly if \code{max-active-tasks-per-worker} is set, this can be
-    useful for debugging containers stuck in a pending state.
-
-    \larger{Attributes}
-    \definitions{
-      \definition{
-        \code{worker}
-      }{
-        The name of the worker registering/heartbeating.
-      }
-    }{
-      \definition{
-        \code{platform}
-      }{
-        The OS platform of the worker in question (i.e. windows/linux/darwin).
-      }
-    }
-  }
+  \promethus-docs{{{
+    # HELP concourse_builds_aborted_total Total number of Concourse builds aborted.
+    # TYPE concourse_builds_aborted_total counter
+    concourse_builds_aborted_total 0
+    # HELP concourse_builds_errored_total Total number of Concourse builds errored.
+    # TYPE concourse_builds_errored_total counter
+    concourse_builds_errored_total 0
+    # HELP concourse_builds_failed_total Total number of Concourse builds failed.
+    # TYPE concourse_builds_failed_total counter
+    concourse_builds_failed_total 0
+    # HELP concourse_builds_finished_total Total number of Concourse builds finished.
+    # TYPE concourse_builds_finished_total counter
+    concourse_builds_finished_total 0
+    # HELP concourse_builds_running Number of Concourse builds currently running.
+    # TYPE concourse_builds_running gauge
+    concourse_builds_running 0
+    # HELP concourse_builds_started_total Total number of Concourse builds started.
+    # TYPE concourse_builds_started_total counter
+    concourse_builds_started_total 0
+    # HELP concourse_builds_succeeded_total Total number of Concourse builds succeeded.
+    # TYPE concourse_builds_succeeded_total counter
+    concourse_builds_succeeded_total 0
+    # HELP concourse_db_connections Current number of concourse database connections
+    # TYPE concourse_db_connections gauge
+    concourse_db_connections{dbname="api"} 1
+    concourse_db_connections{dbname="backend"} 1
+    concourse_db_connections{dbname="gc"} 1
+    # HELP concourse_db_queries_total Total number of database Concourse database queries
+    # TYPE concourse_db_queries_total counter
+    concourse_db_queries_total 81
+    # HELP concourse_http_responses_duration_seconds Response time in seconds
+    # TYPE concourse_http_responses_duration_seconds histogram
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.005"} 0
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.01"} 0
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.025"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.05"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.1"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.25"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="0.5"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="1"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="2.5"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="5"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="10"} 1
+    concourse_http_responses_duration_seconds_bucket{method="POST",route="RegisterWorker",status="200",le="+Inf"} 1
+    concourse_http_responses_duration_seconds_sum{method="POST",route="RegisterWorker",status="200"} 0.016757433
+    concourse_http_responses_duration_seconds_count{method="POST",route="RegisterWorker",status="200"} 1
+    # HELP concourse_jobs_scheduled_total Total number of Concourse jobs scheduled.
+    # TYPE concourse_jobs_scheduled_total counter
+    concourse_jobs_scheduled_total 0
+    # HELP concourse_jobs_scheduling Number of Concourse jobs currently being scheduled.
+    # TYPE concourse_jobs_scheduling gauge
+    concourse_jobs_scheduling 0
+    # HELP concourse_lidar_check_queue_size The size of the checks queue
+    # TYPE concourse_lidar_check_queue_size gauge
+    concourse_lidar_check_queue_size 0
+    # HELP concourse_lidar_checks_enqueued_total Total number of checks enqueued
+    # TYPE concourse_lidar_checks_enqueued_total counter
+    concourse_lidar_checks_enqueued_total 0
+    # HELP concourse_lidar_checks_finished_total Total number of checks finished
+    # TYPE concourse_lidar_checks_finished_total counter
+    concourse_lidar_checks_finished_total{status="error"} 0
+    concourse_lidar_checks_finished_total{status="success"} 0
+    # HELP concourse_lidar_checks_started_total Total number of checks started
+    # TYPE concourse_lidar_checks_started_total counter
+    concourse_lidar_checks_started_total 0
+    # HELP concourse_locks_held Database locks held
+    # TYPE concourse_locks_held gauge
+    concourse_locks_held{type="Batch"} 0
+    concourse_locks_held{type="DatabaseMigration"} 0
+    # HELP concourse_workers_containers Number of containers per worker
+    # TYPE concourse_workers_containers gauge
+    concourse_workers_containers{platform="linux",tags="",team="",worker="39d19eebdddb"} 0
+    # HELP concourse_workers_registered Number of workers per state as seen by the database
+    # TYPE concourse_workers_registered gauge
+    concourse_workers_registered{state="landed"} 0
+    concourse_workers_registered{state="landing"} 0
+    concourse_workers_registered{state="retiring"} 0
+    concourse_workers_registered{state="running"} 1
+    concourse_workers_registered{state="stalled"} 1
+    # HELP concourse_workers_tasks Number of active tasks per worker
+    # TYPE concourse_workers_tasks gauge
+    concourse_workers_tasks{platform="linux",worker="39d19eebdddb"} 0
+    # HELP concourse_workers_volumes Number of volumes per worker
+    # TYPE concourse_workers_volumes gauge
+    concourse_workers_volumes{platform="linux",tags="",team="",worker="39d19eebdddb"} 4
+    # HELP go_gc_duration_seconds A summary of the GC invocation durations.
+    # TYPE go_gc_duration_seconds summary
+    go_gc_duration_seconds{quantile="0"} 1.7691e-05
+    go_gc_duration_seconds{quantile="0.25"} 2.658e-05
+    go_gc_duration_seconds{quantile="0.5"} 3.1544e-05
+    go_gc_duration_seconds{quantile="0.75"} 5.8253e-05
+    go_gc_duration_seconds{quantile="1"} 0.000472771
+    go_gc_duration_seconds_sum 0.001205599
+    go_gc_duration_seconds_count 13
+    # HELP go_goroutines Number of goroutines that currently exist.
+    # TYPE go_goroutines gauge
+    go_goroutines 129
+    # HELP go_info Information about the Go environment.
+    # TYPE go_info gauge
+    go_info{version="go1.14"} 1
+    # HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
+    # TYPE go_memstats_alloc_bytes gauge
+    go_memstats_alloc_bytes 7.279464e+06
+    # HELP go_memstats_alloc_bytes_total Total number of bytes allocated, even if freed.
+    # TYPE go_memstats_alloc_bytes_total counter
+    go_memstats_alloc_bytes_total 3.9906496e+07
+    # HELP go_memstats_buck_hash_sys_bytes Number of bytes used by the profiling bucket hash table.
+    # TYPE go_memstats_buck_hash_sys_bytes gauge
+    go_memstats_buck_hash_sys_bytes 1.462814e+06
+    # HELP go_memstats_frees_total Total number of frees.
+    # TYPE go_memstats_frees_total counter
+    go_memstats_frees_total 162143
+    # HELP go_memstats_gc_cpu_fraction The fraction of this program's available CPU time used by the GC since the program started.
+    # TYPE go_memstats_gc_cpu_fraction gauge
+    go_memstats_gc_cpu_fraction 0.0008474863559755615
+    # HELP go_memstats_gc_sys_bytes Number of bytes used for garbage collection system metadata.
+    # TYPE go_memstats_gc_sys_bytes gauge
+    go_memstats_gc_sys_bytes 3.586312e+06
+    # HELP go_memstats_heap_alloc_bytes Number of heap bytes allocated and still in use.
+    # TYPE go_memstats_heap_alloc_bytes gauge
+    go_memstats_heap_alloc_bytes 7.279464e+06
+    # HELP go_memstats_heap_idle_bytes Number of heap bytes waiting to be used.
+    # TYPE go_memstats_heap_idle_bytes gauge
+    go_memstats_heap_idle_bytes 5.5525376e+07
+    # HELP go_memstats_heap_inuse_bytes Number of heap bytes that are in use.
+    # TYPE go_memstats_heap_inuse_bytes gauge
+    go_memstats_heap_inuse_bytes 9.91232e+06
+    # HELP go_memstats_heap_objects Number of allocated objects.
+    # TYPE go_memstats_heap_objects gauge
+    go_memstats_heap_objects 34933
+    # HELP go_memstats_heap_released_bytes Number of heap bytes released to OS.
+    # TYPE go_memstats_heap_released_bytes gauge
+    go_memstats_heap_released_bytes 5.2813824e+07
+    # HELP go_memstats_heap_sys_bytes Number of heap bytes obtained from system.
+    # TYPE go_memstats_heap_sys_bytes gauge
+    go_memstats_heap_sys_bytes 6.5437696e+07
+    # HELP go_memstats_last_gc_time_seconds Number of seconds since 1970 of last garbage collection.
+    # TYPE go_memstats_last_gc_time_seconds gauge
+    go_memstats_last_gc_time_seconds 1.5842847322165985e+09
+    # HELP go_memstats_lookups_total Total number of pointer lookups.
+    # TYPE go_memstats_lookups_total counter
+    go_memstats_lookups_total 0
+    # HELP go_memstats_mallocs_total Total number of mallocs.
+    # TYPE go_memstats_mallocs_total counter
+    go_memstats_mallocs_total 197076
+    # HELP go_memstats_mcache_inuse_bytes Number of bytes in use by mcache structures.
+    # TYPE go_memstats_mcache_inuse_bytes gauge
+    go_memstats_mcache_inuse_bytes 13888
+    # HELP go_memstats_mcache_sys_bytes Number of bytes used for mcache structures obtained from system.
+    # TYPE go_memstats_mcache_sys_bytes gauge
+    go_memstats_mcache_sys_bytes 16384
+    # HELP go_memstats_mspan_inuse_bytes Number of bytes in use by mspan structures.
+    # TYPE go_memstats_mspan_inuse_bytes gauge
+    go_memstats_mspan_inuse_bytes 164832
+    # HELP go_memstats_mspan_sys_bytes Number of bytes used for mspan structures obtained from system.
+    # TYPE go_memstats_mspan_sys_bytes gauge
+    go_memstats_mspan_sys_bytes 196608
+    # HELP go_memstats_next_gc_bytes Number of heap bytes when next garbage collection will take place.
+    # TYPE go_memstats_next_gc_bytes gauge
+    go_memstats_next_gc_bytes 1.1293728e+07
+    # HELP go_memstats_other_sys_bytes Number of bytes used for other system allocations.
+    # TYPE go_memstats_other_sys_bytes gauge
+    go_memstats_other_sys_bytes 2.16009e+06
+    # HELP go_memstats_stack_inuse_bytes Number of bytes in use by the stack allocator.
+    # TYPE go_memstats_stack_inuse_bytes gauge
+    go_memstats_stack_inuse_bytes 1.671168e+06
+    # HELP go_memstats_stack_sys_bytes Number of bytes obtained from system for stack allocator.
+    # TYPE go_memstats_stack_sys_bytes gauge
+    go_memstats_stack_sys_bytes 1.671168e+06
+    # HELP go_memstats_sys_bytes Number of bytes obtained from system.
+    # TYPE go_memstats_sys_bytes gauge
+    go_memstats_sys_bytes 7.4531072e+07
+    # HELP go_threads Number of OS threads created.
+    # TYPE go_threads gauge
+    go_threads 14
+    # HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+    # TYPE process_cpu_seconds_total counter
+    process_cpu_seconds_total 0.93
+    # HELP process_max_fds Maximum number of open file descriptors.
+    # TYPE process_max_fds gauge
+    process_max_fds 1.048576e+06
+    # HELP process_open_fds Number of open file descriptors.
+    # TYPE process_open_fds gauge
+    process_open_fds 30
+    # HELP process_resident_memory_bytes Resident memory size in bytes.
+    # TYPE process_resident_memory_bytes gauge
+    process_resident_memory_bytes 6.4331776e+07
+    # HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+    # TYPE process_start_time_seconds gauge
+    process_start_time_seconds 1.58428471564e+09
+    # HELP process_virtual_memory_bytes Virtual memory size in bytes.
+    # TYPE process_virtual_memory_bytes gauge
+    process_virtual_memory_bytes 1.322156032e+09
+    # HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.
+    # TYPE process_virtual_memory_max_bytes gauge
+    process_virtual_memory_max_bytes -1
+    # HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+    # TYPE promhttp_metric_handler_requests_in_flight gauge
+    promhttp_metric_handler_requests_in_flight 1
+    # HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+    # TYPE promhttp_metric_handler_requests_total counter
+    promhttp_metric_handler_requests_total{code="200"} 3
+    promhttp_metric_handler_requests_total{code="500"} 0
+    promhttp_metric_handler_requests_total{code="503"} 0
+  }}}
 }
