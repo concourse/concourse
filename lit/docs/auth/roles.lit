@@ -101,6 +101,7 @@ and viewers cannot.
   \codeblock{yaml}{{{
   pipeline-operator:
   - AbortBuild
+  - RerunJobBuild
   - CreateJobBuild
   - PauseJob
   - UnpauseJob
@@ -249,6 +250,7 @@ and viewers cannot.
     \table-row{CheckResource                }{\reference{fly-check-resource}                                    }{check button on resource page          }{✘                                }{✓           }
     \table-row{CheckResourceType            }{\reference{fly-check-resource-type}                               }{n/a                                    }{✘                                }{✓           }
     \table-row{CreateJobBuild               }{\reference{fly-trigger-job}                                       }{trigger button on job and build pages  }{✘                                }{✓           }
+    \table-row{RerunJobBuild                }{\reference{fly-rerun-build}                                       }{rerun button on build page             }{✘                                }{✓           }
     \table-row{CreatePipelineBuild          }{\reference{fly-execute}                                           }{n/a                                    }{✘                                }{✓           }
     \table-row{DeletePipeline               }{\reference{fly-destroy-pipeline}                                  }{n/a                                    }{✘                                }{✓           }
     \table-row{DisableResourceVersion       }{\reference{fly-disable-resource-version}                          }{version disable widget on resource page}{✘                                }{✓           }
