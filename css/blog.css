@@ -30,9 +30,7 @@ body {
   max-width: 1100px;
   margin: 0 auto;
   padding: 10px 0;
-}
-.top-banner a {
-  font-weight: normal;
+  text-align: center;
 }
 .top-banner a,
 .top-banner a:visited {
