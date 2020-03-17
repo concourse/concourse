@@ -168,6 +168,8 @@ var _ = Describe("APIAuthWrappa", func() {
 				// belongs to public pipeline or authorized
 				atc.GetPipeline:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetPipeline]),
 				atc.GetJobBuild:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetJobBuild]),
+				atc.PipelineBadge:                 openForPublicPipelineOrAuthorized(inputHandlers[atc.PipelineBadge]),
+				atc.JobBadge:                      openForPublicPipelineOrAuthorized(inputHandlers[atc.JobBadge]),
 				atc.ListJobs:                      openForPublicPipelineOrAuthorized(inputHandlers[atc.ListJobs]),
 				atc.GetJob:                        openForPublicPipelineOrAuthorized(inputHandlers[atc.GetJob]),
 				atc.ListJobBuilds:                 openForPublicPipelineOrAuthorized(inputHandlers[atc.ListJobBuilds]),
@@ -208,8 +210,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListAllJobs:          authenticateIfTokenProvided(inputHandlers[atc.ListAllJobs]),
 				atc.ListAllResources:     authenticateIfTokenProvided(inputHandlers[atc.ListAllResources]),
 				atc.ListTeams:            authenticateIfTokenProvided(inputHandlers[atc.ListTeams]),
-				atc.PipelineBadge:        authenticateIfTokenProvided(inputHandlers[atc.PipelineBadge]),
-				atc.JobBadge:             authenticateIfTokenProvided(inputHandlers[atc.JobBadge]),
 				atc.MainJobBadge:         authenticateIfTokenProvided(inputHandlers[atc.MainJobBadge]),
 				atc.GetWall:              authenticateIfTokenProvided(inputHandlers[atc.GetWall]),
 
