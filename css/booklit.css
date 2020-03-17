@@ -43,6 +43,7 @@ body {
 }
 .body-content {
   background: white;
+  max-width: 860px;
 }
 .page-body {
   max-width: 1100px;
