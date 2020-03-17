@@ -847,7 +847,6 @@ view session model =
                     ]
                     [ header session model
                     , body session model
-                    , commentBar session model
                     ]
             ]
         ]
@@ -1204,15 +1203,10 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                                 [ Html.div
                                     Resource.Styles.commentBarIconContainer
                                     [ Icon.icon
-                                        { sizePx = 24
+                                        { sizePx = 17
                                         , image = Assets.MessageIcon
                                         }
                                         Resource.Styles.commentBarMessageIcon
-                                    , Icon.icon
-                                        { sizePx = 20
-                                        , image = Assets.PinIconWhite
-                                        }
-                                        Resource.Styles.commentBarPinIcon
                                     ]
                                 , version
                                 ]
@@ -1293,7 +1287,9 @@ pinTools session model =
     in
     Html.div
         (id "pin-tools" :: Resource.Styles.pinTools (ME.isJust pinBarVersion))
-        [ pinBar session model ]
+        [ pinBar session model
+        , commentBar session model
+        ]
 
 
 pinBar :
@@ -1331,7 +1327,7 @@ pinBar { hovered } { pinnedVersion } =
             , ( onMouseEnter <| Hover <| Just PinBar, isPinnedStatically )
             , ( onMouseLeave <| Hover Nothing, isPinnedStatically )
             ]
-            ++ Resource.Styles.pinBar
+            ++ Resource.Styles.pinBar (ME.isJust pinBarVersion)
         )
         (Icon.icon
             { sizePx = 25

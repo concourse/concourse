@@ -1643,57 +1643,34 @@ all =
                                 }
                             ]
             , describe "pin comment bar" <|
-                [ test "pin comment bar is visible" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedWithComment
-                            |> queryView
-                            |> Query.has [ id "comment-bar" ]
-                , test "pin comment bar has dark background" <|
-                    \_ ->
+                let
+                    pinCommentBar =
                         init
                             |> givenResourcePinnedWithComment
                             |> commentBar
-                            |> Query.has
-                                [ style "background-color" almostBlack ]
-                , test "pin comment bar is 300px tall" <|
+                in
+                [ test "has a grey background" <|
                     \_ ->
-                        init
-                            |> givenResourcePinnedWithComment
-                            |> commentBar
+                        pinCommentBar
                             |> Query.has
-                                [ style "height" "300px"
-                                , style "flex-shrink" "0"
-                                ]
-                , test "pin comment bar centers contents horizontally" <|
+                                [ style "background-color" "#2e2c2c" ]
+                , test "has a height of 25 px" <|
                     \_ ->
-                        init
-                            |> givenResourcePinnedWithComment
-                            |> commentBar
+                        pinCommentBar
                             |> Query.has
-                                [ style "display" "flex"
-                                , style "justify-content" "center"
-                                ]
+                                [ style "height" "25px" ]
+                , test "takes 50% width of pin tools" <|
+                    \_ ->
+                        pinCommentBar
+                            |> Query.has
+                                [ style "flex" "1" ]
                 , describe "contents" <|
                     let
                         contents : Application.Model -> Query.Single Msgs.TopLevelMessage
                         contents =
                             commentBar >> Query.children [] >> Query.first
                     in
-                    [ test "is 700px wide" <|
-                        \_ ->
-                            init
-                                |> givenResourcePinnedWithComment
-                                |> contents
-                                |> Query.has [ style "width" "700px" ]
-                    , test "has vertical padding" <|
-                        \_ ->
-                            init
-                                |> givenResourcePinnedWithComment
-                                |> contents
-                                |> Query.has
-                                    [ style "padding" "20px 0" ]
-                    , test "lays out vertically and left-aligned" <|
+                    [ test "lays out vertically and left-aligned" <|
                         \_ ->
                             init
                                 |> givenResourcePinnedWithComment
@@ -1769,24 +1746,10 @@ all =
                                                 Assets.backgroundImage <|
                                                     Just Assets.MessageIcon
                                             , style "background-size" "contain"
-                                            , style "width" "24px"
-                                            , style "height" "24px"
-                                            , style "margin-right" "10px"
+                                            , style "width" "17px"
+                                            , style "height" "17px"
+                                            , style "margin" "4px 10px"
                                             ]
-                            , test "has pin icon on the right" <|
-                                \_ ->
-                                    init
-                                        |> givenResourcePinnedWithComment
-                                        |> iconContainer
-                                        |> Query.children []
-                                        |> Query.index 1
-                                        |> Query.has
-                                            (iconSelector
-                                                { image = Assets.PinIconWhite
-                                                , size = "20px"
-                                                }
-                                                ++ [ style "margin-right" "10px" ]
-                                            )
                             ]
                         , test "second item is the pinned version" <|
                             \_ ->
@@ -2782,6 +2745,16 @@ all =
                         |> Query.children []
                         |> Query.index 0
                         |> Query.has [ id "pin-bar" ]
+            , test "contains pin comment bar on the right" <|
+                \_ ->
+                    pinTools
+                        |> Query.children []
+                        |> Query.index 1
+                        |> Query.has [ id "comment-bar" ]
+            , test "pin bar and comment bar each takes 50% width" <|
+                \_ ->
+                    pinTools
+                        |> Query.has [ style "display" "flex" ]
             ]
         , describe "check status" <|
             let
