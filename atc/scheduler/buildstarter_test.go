@@ -459,10 +459,10 @@ var _ = Describe("BuildStarter", func() {
 					It("scheduled all the pending builds", func() {
 						Expect(job.ScheduleBuildCallCount()).To(Equal(3))
 						actualBuild := job.ScheduleBuildArgsForCall(0)
-						Expect(actualBuild.ID()).To(Equal(rerunBuild.ID()))
+						Expect(actualBuild.ID()).To(Equal(pendingBuild1.ID()))
 
 						actualBuild = job.ScheduleBuildArgsForCall(1)
-						Expect(actualBuild.ID()).To(Equal(pendingBuild1.ID()))
+						Expect(actualBuild.ID()).To(Equal(rerunBuild.ID()))
 
 						actualBuild = job.ScheduleBuildArgsForCall(2)
 						Expect(actualBuild.ID()).To(Equal(pendingBuild2.ID()))
@@ -555,7 +555,7 @@ var _ = Describe("BuildStarter", func() {
 							rerunBuild.RerunOfReturns(pendingBuild1.ID())
 							rerunBuild.AdoptRerunInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
 							job.ScheduleBuildReturnsOnCall(2, true, nil)
-							pendingBuilds = []db.Build{pendingBuild1, pendingBuild2, rerunBuild}
+							pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 							job.GetPendingBuildsReturns(pendingBuilds, nil)
 						})
 
@@ -575,7 +575,7 @@ var _ = Describe("BuildStarter", func() {
 
 						Context("when the build was not able to be scheduled", func() {
 							BeforeEach(func() {
-								job.ScheduleBuildReturnsOnCall(2, false, nil)
+								job.ScheduleBuildReturnsOnCall(0, false, nil)
 							})
 
 							It("doesn't return an error", func() {
@@ -583,9 +583,9 @@ var _ = Describe("BuildStarter", func() {
 							})
 
 							It("doesn't try adopt build inputs and pipes for that pending build and doesn't try scheduling the next ones", func() {
-								Expect(rerunBuild.AdoptRerunInputsAndPipesCallCount()).To(Equal(1))
-								Expect(pendingBuild1.AdoptInputsAndPipesCallCount()).To(Equal(1))
+								Expect(pendingBuild1.AdoptInputsAndPipesCallCount()).To(BeZero())
 								Expect(pendingBuild2.AdoptInputsAndPipesCallCount()).To(BeZero())
+								Expect(rerunBuild.AdoptRerunInputsAndPipesCallCount()).To(BeZero())
 							})
 						})
 
@@ -596,8 +596,8 @@ var _ = Describe("BuildStarter", func() {
 										fakeFactory.CreateReturns(atc.Plan{}, disaster)
 									})
 
-									It("keeps going after failing to create for rerun build but stops creating scheduler builds for job", func() {
-										Expect(fakeFactory.CreateCallCount()).To(Equal(2))
+									It("keeps going after failing to create", func() {
+										Expect(fakeFactory.CreateCallCount()).To(Equal(3))
 										actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
 										Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
 										Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
@@ -606,6 +606,7 @@ var _ = Describe("BuildStarter", func() {
 
 										Expect(rerunBuild.FinishCallCount()).To(Equal(1))
 										Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
+										Expect(pendingBuild2.FinishCallCount()).To(Equal(1))
 									})
 
 									Context("when marking the build as errored fails", func() {
@@ -623,8 +624,8 @@ var _ = Describe("BuildStarter", func() {
 										})
 
 										It("marked the right build as errored", func() {
-											Expect(rerunBuild.FinishCallCount()).To(Equal(1))
-											actualStatus := rerunBuild.FinishArgsForCall(0)
+											Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
+											actualStatus := pendingBuild1.FinishArgsForCall(0)
 											Expect(actualStatus).To(Equal(db.BuildStatusErrored))
 										})
 									})
@@ -710,8 +711,8 @@ var _ = Describe("BuildStarter", func() {
 											Expect(needsReschedule).To(BeFalse())
 										})
 
-										It("does not start the other builds", func() {
-											Expect(pendingBuild2.StartCallCount()).To(Equal(0))
+										It("starts the other builds", func() {
+											Expect(pendingBuild2.StartCallCount()).To(Equal(1))
 										})
 
 										It("finishes the build with aborted status", func() {
@@ -750,8 +751,8 @@ var _ = Describe("BuildStarter", func() {
 												Expect(needsReschedule).To(BeFalse())
 											})
 
-											It("does not start the other builds", func() {
-												Expect(pendingBuild2.StartCallCount()).To(Equal(0))
+											It("starts the other builds", func() {
+												Expect(pendingBuild2.StartCallCount()).To(Equal(1))
 											})
 										})
 									})
@@ -843,8 +844,8 @@ var _ = Describe("BuildStarter", func() {
 							itDoesntReturnAnErrorOrMarkTheBuildAsScheduled()
 							itDidNotAttemptToScheduleAnyBuilds()
 
-							It("does not need to be rescheduled", func() {
-								Expect(needsReschedule).To(BeFalse())
+							It("is rescheduled", func() {
+								Expect(needsReschedule).To(BeTrue())
 							})
 						})
 
@@ -856,8 +857,8 @@ var _ = Describe("BuildStarter", func() {
 							itDoesntReturnAnErrorOrMarkTheBuildAsScheduled()
 							itDidNotAttemptToScheduleAnyBuilds()
 
-							It("does not need to be rescheduled", func() {
-								Expect(needsReschedule).To(BeFalse())
+							It("is rescheduled", func() {
+								Expect(needsReschedule).To(BeTrue())
 							})
 						})
 
@@ -882,7 +883,7 @@ var _ = Describe("BuildStarter", func() {
 							pendingBuild1.IDReturns(99)
 							pendingBuild1.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
 							pendingBuild1.StartReturns(true, nil)
-							job.ScheduleBuildReturnsOnCall(1, true, nil)
+							job.ScheduleBuildReturnsOnCall(0, true, nil)
 							pendingBuild2 = new(dbfakes.FakeBuild)
 							pendingBuild2.IDReturns(999)
 							pendingBuild2.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
@@ -896,14 +897,14 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.IDReturns(555)
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								rerunBuild.AdoptRerunInputsAndPipesReturns(nil, false, errors.New("error"))
-								job.ScheduleBuildReturnsOnCall(0, true, nil)
-								pendingBuilds = []db.Build{pendingBuild1, pendingBuild2, rerunBuild}
+								job.ScheduleBuildReturnsOnCall(1, true, nil)
+								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
 
-							It("does not try to schedule the 2 other pending builds", func() {
+							It("does not schedule the next build", func() {
 								Expect(tryStartErr).To(HaveOccurred())
-								Expect(pendingBuild1.StartCallCount()).To(Equal(0))
+								Expect(pendingBuild1.StartCallCount()).To(Equal(1))
 								Expect(pendingBuild2.StartCallCount()).To(Equal(0))
 							})
 						})
@@ -914,8 +915,8 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.IDReturns(555)
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								rerunBuild.AdoptRerunInputsAndPipesReturns(nil, false, nil)
-								job.ScheduleBuildReturnsOnCall(0, true, nil)
-								pendingBuilds = []db.Build{pendingBuild1, pendingBuild2, rerunBuild}
+								job.ScheduleBuildReturnsOnCall(1, true, nil)
+								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
 
@@ -932,15 +933,15 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild = new(dbfakes.FakeBuild)
 								rerunBuild.IDReturns(555)
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
-								job.ScheduleBuildReturnsOnCall(0, false, nil)
-								pendingBuilds = []db.Build{pendingBuild1, pendingBuild2, rerunBuild}
+								job.ScheduleBuildReturnsOnCall(1, false, nil)
+								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
 
-							It("does not try to schedule the 2 other pending builds", func() {
+							It("does not try to schedule the other pending build", func() {
 								Expect(tryStartErr).ToNot(HaveOccurred())
 								Expect(needsReschedule).To(BeTrue())
-								Expect(pendingBuild1.StartCallCount()).To(Equal(0))
+								Expect(pendingBuild1.StartCallCount()).To(Equal(1))
 								Expect(pendingBuild2.StartCallCount()).To(Equal(0))
 							})
 						})

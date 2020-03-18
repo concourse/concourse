@@ -751,22 +751,6 @@ type setupDB struct {
 	psql sq.StatementBuilderType
 }
 
-func (s setupDB) insertTeamsPipelines() {
-	_, err := s.psql.Insert("teams").
-		Columns("id", "name").
-		Values(s.teamID, "algorithm").
-		Suffix("ON CONFLICT DO NOTHING").
-		Exec()
-	Expect(err).ToNot(HaveOccurred())
-
-	_, err = s.psql.Insert("pipelines").
-		Columns("id", "team_id", "name").
-		Values(s.pipelineID, s.teamID, "algorithm").
-		Suffix("ON CONFLICT DO NOTHING").
-		Exec()
-	Expect(err).ToNot(HaveOccurred())
-}
-
 func (s setupDB) insertJob(jobName string) int {
 	id := s.jobIDs.ID(jobName)
 	_, err := s.psql.Insert("jobs").

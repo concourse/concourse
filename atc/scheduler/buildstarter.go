@@ -65,43 +65,43 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 		return false, fmt.Errorf("get pending builds: %w", err)
 	}
 
-	// loop over pending builds in algorithm order (1, 1.1, 1.2, 2, 2.1, 3, ...)
-	// try to schedule each;
-	//   if aborted,
-	//     OK - continue to next build
-	//   if scheduled and ready to determine inputs,
-	//     OK - continue to next build
-	//
-	//   if rerun build,
-	//
-	//
-	//   if normal build,
-	//     if scheduled but not ready to determine inputs,
-	//       stop scheduling normal builds
-
 	buildsToSchedule := s.constructBuilds(job, jobInputs, resources, relatedJobs, nextPendingBuilds)
 
+	var needsRetry bool
 	for _, nextSchedulableBuild := range buildsToSchedule {
 		results, err := s.tryStartNextPendingBuild(logger, pipeline, nextSchedulableBuild, job, resources)
 		if err != nil {
 			return false, err
 		}
 
-		if results.aborted {
+		if results.finished {
+			// If the build is successfully aborted, errored or started, continue
+			// onto the next pending build
 			continue
 		}
 
 		if !results.scheduled || !results.readyToDetermineInputs {
-			return true, nil
+			// If max in flight is reached or a manually triggered build has not
+			// checked all resources, stop scheduling and retry later
+			needsRetry = true
+			break
 		}
 
-		if results.scheduled && !results.readyToDetermineInputs && nextSchedulableBuild.RerunOf() == 0 {
-			// stop scheduling next builds after failing to schedule a build
-			return results.needsRetry, nil
+		if !results.inputsDetermined {
+			if nextSchedulableBuild.RerunOf() != 0 {
+				// If it is a rerun build, continue on to next build. We don't want to
+				// stop scheduling other builds because of a rerun build cannot
+				// determine inputs
+				continue
+			} else {
+				// If it is a regular scheduler build, stop scheduling because it is
+				// failing to determine inputs
+				break
+			}
 		}
 	}
 
-	return false, nil
+	return needsRetry, nil
 }
 
 func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
@@ -132,9 +132,10 @@ func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, res
 }
 
 type startResults struct {
-	aborted                bool
+	finished               bool
 	scheduled              bool
 	readyToDetermineInputs bool
+	inputsDetermined       bool
 }
 
 func (s *buildStarter) tryStartNextPendingBuild(
@@ -158,7 +159,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}
 
 		return startResults{
-			aborted: true,
+			finished: true,
 		}, nil
 	}
 
@@ -190,10 +191,6 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	}
 
 	readyToDetermineInputs := nextPendingBuild.IsReadyToDetermineInputs(logger)
-	if err != nil {
-		return startResults{}, fmt.Errorf("prepare inputs: %w", err)
-	}
-
 	if !readyToDetermineInputs {
 		return startResults{
 			scheduled:              scheduled,
@@ -201,12 +198,12 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}, nil
 	}
 
-	buildInputs, found, err := nextPendingBuild.BuildInputs(context.TODO())
+	buildInputs, inputsDetermined, err := nextPendingBuild.BuildInputs(context.TODO())
 	if err != nil {
 		return startResults{}, fmt.Errorf("get build inputs: %w", err)
 	}
 
-	if !found {
+	if !inputsDetermined {
 		logger.Debug("build-inputs-not-found")
 
 		// don't retry when build inputs are not found because this is due to the
@@ -214,6 +211,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return startResults{
 			scheduled:              scheduled,
 			readyToDetermineInputs: readyToDetermineInputs,
+			inputsDetermined:       inputsDetermined,
 		}, nil
 	}
 
@@ -247,7 +245,9 @@ func (s *buildStarter) tryStartNextPendingBuild(
 			return startResults{}, fmt.Errorf("finish build: %w", err)
 		}
 
-		return startResults{}, nil
+		return startResults{
+			finished: true,
+		}, nil
 	}
 
 	started, err := nextPendingBuild.Start(plan)
@@ -263,15 +263,13 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}
 
 		return startResults{
-			scheduled:              scheduled,
-			readyToDetermineInputs: readyToDetermineInputs,
+			finished: true,
 		}, nil
 	}
 
 	metric.BuildsStarted.Inc()
 
 	return startResults{
-		scheduled:              scheduled,
-		readyToDetermineInputs: readyToDetermineInputs,
+		finished: true,
 	}, nil
 }
