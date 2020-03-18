@@ -1192,79 +1192,30 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                     viewVersion
                         [ Html.Attributes.style "align-self" "center" ]
                         v
+
+                isPinned =
+                    case pinnedVersion of
+                        NotPinned ->
+                            False
+
+                        _ ->
+                            True
             in
             Html.div
-                (id "comment-bar" :: Resource.Styles.commentBar)
+                (id "comment-bar" :: Resource.Styles.commentBar isPinned)
                 [ Html.div Resource.Styles.commentBarContent <|
-                    let
-                        commentBarHeader =
-                            Html.div
-                                Resource.Styles.commentBarHeader
-                                [ Html.div
-                                    Resource.Styles.commentBarIconContainer
-                                    [ Icon.icon
-                                        { sizePx = 17
-                                        , image = Assets.MessageIcon
-                                        }
-                                        Resource.Styles.commentBarMessageIcon
-                                    ]
-                                , version
-                                ]
-                    in
-                    if
-                        UserState.isMember
-                            { teamName = resourceIdentifier.teamName
-                            , userState = userState
+                    [ Html.div
+                        Resource.Styles.commentBarIconContainer
+                        [ Icon.icon
+                            { sizePx = 17
+                            , image = Assets.MessageIcon
                             }
-                    then
-                        [ commentBarHeader
-                        , Html.textarea
-                            ([ onInput EditComment
-                             , value commentState.comment
-                             , placeholder "enter a comment"
-                             , onFocus FocusTextArea
-                             , onBlur BlurTextArea
-                             ]
-                                ++ Resource.Styles.commentTextArea
-                            )
-                            []
-                        , Html.button
-                            (let
-                                commentChanged =
-                                    commentState.comment
-                                        /= commentState.pristineComment
-                             in
-                             [ onMouseEnter <| Hover <| Just SaveCommentButton
-                             , onMouseLeave <| Hover Nothing
-                             , onClick <| Click SaveCommentButton
-                             ]
-                                ++ Resource.Styles.commentSaveButton
-                                    { isHovered =
-                                        not pinCommentLoading
-                                            && commentChanged
-                                            && HoverState.isHovered SaveCommentButton hovered
-                                    , commentChanged = commentChanged
-                                    }
-                            )
-                            (if pinCommentLoading then
-                                [ Spinner.spinner
-                                    { sizePx = 12
-                                    , margin = "0"
-                                    }
-                                ]
-
-                             else
-                                [ Html.text "save" ]
-                            )
-                        ]
-
-                    else
-                        [ commentBarHeader
+                            Resource.Styles.commentBarMessageIcon
                         , Html.pre
                             Resource.Styles.commentText
                             [ Html.text commentState.pristineComment ]
-                        , Html.div [ style "height" "24px" ] []
                         ]
+                    ]
                 ]
 
         _ ->
