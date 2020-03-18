@@ -69,6 +69,7 @@ var requiredRoles = map[string]string{
 	atc.DeletePipeline:                MemberRole,
 	atc.OrderPipelines:                MemberRole,
 	atc.PausePipeline:                 OperatorRole,
+	atc.ArchivePipeline:               OwnerRole,
 	atc.UnpausePipeline:               OperatorRole,
 	atc.ExposePipeline:                MemberRole,
 	atc.HidePipeline:                  MemberRole,

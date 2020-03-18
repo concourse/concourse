@@ -46,6 +46,7 @@ type Pipeline interface {
 	Config() (atc.Config, error)
 	Public() bool
 	Paused() bool
+	Archived() bool
 	LastUpdated() time.Time
 
 	CheckPaused() (bool, error)
@@ -85,6 +86,8 @@ type Pipeline interface {
 	Pause() error
 	Unpause() error
 
+	Archive() error
+
 	Destroy() error
 	Rename(string) error
 
@@ -101,6 +104,7 @@ type pipeline struct {
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
+	archived      bool
 	lastUpdated   time.Time
 
 	conn        Conn
@@ -121,6 +125,7 @@ var pipelinesQuery = psql.Select(`
 		t.name,
 		p.paused,
 		p.public,
+		p.archived,
 		p.last_updated
 	`).
 	From("pipelines p").
@@ -143,6 +148,7 @@ func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
+func (p *pipeline) Archived() bool                   { return p.archived }
 func (p *pipeline) LastUpdated() time.Time           { return p.lastUpdated }
 
 // IMPORTANT: This method is broken with the new resource config versions changes
@@ -619,6 +625,18 @@ func (p *pipeline) Unpause() error {
 	}
 
 	return tx.Commit()
+}
+
+func (p *pipeline) Archive() error {
+	_, err := psql.Update("pipelines").
+		Set("archived", true).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(p.conn).
+		Exec()
+
+	return err
 }
 
 func (p *pipeline) Hide() error {

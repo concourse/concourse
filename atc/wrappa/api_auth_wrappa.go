@@ -146,6 +146,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ExposePipeline,
 			atc.HidePipeline,
 			atc.SaveConfig,
+			atc.ArchivePipeline,
 			atc.ClearTaskCache,
 			atc.CreateArtifact,
 			atc.ScheduleJob,

@@ -61,6 +61,7 @@ const (
 	DeletePipeline      = "DeletePipeline"
 	OrderPipelines      = "OrderPipelines"
 	PausePipeline       = "PausePipeline"
+	ArchivePipeline     = "ArchivePipeline"
 	UnpausePipeline     = "UnpausePipeline"
 	ExposePipeline      = "ExposePipeline"
 	HidePipeline        = "HidePipeline"
@@ -156,6 +157,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name", Method: "DELETE", Name: DeletePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/ordering", Method: "PUT", Name: OrderPipelines},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/pause", Method: "PUT", Name: PausePipeline},
+	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/archive", Method: "PUT", Name: ArchivePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/unpause", Method: "PUT", Name: UnpausePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/expose", Method: "PUT", Name: ExposePipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/hide", Method: "PUT", Name: HidePipeline},

@@ -62,6 +62,7 @@ var _ = Describe("Pipelines API", func() {
 		privatePipeline.IDReturns(3)
 		privatePipeline.PausedReturns(false)
 		privatePipeline.PublicReturns(false)
+		privatePipeline.ArchivedReturns(true)
 		privatePipeline.TeamNameReturns("main")
 		privatePipeline.NameReturns("private-pipeline")
 		privatePipeline.GroupsReturns(atc.GroupConfigs{
@@ -280,7 +281,7 @@ var _ = Describe("Pipelines API", func() {
 						"name": "private-pipeline",
 						"paused": false,
 						"public": false,
-						"archived": false,
+						"archived": true,
 						"team_name": "main",
 						"last_updated": 1,
 						"groups": [
@@ -944,6 +945,42 @@ var _ = Describe("Pipelines API", func() {
 
 			It("returns 401", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/archive", func() {
+		var response *http.Response
+
+		BeforeEach(func() {
+			fakeaccess.IsAuthenticatedReturns(true)
+			fakeaccess.IsAuthorizedReturns(true)
+			dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+			fakeTeam.PipelineReturns(dbPipeline, true, nil)
+		})
+
+		JustBeforeEach(func() {
+			request, _ := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/archive", nil)
+			var err error
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("archives the pipeline", func() {
+			Expect(dbPipeline.ArchiveCallCount()).To(Equal(1), "Archive() called the wrong number of times")
+		})
+
+		Context("when archiving the pipeline fails due to the DB", func() {
+			BeforeEach(func() {
+				dbPipeline.ArchiveReturns(errors.New("pq: a db error"))
+			})
+
+			It("gives a server error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})

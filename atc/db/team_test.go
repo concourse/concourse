@@ -1674,6 +1674,17 @@ var _ = Describe("Team", func() {
 			Expect(pipeline.Paused()).To(BeFalse())
 		})
 
+		It("is not archived by default", func() {
+			_, _, err := team.SavePipeline(pipelineName, config, 0, true)
+			Expect(err).ToNot(HaveOccurred())
+
+			pipeline, found, err := team.Pipeline(pipelineName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(pipeline.Archived()).To(BeFalse())
+		})
+
 		It("requests schedule on the pipeline", func() {
 			requestedPipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
 			Expect(err).ToNot(HaveOccurred())

@@ -684,6 +684,11 @@ var _ = Describe("Accessor", func() {
 		Entry("pipeline-operator :: "+atc.PausePipeline, atc.PausePipeline, accessor.OperatorRole, true),
 		Entry("viewer :: "+atc.PausePipeline, atc.PausePipeline, accessor.ViewerRole, false),
 
+		Entry("owner :: "+atc.ArchivePipeline, atc.ArchivePipeline, accessor.OwnerRole, true),
+		Entry("member :: "+atc.ArchivePipeline, atc.ArchivePipeline, accessor.MemberRole, false),
+		Entry("pipeline-operator :: "+atc.ArchivePipeline, atc.ArchivePipeline, accessor.OperatorRole, false),
+		Entry("viewer :: "+atc.ArchivePipeline, atc.ArchivePipeline, accessor.ViewerRole, false),
+
 		Entry("owner :: "+atc.UnpausePipeline, atc.UnpausePipeline, accessor.OwnerRole, true),
 		Entry("member :: "+atc.UnpausePipeline, atc.UnpausePipeline, accessor.MemberRole, true),
 		Entry("pipeline-operator :: "+atc.UnpausePipeline, atc.UnpausePipeline, accessor.OperatorRole, true),
