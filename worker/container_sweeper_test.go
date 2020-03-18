@@ -123,7 +123,7 @@ var _ = Describe("Container Sweeper", func() {
 		})
 
 		It("request to garden times out eventually", func() {
-			Eventually(testLogger.Buffer()).Should(gbytes.Say("failed-to-destroy-container\".*net/http: request canceled \\(Client.Timeout exceeded while awaiting headers\\)"))
+			Eventually(testLogger.Buffer()).Should(gbytes.Say("failed-to-destroy-container\".*\\(Client.Timeout exceeded while awaiting headers\\)"))
 		})
 		It("sweeper continues ticking and GC'ing", func() {
 			// ensure all 4 DELETEs are issues over 2 successive ticks
