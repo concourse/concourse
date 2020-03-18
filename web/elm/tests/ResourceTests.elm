@@ -1751,14 +1751,14 @@ all =
                                             , style "margin" "4px 10px"
                                             ]
                             ]
-                        , test "second item is the pinned version" <|
+                        , test "second item displays the first line of comment text" <|
                             \_ ->
                                 init
                                     |> givenResourcePinnedWithComment
                                     |> header
                                     |> Query.children []
                                     |> Query.index 1
-                                    |> Query.has [ text version ]
+                                    |> Query.has [ tag "pre" ]
                         , test "pinned version is vertically centered" <|
                             \_ ->
                                 init
@@ -1770,29 +1770,13 @@ all =
                                         [ style "align-self" "center" ]
                         ]
                     , describe "when unauthenticated"
-                        [ test "contains a pre" <|
-                            \_ ->
-                                init
-                                    |> givenResourcePinnedWithComment
-                                    |> commentBar
-                                    |> Query.has [ tag "pre" ]
-                        , test "pre contains the comment" <|
+                        [ test "pre contains the comment" <|
                             \_ ->
                                 init
                                     |> givenResourcePinnedWithComment
                                     |> commentBar
                                     |> Query.find [ tag "pre" ]
                                     |> Query.has [ text "some pin comment" ]
-                        , test "pre fills vertical space and has margin" <|
-                            \_ ->
-                                init
-                                    |> givenResourcePinnedWithComment
-                                    |> commentBar
-                                    |> Query.find [ tag "pre" ]
-                                    |> Query.has
-                                        [ style "margin" "10px 0"
-                                        , style "flex-grow" "1"
-                                        ]
                         , test "pre has vertical scroll on overflow" <|
                             \_ ->
                                 init
@@ -1801,23 +1785,6 @@ all =
                                     |> Query.find [ tag "pre" ]
                                     |> Query.has
                                         [ style "overflow-y" "auto" ]
-                        , test "pre has padding" <|
-                            \_ ->
-                                init
-                                    |> givenResourcePinnedWithComment
-                                    |> commentBar
-                                    |> Query.find [ tag "pre" ]
-                                    |> Query.has
-                                        [ style "padding" "10px" ]
-                        , test "contains a spacer at the bottom" <|
-                            \_ ->
-                                init
-                                    |> givenResourcePinnedWithComment
-                                    |> contents
-                                    |> Query.children []
-                                    |> Query.index -1
-                                    |> Query.has
-                                        [ style "height" "24px" ]
                         ]
                     , describe "when authorized" <|
                         let
