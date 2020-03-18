@@ -638,14 +638,15 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 
 	build := newEmptyBuild(t.conn, t.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
-		"name":         sq.Expr("nextval('one_off_name')"),
-		"team_id":      t.id,
-		"status":       BuildStatusStarted,
-		"start_time":   sq.Expr("now()"),
-		"schema":       schema,
-		"private_plan": encryptedPlan,
-		"public_plan":  plan.Public(),
-		"nonce":        nonce,
+		"name":               sq.Expr("nextval('one_off_name')"),
+		"team_id":            t.id,
+		"status":             BuildStatusStarted,
+		"start_time":         sq.Expr("now()"),
+		"schema":             schema,
+		"private_plan":       encryptedPlan,
+		"public_plan":        plan.Public(),
+		"nonce":              nonce,
+		"needs_v6_migration": false,
 	})
 	if err != nil {
 		return nil, err
