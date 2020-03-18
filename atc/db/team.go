@@ -1098,7 +1098,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		nonceStr    *string
 		lastUpdated pq.NullTime
 	)
-	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &lastUpdated)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated)
 	if err != nil {
 		return err
 	}
