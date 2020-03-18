@@ -1,8 +1,10 @@
 module PipelineCardTests exposing (all)
 
 import Application.Application as Application
+import Assets
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
 import DashboardTests exposing (afterSeconds, amber, apiData, blue, brown, circularJobs, darkGrey, fadedGreen, givenDataAndUser, givenDataUnauthenticated, green, iconSelector, job, jobWithNameTransitionedAt, lightGrey, middleGrey, orange, otherJob, red, running, userWithRoles, whenOnDashboard, white)
 import Data
 import Dict
@@ -1300,7 +1302,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic-pause-blue.svg"
+                                        , image = PipelineStatusPaused |> Assets.PipelineStatusIcon
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1389,7 +1391,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic-pending-grey.svg"
+                                        , image = PipelineStatusPending True |> Assets.PipelineStatusIcon
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1431,7 +1433,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic-running-green.svg"
+                                        , image = PipelineStatusSucceeded Running |> Assets.PipelineStatusIcon
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1498,7 +1500,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic-failing-red.svg"
+                                        , image = PipelineStatusFailed Running |> Assets.PipelineStatusIcon
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1521,7 +1523,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "20px"
-                                    , image = "ic-aborted-brown.svg"
+                                    , image = PipelineStatusAborted Running |> Assets.PipelineStatusIcon
                                     }
                                     ++ [ style "background-size" "contain" ]
                                 )
@@ -1535,7 +1537,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "20px"
-                                    , image = "ic-error-orange.svg"
+                                    , image = PipelineStatusErrored Running |> Assets.PipelineStatusIcon
                                     }
                                     ++ [ style "background-size" "contain" ]
                                 )
@@ -1559,14 +1561,14 @@ all =
                         openEye =
                             iconSelector
                                 { size = "20px"
-                                , image = "baseline-visibility-24px.svg"
+                                , image = Assets.VisibilityToggleIcon True
                                 }
                                 ++ [ style "background-size" "contain" ]
 
                         slashedOutEye =
                             iconSelector
                                 { size = "20px"
-                                , image = "baseline-visibility-off-24px.svg"
+                                , image = Assets.VisibilityToggleIcon False
                                 }
                                 ++ [ style "background-size" "contain" ]
 
@@ -2163,7 +2165,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic-pause-white.svg"
+                                        , image = Assets.PauseIcon
                                         }
                                     )
                     , test "pause button has pointer cursor when authorized" <|
@@ -2191,7 +2193,7 @@ all =
                                 |> Query.find
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic-pause-white.svg"
+                                        , image = Assets.PauseIcon
                                         }
                                     )
                                 |> Query.has [ style "cursor" "pointer" ]
@@ -2220,7 +2222,7 @@ all =
                                 |> Query.find
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic-pause-white.svg"
+                                        , image = Assets.PauseIcon
                                         }
                                     )
                                 |> Query.has [ style "opacity" "0.5" ]
@@ -2257,7 +2259,7 @@ all =
                             , selector =
                                 iconSelector
                                     { size = "20px"
-                                    , image = "ic-pause-white.svg"
+                                    , image = Assets.PauseIcon
                                     }
                                     ++ [ style "cursor" "pointer"
                                        , style "opacity" "0.5"
@@ -2273,7 +2275,7 @@ all =
                             , selector =
                                 iconSelector
                                     { size = "20px"
-                                    , image = "ic-pause-white.svg"
+                                    , image = Assets.PauseIcon
                                     }
                                     ++ [ style "cursor" "pointer"
                                        , style "opacity" "1"
@@ -2313,7 +2315,7 @@ all =
                             , selector =
                                 iconSelector
                                     { size = "20px"
-                                    , image = "ic-play-white.svg"
+                                    , image = Assets.PlayIcon
                                     }
                                     ++ [ style "cursor" "pointer"
                                        , style "opacity" "0.5"
@@ -2329,7 +2331,7 @@ all =
                             , selector =
                                 iconSelector
                                     { size = "20px"
-                                    , image = "ic-play-white.svg"
+                                    , image = Assets.PlayIcon
                                     }
                                     ++ [ style "cursor" "pointer"
                                        , style "opacity" "1"
