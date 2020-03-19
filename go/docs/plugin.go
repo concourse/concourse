@@ -42,6 +42,13 @@ func NewPlugin(section *booklit.Section) booklit.Plugin {
 	}
 }
 
+func (p Plugin) Dim(content booklit.Content) booklit.Content {
+	return booklit.Styled{
+		Style:   "dim",
+		Content: content,
+	}
+}
+
 func (p Plugin) FontAwesome(class string) booklit.Content {
 	return booklit.Styled{
 		Style:   "font-awesome",
