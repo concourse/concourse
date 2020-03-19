@@ -617,7 +617,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 			"b.job_id": j.id,
 			"b.status": BuildStatusPending,
 		}).
-		OrderBy("b.id ASC").
+		OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC").
 		RunWith(j.conn).
 		Query()
 	if err != nil {
