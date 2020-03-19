@@ -12,16 +12,6 @@ Concourse comes with a few "core" resource types to cover common use cases like
 Concourse community. An exhaustive list of all resource types is available in
 the \link{Resource Types catalog}{https://resource-types.concourse-ci.org}.
 
-\aside{
-  Resource types are currently the only real extension point to Concourse,
-  which has led to them being used for many things which don't fit the above
-  definition.
-
-  Check out \link{Re-inventing resource
-  types}{https://blog.concourse-ci.org/reinventing-resource-types/} for more
-  details and to see the direction we're planning to take to resolve this.
-}
-
 A pipeline's resource types are listed under
 \reference{schema.pipeline.resource_types} with the following schema:
 
@@ -103,39 +93,37 @@ A pipeline's resource types are listed under
   }
 }
 
-\split-sections
+\example-toggle{Using a \code{rss} resource type to subscribe to RSS feeds}{
+  \reference{resource-types}{Resource Types} can be used to extend the
+  functionality of your pipeline and provide deeper integrations. This
+  example uses one to trigger a job whenever a new \link{Dinosaur
+  Comic}{http://www.qwantz.com} is out.
 
+  \codeblock{yaml}{{{
+    ---
+    resource_types:
+    - name: rss
+      type: docker-image
+      source:
+        repository: suhlig/concourse-rss-resource
+        tag: latest
+
+    resources:
+    - name: booklit-releases
+      type: rss
+      source:
+        url: http://www.qwantz.com/rssfeed.php
+
+    jobs:
+    - name: announce
+      plan:
+      - get: booklit-releases
+        trigger: true
+  }}}
+}
+
+\split-sections
 \table-of-contents
+
 \include-section{./resource-types/implementing.lit}
 \include-section{./resource-types/managing.lit}
-
-\right-side{Examples}{
-  \example{Using Resource Types}{
-    \reference{resource-types}{Resource Types} can be used to extend the
-    functionality of your pipeline and provide deeper integrations. This
-    example uses one to trigger a job whenever a new \link{Dinosaur
-    Comic}{http://www.qwantz.com} is out.
-
-    \codeblock{yaml}{{{
-      ---
-      resource_types:
-      - name: rss
-        type: docker-image
-        source:
-          repository: suhlig/concourse-rss-resource
-          tag: latest
-
-      resources:
-      - name: booklit-releases
-        type: rss
-        source:
-          url: http://www.qwantz.com/rssfeed.php
-
-      jobs:
-      - name: announce
-        plan:
-        - get: booklit-releases
-          trigger: true
-    }}}
-  }
-}

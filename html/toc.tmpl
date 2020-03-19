@@ -1,14 +1,16 @@
+<span class="toc-header">Table of contents:</span>
+
+{{block "toc" .}}
 {{if and .Children (not .OmitChildrenFromTableOfContents)}}
 <ol class="toc">
 {{range .Children}}
   <li>
-    {{- if eq .PageDepth 0 -}}
-      <span class="section-number">{{.Number}} </span>
-    {{- end -}}
+    <span class="section-number">{{.Number}}</span>
     <a href="{{.PrimaryTag | url}}">{{- .Title | render -}}</a>
 
-    {{template "toc.tmpl" .}}
+    {{template "toc" .}}
   </li>
 {{end}}
 </ol>
+{{end}}
 {{end}}

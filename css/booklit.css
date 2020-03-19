@@ -501,9 +501,19 @@ body {
 .toc ol {
   list-style: none;
 }
+.toc-header {
+  font-family: 'Roboto Slab', serif;
+}
 .page-content ol.toc {
-  margin-top: 0;
+  margin-top: 1em;
   margin-bottom: 1.5em;
+}
+.page-content ol.toc ol.toc {
+  margin-top: 0;
+}
+.page-content ol.toc .section-number {
+  color: #5a5555;
+  padding-right: 5px;
 }
 .improve-docs {
   position: fixed;

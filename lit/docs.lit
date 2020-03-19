@@ -63,3 +63,4 @@ the "big picture" as the mental model sets in.
 \include-section{./docs/internals.lit}
 
 \split-sections
+\table-of-contents
