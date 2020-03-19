@@ -21,11 +21,7 @@
         <table>
         {{range .Section.Children}}
           <tr>
-            {{if eq .PageDepth 0}}
-              <td class="number-cell" align="right">{{.Number}}</td>
-            {{else}}
-              <td class="number-cell" align="left"></td>
-            {{end}}
+            <td class="number-cell">{{.Number}}</td>
             <td class="title-cell">{{template "section-link" walkContext $.Current .}}</td>
           </tr>
         {{end}}
@@ -39,17 +35,15 @@
 {{define "anchors"}}
   {{if not .SplitSections}}
     {{range .Children}}
-      {{if .HasAnchors}}
+      <tr>
+        <td class="number-cell">{{.Number}}</td>
+        <td class="title-cell">{{template "section-link" walkContext $ .}}</td>
+      </tr>
+      {{range .AnchorTags}}
         <tr>
-          <td class="number-cell" align="left">{{.Number}}&nbsp;</td>
-          <td class="title-cell">{{template "section-link" walkContext $ .}}</td>
+          <td class="number-cell"><code>#</code></td>
+          <td class="title-cell"><a href="{{. | url}}">{{.Title | render}}</a></td>
         </tr>
-        {{range .AnchorTags}}
-          <tr>
-            <td class="number-cell"></td>
-            <td class="title-cell"><a href="{{. | url}}">{{.Title | render}}</a></td>
-          </tr>
-        {{end}}
       {{end}}
       {{template "anchors" .}}
     {{end}}
@@ -68,7 +62,8 @@
     <table>
       {{range .AnchorTags}}
       <tr>
-        <td colspan="2" class="title-cell"><a href="{{. | url}}">{{.Title | render}}</a></td>
+        <td class="number-cell"><code>#</code></td>
+        <td class="title-cell"><a href="{{. | url}}">{{.Title | render}}</a></td>
       </tr>
       {{end}}
 
