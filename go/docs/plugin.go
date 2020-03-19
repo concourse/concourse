@@ -33,7 +33,8 @@ type Plugin struct {
 	definitionContext []string
 	noteIdx           int
 
-	schemaContext []string
+	schemaContext    []string
+	schemaGroupTitle booklit.Content
 }
 
 func NewPlugin(section *booklit.Section) booklit.Plugin {
@@ -106,8 +107,11 @@ func (p Plugin) QuickStart(content booklit.Content) booklit.Content {
 }
 
 func (p *Plugin) Schema(name string, contentNode ast.Node) (booklit.Content, error) {
-	p.pushSchema(name)
-	defer p.popSchema()
+	old := p.schemaContext
+	p.schemaContext = []string{name}
+	defer func() {
+		p.schemaContext = old
+	}()
 
 	tagName := "schema." + name
 
@@ -152,6 +156,11 @@ func (p *Plugin) Schema(name string, contentNode ast.Node) (booklit.Content, err
 func (p *Plugin) SchemaGroup(title booklit.Content, tagName string, contentNode ast.Node) (booklit.Content, error) {
 	p.pushSchema(tagName)
 	defer p.popSchema()
+
+	p.schemaGroupTitle = title
+	defer func() {
+		p.schemaGroupTitle = nil
+	}()
 
 	stage := &stages.Evaluate{
 		Section: p.section,
@@ -251,12 +260,29 @@ func (p *Plugin) schemaAttribute(attribute string, type_ string, contentNode ast
 
 	content := stage.Result
 
-	display := booklit.Styled{
-		Style: booklit.StyleBold,
-		Content: booklit.Styled{
-			Style:   booklit.StyleVerbatim,
-			Content: booklit.String(strings.Join(p.schemaContext, ".")),
-		},
+	var display booklit.Content
+	if p.schemaGroupTitle != nil {
+		display = booklit.Sequence{
+			p.schemaGroupTitle,
+			booklit.String(" "),
+			booklit.Styled{
+				Style: booklit.StyleBold,
+				Content: booklit.Styled{
+					Style:   booklit.StyleVerbatim,
+					Content: booklit.String(attribute),
+				},
+			},
+		}
+	} else {
+		attr := booklit.Sequence{}
+		for _, con := range p.schemaContext {
+			attr = append(attr, booklit.String(con))
+		}
+
+		display = booklit.Styled{
+			Style:   "schema-attribute-name",
+			Content: attr,
+		}
 	}
 
 	targets := booklit.Sequence{
