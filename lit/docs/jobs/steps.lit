@@ -513,7 +513,7 @@ by configuring \reference{schema.step.on_failure} or
         }
       }
 
-      \optional-attribute{input_mapping}{\{task.inputs.input.name: identifier\}}{
+      \optional-attribute{input_mapping}{\{input.name: identifier\}}{
         A map from task input names to concrete names in the build plan. This
         allows a task with generic input names to be used multiple times in the
         same plan, mapping its inputs to specific resources within the plan.
@@ -538,7 +538,7 @@ by configuring \reference{schema.step.on_failure} or
         }
       }
 
-      \optional-attribute{output_mapping}{\{task.outputs.output.name: identifier\}}{
+      \optional-attribute{output_mapping}{\{output.name: identifier\}}{
         A map from task output names to concrete names to register in the build
         plan. This allows a task with generic output names to be used multiple
         times in the same plan.
@@ -668,7 +668,7 @@ by configuring \reference{schema.step.on_failure} or
 
           ...this will resolve \code{"((text))"} to \code{{"Hello World!"}},
           while \code{((myuser))} and \code{((mypass))} will be left in the
-          pipeline to be \reference{runtime-vars}{fetched at runtime}.
+          pipeline to be \reference{dynamic-vars}{fetched at runtime}.
         }
       }
 

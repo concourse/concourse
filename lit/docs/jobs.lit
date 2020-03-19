@@ -10,8 +10,10 @@ The most important attribute of a job is its build plan, configured as
 \reference{schema.job.plan}. This determines the sequence of \reference{steps} to
 execute in any builds of the job.
 
+\table-of-contents
+
 A pipeline's jobs are listed under \reference{schema.pipeline.jobs} with the
-following schema.
+following schema:
 
 \schema{job}{
   \required-attribute{name}{identifier}{
@@ -81,12 +83,12 @@ following schema.
 
       If more than 1000 builds finish in the past 2 days, \italic{all} of them
       will be retained thanks to the
-      \reference{schema.job.build_log_retention.build_log_retention_policy.days}{\code{days}}
+      \reference{schema.build_log_retention_policy.days}{\code{days}}
       configuration. Similarly, if there are 1000 builds spanning more than 2
       days, they will also be kept thanks to the
-      \reference{schema.job.build_log_retention.build_log_retention_policy.builds}{\code{builds}}
+      \reference{schema.build_log_retention_policy.builds}{\code{builds}}
       configuration. And if they all happened to have failed, the
-      \reference{schema.job.build_log_retention.build_log_retention_policy.minimum_succeeded_builds}{\code{minimum_succeeded_builds}}
+      \reference{schema.build_log_retention_policy.minimum_succeeded_builds}{\code{minimum_succeeded_builds}}
       will keep around at least one successful build. All policies operate
       independently.
     }
@@ -106,20 +108,21 @@ following schema.
         reaped.
 
         Requires
-        \reference{schema.job.build_log_retention.build_log_retention_policy.builds}{\code{builds}}
-        to be set to an integer higher than 0 in order to work. For example, if
-        \reference{schema.job.build_log_retention.build_log_retention_policy.builds}{\code{builds}}
-        is set to 5, and this attribute to 1, say a job has the following build
-        history: 7(f), 6(f), 5(f), 4(f), 3(f), 2(f), 1(s), where f means failed
-        and s means succeeded, then builds 2 and 3 will be reaped, because it
-        retains 5 build logs, and at least 1 succeeded build log. Default is 0.
+        \reference{schema.build_log_retention_policy.builds}{\code{builds}} to
+        be set to an integer higher than 0 in order to work. For example, if
+        \reference{schema.build_log_retention_policy.builds}{\code{builds}} is
+        set to 5, and this attribute to 1, say a job has the following build
+        history: 7(f), 6(f), 5(f), 4(f), 3(f), 2(f), 1(s), where f means
+        failed and s means succeeded, then builds 2 and 3 will be reaped,
+        because it retains 5 build logs, and at least 1 succeeded build log.
+        Default is 0.
       }
     }
   }
 
   \optional-attribute{build_logs_to_retain}{number}{
     \italic{Deprecated.} Equivalent to setting
-    \reference{schema.job.build_log_retention.build_log_retention_policy.builds}{\code{job.build_log_retention.builds}}.
+    \reference{schema.build_log_retention_policy.builds}{\code{job.build_log_retention.builds}}.
   }
 
   \optional-attribute{serial_groups}{[identifier]}{

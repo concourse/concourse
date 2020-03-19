@@ -11,6 +11,8 @@ Throughout the Concourse documentation we'll stick to the long-form name of
 every command and flag. Once you've learned what the commands do, you may want
 to consult \code{fly -h} to learn the short forms.
 
+\table-of-contents
+
 \section{
   \title{\code{fly login}}{fly-login}
 

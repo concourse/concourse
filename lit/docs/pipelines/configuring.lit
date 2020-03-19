@@ -27,9 +27,9 @@ Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
 
     The pipeline configuration can contain \reference{vars} which may be
     \reference{static-vars}{replaced with static values} or
-    \reference{runtime-vars}{loaded at runtime}. This allows for credentials to
-    be extracted from a pipeline config, making it safe to check in to a public
-    repository or pass around.
+    \reference{dynamic-vars}{loaded at runtime}. This allows for credentials
+    to be extracted from a pipeline config, making it safe to check in to a
+    public repository or pass around.
 
     For example, if you have a \code{pipeline.yml} as follows:
 
@@ -71,7 +71,7 @@ Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
     }}
 
     When configuring a pipeline, any vars not provided statically will be left
-    to resolve \reference{runtime-vars}{at runtime}. To check that all vars are
+    to resolve \reference{dynamic-vars}{at runtime}. To check that all vars are
     resolveable, you can pass the \code{--check-creds} flag:
 
     \codeblock{bash}{{

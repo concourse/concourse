@@ -1,0 +1,208 @@
+\use-plugin{concourse-docs}
+
+\title{\aux{Running tasks with }\code{fly execute}}{running-tasks}{fly-execute}
+
+One of the most common use cases of \code{fly} is taking a local project on
+your computer and submitting it up with a task configuration to be run
+inside a container in Concourse. This is useful to build Linux projects on
+OS X or to avoid all of those debugging commits when something is configured
+differently between your local and remote setup.
+
+You can execute a task like this:
+
+\codeblock{bash}{{
+$ fly -t example execute --config tests.yml
+}}
+
+Your files will be uploaded and the task will be executed with them. The
+working directory name will be used as the input name. If they do not match,
+you must specify \code{-i name=.} instead, where \code{name} is the input
+name from the task configuration.
+
+Fly will automatically capture \code{SIGINT} and \code{SIGTERM} and abort the
+build when received. This allows it to be transparently composed with other
+toolchains.
+
+By default, Fly will not send extra files or large files in your current
+directory that would normally be ignored by your version control system. You
+can use the \code{--include-ignored} flags in order to send ignored files to
+Concourse along with those that are not ignored.
+
+If your task needs to run as \code{root} then you can specify the \code{-p}
+or \code{--privileged} flag.
+
+\example-toggle{Providing multiple inputs}{
+  Tasks in Concourse can take multiple inputs. Up until now we've just been
+  submitting a single input (our current working directory) that has the same
+  name as the directory.
+
+  Tasks must specify the inputs that they require as
+  \reference{schema.task.inputs}. For \code{fly} to upload these inputs you can
+  use the \code{-i} or \code{--input} arguments with name and path pairs.
+  For example:
+
+  \codeblock{bash}{{
+  $ fly -t example execute \\
+      --config build-stemcell.yml \\
+      --input code=. \\
+      --input stemcells=../stemcells
+  }}
+
+  This would work together with a \code{build-stemcell.yml} if its
+  \code{inputs:} section was as follows:
+
+  \codeblock{yaml}{{
+  inputs:
+  - name: code
+  - name: stemcells
+  }}
+
+  If you specify an input then the default input will no longer be added
+  automatically and you will need to explicitly list it (as with the
+  \code{code} input above).
+
+  This feature can be used to mimic other resources and try out combinations
+  of input that would normally not be possible in a pipeline.
+}
+
+\example-toggle{Basing inputs on a job in your pipeline with \code{--inputs-from}}{
+  If the \code{--inputs-from} flag is given, the specified job will be looked
+  up in the pipeline, and the one-off build will base its inputs on those
+  currently configured for the job.
+
+  If any \code{--input} flags are given (see above), they will override the
+  base set of inputs.
+
+  For example:
+
+  \codeblock{bash}{{
+  $ fly -t example execute \\
+      --config task.yml \\
+      --inputs-from main/integration \\
+      --input foo=./foo
+  }}
+
+  This will trigger a one-off-build using the \code{task.yml} task
+  config, basing its inputs on the latest candidates for the
+  \code{integration} job in the \code{main} pipeline, with the \code{foo}
+  input overridden to specify local code to run.
+
+  This can be used to more closely replicate the state in CI when weeding out
+  flakiness, or as a shortcut for local development so that you don't have to
+  upload every single resource from your local machine.
+}
+
+\example-toggle{Using an image from a job in your pipeline with \code{--image}}{
+  When using \code{--inputs-from} as above, you can additionally specify
+  which input to use as the task's image by passing \code{--image
+  input-name}.
+
+  For example, the following pipeline fetches an image via a
+  \reference{get-step} and uses it for \reference{schema.step.task-step.image}:
+
+  \codeblock{yaml}{{{
+  resources:
+  - name: my-repo
+    type: git
+    source: {uri: https://example.com}
+
+  - name: some-image
+    type: registry-image
+    source: {repository: ubuntu}
+
+  jobs:
+  - name: integration
+    plan:
+    - get: my-repo
+    - get: some-image
+    - task: my-task
+      file: my-repo/task.yml
+      image: some-image
+  }}}
+
+  ...so to run the same task with the same image in a one-off build, you
+  would run:
+
+  \codeblock{bash}{{
+  $ fly -t example execute \\
+      --config task.yml \\
+      --inputs-from main/integration \\
+      --image some-image
+  }}
+}
+
+\example-toggle{Taking artifacts from the build with \code{--output}}{
+  If a task specifies outputs then you're able to extract these back out of
+  the build and back to your local system. For example:
+
+  \codeblock{bash}{{
+  $ fly -t example execute \\
+      --config build-stemcell.yml \\
+      --input code=. \\
+      --output stemcell=/tmp/stemcell
+  }}
+
+  This would work together with a \code{build-stemcell.yml} if its
+  \code{outputs:} section was as follows:
+
+  \codeblock{yaml}{{
+  outputs:
+  - name: stemcell
+  }}
+
+  This feature is useful to farm work out to your Concourse server to build
+  things in a repeatable manner.
+}
+
+\example-toggle{Providing values for \code{params}}{
+  Any params listed in the task configuration can be specified by using
+  environment variables.
+
+  So, if you have a task with the following params:
+
+  \codeblock{yaml}{{
+  params:
+    FOO: fizzbuzz
+    BAR:
+  }}
+
+  ...and you run:
+
+  \codeblock{bash}{{
+    BAR=hello fly execute
+  }}
+
+  The task would then run with \code{BAR} as \code{"hello"}, and \code{FOO}
+  as \code{"fizzbuzz"} (its default value).
+}
+
+\example-toggle{Providing values for vars}{
+  Task config files can contain \reference{vars} which can can be set
+  during \code{fly execute} by using the \code{-v}, \code{-y} and \code{-l}
+  flags:
+
+  \codeblock{bash}{{
+    fly -t example execute --config tests.yml \\
+      -l vars.yml \\
+      -v some_string="Hello World!" \\
+      -y some_bool=true
+  }}
+
+  Any variables not satisfied via the above flags will be deferred to the
+  configured \reference{creds}{credential manager}.
+
+  To satisfy these vars when running the task in a pipeline, see
+  \reference{schema.step.task-step.vars}.
+}
+
+\example-toggle{Targeting a specific worker with \code{--tag}}{
+  If you want to execute a task on a worker that has a specific tag, you
+  can do so by passing \code{--tag}:
+
+  \codeblock{bash}{{
+    fly -t example execute --config task.yml --tag bar
+  }}
+
+  This will execute the task specified by \code{task.yml} on a worker that has
+  been tagged \code{bar}.
+}

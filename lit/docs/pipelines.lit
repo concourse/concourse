@@ -80,9 +80,6 @@ files} which conform to the following schema:
   }
 }
 
-Once configured, pipelines may be interacted with through various
-\reference{fly-cli} commands:
-
 \table-of-contents
 
 \include-section{pipelines/configuring.lit}

@@ -12,8 +12,18 @@ Concourse comes with a few "core" resource types to cover common use cases like
 Concourse community. An exhaustive list of all resource types is available in
 the \link{Resource Types catalog}{https://resource-types.concourse-ci.org}.
 
+\aside{
+  Resource types are currently the only real extension point to Concourse,
+  which has led to them being used for many things which don't fit the above
+  definition.
+
+  Check out \link{Re-inventing resource
+  types}{https://blog.concourse-ci.org/reinventing-resource-types/} for more
+  details and to see the direction we're planning to take to resolve this.
+}
+
 A pipeline's resource types are listed under
-\reference{schema.pipeline.resource_types} with the following schema.
+\reference{schema.pipeline.resource_types} with the following schema:
 
 \schema{resource_type}{
   \required-attribute{name}{identifier}{

@@ -10,14 +10,18 @@ etc, is recommended as parts of this section might assume a level of knowledge
 from them. This section is not necessary for using Concourse but are more for
 experienced users that want to dig deeper into how Concourse works.
 
-\inline-header{Basic architecture}
+\table-of-contents
 
-Concourse is a fairly simple distributed system built up from the following
-components. You'll see them referenced here and there throughout the
-documentation, so you may want to skim this page just to get an idea of what
-they are.
+\section{
+  \title{Basic architecture}
 
-\diagram{images/concourse_architecture.png}{80%}
+  Concourse is a fairly simple distributed system built up from the following
+  components. You'll see them referenced here and there throughout the
+  documentation, so you may want to skim this page just to get an idea of what
+  they are.
+
+  \diagram{images/concourse_architecture.png}{80%}
+}
 
 \section{
   \title{ATC\aux{: web UI & build scheduler}}{component-atc}
