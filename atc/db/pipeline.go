@@ -937,11 +937,10 @@ func (p *pipeline) CreateOneOffBuild() (Build, error) {
 
 	build := newEmptyBuild(p.conn, p.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
-		"name":               sq.Expr("nextval('one_off_name')"),
-		"pipeline_id":        p.id,
-		"team_id":            p.teamID,
-		"status":             BuildStatusPending,
-		"needs_v6_migration": false,
+		"name":        sq.Expr("nextval('one_off_name')"),
+		"pipeline_id": p.id,
+		"team_id":     p.teamID,
+		"status":      BuildStatusPending,
 	})
 	if err != nil {
 		return nil, err
@@ -975,16 +974,15 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 
 	build := newEmptyBuild(p.conn, p.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
-		"name":               sq.Expr("nextval('one_off_name')"),
-		"pipeline_id":        p.id,
-		"team_id":            p.teamID,
-		"status":             BuildStatusStarted,
-		"start_time":         sq.Expr("now()"),
-		"schema":             schema,
-		"private_plan":       encryptedPlan,
-		"public_plan":        plan.Public(),
-		"nonce":              nonce,
-		"needs_v6_migration": false,
+		"name":         sq.Expr("nextval('one_off_name')"),
+		"pipeline_id":  p.id,
+		"team_id":      p.teamID,
+		"status":       BuildStatusStarted,
+		"start_time":   sq.Expr("now()"),
+		"schema":       schema,
+		"private_plan": encryptedPlan,
+		"public_plan":  plan.Public(),
+		"nonce":        nonce,
 	})
 	if err != nil {
 		return nil, err

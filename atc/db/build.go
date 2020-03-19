@@ -1527,8 +1527,16 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 
 func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	var buildID int
+
+	buildVals := make(map[string]interface{})
+	for name, value := range vals {
+		buildVals[name] = value
+	}
+
+	buildVals["needs_v6_migration"] = false
+
 	err := psql.Insert("builds").
-		SetMap(vals).
+		SetMap(buildVals).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
