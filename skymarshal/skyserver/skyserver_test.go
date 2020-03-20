@@ -370,54 +370,18 @@ var _ = Describe("Sky Server API", func() {
 
 						fakeTokenVerifier.VerifyReturns(fakeVerifiedClaims, nil)
 						fakeTokenIssuer.IssueReturns(fakeOAuthToken, nil)
+
+						state, _ := json.Marshal(map[string]string{
+							"redirect_uri": "http://example.com",
+						})
+
+						stateToken := base64.StdEncoding.EncodeToString(state)
+						stateCookie = &http.Cookie{Name: "skymarshal_state", Value: stateToken}
+						reqPath = "/sky/callback?code=some-code&state=" + stateToken
 					})
 
-					Context("when redirect URI is http://example.com", func() {
-						BeforeEach(func() {
-							state, _ := json.Marshal(map[string]string{
-								"redirect_uri": "http://example.com",
-							})
-
-							stateToken := base64.StdEncoding.EncodeToString(state)
-							stateCookie = &http.Cookie{Name: "skymarshal_state", Value: stateToken}
-							reqPath = "/sky/callback?code=some-code&state=" + stateToken
-						})
-
-						It("errors", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-						})
-					})
-
-					Context("when redirect URI is https:example.com", func() {
-						BeforeEach(func() {
-							state, _ := json.Marshal(map[string]string{
-								"redirect_uri": "https:google.com",
-							})
-
-							stateToken := base64.StdEncoding.EncodeToString(state)
-							stateCookie = &http.Cookie{Name: "skymarshal_state", Value: stateToken}
-							reqPath = "/sky/callback?code=some-code&state=" + stateToken
-						})
-
-						It("doesn't error on Get https:google.com", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-						})
-					})
-
-					Context("when redirect URI is example.com", func() {
-						BeforeEach(func() {
-							state, _ := json.Marshal(map[string]string{
-								"redirect_uri": "example.com",
-							})
-
-							stateToken := base64.StdEncoding.EncodeToString(state)
-							stateCookie = &http.Cookie{Name: "skymarshal_state", Value: stateToken}
-							reqPath = "/sky/callback?code=some-code&state=" + stateToken
-						})
-
-						It("errors", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-						})
+					It("errors", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 					})
 				})
 
