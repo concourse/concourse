@@ -192,6 +192,8 @@ type RunCommand struct {
 		AuthFlags     skycmd.AuthFlags
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
+
+	DisableListAllJobs bool `long:"disable-list-all-jobs" description:"Disable /api/v1/jobs endpoint, which is known to have performance issues."`
 }
 
 var HelpError = errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
@@ -1393,6 +1395,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		secretManager,
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
+		cmd.DisableListAllJobs,
 	)
 }
 
