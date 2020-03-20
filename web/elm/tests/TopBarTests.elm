@@ -721,8 +721,9 @@ all =
                 , it "has the appropriate background image for clear search and is in correct position" <|
                     Query.find [ id "search-clear" ]
                         >> Query.has
-                            [ style "background-image"
-                                "url(/public/images/ic-close-white-24px.svg)"
+                            [ style "background-image" <|
+                                Assets.backgroundImage <|
+                                    Just Assets.CloseIcon
                             , style "background-position" "10px 10px"
                             , style "background-repeat" "no-repeat"
                             ]
@@ -814,8 +815,9 @@ all =
                         , it "has the appropriate background image for clear search and is in correct position" <|
                             Query.find [ id "search-clear" ]
                                 >> Query.has
-                                    [ style "background-image"
-                                        "url(/public/images/ic-close-white-24px.svg)"
+                                    [ style "background-image" <|
+                                        Assets.backgroundImage <|
+                                            Just Assets.CloseIcon
                                     , style "background-position" "10px 10px"
                                     , style "background-repeat" "no-repeat"
                                     ]

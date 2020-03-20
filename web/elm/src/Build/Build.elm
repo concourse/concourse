@@ -13,8 +13,8 @@ module Build.Build exposing
     )
 
 import Api.Endpoints as Endpoints
-import Assets
 import Application.Models exposing (Session)
+import Assets
 import Build.Header.Header as Header
 import Build.Header.Models exposing (BuildPageType(..), CurrentOutput(..))
 import Build.Models exposing (Model, toMaybe)
