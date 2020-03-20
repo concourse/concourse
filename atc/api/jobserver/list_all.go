@@ -12,6 +12,17 @@ import (
 
 func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-all-jobs")
+	if s.disableListAllJobs {
+		logger.Debug("endpoint-disabled")
+		err := json.NewEncoder(w).Encode([]atc.Job{})
+		if err != nil {
+			logger.Error("failed-to-encode-jobs", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 
 	acc := accessor.GetAccessor(r)
 
