@@ -39,12 +39,12 @@ toStringTests =
             \_ ->
                 ChevronLeft
                     |> toString
-                    |> Expect.equal "/public/images/baseline-chevron-left-24px.svg"
+                    |> Expect.equal "/public/images/baseline-chevron-left.svg"
         , test "ChevronRight" <|
             \_ ->
                 ChevronRight
                     |> toString
-                    |> Expect.equal "/public/images/baseline-chevron-right-24px.svg"
+                    |> Expect.equal "/public/images/baseline-chevron-right.svg"
         , describe "HighDensityIcon"
             [ test "On" <|
                 \_ ->
@@ -62,12 +62,12 @@ toStringTests =
                 \_ ->
                     VisibilityToggleIcon True
                         |> toString
-                        |> Expect.equal "/public/images/baseline-visibility-24px.svg"
+                        |> Expect.equal "/public/images/baseline-visibility.svg"
             , test "Not Visible" <|
                 \_ ->
                     VisibilityToggleIcon False
                         |> toString
-                        |> Expect.equal "/public/images/baseline-visibility-off-24px.svg"
+                        |> Expect.equal "/public/images/baseline-visibility-off.svg"
             ]
         , describe "BuildFavicon"
             [ test "Nothing" <|
@@ -283,7 +283,7 @@ toStringTests =
             \_ ->
                 RefreshIcon
                     |> toString
-                    |> Expect.equal "/public/images/baseline-refresh-24px.svg"
+                    |> Expect.equal "/public/images/baseline-refresh.svg"
         , test "MessageIcon" <|
             \_ ->
                 MessageIcon
@@ -293,22 +293,22 @@ toStringTests =
             \_ ->
                 HamburgerMenuIcon
                     |> toString
-                    |> Expect.equal "/public/images/baseline-menu-24px.svg"
+                    |> Expect.equal "/public/images/baseline-menu.svg"
         , test "PeopleIcon" <|
             \_ ->
                 PeopleIcon
                     |> toString
-                    |> Expect.equal "/public/images/baseline-people-24px.svg"
+                    |> Expect.equal "/public/images/baseline-people.svg"
         , test "KeyboardArrowDown" <|
             \_ ->
                 KeyboardArrowDown
                     |> toString
-                    |> Expect.equal "/public/images/baseline-keyboard-arrow-down-24px.svg"
+                    |> Expect.equal "/public/images/baseline-keyboard-arrow-down.svg"
         , test "KeyboardArrowRight" <|
             \_ ->
                 KeyboardArrowRight
                     |> toString
-                    |> Expect.equal "/public/images/baseline-keyboard-arrow-right-24px.svg"
+                    |> Expect.equal "/public/images/baseline-keyboard-arrow-right.svg"
         , test "PlayIcon" <|
             \_ ->
                 PlayIcon
@@ -323,12 +323,12 @@ toStringTests =
             \_ ->
                 SearchIcon
                     |> toString
-                    |> Expect.equal "/public/images/ic-search-white-24px.svg"
+                    |> Expect.equal "/public/images/ic-search-white.svg"
         , test "CloseIcon" <|
             \_ ->
                 CloseIcon
                     |> toString
-                    |> Expect.equal "/public/images/ic-close-white-24px.svg"
+                    |> Expect.equal "/public/images/ic-close-white.svg"
         ]
 
 

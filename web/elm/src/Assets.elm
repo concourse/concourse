@@ -103,10 +103,10 @@ toPath asset =
             basePath ++ [ imageName ++ "-logo.svg" ]
 
         ChevronLeft ->
-            basePath ++ [ "baseline-chevron-left-24px.svg" ]
+            basePath ++ [ "baseline-chevron-left.svg" ]
 
         ChevronRight ->
-            basePath ++ [ "baseline-chevron-right-24px.svg" ]
+            basePath ++ [ "baseline-chevron-right.svg" ]
 
         HighDensityIcon on ->
             let
@@ -126,9 +126,9 @@ toPath asset =
                         ""
 
                     else
-                        "off-"
+                        "-off"
             in
-            basePath ++ [ "baseline-visibility-" ++ imageName ++ "24px.svg" ]
+            basePath ++ [ "baseline-visibility" ++ imageName ++ ".svg" ]
 
         BuildFavicon maybeStatus ->
             basePath
@@ -259,22 +259,22 @@ toPath asset =
             basePath ++ [ "ic-arrow-downward.svg" ]
 
         RefreshIcon ->
-            basePath ++ [ "baseline-refresh-24px.svg" ]
+            basePath ++ [ "baseline-refresh.svg" ]
 
         MessageIcon ->
             basePath ++ [ "baseline-message.svg" ]
 
         HamburgerMenuIcon ->
-            basePath ++ [ "baseline-menu-24px.svg" ]
+            basePath ++ [ "baseline-menu.svg" ]
 
         PeopleIcon ->
-            basePath ++ [ "baseline-people-24px.svg" ]
+            basePath ++ [ "baseline-people.svg" ]
 
         KeyboardArrowDown ->
-            basePath ++ [ "baseline-keyboard-arrow-down-24px.svg" ]
+            basePath ++ [ "baseline-keyboard-arrow-down.svg" ]
 
         KeyboardArrowRight ->
-            basePath ++ [ "baseline-keyboard-arrow-right-24px.svg" ]
+            basePath ++ [ "baseline-keyboard-arrow-right.svg" ]
 
         PlayIcon ->
             basePath ++ [ "ic-play-white.svg" ]
@@ -283,7 +283,7 @@ toPath asset =
             basePath ++ [ "ic-pause-white.svg" ]
 
         SearchIcon ->
-            basePath ++ [ "ic-search-white-24px.svg" ]
+            basePath ++ [ "ic-search-white.svg" ]
 
         CloseIcon ->
-            basePath ++ [ "ic-close-white-24px.svg" ]
+            basePath ++ [ "ic-close-white.svg" ]
