@@ -95,8 +95,10 @@ var _ = Describe("Web Command", func() {
 					"--debug-bind-port", strconv.Itoa(8000+GinkgoParallelNode()),
 					"--bind-port", strconv.Itoa(8080+GinkgoParallelNode()),
 					"--tsa-bind-port", strconv.Itoa(2222+GinkgoParallelNode()),
-					"--tsa-client-id", "client-id",
-					"--tsa-client-secret", "client-secret",
+					"--client-id", "client-id",
+					"--client-secret", "client-secret",
+					"--tsa-client-id", "tsa-client-id",
+					"--tsa-client-secret", "tsa-client-secret",
 					"--tsa-token-url", "http://localhost/token",
 				)
 			})

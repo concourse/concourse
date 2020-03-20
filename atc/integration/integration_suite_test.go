@@ -31,8 +31,12 @@ var (
 
 var _ = BeforeEach(func() {
 	cmd = &atccmd.RunCommand{}
-	_, err := flags.ParseArgs(cmd, []string{})
-	Expect(err).NotTo(HaveOccurred())
+
+	// call parseArgs to populate flag defaults
+	// but ignore errors so that we can use
+	// the required:"true" field annotation
+	flags.ParseArgs(cmd, []string{})
+
 	cmd.Postgres.User = "postgres"
 	cmd.Postgres.Database = "testdb"
 	cmd.Postgres.Port = 5433 + uint16(GinkgoParallelNode())

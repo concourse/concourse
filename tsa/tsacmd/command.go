@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"io/ioutil"
+
 	yaml "gopkg.in/yaml.v2"
 
 	"code.cloudfoundry.org/lager"
@@ -43,7 +44,7 @@ type TSACommand struct {
 
 	ATCURLs []flag.URL `long:"atc-url" required:"true" description:"ATC API endpoints to which workers will be registered."`
 
-	ClientID     string   `long:"client-id" required:"true" description:"Client used to fetch a token from the auth server"`
+	ClientID     string   `long:"client-id" default:"concourse-worker" description:"Client used to fetch a token from the auth server. NOTE: if you change this value you will also need to change the --system-claim-value flag so the atc knows to allow requests from this client."`
 	ClientSecret string   `long:"client-secret" required:"true" description:"Client used to fetch a token from the auth server"`
 	TokenURL     flag.URL `long:"token-url" required:"true" description:"Token endpoint of the auth server"`
 	Scopes       []string `long:"scope" description:"Scopes to request from the auth server"`
