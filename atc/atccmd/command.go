@@ -83,8 +83,6 @@ var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
 var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
 
-const runnerInterval = 10 * time.Second
-
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
 	Migration  Migration  `command:"migrate"`
@@ -130,8 +128,10 @@ type RunCommand struct {
 	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
 	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
-	GlobalResourceCheckTimeout   time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
-	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	RunnerInterval time.Duration `long:"runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
+
+	GlobalResourceCheckTimeout time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
+	ResourceCheckingInterval   time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 
 	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
 	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
@@ -869,7 +869,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbCheckFactory,
 				engine,
 			),
-			runnerInterval,
+			cmd.RunnerInterval,
 			bus,
 			lockFactory,
 			componentFactory,
@@ -892,7 +892,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				},
 				cmd.JobSchedulingMaxInFlight,
 			),
-			10*time.Second,
+			cmd.RunnerInterval,
 		)},
 		{Name: atc.ComponentBuildTracker, Runner: builds.NewRunner(
 			logger.Session("tracker-runner"),
@@ -902,7 +902,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbBuildFactory,
 				engine,
 			),
-			runnerInterval,
+			cmd.RunnerInterval,
 			bus,
 			lockFactory,
 			componentFactory,
@@ -925,7 +925,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			lockFactory,
 			componentFactory,
 			clock.NewClock(),
-			runnerInterval,
+			cmd.RunnerInterval,
 		)},
 	}
 
@@ -944,7 +944,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				lockFactory,
 				componentFactory,
 				clock.NewClock(),
-				runnerInterval,
+				cmd.RunnerInterval,
 			)},
 		)
 	}
@@ -1039,7 +1039,7 @@ func (cmd *RunCommand) constructGCMember(
 				lockFactory,
 				componentFactory,
 				clock.NewClock(),
-				runnerInterval,
+				cmd.RunnerInterval,
 			)},
 		)
 	}
@@ -1407,7 +1407,7 @@ func (cmd *RunCommand) configureComponentIntervals(componentFactory db.Component
 				Interval: cmd.BuildTrackerInterval,
 			}, {
 				Name:     atc.ComponentScheduler,
-				Interval: 10 * time.Second,
+				Interval: cmd.RunnerInterval,
 			}, {
 				Name:     atc.ComponentLidarChecker,
 				Interval: cmd.LidarCheckerInterval,
