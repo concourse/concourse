@@ -187,6 +187,7 @@ var _ = BeforeEach(func() {
 		fakeSecretManager,
 		credsManagers,
 		interceptTimeoutFactory,
+		false,
 	)
 
 	Expect(err).NotTo(HaveOccurred())
