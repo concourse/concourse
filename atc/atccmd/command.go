@@ -128,7 +128,7 @@ type RunCommand struct {
 	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
 	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
-	RunnerInterval time.Duration `long:"runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
+	ComponentRunnerInterval time.Duration `long:"runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
 
 	GlobalResourceCheckTimeout time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval   time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -869,7 +869,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbCheckFactory,
 				engine,
 			),
-			cmd.RunnerInterval,
+			cmd.ComponentRunnerInterval,
 			bus,
 			lockFactory,
 			componentFactory,
@@ -892,7 +892,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				},
 				cmd.JobSchedulingMaxInFlight,
 			),
-			cmd.RunnerInterval,
+			cmd.ComponentRunnerInterval,
 		)},
 		{Name: atc.ComponentBuildTracker, Runner: builds.NewRunner(
 			logger.Session("tracker-runner"),
@@ -902,7 +902,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbBuildFactory,
 				engine,
 			),
-			cmd.RunnerInterval,
+			cmd.ComponentRunnerInterval,
 			bus,
 			lockFactory,
 			componentFactory,
@@ -925,7 +925,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			lockFactory,
 			componentFactory,
 			clock.NewClock(),
-			cmd.RunnerInterval,
+			cmd.ComponentRunnerInterval,
 		)},
 	}
 
@@ -944,7 +944,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				lockFactory,
 				componentFactory,
 				clock.NewClock(),
-				cmd.RunnerInterval,
+				cmd.ComponentRunnerInterval,
 			)},
 		)
 	}
@@ -1039,7 +1039,7 @@ func (cmd *RunCommand) constructGCMember(
 				lockFactory,
 				componentFactory,
 				clock.NewClock(),
-				cmd.RunnerInterval,
+				cmd.ComponentRunnerInterval,
 			)},
 		)
 	}
@@ -1407,7 +1407,7 @@ func (cmd *RunCommand) configureComponentIntervals(componentFactory db.Component
 				Interval: cmd.BuildTrackerInterval,
 			}, {
 				Name:     atc.ComponentScheduler,
-				Interval: cmd.RunnerInterval,
+				Interval: 10 * time.Second,
 			}, {
 				Name:     atc.ComponentLidarChecker,
 				Interval: cmd.LidarCheckerInterval,
