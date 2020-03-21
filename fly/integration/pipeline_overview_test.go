@@ -17,13 +17,13 @@ import (
 var _ = Describe("Fly CLI", func() {
 	Describe("pipeline-overview", func() {
 		var (
-			flyCmd     *exec.Cmd
-			sampleJobs []atc.Job
+			flyCmd *exec.Cmd
 		)
 
+		pipelineName := "pipeline"
 		Context("when not specifying a pipeline name", func() {
 			It("fails and says you should give a pipeline name", func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "jobs")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "pipeline-overview", "--pipeline", pipelineName)
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -35,7 +35,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
-		Context("when resources are returned from the API", func() {
+		Context("when resources and jobs are returned from the API", func() {
 			createResource := func(num int, pinnedVersion atc.Version, resourceType string) atc.Resource {
 				return atc.Resource{
 					Name:          fmt.Sprintf("resource-%d", num),
@@ -44,36 +44,6 @@ var _ = Describe("Fly CLI", func() {
 				}
 			}
 
-			BeforeEach(func() {
-				pipelineName := "pipeline"
-				flyCmd = exec.Command(flyPath, "-t", targetName, "resources", "--pipeline", pipelineName)
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources"),
-						ghttp.RespondWithJSONEncoded(200, []atc.Resource{
-							createResource(1, nil, "time"),
-							createResource(2, atc.Version{"some": "version"}, "custom"),
-						}),
-					),
-				)
-			})
-
-			It("shows the pipeline's resources", func() {
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-				Eventually(sess).Should(gexec.Exit(0))
-
-				Expect(sess.Out).To(PrintTable(ui.Table{
-					Data: []ui.TableRow{
-						{{Contents: "resource-1"}, {Contents: "time"}, {Contents: "n/a"}},
-						{{Contents: "resource-2"}, {Contents: "custom"}, {Contents: "some:version", Color: color.New(color.FgCyan)}},
-					},
-				}))
-			})
-		})
-
-		pipelineName := "pipeline"
-		Context("when jobs are returned from the API", func() {
 			createJob := func(num int, paused bool, status string, nextStatus string) atc.Job {
 				var (
 					build     *atc.Build
@@ -94,29 +64,39 @@ var _ = Describe("Fly CLI", func() {
 				}
 			}
 
-			sampleJobs = []atc.Job{
-				createJob(1, false, "succeeded", "started"),
-				createJob(2, true, "failed", ""),
-				createJob(3, false, "", ""),
-			}
-
 			BeforeEach(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "jobs", "--pipeline", pipelineName)
+				pipelineName := "pipeline"
+				flyCmd = exec.Command(flyPath, "-t", targetName, "pipelineOverview", "--pipeline", pipelineName)
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Resource{
+							createResource(1, nil, "time"),
+							createResource(2, atc.Version{"some": "version"}, "custom"),
+						}),
+					),
+				)
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/jobs"),
-						ghttp.RespondWithJSONEncoded(200, sampleJobs),
+						ghttp.RespondWithJSONEncoded(200, []atc.Job{
+							createJob(1, false, "succeeded", "started"),
+							createJob(2, true, "failed", ""),
+							createJob(3, false, "", ""),
+						}),
 					),
 				)
 			})
 
-			It("shows the pipeline's jobs", func() {
+			It("shows the pipeline's resources and jobs", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(sess.Out).To(PrintTable(ui.Table{
 					Data: []ui.TableRow{
+						{{Contents: "resource-1"}, {Contents: "time"}, {Contents: "n/a"}},
+						{{Contents: "resource-2"}, {Contents: "custom"}, {Contents: "some:version", Color: color.New(color.FgCyan)}},
 						{{Contents: "job-1"}, {Contents: "no"}, {Contents: "succeeded"}, {Contents: "started"}},
 						{{Contents: "job-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "failed"}, {Contents: "n/a"}},
 						{{Contents: "job-3"}, {Contents: "no"}, {Contents: "n/a"}, {Contents: "n/a"}},

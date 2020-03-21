@@ -11,7 +11,7 @@ import (
 )
 
 type PipelineOverviewCommand struct {
-	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Get resources in this pipeline"`
+	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Get resources and jobs in this pipeline"`
 	Json     bool   `long:"json" description:"Print command result as JSON"`
 }
 
@@ -50,20 +50,16 @@ func (command *PipelineOverviewCommand) Execute(args []string) error {
 	}
 
 	if command.Json {
-		resources_and_jobs := overview{
+		resourcesAndJobs := overview{
 			PipelineName: pipelineName,
 			Resources:    resources,
 			Jobs:         jobs,
 		}
 
-		err = displayhelpers.JsonPrint(resources_and_jobs)
+		err = displayhelpers.JsonPrint(resourcesAndJobs)
 		if err != nil {
 			return err
 		}
-		// err = displayhelpers.JsonPrint(jobs)
-		// if err != nil {
-		// 	return err
-		// }
 		return nil
 	}
 
