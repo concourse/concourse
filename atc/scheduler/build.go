@@ -21,7 +21,7 @@ type manualTriggerBuild struct {
 	algorithm Algorithm
 }
 
-func (m *manualTriggerBuild) PrepareInputs(logger lager.Logger) bool {
+func (m *manualTriggerBuild) IsReadyToDetermineInputs(logger lager.Logger) bool {
 	for _, input := range m.jobInputs {
 		resource, found := m.resources.Lookup(input.Resource)
 
@@ -77,7 +77,7 @@ type schedulerBuild struct {
 	db.Build
 }
 
-func (s *schedulerBuild) PrepareInputs(logger lager.Logger) bool {
+func (s *schedulerBuild) IsReadyToDetermineInputs(logger lager.Logger) bool {
 	return true
 }
 
@@ -98,7 +98,7 @@ type rerunBuild struct {
 	db.Build
 }
 
-func (r *rerunBuild) PrepareInputs(logger lager.Logger) bool {
+func (r *rerunBuild) IsReadyToDetermineInputs(logger lager.Logger) bool {
 	return true
 }
 

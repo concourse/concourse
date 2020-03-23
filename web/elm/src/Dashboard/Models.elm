@@ -9,6 +9,7 @@ module Dashboard.Models exposing
 import Concourse
 import Dashboard.Group.Models
 import Dict exposing (Dict)
+import FetchResult exposing (FetchResult)
 import Login.Login as Login
 import Time
 
@@ -21,8 +22,9 @@ type alias Model =
             , highDensity : Bool
             , query : String
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-            , existingJobs : List Concourse.Job
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
+            , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
+            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
+            , teams : FetchResult (List Concourse.Team)
             , dragState : DragState
             , dropState : DropState
             , isJobsRequestFinished : Bool
@@ -32,7 +34,7 @@ type alias Model =
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
-            , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
+            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
             }
         )
 
@@ -57,9 +59,7 @@ type alias FooterModel r =
         | hideFooter : Bool
         , hideFooterCounter : Int
         , showHelp : Bool
-        , teams : List Concourse.Team
-        , groups : List Dashboard.Group.Models.Group
-        , pipelines : List Dashboard.Group.Models.Pipeline
+        , pipelines : FetchResult (List Dashboard.Group.Models.Pipeline)
         , dropdown : Dropdown
         , highDensity : Bool
     }

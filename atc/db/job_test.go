@@ -1761,6 +1761,117 @@ var _ = Describe("Job", func() {
 				})
 			})
 		})
+
+		Context("when there is a rerun build created for an old build", func() {
+			var rerunBuild db.Build
+			var newBuild db.Build
+			var newerBuild db.Build
+
+			BeforeEach(func() {
+				var err error
+				newBuild, err = job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				newerBuild, err = job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = newBuild.Finish(db.BuildStatusSucceeded)
+				Expect(err).NotTo(HaveOccurred())
+
+				rerunBuild, err = job.RerunBuild(newBuild)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(rerunBuild.ID()).NotTo(BeZero())
+				Expect(rerunBuild.ID()).NotTo(Equal(newBuild.ID()))
+				Expect(rerunBuild.Name()).To(Equal("2.1"))
+				Expect(rerunBuild.Status()).To(Equal(db.BuildStatusPending))
+			})
+
+			It("orders the builds with regular build first and then rerun of old build", func() {
+				nextPendingBuilds, err := job.GetPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(nextPendingBuilds)).To(Equal(3))
+				Expect(nextPendingBuilds[0].Name()).To(Equal(build1DB.Name()))
+				Expect(nextPendingBuilds[1].Name()).To(Equal(rerunBuild.Name()))
+				Expect(nextPendingBuilds[2].Name()).To(Equal(newerBuild.Name()))
+			})
+		})
+
+		Context("when there is a rerun build created for the newest build", func() {
+			var rerunBuild db.Build
+			var newBuild db.Build
+			var newerBuild db.Build
+
+			BeforeEach(func() {
+				var err error
+				newBuild, err = job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				rerunBuild, err = job.RerunBuild(newBuild)
+				Expect(err).NotTo(HaveOccurred())
+
+				newerBuild, err = job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(rerunBuild.ID()).NotTo(BeZero())
+				Expect(rerunBuild.ID()).NotTo(Equal(newBuild.ID()))
+				Expect(rerunBuild.Name()).To(Equal("2.1"))
+				Expect(rerunBuild.Status()).To(Equal(db.BuildStatusPending))
+			})
+
+			It("orders the builds with rerun of new build", func() {
+				nextPendingBuilds, err := job.GetPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(nextPendingBuilds)).To(Equal(4))
+				Expect(nextPendingBuilds[0].ID()).To(Equal(build1DB.ID()))
+				Expect(nextPendingBuilds[1].ID()).To(Equal(newBuild.ID()))
+				Expect(nextPendingBuilds[2].ID()).To(Equal(rerunBuild.ID()))
+				Expect(nextPendingBuilds[3].ID()).To(Equal(newerBuild.ID()))
+			})
+		})
+
+		Context("when there are multiple reruns for multiple pending builds", func() {
+			var rerunBuild db.Build
+			var rerunBuild2 db.Build
+			var rerunBuild3 db.Build
+			var newBuild db.Build
+			var newerBuild db.Build
+
+			BeforeEach(func() {
+				var err error
+				newBuild, err = job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				newerBuild, err = job.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				rerunBuild3, err = job.RerunBuild(newerBuild)
+				Expect(err).NotTo(HaveOccurred())
+
+				rerunBuild, err = job.RerunBuild(newBuild)
+				Expect(err).NotTo(HaveOccurred())
+
+				rerunBuild2, err = job.RerunBuild(rerunBuild)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(rerunBuild.ID()).NotTo(BeZero())
+				Expect(rerunBuild.ID()).NotTo(Equal(newBuild.ID()))
+				Expect(rerunBuild.Name()).To(Equal("2.1"))
+				Expect(rerunBuild.Status()).To(Equal(db.BuildStatusPending))
+			})
+
+			It("orders the builds with ascending reruns following original builds", func() {
+				nextPendingBuilds, err := job.GetPendingBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(nextPendingBuilds)).To(Equal(6))
+				Expect(nextPendingBuilds[0].Name()).To(Equal(build1DB.Name()))
+				Expect(nextPendingBuilds[1].Name()).To(Equal(newBuild.Name()))
+				Expect(nextPendingBuilds[2].Name()).To(Equal(rerunBuild.Name()))
+				Expect(nextPendingBuilds[3].Name()).To(Equal(rerunBuild2.Name()))
+				Expect(nextPendingBuilds[4].Name()).To(Equal(newerBuild.Name()))
+				Expect(nextPendingBuilds[5].Name()).To(Equal(rerunBuild3.Name()))
+			})
+		})
 	})
 
 	Describe("EnsurePendingBuildExists", func() {

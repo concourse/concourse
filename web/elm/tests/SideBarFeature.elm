@@ -1737,7 +1737,7 @@ myBrowserListensForSideBarStates =
 myBrowserReadSideBarState =
     Tuple.first
         >> Application.handleDelivery
-            (Subscription.SideBarStateReceived (Just "true"))
+            (Subscription.SideBarStateReceived (Ok True))
 
 
 myBrowserFetchesSideBarState =

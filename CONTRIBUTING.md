@@ -500,7 +500,50 @@ ginkgo .
 
 The `topgun/` suite is quite heavyweight and we don't currently expect most
 contributors to run or modify it. It's also kind of hard for ~~mere mortals~~
-external contributors to run anyway. So for now, ignore it.
+external contributors to run anyway.
+
+To run `topgun`, a BOSH director up and running is required - the only
+requirement with regards to where BOSH sits is having the ability to reach the
+instance that it creates (the tests make requests to them).
+
+You can have a local setup by leveraging the `dev` scripts in
+the [concourse-bosh-release] repo:
+
+[concourse-bosh-release]: https://github.com/concourse/concourse-bosh-release
+
+```bash
+# clone the concourse-bosh-release repository
+#
+git clone https://github.com/concourse/concourse-bosh-release cbr && cd $_
+
+
+# run the setup script
+#
+./dev/vbox/setup
+```
+
+`setup` will take care of creating the BOSH director (aliased as `vbox`),
+uploading basic releases that we need for testing, as well as a BOSH Lite
+stemcell.
+
+With the director up, we can head to the tests.
+
+```bash
+# fetch the concourse repo, and get into it
+#
+git clone https://github.com/concourse/concourse concourse && cd $_
+
+# get inside the topgun suite that you want to work on.
+#
+cd ./topgun/$SUITE
+
+# run the tests of that suite
+#
+BOSH_ENVIRONMENT=vbox ginkgo -v .
+```
+
+ps.: you must have already installed the BOSH cli first.
+
 
 
 ## Signing your work

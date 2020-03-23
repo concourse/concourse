@@ -374,6 +374,10 @@ pipeline on a team at the same time. #4092
 
 * Improve the initial page load time by lazy-loading Javascript that isn't necessary for the first render. #5148
 
+#### <sub><sup><a name="5262" href="#5262">:link:</a></sup></sub> feature
+
+* Improve the dashboard load time by caching API responses to browser `localStorage` and first rendering a stale view of your pipelines. #5262
+
 #### <sub><sup><a name="5113" href="#5113">:link:</a></sup></sub> feature
 
 * @aledeganopix4d added a `last updated` column to the output of `fly pipelines` showing

@@ -33,7 +33,7 @@ type BuildFactory interface {
 type Build interface {
 	db.Build
 
-	PrepareInputs(lager.Logger) bool
+	IsReadyToDetermineInputs(lager.Logger) bool
 	BuildInputs(context.Context) ([]db.BuildInput, bool, error)
 }
 
@@ -65,47 +65,51 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 		return false, fmt.Errorf("get pending builds: %w", err)
 	}
 
-	schedulableBuilds, rerunBuilds := s.constructBuilds(job, jobInputs, resources, relatedJobs, nextPendingBuilds)
+	buildsToSchedule := s.constructBuilds(job, jobInputs, resources, relatedJobs, nextPendingBuilds)
 
-	// try to schedule the rerun builds separately from the scheduler builds in
-	// order to continue to schedule if the rerun builds do not start
-	for _, rerunBuild := range rerunBuilds {
-		results, err := s.tryStartNextPendingBuild(logger, pipeline, rerunBuild, job, resources)
-		if err != nil {
-			return false, err
-		}
-
-		if results.needsRetry {
-			return true, nil
-		}
-	}
-
-	for _, nextSchedulableBuild := range schedulableBuilds {
+	var needsRetry bool
+	for _, nextSchedulableBuild := range buildsToSchedule {
 		results, err := s.tryStartNextPendingBuild(logger, pipeline, nextSchedulableBuild, job, resources)
 		if err != nil {
 			return false, err
 		}
 
-		if results.needsRetry {
-			return true, nil
+		if results.finished {
+			// If the build is successfully aborted, errored or started, continue
+			// onto the next pending build
+			continue
 		}
 
-		if !results.started {
-			// stop scheduling next builds after failing to schedule a build
-			return results.needsRetry, nil
+		if !results.scheduled || !results.readyToDetermineInputs {
+			// If max in flight is reached or a manually triggered build has not
+			// checked all resources, stop scheduling and retry later
+			needsRetry = true
+			break
+		}
+
+		if !results.inputsDetermined {
+			if nextSchedulableBuild.RerunOf() != 0 {
+				// If it is a rerun build, continue on to next build. We don't want to
+				// stop scheduling other builds because of a rerun build cannot
+				// determine inputs
+				continue
+			} else {
+				// If it is a regular scheduler build, stop scheduling because it is
+				// failing to determine inputs
+				break
+			}
 		}
 	}
 
-	return false, nil
+	return needsRetry, nil
 }
 
-func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) ([]Build, []Build) {
-	var schedulableBuilds []Build
-	var rerunBuilds []Build
+func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
+	var buildsToSchedule []Build
 
 	for _, nextPendingBuild := range builds {
 		if nextPendingBuild.IsManuallyTriggered() {
-			schedulableBuilds = append(schedulableBuilds, &manualTriggerBuild{
+			buildsToSchedule = append(buildsToSchedule, &manualTriggerBuild{
 				Build:         nextPendingBuild,
 				algorithm:     s.algorithm,
 				job:           job,
@@ -114,22 +118,24 @@ func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, res
 				relatedJobIDs: relatedJobIDs,
 			})
 		} else if nextPendingBuild.RerunOf() != 0 {
-			rerunBuilds = append(rerunBuilds, &rerunBuild{
+			buildsToSchedule = append(buildsToSchedule, &rerunBuild{
 				Build: nextPendingBuild,
 			})
 		} else {
-			schedulableBuilds = append(schedulableBuilds, &schedulerBuild{
+			buildsToSchedule = append(buildsToSchedule, &schedulerBuild{
 				Build: nextPendingBuild,
 			})
 		}
 	}
 
-	return schedulableBuilds, rerunBuilds
+	return buildsToSchedule
 }
 
 type startResults struct {
-	started    bool
-	needsRetry bool
+	finished               bool
+	scheduled              bool
+	readyToDetermineInputs bool
+	inputsDetermined       bool
 }
 
 func (s *buildStarter) tryStartNextPendingBuild(
@@ -146,14 +152,14 @@ func (s *buildStarter) tryStartNextPendingBuild(
 
 	if nextPendingBuild.IsAborted() {
 		logger.Debug("cancel-aborted-pending-build")
+
 		err := nextPendingBuild.Finish(db.BuildStatusAborted)
 		if err != nil {
 			return startResults{}, fmt.Errorf("finish aborted build: %w", err)
 		}
 
 		return startResults{
-			started:    true,
-			needsRetry: false,
+			finished: true,
 		}, nil
 	}
 
@@ -164,18 +170,12 @@ func (s *buildStarter) tryStartNextPendingBuild(
 
 	if pipelinePaused {
 		logger.Debug("pipeline-paused")
-		return startResults{
-			started:    false,
-			needsRetry: false,
-		}, nil
+		return startResults{}, nil
 	}
 
 	if job.Paused() {
 		logger.Debug("job-paused")
-		return startResults{
-			started:    false,
-			needsRetry: false,
-		}, nil
+		return startResults{}, nil
 	}
 
 	scheduled, err := job.ScheduleBuild(nextPendingBuild)
@@ -186,36 +186,32 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	if !scheduled {
 		logger.Debug("build-not-scheduled")
 		return startResults{
-			started:    false,
-			needsRetry: true,
+			scheduled: scheduled,
 		}, nil
 	}
 
-	succeeded := nextPendingBuild.PrepareInputs(logger)
-	if err != nil {
-		return startResults{}, fmt.Errorf("prepare inputs: %w", err)
-	}
-
-	if !succeeded {
+	readyToDetermineInputs := nextPendingBuild.IsReadyToDetermineInputs(logger)
+	if !readyToDetermineInputs {
 		return startResults{
-			started:    false,
-			needsRetry: true,
+			scheduled:              scheduled,
+			readyToDetermineInputs: readyToDetermineInputs,
 		}, nil
 	}
 
-	buildInputs, found, err := nextPendingBuild.BuildInputs(context.TODO())
+	buildInputs, inputsDetermined, err := nextPendingBuild.BuildInputs(context.TODO())
 	if err != nil {
 		return startResults{}, fmt.Errorf("get build inputs: %w", err)
 	}
 
-	if !found {
+	if !inputsDetermined {
 		logger.Debug("build-inputs-not-found")
 
 		// don't retry when build inputs are not found because this is due to the
 		// inputs being unsatisfiable
 		return startResults{
-			started:    false,
-			needsRetry: false,
+			scheduled:              scheduled,
+			readyToDetermineInputs: readyToDetermineInputs,
+			inputsDetermined:       inputsDetermined,
 		}, nil
 	}
 
@@ -249,7 +245,9 @@ func (s *buildStarter) tryStartNextPendingBuild(
 			return startResults{}, fmt.Errorf("finish build: %w", err)
 		}
 
-		return startResults{}, nil
+		return startResults{
+			finished: true,
+		}, nil
 	}
 
 	started, err := nextPendingBuild.Start(plan)
@@ -264,13 +262,14 @@ func (s *buildStarter) tryStartNextPendingBuild(
 			return startResults{}, fmt.Errorf("finish build: %w", err)
 		}
 
-		return startResults{}, nil
+		return startResults{
+			finished: true,
+		}, nil
 	}
 
 	metric.BuildsStarted.Inc()
 
 	return startResults{
-		started:    true,
-		needsRetry: false,
+		finished: true,
 	}, nil
 }

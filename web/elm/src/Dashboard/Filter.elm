@@ -39,8 +39,15 @@ type alias Filter =
     }
 
 
-filterGroups : Dict ( String, String ) (List Concourse.Job) -> String -> List Concourse.Team -> List Pipeline -> List Group
-filterGroups existingJobs query teams pipelines =
+filterGroups :
+    { pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+    , jobs : Dict ( String, String, String ) Concourse.Job
+    , query : String
+    , teams : List Concourse.Team
+    , pipelines : List Pipeline
+    }
+    -> List Group
+filterGroups { pipelineJobs, jobs, query, teams, pipelines } =
     let
         groupsToFilter =
             pipelines
@@ -59,11 +66,15 @@ filterGroups existingJobs query teams pipelines =
                 |> Dict.toList
                 |> List.map (\( k, v ) -> { teamName = k, pipelines = v })
     in
-    parseFilters query |> List.foldr (runFilter existingJobs) groupsToFilter
+    if query == "" then
+        groupsToFilter
+
+    else
+        parseFilters query |> List.foldr (runFilter jobs pipelineJobs) groupsToFilter
 
 
-runFilter : Dict ( String, String ) (List Concourse.Job) -> Filter -> List Group -> List Group
-runFilter existingJobs f =
+runFilter : Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Filter -> List Group -> List Group
+runFilter jobs existingJobs f =
     let
         negater =
             if f.negate then
@@ -82,28 +93,35 @@ runFilter existingJobs f =
                     { g
                         | pipelines =
                             g.pipelines
-                                |> List.filter (pipelineFilter pf existingJobs >> negater)
+                                |> List.filter (pipelineFilter pf jobs existingJobs >> negater)
                     }
                 )
                 >> List.filter (.pipelines >> List.isEmpty >> not)
 
 
-pipelineFilter : PipelineFilter -> Dict ( String, String ) (List Concourse.Job) -> Pipeline -> Bool
-pipelineFilter pf existingJobs pipeline =
+lookupJob : Dict ( String, String, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
+lookupJob jobs jobId =
+    jobs
+        |> Dict.get ( jobId.teamName, jobId.pipelineName, jobId.jobName )
+
+
+pipelineFilter : PipelineFilter -> Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Pipeline -> Bool
+pipelineFilter pf jobs existingJobs pipeline =
     let
         jobsForPipeline =
             existingJobs
                 |> Dict.get ( pipeline.teamName, pipeline.name )
                 |> Maybe.withDefault []
+                |> List.filterMap (lookupJob jobs)
     in
     case pf of
         Status sf ->
             case sf of
                 PipelineStatus ps ->
-                    pipeline |> Pipeline.pipelineStatus jobsForPipeline |> equal ps
+                    pipeline |> Pipeline.pipelineStatus False jobsForPipeline |> equal ps
 
                 PipelineRunning ->
-                    pipeline |> Pipeline.pipelineStatus jobsForPipeline |> isRunning
+                    pipeline |> Pipeline.pipelineStatus False jobsForPipeline |> isRunning
 
         FuzzyName term ->
             pipeline.name |> Simple.Fuzzy.match term

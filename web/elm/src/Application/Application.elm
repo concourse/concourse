@@ -350,7 +350,7 @@ handleDeliveryForApplication delivery model =
         NonHrefLinkClicked route ->
             ( model, [ LoadExternal route ] )
 
-        TokenReceived (Just tokenValue) ->
+        TokenReceived (Ok tokenValue) ->
             let
                 session =
                     model.session

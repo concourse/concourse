@@ -40,7 +40,7 @@ type alias DropArea =
 computeLayout :
     { dragState : DragState
     , dropState : DropState
-    , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
+    , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
