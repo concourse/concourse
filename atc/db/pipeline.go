@@ -600,6 +600,10 @@ func (p *pipeline) Pause() error {
 }
 
 func (p *pipeline) Unpause() error {
+	if p.Archived() {
+		return conflict("archived pipelines cannot be unpaused")
+	}
+
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return err

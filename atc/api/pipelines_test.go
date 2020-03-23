@@ -1038,7 +1038,22 @@ var _ = Describe("Pipelines API", func() {
 					})
 				})
 
-				Context("when unpausing the pipeline fails", func() {
+				Context("when unpausing the pipeline fails with a conflict", func() {
+					BeforeEach(func() {
+						fakeTeam.PipelineReturns(dbPipeline, true, nil)
+						fakeConflict := new(dbfakes.FakeConflict)
+						fakeConflict.ConflictReturns("I'm really conflicted")
+						dbPipeline.UnpauseReturns(fakeConflict)
+					})
+
+					It("returns 409", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusConflict))
+						body, _ := ioutil.ReadAll(response.Body)
+						Expect(body).To(Equal([]byte("I'm really conflicted\n")))
+					})
+				})
+
+				Context("when unpausing the pipeline fails for an unknown reason", func() {
 					BeforeEach(func() {
 						fakeTeam.PipelineReturns(dbPipeline, true, nil)
 						dbPipeline.UnpauseReturns(errors.New("welp"))
