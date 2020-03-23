@@ -501,7 +501,10 @@ body {
 .toc ol {
   list-style: none;
 }
-.toc-header {
+.table-of-contents {
+  margin: 2em 0;
+}
+.table-of-contents .toc-header {
   font-family: 'Roboto Slab', serif;
 }
 .page-content ol.toc {
