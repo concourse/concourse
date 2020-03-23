@@ -1885,13 +1885,17 @@ var _ = Describe("Job", func() {
 				Expect(started).To(BeTrue())
 			})
 
-			It("creates a build", func() {
+			It("creates a build and updates the next build for the job", func() {
 				err := job.EnsurePendingBuildExists()
 				Expect(err).NotTo(HaveOccurred())
 
 				pendingBuilds, err := job.GetPendingBuilds()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pendingBuilds).To(HaveLen(1))
+
+				_, nextBuild, err := job.FinishedAndNextBuild()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pendingBuilds[0].ID()).To(Equal(nextBuild.ID()))
 			})
 
 			It("doesn't create another build the second time it's called", func() {
