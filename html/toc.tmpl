@@ -1,16 +1,18 @@
-<span class="toc-header">Table of contents:</span>
+<div class="table-of-contents">
+  <span class="toc-header">Table of contents:</span>
 
-{{block "toc" .}}
-{{if and .Children (not .OmitChildrenFromTableOfContents)}}
-<ol class="toc">
-{{range .Children}}
-  <li>
-    <span class="section-number">{{.Number}}</span>
-    <a href="{{.PrimaryTag | url}}">{{- .Title | render -}}</a>
+  {{block "toc" .}}
+  {{if and .Children (not .OmitChildrenFromTableOfContents)}}
+  <ol class="toc">
+  {{range .Children}}
+    <li>
+      <span class="section-number">{{.Number}}</span>
+      <a href="{{.PrimaryTag | url}}">{{- .Title | render -}}</a>
 
-    {{template "toc" .}}
-  </li>
-{{end}}
-</ol>
-{{end}}
-{{end}}
+      {{template "toc" .}}
+    </li>
+  {{end}}
+  </ol>
+  {{end}}
+  {{end}}
+</div>

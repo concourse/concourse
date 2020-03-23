@@ -10,8 +10,6 @@ The most important attribute of a job is its build plan, configured as
 \reference{schema.job.plan}. This determines the sequence of \reference{steps} to
 execute in any builds of the job.
 
-\table-of-contents
-
 A pipeline's jobs are listed under \reference{schema.pipeline.jobs} with the
 following schema:
 
@@ -210,7 +208,7 @@ following schema:
   }
 }
 
-\split-sections
+\table-of-contents
 
 \include-section{jobs/steps.lit}
 \include-section{jobs/managing.lit}
