@@ -2609,6 +2609,16 @@ var _ = Describe("Team", func() {
 				Expect(found).To(BeTrue())
 				Expect(pipeline.Paused()).To(BeFalse())
 			})
+
+			It("resets to unarchived", func() {
+				team.SavePipeline(pipelineName, config, 0, false)
+				pipeline, _, _ := team.Pipeline(pipelineName)
+				pipeline.Archive()
+
+				team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), true)
+				pipeline.Reload()
+				Expect(pipeline.Archived()).To(BeFalse(), "the pipeline remained archived")
+			})
 		})
 
 		It("can lookup a pipeline by name", func() {

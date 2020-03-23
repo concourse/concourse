@@ -13,10 +13,17 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
+var basicPipelineConfig = []byte(`
+---
+jobs:
+- name: simple
+`)
+
 var _ = Describe("ATC Integration Test", func() {
 	var (
 		atcProcess ifrit.Process
 		atcURL     string
+		client     concourse.Client
 	)
 
 	BeforeEach(func() {
@@ -34,6 +41,8 @@ var _ = Describe("ATC Integration Test", func() {
 			_, err := http.Get(atcURL + "/api/v1/info")
 			return err
 		}, 20*time.Second).ShouldNot(HaveOccurred())
+
+		client = login(atcURL, "test", "test")
 	})
 
 	AfterEach(func() {
@@ -42,21 +51,35 @@ var _ = Describe("ATC Integration Test", func() {
 	})
 
 	It("can archive pipelines", func() {
-		client := login(atcURL, "test", "test")
 		givenAPipeline(client, "pipeline")
+
 		whenIArchiveIt(client, "pipeline")
+
 		pipeline := getPipeline(client, "pipeline")
 		Expect(pipeline.Archived).To(BeTrue(), "pipeline was not archived")
 		Expect(pipeline.Paused).To(BeTrue(), "pipeline was not paused")
 	})
 
 	It("fails when unpausing an archived pipeline", func() {
-		client := login(atcURL, "test", "test")
 		givenAPipeline(client, "pipeline")
 		whenIArchiveIt(client, "pipeline")
+
 		_, err := client.Team("main").UnpausePipeline("pipeline")
+
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("archived pipelines cannot be unpaused"))
+	})
+
+	It("archived pipelines can have their name re-used", func() {
+		givenAPipeline(client, "pipeline")
+		whenIArchiveIt(client, "pipeline")
+
+		_, version, _, _ := client.Team("main").PipelineConfig("pipeline")
+		client.Team("main").CreateOrUpdatePipelineConfig("pipeline", version, basicPipelineConfig, false)
+
+		pipeline := getPipeline(client, "pipeline")
+		Expect(pipeline.Archived).To(BeFalse(), "pipeline is still archived")
+		Expect(pipeline.Paused).To(BeTrue(), "pipeline was not paused")
 	})
 
 	Context("when the archiving pipeline endpoint is not enabled", func() {
@@ -65,21 +88,17 @@ var _ = Describe("ATC Integration Test", func() {
 		})
 
 		It("returns an error", func() {
-			client := login(atcURL, "test", "test")
 			givenAPipeline(client, "pipeline")
+
 			response := whenIArchiveIt(client, "pipeline")
+
 			Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 		})
 	})
 })
 
 func givenAPipeline(client concourse.Client, pipelineName string) {
-	config := []byte(`
----
-jobs:
-- name: simple
-`)
-	_, _, _, err := client.Team("main").CreateOrUpdatePipelineConfig(pipelineName, "0", config, false)
+	_, _, _, err := client.Team("main").CreateOrUpdatePipelineConfig(pipelineName, "0", basicPipelineConfig, false)
 	Expect(err).NotTo(HaveOccurred())
 }
 

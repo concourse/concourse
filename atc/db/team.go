@@ -400,6 +400,7 @@ func (t *team) SavePipeline(
 		}
 	} else {
 		err := psql.Update("pipelines").
+			Set("archived", false).
 			Set("groups", groupsPayload).
 			Set("var_sources", encryptedVarSourcesPayload).
 			Set("nonce", nonce).
