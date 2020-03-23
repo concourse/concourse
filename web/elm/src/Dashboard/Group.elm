@@ -49,12 +49,14 @@ view :
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
         , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-        , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
+        , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
         , query : String
         , pipelineCards : List PipelineGrid.PipelineCard
         , dropAreas : List PipelineGrid.DropArea
         , groupCardsHeight : Float
-        , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
+        , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+        , jobs : Dict ( String, String, String ) Concourse.Job
+        , isCached : Bool
         }
     -> Group
     -> Html Message
@@ -130,12 +132,14 @@ tag { userState } g =
 hdView :
     { pipelineRunningKeyframes : String
     , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-    , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
+    , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+    , jobs : Dict ( String, String, String ) Concourse.Job
+    , isCached : Bool
     }
     -> { a | userState : UserState }
     -> Group
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs } session g =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, isCached, jobs } session g =
     let
         orderedPipelines =
             g.pipelines
@@ -165,6 +169,8 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs } s
                                     pipelineJobs
                                         |> Dict.get ( p.teamName, p.name )
                                         |> Maybe.withDefault []
+                                        |> List.filterMap (lookupJob jobs)
+                                , isCached = isCached
                                 }
                         )
     in
@@ -194,6 +200,12 @@ pipelineNotSetView =
         ]
 
 
+lookupJob : Dict ( String, String, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
+lookupJob jobs jobId =
+    jobs
+        |> Dict.get ( jobId.teamName, jobId.pipelineName, jobId.jobName )
+
+
 pipelineCardView :
     { a | userState : UserState }
     ->
@@ -204,9 +216,11 @@ pipelineCardView :
             , hovered : HoverState.HoverState
             , pipelineRunningKeyframes : String
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
+            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
             , query : String
-            , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
+            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+            , jobs : Dict ( String, String, String ) Concourse.Job
+            , isCached : Bool
         }
     ->
         { bounds : PipelineGrid.Bounds
@@ -262,7 +276,7 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
              , style "width" "100%"
              , attribute "data-pipeline-name" pipeline.name
              ]
-                ++ (if String.isEmpty params.query then
+                ++ (if not params.isCached && String.isEmpty params.query then
                         [ attribute
                             "ondragstart"
                             "event.dataTransfer.setData('text/plain', '');"
@@ -302,14 +316,17 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
                     params.pipelineJobs
                         |> Dict.get ( pipeline.teamName, pipeline.name )
                         |> Maybe.withDefault []
+                        |> List.filterMap (lookupJob params.jobs)
                 , layers =
                     params.pipelineLayers
                         |> Dict.get ( pipeline.teamName, pipeline.name )
                         |> Maybe.withDefault []
+                        |> List.map (List.filterMap <| lookupJob params.jobs)
                 , hovered = params.hovered
                 , pipelineRunningKeyframes = params.pipelineRunningKeyframes
                 , userState = session.userState
                 , query = params.query
+                , isCached = params.isCached
                 }
             ]
         ]

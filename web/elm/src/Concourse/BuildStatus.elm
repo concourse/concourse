@@ -1,12 +1,14 @@
 module Concourse.BuildStatus exposing
     ( BuildStatus(..)
     , decodeBuildStatus
+    , encodeBuildStatus
     , isRunning
     , ordering
     , show
     )
 
 import Json.Decode
+import Json.Encode
 import Ordering exposing (Ordering)
 
 
@@ -50,6 +52,11 @@ show status =
 
         BuildStatusAborted ->
             "aborted"
+
+
+encodeBuildStatus : BuildStatus -> Json.Encode.Value
+encodeBuildStatus =
+    show >> Json.Encode.string
 
 
 decodeBuildStatus : Json.Decode.Decoder BuildStatus

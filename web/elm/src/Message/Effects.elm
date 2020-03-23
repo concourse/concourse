@@ -12,7 +12,7 @@ import Api.Endpoints as Endpoints
 import Base64
 import Browser.Dom exposing (Element, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
-import Concourse
+import Concourse exposing (encodeJob, encodePipeline, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Json.Decode
@@ -26,6 +26,19 @@ import Message.Message
         , VisibilityAction(..)
         )
 import Message.ScrollDirection exposing (ScrollDirection(..))
+import Message.Storage
+    exposing
+        ( deleteFromLocalStorage
+        , jobsKey
+        , loadFromLocalStorage
+        , loadFromSessionStorage
+        , pipelinesKey
+        , saveToLocalStorage
+        , saveToSessionStorage
+        , sideBarStateKey
+        , teamsKey
+        , tokenKey
+        )
 import Process
 import Routes
 import Task
@@ -48,12 +61,6 @@ port tooltipHd : ( String, String ) -> Cmd msg
 port resetPipelineFocus : () -> Cmd msg
 
 
-port loadToken : () -> Cmd msg
-
-
-port saveToken : String -> Cmd msg
-
-
 port requestLoginRedirect : String -> Cmd msg
 
 
@@ -73,12 +80,6 @@ port rawHttpRequest : String -> Cmd msg
 
 
 port renderSvgIcon : String -> Cmd msg
-
-
-port loadSideBarState : () -> Cmd msg
-
-
-port saveSideBarState : Bool -> Cmd msg
 
 
 type alias StickyHeaderConfig =
@@ -154,8 +155,6 @@ type Effect
     | PinTeamNames StickyHeaderConfig
     | Scroll ScrollDirection String
     | SetFavIcon (Maybe BuildStatus)
-    | SaveToken String
-    | LoadToken
     | OpenBuildEventStream { url : String, eventTypes : List String }
     | CloseBuildEventStream
     | CheckIsVisible String
@@ -163,8 +162,19 @@ type Effect
     | Blur String
     | RenderSvgIcon String
     | ChangeVisibility VisibilityAction Concourse.PipelineIdentifier
-    | LoadSideBarState
+    | SaveToken String
+    | LoadToken
     | SaveSideBarState Bool
+    | LoadSideBarState
+    | SaveCachedJobs (List Concourse.Job)
+    | LoadCachedJobs
+    | DeleteCachedJobs
+    | SaveCachedPipelines (List Concourse.Pipeline)
+    | LoadCachedPipelines
+    | DeleteCachedPipelines
+    | SaveCachedTeams (List Concourse.Team)
+    | LoadCachedTeams
+    | DeleteCachedTeams
     | GetViewportOf DomID TooltipPolicy
     | GetElement DomID
 
@@ -526,12 +536,6 @@ runEffect effect key csrfToken =
         Scroll direction id ->
             scroll direction id
 
-        SaveToken tokenValue ->
-            saveToken tokenValue
-
-        LoadToken ->
-            loadToken ()
-
         Focus id ->
             Browser.Dom.focus id
                 |> Task.attempt (always EmptyCallback)
@@ -567,11 +571,44 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt (VisibilityChanged action pipelineId)
 
-        LoadSideBarState ->
-            loadSideBarState ()
+        SaveToken token ->
+            saveToLocalStorage ( tokenKey, Json.Encode.string token )
+
+        LoadToken ->
+            loadFromLocalStorage tokenKey
 
         SaveSideBarState isOpen ->
-            saveSideBarState isOpen
+            saveToSessionStorage ( sideBarStateKey, Json.Encode.bool isOpen )
+
+        LoadSideBarState ->
+            loadFromSessionStorage sideBarStateKey
+
+        SaveCachedJobs jobs ->
+            saveToLocalStorage ( jobsKey, jobs |> Json.Encode.list encodeJob )
+
+        LoadCachedJobs ->
+            loadFromLocalStorage jobsKey
+
+        DeleteCachedJobs ->
+            deleteFromLocalStorage jobsKey
+
+        SaveCachedPipelines pipelines ->
+            saveToLocalStorage ( pipelinesKey, pipelines |> Json.Encode.list encodePipeline )
+
+        LoadCachedPipelines ->
+            loadFromLocalStorage pipelinesKey
+
+        DeleteCachedPipelines ->
+            deleteFromLocalStorage pipelinesKey
+
+        SaveCachedTeams teams ->
+            saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )
+
+        LoadCachedTeams ->
+            loadFromLocalStorage teamsKey
+
+        DeleteCachedTeams ->
+            deleteFromLocalStorage teamsKey
 
         GetViewportOf domID tooltipPolicy ->
             Browser.Dom.getViewportOf (toHtmlID domID)

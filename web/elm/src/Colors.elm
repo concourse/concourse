@@ -49,6 +49,7 @@ module Colors exposing
     , successFaded
     , text
     , tooltipBackground
+    , unknown
     , white
     )
 
@@ -139,6 +140,11 @@ pending =
 pendingFaded : String
 pendingFaded =
     "#7a7373"
+
+
+unknown : String
+unknown =
+    "#9b9b9b"
 
 
 failure : String
@@ -321,6 +327,9 @@ statusColor status =
 
         PipelineStatusAborted _ ->
             aborted
+
+        PipelineStatusUnknown ->
+            unknown
 
 
 buildStatusColor : Bool -> BuildStatus -> String

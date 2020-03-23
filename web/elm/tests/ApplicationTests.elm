@@ -67,7 +67,7 @@ all =
                     |> Application.update
                         (Msgs.DeliveryReceived <|
                             TokenReceived <|
-                                Just "real-token"
+                                Ok "real-token"
                         )
                     |> Tuple.first
                     |> .session

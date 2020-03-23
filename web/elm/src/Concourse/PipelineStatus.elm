@@ -25,6 +25,7 @@ type PipelineStatus
     | PipelineStatusFailed StatusDetails
     | PipelineStatusPending Bool
     | PipelineStatusSucceeded StatusDetails
+    | PipelineStatusUnknown
 
 
 equal : PipelineStatus -> PipelineStatus -> Bool
@@ -73,6 +74,9 @@ show status =
         PipelineStatusSucceeded _ ->
             "succeeded"
 
+        PipelineStatusUnknown ->
+            "unknown"
+
 
 isRunning : PipelineStatus -> Bool
 isRunning status =
@@ -94,6 +98,9 @@ isRunning status =
 
         PipelineStatusSucceeded details ->
             details == Running
+
+        PipelineStatusUnknown ->
+            False
 
 
 icon : PipelineStatus -> Html msg
@@ -119,5 +126,8 @@ icon status =
 
                 PipelineStatusErrored _ ->
                     "ic-error-orange.svg"
+
+                PipelineStatusUnknown ->
+                    "ic-cached-grey.svg"
         }
         [ style "background-size" "contain" ]

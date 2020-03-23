@@ -46,9 +46,10 @@ hdPipelineView :
     , pipelineRunningKeyframes : String
     , resourceError : Bool
     , existingJobs : List Concourse.Job
+    , isCached : Bool
     }
     -> Html Message
-hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs } =
+hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs, isCached } =
     Html.a
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
@@ -56,12 +57,12 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
          , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
          , href <| Routes.toString <| Routes.pipelineRoute pipeline
          ]
-            ++ Styles.pipelineCardHd (pipelineStatus existingJobs pipeline)
+            ++ Styles.pipelineCardHd (pipelineStatus isCached existingJobs pipeline)
         )
     <|
         [ Html.div
             (Styles.pipelineCardBannerHd
-                { status = pipelineStatus existingJobs pipeline
+                { status = pipelineStatus isCached existingJobs pipeline
                 , pipelineRunningKeyframes = pipelineRunningKeyframes
                 }
             )
@@ -88,13 +89,20 @@ pipelineView :
     , existingJobs : List Concourse.Job
     , layers : List (List Concourse.Job)
     , query : String
+    , isCached : Bool
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query, isCached } =
     Html.div
         (Styles.pipelineCard
-            ++ (if String.isEmpty query then
+            ++ (if not isCached && String.isEmpty query then
                     [ style "cursor" "move" ]
+
+                else
+                    []
+               )
+            ++ (if isCached then
+                    [ style "opacity" "0.45" ]
 
                 else
                     []
@@ -103,20 +111,23 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
         [ Html.div
             (class "banner"
                 :: Styles.pipelineCardBanner
-                    { status = pipelineStatus existingJobs pipeline
+                    { status = pipelineStatus isCached existingJobs pipeline
                     , pipelineRunningKeyframes = pipelineRunningKeyframes
                     }
             )
             []
         , headerView pipeline resourceError
         , bodyView hovered layers
-        , footerView userState pipeline now hovered existingJobs
+        , footerView userState pipeline now hovered existingJobs isCached
         ]
 
 
-pipelineStatus : List Concourse.Job -> Pipeline -> PipelineStatus.PipelineStatus
-pipelineStatus jobs pipeline =
-    if pipeline.paused then
+pipelineStatus : Bool -> List Concourse.Job -> Pipeline -> PipelineStatus.PipelineStatus
+pipelineStatus isCached jobs pipeline =
+    if isCached then
+        PipelineStatus.PipelineStatusUnknown
+
+    else if pipeline.paused then
         PipelineStatus.PipelineStatusPaused
 
     else
@@ -245,8 +256,9 @@ footerView :
     -> Maybe Time.Posix
     -> HoverState.HoverState
     -> List Concourse.Job
+    -> Bool
     -> Html Message
-footerView userState pipeline now hovered existingJobs =
+footerView userState pipeline now hovered existingJobs isCached =
     let
         spacer =
             Html.div [ style "width" "13.5px" ] []
@@ -257,7 +269,7 @@ footerView userState pipeline now hovered existingJobs =
             }
 
         status =
-            pipelineStatus existingJobs pipeline
+            pipelineStatus isCached existingJobs pipeline
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)
@@ -367,6 +379,13 @@ transitionView t status =
                     :: Styles.pipelineCardTransitionAge status
                 )
                 [ Html.text "paused" ]
+
+        ( PipelineStatus.PipelineStatusUnknown, _ ) ->
+            Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge status
+                )
+                [ Html.text "loading..." ]
 
         ( PipelineStatus.PipelineStatusPending False, _ ) ->
             Html.div
