@@ -1876,15 +1876,6 @@ var _ = Describe("Job", func() {
 
 	Describe("EnsurePendingBuildExists", func() {
 		Context("when only a started build exists", func() {
-			BeforeEach(func() {
-				build1, err := job.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
-
-				started, err := build1.Start(atc.Plan{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(started).To(BeTrue())
-			})
-
 			It("creates a build and updates the next build for the job", func() {
 				err := job.EnsurePendingBuildExists()
 				Expect(err).NotTo(HaveOccurred())
