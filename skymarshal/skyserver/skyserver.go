@@ -266,7 +266,7 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, token *oaut
 	params := redirectURL.Query()
 	params.Set("csrf_token", csrfToken)
 
-	http.Redirect(w, r, redirectURL.Path+"?"+params.Encode(), http.StatusTemporaryRedirect)
+	http.Redirect(w, r, redirectURL.EscapedPath()+"?"+params.Encode(), http.StatusTemporaryRedirect)
 }
 
 func (s *SkyServer) Token(w http.ResponseWriter, r *http.Request) {
