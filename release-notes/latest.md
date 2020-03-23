@@ -1,74 +1,55 @@
-This release bumps Concourse to v6.0 for good reason: it's the first time we've
-changed how Concourse decides on the inputs for your jobs.
+Concourse v6.0: it does things gooder.™
 
 A whole new algorithm for deciding job inputs has been implemented which
 performs much better for Concourse instances that have a ton of version and
 build history. This algorithm works in a fundamentally different way, and in
-some situations will yield different results than the previous algorithm. (More
-details follow in the actual release notes below.)
+some situations will decide on inputs that differ from the previous algorithm.
+(More details follow in the actual release notes below.)
 
 In the past we've done major version bumps as a ceremony to celebrate big shiny
 new features. This is the first time it's been done because there are
-technically backwards-incompatible changes to fundamental pipeline semantics.
+backwards-incompatible changes to fundamental pipeline semantics.
 
 We have tested this release against larger scale than we ever tried to support
-before, and deployed it to various environments of our own, and we've been
-using it ourselves for a while now. Despite all that we still recommend that
-anyone using Concourse for mission-critical workflows such as shipping security
-updates should wait for the next few releases, *just in case* any edge cases
-are found and fixed.
+before, and we've been using it in our own environments for a while now.
+Despite all that, we still recommend that anyone using Concourse for
+mission-critical workflows (e.g. shipping security updates) wait for the next
+few releases, *just in case* any edge cases are found.
 
 **IMPORTANT**: Please expect and prepare for some downtime when upgrading to
 v6.0. On our large scale deployments we have observed 10-20 minutes of downtime
 as the database is migrated, but this will obviously vary depending on the
 amount of data.
 
-#### <sub><sup><a name="3602" href="#3602">:link:</a></sup></sub> feature, breaking
+#### <sub><sup><a name="3602" href="#3602">:link:</a></sup></sub> feature, fix, breaking
 
-* > **vito**: Hey Clara, want to write the release notes for the new algorithm?  \
-  > **clarafu**: yeah sure whatever  \
-  > **vito**: Try to spice it up a bit, it's not really a sexy feature.  \
-  > **clarafu**: you got it boss
+* A new algorithm for determining inputs for jobs has been implemented.
 
-  Has this ever happened to you? "My Concourse is getting slower and slower
-  even though I'm not adding any new pipelines!" "The web nodes are always
-  under such heavy load!" "My database is constantly overloaded!"
-
-  Well have no fear, because Algorithm v3 is here! #3602
-
-  <p align="center">
-    <img width="460" height="300" src="https://storage.googleapis.com/concourse-media-assets/wow.gif">
-  </p>
-
-  You might be wondering, what is the algorithm and why do I care about it? YOU
-  FOOL! The algorithm is the heart and soul of Concourse! The algorithm is what
-  determines the inputs for every newly created build in your pipeline.
-
-  The main goals of the new algorithm is efficiency and correctness.
+  This new algorithm significantly reduces resource utilization on the `web`
+  and `db` nodes, especially for long-lived and/or large-scale Concourse
+  installations.
 
   The old algorithm used to load up all the resource versions, build inputs,
   and build outputs into memory then use brute-force to figure out what the
   next inputs would be. This method worked well enough in most cases, but with
   a long-lived deployment with thousands or even millions of versions or builds
   it would start to put a lot of strain on the `web` and `db` nodes just to
-  load up the data set. This would theoretically get even worse when we change
-  resources to [collect all versions][collect-all-versions-issue] as more
-  versions would mean a larger dataset to process.
+  load up the data set. In the future, we plan to [collect all
+  versions][collect-all-versions-issue] of resources, which would make this
+  even worse.
 
   The new algorithm takes a very different approach which does not require the
   entire dataset to be held in memory and cuts out nearly all of the "brute
   force" aspect of the old algorithm. We even make use of fancy [`jsonb`
   index][jsonb-index] functionality in Postgres; a successful build's set of
-  resource versions are stored in a table which we can quickly search to find
-  matching candidates when evaluating `passed` constraints.
+  resource versions are stored in a table which we can easily "intersect" in
+  order to find matching candidates when evaluating `passed` constraints.
 
-  Overall, this new approach dramatically reduces resource utilization of both
-  the `web` and `db` nodes. For a more detailed explanation of how the new
-  algorithm works, check out the [section on this in the v10 blog
-  post][v10-alg-update].
+  For a more detailed explanation of how the new algorithm works, check out the
+  [section on this in the v10 blog post][v10-alg-update].
 
-  Before we get into the shiny charts showing the improved performance, let's
-  cover the breaking change that the new algorithm needed:
+  Before we show the shiny charts showing the improved performance, let's cover
+  the breaking change that the new algorithm needed:
 
   [jsonb-index]: https://www.postgresql.org/docs/current/datatype-json.html#JSON-INDEXING
   [v10-alg-update]: https://blog.concourse-ci.org/core-roadmap-towards-v10/#issue-3602-a-new-algorithm
@@ -105,9 +86,8 @@ amount of data.
   from the *latest build* of the jobs listed in `passed` constraints, searching
   through older builds if necessary.
 
-  The resulting behavior is that pipelines now flow versions downstream from
-  job to job rather than requiring brute force. Jobs are now treated as the
-  source of truth.
+  The resulting behavior is that pipelines now propagate versions downstream
+  from job to job rather than working backwards from versions.
 
   This approach to selecting versions is much more efficient because it cuts
   out the "brute force" aspect: by treating the `passed` jobs as the source of
@@ -119,9 +99,9 @@ amount of data.
   utilizing a `jsonb` index to perform a sort of 'set intersection' at the
   database level. It's pretty neato!
 
-* Now that the breaking change is out of the way, let's take a look at the
-  metrics from our large-scale test environment and see if the whole thing was
-  worth it from an efficiency standpoint.
+* **Improved metrics:** now that the breaking change is out of the way, let's
+  take a look at the metrics from our large-scale test environment and see if
+  the whole thing was worth it from an efficiency standpoint.
 
   The first metric shows the database CPU utilization:
 
@@ -132,10 +112,10 @@ amount of data.
   performance, and complaints from our Concourse tenants.
 
   The right side shows that after upgrading to v6.0 the usage dropped to ~65%.
-  This is still pretty high, but keep in mind that we intentionally gave this
-  environment a pretty weak database machine so we don't just keep scaling up
-  and pretending our users have unlimited funds for beefy hardware. Anything
-  less than 100% usage here is a win.
+  This is still pretty high, but keep in mind that we [intentionally gave this
+  environment a pretty weak database machine][wimp-lo] so we don't just keep
+  scaling up and pretending our users have unlimited funds for beefy hardware.
+  Anything less than 100% usage here is a win.
 
   This next metric is shows database data transfer:
 
@@ -155,8 +135,38 @@ amount of data.
   dataset*. This entire step is gone, as reflected by the graph ending upon the
   upgrade to 6.0.
 
-* You may be wondering how the upgrade's data migration works with such a huge
-  change to how the algorithm deals with the data.
+  [wimp-lo]: https://www.youtube.com/watch?v=d696t3yALAY
+
+  Another optimization we've made is to simply not do work that doesn't need to
+  be done. Previously Concourse would schedule every job every 10 seconds, but
+  now it'll only schedule jobs which actually need to be scheduled.
+
+  This heat-map, combined with the graph below, shows the before vs. after
+  distribution of job scheduling time, and shows that after 6.0 there is much
+  less time being spent scheduling jobs, freeing the `web` node to do other
+  more important things:
+
+  ![Scheduling by Job](https://storage.googleapis.com/concourse-media-assets/v60-scheduling-by-job.png)
+
+  Note that while the per-job scheduling time has increased in duration and
+  variance, as shown in the heat map, this is not really a fair comparison: the
+  data for the old algorithm doesn't include all the time spent loading up the
+  dataset, which is done once per pipeline every 10 seconds.
+
+  The fact that the new algorithm is able to schedule some jobs in the same
+  amount of time that the older, CPU-bound, in-memory, brute-force algorithm
+  took is actually pretty nice considering it now involves going over the
+  network to querying the database.
+
+  Note: this new approach means that we need to carefully keep tabs on state
+  changes so that we know when jobs need to be scheduled. If you have a job
+  doesn't seem to be queuering new builds, and you think it should, try out the
+  new `fly schedule-job` command; it's been added just in case we missed a
+  spot. This command will mark the job as 'needs to be scheduled' and the
+  scheduler will pick it up on the next tick.
+
+* **Migrating existing data:** you may be wondering how the upgrade's data
+  migration works with such a huge change to how the scheduler uses data.
 
   The answer is: *very carefully*.
 
@@ -171,18 +181,15 @@ amount of data.
   result in very little work to do as most jobs will have a satisfiable set of
   inputs without having to go too far back in the history of upstream jobs.
 
-* Along with the new algorithm, we wanted to improve the transparency of
-  showing why a build is pending and unable to determine its inputs. In the
-  preparation view of a pending build, if the algorithm is failing to find an
-  appropriate set of versions the UI will show the error message for the inputs
-  that cannot be satisfied.
+* **Bonus feature:** along with the new algorithm, we wanted to make it easier
+  to troubleshoot why a build is stuck in a "pending" state. So, if the
+  algorithm fails to find a satisfactory set of inputs, the reason will now be
+  shown for each input in the build preparation.
 
-#### <sub><sup><a name="3832" href="#3832">:link:</a></sup></sub> fix
-
-* The new algorithm fixes a case described in #3832. In this case, multiple
-  resources with corresponding versions (e.g. a v1.2.3 semver resource and then
-  a binary in S3 corresponding to that version) are correlated by virtue of
-  being passed along the pipeline together.
+* **Bonus fix:** the new algorithm fixes an edge case described in #3832. In
+  this case, multiple resources with corresponding versions (e.g. a v1.2.3
+  semver resource and then a binary in S3 corresponding to that version) are
+  correlated by virtue of being passed along the pipeline together.
 
   When one of the correlated versions was disabled, the old algorithm would
   incorrectly continue to use the other versions, matching it with an incorrect
@@ -195,8 +202,8 @@ amount of data.
 #### <sub><sup><a name="3704" href="#3704">:link:</a></sup></sub> feature, breaking
 
 * LIDAR is now on by default! In fact, not only is it on by default, it is now
-  THE ONLY OPTION. The old and busted 'Radar' resource checking component has
-  been removed and the `--enable-lidar` flag will no longer be recognized.
+  **the only option**. The old and busted 'Radar' resource checking component
+  has been removed and the `--enable-lidar` flag will no longer be recognized.
   #3704
 
   With the switch to LIDAR, the metrics pertaining to resource checking have
@@ -206,31 +213,65 @@ amount of data.
 
 #### <sub><sup><a name="413" href="#413">:link:</a></sup></sub> feature
 
-* This next feature is one that has been asked for since the beginning of time. Build rerunning! #413 We finally did it, even though it is only the first iteration.
+* #413. We finally did it.
 
-  You are finally able to rerun an old build with the same set of input versions without using the pinning trick. When you rerun a build, it will create a new build using the name of the original build with the rerun number appended to it. You can rerun a build either through the rerun button on the build page or through the fly command `fly rerun-build`. The rerun button is located at the top right corner of the build page, to the left of the button for manually triggering a new build.
+  ![rerun-button](https://storage.googleapis.com/concourse-media-assets/rerun-button.png)
 
-  The rerun build will be ordered with the original build, so that it isn't treated as the "latest" build of the job (unless it is a rerun of the latest build) but rather as another run of the original build. This means that if you rerun an old build, the status of the build will not show up in the pipeline page for the status of the job. This is because the status of the job represents the current state of the job, which a rerun of an old build is not treated as the current state.
+  [Build re-running][build-rerunning] has been implemented.
 
-  Build rerunning fixes a key breaking change in the new algorithm. If you pin a resource to an old version and trigger a new build, once you unpin the resource there will be another new build scheduled using the latest version in order to respect the current state of the versions. This might be undesirable for the users that only wants to run a build using an old version without affecting the latest state of the builds. If you retrigger a build, it will only create a rerun of an old build and that does not affect the latest state of the job in regards to it's builds.
+  Build re-running was one of the most long-running and popular feature
+  requests. We never got around to it because most of the motivation for it
+  came from PR flows, which was (and still is) a pretty broken usage pattern
+  which we were trying to address directly rather than have it act as a primary
+  motivator for design decisions like this one.
 
-  This is currently a first pass at build retriggering, as it only supports retriggering builds that have the same set of inputs as the *current state of the job config*. What this means is that if you have an old build that only had two inputs and you have recently added a new input (so now you have a total of 3 inputs to this job), if you try to retrigger that old build that only used two inputs it will fail. This is because this first pass at build retriggering uses the latest state of the job config but runs it with the exact versions of the build that is being retriggered. That being said, there are future plans to have retriggering execute an exact rerun of a build including all the versions and job config that it used to run with originally. If you are interested in tracking the progress for the second pass at retriggering, the project epic is called [Build Lifecycle View](https://project.concourse-ci.org/projects/MDc6UHJvamVjdDM3NjI5MTk=).
+  Ultimately, the validity of re-triggering builds was never in question - but
+  we try to look a level deeper and get to the bottom of things, sometimes to a
+  fault. Ideas surrounding PR flows dragged on for a while and went through a
+  few redesigns (context in the [v10 blog post][v10-blog-post]), so we're sorry
+  it took so long to finally do this - but it's here now!
 
-#### <sub><sup><a name="4717" href="#4717">:link:</a></sup></sub> feature
+  [build-rerunning]: https://concourse-ci.org/builds.html#build-rerunning
+  [v10-blog-post]: https://blog.concourse-ci.org/core-roadmap-towards-v10/
 
-* Along with the big changes to the algorithm, we also redesigned the build scheduler to hopefully help remove some unnecessary work. #4717 The old per pipeline scheduler is now transformed into one giant scheduler with one per ATC. This giant scheduler will now be responsible for scheduling all the jobs within the deployment.
+  Why was this feature implemented in this release after so much time, you ask?
+  Well, the new scheduling and pinning semantics kind of made it necessary to
+  have proper support for re-running builds. Without re-running, folks were
+  relying on version pinning in order to re-run a job with an older version.
+  But with the new scheduling semantics, that pinned version would propagate to
+  jobs downstream as if it's the latest version for the pipeline to converge
+  on, which might not be what you want. (But it probably *is* what you want if
+  you're using pinning how it's originally meant to be used.)
 
-  The exciting new feature is that now, it will only schedule jobs that "need to be scheduled". This means that if there is nothing happening, for example on the weekends when there are no new versions of resources or nobody triggering new builds, the scheduler will not run. This will help reduce unnecessary load to your web or database nodes. If you want to read more about what defines a job to "need to be scheduled", you can read the docs [here](_____) that describe exactly the cases that the scheduler will run for.
+#### <sub><sup><a name="60-dashboard" href="#60-dashboard">:link:</a></sup></sub> feature
 
-  As a small proof of the performance enhancement this feature adds, these are two metrics of the before and after of an upgrade to this new scheduling logic. There are two graphs, the one on the left labelled `Scheduling By Job` is a heat map that shows the time taken for each job to schedule. The graph on the right labelled `Total Time Scheduling Jobs + Loading Algorithm DB` shows the total time taken to schedule all jobs plus the total time taken to load the Algorithm database. Loading the algorithm database was used by the old algorithm in order to load up all the build inputs and outputs and resource versions into memory from the database. On the left side of both graphs, it shows the time taken for the old scheduler and on the right side it shows the time taken for the new scheduler.
+* Following a multi-pronged attack through various optimizations, the dashboard
+  has become more responsive:
 
-  ![Old vs new Build Scheduling](https://concourse-ci.org/images/old-vs-new-build-scheduling.png)
+  * With #4862, we optimized the `ListAllJobs` endpoint so that it no longer
+    requires decrypting and parsing the configuration for every single job. This
+    dramatically reduces resource utilization for deployments with a ton of
+    pipelines.
 
-  If we analyze the `Scheduling By Job` heap map, you will notice that the old scheduler consistently had a ton of jobs to schedule while the new scheduler has less jobs to schedule but might take longer to schedule each job. The new scheduler only schedules the jobs that need to be scheduled, which will result in less jobs scheduling overall but the time taken to schedule each job could possibly be slower than the old scheduler because of the difference in the new and old algorithm. The new algorithm needs to run small queries in order to find the next version for a build which is slower if you compare that to the old algorithm that already had all the versions loaded up into memory and only needs to number crunch. A contributing factor to this graph result is that it does not include the time it took to load up the versions DB for the old algorithm.
+  * With #5262, we now cache the last-fetched data in local browser storage so
+    that navigating to the dashboard renders at least *some* useful data rather
+    than blocking on all the data being fetched fresh from the backend.
 
-  Now if we look at the `Total Time Scheduling Jobs + Loading Algorithm DB` graph, we can see a big difference between the old and new scheduler. The total time the old scheduler took to schedule all the jobs plus the time it took to load up the versions DB is drastically higher than the total time taken to schedule all jobs by the new scheduler. This is because even though the time taken to schedule each job might be slightly slower in the new scheduler, because it no longer schedules all jobs every 10 seconds it results in a lot of time and CPU saved from doing unnecessary work.
+  * With #5118, we implemented infinite scrolling and lazy rendering, which
+    should greatly improve performance on installations with a ton of pipelines
+    configured. The initial page load can still be quite laggy, but interacting
+    with the page afterwards now performs a lot better. We'll keep chipping away
+    at this problem and may have larger changes in store for the future.
 
-  This is a new feature that is also risky in some ways. Because the "failure" case here would be that the scheduler does not run when it is expected to run and you would see no builds being scheduled. In order to help de-risk this failure case, we added a new fly command `fly schedule-job` that will kick off the scheduler if this ever happens.
+  * With #5023, the dashboard will no longer "pile on" requests to a slow
+    backend. Previously if the `web` node was under too much load, it could take
+    longer to respond to the `ListAllJobs` endpoint than the default polling
+    interval, and the dashboard could start another request before the last one
+    finished. It will now wait for the previous request to complete before making another.
+
+  Overall, while we're still not completely happy with the dashboard performance
+  on gigantic installations, these changes should make the experience feel a bit
+  better.
 
 #### <sub><sup><a name="4973" href="#4973">:link:</a></sup></sub> feature
 
@@ -245,10 +286,6 @@ amount of data.
 * In #4614, @julia-pu implemented a way for `put` steps to automatically determine the artifacts they need, by configuring [`inputs: detect`](https://concourse-ci.org/steps.html#schema.step.put-step.inputs). With `detect`, the step will walk over its `params` and look for paths that correspond to artifact names in the build plan (e.g. `tag: foo/bar` or just `repository: foo`). When it comes time to run, only those named artifacts will be given to the step, which can avoid wasting a lot of time transferring artifacts the step doesn't even need.
 
   This feature may become the default in the future if it turns out to be useful and safe enough in practice. Try it out!
-
-#### <sub><sup><a name="5118" href="#5118">:link:</a></sup></sub> feature
-
-* #5118 implements infinite scroll and lazy rendering to the dashboard, which should greatly improve performance on installations with a ton of pipelines configured. The initial page load can still be quite laggy, but interacting with the page afterwards now performs a lot better. We'll keep chipping away at this problem and may have larger changes in store for the future.
 
 #### <sub><sup><a name="5149" href="#5149">:link:</a></sup></sub> fix
 
@@ -269,14 +306,6 @@ amount of data.
 #### <sub><sup><a name="5157" href="#5157">:link:</a></sup></sub> fix
 
 * The length of time to keep around the history of a resource check was defaulted to 6 hours, but we discovered that this default might cause slowness for large deployments because of the number of checks that are kept around. The default is changed to 1 minute, and it is left up to the user to configure it higher if they would like to keep around the history of checks for longer. #5157
-
-#### <sub><sup><a name="5023" href="#5023">:link:</a></sup></sub> fix
-
-* The dashboard page refreshes its data every 5 seconds. Until now, it was possible (especially for admin users) for the dashboard to initiate an ever-growing number of API calls, unnecessarily consuming browser, network and API resources. Now the dashboard will not initiate a request for more data until the previous request finishes. #5023
-
-#### <sub><sup><a name="4862" href="#4862">:link:</a></sup></sub> feature
-
-* Whenever the dashboard page is loaded, it would decrypt and unmarshal all the job configs for all the teams that the user has access to. This would be slow if there are a ton of jobs. We made a change that would result in the dashboard no longer needing to decrypt or unmarshal the config of jobs, which will help speed up the loading of the dashboard page. #4862
 
 #### <sub><sup><a name="4406" href="#4406">:link:</a></sup></sub> feature
 
@@ -332,17 +361,17 @@ amount of data.
 
 * Add experimental support for exposing traces to [Jaeger] or [Stackdriver].
 
-With this feature enabled (via `--tracing-(jaeger|stackdriver)-*` variables in
-`concourse web`), the `web` node starts recording traces that represent the
-various steps that a build goes through, sending them to the configured trace
-collector. #5043
+  With this feature enabled (via `--tracing-(jaeger|stackdriver)-*` variables in
+  `concourse web`), the `web` node starts recording traces that represent the
+  various steps that a build goes through, sending them to the configured trace
+  collector. #5043
 
-As this feature is being built using [OpenTelemetry], expect to have support for
-other systems soon.
+  As this feature is being built using [OpenTelemetry], expect to have support for
+  other systems soon.
 
-[OpenTelemetry]: https://opentelemetry.io/
-[Jaeger]: https://www.jaegertracing.io/
-[Stackdriver]: https://cloud.google.com/trace/
+  [OpenTelemetry]: https://opentelemetry.io/
+  [Jaeger]: https://www.jaegertracing.io/
+  [Stackdriver]: https://cloud.google.com/trace/
 
 #### <sub><sup><a name="4092" href="#4092">:link:</a></sup></sub> feature
 
@@ -353,10 +382,6 @@ pipeline on a team at the same time. #4092
 #### <sub><sup><a name="5133" href="#5133">:link:</a></sup></sub> fix
 
 * In the case that a user has multiple roles on a team, the pills on the team headers on the dashboard now accurately reflect the logged-in user's most-privileged role on each team. #5133
-
-#### <sub><sup><a name="5118" href="#5118">:link:</a></sup></sub> feature
-
-* Improved the performance of the dashboard by only rendering the pipeline cards that are visible. #5118
 
 #### <sub><sup><a name="4847" href="#4847">:link:</a></sup></sub> fix
 
@@ -373,10 +398,6 @@ pipeline on a team at the same time. #4092
 #### <sub><sup><a name="5148" href="#5148">:link:</a></sup></sub> feature
 
 * Improve the initial page load time by lazy-loading Javascript that isn't necessary for the first render. #5148
-
-#### <sub><sup><a name="5262" href="#5262">:link:</a></sup></sub> feature
-
-* Improve the dashboard load time by caching API responses to browser `localStorage` and first rendering a stale view of your pipelines. #5262
 
 #### <sub><sup><a name="5113" href="#5113">:link:</a></sup></sub> feature
 
