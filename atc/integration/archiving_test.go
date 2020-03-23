@@ -50,6 +50,15 @@ var _ = Describe("ATC Integration Test", func() {
 		Expect(pipeline.Paused).To(BeTrue(), "pipeline was not paused")
 	})
 
+	It("fails when unpausing an archived pipeline", func() {
+		client := login(atcURL, "test", "test")
+		givenAPipeline(client, "pipeline")
+		whenIArchiveIt(client, "pipeline")
+		_, err := client.Team("main").UnpausePipeline("pipeline")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("archived pipelines cannot be unpaused"))
+	})
+
 	Context("when the archiving pipeline endpoint is not enabled", func() {
 		BeforeEach(func() {
 			cmd.EnableArchivePipeline = false

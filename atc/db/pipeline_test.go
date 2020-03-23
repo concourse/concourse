@@ -247,6 +247,20 @@ var _ = Describe("Pipeline", func() {
 			})
 		})
 
+		Context("when the pipeline is archived", func() {
+			BeforeEach(func() {
+				pipeline.Archive()
+			})
+
+			It("fails with an archive error", func() {
+				err := pipeline.Unpause()
+				Expect(err).To(HaveOccurred())
+				conflict, isConflict := err.(db.Conflict)
+				Expect(isConflict).To(BeTrue())
+				Expect(conflict.Conflict()).To(Equal("archived pipelines cannot be unpaused"))
+			})
+		})
+
 		Context("when requesting schedule for unpausing pipeline", func() {
 			var found bool
 			var err error
