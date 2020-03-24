@@ -432,3 +432,11 @@ the last date where the pipeline was set or reset. #5113
 #### <sub><sup><a name="5275" href="#5275">:link:</a></sup></sub> fix
 
 * Ensure the build page doesn't get reloaded when you highlight a log line, and fix auto-scrolling to a highlighted log line. #5275
+
+#### <sub><sup><a name="4168" href="#4168">:link:</a></sup></sub> fix
+
+* With #4168, `fly sync` no longer requires a target to be registered
+  beforehand; instead, a `--concourse-url` (or `-c`) flag may be specified.
+
+  This should make it a bit easier to keep your CLI in sync if and when we
+  change the login process again.
