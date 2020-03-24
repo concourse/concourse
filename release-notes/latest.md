@@ -445,3 +445,10 @@ the last date where the pipeline was set or reset. #5113
 
 * `fly validate-pipeline` will no longer blow up when given a pipeline config
   which uses `var_sources`.
+
+#### <sub><sup><a name="5309" href="#5309">:link:</a></sup></sub> fix
+
+* We've tweaked the UI on the resource page; when a version is pinned, rather
+  than cramming the pinned version into the header, the "pin bar" for the
+  version will now replace the "checking successfully" bar, since pinning
+  ultimately prevents a resource from checking.
