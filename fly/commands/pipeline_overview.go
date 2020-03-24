@@ -11,7 +11,7 @@ import (
 )
 
 type PipelineOverviewCommand struct {
-	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Get resources and jobs in this pipeline"`
+	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Get jobs and resources in this pipeline"`
 	Json     bool   `long:"json" description:"Print command result as JSON"`
 }
 
