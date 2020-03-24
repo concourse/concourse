@@ -22,6 +22,7 @@ type Team interface {
 	PipelineBuilds(pipelineName string, page Page) ([]atc.Build, Pagination, bool, error)
 	DeletePipeline(pipelineName string) (bool, error)
 	PausePipeline(pipelineName string) (bool, error)
+	ArchivePipeline(pipelineName string) (bool, error)
 	UnpausePipeline(pipelineName string) (bool, error)
 	ExposePipeline(pipelineName string) (bool, error)
 	HidePipeline(pipelineName string) (bool, error)

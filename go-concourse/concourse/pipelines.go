@@ -113,8 +113,11 @@ func (team *team) DeletePipeline(pipelineName string) (bool, error) {
 }
 
 func (team *team) PausePipeline(pipelineName string) (bool, error) {
-
 	return team.managePipeline(pipelineName, atc.PausePipeline)
+}
+
+func (team *team) ArchivePipeline(pipelineName string) (bool, error) {
+	return team.managePipeline(pipelineName, atc.ArchivePipeline)
 }
 
 func (team *team) UnpausePipeline(pipelineName string) (bool, error) {
