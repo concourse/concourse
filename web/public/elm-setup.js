@@ -237,7 +237,7 @@ app.ports.rawHttpRequest.subscribe(function(url) {
 });
 
 app.ports.renderSvgIcon.subscribe(function(icon, id) {
-  addIcon(icon, (typeof id !== 'undefined') ? id : icon);
+  renderingModulePromise.then(({addIcon}) => addIcon(icon, (typeof id !== 'undefined') ? id : icon));
 });
 
 var clipboard = new ClipboardJS('#copy-token');
