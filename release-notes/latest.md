@@ -440,3 +440,8 @@ the last date where the pipeline was set or reset. #5113
 
   This should make it a bit easier to keep your CLI in sync if and when we
   change the login process again.
+
+#### <sub><sup><a name="5357" href="#5357">:link:</a></sup></sub> fix
+
+* `fly validate-pipeline` will no longer blow up when given a pipeline config
+  which uses `var_sources`.
