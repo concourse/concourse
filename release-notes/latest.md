@@ -21,6 +21,15 @@ v6.0. On our large scale deployments we have observed 10-20 minutes of downtime
 as the database is migrated, but this will obviously vary depending on the
 amount of data.
 
+As this is a significant release with changes that may affect user workflows,
+we will be taking some time after this release to listen for feedback before
+moving on to the next big thing.
+
+**Please leave any v6.0 feedback you have, good or bad, in [issue
+#5360][feedback-issue]!**
+
+[feedback-issue]: https://github.com/concourse/concourse/issues/5360
+
 #### <sub><sup><a name="3602" href="#3602">:link:</a></sup></sub> feature, fix, breaking
 
 * A new algorithm for determining inputs for jobs has been implemented.
