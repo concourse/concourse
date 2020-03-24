@@ -20,10 +20,9 @@ var _ = Describe("Fly CLI", func() {
 			flyCmd *exec.Cmd
 		)
 
-		pipelineName := "pipeline"
 		Context("when not specifying a pipeline name", func() {
 			It("fails and says you should give a pipeline name", func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "pipeline-overview", "--pipeline", pipelineName)
+				flyCmd := exec.Command(flyPath, "-t", targetName, "pipeline-overview")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -66,7 +65,7 @@ var _ = Describe("Fly CLI", func() {
 
 			BeforeEach(func() {
 				pipelineName := "pipeline"
-				flyCmd = exec.Command(flyPath, "-t", targetName, "pipelineOverview", "--pipeline", pipelineName)
+				flyCmd = exec.Command(flyPath, "-t", targetName, "pipeline-overview", "--pipeline", pipelineName)
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources"),
@@ -95,6 +94,7 @@ var _ = Describe("Fly CLI", func() {
 
 				Expect(sess.Out).To(PrintTable(ui.Table{
 					Data: []ui.TableRow{
+						{{Contents: "resource name"}, {Contents: "type"}, {Contents: "pinned"}},
 						{{Contents: "resource-1"}, {Contents: "time"}, {Contents: "n/a"}},
 						{{Contents: "resource-2"}, {Contents: "custom"}, {Contents: "some:version", Color: color.New(color.FgCyan)}},
 						{{Contents: "job-1"}, {Contents: "no"}, {Contents: "succeeded"}, {Contents: "started"}},
