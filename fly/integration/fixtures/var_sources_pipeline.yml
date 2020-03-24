@@ -1,0 +1,27 @@
+---
+var_sources:
+- name: some-vault
+  type: vault
+  config:
+    url: http://vault
+    path_prefix: some-prefix
+    client_token: some-token
+
+- name: vs-dummy
+  type: dummy
+  config:
+    vars:
+      k1: v1
+
+resources:
+- name: some-resource
+  type: some-type
+  source:
+    private_key: ((some-vault:large-string-param))
+    config-a: ((some-vault:param-a))
+    config-b: ((vs-dummy:param-b))
+
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource
