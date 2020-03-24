@@ -634,6 +634,7 @@ func (p *pipeline) Unpause() error {
 func (p *pipeline) Archive() error {
 	_, err := psql.Update("pipelines").
 		Set("archived", true).
+		Set("paused", true).
 		Where(sq.Eq{
 			"id": p.id,
 		}).

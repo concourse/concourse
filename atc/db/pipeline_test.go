@@ -220,11 +220,21 @@ var _ = Describe("Pipeline", func() {
 	Describe("Archive", func() {
 		JustBeforeEach(func() {
 			pipeline.Archive()
+			pipeline.Reload()
 		})
 
 		It("archives the pipeline", func() {
-			pipeline.Reload()
 			Expect(pipeline.Archived()).To(BeTrue(), "pipeline was not archived")
+		})
+
+		Context("when the pipeline is unpaused", func() {
+			BeforeEach(func() {
+				pipeline.Unpause()
+			})
+
+			It("pauses the pipeline", func() {
+				Expect(pipeline.Paused()).To(BeTrue(), "pipeline was not paused")
+			})
 		})
 	})
 
