@@ -539,7 +539,7 @@ function createGraph(svg, jobs, resources) {
   return graph;
 }
 
-function addIcon(iconName, nodeId) {
+export function addIcon(iconName, nodeId) {
   iconsModulePromise.then(icons => {
     var id = nodeId + "-svg-icon";
     if (document.getElementById(id) === null) {
@@ -547,9 +547,21 @@ function addIcon(iconName, nodeId) {
       var template = document.createElement('template');
       template.innerHTML = svg;
       var icon = template.content.firstChild;
-      document.getElementById("icon-store").appendChild(icon)
+      var iconStore = document.getElementById("icon-store");
+      if (iconStore == null) {
+        iconStore = createIconStore();
+      }
+      iconStore.appendChild(icon)
     }
   })
+}
+
+function createIconStore() {
+  const iconStore = document.createElement('div');
+  iconStore.id = "icon-store";
+  iconStore.style.display = "none";
+  document.body.appendChild(iconStore);
+  return iconStore;
 }
 
 function groupNode(name) {
