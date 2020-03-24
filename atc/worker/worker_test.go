@@ -696,6 +696,28 @@ var _ = Describe("Worker", func() {
 					Expect(satisfies).To(BeFalse())
 				})
 			})
+
+			Context("when empty tag is specified", func() {
+				BeforeEach(func() {
+					spec.Tags = []string{""}
+				})
+
+				Context("and the worker has no tag", func() {
+					BeforeEach(func(){
+						tags = []string{}
+					})
+
+					It("returns true", func() {
+						Expect(satisfies).To(BeTrue())
+					})
+				})
+
+				Context("and the worker has tags", func() {
+					It("returns false", func() {
+						Expect(satisfies).To(BeFalse())
+					})
+				})
+			})
 		})
 
 		Context("when the platform is incompatible", func() {

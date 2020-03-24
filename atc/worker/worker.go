@@ -752,6 +752,15 @@ func (worker *gardenWorker) Uptime() time.Duration {
 }
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {
+	// Ignore empty tag, so that [""] equals to [].
+	t := []string{}
+	for _, stag := range tags {
+		if len(strings.TrimSpace(stag)) > 0 {
+			t = append(t, stag)
+		}
+	}
+	tags = t
+
 	workerTags := worker.dbWorker.Tags()
 	if len(workerTags) > 0 && len(tags) == 0 {
 		return false
