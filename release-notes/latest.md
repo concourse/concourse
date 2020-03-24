@@ -220,6 +220,18 @@ moving on to the next big thing.
   documentation](https://concourse-ci.org/metrics.html) and update your
   dashboards accordingly!
 
+#### <sub><sup><a name="removed-riemann" href="#removed-riemann">:link:</a></sup></sub> breaking
+
+* We have removed support for emitting metrics to Riemann.
+
+  In the early days, Riemann gave us hope of only having to support a single
+  metrics sink. That world didn't really pan out.
+
+  We're now trying to standardize on OpenTelemetry, and pull-style metrics
+  (i.e. Prometheus) rather than push, which means we'll be slowly transitioning
+  away from our current support of many-different-metrics-sinks as it is a bit
+  of a maintenance nightmare.
+
 #### <sub><sup><a name="413" href="#413">:link:</a></sup></sub> feature
 
 * #413. We finally did it.
