@@ -50,6 +50,7 @@ type FlyCommand struct {
 	GetPipeline      GetPipelineCommand      `command:"get-pipeline"        alias:"gp"   description:"Get a pipeline's current configuration"`
 	SetPipeline      SetPipelineCommand      `command:"set-pipeline"        alias:"sp"   description:"Create or update a pipeline's configuration"`
 	PausePipeline    PausePipelineCommand    `command:"pause-pipeline"      alias:"pp"   description:"Pause a pipeline"`
+	ArchivePipeline  ArchivePipelineCommand  `command:"archive-pipeline"    alias:"ap"   description:"Archive a pipeline"`
 	UnpausePipeline  UnpausePipelineCommand  `command:"unpause-pipeline"    alias:"up"   description:"Un-pause a pipeline"`
 	ExposePipeline   ExposePipelineCommand   `command:"expose-pipeline"     alias:"ep"   description:"Make a pipeline publicly viewable"`
 	HidePipeline     HidePipelineCommand     `command:"hide-pipeline"       alias:"hp"   description:"Hide a pipeline from the public"`
