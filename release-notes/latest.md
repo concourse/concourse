@@ -232,6 +232,10 @@ moving on to the next big thing.
   away from our current support of many-different-metrics-sinks as it is a bit
   of a maintenance nightmare.
 
+#### <sub><sup><a name="5313" href="#5313">:link:</a></sup></sub> fix, security
+
+* Fix an edge case of [CVE-2018-15798](https://www.cvedetails.com/cve/CVE-2018-15798/) where redirect URI during login flow could be embedded with a malicious host.
+
 #### <sub><sup><a name="413" href="#413">:link:</a></sup></sub> feature
 
 * #413. We finally did it.
