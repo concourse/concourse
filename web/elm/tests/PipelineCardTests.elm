@@ -1360,7 +1360,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = "ic-cached-grey.svg"
+                                        , image = PipelineStatusUnknown |> Assets.PipelineStatusIcon
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
