@@ -102,5 +102,19 @@ var _ = Describe("Fly CLI", func() {
 
 			Expect(sess.Err).To(gbytes.Say("configuration invalid"))
 		})
+
+		It("returns valid on a pipeline that contains var_sources", func() {
+			flyCmd := exec.Command(
+				flyPath,
+				"validate-pipeline",
+				"-c", "fixtures/var_sources_pipeline.yml",
+			)
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+		})
 	})
 })
