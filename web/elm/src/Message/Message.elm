@@ -51,6 +51,7 @@ type DomID
     | PreviousPageButton
     | NextPageButton
     | CheckButton Bool
+    | EditButton
     | SaveCommentButton
     | FirstOccurrenceGetStepLabel StepID
     | StepState StepID

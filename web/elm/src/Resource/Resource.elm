@@ -120,6 +120,7 @@ init flags =
             , textAreaFocused = False
             , isUserMenuExpanded = False
             , icon = Nothing
+            , isEditing = False
             }
     in
     ( model
@@ -1182,9 +1183,10 @@ commentBar :
             | pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
             , pinCommentLoading : Bool
+            , isEditing : Bool
         }
     -> Html Message
-commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommentLoading } =
+commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEditing } =
     case pinnedVersion of
         PinnedDynamicallyTo commentState v ->
             let
@@ -1203,53 +1205,39 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
             in
             Html.div
                 (id "comment-bar" :: Resource.Styles.commentBar isPinned)
-                [ Html.div Resource.Styles.commentBarContent <|
-                    [ Html.div
-                        (id "icon-container" :: Resource.Styles.commentBarIconContainer)
-                        [ Icon.icon
-                            { sizePx = 17
-                            , image = Assets.MessageIcon
-                            }
-                            Resource.Styles.commentBarMessageIcon
-                        , Html.pre
-                            (Resource.Styles.commentText
-                                ++ [ Html.Attributes.attribute "contenteditable" "true" ]
-                            )
-                            [ Html.text commentState.pristineComment ]
-                        , if
-                            UserState.isMember
-                                { teamName = resourceIdentifier.teamName
-                                , userState = userState
-                                }
-                          then
-                            saveButton commentState pinCommentLoading hovered
-
-                          else
-                            Html.div [] []
-                        ]
+                [ Html.div
+                    (id "icon-container" :: Resource.Styles.commentBarIconContainer isEditing)
+                    [ Icon.icon
+                        { sizePx = 25
+                        , image = Assets.MessageIcon
+                        }
+                        Resource.Styles.commentBarMessageIcon
+                    , Html.pre
+                        (Resource.Styles.commentText
+                            ++ [ Html.Attributes.contenteditable True ]
+                        )
+                        [ Html.text commentState.pristineComment ]
+                    , editButton session
                     ]
                 ]
 
-        -- ]
-        -- in
-        -- if
-        --     UserState.isMember
-        --         { teamName = resourceIdentifier.teamName
-        --         , userState = userState
-        --         }
-        --     [ commentBarHeader
-        --     , Html.textarea
-        --         ([ onInput EditComment
-        --          , value commentState.comment
-        --          , placeholder "enter a comment"
-        --          , onFocus FocusTextArea
-        --          , onBlur BlurTextArea
-        --          ]
-        --             ++ Resource.Styles.commentTextArea
-        --         )
-        --         []
         _ ->
             Html.text ""
+
+
+editButton : { a | hovered : HoverState.HoverState } -> Html Message
+editButton session =
+    Icon.icon
+        { sizePx = 25
+        , image = "pencil-24px.svg"
+        }
+        ([ id "edit-button"
+         , onMouseEnter <| Hover <| Just EditButton
+         , onMouseLeave <| Hover Nothing
+         , onClick <| Click EditButton
+         ]
+            ++ Resource.Styles.editButton (HoverState.isHovered EditButton session.hovered)
+        )
 
 
 saveButton :
@@ -1295,6 +1283,7 @@ pinTools :
             | pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
             , pinCommentLoading : Bool
+            , isEditing : Bool
         }
     -> Html Message
 pinTools session model =
