@@ -1205,21 +1205,67 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                 (id "comment-bar" :: Resource.Styles.commentBar isPinned)
                 [ Html.div Resource.Styles.commentBarContent <|
                     [ Html.div
-                        Resource.Styles.commentBarIconContainer
+                        (id "icon-container" :: Resource.Styles.commentBarIconContainer)
                         [ Icon.icon
                             { sizePx = 17
                             , image = Assets.MessageIcon
                             }
                             Resource.Styles.commentBarMessageIcon
                         , Html.pre
-                            Resource.Styles.commentText
+                            (Resource.Styles.commentText)
                             [ Html.text commentState.pristineComment ]
+                        , if
+                            UserState.isMember
+                                { teamName = resourceIdentifier.teamName
+                                , userState = userState
+                                }
+                          then
+                            saveButton commentState pinCommentLoading hovered
+
+                          else
+                            Html.div [] []
                         ]
                     ]
                 ]
 
         _ ->
             Html.text ""
+
+
+saveButton :
+    { s | comment : String, pristineComment : String }
+    -> Bool
+    -> HoverState.HoverState
+    -> Html Message
+saveButton commentState pinCommentLoading hovered =
+    Html.button
+        (let
+            commentChanged =
+                commentState.comment
+                    /= commentState.pristineComment
+         in
+         [ onMouseEnter <| Hover <| Just SaveCommentButton
+         , onMouseLeave <| Hover Nothing
+         , onClick <| Click SaveCommentButton
+         ]
+            ++ Resource.Styles.commentSaveButton
+                { isHovered =
+                    not pinCommentLoading
+                        && commentChanged
+                        && HoverState.isHovered SaveCommentButton hovered
+                , commentChanged = commentChanged
+                }
+        )
+        (if pinCommentLoading then
+            [ Spinner.spinner
+                { sizePx = 12
+                , margin = "0"
+                }
+            ]
+
+         else
+            [ Html.text "save" ]
+        )
 
 
 pinTools :
