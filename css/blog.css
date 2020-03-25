@@ -24,13 +24,15 @@ body {
   background-color: #1e1d1d;
   color: white;
   font-family: 'Roboto Slab', serif;
-  font-weight: bold;
 }
 .top-banner .banner-text {
   max-width: 1100px;
   margin: 0 auto;
   padding: 10px 0;
   text-align: center;
+}
+.top-banner a {
+  font-weight: bold;
 }
 .top-banner a,
 .top-banner a:visited {
@@ -41,6 +43,8 @@ body {
 }
 .body-content {
   background: white;
+  max-width: 860px;
+  flex-grow: 1;
 }
 .page-body {
   max-width: 1100px;
