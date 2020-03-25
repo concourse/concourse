@@ -120,6 +120,7 @@ init flags =
             , textAreaFocused = False
             , isUserMenuExpanded = False
             , icon = Nothing
+            , isEditing = False
             }
     in
     ( model
@@ -1182,9 +1183,10 @@ commentBar :
             | pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
             , pinCommentLoading : Bool
+            , isEditing : Bool
         }
     -> Html Message
-commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommentLoading } =
+commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEditing } =
     case pinnedVersion of
         PinnedDynamicallyTo commentState v ->
             let
@@ -1207,7 +1209,7 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                     [ Html.div
                         (id "icon-container" :: Resource.Styles.commentBarIconContainer)
                         [ Icon.icon
-                            { sizePx = 17
+                            { sizePx = 25
                             , image = Assets.MessageIcon
                             }
                             Resource.Styles.commentBarMessageIcon
@@ -1230,6 +1232,21 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
 
         _ ->
             Html.text ""
+
+
+editButton : { a | hovered : HoverState.HoverState } -> Html Message
+editButton session =
+    Icon.icon
+        { sizePx = 25
+        , image = "pencil-24px.svg"
+        }
+        ([ id "edit-button"
+         , onMouseEnter <| Hover <| Just EditButton
+         , onMouseLeave <| Hover Nothing
+         , onClick <| Click EditButton
+         ]
+            ++ Resource.Styles.editButton (HoverState.isHovered EditButton session.hovered)
+        )
 
 
 saveButton :
@@ -1275,6 +1292,7 @@ pinTools :
             | pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
             , pinCommentLoading : Bool
+            , isEditing : Bool
         }
     -> Html Message
 pinTools session model =

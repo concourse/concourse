@@ -5,12 +5,12 @@ module Resource.Styles exposing
     , checkButtonIcon
     , checkStatusIcon
     , commentBar
-    , commentBarContent
     , commentBarIconContainer
     , commentBarMessageIcon
     , commentSaveButton
     , commentText
     , commentTextArea
+    , editButton
     , enabledCheckbox
     , headerBar
     , headerHeight
@@ -244,17 +244,10 @@ commentBar isPinned =
     ]
 
 
-commentBarContent : List (Html.Attribute msg)
-commentBarContent =
-    [ style "display" "flex"
-    , style "flex-direction" "column"
-    ]
-
-
 commentBarMessageIcon : List (Html.Attribute msg)
 commentBarMessageIcon =
     [ style "background-size" "contain"
-    , style "margin" "4px 10px"
+    , style "margin" "10px"
     , style "flex-shrink" "0"
     ]
 
@@ -279,6 +272,8 @@ commentText : List (Html.Attribute msg)
 commentText =
     [ style "flex-grow" "1"
     , style "margin" "0"
+    , style "outline" "0"
+    , style "padding" "10px 0"
     ]
 
 
@@ -315,10 +310,30 @@ commentSaveButton { commentChanged, isHovered } =
     ]
 
 
-commentBarIconContainer : List (Html.Attribute msg)
-commentBarIconContainer =
+commentBarIconContainer : Bool -> List (Html.Attribute msg)
+commentBarIconContainer isEditing =
     [ style "display" "flex"
-    , style "align-items" "center"
+    , style "align-items" "flex-start"
+    , style "flex-grow" "1"
+    , style "background-color" <|
+        if isEditing then
+            Colors.pinned
+
+        else
+            Colors.pinTools
+    ]
+
+
+editButton : Bool -> List (Html.Attribute msg)
+editButton isHovered =
+    [ style "padding" "5px"
+    , style "cursor" "pointer"
+    , style "background-color" <|
+        if isHovered then
+            Colors.sectionHeader
+
+        else
+            Colors.pinTools
     ]
 
 

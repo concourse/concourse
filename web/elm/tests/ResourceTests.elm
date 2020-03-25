@@ -1664,113 +1664,138 @@ all =
                         pinCommentBar
                             |> Query.has
                                 [ style "flex" "1" ]
-                , describe "contents" <|
+                , describe "has an icon container" <|
                     let
-                        contents : Application.Model -> Query.Single Msgs.TopLevelMessage
-                        contents =
+                        iconContainer : Application.Model -> Query.Single Msgs.TopLevelMessage
+                        iconContainer =
                             commentBar >> Query.children [] >> Query.first
                     in
-                    [ test "lays out vertically and left-aligned" <|
+                    [ test "lays out children horizontally" <|
                         \_ ->
                             init
                                 |> givenResourcePinnedWithComment
-                                |> contents
-                                |> Query.has
-                                    [ style "display" "flex"
-                                    , style "flex-direction" "column"
-                                    ]
-                    , describe "has a content container" <|
+                                |> iconContainer
+                                |> Query.has [ style "display" "flex", style "flex-grow" "1" ]
+                    , test "icons align on top of the icon container" <|
+                        \_ ->
+                            init
+                                |> givenResourcePinnedWithComment
+                                |> iconContainer
+                                |> Query.has [ style "align-items" "flex-start" ]
+                    , test "icon div has message icon" <|
                         let
-                            contentContainer : Application.Model -> Query.Single Msgs.TopLevelMessage
-                            contentContainer =
-                                contents >> Query.children [] >> Query.first
-                        in
-                        [ test "lays out children horizontally" <|
-                            \_ ->
-                                init
-                                    |> givenResourcePinnedWithComment
-                                    |> contentContainer
-                                    |> Query.has
-                                        [ style "display" "flex"
-                                        , style "align-items" "center"
-                                        ]
-                        , test "has two children" <|
-                            \_ ->
-                                init
-                                    |> givenResourcePinnedWithComment
-                                    |> contentContainer
-                                    |> Query.children []
-                                    |> Query.count (Expect.equal 2)
-                        , test "icon div has message icon" <|
-                            let
-                                iconDiv : Application.Model -> Query.Single Msgs.TopLevelMessage
-                                iconDiv =
-                                    contentContainer >> Query.children [] >> Query.first
+                            iconDiv : Application.Model -> Query.Single Msgs.TopLevelMessage
+                            iconDiv =
+                                iconContainer >> Query.children [] >> Query.first
 
-                                messageIcon =
-                                    "baseline-message.svg"
-                            in
-                            \_ ->
+                            messageIcon =
+                                "baseline-message.svg"
+                        in
+                        \_ ->
+                            init
+                                |> givenResourcePinnedWithComment
+                                |> iconDiv
+                                |> Query.has
+                                    [ style "background-image" <|
+                                        "url(/public/images/"
+                                            ++ messageIcon
+                                            ++ ")"
+                                    , style "background-size" "contain"
+                                    , style "background-position" "50% 50%"
+                                    , style "background-repeat" "no-repeat"
+                                    , style "width" "25px"
+                                    , style "height" "25px"
+                                    , style "margin" "10px"
+                                    ]
+                    , describe "comment pre" <|
+                        let
+                            commentPre : Query.Single Msgs.TopLevelMessage
+                            commentPre =
                                 init
                                     |> givenResourcePinnedWithComment
-                                    |> iconDiv
-                                    |> Query.has
-                                        [ style "background-image" <|
-                                            "url(/public/images/"
-                                                ++ messageIcon
-                                                ++ ")"
-                                        , style "background-size" "contain"
-                                        , style "background-position" "50% 50%"
-                                        , style "background-repeat" "no-repeat"
-                                        , style "width" "17px"
-                                        , style "height" "17px"
-                                        , style "margin" "4px 10px"
-                                        ]
-                        , describe "comment pre" <|
-                            let
-                                commentPre : Application.Model -> Query.Single Msgs.TopLevelMessage
-                                commentPre =
-                                    contentContainer >> Query.children [] >> Query.index 1
-                            in
-                            [ test "displays inline and has vertical scroll on overflow" <|
-                                \_ ->
-                                    init
-                                        |> givenResourcePinnedWithComment
-                                        |> contentContainer
-                                        |> Query.find [ tag "pre" ]
-                                        |> Query.has
-                                            [ style "flex-grow" "1"
-                                            , style "overflow-y" "auto"
-                                            , style "margin" "0"
-                                            ]
-                            , test "pre contains the comment" <|
-                                \_ ->
-                                    init
-                                        |> givenResourcePinnedWithComment
-                                        |> commentBar
-                                        |> Query.find [ tag "pre" ]
-                                        |> Query.has [ text "some pin comment" ]
-                            ]
+                                    |> iconContainer
+                                    |> Query.children []
+                                    |> Query.index 1
+                        in
+                        [ test "displays inline and grows to fill available space" <|
+                            \_ ->
+                                commentPre |> Query.has [ style "flex-grow" "1", style "margin" "0" ]
+                        , test "pre contains the comment" <|
+                            \_ ->
+                                commentPre |> Query.has [ text "some pin comment" ]
+                        , test "has editable content" <|
+                            \_ ->
+                                commentPre |> Query.has [ attribute <| Attr.contenteditable True ]
+                        , test "has no default outline" <|
+                            \_ ->
+                                commentPre |> Query.has [ style "outline" "0" ]
+                        , test "has vertical padding" <|
+                            \_ ->
+                                commentPre |> Query.has [ style "padding" "10px 0" ]
                         ]
-                    , describe "when unauthenticated"
-                        [ test "comment editing is disabled" <|
+                    , describe "edit button" <|
+                        let
+                            editButton =
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> iconContainer
+                                    |> Query.find [ id "edit-button" ]
+                        in
+                        [ test "edit button is on the far right" <|
                             \_ ->
                                 init
                                     |> givenResourcePinnedWithComment
-                                    |> commentBar
-                                    |> Query.find [ tag "pre" ]
-                                    |> Query.hasNot
-                                        [ tag "button" ]
-                        ]
-                    , describe "when authorized" <|
-                        [ test "comment bar displays a edit button" <|
+                                    |> iconContainer
+                                    |> Query.children []
+                                    |> Query.index -1
+                                    |> Query.has [ id "edit-button" ]
+                        , test "has the pencil icon" <|
+                            \_ ->
+                                editButton
+                                    |> Query.has (iconSelector { size = "25px", image = "pencil-24px.svg" })
+                        , test "has padding of 5 px" <|
+                            \_ ->
+                                editButton
+                                    |> Query.has [ style "padding" "5px" ]
+                        , test "has a pointer cursor" <|
+                            \_ ->
+                                editButton
+                                    |> Query.has [ style "cursor" "pointer" ]
+                        , defineHoverBehaviour
+                            { name = "edit button"
+                            , setup = init |> givenResourcePinnedWithComment
+                            , query = iconContainer >> Query.find [ id "edit-button" ]
+                            , unhoveredSelector =
+                                { description = "transparent background"
+                                , selector = []
+                                }
+                            , hoverable = Message.Message.EditButton
+                            , hoveredSelector =
+                                { description = "dark background"
+                                , selector =
+                                    [ style "background-color" almostBlack ]
+                                }
+                            }
+                        , test "has a click handler" <|
+                            \_ ->
+                                editButton
+                                    |> Event.simulate Event.click
+                                    |> Event.expect
+                                        (Msgs.Update <|
+                                            Message.Message.Click <|
+                                                Message.Message.EditButton
+                                        )
+                        , test "after clicking on edit button, the background turns purple" <|
                             \_ ->
                                 init
                                     |> givenResourcePinnedWithComment
-                                    |> commentBar
-                                    |> Query.find [ tag "pre" ]
-                                    |> Query.has
-                                        [ tag "button" ]
+                                    |> update
+                                        (Message.Message.Click <|
+                                            Message.Message.EditButton
+                                        )
+                                    |> Tuple.first
+                                    |> iconContainer
+                                    |> Query.has [ style "background-color" purpleHex ]
                         ]
                     ]
                 ]
