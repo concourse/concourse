@@ -3,9 +3,9 @@
   {{range .Top.Children}}
   <a class="top-link{{if .Contains $}} active{{end}}" href="{{.PrimaryTag | url}}">{{.Title | stripAux | render}}</a>
   {{end}}
+  <a class="top-link" href="https://resource-types.concourse-ci.org">Resource Types</a>
   <a class="top-link" href="https://blog.concourse-ci.org">blog</a>
   <a class="top-link" href="https://discuss.concourse-ci.org">discuss</a>
-  <a class="top-link" href="https://resource-types.concourse-ci.org">Resource Types</a>
 
   <div id="search"></div>
 
