@@ -1,8 +1,10 @@
 module PipelineTests exposing (all)
 
 import Application.Application as Application
+import Assets
 import Char
 import Common exposing (defineHoverBehaviour)
+import Concourse.Cli exposing (Cli(..))
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
@@ -322,7 +324,9 @@ all =
                         |> Expect.all
                             [ Query.index 0
                                 >> Query.has
-                                    [ style "background-image" "url(/public/images/apple-logo.svg)"
+                                    [ style "background-image" <|
+                                        Assets.backgroundImage <|
+                                            Just (Assets.CliIcon OSX)
                                     , style "background-position" "50% 50%"
                                     , style "background-repeat" "no-repeat"
                                     , style "width" "12px"
@@ -332,7 +336,9 @@ all =
                                     ]
                             , Query.index 1
                                 >> Query.has
-                                    [ style "background-image" "url(/public/images/windows-logo.svg)"
+                                    [ style "background-image" <|
+                                        Assets.backgroundImage <|
+                                            Just (Assets.CliIcon Windows)
                                     , style "background-position" "50% 50%"
                                     , style "background-repeat" "no-repeat"
                                     , style "width" "12px"
@@ -342,7 +348,9 @@ all =
                                     ]
                             , Query.index 2
                                 >> Query.has
-                                    [ style "background-image" "url(/public/images/linux-logo.svg)"
+                                    [ style "background-image" <|
+                                        Assets.backgroundImage <|
+                                            Just (Assets.CliIcon Linux)
                                     , style "background-position" "50% 50%"
                                     , style "background-repeat" "no-repeat"
                                     , style "width" "12px"
@@ -468,8 +476,9 @@ all =
                         >> Query.children []
                         >> Query.index 1
                         >> Query.has
-                            [ style "background-image"
-                                "url(/public/images/concourse-logo-white.svg)"
+                            [ style "background-image" <|
+                                Assets.backgroundImage <|
+                                    Just Assets.ConcourseLogoWhite
                             , style "background-position" "50% 50%"
                             , style "background-repeat" "no-repeat"
                             , style "background-size" "42px 42px"
@@ -480,8 +489,9 @@ all =
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.find
-                            [ style "background-image"
-                                "url(/public/images/concourse-logo-white.svg)"
+                            [ style "background-image" <|
+                                Assets.backgroundImage <|
+                                    Just Assets.ConcourseLogoWhite
                             ]
                         >> Query.has [ tag "a", attribute <| Attr.href "/" ]
                 ]
@@ -596,21 +606,27 @@ pinBadgeSelector =
 
 pipelineBreadcrumbSelector : List Selector.Selector
 pipelineBreadcrumbSelector =
-    [ style "background-image" "url(/public/images/ic-breadcrumb-pipeline.svg)"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
     , style "background-repeat" "no-repeat"
     ]
 
 
 jobBreadcrumbSelector : List Selector.Selector
 jobBreadcrumbSelector =
-    [ style "background-image" "url(/public/images/ic-breadcrumb-job.svg)"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.BreadcrumbIcon Assets.JobComponent)
     , style "background-repeat" "no-repeat"
     ]
 
 
 resourceBreadcrumbSelector : List Selector.Selector
 resourceBreadcrumbSelector =
-    [ style "background-image" "url(/public/images/ic-breadcrumb-resource.svg)"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.BreadcrumbIcon Assets.ResourceComponent)
     , style "background-repeat" "no-repeat"
     ]
 

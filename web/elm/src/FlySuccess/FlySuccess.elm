@@ -7,6 +7,7 @@ module FlySuccess.FlySuccess exposing
     , view
     )
 
+import Assets
 import EffectTransformer exposing (ET)
 import FlySuccess.Models as Models exposing (ButtonState(..), Model, hover)
 import FlySuccess.Styles as Styles
@@ -206,7 +207,7 @@ copyTokenButton { authToken, copyTokenButtonState } =
         )
         [ Icon.icon
             { sizePx = 20
-            , image = "clippy.svg"
+            , image = Assets.ClippyIcon
             }
             [ id "copy-icon"
             , style "margin-right" "5px"

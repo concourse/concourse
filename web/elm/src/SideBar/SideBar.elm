@@ -7,6 +7,7 @@ module SideBar.SideBar exposing
     , view
     )
 
+import Assets
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
@@ -197,7 +198,7 @@ hamburgerMenu model =
                    )
             )
             [ Icon.icon
-                { sizePx = 54, image = "baseline-menu-24px.svg" }
+                { sizePx = 54, image = Assets.HamburgerMenuIcon }
               <|
                 (Styles.hamburgerIcon <|
                     { isHovered =

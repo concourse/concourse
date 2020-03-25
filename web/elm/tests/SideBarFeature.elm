@@ -1,6 +1,7 @@
 module SideBarFeature exposing (all)
 
 import Application.Application as Application
+import Assets
 import Base64
 import Colors
 import Common
@@ -680,7 +681,7 @@ iSeeAHamburgerIcon =
     Query.has
         (DashboardTests.iconSelector
             { size = hamburgerIconWidth
-            , image = "baseline-menu-24px.svg"
+            , image = Assets.HamburgerMenuIcon
             }
         )
 
@@ -801,7 +802,7 @@ iSeeNoHamburgerIcon =
     Query.hasNot
         (DashboardTests.iconSelector
             { size = hamburgerIconWidth
-            , image = "baseline-menu-24px.svg"
+            , image = Assets.HamburgerMenuIcon
             }
         )
 
@@ -902,7 +903,7 @@ iSeeAPictureOfTwoPeople =
     Query.has
         (DashboardTests.iconSelector
             { size = "20px"
-            , image = "baseline-people-24px.svg"
+            , image = Assets.PeopleIcon
             }
         )
 
@@ -915,7 +916,7 @@ iSeeARightPointingArrow =
     Query.has
         (DashboardTests.iconSelector
             { size = "12px"
-            , image = "baseline-keyboard-arrow-right-24px.svg"
+            , image = Assets.KeyboardArrowRight
             }
         )
 
@@ -995,7 +996,7 @@ iSeeADownPointingArrow =
     Query.has
         (DashboardTests.iconSelector
             { size = "12px"
-            , image = "baseline-keyboard-arrow-down-24px.svg"
+            , image = Assets.KeyboardArrowDown
             }
         )
 
@@ -1116,8 +1117,9 @@ iAmLookingAtTheFirstPipelineIcon =
 
 iSeeAPipelineIcon =
     Query.has
-        [ style "background-image"
-            "url(/public/images/ic-breadcrumb-pipeline.svg)"
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
         , style "background-repeat" "no-repeat"
         , style "height" "16px"
         , style "width" "32px"
@@ -1268,7 +1270,7 @@ iDoNotSeeAHamburgerIcon =
     Query.hasNot
         (DashboardTests.iconSelector
             { size = hamburgerIconWidth
-            , image = "baseline-menu-24px.svg"
+            , image = Assets.HamburgerMenuIcon
             }
         )
 
@@ -1650,7 +1652,7 @@ iSeeAHamburgerMenu =
     Query.has
         (DashboardTests.iconSelector
             { size = "54px"
-            , image = "baseline-menu-24px.svg"
+            , image = Assets.HamburgerMenuIcon
             }
         )
 

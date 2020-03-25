@@ -2,6 +2,7 @@ module BuildTests exposing (all)
 
 import Application.Application as Application
 import Array
+import Assets
 import Build.Build as Build
 import Build.Models as Models
 import Build.StepTree.Models as STModels
@@ -1293,8 +1294,9 @@ all =
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
-                            [ style "background-image"
-                                "url(/public/images/concourse-logo-white.svg)"
+                            [ style "background-image" <|
+                                Assets.backgroundImage <|
+                                    Just Assets.ConcourseLogoWhite
                             ]
             , test "has the breadcrumbs" <|
                 \_ ->
@@ -2200,7 +2202,7 @@ all =
                         >> Query.has
                             (iconSelector
                                 { size = "40px"
-                                , image = "ic-add-circle-outline-white.svg"
+                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                             )
                 ]
@@ -2237,7 +2239,7 @@ all =
                         , selector =
                             iconSelector
                                 { size = "40px"
-                                , image = "ic-add-circle-outline-white.svg"
+                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                         }
                     , hoveredSelector =
@@ -2251,7 +2253,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "40px"
-                                    , image = "ic-add-circle-outline-white.svg"
+                                    , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                     }
                             ]
                         }
@@ -2351,7 +2353,7 @@ all =
                     >> Query.has
                         (iconSelector
                             { size = "40px"
-                            , image = "ic-abort-circle-outline-white.svg"
+                            , image = Assets.AbortCircleIcon |> Assets.CircleOutlineIcon
                             }
                         )
             , describe "build prep section"
@@ -2367,7 +2369,7 @@ all =
                             }
 
                         icon =
-                            "url(/public/images/ic-not-blocking-check.svg)"
+                            Assets.backgroundImage <| Just Assets.NotBlockingCheckIcon
                     in
                     givenBuildStarted
                         >> Tuple.first
@@ -3001,7 +3003,7 @@ all =
                         >> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-success-check.svg"
+                                , image = Assets.SuccessCheckIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
@@ -3015,7 +3017,7 @@ all =
                         >> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-pending.svg"
+                                , image = Assets.PendingIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
@@ -3042,7 +3044,7 @@ all =
                         >> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-success-check.svg"
+                                , image = Assets.SuccessCheckIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
@@ -3073,7 +3075,7 @@ all =
                         >> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-success-check.svg"
+                                , image = Assets.SuccessCheckIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
@@ -3351,7 +3353,7 @@ all =
                         >> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-pending.svg"
+                                , image = Assets.PendingIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
@@ -3384,7 +3386,7 @@ all =
                         >> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-interrupted.svg"
+                                , image = Assets.InterruptedIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
@@ -3409,7 +3411,7 @@ all =
                         >> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-cancelled.svg"
+                                , image = Assets.CancelledIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
@@ -3437,7 +3439,7 @@ all =
                         >> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-failure-times.svg"
+                                , image = Assets.FailureTimesIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
@@ -3463,7 +3465,7 @@ all =
                         >> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-exclamation-triangle.svg"
+                                , image = Assets.ExclamationTriangleIcon
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
@@ -3535,7 +3537,7 @@ all =
                 , test "network error on first event shows passport officer" <|
                     let
                         imgUrl =
-                            "/public/images/passport-officer-ic.svg"
+                            Assets.toString Assets.PassportOfficerIcon
                     in
                     fetchPlanWithGetStep
                         >> Application.handleDelivery

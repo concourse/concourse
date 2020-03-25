@@ -1,6 +1,7 @@
 module FlySuccessFeature exposing (all)
 
 import Application.Application as Application
+import Assets
 import Common exposing (defineHoverBehaviour, queryView)
 import DashboardTests exposing (iconSelector)
 import Expect exposing (Expectation)
@@ -706,7 +707,7 @@ iconStyle : Property
 iconStyle =
     property copyTokenButtonIcon "has clipboard icon" <|
         Query.has <|
-            iconSelector { size = "20px", image = "clippy.svg" }
+            iconSelector { size = "20px", image = Assets.ClippyIcon }
 
 
 iconPosition : Property

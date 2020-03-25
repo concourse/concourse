@@ -28,6 +28,7 @@ module Resource.Styles exposing
     , versionHeader
     )
 
+import Assets
 import Colors
 import Html
 import Html.Attributes exposing (style)
@@ -128,15 +129,16 @@ enabledCheckbox { enabled, pinState } =
     , style "border" <| "1px solid " ++ borderColor pinState
     , style "background-color" Colors.sectionHeader
     , style "background-image" <|
-        case enabled of
-            Models.Enabled ->
-                "url(/public/images/checkmark-ic.svg)"
+        Assets.backgroundImage <|
+            case enabled of
+                Models.Enabled ->
+                    Just Assets.CheckmarkIcon
 
-            Models.Changing ->
-                "none"
+                Models.Changing ->
+                    Nothing
 
-            Models.Disabled ->
-                "none"
+                Models.Disabled ->
+                    Nothing
     ]
 
 
@@ -170,12 +172,13 @@ pinButton pinState =
             Pinned.InTransition ->
                 "default"
     , style "background-image" <|
-        case pinState of
-            Pinned.InTransition ->
-                "none"
+        Assets.backgroundImage <|
+            case pinState of
+                Pinned.InTransition ->
+                    Nothing
 
-            _ ->
-                "url(/public/images/pin-ic-white.svg)"
+                _ ->
+                    Just Assets.PinIconWhite
     ]
 
 

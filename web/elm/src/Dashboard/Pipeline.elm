@@ -5,6 +5,7 @@ module Dashboard.Pipeline exposing
     , pipelineView
     )
 
+import Assets
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
@@ -20,6 +21,7 @@ import Message.Message exposing (DomID(..), Message(..))
 import Routes
 import Time
 import UserState exposing (UserState)
+import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
 import Views.Spinner as Spinner
 import Views.Styles
@@ -275,7 +277,9 @@ footerView userState pipeline now hovered existingJobs isCached =
         (class "card-footer" :: Styles.pipelineCardFooter)
         [ Html.div
             [ style "display" "flex" ]
-            [ PipelineStatus.icon status
+            [ Icon.icon
+                { sizePx = 20, image = Assets.PipelineStatusIcon status }
+                Styles.pipelineStatusIcon
             , transitionView now status
             ]
         , Html.div

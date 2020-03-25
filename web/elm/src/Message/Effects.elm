@@ -9,6 +9,7 @@ port module Message.Effects exposing
 
 import Api
 import Api.Endpoints as Endpoints
+import Assets
 import Base64
 import Browser.Dom exposing (Element, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
@@ -526,7 +527,10 @@ runEffect effect key csrfToken =
                 |> Task.attempt UserFetched
 
         SetFavIcon status ->
-            setFavicon (faviconName status)
+            status
+                |> Assets.BuildFavicon
+                |> Assets.toString
+                |> setFavicon
 
         DoAbortBuild buildId ->
             Api.put (Endpoints.AbortBuild |> Endpoints.Build buildId) csrfToken
@@ -724,13 +728,3 @@ scrollCoords srcId idOfThingToScroll getX getY =
                         Task.fail <|
                             Browser.Dom.NotFound "unexpected number of elements"
             )
-
-
-faviconName : Maybe BuildStatus -> String
-faviconName status =
-    case status of
-        Just bs ->
-            "/public/images/favicon-" ++ Concourse.BuildStatus.show bs ++ ".png"
-
-        Nothing ->
-            "/public/images/favicon.png"

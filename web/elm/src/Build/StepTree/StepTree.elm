@@ -10,6 +10,7 @@ module Build.StepTree.StepTree exposing
 
 import Ansi.Log
 import Array exposing (Array)
+import Assets
 import Build.Models exposing (StepHeaderType(..))
 import Build.StepTree.Models
     exposing
@@ -743,7 +744,7 @@ viewStepState state stepID tooltip =
         StepStatePending ->
             Icon.iconWithTooltip
                 { sizePx = 28
-                , image = "ic-pending.svg"
+                , image = Assets.PendingIcon
                 }
                 (attribute "data-step-state" "pending"
                     :: Styles.stepStatusIcon
@@ -754,7 +755,7 @@ viewStepState state stepID tooltip =
         StepStateInterrupted ->
             Icon.iconWithTooltip
                 { sizePx = 28
-                , image = "ic-interrupted.svg"
+                , image = Assets.InterruptedIcon
                 }
                 (attribute "data-step-state" "interrupted"
                     :: Styles.stepStatusIcon
@@ -765,7 +766,7 @@ viewStepState state stepID tooltip =
         StepStateCancelled ->
             Icon.iconWithTooltip
                 { sizePx = 28
-                , image = "ic-cancelled.svg"
+                , image = Assets.CancelledIcon
                 }
                 (attribute "data-step-state" "cancelled"
                     :: Styles.stepStatusIcon
@@ -776,7 +777,7 @@ viewStepState state stepID tooltip =
         StepStateSucceeded ->
             Icon.iconWithTooltip
                 { sizePx = 28
-                , image = "ic-success-check.svg"
+                , image = Assets.SuccessCheckIcon
                 }
                 (attribute "data-step-state" "succeeded"
                     :: Styles.stepStatusIcon
@@ -787,7 +788,7 @@ viewStepState state stepID tooltip =
         StepStateFailed ->
             Icon.iconWithTooltip
                 { sizePx = 28
-                , image = "ic-failure-times.svg"
+                , image = Assets.FailureTimesIcon
                 }
                 (attribute "data-step-state" "failed"
                     :: Styles.stepStatusIcon
@@ -798,7 +799,7 @@ viewStepState state stepID tooltip =
         StepStateErrored ->
             Icon.iconWithTooltip
                 { sizePx = 28
-                , image = "ic-exclamation-triangle.svg"
+                , image = Assets.ExclamationTriangleIcon
                 }
                 (attribute "data-step-state" "errored"
                     :: Styles.stepStatusIcon

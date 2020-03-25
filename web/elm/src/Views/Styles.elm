@@ -13,6 +13,7 @@ module Views.Styles exposing
     , topBar
     )
 
+import Assets
 import Colors
 import Html
 import Html.Attributes exposing (style)
@@ -100,7 +101,9 @@ topBar isPaused =
 
 concourseLogo : List (Html.Attribute msg)
 concourseLogo =
-    [ style "background-image" "url(/public/images/concourse-logo-white.svg)"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.ConcourseLogoWhite
     , style "background-position" "50% 50%"
     , style "background-repeat" "no-repeat"
     , style "background-size" "42px 42px"
@@ -115,9 +118,12 @@ breadcrumbContainer =
     [ style "flex-grow" "1" ]
 
 
-breadcrumbComponent : String -> List (Html.Attribute msg)
+breadcrumbComponent : Assets.ComponentType -> List (Html.Attribute msg)
 breadcrumbComponent componentType =
-    [ style "background-image" <| "url(/public/images/ic-breadcrumb-" ++ componentType ++ ".svg)"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just <|
+                Assets.BreadcrumbIcon componentType
     , style "background-repeat" "no-repeat"
     , style "background-size" "contain"
     , style "display" "inline-block"

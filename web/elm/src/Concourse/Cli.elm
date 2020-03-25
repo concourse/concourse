@@ -1,4 +1,4 @@
-module Concourse.Cli exposing (Cli(..), clis, downloadUrl, iconUrl, id, label)
+module Concourse.Cli exposing (Cli(..), clis, downloadUrl, id, label)
 
 import Api.Endpoints as Endpoints
 import Url.Builder
@@ -34,23 +34,6 @@ downloadUrl cli =
             [ Url.Builder.string "arch" "amd64"
             , Url.Builder.string "platform" platformName
             ]
-
-
-iconUrl : Cli -> String
-iconUrl cli =
-    let
-        imageName =
-            case cli of
-                OSX ->
-                    "apple"
-
-                Windows ->
-                    "windows"
-
-                Linux ->
-                    "linux"
-    in
-    "url(/public/images/" ++ imageName ++ "-logo.svg)"
 
 
 label : Cli -> String

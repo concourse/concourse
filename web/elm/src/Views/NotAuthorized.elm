@@ -1,5 +1,6 @@
 module Views.NotAuthorized exposing (view)
 
+import Assets
 import Html exposing (Html)
 import Html.Attributes exposing (class, src)
 
@@ -8,7 +9,7 @@ view : Html msg
 view =
     Html.div [ class "not-authorized" ]
         [ Html.img
-            [ src "/public/images/passport-officer-ic.svg" ]
+            [ src <| Assets.toString Assets.PassportOfficerIcon ]
             []
         , Html.div
             [ class "title" ]

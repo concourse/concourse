@@ -27,6 +27,7 @@ module DashboardTests exposing
     )
 
 import Application.Application as Application
+import Assets
 import Common
     exposing
         ( defineHoverBehaviour
@@ -36,6 +37,7 @@ import Common
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Cli as Cli
+import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
@@ -1411,7 +1413,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = "ic-pending-grey.svg"
+                                                    , image = PipelineStatusPending True |> Assets.PipelineStatusIcon
                                                     }
                                                 )
                                         , Query.index 1
@@ -1426,7 +1428,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = "ic-pause-blue.svg"
+                                                    , image = PipelineStatusPaused |> Assets.PipelineStatusIcon
                                                     }
                                                 )
                                         , Query.index 1
@@ -1625,7 +1627,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = "ic-running-legend.svg"
+                                                    , image = Assets.RunningLegend
                                                     }
                                                 )
                                         , Query.index 1
@@ -1698,8 +1700,9 @@ all =
                                 |> Query.children []
                                 |> Query.index 0
                                 |> Query.has
-                                    [ style "background-image"
-                                        "url(/public/images/ic-hd-off.svg)"
+                                    [ style "background-image" <|
+                                        Assets.backgroundImage <|
+                                            Just (Assets.HighDensityIcon False)
                                     , style "background-size" "contain"
                                     , style "height" "20px"
                                     , style "width" "35px"
@@ -1736,8 +1739,9 @@ all =
                                 |> Query.children []
                                 |> Query.index 0
                                 |> Query.has
-                                    [ style "background-image"
-                                        "url(/public/images/ic-hd-on.svg)"
+                                    [ style "background-image" <|
+                                        Assets.backgroundImage <|
+                                            Just (Assets.HighDensityIcon True)
                                     , style "background-size" "contain"
                                     , style "height" "20px"
                                     , style "width" "35px"
@@ -1924,7 +1928,7 @@ all =
                                 , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
-                                        { image = "apple-logo.svg"
+                                        { image = Assets.CliIcon Cli.OSX
                                         , size = "20px"
                                         }
                             }
@@ -1937,7 +1941,7 @@ all =
                                 , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
-                                        { image = "apple-logo.svg"
+                                        { image = Assets.CliIcon Cli.OSX
                                         , size = "20px"
                                         }
                             }
@@ -1972,7 +1976,7 @@ all =
                                 , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
-                                        { image = "windows-logo.svg"
+                                        { image = Assets.CliIcon Cli.Windows
                                         , size = "20px"
                                         }
                             }
@@ -1985,7 +1989,7 @@ all =
                                 , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
-                                        { image = "windows-logo.svg"
+                                        { image = Assets.CliIcon Cli.Windows
                                         , size = "20px"
                                         }
                             }
@@ -2022,7 +2026,7 @@ all =
                                 , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
-                                        { image = "linux-logo.svg"
+                                        { image = Assets.CliIcon Cli.Linux
                                         , size = "20px"
                                         }
                             }
@@ -2035,7 +2039,7 @@ all =
                                 , style "background-size" "contain"
                                 ]
                                     ++ iconSelector
-                                        { image = "linux-logo.svg"
+                                        { image = Assets.CliIcon Cli.Linux
                                         , size = "20px"
                                         }
                             }
@@ -2261,9 +2265,9 @@ csrfToken =
     "csrf_token"
 
 
-iconSelector : { size : String, image : String } -> List Selector
+iconSelector : { size : String, image : Assets.Asset } -> List Selector
 iconSelector { size, image } =
-    [ style "background-image" <| "url(/public/images/" ++ image ++ ")"
+    [ style "background-image" <| Assets.backgroundImage <| Just image
     , style "background-position" "50% 50%"
     , style "background-repeat" "no-repeat"
     , style "width" size

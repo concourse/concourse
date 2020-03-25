@@ -3,11 +3,13 @@ module Concourse.Pagination exposing
     , Page
     , Paginated
     , Pagination
-    , chevron
     , chevronContainer
+    , chevronLeft
+    , chevronRight
     , equal
     )
 
+import Assets
 import Colors
 import Html
 import Html.Attributes exposing (style)
@@ -72,13 +74,13 @@ chevronContainer =
 
 
 chevron :
-    { direction : String, enabled : Bool, hovered : Bool }
+    Assets.Asset
+    -> { enabled : Bool, hovered : Bool }
     -> List (Html.Attribute msg)
-chevron { direction, enabled, hovered } =
+chevron asset { enabled, hovered } =
     [ style "background-image" <|
-        "url(/public/images/baseline-chevron-"
-            ++ direction
-            ++ "-24px.svg)"
+        Assets.backgroundImage <|
+            Just asset
     , style "background-position" "50% 50%"
     , style "background-repeat" "no-repeat"
     , style "width" "24px"
@@ -99,3 +101,13 @@ chevron { direction, enabled, hovered } =
             else
                 []
            )
+
+
+chevronLeft : { enabled : Bool, hovered : Bool } -> List (Html.Attribute msg)
+chevronLeft =
+    chevron <| Assets.ChevronLeft
+
+
+chevronRight : { enabled : Bool, hovered : Bool } -> List (Html.Attribute msg)
+chevronRight =
+    chevron <| Assets.ChevronRight

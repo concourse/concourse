@@ -2,6 +2,7 @@ module ResourceTests exposing (all)
 
 import Application.Application as Application
 import Application.Models exposing (Session)
+import Assets
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -513,8 +514,7 @@ all =
                                                     ++ middleGrey
                                             , containing
                                                 (iconSelector
-                                                    { image =
-                                                        "baseline-chevron-left-24px.svg"
+                                                    { image = Assets.ChevronLeft
                                                     , size = "24px"
                                                     }
                                                     ++ [ style "padding" "5px"
@@ -532,8 +532,7 @@ all =
                                                     ++ middleGrey
                                             , containing
                                                 (iconSelector
-                                                    { image =
-                                                        "baseline-chevron-right-24px.svg"
+                                                    { image = Assets.ChevronRight
                                                     , size = "24px"
                                                     }
                                                     ++ [ style "padding" "5px"
@@ -568,8 +567,7 @@ all =
                                         ++ middleGrey
                                 , containing
                                     (iconSelector
-                                        { image =
-                                            "baseline-chevron-left-24px.svg"
+                                        { image = Assets.ChevronLeft
                                         , size = "24px"
                                         }
                                         ++ [ style "padding" "5px"
@@ -591,8 +589,7 @@ all =
                                         ++ middleGrey
                                 , containing
                                     (iconSelector
-                                        { image =
-                                            "baseline-chevron-left-24px.svg"
+                                        { image = Assets.ChevronLeft
                                         , size = "24px"
                                         }
                                         ++ [ style "padding" "5px"
@@ -636,7 +633,8 @@ all =
         , describe "checkboxes" <|
             let
                 checkIcon =
-                    "url(/public/images/checkmark-ic.svg)"
+                    Assets.backgroundImage <|
+                        Just Assets.CheckmarkIcon
             in
             [ test "there is a checkbox for every version" <|
                 \_ ->
@@ -1120,7 +1118,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "25px"
-                                    , image = "pin-ic-white.svg"
+                                    , image = Assets.PinIconWhite
                                     }
                                 )
                 , test "pin icon on pin bar has a margin right of 10 px" <|
@@ -1227,7 +1225,11 @@ all =
                             |> givenResourcePinnedDynamically
                             |> queryView
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+                            |> Query.has
+                                [ style "background-image" <|
+                                    Assets.backgroundImage <|
+                                        Just Assets.PinIconWhite
+                                ]
                 ]
             , describe "versions list"
                 [ test "version pin states reflect resource pin state" <|
@@ -1590,7 +1592,11 @@ all =
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
-                            |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+                            |> Query.has
+                                [ style "background-image" <|
+                                    Assets.backgroundImage <|
+                                        Just Assets.PinIconWhite
+                                ]
                 , test "does not show tooltip on the pin button on ToggleVersionTooltip" <|
                     \_ ->
                         init
@@ -1752,10 +1758,6 @@ all =
                                         |> Query.has
                                             [ style "align-items" "center" ]
                             , test "has message icon at the left" <|
-                                let
-                                    messageIcon =
-                                        "baseline-message.svg"
-                                in
                                 \_ ->
                                     init
                                         |> givenResourcePinnedWithComment
@@ -1764,19 +1766,14 @@ all =
                                         |> Query.first
                                         |> Query.has
                                             [ style "background-image" <|
-                                                "url(/public/images/"
-                                                    ++ messageIcon
-                                                    ++ ")"
+                                                Assets.backgroundImage <|
+                                                    Just Assets.MessageIcon
                                             , style "background-size" "contain"
                                             , style "width" "24px"
                                             , style "height" "24px"
                                             , style "margin-right" "10px"
                                             ]
                             , test "has pin icon on the right" <|
-                                let
-                                    pinIcon =
-                                        "pin-ic-white.svg"
-                                in
                                 \_ ->
                                     init
                                         |> givenResourcePinnedWithComment
@@ -1785,7 +1782,7 @@ all =
                                         |> Query.index 1
                                         |> Query.has
                                             (iconSelector
-                                                { image = pinIcon
+                                                { image = Assets.PinIconWhite
                                                 , size = "20px"
                                                 }
                                                 ++ [ style "margin-right" "10px" ]
@@ -2871,7 +2868,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "0.5"
                                        , style "margin" "4px"
@@ -2890,7 +2887,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "1"
                                        , style "margin" "4px"
@@ -2963,7 +2960,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "0.5"
                                        , style "margin" "4px"
@@ -2982,7 +2979,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "1"
                                        , style "margin" "4px"
@@ -3084,7 +3081,7 @@ all =
                                 , containing <|
                                     iconSelector
                                         { size = "20px"
-                                        , image = "baseline-refresh-24px.svg"
+                                        , image = Assets.RefreshIcon
                                         }
                                         ++ [ style "opacity" "1"
                                            , style "margin" "4px"
@@ -3103,7 +3100,7 @@ all =
                                 , containing <|
                                     iconSelector
                                         { size = "20px"
-                                        , image = "baseline-refresh-24px.svg"
+                                        , image = Assets.RefreshIcon
                                         }
                                         ++ [ style "opacity" "1"
                                            , style "margin" "4px"
@@ -3134,7 +3131,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "28px"
-                                    , image = "ic-success-check.svg"
+                                    , image = Assets.SuccessCheckIcon
                                     }
                                     ++ [ style "background-size" "14px 14px" ]
                                 )
@@ -3211,7 +3208,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "28px"
-                                    , image = "ic-exclamation-triangle.svg"
+                                    , image = Assets.ExclamationTriangleIcon
                                     }
                                     ++ [ style "background-size" "14px 14px" ]
                                 )
@@ -3292,7 +3289,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "0.5"
                                        , style "margin" "4px"
@@ -3310,7 +3307,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "0.5"
                                        , style "margin" "4px"
@@ -3422,7 +3419,7 @@ all =
                         |> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-exclamation-triangle.svg"
+                                , image = Assets.ExclamationTriangleIcon
                                 }
                                 ++ [ style "background-size" "14px 14px"
                                    , containing [ text "some error" ]
@@ -3831,14 +3828,22 @@ pinButtonHasTransitionState : Query.Single msg -> Expectation
 pinButtonHasTransitionState =
     Expect.all
         [ Query.has loadingSpinnerSelector
-        , Query.hasNot [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+        , Query.hasNot
+            [ style "background-image" <|
+                Assets.backgroundImage <|
+                    Just Assets.PinIconWhite
+            ]
         ]
 
 
 pinButtonHasUnpinnedState : Query.Single msg -> Expectation
 pinButtonHasUnpinnedState =
     Expect.all
-        [ Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+        [ Query.has
+            [ style "background-image" <|
+                Assets.backgroundImage <|
+                    Just Assets.PinIconWhite
+            ]
         , Query.hasNot purpleOutlineSelector
         ]
 
@@ -3848,7 +3853,11 @@ pinToolsHasTransitionState =
     Query.find [ id "pin-tools" ]
         >> Expect.all
             [ Query.has [ style "border" <| "1px solid " ++ lightGreyHex ]
-            , Query.findAll [ style "background-image" "url(/public/images/pin-ic-grey.svg)" ]
+            , Query.findAll
+                [ style "background-image" <|
+                    Assets.backgroundImage <|
+                        Just Assets.PinIconGrey
+                ]
                 >> Query.count (Expect.equal 1)
             , Query.hasNot [ tag "table" ]
             ]
@@ -3859,7 +3868,11 @@ pinBarHasPinnedState v =
     Query.find [ id "pin-bar" ]
         >> Expect.all
             [ Query.has [ text v ]
-            , Query.findAll [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+            , Query.findAll
+                [ style "background-image" <|
+                    Assets.backgroundImage <|
+                        Just Assets.PinIconWhite
+                ]
                 >> Query.count (Expect.equal 1)
             ]
 
@@ -3878,7 +3891,10 @@ checkboxHasTransitionState =
     Expect.all
         [ Query.has loadingSpinnerSelector
         , Query.hasNot
-            [ style "background-image" "url(/public/images/checkmark-ic.svg)" ]
+            [ style "background-image" <|
+                Assets.backgroundImage <|
+                    Just Assets.CheckmarkIcon
+            ]
         ]
 
 
@@ -3887,7 +3903,10 @@ checkboxHasDisabledState =
     Expect.all
         [ Query.hasNot loadingSpinnerSelector
         , Query.hasNot
-            [ style "background-image" "url(/public/images/checkmark-ic.svg)" ]
+            [ style "background-image" <|
+                Assets.backgroundImage <|
+                    Just Assets.CheckmarkIcon
+            ]
         ]
 
 
@@ -3896,7 +3915,10 @@ checkboxHasEnabledState =
     Expect.all
         [ Query.hasNot loadingSpinnerSelector
         , Query.has
-            [ style "background-image" "url(/public/images/checkmark-ic.svg)" ]
+            [ style "background-image" <|
+                Assets.backgroundImage <|
+                    Just Assets.CheckmarkIcon
+            ]
         ]
 
 
