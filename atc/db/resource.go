@@ -15,6 +15,8 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
+var ErrPinnedThroughConfig = errors.New("resource is pinned through config")
+
 //go:generate counterfeiter . Resource
 
 type Resource interface {
@@ -81,6 +83,7 @@ var resourcesQuery = psql.Select(
 	"rs.check_error",
 	"rp.version",
 	"rp.comment_text",
+	"rp.config",
 ).
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
@@ -584,13 +587,29 @@ func (r *resource) PinVersion(rcvID int) (bool, error) {
 		return false, err
 	}
 
+	var pinnedThroughConfig bool
+	err = tx.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM resource_pins
+			WHERE resource_id = $1
+			AND config
+		)`, r.id).Scan(&pinnedThroughConfig)
+	if err != nil {
+		return false, err
+	}
+
+	if pinnedThroughConfig {
+		return false, ErrPinnedThroughConfig
+	}
+
 	results, err := tx.Exec(`
-	    INSERT INTO resource_pins(resource_id, version, comment_text)
+	    INSERT INTO resource_pins(resource_id, version, comment_text, config)
 			VALUES ($1,
 				( SELECT rcv.version
 				FROM resource_config_versions rcv
 				WHERE rcv.id = $2 ),
-				'')
+				'', false)
 			ON CONFLICT (resource_id) DO UPDATE SET version=EXCLUDED.version`, r.id, rcvID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -707,12 +726,13 @@ func (r *resource) NotifyScan() error {
 
 func scanResource(r *resource, row scannable) error {
 	var (
-		configBlob                                                                  []byte
-		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, apiPinnedVersion, pinComment sql.NullString
-		lastCheckStartTime, lastCheckEndTime                                        pq.NullTime
+		configBlob                                                               []byte
+		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
+		lastCheckStartTime, lastCheckEndTime                                     pq.NullTime
+		pinnedThroughConfig                                                      sql.NullBool
 	)
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamID, &r.teamName, &rcsCheckErr, &apiPinnedVersion, &pinComment)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig)
 	if err != nil {
 		return err
 	}
@@ -744,16 +764,25 @@ func scanResource(r *resource, row scannable) error {
 	r.checkTimeout = config.CheckTimeout
 	r.tags = config.Tags
 	r.webhookToken = config.WebhookToken
-	r.configPinnedVersion = config.Version
 	r.icon = config.Icon
 
-	if apiPinnedVersion.Valid {
-		err = json.Unmarshal([]byte(apiPinnedVersion.String), &r.apiPinnedVersion)
+	if pinnedVersion.Valid {
+		var version atc.Version
+		err = json.Unmarshal([]byte(pinnedVersion.String), &version)
 		if err != nil {
 			return err
 		}
+
+		if pinnedThroughConfig.Valid && pinnedThroughConfig.Bool {
+			r.configPinnedVersion = version
+			r.apiPinnedVersion = nil
+		} else {
+			r.configPinnedVersion = nil
+			r.apiPinnedVersion = version
+		}
 	} else {
 		r.apiPinnedVersion = nil
+		r.configPinnedVersion = nil
 	}
 
 	if pinComment.Valid {

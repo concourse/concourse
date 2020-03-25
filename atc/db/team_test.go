@@ -1799,6 +1799,32 @@ var _ = Describe("Team", func() {
 			Expect(resource.APIPinnedVersion()).To(BeNil())
 		})
 
+		It("clears out config pinned version when it is removed", func() {
+			config.Resources[0].Version = atc.Version{
+				"version": "v1",
+			}
+
+			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, found, err := pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.ConfigPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
+			Expect(resource.APIPinnedVersion()).To(BeNil())
+
+			config.Resources[0].Version = nil
+
+			savedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			resource, found, err = savedPipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.ConfigPinnedVersion()).To(BeNil())
+			Expect(resource.APIPinnedVersion()).To(BeNil())
+		})
+
 		It("does not clear the api pinned version when resaving pipeline config", func() {
 			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
 			Expect(err).ToNot(HaveOccurred())
