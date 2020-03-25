@@ -7,8 +7,8 @@ makes CI systems a high-risk target for security leaks.
 
 Concourse pipelines are loaded with credentials: resources are configured with
 private keys, tasks are given credentials to servers they integrate via
-\reference{creds}{credential manager variables}, \reference{task-step-vars}, or
-\reference{task-step-params}, etc. If someone gets their hands on
+\reference{creds}{credential manager variables}, \reference{schema.step.task-step.vars}, or
+\reference{schema.step.task-step.params}, etc. If someone gets their hands on
 your config, they have access to everything.
 
 To mitigate this, Concourse supports encrypting sensitive information before it
@@ -28,20 +28,20 @@ management} as well.
   encrypted:
 
   \list{
-    Resource \reference{resource-source}s, as they often contain private keys
+    Resource \reference{schema.resource.source}s, as they often contain private keys
     and other credentials for writing to (or simply granting access to) the
     resource.
   }{
-    Resource type \reference{resource-type-source}s, for the same reason as
+    Resource type \reference{schema.resource_type.source}s, for the same reason as
     above, though this is probably a less common use case.
   }{
-    Pipeline \reference{task-step-vars} and \reference{task-step-params}, in case
+    Pipeline \reference{schema.step.task-step.vars} and \reference{schema.step.task-step.params}, in case
     they contain sensitive information such as usernames and/or passwords.
   }{
-    Put step \reference{put-step-params} and get step
-    \reference{get-step-params} are also encrypted, even though they rarely
+    Put step \reference{schema.step.put-step.params} and get step
+    \reference{schema.step.get-step.params} are also encrypted, even though they rarely
     should contain credentials (they're usually in
-    \reference{resource-source}).
+    \reference{schema.resource.source}).
   }{
     Team auth configurations, as they often contain things like GitHub or other
     oAuth client secrets.

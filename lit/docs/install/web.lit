@@ -1,10 +1,11 @@
 \title{\aux{Running a }\code{web} node}{concourse-web}{web-node}
 
 \use-plugin{concourse-docs}
-\omit-children-from-table-of-contents
 
 The \code{web} node is responsible for running the web UI, API, and as well
 as performing all pipeline scheduling. It's basically the brain of Concourse.
+
+\table-of-contents
 
 \section{
   \title{Prerequisites}{web-prerequisites}
@@ -14,7 +15,7 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
 }
 
 \section{
-  \title{Running}{web-running}
+  \title{Running \code{concourse web}}{web-running}
 
   The \code{concourse} CLI can run as a \code{web} node via the \code{web}
   subcommand.
@@ -69,12 +70,12 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   errors being emitted to \code{stderr}.
 
   \section{
-    \title{Ingress}{web-ingress}
+    \title{Configuring ingress traffic}{web-ingress}
 
     If your web nodes are going to be accessed over the network, you will need
-    to set \code{CONCOURSE_EXTERNAL_URL} to a URL accessible by your consumers.
-    If you don't set this property, logins will redirect to its default value of
-    \code{127.0.0.1}.
+    to set \code{CONCOURSE_EXTERNAL_URL} to a URL accessible by your Concourse
+    users. If you don't set this property, logging in will incorrectly
+    redirect to its default value of \code{127.0.0.1}.
 
     If your instance is available on the public internet, you may wish to
     prevent the Concourse UI from being nefariously embedded as an iframe by
@@ -87,62 +88,58 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     all browsers support this value and when not supported, the header is ignored
     by the browser.
   }
-}
 
-\section{
-  \title{Properties}{web-properties}
+  \section{
+    \title{Resource utilization}{web-resource-utilization}
 
-  CPU usage: peaks during pipeline scheduling, primarily when scheduling
-  \reference{pipeline-jobs}. Mitigated by adding more \code{web} nodes. In this
-  regard, \code{web} nodes can be considered compute-heavy more than anything
-  else at large scale.
+    CPU usage: peaks during pipeline scheduling, primarily when scheduling
+    \reference{jobs}. Mitigated by adding more \code{web} nodes. In this regard,
+    \code{web} nodes can be considered compute-heavy more than anything else at
+    large scale.
 
-  Memory usage: not very well classified at the moment as it's not generally a
-  concern. Give it a few gigabytes and keep an eye on it.
+    Memory usage: not very well classified at the moment as it's not generally a
+    concern. Give it a few gigabytes and keep an eye on it.
 
-  Disk usage: none
+    Disk usage: none
 
-  Bandwidth usage: aside from handling external traffic, the \code{web} node
-  will at times have to stream bits out from one worker and into another while
-  executing \reference{steps}.
+    Bandwidth usage: aside from handling external traffic, the \code{web} node
+    will at times have to stream bits out from one worker and into another while
+    executing \reference{steps}.
 
-  Highly available: yes; \code{web} nodes can all be configured the same (aside
-  from \code{--peer-address}) and placed behind a load balancer. Periodic tasks
-  like garbage-collection will not be duplicated for each node.
+    Highly available: yes; \code{web} nodes can all be configured the same (aside
+    from \code{--peer-address}) and placed behind a load balancer. Periodic tasks
+    like garbage-collection will not be duplicated for each node.
 
-  Horizontally scalable: yes; they will coordinate workloads using the
-  database, resulting in less work for each node and thus lower CPU usage.
+    Horizontally scalable: yes; they will coordinate workloads using the
+    database, resulting in less work for each node and thus lower CPU usage.
 
-  Outbound traffic:
+    Outbound traffic:
 
-  \list{
-    \code{db} on its configured port for persistence
-  }{
-    \code{db} on its configured port for locking and coordinating in a
-    multi-\code{web} node deployment
-  }{
-    directly-registered \code{worker} nodes on ports \code{7777}, \code{7788},
-    and \code{7799} for checking \reference{pipeline-resources}, executing
-    builds, and performing garbage-collection
-  }{
-    other \code{web} nodes (possibly itself) on an ephemeral port when a worker
-    is forwarded through the web node's TSA
-  }
+    \list{
+      \code{db} on its configured port for persistence
+    }{
+      \code{db} on its configured port for locking and coordinating in a
+      multi-\code{web} node deployment
+    }{
+      other \code{web} nodes (possibly itself) on an ephemeral port when a worker
+      is forwarded through the web node's TSA
+    }
 
-  Inbound traffic:
+    Inbound traffic:
 
-  \list{
-    \code{worker} connects to the TSA on port \code{2222} for registration
-  }{
-    \code{worker} downloads inputs from the ATC during \reference{fly-execute}
-    via its external URL
-  }{
-    external traffic to the ATC API via the web UI and \reference{fly-cli}
+    \list{
+      \code{worker} connects to the TSA on port \code{2222} for registration
+    }{
+      \code{worker} downloads inputs from the ATC during \reference{fly-execute}
+      via its external URL
+    }{
+      external traffic to the ATC API via the web UI and \reference{fly-cli}
+    }
   }
 }
 
 \section{
-  \title{Operation}{web-operation}
+  \title{Operating a \code{web} node}{web-operation}
 
   The \code{web} nodes themselves are stateless - they don't store anything on
   disk, and coordinate entirely using the database.
@@ -247,7 +244,7 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
 }
 
 \section{
-  \title{Configuration}{web-configuration}
+  \title{Configuring the \code{web} node}{web-configuration}
 
   \section{
     \title{Giving your cluster a name}

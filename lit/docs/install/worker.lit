@@ -1,11 +1,12 @@
 \title{\aux{Running a }\code{worker} node}{concourse-worker}{worker-node}
 
 \use-plugin{concourse-docs}
-\omit-children-from-table-of-contents
 
 The \code{worker} node registers with the \reference{web-node} and is then used
 for executing builds and performing resource \code{check}s. It doesn't really
 decide much on its own.
+
+\table-of-contents
 
 \section{
   \title{Prerequisites}{worker-prerequisites}
@@ -25,7 +26,7 @@ decide much on its own.
 }
 
 \section{
-  \title{Running}{worker-running}
+  \title{Running \code{concourse worker}}{worker-running}
 
   The \code{concourse} CLI can run as a \code{worker} node via the \code{worker}
   subcommand.
@@ -59,63 +60,63 @@ decide much on its own.
 
   All logs will be emitted to \code{stdout}, with any panics or lower-level
   errors being emitted to \code{stderr}.
+
+  \section{
+    \title{Resource utilization}{worker-resource-utilization}
+
+    CPU usage: almost entirely subject to pipeline workloads. More resources
+    configured will result in more checking, and in-flight builds will use as
+    much CPU as they want.
+
+    Memory usage: also subject to pipeline workloads. Expect usage to increase
+    with the number of containers on the worker and spike as builds run.
+
+    Bandwidth usage: again, almost entirely subject to pipeline workloads. Expect
+    spikes from periodic checking, though the intervals should spread out over
+    enough time. Resource fetching and pushing will also use arbitrary bandwidth.
+
+    Disk usage: arbitrary data will be written as builds run, and resource caches
+    will be kept and garbage collected on their own life cycle. We suggest going
+    for a larger disk size if it's not too much trouble. All state on disk must
+    not outlive the worker itself; it is all ephemeral. If the worker is
+    re-created (i.e. fresh VM/container and all processes were killed), it should
+    be brought back with an empty disk.
+
+    Highly available: not applicable. Workers are inherently singletons, as
+    they're being used as drivers running entirely different workloads.
+
+    Horizontally scalable: yes; workers directly correlate to your capacity
+    required by however many pipelines, resources, and in-flight builds you want
+    to run. It makes sense to scale them up and down with demand.
+
+    Outbound traffic:
+
+    \list{
+      external traffic to arbitrary locations as a result of periodic resource
+      checking and running builds
+    }{
+      external traffic to the \code{web} node's configured external URL when
+      downloading the inputs for a \reference{fly-execute}
+    }{
+      external traffic to the \code{web} node's TSA port (\code{2222}) for
+      registering the worker
+    }
+
+    Inbound traffic:
+
+    \list{
+      various connections from the \reference{web-node} on port \code{7777}
+      (Garden), \code{7788} (BaggageClaim), and \code{7799} (garbage collection)
+    }{
+      repeated connections to \code{7777} and \code{7788} from the
+      \reference{web-node}'s TSA component as it heartbeats to ensure the worker
+      is healthy
+    }
+  }
 }
 
 \section{
-  \title{Properties}{worker-properties}
-
-  CPU usage: almost entirely subject to pipeline workloads. More resources
-  configured will result in more checking, and in-flight builds will use as
-  much CPU as they want.
-
-  Memory usage: also subject to pipeline workloads. Expect usage to increase
-  with the number of containers on the worker and spike as builds run.
-
-  Bandwidth usage: again, almost entirely subject to pipeline workloads. Expect
-  spikes from periodic checking, though the intervals should spread out over
-  enough time. Resource fetching and pushing will also use arbitrary bandwidth.
-
-  Disk usage: arbitrary data will be written as builds run, and resource caches
-  will be kept and garbage collected on their own life cycle. We suggest going
-  for a larger disk size if it's not too much trouble. All state on disk must
-  not outlive the worker itself; it is all ephemeral. If the worker is
-  re-created (i.e. fresh VM/container and all processes were killed), it should
-  be brought back with an empty disk.
-
-  Highly available: not applicable. Workers are inherently singletons, as
-  they're being used as drivers running entirely different workloads.
-
-  Horizontally scalable: yes; workers directly correlate to your capacity
-  required by however many pipelines, resources, and in-flight builds you want
-  to run. It makes sense to scale them up and down with demand.
-
-  Outbound traffic:
-
-  \list{
-    external traffic to arbitrary locations as a result of periodic resource
-    checking and running builds
-  }{
-    external traffic to the \code{web} node's configured external URL when
-    downloading the inputs for a \reference{fly-execute}
-  }{
-    external traffic to the \code{web} node's TSA port (\code{2222}) for
-    registering the worker
-  }
-
-  Inbound traffic:
-
-  \list{
-    various connections from the \reference{web-node} on port \code{7777}
-    (Garden), \code{7788} (BaggageClaim), and \code{7799} (garbage collection)
-  }{
-    repeated connections to \code{7777} and \code{7788} from the
-    \reference{web-node}'s TSA component as it heartbeats to ensure the worker
-    is healthy
-  }
-}
-
-\section{
-  \title{Operation}{worker-operation}
+  \title{Operating a \code{worker} node}{worker-operation}
 
   The \code{worker} nodes are designed to be stateless and as interchangeable
   as possible. \reference{tasks} and \reference{resources} bring their own
@@ -224,7 +225,7 @@ decide much on its own.
 }
 
 \section{
-  \title{Configuration}{worker-configuration}
+  \title{Configuring the \code{worker} node}{worker-configuration}
 
   If there's something special about your worker and you'd like to target
   builds at it specifically, you can configure tags like so:
@@ -234,157 +235,157 @@ decide much on its own.
   }}
 
   A tagged worker is taken out of the default placement logic. To run build
-  steps on it, specify the \reference{tags-step-modifier}. Or, to perform
-  resource \code{check}s on it, specify \reference{resource-tags}{\code{tags}}
+  steps on it, specify the \reference{schema.step.tags}. Or, to perform
+  resource \code{check}s on it, specify \reference{schema.resource.tags}{\code{tags}}
   on the resource itself.
-}
-
-\section{
-  \title{Configuring \code{gdn server}}
-
-  On Linux, the \code{concourse} binary is packaged alongside a \code{gdn}
-  binary. This binary is used for running
-  \link{Guardian}{https://github.com/cloudfoundry/guardian}, which is a
-  \link{Garden}{https://github.com/cloudfoundry/garden} backend
-  implementation which runs containers via
-  \link{\code{runc}}{https://github.com/opencontainers/runc} (the same
-  technology underlying tools like Docker).
-
-  The \code{concourse worker} command automatically configures and runs
-  \code{gdn}, but depending on the environment you're running Concourse in,
-  you may need to pop open the hood and configure a few things.
-
-  The \code{gdn} server can be configured in two ways:
-
-  \ordered-list{
-    By creating a \code{config.ini} file and passing it as
-    \code{--garden-config} (or \code{CONCOURSE_GARDEN_CONFIG}).
-
-    The \code{.ini} file should look something like this:
-
-    \codeblock{ini}{{{
-    [server]
-    flag-name = flag-value
-    }}}
-
-    To learn which flags can be set, consult \code{gdn server --help}. Each
-    flag listed can be set under the \code{[server]} heading.
-  }{
-    By setting \code{CONCOURSE_GARDEN_*} environment variables.
-
-    This is primarily supported for backwards compatibility, and these
-    variables are not present in \code{concourse web --help}. They are
-    translated to flags passed to \code{gdn server} by lower-casing the
-    \code{*} portion and replacing underscores with hyphens.
-  }
 
   \section{
-    \title{Troubleshooting and fixing DNS resolution}
+    \title{Configuring \code{gdn server}}
 
-    By default, containers created by Guardian will carry over the
-    \code{/etc/resolv.conf} from the host into the container. This is often
-    fine, but some Linux distributions configure a special \code{127.x.x.x} DNS
-    resolver (e.g. \code{systemd-resolved}).
+    On Linux, the \code{concourse} binary is packaged alongside a \code{gdn}
+    binary. This binary is used for running
+    \link{Guardian}{https://github.com/cloudfoundry/guardian}, which is a
+    \link{Garden}{https://github.com/cloudfoundry/garden} backend
+    implementation which runs containers via
+    \link{\code{runc}}{https://github.com/opencontainers/runc} (the same
+    technology underlying tools like Docker).
 
-    When Guardian copies the \code{resolv.conf} over, it removes these entries,
-    as they won't be reachable from the container's network namespace. As a
-    result, your containers may not have any valid nameservers configured.
+    The \code{concourse worker} command automatically configures and runs
+    \code{gdn}, but depending on the environment you're running Concourse in,
+    you may need to pop open the hood and configure a few things.
 
-    To diagnose this problem you can \reference{fly-intercept} into a failing
-    container and check which nameservers are in \code{/etc/resolv.conf}:
+    The \code{gdn} server can be configured in two ways:
 
-    \codeblock{bash}{{{
-    $ fly -t ci intercept -c concourse/concourse
-    bash-5.0# grep nameserver /etc/resolv.conf
-    bash-5.0#
-    }}}
+    \ordered-list{
+      By creating a \code{config.ini} file and passing it as
+      \code{--garden-config} (or \code{CONCOURSE_GARDEN_CONFIG}).
 
-    In this case it is empty, as the host only listed a single
-    \code{127.0.0.53} address which was then stripped out. To fix this, you'll
-    just need to explicitly configure DNS instead of relying on the \code{gdn}
-    default behavior.
-
-    \section{
-      \title{Pointing to external DNS servers}
-
-      If you have no need for special DNS resolution within your Concourse
-      containers, you can just configure your containers to use specific DNS
-      server addresses external to the VM.
-
-      This can be done by listing DNS servers in \code{config.ini} like so:
+      The \code{.ini} file should look something like this:
 
       \codeblock{ini}{{{
       [server]
-      ; configure Google DNS
-      dns-server = 8.8.8.8
-      dns-server = 8.8.4.4
+      flag-name = flag-value
       }}}
 
-      To validate whether the changes have taken effect, you can
-      \reference{fly-intercept} into any container and check
-      \code{/etc/resolv.conf} once again:
+      To learn which flags can be set, consult \code{gdn server --help}. Each
+      flag listed can be set under the \code{[server]} heading.
+    }{
+      By setting \code{CONCOURSE_GARDEN_*} environment variables.
 
-      \codeblock{bash}{{{
-      $ fly -t ci intercept -c concourse/concourse
-      bash-5.0# cat /etc/resolv.conf
-      nameserver 8.8.8.8
-      nameserver 8.8.4.4
-      bash-5.0# ping google.com
-      PING google.com (108.177.111.139): 56 data bytes
-      64 bytes from 108.177.111.139: seq=0 ttl=47 time=2.672 ms
-      64 bytes from 108.177.111.139: seq=1 ttl=47 time=0.911 ms
-      }}}
+      This is primarily supported for backwards compatibility, and these
+      variables are not present in \code{concourse web --help}. They are
+      translated to flags passed to \code{gdn server} by lower-casing the
+      \code{*} portion and replacing underscores with hyphens.
     }
 
     \section{
-      \title{Using a local DNS server}
+      \title{Troubleshooting and fixing DNS resolution}
 
-      If you would like to use Consul, \code{dnsmasq}, or some other DNS server
-      running on the worker VM, you'll have to configure the internal address
-      of the VM as the DNS server \italic{and} allow the containers to reach
-      the address, like so:
+      By default, containers created by Guardian will carry over the
+      \code{/etc/resolv.conf} from the host into the container. This is often
+      fine, but some Linux distributions configure a special \code{127.x.x.x} DNS
+      resolver (e.g. \code{systemd-resolved}).
 
-      \codeblock{ini}{{{
-      [server]
-      ; internal IP of the worker machine
-      dns-server = 10.1.2.3
+      When Guardian copies the \code{resolv.conf} over, it removes these entries,
+      as they won't be reachable from the container's network namespace. As a
+      result, your containers may not have any valid nameservers configured.
 
-      ; allow containers to reach the above IP
-      allow-host-access = true
-      }}}
-
-      \warn{
-        Setting \code{allow-host-access} will, well, allow containers to access
-        your host VM's network. If you don't trust your container workloads,
-        you may not want to allow this.
-      }
-
-      To validate whether the changes have taken effect, you can
-      \reference{fly-intercept} into any container and check
-      \code{/etc/resolv.conf} once again:
+      To diagnose this problem you can \reference{fly-intercept} into a failing
+      container and check which nameservers are in \code{/etc/resolv.conf}:
 
       \codeblock{bash}{{{
       $ fly -t ci intercept -c concourse/concourse
-      bash-5.0# cat /etc/resolv.conf
-      nameserver 10.1.2.3
-      bash-5.0# nslookup concourse-ci.org
-      Server:         10.1.2.3
-      Address:        10.1.2.3#53
-
-      Non-authoritative answer:
-      Name:   concourse-ci.org
-      Address: 185.199.108.153
-      Name:   concourse-ci.org
-      Address: 185.199.109.153
-      Name:   concourse-ci.org
-      Address: 185.199.110.153
-      Name:   concourse-ci.org
-      Address: 185.199.111.153
+      bash-5.0# grep nameserver /etc/resolv.conf
+      bash-5.0#
       }}}
 
-      If \code{nslookup} times out or fails, you may need to open up firewalls
-      or security group configuration so that the worker VM can send UDP/TCP
-      packets to itself.
+      In this case it is empty, as the host only listed a single
+      \code{127.0.0.53} address which was then stripped out. To fix this, you'll
+      just need to explicitly configure DNS instead of relying on the \code{gdn}
+      default behavior.
+
+      \section{
+        \title{Pointing to external DNS servers}
+
+        If you have no need for special DNS resolution within your Concourse
+        containers, you can just configure your containers to use specific DNS
+        server addresses external to the VM.
+
+        This can be done by listing DNS servers in \code{config.ini} like so:
+
+        \codeblock{ini}{{{
+        [server]
+        ; configure Google DNS
+        dns-server = 8.8.8.8
+        dns-server = 8.8.4.4
+        }}}
+
+        To validate whether the changes have taken effect, you can
+        \reference{fly-intercept} into any container and check
+        \code{/etc/resolv.conf} once again:
+
+        \codeblock{bash}{{{
+        $ fly -t ci intercept -c concourse/concourse
+        bash-5.0# cat /etc/resolv.conf
+        nameserver 8.8.8.8
+        nameserver 8.8.4.4
+        bash-5.0# ping google.com
+        PING google.com (108.177.111.139): 56 data bytes
+        64 bytes from 108.177.111.139: seq=0 ttl=47 time=2.672 ms
+        64 bytes from 108.177.111.139: seq=1 ttl=47 time=0.911 ms
+        }}}
+      }
+
+      \section{
+        \title{Using a local DNS server}
+
+        If you would like to use Consul, \code{dnsmasq}, or some other DNS server
+        running on the worker VM, you'll have to configure the internal address
+        of the VM as the DNS server \italic{and} allow the containers to reach
+        the address, like so:
+
+        \codeblock{ini}{{{
+        [server]
+        ; internal IP of the worker machine
+        dns-server = 10.1.2.3
+
+        ; allow containers to reach the above IP
+        allow-host-access = true
+        }}}
+
+        \warn{
+          Setting \code{allow-host-access} will, well, allow containers to access
+          your host VM's network. If you don't trust your container workloads,
+          you may not want to allow this.
+        }
+
+        To validate whether the changes have taken effect, you can
+        \reference{fly-intercept} into any container and check
+        \code{/etc/resolv.conf} once again:
+
+        \codeblock{bash}{{{
+        $ fly -t ci intercept -c concourse/concourse
+        bash-5.0# cat /etc/resolv.conf
+        nameserver 10.1.2.3
+        bash-5.0# nslookup concourse-ci.org
+        Server:         10.1.2.3
+        Address:        10.1.2.3#53
+
+        Non-authoritative answer:
+        Name:   concourse-ci.org
+        Address: 185.199.108.153
+        Name:   concourse-ci.org
+        Address: 185.199.109.153
+        Name:   concourse-ci.org
+        Address: 185.199.110.153
+        Name:   concourse-ci.org
+        Address: 185.199.111.153
+        }}}
+
+        If \code{nslookup} times out or fails, you may need to open up firewalls
+        or security group configuration so that the worker VM can send UDP/TCP
+        packets to itself.
+      }
     }
   }
 }

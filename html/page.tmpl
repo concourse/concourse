@@ -4,48 +4,60 @@
     {{template "head.tmpl" .}}
   </head>
   <body>
-    {{template "top.tmpl" .}}
-
-    <div class="page-nav">
-      {{template "sidebar.tmpl" .}}
+    <div class="top-banner">
+      <p class="banner-text">
+        ✨ The <a href="https://airtable.com/shr4tyAb5ApbX3VV1">2020 Concourse CI Community Survey</a> is now live! ✨
+      </p>
     </div>
 
-    <div class="page-aside">
-      {{- if .Partial "RightSide" }}
-      <div class="page-partial">
-        {{.Partial "RightSide" | render}}
+    <div class="page-top">
+      {{template "top.tmpl" .}}
+    </div>
+
+    <div class="page-body">
+      <div class="page-nav">
+        {{template "sidebar.tmpl" .}}
       </div>
-      {{ end -}}
-    </div>
 
-    <div class="page-content">
-      {{. | render}}
+      <div class="body-content">
+        <div class="page-content">
+          {{. | render}}
 
-      <nav class="prev-next">
-      {{with .Prev}}
-        <div class="prev">
-          prev:
+          <nav class="prev-next">
+          {{with .Prev}}
+            <div class="prev">
+              prev:
 
-          {{if eq .PageDepth 0}}
-          <span class="section-number">{{.Number}}</span>
+              {{if eq .PageDepth 0}}
+              <span class="section-number">{{.Number}}</span>
+              {{end}}
+
+              <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
+            </div>
           {{end}}
 
-          <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
-        </div>
-      {{end}}
+          {{with .Next}}
+            <div class="next">
+              next:
 
-      {{with .Next}}
-        <div class="next">
-          next:
+              {{if eq .PageDepth 0}}
+              <span class="section-number">{{.Number}}</span>
+              {{end}}
 
-          {{if eq .PageDepth 0}}
-          <span class="section-number">{{.Number}}</span>
+              <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
+            </div>
           {{end}}
-
-          <a href="{{.PrimaryTag | url}}">{{.Title | render}}</a>
+          </nav>
         </div>
-      {{end}}
-      </nav>
+
+        <div class="page-aside">
+          {{- if .Partial "RightSide" }}
+          <div class="page-partial">
+            {{.Partial "RightSide" | render}}
+          </div>
+          {{ end -}}
+        </div>
+      </div>
     </div>
 
     <ul class="improve-docs">

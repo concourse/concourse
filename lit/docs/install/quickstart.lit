@@ -1,0 +1,36 @@
+\title{Quick Start}
+
+\use-plugin{concourse-docs}
+
+Concourse is distributed as a single \code{concourse} binary, making it easy
+to run just about anywhere, especially with Docker.
+
+If you'd like to just get Concourse running somewhere quickly so you can start
+to kick the tires, the easiest way is to use the Docker Compose quick-start:
+
+\codeblock{bash}{{
+$ wget https://concourse-ci.org/docker-compose.yml
+$ docker-compose up -d
+Creating docs_concourse-db_1 ...
+Creating docs_concourse-db_1 ... done
+Creating docs_concourse_1 ...
+Creating docs_concourse_1 ... done
+}}
+
+Concourse will be running at \link{localhost:8080}{http://localhost:8080}.
+You can log in with the username/password as \code{test}/\code{test}.
+
+Next, install \reference{fly-cli} by downloading it from the web UI and
+target your local Concourse as the \code{test} user:
+
+\codeblock{bash}{{
+$ fly -t tutorial login -c http://localhost:8080 -u test -p test
+logging in to team 'main'
+
+target saved
+}}
+
+Once you've confirmed everything is up and running, you can skip the rest of
+the Install section and head straight to the \link{Concourse
+Tutorial}{https://concoursetutorial.com/basics/task-hello-world/} or to the
+rest of the Concourse docs.

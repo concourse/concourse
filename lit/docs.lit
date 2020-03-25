@@ -52,6 +52,7 @@ the "big picture" as the mental model sets in.
 \include-section{./docs/fly.lit}
 \include-section{./docs/config.lit}
 \include-section{./docs/pipelines.lit}
+\include-section{./docs/vars.lit}
 \include-section{./docs/resources.lit}
 \include-section{./docs/resource-types.lit}
 \include-section{./docs/jobs.lit}
@@ -59,5 +60,7 @@ the "big picture" as the mental model sets in.
 \include-section{./docs/builds.lit}
 \include-section{./docs/operation.lit}
 \include-section{./docs/observation.lit}
+\include-section{./docs/internals.lit}
 
 \split-sections
+\table-of-contents

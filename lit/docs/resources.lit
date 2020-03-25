@@ -1,104 +1,112 @@
-\use-plugin{concourse-docs}
-
 \title{Resources}{resources}
 
-\reference{resources}{Resources} are the heart and soul of Concourse. They
-represent all external inputs to and outputs of \reference{jobs}{jobs} in the
-pipeline.
-
-Resources are listed under the \code{resources:} key in the pipeline
-configuration. Each configured resource consists of the following fields:
-
-\define-attribute{name: string}{
-  \italic{Required.} The name of the resource. This should be short and simple.
-  This name will be referenced by \reference{build-plans}{build plans} of jobs
-  in the pipeline.
-}{resource-name}
-
-\define-attribute{type: string}{
-  \italic{Required.} The \reference{resource-types}{resource type}.
-}{resource-type}
-
-\define-attribute{icon: string}{
-  \italic{Optional.} The name of a \link{Material Design
-  icon}{https://materialdesignicons.com/} to show next to the resource name in
-  the web UI. For example, \code{github-circle}.
-}{resource-icon}
-
-\define-attribute{source: object}{
-  \italic{Optional.} The location of the resource. This varies
-  by resource type, and is a black box to Concourse; it is blindly passed to
-  the resource at runtime.
-
-  To use \code{git} as an example, the source may contain the repo URI, the
-  branch of the repo to track, and a private key to use when pushing/pulling.
-
-  By convention, documentation for each resource type's configuration is
-  in each implementation's \code{README}.
-
-  You can find the source for the resource types provided with Concourse at the
-  \link{Concourse GitHub
-  organization}{https://github.com/concourse?query=-resource}.
-}{resource-source}
-
-\define-attribute{version: object}{
-  \italic{Optional.} A version to pin the resource to across the pipeline. This
-  has the same effect as setting \reference{get-step-version} on every
-  \reference{get-step} referencing the resource.
-
-  Resources can also be temporarily pinned to a version via the API and web UI.
-  However this functionality is disabled if the resource is pinned via
-  configuration, and if a pipeline is configured to have a version pinned while
-  also pinned in the web UI, the configuration takes precedence and will clear
-  out the temporary pin.
-}{resource-version}
-
-\define-attribute{check_every: string}{
-  \italic{Optional. Default \code{1m}.} The interval on which to check for new
-  versions of the resource. Acceptable interval options are defined by the
-  \link{time.ParseDuration function}{https://golang.org/pkg/time/#ParseDuration}.
-}{resource-check-every}
-
-\define-attribute{tags: [string]}{
-  \italic{Optional. Default \code{[]}.} A list of tags to determine which
-  workers the checks will be performed on. You'll want to specify this if the
-  source is internal to a worker's network, for example. See also
-  \reference{tags-step-modifier}.
-}{resource-tags}
-
-\define-attribute{public: boolean}{
-  \italic{Optional. Default \code{false}.} If set to \code{true}, the metadata
-  for each version of the resource will be viewable by unauthenticated users
-  (assuming the pipeline has been \reference{exposing}{exposed}).
-
-  Resource metadata should never contain credentials or secret information, but
-  this is off by default just to be safe in case users don't want to show
-  things like commit messages and authors to the public.
-
-  Note: even when set to \code{false}, the versions identifiers will be
-  visible. In addition, if a resource is fetched in a build whose job is marked
-  \reference{job-public}, metadata will be visible in the build output.
-}{resource-public}
-
-\define-attribute{webhook_token: string}{
-  \italic{Optional.} If specified, web hooks can be sent to trigger an
-  immediate \italic{check} of the resource, specifying this value as a
-  primitive form of authentication via query params.
-
-  After configuring this value, you would then configure your hook sender with
-  the following painfully long path appended to your external URL:
-
-  \code{{
-    /api/v1/teams/TEAM_NAME/pipelines/PIPELINE_NAME/resources/RESOURCE_NAME/check/webhook?webhook_token=WEBHOOK_TOKEN
-  }}
-
-  Note that the request payload sent to this API endpoint is entirely ignored.
-  You should configure the resource as if you're not using web hooks, as the
-  resource config is still the "source of truth."
-}{resource-webhook-token}
-
+\use-plugin{concourse-docs}
 \split-sections
 
+Resources are the heart and soul of Concourse. They represent all external
+inputs to and outputs of \reference{jobs}{jobs} in the pipeline.
+
+Each resource represents a versioned artifact with an external source of truth.
+Configuring the same resource in any pipeline on any Concourse cluster will
+behave the exact same way. Concouse will continuously \code{check} each
+configured resource to discover new versions. These versions then flow through
+the pipeline via \reference{get-step}s configured on \reference{jobs}.
+
+A pipeline's resources are listed under \reference{schema.pipeline.resources}
+with the following schema.
+
+\schema{resource}{
+  \required-attribute{name}{identifier}{
+    The name of the resource. This should be short and simple. This name will
+    be referenced by \reference{build-plans}{build plans} of jobs in the
+    pipeline.
+  }
+
+  \required-attribute{type}{resource_type.name}{
+    The \reference{resource-types}{resource type} implementing the resource.
+  }
+
+  \required-attribute{source}{config}{
+    The location of the resource. This varies by resource type, and is a black
+    box to Concourse; it is blindly passed to the resource at runtime.
+
+    To use \code{git} as an example, the source may contain the repo URI, the
+    branch of the repo to track, and a private key to use when pushing/pulling.
+
+    By convention, documentation for each resource type's configuration is
+    in each implementation's \code{README}.
+
+    You can find the source for the resource types provided with Concourse at the
+    \link{Concourse GitHub
+    organization}{https://github.com/concourse?query=-resource}.
+  }
+
+  \optional-attribute{icon}{string}{
+    The name of a \link{Material Design icon}{https://materialdesignicons.com/}
+    to show next to the resource name in the web UI. For example,
+    \code{github-circle}.
+  }
+
+  \optional-attribute{version}{version}{
+    A version to pin the resource to across the pipeline. This has the same
+    effect as setting \reference{schema.step.get-step.version} on every
+    \reference{get-step} referencing the resource.
+
+    Resources can also be temporarily pinned to a version via the API and web UI.
+    However this functionality is disabled if the resource is pinned via
+    configuration, and if a pipeline is configured to have a version pinned while
+    also pinned in the web UI, the configuration takes precedence and will clear
+    out the temporary pin.
+  }
+
+  \optional-attribute{check_every}{duration}{
+    \italic{Default \code{1m}.} The interval on which to check for new versions
+    of the resource. Acceptable interval options are defined by the
+    \link{time.ParseDuration
+    function}{https://golang.org/pkg/time/#ParseDuration}.
+  }
+
+  \optional-attribute{tags}{[string]}{
+    \italic{Default \code{[]}.} A list of tags to determine which workers the
+    checks will be performed on. You'll want to specify this if the source is
+    internal to a worker's network, for example. See also
+    \reference{schema.step.tags}.
+  }
+
+  \optional-attribute{public}{boolean}{
+    \italic{Default \code{false}.} If set to \code{true}, the metadata for each
+    version of the resource will be viewable by unauthenticated users (assuming
+    the pipeline has been \reference{exposing}{exposed}).
+
+    Resource metadata should never contain credentials or secret information, but
+    this is off by default just to be safe in case users don't want to show
+    things like commit messages and authors to the public.
+
+    Note: even when set to \code{false}, the versions identifiers will be
+    visible. In addition, if a resource is fetched in a build whose job is marked
+    \reference{schema.job.public}, metadata will be visible in the build output.
+  }
+
+  \optional-attribute{webhook_token}{string}{
+    If specified, web hooks can be sent to trigger an immediate \italic{check}
+    of the resource, specifying this value as a primitive form of
+    authentication via query params.
+
+    After configuring this value, you would then configure your hook sender with
+    the following painfully long path appended to your external URL:
+
+    \code{{
+      /api/v1/teams/TEAM_NAME/pipelines/PIPELINE_NAME/resources/RESOURCE_NAME/check/webhook?webhook_token=WEBHOOK_TOKEN
+    }}
+
+    Note that the request payload sent to this API endpoint is entirely ignored.
+    You should configure the resource as if you're not using web hooks, as the
+    resource config is still the "source of truth."
+  }
+}
+
+\table-of-contents
+\include-section{resources/versions.lit}
 \include-section{resources/managing.lit}
 
 \right-side{Examples}{
@@ -112,7 +120,7 @@ configuration. Each configured resource consists of the following fields:
     }}}
 
     This could be passed to a job via a \reference{get-step} with
-    \reference{get-step-trigger}{\code{trigger: true}} to run the tests
+    \reference{schema.step.get-step.trigger}{\code{trigger: true}} to run the tests
     whenever there's new code:
 
     \codeblock{yaml}{{{
@@ -141,7 +149,7 @@ configuration. Each configured resource consists of the following fields:
     }}}
 
     This could be passed to a job via a \reference{get-step} with
-    \reference{get-step-trigger}{\code{trigger: true}} to run the job
+    \reference{schema.step.get-step.trigger}{\code{trigger: true}} to run the job
     periodically:
 
     \codeblock{yaml}{{{

@@ -15,6 +15,7 @@ the user to determine which \reference{user-roles}{role}, if any, to grant for
 the team. This information is then stored in the user's token to determine
 access control for future requests.
 
+\table-of-contents
 \include-section{auth/main-team.lit}
 \include-section{auth/configuring.lit}
 \include-section{auth/managing-teams.lit}
@@ -30,7 +31,7 @@ access control for future requests.
   Even with a pipeline exposed, all build logs are hidden by default. This is
   because CI jobs are prone to leaking credentials and other...unsavory
   information. After you've determined that a job's builds should be safe for
-  public consumption, you can set \reference{job-public}{\code{public: true}}
+  public consumption, you can set \reference{schema.job.public}{\code{public: true}}
   on the job in your pipeline.
 }
 
@@ -44,7 +45,7 @@ access control for future requests.
   There are a few reasons it'd be a bad idea to do otherwise:
 
   \list{
-    Any team can run builds with \reference{task-step-privileged} tasks. A bad
+    Any team can run builds with \reference{schema.step.task-step.privileged} tasks. A bad
     actor in the mix could easily use this to harm your workers and your
     cluster.
 

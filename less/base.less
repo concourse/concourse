@@ -1,5 +1,6 @@
 @import "colors.less";
 @import "mixins.less";
+@import "vars.less";
 
 * {
   box-sizing: border-box;
@@ -16,15 +17,59 @@ body {
   line-height: 1.6;
   color: @darker-grey;
   background: white;
+}
 
-  width: 100%;
-  display: grid;
-  grid-template-rows: 80px 60px auto;
-  grid-template-columns: 2fr 5fr 3fr;
-  grid-template-areas:
-    "logo primary-nav search"
-    "banner banner banner"
-    "secondary-nav content aside";
+.page-top {
+  background: @blue-primary;
+
+  .top-nav {
+    max-width: @page-width;
+    margin: 0 auto;
+  }
+}
+
+.top-banner {
+  background-color: @darkest-grey;
+  color: white;
+  font-family: 'Roboto Slab', serif;
+
+  .banner-text {
+    max-width: @page-width;
+    margin: 0 auto;
+    padding: 10px 0;
+    text-align: center;
+  }
+
+  a {
+    font-weight: bold;
+
+    &, &:visited {
+      color: @offest-white;
+    }
+
+    &:hover {
+      color: white;
+    }
+  }
+}
+
+.body-content {
+  background: white;
+  max-width: @page-width - @page-nav-width;
+  flex-grow: 1;
+}
+
+.page-body {
+  max-width: @page-width;
+  margin: 0 auto;
+
+  display: flex;
+  flex-direction: row;
+
+  .page-nav {
+    width: @page-nav-width;
+    flex-shrink: 0;
+  }
 }
 
 a {
@@ -52,10 +97,6 @@ pre {
   color: @dark-grey;
   padding: .5rem;
   overflow-x: auto;
-
-  /* kind of a hack tbh but happens to make various code samples fit better
-   * narrow spaces like the examples pane and front page */
-  font-size: .9em;
 }
 
 p, pre, .highlight, ul, ol, dl, iframe {
@@ -126,57 +167,14 @@ h2, h3 {
   margin: 3rem 0 .8rem;
 }
 
-.top-logo {
-  grid-area: logo;
-}
-
-.top-nav {
-  grid-area: primary-nav;
-}
-
-.top-search {
-  grid-area: search;
+.top-logo, .top-nav, .top-search {
+  background: @blue-primary;
+  color: white;
+  font-family: 'Roboto Slab', serif;
+  line-height: @top-nav-height;
 }
 
 .page-nav {
-  grid-area: secondary-nav;
-}
-
-.page-content {
-  grid-area: content;
-}
-
-.page-aside {
-  grid-area: aside;
-}
-
-.top-logo, .top-nav, .top-search {
-  background: @brand;
-  color: white;
-  font-family: 'Roboto Slab', serif;
-  line-height: 80px;
-}
-
-.top-banner {
-  background-color: #3d3c3c;
-  color: white;
-  font-family: 'Roboto Slab', serif;
-  font-weight: bold;
-  grid-area: banner;
-  padding: 16px 70px;
-
-  a {
-    color: lightgray;
-    font-weight: normal;
-
-    &:hover {
-      color: white;
-    }
-  }
-}
-
-
-.page-nav, .page-partial {
   padding: 30px;
 }
 
@@ -186,48 +184,53 @@ h2, h3 {
 
 .page-content {
   background: white;
-  padding: 70px;
   position: relative;
   min-width: 300px;
+}
+
+.page-content, .page-partial {
+  padding: 70px;
 }
 
 .top-nav {
   position: relative;
   white-space: nowrap;
-}
-
-.top-logo a {
-  color: white;
-  margin: 0;
-  font-size: 22px;
-  padding: 0 50px 0 80px;
-  line-height: 80px;
-  display: inline-block;
-  vertical-align: top;
-  text-decoration: none;
-  position: relative;
-}
-
-.top-logo img {
-  width: 40px;
-  height: 40px;
-  vertical-align: middle;
-  position: absolute;
-  top: 18px;
-  left: 17px;
-}
-
-.top-logo a:visited {
-  color: white;
+  display: flex;
+  flex-direction: row;
 }
 
 .top-link {
   color: white;
   font-size: 16px;
   text-transform: lowercase;
-  line-height: 80px;
+  line-height: @top-nav-height;
   display: inline-block;
   padding: 0 25px;
+
+  &.logo-link {
+    color: white;
+    margin: 0;
+    font-size: 22px;
+    width: @page-nav-width;
+    padding: 0 50px 0 @top-nav-height;
+    line-height: @top-nav-height;
+    display: inline-block;
+    vertical-align: top;
+    text-decoration: none;
+    position: relative;
+    text-transform: initial;
+
+    @logo-size: 35px;
+
+    img {
+      width: @logo-size;
+      height: @logo-size;
+      vertical-align: middle;
+      position: absolute;
+      top: (@top-nav-height - @logo-size) / 2 - 2px;
+      left: (@top-nav-height - @logo-size) / 2 - 3px;
+    }
+  }
 }
 
 .top-link, .top-link:visited {
@@ -241,8 +244,7 @@ h2, h3 {
 }
 
 .top-link.active {
-  background: white;
-  color: @darker-grey;
+  background: @blue-secondary;
   text-decoration: underline;
 }
 
@@ -273,10 +275,6 @@ h2, h3 {
   flex-direction: column;
 }
 
-.page-nav .number-cell {
-  padding-right: 3px;
-}
-
 .page-nav a {
   color: @grey-primary;
   text-decoration: none;
@@ -284,43 +282,6 @@ h2, h3 {
 
 .page-nav a:hover {
   text-decoration: underline;
-}
-
-.page-nav .context {
-  position: relative;
-  margin-bottom: 2rem;
-}
-
-.page-nav .context .children a.active {
-  text-decoration: underline;
-}
-
-.page-nav .context a.self {
-  color: white;
-  text-decoration: underline;
-}
-
-.page-nav .context .top {
-  font-size: 1.1em;
-}
-
-.page-nav .children {
-  margin-left: .5rem;
-  border-left: 1px solid @dark-grey;
-  padding-left: .8rem;
-}
-
-.page-nav .children table {
-  border-spacing: 0;
-  border-collapse: collapse;
-}
-
-.page-nav table td {
-  vertical-align: top;
-}
-
-.section-number {
-  margin-right: .5rem;
 }
 
 .page-content {
@@ -379,3 +340,5 @@ h2, h3 {
 .page-content td:last-child {
   padding-right: 0;
 }
+
+@import "search.less";

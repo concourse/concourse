@@ -1,11 +1,10 @@
 \title{Tasks}{tasks}
 
 \use-plugin{concourse-docs}
-\split-sections
 
 The smallest configurable unit in a Concourse pipeline is a single task. A task
-can be thought of as a function from \reference{task-inputs} to
-\reference{task-outputs} that can either succeed or fail.
+can be thought of as a function from \reference{schema.task.inputs} to
+\reference{schema.task.outputs} that can either succeed or fail.
 
 Going a bit further, ideally tasks are \italic{pure} functions: given the same
 set of inputs, it should either always succeed with the same outputs or always
@@ -24,489 +23,240 @@ code it's testing, possibly under some \code{ci} directory.
 
 A task's configuration specifies the following:
 
-\define-attribute{platform: string}{
-  \italic{Required.} The platform the task should run on. By convention,
-  \code{windows}, \code{linux}, or \code{darwin} are specified. This determines
-  the pool of workers that the task can run against. The base deployment
-  provides Linux workers.
-}{task-platform}
-
-\define-attribute{image_resource: resource}{
-  Where \italic{\code{resource}} is:
-
-  \define-attribute{type: string}{
-    \italic{Required.} The type of the resource. Usually
-    \code{docker-image}.
-  }{image-resource-type}
-
-  \define-attribute{source: object}{
-    \italic{Required.} The configuration for the resource; see
-    \reference{resource-source}.
-  }{image-resource-source}
-
-  \define-attribute{params: object}{
-    \italic{Optional.} A map of arbitrary configuration to forward to the
-    resource. Refer to the resource type's documentation to see what it
-    supports.
-  }{image-resource-params}
-
-  \define-attribute{version: object}{
-    \italic{Optional.} A specific version of the resource to fetch. This
-    should be a map with string keys and values. If not specified, the
-    latest version will be fetched.
-  }{image-resource-version}
-
-  \italic{Optional.} The base image of the container, as provided by a
-  \reference{resources}{resource} definition.
-
-  You can use any resource that returns a filesystem in the correct format (a
-  \code{/rootfs} directory and a \code{metadata.json} file in the top level)
-  but normally this will be the \link{Docker Image
-  resource}{https://github.com/concourse/docker-image-resource}. If you'd
-  like to make a resource of your own that supports this please use that as a
-  reference implementation for now.
-
-  If you want to use an artifact source within the plan containing an image,
-  you must set the \reference{task-step-image} in the plan step instead.
-}{task-image-resource}{image_resource}
-
-\define-attribute{rootfs_uri: string}{
-  \italic{Optional.} A string specifying the rootfs uri of the container, as
-  interpreted by your worker's Garden backend.
-
-  \reference{image_resource} is a preferred way to specify base image and
-  \code{rootfs_uri} is not recommended. With \code{rootfs_uri} image fetching
-  is delegated to backend which does not guarantee image caching and might
-  result in some permission errors. You should only use this if you cannot
-  use \reference{image_resource} for some reason, and you know what you're
-  doing.
-}{task-rootfs-uri}
-
-\define-attribute{container_limits: container-limits}{
-  Where \italic{\code{container-limits}} is:
-
-  \define-attribute{cpu: integer}{
-    \italic{Optional.} The maximum amount of CPU available to the task
-    container, measured in shares. 0 means unlimited.
-  }{task-container-limits-cpu}
-
-  \define-attribute{memory: integer}{
-    \italic{Optional.} The maximum amount of memory available to the task
-    container, measured in bytes. 0 means unlimited.
-  }{task-container-limits-memory}
-
-  \italic{Optional.} CPU and memory limits to enforce on the task container.
-
-  Note that these values, when specified, will override any limits set by
-  passing the \code{--default-task-cpu-limit} or
-  \code{--default-task-memory-limit} flags to the \code{concourse web} command.
-}{task-container-limits}
-
-\define-attribute{inputs: [input]}{
-  Where \italic{\code{input}} is:
-
-  \define-attribute{name: string}{
-    \italic{Required.} The logical name of the input.
-  }{input-name}
-
-  \define-attribute{path: string}{
-    \italic{Optional.} The path where the input will be placed. If not
-    specified, the input's \code{name} is used.
-
-    Paths are relative to the working directory of the task. Absolute paths are
-    not respected.
-  }{input-path}
-
-  \define-attribute{optional: bool}{
-    \italic{Optional.} If \code{true}, then the input is not required by the
-    task. The task may run even if this input is missing.
-
-    An \code{optional} input that is missing will not appear in the current
-    directory of the running task.
-  }{input-optional}
-
-  \italic{Optional.} The set of artifacts used by task, determining which
-  artifacts will be available in the current directory when the task runs.
-
-  These are satisfied by \reference{get-step}s or \reference{task-outputs} of a
-  previous task. These can also be provided by \code{-i} with
-  \reference{fly-execute}.
-
-  If any required inputs are missing at run-time, then the task will error
-  immediately.
-}{task-inputs}
-
-\define-attribute{outputs: [output]}{
-  Where \italic{\code{output}} is:
-
-  \define-attribute{name: string}{
-    \italic{Required.} The logical name of the output. The contents under
-    \code{path} will be made available to the rest of the plan under this
-    name.
-  }{output-name}
-
-  \define-attribute{path: string}{
-    \italic{Optional.} The path to a directory where the output will be
-    taken from. If not specified, the output's \code{name} is used.
-
-    Paths are relative to the working directory of the task. Absolute paths are not respected.
-  }{output-path}
-
-  \italic{Optional.} The artifacts produced by the task.
-
-  Each output configures a directory to make available to later steps in the
-  \reference{build-plans}{build plan}. The directory will be automatically
-  created before the task runs, and the task should place any artifacts it
-  wants to export in the directory.
-}{task-outputs}
-
-\define-attribute{caches: [cache]}{
-  Where \italic{\code{cache}} is:
-
-  \define-attribute{path: string}{
-    \italic{Required.} The path to a directory to be cached.
-
-    Paths are relative to the working directory of the task. Absolute paths
-    are not respected.
-  }{cache-path}
-
-  \italic{Optional.} The cached directories shared between task runs.
-
-  On the task's first run, all cache directories will be empty. It is the
-  responsibility of the task to populate these directories with any artifacts
-  to be cached. On subsequent runs, the cached directories will contain those
-  artifacts.
-
-  Caches are scoped to the worker the task is run on, so you will not get a
-  cache hit when subsequent builds run on different workers. This also means
-  that caching is not intended to share state between workers, and your task
-  should be able to run whether or not the cache is warmed.
-
-  Caches are also scoped to a particular task name inside of a pipeline's
-  job. As a consequence, if the job name, step name or cache path are
-  changed, the cache will not be used. This also means that caches do not
-  exist for one-off builds.
-}{task-caches}{caches}
-
-\define-attribute{run: run-config}{
-  Where \italic{\code{run-config}} is:
-
-  \define-attribute{path: string}{
-    \italic{Required.} The command to execute.
-
-    \code{path} is relative to the working directory. If \code{dir} is specified
-    to set the working directory, then \code{path} is relative to it.
-
-    This is commonly a path to a script provided by one of the task's inputs,
-    e.g. \code{my-resource/scripts/test}. It could also be a command like
-    \code{bash} (respecting standard \code{$PATH} lookup rules), or an absolute
-    path to a file to execute, e.g. \code{/bin/bash}.
-  }{task-run-path}
-
-  \define-attribute{args: [string]}{
-    \italic{Optional.} Arguments to pass to the command. Note that when
-    executed with Fly, any arguments passed to Fly are appended to this
-    array.
-  }{task-run-args}
-
-  \define-attribute{dir: string}{
-    \italic{Optional.} A directory, relative to the initial working
-    directory, to set as the working directory when running the script.
-  }{task-run-dir}
-
-  \define-attribute{user: string}{
-    \italic{Optional.} Explicitly set the user to run as. If not specified,
-    this defaults to the user configured by the task's image. If not
-    specified there, it's up to the Garden backend, and may be e.g.
-    \code{root} on Linux.
-  }{task-run-user}
-
-  \italic{Required.} The command to execute in the container.
-
-  Note that this is \italic{not} provided as a script blob, but explicit
-  \code{path} and \code{args} values; this allows \code{fly} to forward
-  arguments to the script, and forces your config \code{.yml} to stay fairly
-  small.
-}{task-run}
-
-\define-attribute{params: \{string: string\}}{
-  \italic{Optional.} A key-value mapping of values that are exposed to the
-  task via environment variables.
-
-  Use this to provide things like credentials to a task.
-}{task-params}
-
-\section{
-  \title{Running Tasks}{running-tasks}
-
-  One of the most common use cases of \code{fly} is taking a local project on
-  your computer and submitting it up with a task configuration to be run
-  inside a container in Concourse. This is useful to build Linux projects on
-  OS X or to avoid all of those debugging commits when something is configured
-  differently between your local and remote setup.
-
-  \section{
-    \title{\code{fly execute}}{fly-execute}
-
-    \omit-children-from-table-of-contents
-
-    You can execute a task like this:
-
-    \codeblock{bash}{{
-    $ fly -t example execute --config tests.yml
-    }}
-
-    Your files will be uploaded and the task will be executed with them. The
-    working directory name will be used as the input name. If they do not match,
-    you must specify \code{-i name=.} instead, where \code{name} is the input
-    name from the task configuration.
-
-    Fly will automatically capture \code{SIGINT} and \code{SIGTERM} and abort the
-    build when received. This allows it to be transparently composed with other
-    toolchains.
-
-    By default, Fly will not send extra files or large files in your current
-    directory that would normally be ignored by your version control system. You
-    can use the \code{--include-ignored} flags in order to send ignored files to
-    Concourse along with those that are not ignored.
-
-    If your task needs to run as \code{root} then you can specify the \code{-p}
-    or \code{--privileged} flag.
-
-    \section{
-      \title{Providing multiple inputs}
-
-      Tasks in Concourse can take multiple inputs. Up until now we've just been
-      submitting a single input (our current working directory) that has the same
-      name as the directory.
-
-      Tasks must specify the inputs that they require as
-      \reference{task-inputs}. For \code{fly} to upload these inputs you can
-      use the \code{-i} or \code{--input} arguments with name and path pairs.
-      For example:
-
-      \codeblock{bash}{{
-      $ fly -t example execute \\
-          --config build-stemcell.yml \\
-          --input code=. \\
-          --input stemcells=../stemcells
-      }}
-
-      This would work together with a \code{build-stemcell.yml} if its
-      \code{inputs:} section was as follows:
-
-      \codeblock{yaml}{{
-      inputs:
-      - name: code
-      - name: stemcells
-      }}
-
-      If you specify an input then the default input will no longer be added
-      automatically and you will need to explicitly list it (as with the
-      \code{code} input above).
-
-      This feature can be used to mimic other resources and try out combinations
-      of input that would normally not be possible in a pipeline.
-    }
-
-    \section{
-      \title{Basing inputs on a job in your pipeline with \code{--inputs-from}}
-
-      If the \code{--inputs-from} flag is given, the specified job will be looked
-      up in the pipeline, and the one-off build will base its inputs on those
-      currently configured for the job.
-
-      If any \code{--input} flags are given (see above), they will override the
-      base set of inputs.
-
-      For example:
-
-      \codeblock{bash}{{
-      $ fly -t example execute \\
-          --config task.yml \\
-          --inputs-from main/integration \\
-          --input foo=./foo
-      }}
-
-      This will trigger a one-off-build using the \code{task.yml} task
-      config, basing its inputs on the latest candidates for the
-      \code{integration} job in the \code{main} pipeline, with the \code{foo}
-      input overridden to specify local code to run.
-
-      This can be used to more closely replicate the state in CI when weeding out
-      flakiness, or as a shortcut for local development so that you don't have to
-      upload every single resource from your local machine.
-    }
-
-    \section{
-      \title{Using an image from a job in your pipeline with \code{--image}}
-
-      When using \code{--inputs-from} as above, you can additionally specify
-      which input to use as the task's image by passing \code{--image
-      input-name}.
-
-      For example, the following pipeline fetches an image via a
-      \reference{get-step} and uses it for \reference{task-step-image}:
+\schema{task}{
+  \required-attribute{platform}{`linux` | `darwin` | `windows`}{
+    The platform the task should run on. This determines the pool of workers
+    that the task can run against.
+
+    Technically any string value is allowed so long as a worker advertises the
+    same platform, but in practice only \code{linux}, \code{darwin}, and
+    \code{windows} are in use.
+  }
+
+  \required-attribute{image_resource}{anonymous_resource}{
+    The container image to run with, as provided by an anonymous
+    \reference{resources}{resource} definition.
+
+    Whenever the task runs, the anonymous resource will be \code{check}ed to
+    discover the latest version available. The image will then be fetched onto
+    the worker if necessary just prior to running the task.
+
+    To use an image provided by a previous step within your build plan, set
+    \reference{schema.step.task-step.image} on the \reference{task-step}
+    instead.
+
+    \example-toggle{Using the \code{golang} Docker image}{
+      The following task config will use the \link{\code{golang} Docker
+      image}{https://hub.docker.com/_/golang} to run \code{go version}:
 
       \codeblock{yaml}{{{
-      resources:
-      - name: my-repo
-        type: git
-        source: {uri: https://example.com}
+      platform: linux
 
-      - name: some-image
+      image_resource:
         type: registry-image
-        source: {repository: ubuntu}
+        source: {repository: golang}
 
-      jobs:
-      - name: integration
-        plan:
-        - get: my-repo
-        - get: some-image
-        - task: my-task
-          file: my-repo/task.yml
-          image: some-image
+      run:
+        path: go
+        args: [version]
       }}}
-
-      ...so to run the same task with the same image in a one-off build, you
-      would run:
-
-      \codeblock{bash}{{
-      $ fly -t example execute \\
-          --config task.yml \\
-          --inputs-from main/integration \\
-          --image some-image
-      }}
     }
 
-    \section{
-      \title{Taking artifacts from the build with \code{--output}}
+    \schema{anonymous_resource}{
+      \required-attribute{type}{resource_type.name}{
+        The type of the resource. Usually \code{registry-image}.
 
-      If a task specifies outputs then you're able to extract these back out of
-      the build and back to your local system. For example:
+        You can use any resource type that returns a filesystem in the correct
+        format: a \code{/rootfs} directory containing a full filesystem, and a
+        \code{metadata.json} file containing.
+      }
 
-      \codeblock{bash}{{
-      $ fly -t example execute \\
-          --config build-stemcell.yml \\
-          --input code=. \\
-          --output stemcell=/tmp/stemcell
-      }}
+      \required-attribute{source}{config}{
+        The configuration for the resource; see
+        \reference{schema.resource.source}.
+      }
 
-      This would work together with a \code{build-stemcell.yml} if its
-      \code{outputs:} section was as follows:
+      \optional-attribute{params}{config}{
+        A map of arbitrary configuration to forward to the resource. Refer to the
+        resource type's documentation to see what it supports.
+      }
 
-      \codeblock{yaml}{{
-      outputs:
-      - name: stemcell
-      }}
-
-      This feature is useful to farm work out to your Concourse server to build
-      things in a repeatable manner.
+      \optional-attribute{version}{version}{
+        A specific version of the resource to fetch. This should be a map with
+        string keys and values. If not specified, the latest version will be
+        fetched.
+      }
     }
+  }
 
-    \section{
-      \title{Providing values for \code{params}}
+  \optional-attribute{inputs}{[input]}{
+    The set of artifacts used by task, determining which artifacts will be
+    available in the current directory when the task runs.
 
-      Any params listed in the task configuration can be specified by using
-      environment variables.
+    These are satisfied by \reference{get-step}s or \reference{schema.task.outputs} of a
+    previous task. These can also be provided by \code{-i} with
+    \reference{fly-execute}.
 
-      So, if you have a task with the following params:
+    If any required inputs are missing at run-time, then the task will error
+    immediately.
 
-      \codeblock{yaml}{{
-      params:
-        FOO: fizzbuzz
-        BAR:
-      }}
+    \schema{input}{
+      \required-attribute{name}{identifier}{
+        The name of the input.
+      }
 
-      ...and you run:
+      \optional-attribute{path}{dir-path}{
+        The path where the input will be placed. If not specified, the input's
+        \code{name} is used.
 
-      \codeblock{bash}{{
-        BAR=hello fly execute
-      }}
+        Paths are relative to the working directory of the task. Absolute paths
+        are not respected.
+      }
 
-      The task would then run with \code{BAR} as \code{"hello"}, and \code{FOO}
-      as \code{"fizzbuzz"} (its default value).
+      \optional-attribute{optional}{boolean}{
+        \italic{Default \code{false}.} If \code{true}, then the input is not
+        required by the task. The task may run even if this input is missing.
+
+        An \code{optional} input that is missing will not appear in the current
+        directory of the running task.
+      }
     }
+  }
 
-    \section{
-      \title{Providing values for \code{((vars))}}{fly-execute-vars}
+  \optional-attribute{outputs}{[output]}{
+    The artifacts produced by the task.
 
-      Task config files can contain template variables in the form of
-      \code{((foo-bar))}, the same as \reference{pipeline-vars}{pipeline
-      \code{((vars))}}.
+    Each output configures a directory to make available to later steps in the
+    \reference{build-plans}{build plan}. The directory will be automatically
+    created before the task runs, and the task should place any artifacts it
+    wants to export in the directory.
 
-      These vars can be set during \code{fly execute} by using the \code{-v},
-      \code{-y} and \code{-l} flags, the same as \reference{fly-set-pipeline}:
+    \schema{output}{
+      \required-attribute{name}{identifier}{
+        The name of the output. The contents under \code{path} will be made
+        available to the rest of the plan under this name.
+      }
 
-      \codeblock{bash}{{
-        fly -t example execute --config tests.yml \\
-          -l vars.yml \\
-          -v some_string="Hello World!" \\
-          -y some_bool=true
-      }}
+      \optional-attribute{path}{dir-path}{
+        The path to a directory where the output will be taken from. If not
+        specified, the output's \code{name} is used.
 
-      Any variables not satisfied via the above flags will be deferred to the
-      configured \reference{creds}{credential manager}.
-
-      To satisfy these vars when running the task in a pipeline, see
-      \reference{task-step-vars}.
+        Paths are relative to the working directory of the task. Absolute paths are not respected.
+      }
     }
+  }
 
-    \section{
-      \title{Targeting a specific worker with \code{--tag}}
+  \optional-attribute{caches}{[cache]}{
+    The cached directories shared between task runs.
 
-      If you want to execute a task on a worker that has a specific tag, you
-      can do so by passing \code{--tag}:
+    On the task's first run, all cache directories will be empty. It is the
+    responsibility of the task to populate these directories with any artifacts
+    to be cached. On subsequent runs, the cached directories will contain those
+    artifacts.
 
-      \codeblock{bash}{{
-        fly -t example execute --config task.yml --tag bar
-      }}
+    Caches are scoped to the worker the task is run on, so you will not get a
+    cache hit when subsequent builds run on different workers. This also means
+    that caching is not intended to share state between workers, and your task
+    should be able to run whether or not the cache is warmed.
 
-      This will execute the task specified by \code{task.yml} on a worker that has
-      been tagged \code{bar}.
+    Caches are also scoped to a particular task name inside of a pipeline's
+    job. As a consequence, if the job name, step name or cache path are
+    changed, the cache will not be used. This also means that caches do not
+    exist for one-off builds.
+
+    \schema{cache}{
+      \required-attribute{path}{dir-path}{
+        The path to a directory to be cached.
+
+        Paths are relative to the working directory of the task. Absolute paths
+        are not respected.
+      }
+    }
+  }
+
+  \optional-attribute{params}{env-vars}{
+    A key-value mapping of string keys and values that are exposed to the task
+    via environment variables.
+
+    Pipelines can override these params by setting
+    \reference{schema.step.task-step.params} on the \reference{task-step}. This is a common
+    method of providing credentials to a task.
+  }
+
+  \required-attribute{run}{command}{
+    The command to execute in the container.
+
+    Note that this is \italic{not} provided as a script blob, but explicit
+    \code{path} and \code{args} values; this allows \code{fly} to forward
+    arguments to the script, and forces your config \code{.yml} to stay fairly
+    small.
+
+    \schema{command}{
+      \required-attribute{path}{file-path}{
+        The name of or path to the executable to run.
+
+        \code{path} is relative to the working directory. If \code{dir} is
+        specified to set the working directory, then \code{path} is relative to
+        it.
+
+        This is commonly a path to a script provided by one of the task's inputs,
+        e.g. \code{my-resource/scripts/test}. It could also be a command like
+        \code{bash} (respecting standard \code{$PATH} lookup rules), or an absolute
+        path to a file to execute, e.g. \code{/bin/bash}.
+      }
+
+      \optional-attribute{args}{[string]}{
+        Arguments to pass to the command. Note that when executed with Fly, any
+        arguments passed to Fly are appended to this array.
+      }
+
+      \optional-attribute{dir}{dir-path}{
+        A directory, relative to the initial working directory, to set as the
+        working directory when running the script.
+      }
+
+      \optional-attribute{user}{string}{
+        Explicitly set the user to run as. If not specified, this defaults to the
+        user configured by the task's image. If not specified there, it's up to
+        the Garden backend, and may be e.g. \code{root} on Linux.
+      }
+    }
+  }
+
+  \optional-attribute{rootfs_uri}{string}{
+    A string specifying the rootfs uri of the container, as interpreted by your
+    worker's Garden backend.
+
+    \reference{schema.task.image_resource} is the preferred way to specify base image.
+    You should only use this if you have no other option and you really know
+    what you're doing.
+  }
+
+  \optional-attribute{container_limits}{container_limits}{
+    CPU and memory limits to enforce on the task container.
+
+    Note that these values, when specified, will override any limits set by
+    passing the \code{--default-task-cpu-limit} or
+    \code{--default-task-memory-limit} flags to the \code{concourse web} command.
+
+    \schema{container_limits}{
+      \optional-attribute{cpu}{number}{
+        The maximum amount of CPU available to the task container, measured in
+        shares. 0 means unlimited.
+      }
+
+      \optional-attribute{memory}{number}{
+        The maximum amount of memory available to the task container, measured in
+        bytes. 0 means unlimited.
+      }
     }
   }
 }
 
-\section{
-  \title{Task Environment}{task-environment}
-
-  A task runs in a new container every time, using the image provided by
-  \reference{image_resource} as its base filesystem (i.e. \code{/}).
-
-  The command specified by \reference{task-run} will be executed in a working
-  directory containing each of the \reference{task-inputs}. If any inputs are
-  missing the task will not run (and the container will not even be created).
-
-  The working directory will also contain empty directories for each of the
-  \reference{task-outputs}. The task must place artifacts in the output
-  directories for them to be exported. This meshes well with build tools with
-  configurable destination paths.
-
-  \aside{
-    If your build tools don't support output paths you'll have to copy bits
-    around. If it's a \code{git} repo that you're modifying you can do a local
-    \code{git clone ./input ./output}, which is much more efficient than
-    \code{cp}, and then work out of \code{./output}.
-  }
-
-  Any \reference{task-params} configured will be set in the environment for the
-  task's command, along with any environment variables provided by the task's
-  image (i.e. \code{ENV} rules from your \code{Dockerfile}).
-
-  The user the command runs as is determined by the image. If you're using the
-  \link{Docker Image
-  resource}{https://github.com/concourse/docker-image-resource}, this will be
-  the user set by a \code{USER} rule in your \code{Dockerfile}, or \code{root}
-  if not specified.
-
-  Another relevant bit of configuration is \reference{task-step-privileged},
-  which determines whether the user the task runs as will have full privileges
-  (primarily when running as \code{root}). This is intentionally \italic{not}
-  configurable by the task itself, to prevent privilege escalation by way of
-  pull requests to repositories containing task configs.
-
-  Putting all this together, the following task config:
+\example-toggle{Testing a Ruby app}{
+  This configuration specifies that the task must run with the
+  \code{ruby:2.1} Docker image with a \code{my-app} input, and when the task
+  is executed it will run the \code{scripts/test} script in the same repo.
 
   \codeblock{yaml}{{
   ---
@@ -515,143 +265,24 @@ A task's configuration specifies the following:
   image_resource:
     type: docker-image
     source:
-      repository: golang
-      tag: '1.6'
-
-  params:
-    SOME_PARAM: some-default-value
+      repository: ruby
+      tag: '2.1'
 
   inputs:
-  - name: some-input
-  - name: some-input-with-custom-path
-    path: some/custom/path
-
-  outputs:
-  - name: some-output
+  - name: my-app
 
   run:
-    path: sh
-    args:
-    - -exc
-    - |
-      whoami
-      env
-      go version
-      find .
-      touch some-output/my-built-artifact
+    path: my-app/scripts/test
   }}
-
-  ...will produce the following output:
-
-  \codeblock{bash}{{
-    + whoami
-    root
-    + env
-    USER=root
-    HOME=/root
-    GOLANG_DOWNLOAD_SHA256=5470eac05d273c74ff8bac7bef5bad0b5abbd1c4052efbdbc8db45332e836b0b
-    PATH=/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    GOPATH=/go
-    PWD=/tmp/build/e55deab7
-    GOLANG_DOWNLOAD_URL=https://golang.org/dl/go1.6.linux-amd64.tar.gz
-    GOLANG_VERSION=1.6
-    SOME_PARAM=some-default-value
-    + go version
-    go version go1.6 linux/amd64
-    + find .
-    .
-    ./some-input
-    ./some-input/foo
-    ./some
-    ./some/custom
-    ./some/custom/path
-    ./some/custom/path/bar
-    ./some-output
-    + touch some-output/my-built-artifact
-  }}
-
-  ...and propagate \code{my-built-artifact} to any later \reference{task-step}s
-  or \reference{put-step}s that reference the \code{some-output} artifact, in
-  the same way that this task had \code{some-input} as an input.
 }
 
-\right-side{Examples}{
-  \example{Ruby App}{
-    This configuration specifies that the task must run with the
-    \code{ruby:2.1} Docker image with a \code{my-app} input, and when the task
-    is executed it will run the \code{scripts/test} script in the same repo.
+\example-toggle{Producing outputs from a task}{
+  A task can configure \reference{schema.task.outputs} to produce artifacts that can
+  then be propagated to a \reference{put-step} or another
+  \reference{task-step} in the same plan. They can also be downloaded with
+  \reference{fly-execute} by passing \code{-o}.
 
-    \codeblock{yaml}{{
-    ---
-    platform: linux
-
-    image_resource:
-      type: docker-image
-      source:
-        repository: ruby
-        tag: '2.1'
-
-    inputs:
-    - name: my-app
-
-    run:
-      path: my-app/scripts/test
-    }}
-  }
-
-  \example{Producing Outputs}{
-    A task can configure \reference{task-outputs} to produce artifacts that can
-    then be propagated to a \reference{put-step} or another
-    \reference{task-step} in the same plan. They can also be downloaded with
-    \reference{fly-execute} by passing \code{-o}.
-
-    \codeblock{yaml}{{
-      ---
-      platform: linux
-
-      image_resource: # ...
-
-      inputs:
-      - name: project-src
-
-      outputs:
-      - name: built-project
-
-      run:
-        path: project-src/ci/build
-    }}
-
-    ...assuming \code{project-src/ci/build} looks something like:
-
-    \codeblock{bash}{{
-      #!/bin/bash
-
-      set -e -u -x
-
-      export GOPATH=$PWD/project-src
-
-      go build -o built-project/my-project \\
-        github.com/concourse/my-project
-    }}
-
-    ...this task could then be used in a \reference{build-plans}{build plan}
-    like so:
-
-    \codeblock{yaml}{{
-      plan:
-      - get: project-src
-      - task: build-bin
-        file: project-src/ci/build.yml
-      - put: project-bin
-        params: {file: built-project/my-project}
-    }}
-  }
-
-  \example{Caching Ephemeral State}{
-    The following task and script could be used by a Node project to cache the
-    \code{node_modules} directory:
-
-    \codeblock{yaml}{{
+  \codeblock{yaml}{{
     ---
     platform: linux
 
@@ -660,54 +291,104 @@ A task's configuration specifies the following:
     inputs:
     - name: project-src
 
-    caches:
-    - path: project-src/node_modules
+    outputs:
+    - name: built-project
 
     run:
       path: project-src/ci/build
-    }}
+  }}
 
-    ...assuming \code{project-src/ci/build} looks something like:
+  ...assuming \code{project-src/ci/build} looks something like:
 
-    \codeblock{bash}{{
+  \codeblock{bash}{{
     #!/bin/bash
 
     set -e -u -x
 
-    cd project-src
-    npm install
+    export GOPATH=$PWD/project-src
 
-    # ...
-    }}
+    go build -o built-project/my-project \\
+      github.com/concourse/my-project
+  }}
 
-    ...this task would cache the contents of \code{project-src/node_modules}
-    between runs of this task on the same worker.
-  }
+  ...this task could then be used in a \reference{build-plans}{build plan}
+  like so:
 
-  \example{Private Docker Registry}{
-    The following external task uses an image from a private registry. Assuming the CA
-    is configured properly on the workers, SSL should Just Work™.
-
-    External tasks are now fully interpolated using \reference{creds}{credential manager variables} and
-    \reference{task-step-vars}, so you can use template variables in an external task:
-
-    \codeblock{yaml}{{{
-      ---
-      platform: linux
-
-      image_resource:
-        type: docker-image
-        source:
-          repository: my.local.registry:8080/my/image
-          username: ((myuser))
-          password: ((mypass))
-
-      inputs:
-      - name: my-app
-
-      run:
-        path: my-app/scripts/test
-        args: ["Hello, world!", "((myparam))"]
-    }}}
-  }
+  \codeblock{yaml}{{
+    plan:
+    - get: project-src
+    - task: build-bin
+      file: project-src/ci/build.yml
+    - put: project-bin
+      params: {file: built-project/my-project}
+  }}
 }
+
+\example-toggle{Caching ephemeral state}{
+  The following task and script could be used by a Node project to cache the
+  \code{node_modules} directory:
+
+  \codeblock{yaml}{{
+  ---
+  platform: linux
+
+  image_resource: # ...
+
+  inputs:
+  - name: project-src
+
+  caches:
+  - path: project-src/node_modules
+
+  run:
+    path: project-src/ci/build
+  }}
+
+  ...assuming \code{project-src/ci/build} looks something like:
+
+  \codeblock{bash}{{
+  #!/bin/bash
+
+  set -e -u -x
+
+  cd project-src
+  npm install
+
+  # ...
+  }}
+
+  ...this task would cache the contents of \code{project-src/node_modules}
+  between runs of this task on the same worker.
+}
+
+\example-toggle{Using an image from a private Docker registry}{
+  The following external task uses an image from a private registry. Assuming the CA
+  is configured properly on the workers, SSL should Just Work™.
+
+  External tasks are now fully interpolated using \reference{creds}{credential manager variables} and
+  \reference{schema.step.task-step.vars}, so you can use template variables in an external task:
+
+  \codeblock{yaml}{{{
+    ---
+    platform: linux
+
+    image_resource:
+      type: docker-image
+      source:
+        repository: my.local.registry:8080/my/image
+        username: ((myuser))
+        password: ((mypass))
+
+    inputs:
+    - name: my-app
+
+    run:
+      path: my-app/scripts/test
+      args: ["Hello, world!", "((myparam))"]
+  }}}
+}
+
+\table-of-contents
+
+\include-section{tasks/running.lit}
+\include-section{tasks/environment.lit}

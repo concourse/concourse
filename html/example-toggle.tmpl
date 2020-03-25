@@ -1,0 +1,7 @@
+<div class="toggleable example">
+  <input id="toggle-{{.Partial "For" | render}}" type="checkbox" class="toggle" />
+  <label for="toggle-{{.Partial "For" | render}}" class="toggle-title">{{.Partial "Title" | render}}</label>
+  <div class="toggle-content">
+    {{.Content | render}}
+  </div>
+</div>

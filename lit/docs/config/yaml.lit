@@ -79,6 +79,6 @@ Here's a quick example demonstrating common YAML syntax:
 
   YAML is also whitespace-sensitive. For the most part, this is really handy
   because it keeps you from having to count curly-braces in deeply nested
-  parts of configuration such as \reference{job-plan}. Sometimes, though, it
+  parts of configuration such as \reference{schema.job.plan}. Sometimes, though, it
   can be hard to keep track of the correct indentation level.
 }

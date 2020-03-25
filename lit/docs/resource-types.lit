@@ -3,134 +3,127 @@
 \use-plugin{concourse-docs}
 
 Each resource in a pipeline has a \code{type}. The resource's type determines
-what versions are detected, the bits that are fetched when used for a
-\reference{get-step}, and the side effect that occurs when used for a
-\reference{put-step}.
+what versions are detected, the bits that are fetched when the resource's
+\reference{get-step} runs, and the side effect that occurs when the resource's
+\reference{put-step} runs.
 
-Out of the box, Concourse comes with a few resource types to cover common CI use
-cases like dealing with Git repositories and S3 buckets. These are called the
-"core" resource types. These are packaged with the worker, and can be listed via
-\reference{fly-workers}{\code{fly workers -d}}.
+Concourse comes with a few "core" resource types to cover common use cases like
+\code{git} and \code{s3} - the rest are developed and supported by the
+Concourse community. An exhaustive list of all resource types is available in
+the \link{Resource Types catalog}{https://resource-types.concourse-ci.org}.
 
-Beyond these core types, each pipeline can configure its own resource types by
-specifying \code{resource_types} at the top level. Each resource type is itself
-defined as a resource that provides the container image for the pipeline
-resource type (see \reference{implementing-resource-types}). You will almost
-always be using the \resource{registry-image} when doing this.
+A pipeline's resource types are listed under
+\reference{schema.pipeline.resource_types} with the following schema:
 
-A somewhat exhaustive list of all available resource types - both from the
-Concourse core project and from external contributors - is available in the
-\link{resource types}{https://resource-types.concourse-ci.org} section of the
-site.
+\schema{resource_type}{
+  \required-attribute{name}{identifier}{
+    The name of the resource type. This should be short and simple. This name
+    will be referenced by \reference{schema.pipeline.resources} defined within the
+    same pipeline, and \reference{schema.task.image_resource}s used by tasks running in the
+    pipeline.
 
-Similar to \reference{resources}, each configured resource type consists of the
-following attributes:
+    Pipeline-provided resource types can override the core resource types by
+    specifying the same name.
+  }
 
-\define-attribute{name: string}{
-  \italic{Required.} The name of the new resource type. This should be short
-  and simple. This name will be referenced by \reference{pipeline-resources}
-  defined within the same pipeline, and \reference{image_resource}s used by
-  tasks running in the pipeline.
+  \required-attribute{type}{resource_type.name | identifier}{
+    The type of the resource used to provide the resource type's container
+    image.
 
-  Pipeline-provided resource types can override the core resource types by
-  specifying the same name.
-}{resource-type-name}
+    This is a bit meta. Usually this value will be \code{docker-image} or
+    \code{registry-image}, as the resource type must result in a container
+    image.
 
-\define-attribute{type: string}{
-  \italic{Required.} The type of the resource used to provide the resource
-  type's container image. Yes, this is a bit meta. Usually this will be
-  \code{docker-image}, as the resource type must result in a container image,
-  though there may be other image formats (possibly themselves defined as
-  pipeline resource types!).
+    A resource type's type can refer to other resource types, and can also use the
+    core type that it's overriding. This is useful for bringing in a newer or
+    forked \code{registry-image} resource.
+  }
 
-  A resource type's type can refer to other resource types, and can also use the
-  core type that it's overriding. This is useful for bringing in a newer or
-  forked \code{registry-image} resource.
-}{resource-type-type}
+  \required-attribute{source}{config}{
+    The location of the resource type's resource. This varies
+    by resource type, and is a black box to Concourse; it is blindly passed to
+    the resource at runtime.
 
-\define-attribute{source: object}{
-  \italic{Optional.} The location of the resource type's resource. This varies
-  by resource type, and is a black box to Concourse; it is blindly passed to
-  the resource at runtime.
+    To use \code{docker-image} as an example, the source would contain something
+    like \code{repository: username/reponame}. See the \link{Docker Image
+    resource}{https://github.com/concourse/docker-image-resource} (or whatever
+    resource type your resource type uses) for more information.
+  }
 
-  To use \code{docker-image} as an example, the source would contain something
-  like \code{repository: username/reponame}. See the \link{Docker Image
-  resource}{https://github.com/concourse/docker-image-resource} (or whatever
-  resource type your resource type uses) for more information.
-}{resource-type-source}
+  \optional-attribute{privileged}{boolean}{
+    \italic{Default \code{false}.} If set to \code{true}, the resource's
+    containers will be run with full capabilities, as determined by the worker
+    backend the task runs on.
 
-\define-attribute{privileged: boolean}{
-  \italic{Optional. Default \code{false}.} If set to \code{true}, the
-  resource's containers will be run with full capabilities, as determined by
-  the Garden backend the task runs on. For Linux-based backends it typically
-  determines whether or not the container will run in a separate user
-  namespace, and whether the \code{root} user is "actual" \code{root} (if set
-  to \code{true}) or a user namespaced \code{root} (if set to \code{false},
-  the default).
+    For Linux-based backends it typically determines whether or not the
+    container will run in a separate user namespace, and whether the
+    \code{root} user is "actual" \code{root} (if set to \code{true}) or a user
+    namespaced \code{root} (if set to \code{false}, the default).
 
-  This is a gaping security hole; only configure it if the resource type needs
-  it (which should be called out in its documentation). This is not up to the
-  resource type to decide dynamically, so as to prevent privilege escalation
-  via third-party resource type exploits.
-}{resource-type-privileged}
+    This is a gaping security hole; only configure it if the resource type needs
+    it (which should be called out in its documentation). This is not up to the
+    resource type to decide dynamically, so as to prevent privilege escalation
+    via third-party resource type exploits.
+  }
 
-\define-attribute{params: object}{
-  \italic{Optional.} Arbitrary params to pass when fetching the resource.
-}{resource-type-params}
+  \optional-attribute{params}{config}{
+    Arbitrary config to pass when running the \code{get} to fetch the resource
+    type's image.
+  }
 
-\define-attribute{check_every: string}{
-  \italic{Optional. Default \code{1m}.} The interval on which to check for new
-  versions of the resource type. Acceptable interval options are defined by the
-  \link{time.ParseDuration
-  function}{https://golang.org/pkg/time/#ParseDuration}.
-}{resource-type-check-every}
+  \optional-attribute{check_every}{duration}{
+    \italic{Default \code{1m}.} The interval on which to check for new versions
+    of the resource type. Acceptable interval options are defined by the
+    \link{time.ParseDuration
+    function}{https://golang.org/pkg/time/#ParseDuration}.
+  }
 
-\define-attribute{tags: [string]}{
-  \italic{Optional. Default \code{[]}.} A list of tags to determine which
-  workers the checks will be performed on. You'll want to specify this if the
-  source is internal to a worker's network, for example. See also
-  \reference{tags-step-modifier}.
-}{resource-type-tags}
+  \optional-attribute{tags}{[string]}{
+    \italic{Default \code{[]}.} A list of tags to determine which workers the
+    checks will be performed on. You'll want to specify this if the source is
+    internal to a worker's network, for example. See also
+    \reference{schema.step.tags}.
+  }
 
-\define-attribute{unique_version_history: bool}{
-  \italic{Optional. Default \code{false}.} Only relevant when
-  \reference{global-resources} is enabled. When set to \code{true}, resources
-  using this resource type will have a version history that is unique to the
-  resource, rather than sharing a global version history.
-}{resource-type-unique-version-history}
-
-\split-sections
-
-\include-section{./resource-types/managing.lit}
-\include-section{./resource-types/implementing.lit}
-
-\right-side{Examples}{
-  \example{Using Resource Types}{
-    \reference{resource-types}{Resource Types} can be used to extend the
-    functionality of your pipeline and provide deeper integrations. This
-    example uses one to trigger a job whenever a new \link{Dinosaur
-    Comic}{http://www.qwantz.com} is out.
-
-    \codeblock{yaml}{{{
-      ---
-      resource_types:
-      - name: rss
-        type: docker-image
-        source:
-          repository: suhlig/concourse-rss-resource
-          tag: latest
-
-      resources:
-      - name: booklit-releases
-        type: rss
-        source:
-          url: http://www.qwantz.com/rssfeed.php
-
-      jobs:
-      - name: announce
-        plan:
-        - get: booklit-releases
-          trigger: true
-    }}}
+  \optional-attribute{unique_version_history}{boolean}{
+    \italic{Default \code{false}.} Only relevant when
+    \reference{global-resources} is enabled. When set to \code{true}, resources
+    using this resource type will have a version history that is unique to the
+    resource, rather than sharing a global version history.
   }
 }
+
+\example-toggle{Using a \code{rss} resource type to subscribe to RSS feeds}{
+  \reference{resource-types}{Resource Types} can be used to extend the
+  functionality of your pipeline and provide deeper integrations. This
+  example uses one to trigger a job whenever a new \link{Dinosaur
+  Comic}{http://www.qwantz.com} is out.
+
+  \codeblock{yaml}{{{
+    ---
+    resource_types:
+    - name: rss
+      type: docker-image
+      source:
+        repository: suhlig/concourse-rss-resource
+        tag: latest
+
+    resources:
+    - name: booklit-releases
+      type: rss
+      source:
+        url: http://www.qwantz.com/rssfeed.php
+
+    jobs:
+    - name: announce
+      plan:
+      - get: booklit-releases
+        trigger: true
+  }}}
+}
+
+\split-sections
+\table-of-contents
+
+\include-section{./resource-types/implementing.lit}
+\include-section{./resource-types/managing.lit}

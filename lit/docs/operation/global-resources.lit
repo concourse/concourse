@@ -7,8 +7,8 @@ is enabled by passing the \code{--enable-global-resources} flag to the
 \code{concourse web} command.
 
 The basic concept of global resources is to share detected resource versions
-between all resources that have the same \reference{resource-type} and
-\reference{resource-source} configuration.
+between all resources that have the same \reference{schema.resource.type} and
+\reference{schema.resource.source} configuration.
 
 Before v5.0.0, each pipeline resource had its own version history, associated
 to the resource by name. This meant that multiple pipelines with the same
@@ -17,7 +17,7 @@ information.
 
 With v5.0.0's experimental 'global resources' feature, resource versions are
 instead associated to an anonymous 'resource config' i.e. its
-\reference{resource-type} and \reference{resource-source}.
+\reference{schema.resource.type} and \reference{schema.resource.source}.
 
 \section{
   \title{Benefits of Global Resources}
@@ -42,7 +42,7 @@ instead associated to an anonymous 'resource config' i.e. its
 
     Since there will be only one resource check for all resources that have the
     same configuration, the resource that has the shortest
-    \reference{resource-check-every} configured will result in its pipeline
+    \reference{schema.resource.check_every} configured will result in its pipeline
     running the checks for that resource configuration.
 
     \section{
@@ -51,7 +51,7 @@ instead associated to an anonymous 'resource config' i.e. its
       There is an exception to sharing check containers within a deployment,
       which is workers belonging to a team and workers with tags.
 
-      If a resource has \reference{resource-tags} configured, \italic{and} the
+      If a resource has \reference{schema.resource.tags} configured, \italic{and} the
       resource's check interval ends up acquiring the checking lock, a new
       container will be created on a worker matching the appropriate tags, even
       if a check container already exists for the same resource config
@@ -91,7 +91,7 @@ instead associated to an anonymous 'resource config' i.e. its
     no longer accurate to the current configuration.
 
     Global resources instead associates the resource versions to the resource's
-    \reference{resource-type} and \reference{resource-source}. Therefore,
+    \reference{schema.resource.type} and \reference{schema.resource.source}. Therefore,
     whenever a resource definition changes, the versions will "reset" and
     change along with it, resulting in truthful and reliable version histories.
   }
@@ -123,11 +123,11 @@ instead associated to an anonymous 'resource config' i.e. its
     RFC}{https://github.com/concourse/rfcs/pull/1}.
 
     Users can also set this value themselves by configuring
-    \reference{resource-type-unique-version-history} on the resource type.
+    \reference{schema.resource_type.unique_version_history} on the resource type.
 
     Another case where version history shouldn't be shared is when resources
     "automagically" learn their auth credentials using things like IAM roles.
-    In these cases, the credentials aren't in the \reference{resource-source}.
+    In these cases, the credentials aren't in the \reference{schema.resource.source}.
     If version history were to be shared, anyone could configure the same
     \code{source:}, not specifying any credentials, and see the version history
     discovered by some other pipeline that ran its checks on workers that had

@@ -1,8 +1,8 @@
-{{define "section-link"}}
+{{define "section-link" -}}
   <a href="{{.Section.PrimaryTag | url}}" {{if eq .Section.PrimaryTag.Name .Current.PrimaryTag.Name}} class="self"{{else if .Section.Contains .Current}} class="active"{{end}}>
     {{- .Section.Title | render -}}
   </a>
-{{end}}
+{{- end}}
 
 {{define "context"}}
   {{if gt .Section.Depth 1}}
@@ -13,21 +13,15 @@
   <div class="context">
     <nav>
       <div class="top">
-        {{if eq .Section.PageDepth 0}}
-        <span class="section-number">{{.Section.Number}}</span>
-        {{end}}
-        {{template "section-link" .}}
+        {{if eq .Section.PageDepth 0}}<span class="section-number">{{.Section.Number}}</span>{{end -}}
+        {{- template "section-link" .}}
       </div>
 
       <div class="children">
         <table>
         {{range .Section.Children}}
           <tr>
-            {{if eq .PageDepth 0}}
-              <td class="number-cell" align="right">{{.Number}}&nbsp;</td>
-            {{else}}
-              <td class="number-cell" align="left"></td>
-            {{end}}
+            <td class="number-cell">{{.Number}}</td>
             <td class="title-cell">{{template "section-link" walkContext $.Current .}}</td>
           </tr>
         {{end}}
@@ -41,47 +35,22 @@
 {{define "anchors"}}
   {{if not .SplitSections}}
     {{range .Children}}
-      {{if .HasAnchors}}
+      <tr>
+        <td class="number-cell">{{.Number}}</td>
+        <td class="title-cell">{{template "section-link" walkContext $ .}}</td>
+      </tr>
+      {{range .AnchorTags}}
         <tr>
-          <td class="number-cell" align="left">{{.Number}}&nbsp;</td>
-          <td class="title-cell">{{template "section-link" walkContext $ .}}</td>
+          <td class="number-cell"><code>#</code></td>
+          <td class="title-cell"><a href="{{. | url}}">{{.Title | render}}</a></td>
         </tr>
-        {{range .AnchorTags}}
-          <tr>
-            <td class="number-cell"></td>
-            <td class="title-cell"><a href="{{. | url}}">{{.Title | render}}</a></td>
-          </tr>
-        {{end}}
       {{end}}
       {{template "anchors" .}}
     {{end}}
   {{end}}
 {{end}}
 
-{{if and .Parent .Parent.Parent}}
-{{template "context" walkContext $ .Parent}}
-{{else}}
 {{template "context" walkContext $ .}}
-{{end}}
-
-{{if gt .Depth 1 }}
-{{if and .Children (not .OmitChildrenFromTableOfContents)}}
-<div class="context">
-  <div class="page-toc">
-    <nav>
-      <div class="top">
-        {{if eq .PageDepth 0}}
-        <span class="section-number">{{.Number}}</span>
-        {{end}}
-        {{template "section-link" walkContext $ .}}
-      </div>
-
-      {{template "page-toc.tmpl" .}}
-    </nav>
-  </div>
-</div>
-{{end}}
-{{end}}
 
 {{if .HasAnchors}}
 <div class="context">
@@ -93,7 +62,8 @@
     <table>
       {{range .AnchorTags}}
       <tr>
-        <td colspan="2" class="title-cell"><a href="{{. | url}}">{{.Title | render}}</a></td>
+        <td class="number-cell"><code>#</code></td>
+        <td class="title-cell"><a href="{{. | url}}">{{.Title | render}}</a></td>
       </tr>
       {{end}}
 

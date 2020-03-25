@@ -1,45 +1,89 @@
 \title{Pipelines}{pipelines}
 
 \use-plugin{concourse-docs}
+\split-sections
 
 A pipeline is the result of configuring \reference{jobs} and
 \reference{resources} together. When you configure a pipeline, it takes on a
 life of its own, to continuously detect resource versions and automatically
 queue new builds for jobs as they have new available inputs.
 
-Pipelines are configured as declarative YAML files, fitting the following
-schema:
+Pipelines are configured via \reference{fly-set-pipeline} or the
+\reference{set-pipeline-step} as declarative \reference{intro-to-yaml}{YAML
+files} which conform to the following schema:
 
-\define-attribute{jobs: [job]}{
-  A set of \reference{jobs}{jobs} for the pipeline to continuously schedule.
-}{pipeline-jobs}
+\schema{pipeline}{
+  \optional-attribute{jobs}{[job]}{
+    A set of \reference{jobs}{jobs} for the pipeline to continuously schedule.
+  }
 
-\define-attribute{resources: [resource]}{
-  A set of \reference{resources}{resources} for the pipeline to continuously
-  check.
-}{pipeline-resources}
+  \optional-attribute{resources}{[resource]}{
+    A set of \reference{resources}{resources} for the pipeline to continuously
+    check.
+  }
 
-\define-attribute{resource_types: [resource_type]}{
-  A set of \reference{resource-types}{resource types} for resources within the
-  pipeline to use.
-}{pipeline-resource-types}
+  \optional-attribute{resource_types}{[resource_type]}{
+    A set of \reference{resource-types}{resource types} for resources within the
+    pipeline to use.
+  }
 
-\define-attribute{var_sources: [var_source]}{
-  A set of \reference{var-sources} for the pipeline to use.
-}{pipeline-var-sources}
+  \optional-attribute{var_sources}{[var_source]}{
+    A set of \reference{var-sources} for the pipeline to use.
+  }
 
-\define-attribute{groups: [group]}{
-  A list of \reference{pipeline-groups}{groups} to use for cleaning
-  up/organizing jobs in the web UI.
+  \optional-attribute{groups}{[group_config]}{
+    A list of job groups to use for organizing jobs in the web UI.
 
-  Each group must have a unique name.
-}{pipeline-config-groups}
+    Groups have no functional effect on your pipeline. They are purely for
+    making it easier to grok large pipelines in the web UI.
 
-\split-sections
+    Note: once you have added groups to your pipeline, all jobs must be in a
+    group.
+
+    \example-toggle{Grouping jobs}{
+      The following example will make the "tests" group the default view (since
+      it's listed first), separating the later jobs into a "publish" group:
+
+      \codeblock{yaml}{{
+      groups:
+      - name: test
+        jobs:
+        - unit
+        - integration
+      - name: publish
+        jobs:
+        - deploy
+        - shipit
+      }}
+
+      This would display two tabs at the top of the home page: "test" and
+      "publish".
+
+      For a real world example of how groups can be used to simplify navigation
+      and provide logical grouping, see the groups used at the top of the page
+      in the \link{Concourse pipeline}{https://ci.concourse-ci.org}.
+    }
+
+    \schema{group_config}{
+      \required-attribute{name}{identifier}{
+        A unique name for the group. This should be short and simple as it will
+        be used as the tab name for navigation.
+      }
+
+      \optional-attribute{jobs}{[job.name]}{
+        A list of jobs that should appear in this group. A job may
+        appear in multiple groups. Neighbours of jobs in the current group will also
+        appear on the same page in order to give context of the location of the
+        group in the pipeline.
+      }
+    }
+  }
+}
+
+\table-of-contents
 
 \include-section{pipelines/configuring.lit}
 \include-section{pipelines/managing.lit}
-\include-section{pipelines/groups.lit}
 
 \right-side{Examples}{
   \example{Hello, world!}{
@@ -89,7 +133,7 @@ schema:
 
   \example{Chaining Jobs}{
     Promoting resources to downstream jobs is done by setting
-    \reference{get-step-passed} on a \reference{get-step}{\code{get} step}.
+    \reference{schema.step.get-step.passed} on a \reference{get-step}{\code{get} step}.
 
     Note that nothing in \code{unit} says anything about triggering
     \code{build}. Job definitions are self-contained; they describe their

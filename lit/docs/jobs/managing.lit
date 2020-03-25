@@ -30,6 +30,33 @@
   \codeblock{bash}{{
   $ fly -t example trigger-job --job my-pipeline/my-job --watch
   }}
+
+  You can also queue new builds by clicking the \code{+} button on the job or
+  build pages in the web UI.
+}
+
+\section{
+  \title{\code{fly rerun-build}}{fly-rerun-build}
+
+  To queue a new build of a job with exactly the same inputs as a given build of
+  the same job, run:
+
+  \codeblock{bash}{{
+  $ fly -t example rerun-build --job my-pipeline/my-job --build 4
+  }}
+
+  This will enqueue a new build of the \code{my-job} job in the
+  \code{my-pipeline} pipeline, using the same input versions as build number 4.
+
+  To start watching the newly created build, append the \code{--watch} flag
+  like so:
+
+  \codeblock{bash}{{
+  $ fly -t example rerun-build --job my-pipeline/my-job --build 4 --watch
+  }}
+
+  You can also rerun builds by visiting the build page for the build in question
+  in the web UI and clicking the rerun button.
 }
 
 \section{
@@ -61,8 +88,8 @@
 \section{
   \title{\code{fly clear-task-cache}}{fly-clear-task-cache}
 
-  If you've got a \reference{task-caches}{task cache} that you need to clear
-  out for whatever reason, this can be done like so:
+  If you've got a \reference{schema.task.caches}{task cache} that you need to
+  clear out for whatever reason, this can be done like so:
 
   \codeblock{bash}{{
   $ fly -t example clear-task-cache --job my-pipeline/my-job --step my-step-name

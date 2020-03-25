@@ -1,0 +1,161 @@
+\title{Internals}{internals}
+
+\use-plugin{concourse-docs}
+
+This section provides a deeper understanding of some of the concepts
+surrounding Concourse.
+
+An understanding of the basics of Concourse concepts, such as pipelines, jobs,
+etc, is recommended as parts of this section might assume a level of knowledge
+from them. This section is not necessary for using Concourse but are more for
+experienced users that want to dig deeper into how Concourse works.
+
+\table-of-contents
+
+\section{
+  \title{Basic architecture}
+
+  Concourse is a fairly simple distributed system built up from the following
+  components. You'll see them referenced here and there throughout the
+  documentation, so you may want to skim this page just to get an idea of what
+  they are.
+
+  \diagram{images/concourse_architecture.png}{80%}
+}
+
+\section{
+  \title{ATC\aux{: web UI & build scheduler}}{component-atc}
+
+  The ATC is the heart of Concourse. It runs the web UI and API and is
+  responsible for all pipeline scheduling. It connects to PostgreSQL, which it
+  uses to store pipeline data (including build logs).
+
+  Multiple ATCs can be running as one cluster; as long as they're all pointing
+  to the same database, they'll synchronize using basic locking mechanisms and
+  roughly spread work across the cluster.
+
+  The ATC by default listens on port \code{8080}, and is usually colocated with
+  the \reference{component-tsa}{TSA} and sitting behind a load balancer.
+
+  \bold{Note:} for \reference{fly-intercept} to function, make sure your load
+  balancer is configured to do TCP or SSL forwarding, not HTTP or HTTPS.
+
+  There are multiple components within the ATC that each have their own set of
+  responsibilities. The main components consist of the
+  \reference{checker}{checker}, \reference{scheduler}{scheduler},
+  \reference{build-tracker}{build tracker} and the
+  \reference{garbage-collector}{garbage collector}.
+
+  The \reference{checker}{checker}'s responsibility is to continously checks
+  for new versions of resources. The \reference{scheduler}{scheduler} is
+  responsible for scheduling builds for a job and the
+  \reference{build-tracker}{build tracker} is responsible for running any
+  scheduled builds. The \reference{garbage-collector}{garbage collector} is the
+  cleanup mechanism for removing any unused or outdated objects, such as
+  containers and volumes.
+
+  \include-section{./internals/checker.lit}
+  \include-section{./internals/scheduler.lit}
+  \include-section{./internals/build-tracker.lit}
+  \include-section{./internals/garbage-collector.lit}
+
+  \split-sections
+  \table-of-contents
+
+  All the components in a Concourse deployment can be viewed in the
+  \italic{components} table in the database as of v5.7.0. The intervals that
+  the components run at can also be adjusted through editing that table, as
+  well as pausing the component from running entirely.
+}
+
+\section{
+  \title{TSA\aux{: worker registration & forwarding}}{component-tsa}
+
+  The TSA is a custom-built SSH server that is used solely for securely
+  registering \reference{architecture-worker}{workers} with the
+  \reference{component-atc}{ATC}.
+
+  The TSA only supports two commands: \code{register-worker} and
+  \code{forward-worker}.
+
+  The \code{register-worker} command is used to register a worker directly with
+  the ATC. This should be used if the worker is running in the same (private)
+  network as the ATC.
+
+  The \code{forward-worker} command is used to reverse-tunnel a worker's
+  addresses through the TSA and register the forwarded connections with the
+  ATC. This allows workers running in arbitrary networks to register securely,
+  so long as they can reach the TSA. This is much safer than opening the worker
+  up to the outside world.
+
+  The TSA by default listens on port \code{2222}, and is usually colocated with
+  the \reference{component-atc}{ATC} and sitting behind a load balancer.
+}
+
+\section{
+  \title{Workers\aux{: container runtime & cache management}}{architecture-worker}
+
+  Workers are machines running
+  \link{Garden}{https://github.com/cloudfoundry-incubator/garden} and
+  \link{Baggageclaim}{https://github.com/concourse/baggageclaim} servers
+  and registering themselves via the \reference{component-tsa}{TSA}.
+
+  Workers have no important state configured on their machines, as everything
+  runs in a container and thus shouldn't care about what packages are installed
+  on the host (well, except for those that allow it to be a worker in the first
+  place). This is very different from workers in other non-containerized CI
+  solutions, where the state of packages on the worker is crucial to whether
+  your pipeline works or not.
+
+  Each worker registers itself with the Concourse cluster via the
+  \reference{component-tsa}{TSA}.
+
+  Workers by default listen on port \code{7777} for Garden and port \code{7788}
+  for Baggageclaim. If they are within a private network reachable by the
+  \reference{component-atc}{ATC}, they'll probably bind on all addresses
+  (\code{0.0.0.0}) and register themselves directly. Otherwise they should bind
+  on \code{127.0.0.1} and forward themselves through the
+  \reference{component-tsa}{TSA}.
+
+  \section{
+    \title{The worker lifecycle}{worker-lifecycle}
+
+    \define-table{RUNNING}{
+      A worker in this state is registered with the cluster and ready to start
+      running containers and storing volumes.
+    }
+
+    \define-table{STALLED}{
+      A worker in this state was previously registered with the cluster, but
+      stopped advertising itself for some reason. Ususally this is due to
+      network connectivity issues, or the worker stopping unexpectedly.
+
+      If the worker remains in this state and cannot be recovered, it can be
+      removed using the \reference{fly-prune-worker} command.
+    }
+
+    \define-table{LANDING}{
+      The \code{concourse land-worker} command will put a worker in the LANDING
+      state to safely drain its assignments for temporary downtime.
+
+      The ATC will wait for builds on the worker for jobs which aren't
+      interruptible to finish, and transition the worker into
+      \reference{LANDED-table} state.
+    }
+
+    \define-table{LANDED}{
+      A worker in this state has successfully waited for all non-interruptible
+      jobs on it after having \code{concourse land-worker} called. It will no
+      longer be used to schedule any new containers or create volumes until it
+      registers as \reference{RUNNING-table} again.
+    }
+
+    \define-table{RETIRING}{
+      The \code{concourse retire-worker} command will put a worker in the
+      RETIRING state to remove it from the cluster permanently.
+
+      The ATC will wait for builds on the worker for jobs which aren't
+      interruptible to finish, and remove the worker.
+    }
+  }
+}

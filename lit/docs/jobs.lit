@@ -7,204 +7,208 @@ determine how \reference{resources}{resources} progress through it, and how the
 pipeline is visualized.
 
 The most important attribute of a job is its build plan, configured as
-\reference{job-plan}. This determines the sequence of \reference{steps} to
+\reference{schema.job.plan}. This determines the sequence of \reference{steps} to
 execute in any builds of the job.
 
-Jobs are listed under the \code{jobs:} key in the pipeline configuration. Each
-configured job consists of the following fields:
+A pipeline's jobs are listed under \reference{schema.pipeline.jobs} with the
+following schema:
 
-\define-attribute{name: string}{
-  \italic{Required.} The name of the job. This should be short; it will show up
-  in URLs.
-}{job-name}
+\schema{job}{
+  \required-attribute{name}{identifier}{
+    The name of the job. This should be short; it will show up in URLs.
+  }
 
-\define-attribute{old_name: string}{
-  \italic{Optional.} The old name of the job. If configured, the history of old
-  job will be inherited to the new one. Once the pipeline is set, this field can
-  be removed as the builds have been transfered.
+  \required-attribute{plan}{[step]}{
+    The sequence of \reference{steps}{steps} to execute.
+  }
 
-  This can be used to rename a job without losing its history, like so:
+  \optional-attribute{old_name}{identifier}{
+    The old name of the job. If configured, the history of old job will be
+    inherited to the new one. Once the pipeline is set, this field can be
+    removed as the builds have been transfered.
 
-  \codeblock{yaml}{{
-  jobs:
-  - name: new-name
-    old_name: current-name
-    plan: [{get: 10m}]
-  }}
+    \example-toggle{Renaming a job}{
+      This can be used to rename a job without losing its history, like so:
 
-  After the pipeline is set, because the builds have been inherited, the job can
-  have the field removed:
+      \codeblock{yaml}{{
+      jobs:
+      - name: new-name
+        old_name: current-name
+        plan: [{get: 10m}]
+      }}
 
-  \codeblock{yaml}{{
-  jobs:
-  - name: new-name
-    plan: [{get: 10m}]
-  }}
-}{job-old-name}
+      After the pipeline is set, because the builds have been inherited, the job can
+      have the field removed:
 
-\define-attribute{plan: [step]}{
-  \italic{Required.} The sequence of \reference{steps}{steps} to execute.
-}{job-plan}
+      \codeblock{yaml}{{
+      jobs:
+      - name: new-name
+        plan: [{get: 10m}]
+      }}
+    }
+  }
 
-\define-attribute{serial: boolean}{
-  \italic{Optional. Default \code{false}.} If set to \code{true}, builds will
-  queue up and execute one-by-one, rather than executing in parallel.
-}{job-serial}
+  \optional-attribute{serial}{boolean}{
+    \italic{Default \code{false}.} If set to \code{true}, builds will queue up
+    and execute one-by-one, rather than executing in parallel.
+  }
 
-\define-attribute{build_log_retention: retention_config}{
-  \italic{Optional.} Configures the retention policy for build logs. This is
-  useful if you have a job that runs often but after some amount of time the
-  logs aren't worth keeping around.
+  \optional-attribute{build_log_retention}{build_log_retention_policy}{
+    Configures the retention policy for build logs. This is useful if you have
+    a job that runs often but after some amount of time the logs aren't worth
+    keeping around.
 
-  The following fields may be specified in \code{retention_config}:
+    Builds which are not retained by the configured policy will have their logs
+    reaped. If this configuration is omitted, logs are kept forever.
 
-  \define-attribute{days: number}{
-    \italic{Optional.} Keep logs for builds which have finished within the
-    specified number of days.
-  }{job-build-log-retention-days}
+    \example-toggle{A complicated example}{
+      The following example will keep logs for any builds that have completed in
+      the last 2 days, while also keeping the last 1000 builds and at least 1
+      succeeded build.
 
-  \define-attribute{builds: number}{
-    \italic{Optional.} Keep logs for the last specified number of builds.
-  }{job-build-log-retention-builds}
+      \codeblock{yaml}{{{
+      jobs:
+      - name: smoke-tests
+        build_log_retention:
+          days: 2
+          builds: 1000
+          minimum_succeeded_builds: 1
+        plan:
+        - get: 10m
+        - task: smoke-tests
+          # ...
+      }}}
 
-  \define-attribute{minimum_succeeded_builds: number}{
-    \italic{Optional.} Keep a minimum number of successful build logs that
-    would normally be reaped. Requires \reference{job-build-log-retention-builds}
-    to be set to an integer higher than 0 in order to work. For example, if
-    \reference{job-build-log-retention-builds} is set to 5, and this attribute
-    to 1, say a job has the following build history:
-    7(f), 6(f), 5(f), 4(f), 3(f), 2(f), 1(s),
-    where f means failed and s means succeeded, then builds 2
-    and 3 will be reaped, because it retains 5 build logs, and at least 1
-    succeeded build log. Default is 0.
-  }{job-build-log-retention-minimum-succeeded-builds}
+      If more than 1000 builds finish in the past 2 days, \italic{all} of them
+      will be retained thanks to the
+      \reference{schema.build_log_retention_policy.days}{\code{days}}
+      configuration. Similarly, if there are 1000 builds spanning more than 2
+      days, they will also be kept thanks to the
+      \reference{schema.build_log_retention_policy.builds}{\code{builds}}
+      configuration. And if they all happened to have failed, the
+      \reference{schema.build_log_retention_policy.minimum_succeeded_builds}{\code{minimum_succeeded_builds}}
+      will keep around at least one successful build. All policies operate
+      independently.
+    }
 
-  Builds which are not retained by one of the above configurations will have
-  their logs reaped.
+    \schema{build_log_retention_policy}{
+      \optional-attribute{days}{number}{
+        Keep logs for builds which have finished within the specified number of
+        days.
+      }
 
-  The following example will keep logs for any builds that have completed in
-  the last 2 days, while also keeping the last 1000 builds and at least 1
-  succeeded build.
+      \optional-attribute{builds}{number}{
+        Keep logs for the last specified number of builds.
+      }
 
-  \codeblock{yaml}{{{
-  jobs:
-  - name: smoke-tests
-    build_log_retention:
-      days: 2
-      builds: 1000
-      minimum_succeeded_builds: 1
-    plan:
-    - get: 10m
-    - task: smoke-tests
-      # ...
-  }}}
+      \optional-attribute{minimum_succeeded_builds}{number}{
+        Keep a minimum number of successful build logs that would normally be
+        reaped.
 
-  Note: if more than 1000 builds finish in the past 2 days, \italic{all} of
-  them will be retained thanks to the \reference{job-build-log-retention-days}
-  configuration. Similarly, if there are 1000 builds spanning more than 2 days,
-  they will also be kept thanks to the
-  \reference{job-build-log-retention-builds} configuration. And if they all
-  happened to have failed, the
-  \reference{job-build-log-retention-minimum-succeeded-builds} will keep around
-  at least one successful build. All policies operate independently.
-}{job-build-log-retention}
+        Requires
+        \reference{schema.build_log_retention_policy.builds}{\code{builds}} to
+        be set to an integer higher than 0 in order to work. For example, if
+        \reference{schema.build_log_retention_policy.builds}{\code{builds}} is
+        set to 5, and this attribute to 1, say a job has the following build
+        history: 7(f), 6(f), 5(f), 4(f), 3(f), 2(f), 1(s), where f means
+        failed and s means succeeded, then builds 2 and 3 will be reaped,
+        because it retains 5 build logs, and at least 1 succeeded build log.
+        Default is 0.
+      }
+    }
+  }
 
-\define-attribute{build_logs_to_retain: number}{
-  \italic{Optional.} Deprecated in favor of
-  \reference{job-build-log-retention}.
+  \optional-attribute{build_logs_to_retain}{number}{
+    \italic{Deprecated.} Equivalent to setting
+    \reference{schema.build_log_retention_policy.builds}{\code{job.build_log_retention.builds}}.
+  }
 
-  Equivalent to the following:
+  \optional-attribute{serial_groups}{[identifier]}{
+    \italic{Default \code{[]}.} When set to an array of arbitrary tag-like
+    strings, builds of this job and other jobs referencing the same tags will
+    be serialized.
 
-  \codeblock{yaml}{{
-  build_log_retention:
-    builds: number
-  }}
-}{job-build-logs-to-retain}
+    \example-toggle{Limiting parallelism}{
+      This can be used to ensure that certain jobs do not run at the same time,
+      like so:
 
-\define-attribute{serial_groups: [string]}{
-  \italic{Optional. Default \code{[]}.} When set to an array of arbitrary
-  tag-like strings, builds of this job and other jobs referencing the same
-  tags will be serialized.
+      \codeblock{yaml}{{
+      jobs:
+      - name: job-a
+        serial_groups: [some-tag]
+      - name: job-b
+        serial_groups: [some-tag, some-other-tag]
+      - name: job-c
+        serial_groups: [some-other-tag]
+      }}
 
-  This can be used to ensure that certain jobs do not run at the same time,
-  like so:
+      In this example, \code{job-a} and \code{job-c} can run concurrently, but
+      neither job can run builds at the same time as \code{job-b}.
 
-  \codeblock{yaml}{{
-  jobs:
-  - name: job-a
-    serial_groups: [some-tag]
-  - name: job-b
-    serial_groups: [some-tag, some-other-tag]
-  - name: job-c
-    serial_groups: [some-other-tag]
-  }}
+      The builds are executed in their order of creation, across all jobs with
+      common tags.
+    }
+  }
 
-  In this example, \code{job-a} and \code{job-c} can run concurrently, but
-  neither job can run builds at the same time as \code{job-b}.
+  \optional-attribute{max_in_flight}{number}{
+    If set, specifies a maximum number of builds to run at a time. If
+    \code{serial} or \code{serial_groups} are set, they take precedence and
+    force this value to be \code{1}.
+  }
 
-  The builds are executed in their order of creation, across all jobs with
-  common tags.
-}{job-serial-groups}
+  \optional-attribute{public}{boolean}{
+    \italic{Default \code{false}.} If set to \code{true}, the build log of this
+    job will be viewable by unauthenticated users. Unauthenticated users will
+    always be able to see the inputs, outputs, and build status history of a
+    job. This is useful if you would like to expose your pipeline publicly
+    without showing sensitive information in the build log.
 
-\define-attribute{max_in_flight: integer}{
-  \italic{Optional.} If set, specifies a maximum number of builds to run at a
-  time. If \code{serial} or \code{serial_groups} are set, they take precedence
-  and force this value to be \code{1}.
-}{job-max-in-flight}
+    Note: when this is set to \code{true}, any \reference{get-step} and
+    \reference{put-step}s will show the metadata for their resource version,
+    regardless of whether the resource itself has set \reference{schema.resource.public}
+    to \code{true}.
+  }
 
-\define-attribute{public: boolean}{
-  \italic{Optional. Default \code{false}.} If set to \code{true}, the build log
-  of this job will be viewable by unauthenticated users. Unauthenticated users
-  will always be able to see the inputs, outputs, and build status history of a
-  job. This is useful if you would like to expose your pipeline publicly without
-  showing sensitive information in the build log.
+  \optional-attribute{disable_manual_trigger}{boolean}{
+    \italic{Default \code{false}.} If set to \code{true}, manual triggering of
+    the job (via the web UI or \reference{fly-trigger-job}) will be disabled.
+  }
 
-  Note: when this is set to \code{true}, any \reference{get-step} and
-  \reference{put-step}s will show the metadata for their resource version,
-  regardless of whether the resource itself has set \reference{resource-public}
-  to \code{true}.
-}{job-public}
+  \optional-attribute{interruptible}{boolean}{
+    \italic{Default \code{false}.} Normally, when a worker is shutting down it
+    will wait for builds with containers running on that worker to finish
+    before exiting. If this value is set to \code{true}, the worker will not
+    wait on the builds of this job. You may want this if e.g. you have a
+    self-deploying Concourse or long-running-but-low-importance jobs.
+  }
 
-\define-attribute{disable_manual_trigger: boolean}{
-  \italic{Optional. Default \code{false}.} If set to \code{true}, manual
-  triggering of the job (via the web UI or \reference{fly-trigger-job}) will be
-  disabled.
-}{job-disable-manual-trigger}
+  \optional-attribute{on_success}{step}{
+    Step to execute when the job succeeds. Equivalent to the
+    \reference{schema.step.on_success} hook.
+  }
 
-\define-attribute{interruptible: boolean}{
-  \italic{Optional. Default \code{false}.} Normally, when a worker is shutting
-  down it will wait for builds with containers running on that worker to finish
-  before exiting. If this value is set to \code{true}, the worker will not wait
-  on the builds of this job. You may want this if e.g. you have a
-  self-deploying Concourse or long-running-but-low-importance jobs.
-}{job-interruptible}
+  \optional-attribute{on_failure}{step}{
+    Step to execute when the job fails. Equivalent to the
+    \reference{schema.step.on_failure} hook.
+  }
 
-\define-attribute{on_success: step}{
-  \italic{Optional.} Step to execute when the job succeeds. Equivalent to the
-  \reference{on_success} step attribute.
-}{job-on-success}
+  \optional-attribute{on_error}{step}{
+    Step to execute when the job errors. Equivalent to the
+    \reference{schema.step.on_error} hook.
+  }
 
-\define-attribute{on_failure: step}{
-  \italic{Optional.} Step to execute when the job fails. Equivalent to the
-  \reference{on_failure} step attribute.
-}{job-on-failure}
+  \optional-attribute{on_abort}{step}{
+    Step to execute when the job aborts. Equivalent to the
+    \reference{schema.step.on_abort} hook.
+  }
 
-\define-attribute{on_error: step}{
-  \italic{Optional.} Step to execute when the job errors. Equivalent to the
-  \reference{on_error} step attribute.
-}{job-on-error}
+  \optional-attribute{ensure}{step}{
+    Step to execute regardless of whether the job succeeds, fails, errors, or
+    aborts. Equivalent to the \reference{schema.step.ensure} hook.
+  }
+}
 
-\define-attribute{on_abort: step}{
-  \italic{Optional.} Step to execute when the job aborts. Equivalent to the
-  \reference{on_abort} step attribute.
-}{job-on-abort}
-
-\define-attribute{ensure: step}{
-  \italic{Optional.} Step to execute regardless of whether the job succeeds,
-  fails, errors, or aborts. Equivalent to the \reference{ensure} step attribute.
-}{job-ensure}
-
-\split-sections
+\table-of-contents
 
 \include-section{jobs/steps.lit}
 \include-section{jobs/managing.lit}

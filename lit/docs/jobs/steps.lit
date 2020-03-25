@@ -2,35 +2,1135 @@
 
 \use-plugin{concourse-docs}
 
-Each \reference{jobs}{Job} has a single build plan. When a build of a job is
-created, the plan determines what happens.
+Each \reference{jobs}{job} has a single build plan configured as
+\reference{schema.job.plan}. A build plan is a recipe for what to run when a
+build of the job is created.
 
-A build plan is a sequence of \italic{steps} to execute. These steps may fetch
-down or update \reference{resources}{Resources}, or execute
-\reference{tasks}{Tasks}.
+A build plan is a sequence of \italic{steps}:
 
-A new build of the job is scheduled whenever \reference{get-step}s with
-\code{trigger: true} have new versions available.
+\list{
+  the \reference{task-step} runs a \reference{tasks}{task}
+}{
+  the \reference{get-step} fetches a \reference{resources}{resource}
+}{
+  the \reference{put-step} updates a \reference{resources}{resource}
+}{
+  the \reference{set-pipeline-step} configures a
+  \reference{pipelines}{pipeline}
+}{
+  the \reference{load-var-step} loads a value into a
+  \reference{local-vars}{local var}
+}{
+  the \reference{in-parallel-step} runs steps in parallel
+}{
+  the \reference{do-step} runs steps in sequence
+}{
+  the \reference{try-step} attempts to run a step and succeeds even if the step
+  fails
+}
 
-To visualize the job in the pipeline, resources that appear as \code{get}
-steps are drawn as inputs, and resources that appear in \code{put} steps
-appear as outputs.
+When a new version is available for a \code{get} step with
+\reference{schema.step.get-step.trigger}{\code{trigger: true}} configured, a
+new build of the job will be created from the build plan.
+
+When viewing the job in the pipeline, resources that are used as \code{get}
+steps appear as inputs, and resources that are used in \code{put} steps appear
+as outputs. Jobs are rendered downstream of any jobs they reference in
+\reference{schema.step.get-step.passed}{\code{passed}} constraints, connected
+by the resource.
+
+If any step in the build plan fails, the build will fail and subsequent steps
+will not be executed. Additional steps may be configured to run after failure
+by configuring \reference{schema.step.on_failure} or
+\reference{schema.step.ensure} (or the job equivalents,
+\reference{schema.job.on_failure} and \reference{schema.job.ensure}).
 
 \split-sections
 
-\include-section{./steps/get.lit}
-\include-section{./steps/put.lit}
-\include-section{./steps/task.lit}
-\include-section{./steps/set_pipeline.lit}
-\include-section{./steps/aggregate.lit}
-\include-section{./steps/in_parallel.lit}
-\include-section{./steps/do.lit}
-\include-section{./steps/try.lit}
-\include-section{./steps/on_success.lit}
-\include-section{./steps/on_failure.lit}
-\include-section{./steps/on_abort.lit}
-\include-section{./steps/on_error.lit}
-\include-section{./steps/ensure.lit}
-\include-section{./steps/tags.lit}
-\include-section{./steps/timeout.lit}
-\include-section{./steps/attempts.lit}
+\schema{step}{
+  \one-of{
+    \schema-group{\code{get} step}{get-step}{
+      \required-attribute{get}{resource.name | identifier}{
+        Fetches a version of a \reference{resources}{resource}.
+
+        The fetched bits will be registered in the build's artifact namespace
+        under the given identifier. Subsequent \reference{task-step} and
+        \reference{put-step} which list the identifier as an input will have a
+        copy of the bits in their working directory.
+
+        \example-toggle{Fetching a repo and running its tests}{
+          Almost every simple unit test job will look something like this:
+          fetch my code with a \reference{get-step} and run its tests with a
+          \reference{task-step}.
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: my-repo
+            trigger: true
+          - task: unit
+            file: my-repo/ci/unit.yml
+          }}}
+        }
+      }
+
+      \optional-attribute{resource}{resource.name}{
+        \italic{Defaults to the value of \code{get}.} The resource to fetch,
+        as configured in \reference{schema.pipeline.resources}.
+
+        Use this attribute to rename a resource from the overall pipeline context
+        into the job-specific context.
+      }
+
+      \optional-attribute{passed}{[job.name]}{
+        When specified, only the versions of the resource that made it through
+        the given list of jobs (AND-ed together) will be considered when
+        triggering and fetching.
+
+        \example-toggle{Fanning in from upstream jobs}{
+          If multiple \code{get}s are configured with \code{passed}
+          constraints, all of the mentioned jobs are correlated. That is, with
+          the following set of inputs:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: a
+            passed: [a-unit, integration]
+          - get: b
+            passed: [b-unit, integration]
+          - get: x
+            passed: [integration]
+          }}}
+
+          This means "give me the versions of \code{a}, \code{b}, and \code{x} that
+          have passed the \italic{same build} of \code{integration}, with the same
+          version of \code{a} passing \code{a-unit} and the same version of \code{b}
+          passing \code{b-unit}."
+
+          This is crucial to being able to implement safe "fan-in" semantics as
+          things progress through a pipeline.
+        }
+      }
+
+      \optional-attribute{params}{config}{
+        Arbitrary configuration to pass to the resource. Refer to the resource
+        type's documentation to see what it supports.
+
+        \example-toggle{Fetching with \code{params}}{
+          The following plan fetches a version number via the \code{semver}
+          resource, bumps it to the next release candidate, and
+          \reference{put-step}{\code{put}}s it back.
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: version
+            params:
+              bump: minor
+              rc: true
+          - put: version
+            params: {version: version/number}
+          }}}
+        }
+      }
+
+      \optional-attribute{trigger}{boolean}{
+        \italic{Default \code{false}.} If set to \code{true}, new builds of the
+        job will be automatically created when a new version for this input
+        becomes available.
+
+        Note: if none of a job's \code{get} steps are set to \code{true}, the
+        job can only be manually triggered.
+      }
+
+      \optional-attribute{version}{`latest` | `every` | version}{
+        \italic{Default \code{latest}.} The version of the resource to fetch.
+
+        If set to \code{latest}, scheduling will just find the latest available
+        version of a resource and use it, allowing versions to be skipped.  This is
+        usually what you want, e.g. if someone pushes 100 git commits.
+
+        If set to \code{every}, builds will walk through all available versions of
+        the resource. Note that if \code{passed} is also configured, it will only
+        step through the versions satisfying the constraints.
+
+        If set to a specific version (e.g. \code{\{ref: abcdef123\}}), only that
+        version will be used. Note that the version must be available and detected by
+        the resource, otherwise the input will never be satisfied. You may want to
+        use \reference{fly-check-resource} to force detection of resource versions,
+        if you need to use an older one that was never detected (as all newly
+        configured resources start from the latest version).
+      }
+    }
+  }{
+    \schema-group{\code{put} step}{put-step}{
+      \required-attribute{put}{resource.name | identifier}{
+        Pushes to the given \reference{resources}{resource}.
+
+        When the step succeeds, the version by the step will be immediately
+        fetched via an additional implicit \reference{get-step}. This is so
+        that later steps in your plan can use the artifact that was produced.
+        The artifact will be available under the identifier \code{put}
+        specifies.
+
+        \example-toggle{Pulling and pushing}{
+          The following plan fetches a repo using \reference{get-step}{\code{get}} and
+          pushes it to another repo (assuming \code{repo-develop} and \code{repo-master}
+          are defined as \code{git} resources):
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: repo-develop
+          - put: repo-master
+            params:
+              repository: repo-develop
+          }}}
+        }
+
+        \example-toggle{Parameterizing the implicit \code{get}}{
+          If the logical name (whatever \code{put} specifies) differs from the
+          concrete resource, you would specify \code{resource} as well, like so:
+
+          \codeblock{yaml}{{{
+          plan:
+          - put: resource-image
+            resource: docker-image-resource
+          }}}
+
+          Additionally, you can control the settings of the implicit \code{get} step
+          by setting \code{get_params}. For example, if you did not want a \code{put}
+          step utilizing the \link{ \code{docker-image} resource
+          type}{https://github.com/concourse/docker-image-resource} to download the
+          image, you would implement your \code{put} step as such:
+
+          \codeblock{yaml}{{{
+          plan:
+          - put: docker-build
+            params: {build: git-resource}
+            get_params: {skip_download: true}
+          }}}
+        }
+      }
+
+      \optional-attribute{resource}{resource.name}{
+        \italic{Defaults to the value of \code{put}.} The resource to update,
+        as configured in \reference{schema.pipeline.resources}.
+      }
+
+      \optional-attribute{inputs}{`all` | `detect` | [identifier]}{
+        \italic{Default \code{all}.} When not set, or set to \code{all}, all
+        artifacts will be provided. This can result in slow performance if the
+        prior steps in the build plan register a bunch of large artifacts
+        before this step, so you may want to consider being explicit.
+
+        If configured as a list of identifiers, only the listed artifacts will
+        be provided to the container.
+
+        If set to \code{detect}, the artifacts are detected based on the
+        configured \reference{schema.step.put-step.params} by looking for all string values
+        and using the first path segment as an identifier. (This may become the
+        default in the future.)
+      }
+
+      \optional-attribute{params}{config}{
+        Arbitrary configuration to pass to the resource. Refer to the resource
+        type's documentation to see what it supports.
+      }
+
+      \optional-attribute{get_params}{config}{
+        Arbitrary configuration to get to the resource during the implicit
+        \code{get} step. Refer to the resource type's documentation to see what
+        it supports.
+      }
+    }
+  }{
+    \schema-group{\code{task} step}{task-step}{
+      \required-attribute{task}{identifier}{
+        Executes a \reference{tasks}{task}.
+
+        When a task completes, the artifacts specified by
+        \reference{schema.task.outputs} will be registered in the build's artifact
+        namespace. This allows subsequent \reference{task-step}s and
+        \reference{put-step}s to access the result of a task.
+
+        The identifier value is just a name - short and sweet. The value is
+        shown in the web UI but otherwise has no affect on anything. This may
+        change in the future; \link{RFC
+        #32}{https://github.com/concourse/rfcs/pull/32} proposes that the name
+        be used to reference a file within the project.
+
+        \example-toggle{Functions from inputs to outputs}{
+          The following plan pulls down a repo, makes a commit to it, and pushes the
+          commit to another repo (the task must have an output called
+          \code{repo-with-commit}):
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: my-repo
+          - task: commit
+            file: my-repo/commit.yml
+          - put: other-repo
+            params:
+              repository: repo-with-commit
+          }}}
+        }
+
+        \example-toggle{Build matrix with \code{in_parallel}}{
+          The following plan fetches a single repository and executes multiple tasks,
+          using the \reference{in-parallel-step}{\code{in_parallel}} step, in a build matrix
+          style configuration:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: my-repo
+          - in_parallel:
+            - task: go-1.3
+              file: my-repo/go-1.3.yml
+            - task: go-1.4
+              file: my-repo/ci/go-1.4.yml
+          }}}
+
+          Only if both tasks succeed will the overall step succeed. See also
+          \reference{in-parallel-step}.
+        }
+      }
+
+      \optional-attribute{config}{task}{
+        The \reference{tasks}{task config} to execute.
+      }
+
+      \optional-attribute{file}{file-path}{
+        A dynamic alternative to \reference{schema.step.task-step.config}.
+
+        \code{file} points at a \code{.yml} file containing the
+        \reference{tasks}{task config}, which allows this to be tracked with
+        your resources.
+
+        The first segment in the path should refer to another source from the
+        plan, and the rest of the path is relative to that source.
+
+        The content of the config file may contain template \code{((vars))},
+        which will be filled in using \reference{schema.step.task-step.vars}
+        or a configured \reference{creds}{credential manager}.
+      }
+
+      \optional-attribute{image}{identifier}{
+        Specifies an artifact source containing an image to use for the task.
+        This overrides any \reference{schema.task.image_resource} configuration present in
+        the task configuration.
+
+        This is very useful when part of your pipeline involves building an image,
+        possibly with dependencies pre-baked. You can then propagate that image
+        through the rest of your pipeline, guaranteeing that the correct version (and
+        thus a consistent set of dependencies) is used throughout your pipeline.
+
+        \example-toggle{Fetching and using an image}{
+          This can be used in to explicitly keep track of dependent images:
+
+          \codeblock{yaml}{{{
+          resources:
+          - name: my-image
+            type: registry-image
+            source: {repository: golang, tag: "1.13"}
+
+          - name: my-repo
+            type: git
+            source: # ...
+
+          jobs:
+          - name: use-image
+            plan:
+            - get: my-image
+            - get: my-repo
+            - task: unit
+              file: my-repo/ci/unit.yml
+              image: my-image
+          }}}
+        }
+
+        \example-toggle{Building and propagating an image}{
+          Here's a pipeline which builds an image in one job and then propagates
+          it to the next:
+
+          \codeblock{yaml}{{{
+          resources:
+          - name: my-project
+            type: git
+            source: {uri: https://github.com/my-user/my-project}
+
+          - name: my-task-image
+            type: docker-image
+            source: {repository: my-user/my-repo}
+
+          jobs:
+          - name: build-task-image
+            plan:
+            - get: my-project
+            - put: my-task-image
+              params: {build: my-project/ci/images/my-task}
+
+          - name: use-task-image
+            plan:
+            - get: my-task-image
+              passed: [build-task-image]
+            - get: my-project
+              passed: [build-task-image]
+            - task: use-task-image
+              image: my-task-image
+              file: my-project/ci/tasks/my-task.yml
+          }}}
+        }
+      }
+
+      \optional-attribute{privileged}{boolean}{
+        \italic{Default \code{false}.} If set to \code{true}, the task will run
+        with escalated capabilities available on the task's platform.
+
+        \warn{
+          Setting \code{privileged: true} is a gaping security hole; use wisely
+          and only if necessary. This is not part of the task configuration in
+          order to prevent privilege escalation via pull requests changing the
+          task file.
+        }
+
+        For the \code{linux} platform, this determines whether or not the
+        container will run in a separate user namespace. When set to
+        \code{true}, the container's \code{root} user is \italic{actual}
+        \code{root}, i.e. not in a user namespace. This is not recommended, and
+        should \italic{never} be used with code you do not trust - e.g. pull
+        requests.
+      }
+
+      \optional-attribute{vars}{vars}{
+        A map of template variables to pass to an external task. Not to be
+        confused with \reference{schema.task.params}, which provides
+        \italic{environment variables} to the task.
+
+        This is to be used with external tasks defined in
+        \reference{schema.step.task-step.file}.
+
+        \example-toggle{Parameterizing a task config file with vars}{
+          A var may be statically passed like so:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: my-repo
+          - task: integration
+            file: my-repo/ci/task.yml
+            vars:
+              text: "Hello World!"
+          }}}
+
+          This is often used in combination with \reference{vars} in the
+          pipeline (note the replacement of the string literal with the
+          \code{((text))} pipeline var):
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: my-repo
+          - task: integration
+            file: my-repo/ci/task.yml
+            vars:
+              text: ((text))
+          }}}
+
+          When run with the following \code{task.yml}:
+
+          \codeblock{yaml}{{{
+            ---
+            platform: linux
+
+            image_resource:
+              type: docker-image
+              source:
+                repository: my.local.registry:8080/my/image
+                username: ((myuser))
+                password: ((mypass))
+
+            run:
+              path: echo
+              args: ["((text))"]
+          }}}
+
+          ...this will resolve \code{"((text))"} to \code{{"Hello World!"}}, while
+          \code{((myuser))} and \code{((mypass))}  will be resolved in runtime via a
+          \reference{creds}{credential manager}, if it has been configured.
+        }
+      }
+
+      \optional-attribute{params}{env-vars}{
+        A map of task environment variable parameters to set, overriding those
+        configured in the task's \code{config} or \code{file}.
+
+        The difference between \reference{schema.step.task-step.params}{\code{params}}
+        and \reference{schema.step.task-step.vars}{\code{vars}} is that
+        \reference{schema.step.task-step.vars}{\code{vars}} allows you to interpolate
+        any template variable in an external task, while
+        \reference{schema.step.task-step.params}{\code{params}} can be used to
+        overwrite task parameters (i.e. env variables) specifically. Also,
+        \reference{schema.step.task-step.params}{\code{params}} can have default
+        values declared in the task.
+
+        \example-toggle{Running a task with env var params}{
+          Let's say we have a \reference{schema.task}{task config} in
+          \code{intgration.yml} like so:
+
+          \codeblock{yaml}{{{
+          platform: linux
+          image_resource: # ...
+          params:
+            REMOTE_SERVER: https://example.com
+            USERNAME:
+            PASSWORD:
+          }}}
+
+          This indicates that there are three params which can be set:
+          \code{REMOTE_SERVER}, which has a default, and \code{USERNAME} and
+          \code{PASSWORD}.
+
+          A pipeline could run the task with credentials passed in like so:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: my-repo
+          - task: integration
+            file: my-repo/ci/integration.yml
+            params:
+              USERNAME: my-user
+              PASSWORD: my-pass
+          }}}
+        }
+
+        \example-toggle{Using with \code{((vars))}}{
+          \codeblock{yaml}{{{
+          plan:
+          - get: my-repo
+          - task: integration
+            file: my-repo/ci/integration.yml
+            params:
+              REMOTE_SERVER: 10.20.30.40:8080
+              USERNAME: ((integration-username))
+              PASSWORD: ((integration-password))
+          }}}
+        }
+      }
+
+      \optional-attribute{input_mapping}{\{input.name: identifier\}}{
+        A map from task input names to concrete names in the build plan. This
+        allows a task with generic input names to be used multiple times in the
+        same plan, mapping its inputs to specific resources within the plan.
+
+        \example-toggle{Generic task input names}{
+          The following example demonstrates a task with a generic
+          \code{release-repo} input being mapped to more specific artifact
+          names:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: diego-release
+          - get: cf-release
+          - get: ci-scripts
+          - task: audit-diego-release
+            file: ci-scripts/audit-release.yml
+            input_mapping: {release-repo: diego-release}
+          - task: audit-cf-release
+            file: ci-scripts/audit-release.yml
+            input_mapping: {release-repo: cf-release}
+          }}}
+        }
+      }
+
+      \optional-attribute{output_mapping}{\{output.name: identifier\}}{
+        A map from task output names to concrete names to register in the build
+        plan. This allows a task with generic output names to be used multiple
+        times in the same plan.
+
+        \example-toggle{Using with \code{input_mapping}}{
+          This is often used together with \reference{schema.step.task-step.input_mapping}:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: diego-release
+          - get: cf-release
+          - get: ci-scripts
+          - task: create-diego-release
+            file: ci-scripts/create-release.yml
+            input_mapping: {release-repo: diego-release}
+            output_mapping: {release-tarball: diego-release-tarball}
+          - task: create-cf-release
+            file: ci-scripts/create-release.yml
+            input_mapping: {release-repo: cf-release}
+            output_mapping: {release-tarball: cf-release-tarball}
+          }}}
+        }
+      }
+    }
+  }{
+    \schema-group{\code{set_pipeline} step}{set-pipeline-step}{
+      \required-attribute{set_pipeline}{identifier}{
+        \warn{
+          The \code{set_pipeline} step was introduced in Concourse v5.8.0. It
+          is considered an \bold{experimental} feature until its associated
+          \link{RFC}{https://github.com/concourse/rfcs/pull/31} is resolved.
+        }
+
+        Configures a \reference{pipelines}{pipeline}.
+
+        The identifier specifies the name of the pipeline to configure. It will
+        be configured within the current team and be created \italic{unpaused}.
+
+        \example-toggle{One pipeline reconfiguring another}{
+          This is a way to ensure a pipeline stays up to date with its definition in
+          a source code repository, eliminating the need to manually run
+          \reference{fly-set-pipeline}.
+
+          \codeblock{yaml}{{{
+          resources:
+          - name: booklit
+            type: git
+            source: {uri: https://github.com/vito/booklit}
+          jobs:
+          - name: reconfigure
+            plan:
+            - get: booklit
+              trigger: true
+            - set_pipeline: booklit
+              file: booklit/ci/pipeline.yml
+          }}}
+        }
+      }
+
+      \required-attribute{file}{file-path}{
+        The path to the pipeline's configuration file.
+
+        \code{file} points at a \code{.yml} file containing the pipeline
+        configuration, which allows this to be tracked with your resources or
+        generated by a \reference{task-step}.
+
+        The first segment in the path should refer to another artifact from the
+        plan, and the rest of the path is relative to that artifact.
+
+        \example-toggle{Fetching and configuring a pipeline}{
+          The \reference{get-step} can be used to fetch your configuration from
+          a \code{git} repo and auto-configure it using a
+          \reference{set-pipeline-step}:
+
+          \codeblock{yaml}{{{
+          - get: ci
+          - set_pipeline: my-pipeline
+            file: ci/pipelines/my-pipeline.yml
+          }}}
+        }
+      }
+
+      \optional-attribute{vars}{vars}{
+        A map of template variables to pass to the pipeline config.
+
+        Note that variables set with this field will not propagate to tasks configured
+        via \reference{schema.step.task-step.file}. If you want those variables to be determined
+        at the time the pipeline is set, use \reference{schema.step.task-step.vars} as well.
+
+        \example-toggle{Configuring static vars}{
+          A var may be statically passed like so:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: my-repo
+          - set_pipeline: configure-the-pipeline
+            file: my-repo/ci/pipeline.yml
+            vars:
+              text: "Hello World!"
+          }}}
+
+          Any \reference{vars} in the pipeline config will be filled in
+          statically using this field.
+
+          For example, if \code{my-repo/ci/pipeline.yml} looks like...:
+
+          \codeblock{yaml}{{{
+          resources:
+          - name: task-image
+              type: docker-image
+              source:
+                repository: my.local.registry:8080/my/image
+                username: ((myuser))
+                password: ((mypass))
+          jobs:
+          - name: job
+            plan:
+            - get: task-image
+            - task: do-stuff
+              image: task-image
+              config:
+                platform: linux
+                run:
+                  path: echo
+                  args: ["((text))"]
+          }}}
+
+          ...this will resolve \code{"((text))"} to \code{{"Hello World!"}},
+          while \code{((myuser))} and \code{((mypass))} will be left in the
+          pipeline to be \reference{dynamic-vars}{fetched at runtime}.
+        }
+      }
+
+      \optional-attribute{var_files}{[file-path]}{
+        A list of paths to \code{.yml} files that will be passed to the
+        pipeline config in the same manner as the \code{--load-vars-from} flag
+        to \reference{fly-set-pipeline}. This means that if a variable appears
+        in multiple files, the value from a file that is passed later in the
+        list will override the values from files earlier in the list.
+      }
+    }
+  }{
+    \schema-group{\code{load_var} step}{load-var-step}{
+      \required-attribute{load_var}{identifier}{
+        \warn{
+          The \code{load_var} step was introduced in Concourse v6.0.0. It is
+          considered an \bold{experimental} feature until its associated
+          \link{RFC}{https://github.com/concourse/rfcs/pull/27} is resolved.
+        }
+
+        Load the value for a var at runtime, making it available to subsequent
+        steps as a build-local var named after the given identifier.
+
+        \example-toggle{Loading a simple value as a var}{
+          The following build plan uses a version produced by the
+          \resource{semver} as a tag:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: version
+          - load_var: version-tag
+            file: version/version
+          - put: image
+            params: {tag: ((.:version-tag))}
+          }}}
+        }
+      }
+
+      \required-attribute{file}{file-path}{
+        The path to a file whose content shall be read and used as the var's
+        value.
+      }
+
+      \optional-attribute{format}{`detect` | `json` | `yaml` | `yml` | `raw`}{
+        \italic{Default \code{detect}.} The format of the file's content.
+
+        If set to \code{detect}, the format will be inferred from the file
+        extension.
+
+        If set to \code{json}, \code{yaml}, or \code{yml}, the file content
+        will be parsed accordingly and the resulting structure will be the
+        value of the var.
+
+        If set to \code{raw}, the file content will be the value of the var as
+        a single string value.
+
+        \example-toggle{Loading a var with multiple fields}{
+          Let's say we have a task, \code{generate-creds}, which produces a
+          \code{generated-user} output containing a \code{user.json} file like
+          so:
+
+          \codeblock{yaml}{{{
+          {
+            "username": "some-user",
+            "password": "some-password"
+          }
+          }}}
+
+          We could pass these credentials to subsequent steps by loading it
+          into a var with \code{load_var}, which will detect that it is in JSON
+          format based on the file extension:
+
+          \codeblock{yaml}{{{
+          plan:
+          - task: generate-creds
+          - load_var: user
+            file: generated-user/user.json
+          - task: use-creds
+            params:
+              USERNAME: ((.:user.username))
+              PASSWORD: ((.:user.username))
+          }}}
+
+          If the \code{use-creds} task were to print these values, they would
+          be automatically redacted unless
+          \reference{schema.step.load-var-step.reveal}{\code{reveal: true}} is
+          set.
+        }
+      }
+
+      \optional-attribute{reveal}{boolean}{
+        \italic{Default \code{false}.} If set to \code{true}, allow the var's
+        content to be printed in the build output even with secret redaction
+        enabled.
+      }
+    }
+  }{
+    \schema-group{\code{in_parallel} step}{in-parallel-step}{
+      \required-attribute{in_parallel}{[step] | in_parallel_config}{
+        Performs the given steps in parallel.
+
+        If any sub-steps (or \reference{task-step}{\code{task}}) in a \code{parallel}
+        result in a failure or error, the parallel step as a whole is considered to have
+        failed or errored.
+
+        Steps are either configured as a array or within a
+        \reference{schema.in_parallel_config}.
+
+        \example-toggle{Fetching artifacts in parallel}{
+          Using the \code{in_parallel} step where possible is the easiest way
+          to speeding up a builds.
+
+          It is often used to fetch all dependent resources together at the
+          start of a build plan:
+
+          \codeblock{yaml}{{{
+          plan:
+          - in_parallel:
+            - get: component-a
+            - get: component-b
+            - get: integration-suite
+          - task: integration
+            file: integration-suite/task.yml
+          }}}
+        }
+
+        \example-toggle{Running a build matrix}{
+          If any step in the \code{in_parallel} fails, the build will fail, making it
+          useful for build matrices:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: some-repo
+          - in_parallel:
+            - task: unit-windows
+              file: some-repo/ci/windows.yml
+            - task: unit-linux
+              file: some-repo/ci/linux.yml
+            - task: unit-darwin
+              file: some-repo/ci/darwin.yml
+          }}}
+        }
+
+        \example-toggle{Limiting parallelism}{
+          Using \code{limit} is useful for performing parallel execution of a
+          growing number of tasks without overloading your workers. In the
+          example below, two tasks will be run in parallel and in order until
+          all steps have been executed:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: some-repo
+          - in_parallel:
+              limit: 2
+              fail_fast: false
+              steps:
+                - task: unit-windows
+                  file: some-repo/ci/windows.yml
+                - task: unit-linux
+                  file: some-repo/ci/linux.yml
+                - task: unit-darwin
+                  file: some-repo/ci/darwin.yml
+          }}}
+        }
+
+        \schema{in_parallel_config}{
+          \required-attribute{steps}{[step]}{
+            The steps to perform in parallel.
+          }
+
+          \optional-attribute{limit}{number}{
+            \italic{Default unlimited.} A sempahore which limits the
+            parallelism when executing the steps in a \code{in_parallel} step.
+            When set, the number of running steps will not exceed the limit.
+
+            When not specified, \code{in_parallel} will execute all steps
+            immediately, making the default behavior identical to
+            \reference{aggregate-step}{\code{aggregate}}.
+          }
+
+          \optional-attribute{fail_fast}{boolean}{
+            \italic{Default \code{false}.} When enabled the parallel step will
+            fail fast by returning as soon as any sub-step fails. This means that running steps
+            will be interrupted and pending steps will no longer be scheduled.
+          }
+        }
+      }
+    }
+  }{
+    \schema-group{\code{aggregate} step}{aggregate-step}{
+      \required-attribute{aggregate}{[step]}{
+        \italic{Deprecated.} Use \reference{in-parallel-step} instead.
+      }
+    }
+  }{
+    \schema-group{\code{do} step}{do-step}{
+      \required-attribute{do}{[step]}{
+        Simply performs the given steps serially, with the same semantics as if
+        they were at the top level step listing.
+
+        \example-toggle{Running multiple steps in a hook}{
+          This can be used to perform multiple steps serially in an
+          \reference{schema.step.on_failure}:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: my-repo
+          - task: unit
+            file: my-repo/ci/unit.yml
+            on_failure:
+              do:
+              - put: alert
+              - put: email
+          }}}
+        }
+      }
+    }
+  }{
+    \schema-group{\code{try} step}{try-step}{
+      \required-attribute{try}{step}{
+        Performs the given step, ignoring any failure and masking it with
+        success.
+
+        This can be used when you want to perform some side-effect, but you
+        don't really want the whole build to fail if it doesn't work.
+
+        \example-toggle{Allowing non-critical behavior to fail}{
+          When emitting logs somewhere for analyzing later, if the destination flakes
+          out it may not really be critical, so we may want to just swallow the
+          error:
+
+          \codeblock{yaml}{{{
+          plan:
+          - task: run-tests
+            config: # ...
+            on_success:
+              try:
+                put: test-logs
+                params:
+                  from: run-tests/*.log
+          - task: do-something-else
+            config: # ...
+          }}}
+        }
+      }
+    }
+  }
+
+  \optional-attribute{timeout}{duration}{
+    The amount of time to limit the step's execution to, e.g. \code{30m} for 30
+    minutes.
+
+    When exceeded, the step will be interrupted, with the same semantics as
+    aborting the build (except the build will be \code{failed}, not
+    \code{aborted}, to distinguish between human intervention and timeouts being
+    inforced).
+
+    \example-toggle{Giving up}{
+      The following will run the \code{unit} task and cancel it if it takes
+      longer than 1 hour and 30 minutes:
+
+      \codeblock{yaml}{{{
+      plan:
+      - get: foo
+      - task: unit
+        file: foo/unit.yml
+        timeout: 1h30m
+      }}}
+    }
+  }
+
+  \optional-attribute{attempts}{number}{
+    The total number of times a step should be tried before it should fail,
+    e.g. \code{5} will run the step up to 5 times before giving up.
+
+    Attempts will retry on a Concourse error as well as build failure. When the
+    number of attempts is reached and the step has still not succeeded then the
+    step will fail.
+
+    \example-toggle{Retrying a task}{
+      The following will run the task and retry it up to 9 times (for a total
+      of 10 attempts) if it fails:
+
+      \codeblock{yaml}{{{
+      plan:
+      - get: foo
+      - task: unit
+        file: foo/unit.yml
+        attempts: 10
+      }}}
+    }
+
+    \example-toggle{Retrying with a timeout}{
+      When used in combination with \code{timeout}, the timeout applies to
+      \italic{each} step.
+
+      This semi-arbitary decision was made because often things either succeed
+      in a reasonable amount of time or fail due to hanging/flakiness. In this
+      case it seems more useful to allow each attempt the allotted timeout
+      rather than have one very long attempt prevent more attempts.
+
+      \codeblock{yaml}{{{
+      plan:
+      - get: flake
+      - task: flaky-tests
+        file: flake/integration.yml
+        timeout: 10m
+        attempts: 3
+      }}}
+    }
+  }
+
+  \optional-attribute{tags}{[string]}{
+    \italic{Default \code{[]}.} The tags by which to match workers.
+
+    The step will be placed within the a pool of workers that match all of the
+    given set of tags.
+
+    For example, if \code{[a, b]} is specified, only workers advertising the
+    \code{a} and \code{b} tags (in addition to any others) will be used for
+    running the step.
+
+      \example-toggle{Running in a private network}{
+        You may have a private cluster only reachable by special workers
+        running on-premises. To run steps against those workers, just provide a
+        matching tag:
+
+        \codeblock{yaml}{{{
+        plan:
+        - get: my-repo
+        - put: my-site
+          tags: [private]
+          params: {path: my-repo}
+        - task: acceptance-tests
+          tags: [private]
+          file: my-repo/ci/atteptance.yml
+        }}}
+      }
+  }
+
+  \optional-attribute{on_success}{step}{
+    A hook step to execute if the parent step succeeds.
+
+    \example-toggle{Running on success}{
+      The following will perform the second task only if the first one
+      succeeds:
+
+      \codeblock{yaml}{{{
+      plan:
+      - get: foo
+      - task: unit
+        file: foo/unit.yml
+        on_success:
+          task: alert
+          file: foo/alert.yml
+      }}}
+
+      Note that this is semantically equivalent to the following:
+
+      \codeblock{yaml}{{{
+      plan:
+      - get: foo
+      - task: unit
+        file: foo/unit.yml
+      - task: alert
+        file: foo/alert.yml
+      }}}
+
+      The \code{on_success} hook is provided mainly for cases where there is an
+      equivalent \reference{schema.step.on_failure}, and having them next to each
+      other is more clear.
+    }
+  }
+
+  \optional-attribute{on_failure}{step}{
+    A hook step to execute if the parent step fails.
+
+    This does not "recover" the failure - it will still fail even if the hook
+    step succeeds.
+
+    \example-toggle{Alerting on failure}{
+      The following will perform the \code{alert} task only if the \code{unit}
+      task fails:
+
+      \codeblock{yaml}{{{
+      plan:
+      - get: foo
+      - task: unit
+        file: foo/unit.yml
+        on_failure:
+          task: alert
+          file: foo/alert.yml
+      }}}
+    }
+  }
+
+  \optional-attribute{on_abort}{step}{
+    A hook step to execute if the build is aborted and the parent step is
+    terminated.
+
+    \example-toggle{Cleaning up \code{on_abort}}{
+      The following will perform the \code{cleanup} task only if the build is
+      aborted while the \code{unit} task was running:
+
+      \codeblock{yaml}{{{
+      plan:
+      - get: foo
+      - task: unit
+        file: foo/unit.yml
+        on_abort:
+          task: cleanup
+          file: foo/cleanup.yml
+      }}}
+    }
+  }
+
+  \optional-attribute{on_error}{step}{
+    A hook step to execute after the parent step if the parent step terminates
+    abnormally in any way other than those handled by the
+    \reference{schema.step.on_abort} or \reference{schema.step.on_failure}. This covers
+    scenarios as broad as configuration mistakes, temporary network issues with
+    the workers, or running longer than a \reference{schema.step.timeout}.
+
+    \example-toggle{Sending a notification}{
+      Until notifications become first-class (\link{RFC
+      #28}{https://github.com/concourse/rfcs/pull/28}, this step can be used to
+      notify folks if their builds errored out:
+
+      \codeblock{yaml}{{{
+      plan:
+      - do:
+        - get: ci
+        - task: unit
+          file: ci/unit.yml
+        on_error:
+          put: slack
+      }}}
+    }
+  }
+
+  \optional-attribute{ensure}{step}{
+    A hook step to execute after the parent step regardless of whether the
+    parent step succeeds, fails, or errors. The step will also be executed if
+    the build was aborted and its parent step was interrupted.
+
+    If the parent step succeeds and the ensured step fails, the overall step
+    fails.
+
+    \example-toggle{Releasing a lock}{
+      The following build plan acquires a lock and then \code{ensure}s that the
+      lock is released.
+
+      \codeblock{yaml}{{{
+      plan:
+      - put: some-lock
+        params: {acquire: true}
+      - task: integration
+        file: foo/integration.yml
+        ensure:
+          put: some-lock
+          params: {release: some-lock}
+      }}}
+    }
+  }
+}

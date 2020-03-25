@@ -1,10 +1,11 @@
 \title{\aux{Running a }PostgreSQL node}{postgresql-node}
 
 \use-plugin{concourse-docs}
-\omit-children-from-table-of-contents
 
 Concourse uses \link{PostgreSQL}{https://www.postgresql.org} for storing all
 data and coordinating work in a multi-\reference{web-node} installation.
+
+\table-of-contents
 
 \section{
   \title{Prerequisites}{db-prerequisites}
@@ -14,7 +15,7 @@ data and coordinating work in a multi-\reference{web-node} installation.
 }
 
 \section{
-  \title{Running}{db-running}
+  \title{Running PostgreSQL}{db-running}
 
   How this node is managed is up to you; Concourse doesn't actually have much of
   an opinion on it, it just needs a database.
@@ -35,47 +36,47 @@ data and coordinating work in a multi-\reference{web-node} installation.
   this same user is going to be running the \reference{web-node}. This is a
   reasonable default for distros like Ubuntu and Debian which default PostgreSQL
   to \code{peer} auth.
-}
 
-\section{
-  \title{Properties}{db-properties}
+  \section{
+    \title{Resource utilization}{db-resource-utilization}
 
-  CPU usage: this is one of the most volatile metrics, and one we try pretty
-  hard to keep down. There will be near-constant database queries running, and
-  while we try to keep them very simple, there is always more work to do.
-  Expect to feed your database with at least a couple cores, ideally four to
-  eight. Monitor this closely as the size of your deployment and the amount of
-  traffic it's handling increases, and scale accordingly.
+    CPU usage: this is one of the most volatile metrics, and one we try pretty
+    hard to keep down. There will be near-constant database queries running, and
+    while we try to keep them very simple, there is always more work to do.
+    Expect to feed your database with at least a couple cores, ideally four to
+    eight. Monitor this closely as the size of your deployment and the amount of
+    traffic it's handling increases, and scale accordingly.
 
-  Memory usage: similar to CPU usage, but not quite as volatile.
+    Memory usage: similar to CPU usage, but not quite as volatile.
 
-  Disk usage: pipeline configurations and various bookkeeping metadata for
-  keeping track of jobs, builds, resources, containers, and volumes. In
-  addition, \bold{all build logs are stored in the database}. This is the
-  primary source of disk usage. To mitigate this, users can configure
-  \reference{job-build-logs-to-retain} on a job, but currently there is no
-  operator control for this setting. As a result, disk usage on the database
-  can grow arbitrarily large.
+    Disk usage: pipeline configurations and various bookkeeping metadata for
+    keeping track of jobs, builds, resources, containers, and volumes. In
+    addition, \bold{all build logs are stored in the database}. This is the
+    primary source of disk usage. To mitigate this, users can configure
+    \reference{schema.job.build_logs_to_retain} on a job, but currently there is no
+    operator control for this setting. As a result, disk usage on the database
+    can grow arbitrarily large.
 
-  Bandwidth usage: well, it's a database, so it most definitely uses the
-  network (duh). Not much should stand out here, though build logs can result
-  in an arbitrary amount of data being sent over the network to the database.
-  This should be nothing compared to worker bandwidth, though.
+    Bandwidth usage: well, it's a database, so it most definitely uses the
+    network (duh). Not much should stand out here, though build logs can result
+    in an arbitrary amount of data being sent over the network to the database.
+    This should be nothing compared to worker bandwidth, though.
 
-  Highly available: up to you. Clustered PostgreSQL is kind of new and probably
-  tricky to deploy, but there are various cloud solutions for this.
+    Highly available: up to you. Clustered PostgreSQL is kind of new and probably
+    tricky to deploy, but there are various cloud solutions for this.
 
-  Horizontally scalable: I...don't think so?
+    Horizontally scalable: I...don't think so?
 
-  Outbound traffic:
+    Outbound traffic:
 
-  \list{
-    none
-  }
+    \list{
+      none
+    }
 
-  Inbound traffic:
+    Inbound traffic:
 
-  \list{
-    only ever from the \code{web} node
+    \list{
+      only ever from the \code{web} node
+    }
   }
 }

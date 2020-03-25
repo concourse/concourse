@@ -1,0 +1,539 @@
+\use-plugin{concourse-docs}
+
+\title{Vars}{vars}
+
+Concourse supports value substitution in YAML configuration by way of
+\code{((vars))}.
+
+Automation entails the use of all kinds of credentials. It's important to keep
+these values separate from the rest of your configuration by using vars
+instead of hardcoding values. This allows your configuration to be placed
+under source control and allows credentials to be tucked safely away into a
+secure credential manager like Vault instead of the Concourse database.
+
+Aside from credentials, vars may also be used for generic parameterization of
+pipeline configuration templates, allowing a single pipeline config file to be
+configured multiple times with different parameters
+- e.g. \code{((branch_name))}.
+
+\table-of-contents
+
+\section{
+  \title{\code{((var))} syntax}{var-syntax}
+
+  The full syntax for vars is
+  \code{((\italic{source-name}:\italic{secret-path}.\italic{secret-field}))}.
+
+  The optional \italic{source-name} identifies the \reference{var-sources}{var
+  source} from which the value will be read. If omitted (along with the
+  \code{:} delimiter), the
+  \reference{cluster-wide-credential-manager}{cluster-wide credential manager}
+  will be used, or the value may be provided
+  \reference{static-vars}{statically}. The special name \code{.} refers to the
+  \reference{local-vars}{local var source}, while any other name refers to a
+  \reference{var-sources}{var source}.
+
+  The required \italic{secret-path} identifies the location of the
+  credential. The interpretation of this value depends on the var source
+  type. For example, with Vault this may be a path like \code{path/to/cred}.
+  For the Kubernetes secret manager this may just be the name of a secret.
+  For credential managers which support path-based lookup, a
+  \italic{secret-path} without a leading / may be queried relative to a
+  predefined set of path prefixes. This is how the Vault credential manager
+  currently works; \code{foo} will be queried under \code{/concourse/(team
+  name)/(pipeline name)/foo}.
+
+  The optional \italic{secret-field} specifies a field on the fetched secret to
+  read. If omitted, the credential manager may choose to read a 'default field'
+  from the fetched credential if the field exists. For example, the Vault
+  credential manager will return the value of the \code{value} field if
+  present. This is useful for simple single-value credentials where typing
+  \code{((foo.value))} would feel verbose.
+}
+
+\section{
+  \title{The "\code{.}" var source}{local-vars}
+
+  The special var source name \code{.} refers to a "local var source."
+
+  The precise scope for these "local vars" depends on where they're being used.
+  Currently the only mechanism that uses the local var source is the
+  \reference{load-var-step}, which sets a var in a local var source provided to
+  all steps executed in the build.
+}
+
+\section{
+  \title{Interpolation}{var-interpolation}
+
+  Values for vars are substituted structurally. That is, if you have
+  \code{foo: ((bar))}, whatever value \code{((bar))} resolves to will become
+  the value of the \code{foo} field in the object. This can be a value of any
+  type and structure: a boolean, a simple string, a multiline credential like a
+  certificate, or a complicated data structure like an array of objects.
+
+  This differs from text-based substitution in that it's impossible for a value
+  to result in broken YAML syntax, and it relieves the template author from
+  having to worry about things like whitespace alignment.
+
+  When a \code{((var))} appears adjacent to additional string content, e.g.
+  \code{foo: hello-((bar))-goodbye}, its value will be concatenated with the
+  surrounding content. If the \code{((var))} resolves to a non-string value, an
+  error will be raised.
+}
+
+\section{
+  \title{Static vars}{static-vars}
+
+  Var values may also be specified statically using the
+  \reference{schema.step.set-pipeline-step.vars}{\code{set_pipeline} step} and
+  \reference{schema.step.task-step.vars}{\code{task} step}.
+
+  When running the \reference{fly-cli} equivalent commands
+  (\reference{fly-set-pipeline} and \reference{fly-execute}), var values may be
+  provided using the following flags:
+
+  \list{
+    \code{-v} or \code{--var} \code{NAME=VALUE} sets the string \code{VALUE} as
+    the value for the var \code{NAME}.
+  }{
+    \code{-y} or \code{--yaml-var} \code{NAME=VALUE} parses \code{VALUE} as
+    YAML and sets it as the value for the var \code{NAME}.
+  }{
+    \code{-l} or \code{--load-vars-from} \code{FILE} loads \code{FILE}, a YAML
+    document containing mapping var names to values, and sets them all.
+  }
+
+  When used in combination with \code{-l}, the \code{-y} and \code{-v} flags
+  take precedence. This way a vars file may be re-used, overriding individual
+  values by hand.
+
+  \example-toggle{Setting values with the \code{task} step}{
+    Let's say we have a \reference{schema.task}{task config} like so:
+
+    \codeblock{yaml}{{{
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source:
+          repository: golang
+          tag: ((tag))
+
+      inputs:
+      - name: booklit
+
+      run:
+        path: booklit/ci/unit
+    }}}
+
+    We could use \reference{schema.step.task-step.vars}{\code{vars}} to run this
+    task against different versions of Go:
+
+    \codeblock{yaml}{{{
+      jobs:
+      - name: unit
+        plan:
+        - get: booklit
+          trigger: true
+        - task: unit-1.13
+          file: booklit/ci/unit.yml
+          vars: {tag: 1.13}
+        - task: unit-1.8
+          file: booklit/ci/unit.yml
+          vars: {tag: 1.8}
+    }}}
+  }
+
+  \example-toggle{Setting values with \code{-v} and \code{y}}{
+    With a pipeline template like so:
+
+    \codeblock{yaml}{{{
+    resources:
+    - name: booklit
+      type: booklit
+      source:
+        uri: https://github.com/vito/booklit
+        branch: ((branch))
+        private_key: ((private_key))
+
+    jobs:
+    - name: unit
+      plan:
+      - get: booklit
+        trigger: ((trigger))
+      - task: unit
+        file: booklit/ci/unit.yml
+    }}}
+
+    Let's say we have a private key in a file called \code{private_key}.
+
+    The \reference{fly-validate-pipeline} command may be used to test
+    how interpolation is applied, by passing the \code{--output} flag.
+
+    \codeblock{sh}{{{
+    $ fly validate-pipeline \
+      -c pipeline.yml \
+      -y trigger=true \
+      -v private_key="$(cat private_key)" \
+      -v branch=master \
+      --output
+    }}}
+
+    The above incantation should print the following:
+
+    \codeblock{yaml}{{{
+      jobs:
+      - name: unit
+        plan:
+        - get: booklit
+          trigger: true
+        - file: booklit/ci/unit.yml
+          task: unit
+      resources:
+      - name: booklit
+        type: booklit
+        source:
+          branch: master
+          private_key: |
+            -----BEGIN RSA PRIVATE KEY-----
+            # ... snipped ...
+            -----END RSA PRIVATE KEY-----
+          uri: https://github.com/vito/booklit
+    }}}
+
+    Note that we had to use \code{-y} so that the \code{trigger: true}
+    ends up with a boolean value instead of the string \code{"true"}.
+  }
+
+  \example-toggle{Loading values from files with \code{-l}}{
+    With a pipeline template like so:
+
+    \codeblock{yaml}{{{
+    resources:
+    - name: booklit
+      type: booklit
+      source:
+        uri: https://github.com/vito/booklit
+        branch: ((branch))
+        private_key: ((private_key))
+
+    jobs:
+    - name: unit
+      plan:
+      - get: booklit
+        trigger: ((trigger))
+      - task: unit
+        file: booklit/ci/unit.yml
+    }}}
+
+    Let's say I've put the \code{private_key} var in a file called
+    \code{vars.yml}, since it's quite large and hard to pass through flags:
+
+    \codeblock{yaml}{{{
+    private_key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      # ... snipped ...
+      -----END RSA PRIVATE KEY-----
+    }}}
+
+    The \reference{fly-validate-pipeline} command may be used to test
+    how interpolation is applied, by passing the \code{--output} flag.
+
+    \codeblock{sh}{{{
+    $ fly validate-pipeline \
+      -c pipeline.yml \
+      -l vars.yml \
+      -y trigger=true \
+      -v branch=master \
+      --output
+    }}}
+
+    The above incantation should print the following:
+
+    \codeblock{yaml}{{{
+      jobs:
+      - name: unit
+        plan:
+        - get: booklit
+          trigger: true
+        - task: unit
+          file: booklit/ci/unit.yml
+      resources:
+      - name: booklit
+        type: booklit
+        source:
+          branch: master
+          private_key: |
+            -----BEGIN RSA PRIVATE KEY-----
+            # ... snipped ...
+            -----END RSA PRIVATE KEY-----
+          uri: https://github.com/vito/booklit
+    }}}
+
+    Note that we had to use \code{-y} so that the \code{trigger: true}
+    ends up with a boolean value instead of the string \code{"true"}.
+  }
+}
+
+\section{
+  \title{Dynamic vars}{dynamic-vars}
+
+  Concourse can read values from "var sources" - typically credential managers
+  like Vault - at runtime. This keeps them out of your configuration and
+  prevents sensitive values from being stored in your database. Values will be
+  read from the var source and optionally \reference{creds-caching}{cached} to reduce load on the var source.
+
+  The following attributes can be parameterized through a var source:
+
+  \list{
+    \reference{schema.resource.source} under
+    \reference{schema.pipeline.resources}
+  }{
+    \reference{schema.resource_type.source} under
+    \reference{schema.pipeline.resources}
+  }{
+    \reference{schema.resource.webhook_token} under
+    \reference{schema.pipeline.resources}
+  }{
+    \reference{schema.step.task-step.params} on a task step in a pipeline
+  }{
+    \reference{tasks} in their entirety - whether from
+    \reference{schema.step.task-step.file} or \reference{schema.step.task-step.config} in a pipeline,
+    or a config executed with \reference{fly-execute}
+  }
+
+  Concourse will fetch values for vars as late as possible - i.e. when a step
+  using them is about to execute. This allows the credentials to have limited
+  lifetime and rapid rotation policies.
+
+  \section{
+    \title{Var sources\aux{ \dim{(experimental)}}}{var-sources}
+
+    \warn{
+      \code{var_sources} was introduced in Concourse v5.8.0. It is considered an
+      \bold{experimental} feature until its associated
+      \link{RFC}{https://github.com/concourse/rfcs/pull/39} is resolved.
+    }
+
+    Var sources can be configured for a pipeline via
+    \reference{schema.pipeline.var_sources}.
+
+    Each var source has a name which is then referenced as the
+    \italic{source-name} in var syntax, e.g.
+    \code{((my-vault:test-user.username))} to fetch the \code{test-user} var
+    from the \code{my-vault} var source. See \reference{var-syntax} for a
+    detailed explanation of this syntax.
+
+    Currently, only two types are supported: \code{vault} and \code{dummy}. In
+    the future we want to make use of something like the \link{Prototypes (RFC
+    #37)}{https://github.com/concourse/rfcs/pull/37} so that third-party
+    credential managers can be used just like resource types.
+
+    \schema{var_source}{
+      \required-attribute{name}{string}{
+        The name of the \code{((var))} source. This should be short and
+        simple. This name will be referenced \reference{var-syntax} throughout
+        the config.
+      }
+
+      \one-of{
+        \schema-group{\code{vault} var source}{vault-var-source}{
+          \required-attribute{type}{`vault`}{
+            The \code{vault} type supports configuring a
+            \link{Vault}{https://www.vaultproject.io} server as a
+            \code{((var))} source.
+          }
+
+          \required-attribute{config}{vault_config}{
+            Configuration for the Vault server has the following schema:
+
+            \schema{vault_config}{
+              \required-attribute{url}{string}{
+                The URL of the Vault API.
+              }
+
+              \optional-attribute{ca_cert}{string}{
+                The PEM encoded contents of a CA certificate to use when
+                connecting to the API.
+              }
+
+              \optional-attribute{path_prefix}{string}{
+                \italic{Default \code{/concourse}.} A prefix under which to
+                look for all credential values.
+
+                See \reference{vault-credential-lookup-rules} for more information.
+              }
+
+              \optional-attribute{shared_path}{string}{
+                An additional path under which credentials will be looked up.
+
+                See \reference{vault-shared-path} for more information.
+              }
+
+              \optional-attribute{namespace}{string}{
+                A \link{Vault
+                namespace}{https://www.vaultproject.io/docs/enterprise/namespaces/index.html}
+                to operate under.
+              }
+
+              \optional-attribute{client_cert}{string}{
+                A PEM encoded client certificate, for use with TLS based auth.
+
+                See \reference{vault-cert-auth} for more information.
+              }
+
+              \optional-attribute{client_key}{string}{
+                A PEM encoded client key, for use with TLS based auth.
+
+                See \reference{vault-cert-auth} for more information.
+              }
+
+              \optional-attribute{server_name}{string}{
+                The expected name of the server when connecting through TLS.
+              }
+
+              \optional-attribute{insecure_skip_verify}{boolean}{
+                Skip TLS validation. Not recommended. Don't do it. No really,
+                don't.
+              }
+
+              \optional-attribute{client_token}{string}{
+                Authenticate via a periodic client token.
+
+                See \reference{vault-periodic-token} for more information.
+              }
+
+              \optional-attribute{auth_backend}{string}{
+                Authenticate using an auth backend, e.g. \code{cert} or
+                \code{approle}.
+
+                See \reference{vault-approle-auth} or \reference{vault-cert-auth} for
+                more information.
+              }
+
+              \optional-attribute{auth_params}{\{string: string\}}{
+                A key-value map of parameters to pass during authentication.
+
+                See \reference{vault-approle-auth} for more information.
+              }
+
+              \optional-attribute{auth_max_ttl}{duration}{
+                Maximum duration to elapse before forcing the client to log in
+                again.
+              }
+
+              \optional-attribute{auth_retry_max}{duration}{
+                When failing to authenticate, give up after this amount of
+                time.
+              }
+
+              \optional-attribute{auth_retry_initial}{duration}{
+                When retrying during authentication, start with this retry
+                interval. The interval will increase exponentially until
+                \code{auth_retry_max} is reached.
+              }
+            }
+          }
+        }
+      }{
+        \schema-group{\code{dummy} var source}{dummy-var-source}{
+          \required-attribute{type}{`dummy`}{
+            The \code{dummy} type supports configuring a static map of vars to values.
+
+            This is really only useful if you have no better alternative for credential
+            management but still have sensitive values that you would like to
+            \reference{creds-redacting}{redact} them from build output.
+          }
+
+          \required-attribute{config}{dummy_config}{
+            \schema{dummy_config}{
+              \required-attribute{vars}{vars}{
+                A mapping of var name to var value.
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  \section{
+    \title{\aux{The }cluster-wide credential manager}{cluster-wide-credential-manager}
+
+    Concourse can be configured with a single cluster-wide credential manager,
+    which acts as a source for any vars which do not specify a source name.
+
+    See \reference{creds} for more information.
+
+    \aside{
+      In the future we would like to introduce support for multiple
+      cluster-wide var sources, configured using the
+      \reference{schema.var_source} schema, and begin deprecating the
+      \reference{cluster-wide-credential-manager}.
+    }
+  }
+}
+
+  \right-side{Examples}{
+    \example{Dummy Vars}{
+      Here's a copy-pasteable example using the \reference{dummy-var-source},
+      just to demonstrate named \code{((var))} syntax:
+
+      \codeblock{yaml}{{{
+      var_sources:
+      - name: dumb
+        type: dummy
+        config:
+          vars:
+            simple: hello!
+            user:
+              username: big
+              password: sekrit
+
+      jobs:
+      - name: print-creds
+        plan:
+        - task: print
+          config:
+            platform: linux
+
+            image_resource:
+              type: registry-image
+              source: {repository: ubuntu}
+
+            run:
+              path: bash
+              args:
+              - -c
+              - |
+                echo simple: ((dumb:simple))
+                echo username: ((dumb:user.username))
+                echo password: ((dumb:user.password))
+      }}}
+
+      The \code{print-creds} job above will print the following:
+
+      \code{{{
+      simple: hello!
+      username: big
+      password: sekrit
+      }}}
+
+      With \reference{creds-redacting}{credential redaction} enabled, the output
+      above will actually print the following:
+
+      \code{{{
+      simple: ((redacted))
+      username: ((redacted))
+      password: ((redacted))
+      }}}
+
+      The \code{dummy} var source type is, well, pretty dumb. It just provides
+      whatever vars you tell it to. It primarily exists for testing purposes, and
+      is useful as a stand-in in place of a real credential manager where you can
+      at least have the credentials redacted from build output.
+
+      In production, you'll probably want to use something like
+      \reference{vault-var-source}{\code{vault}} instead.
+    }
+  }

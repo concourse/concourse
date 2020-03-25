@@ -1,0 +1,130 @@
+\title{Build Scheduler}{scheduler}
+
+\use-plugin{concourse-docs}
+
+\omit-children-from-table-of-contents
+
+\italic{As of the v6.0.0 release, there have been many changes to the scheduler so it
+would be advisable to assume that this documentation should only be used for
+Concourse deployments v6.0.0 and above.}
+
+Builds represent each execution of a \reference{jobs}{job}. Figuring out
+when to schedule a new build is the responsibility of the \bold{build
+scheduler}. The scheduling of new builds can be dependent on many different
+factors such as when a new version of a resource is discovered, when a
+dependent upstream build finishes, or when a user manually triggers a build.
+
+The build scheduler is a global component, where it deals with all the jobs
+within a deployment. It runs on an interval with a default of 10 seconds.
+If there are multiple ATCs, only one of the ATC's scheduler component will run
+per interval tick in order to ensure that there will be no duplicated work
+between ATC nodes.
+
+The subcomponent used to figure out whether a build can be scheduled is called the
+\reference{algorithm}{algorithm}.
+
+\section{
+  \title{Algorithm}{algorithm}
+
+  The algorithm is a subcomponent of the scheduler which is used to determine
+  the input versions to the next build of a job. There are many factors that
+  contribute to figuring out the next input versions. It can be anything that
+  affects which resource versions will be used to schedule a build, such as
+  \reference{schema.step.get-step.version}{version constraints} or
+  \reference{schema.step.get-step.passed}{passed constraints} in a
+  \reference{get-step}, disabling versions through the web UI, etc. The
+  algorithm can also fail to determine a successful set of input versions,
+  which the error will be propogated to the preparation view in the build page.
+
+  If the algorithm computes a successful set of input versions, it will figure
+  out whether or not the versions it computed can be used to produce a new
+  build. This is done by comparing the
+  \reference{schema.step.get-step.trigger}{triggerable} input versions to the
+  versions used by the previous build and if any of them have a different
+  version, then the scheduler will know to schedule a new build. Conversly, if
+  the input versions produced by the algorithm are the same as the previous
+  build, then the scheduler will not create a new build.
+}
+
+\section{
+  \title{Scheduling behavior}{scheduling-behavior}
+
+  The scheduler will schedule a new build if any of the versions produced by
+  the algorithm for \reference{schema.step.get-step.trigger}{\code{trigger:
+  true}} resources is not equal to the version used by the \bold{previous
+  build} of the job.
+
+  What this means is if the algorithm runs and computes an
+  input version, the scheduler will create a new build as long as that version
+  is different than the previous build's version for that same input. Even if
+  that version has been used by a build 2 months ago, the scheduler will
+  schedule a new build as long as it has not been used by the previous build.
+
+  If there are any input versions that are different than the previous build,
+  it will trigger a new build. This can affect some users that are using the
+  pinning functionality to run older versions.
+
+  Let's say you have a job that takes a resource as an input. It currently has
+  two builds, build 1 has ran with version \code{v1} of the resource and build
+  2 has ran with \code{v2}.
+
+  \diagram{images/new-pinning-behavior-1.png}{80%}
+
+  If I pin the input to an older version, a new build is produced because the
+  pinned version \code{v1} is not equivalent to the version of the previous
+  build \code{v2}.
+
+  \diagram{images/new-pinning-behavior-3.png}{90%}
+
+  Then if I unpin the version, another build would be triggered again using the
+  latest version.
+
+  \diagram{images/new-pinning-behavior-4.png}{90%}
+
+  This is because after unpinning the resource, the input version for the next
+  build becomes the latest version \code{v2} which is not equal to the version
+  \code{v1} used by the previous build.
+
+  This is to allow the current state of the builds to always reflect the
+  current state of the versions. That being said, this behavior can be
+  undesirable if the goal is to only run a job using an old version. In this
+  case, build rerunning is the better choice. If you would like to learn more
+  about build rerunning, you can read more about it in the
+  \reference{build-rerunning}{build rerunning section}.
+}
+
+\section{
+  \title{Scheduling on demand}{scheduling-on-demand}
+
+  The scheduler runs on an interval, but rather than scheduling all the jobs
+  within a deployment on every tick, it only schedules the jobs that
+  \italic{need to be scheduled}.
+
+  First, the scheduler determines which jobs need to be scheduled. Below are
+  all the reasons why Concourse will think a job needs to be scheduled:
+  \list{
+    Detecting new versions of a resource through a check
+  }{
+    Saving a new version through a put
+  }{
+    A build finishes for an upstream job (through passed constraints)
+  }{
+    Enabling/Disabling a resource version
+  }{
+    Pinning/Unpinning a resource version
+  }{
+    Setting a pipeline
+  }{
+    Updating a resource's \code{resource_config}
+  }{
+    Manually triggering a build
+  }{
+    Rerunning a build
+  }{
+    Multiple versions available for a version every constraint
+  }
+
+  Each job that is scheduled will use the algorithm to determine what inputs
+  its next build should have. Then the build is scheduled and picked up by the
+  \reference{build-tracker}{Build Tracker}.
+}

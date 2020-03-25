@@ -1,184 +1,124 @@
-.pending {
-  background: #868585;
-}
-.started {
-  background: red;
-}
-.no-builds {
-  background: #504B4B;
-}
-.succeeded {
-  background: #11C560;
-}
-.failed {
-  background: #ED4B35;
-}
-.errored {
-  background: #F5A623;
-}
-.aborted {
-  background: #8B572A;
-}
-.paused {
-  background: #4A90E2;
-}
-.pipeline-grid {
-  padding: 20px;
-  padding-bottom: 10px;
-  float: left;
-}
-.pipeline-grid > * {
-  align-items: flex-start;
-}
-.pipeline-grid * {
-  box-sizing: border-box;
-}
-.pipeline-grid .node {
-  display: flex;
-  /* this does interesting but maybe good things? */
-  flex-grow: 1;
-}
-.pipeline-grid .node a {
-  flex-grow: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-block;
-}
-.pipeline-grid .pipeline-table {
-  padding: 20px;
-  border-spacing: 0;
-}
-.pipeline-grid .pipeline-table tr {
-  vertical-align: top;
-}
-.pipeline-grid .pipeline-table td {
-  padding: 0;
-}
-.pipeline-grid .spacer {
-  height: 30px;
-}
-.pipeline-grid .parallel-grid {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  justify-content: flex-start;
-  align-items: flex-start;
-}
-.pipeline-grid .serial-grid {
-  display: flex;
-  flex-direction: row;
-  flex-grow: 1;
-  justify-content: flex-start;
-}
-.pipeline-grid .job,
-.pipeline-grid .input,
-.pipeline-grid .output {
-  margin-bottom: 10px;
-}
-.pipeline-grid .input a,
-.pipeline-grid .output a {
-  margin-top: 10px;
-  max-height: 30px;
-  border-bottom: 1px solid #7A7373;
-  color: #E6E7E8;
-  font-size: 10px;
-  padding: 15px 10px 5px;
-  line-height: 10px;
-}
-.pipeline-grid .job a {
+/* light grey (pending) */
+/* red */
+/* orange */
+/* yellow */
+/* green */
+/* cyan */
+/* blue */
+/* purple */
+/* brown */
+/* 17 color palettes are 1 better than 16 */
+.pipeline-svg {
+  display: block;
+  font-family: 'Iosevka', monospace;
+  letter-spacing: 0.0425em;
+  font-weight: bold;
   font-size: 12px;
-}
-.pipeline-grid .output {
-  flex-grow: 0;
-}
-.pipeline-grid .job {
-  flex-grow: 0;
-  width: 140px;
-  min-height: 80px;
-  display: flex;
-  flex-direction: column;
-}
-.pipeline-grid .job .job-name {
-  flex-grow: 0;
-  display: block;
-  line-height: 30px;
-  padding: 0 10px;
-  color: #ffffff;
-  background: #2A2929;
-  font-weight: normal;
-}
-.pipeline-grid .job .job-status {
+  line-height: 1.4;
+  background: #3d3c3c;
   flex-grow: 1;
-  display: block;
+  justify-self: stretch;
+  padding: 32px;
 }
-.pipeline-grid .job.failed .job-status {
-  background-image: repeating-linear-gradient(-115deg, #BD3826 0, #BD3826 10px, #ED4B35 0, #ED4B35 16px);
-  background-size: 106px 114px;
-  border: 2px solid #ED4B35;
+.pipeline-svg .node rect {
+  fill: #1e1d1d;
 }
-.pipeline-grid .job.no-builds.started .job-status {
-  background-image: repeating-linear-gradient(-115deg, #2A2929 0, #2A2929 10px, #3D3C3C 0, #3D3C3C 16px);
-  background-size: 106px 114px;
-  animation: pipeline-running 3s linear infinite;
-  border: 2px solid #504B4B;
+.pipeline-svg .node text {
+  fill: white;
 }
-.pipeline-grid .job.succeeded.started .job-status {
-  background-image: repeating-linear-gradient(-115deg, #419867 0, #419867 10px, #11C560 0, #11C560 16px);
-  background-size: 106px 114px;
-  animation: pipeline-running 3s linear infinite;
-  border: 2px solid #11C560;
+.pipeline-svg .node.pending rect {
+  fill: #9b9b9b;
 }
-.pipeline-grid .job.failed.started .job-status {
-  background-image: repeating-linear-gradient(-115deg, #BD3826 0, #BD3826 10px, #ED4B35 0, #ED4B35 16px);
-  background-size: 106px 114px;
-  animation: pipeline-running 3s linear infinite;
-  border: 2px solid #ED4B35;
+.pipeline-svg .node.succeeded rect {
+  fill: #11c560;
 }
-.pipeline-grid .job.aborted.started .job-status {
-  background-image: repeating-linear-gradient(-115deg, #6A401C 0, #6A401C 10px, #8B572A 0, #8B572A 16px);
-  background-size: 106px 114px;
-  animation: pipeline-running 3s linear infinite;
-  border: 2px solid #8B572A;
+.pipeline-svg .node.failed rect {
+  fill: #ed4b35;
 }
-.pipeline-grid .job.errored.started .job-status {
-  background-image: repeating-linear-gradient(-115deg, #D58808 0, #D58808 10px, #F5A623 0, #F5A623 16px);
-  background-size: 106px 114px;
-  animation: pipeline-running 3s linear infinite;
-  border: 2px solid #F5A623;
+.pipeline-svg .node.errored rect {
+  fill: #f5a623;
 }
-.pipeline-grid .job.paused.started .job-status {
-  background-image: repeating-linear-gradient(-115deg, #2D76CC 0, #2D76CC 10px, #4A90E2 0, #4A90E2 16px);
-  background-size: 106px 114px;
-  animation: pipeline-running 3s linear infinite;
-  border: 2px solid #4A90E2;
+.pipeline-svg .node.aborted rect {
+  fill: #8b572a;
 }
-.pipeline-grid .serial-grid > .input {
-  align-self: flex-start;
+.pipeline-svg .node.failing rect {
+  fill: #f5a623;
 }
-.pipeline-grid .parallel-grid > .input {
-  align-self: flex-end;
+.pipeline-svg .node.paused rect {
+  fill: #4a90e2;
 }
-.pipeline-grid .input {
-  text-align: right;
-  margin-left: 10px;
-  min-width: 130px;
+.pipeline-svg .node.job.no-builds rect {
+  fill: #9b9b9b;
 }
-.pipeline-grid .input.constrained {
-  align-self: stretch;
-  text-align: left;
-  margin-left: 0px;
-  min-width: 140px;
+.pipeline-svg .node.resource a {
+  color: #f5f5f5;
 }
-.pipeline-grid .input.constrained a {
-  padding-left: 10px;
-  color: #868585;
+.pipeline-svg .node.pinned rect {
+  fill: #5C3BD1;
 }
-@keyframes pipeline-running {
-  0% {
-    background-position-x: -53.5px;
-  }
-  100% {
-    background-position-x: 0px;
-  }
+.pipeline-svg .node.constrained-input.pinned rect {
+  fill: #5C3BD1;
+  opacity: 0.8;
+}
+.pipeline-svg .node.constrained-input.pinned image {
+  opacity: 0.7;
+}
+.pipeline-svg .edge {
+  stroke: #7a7373;
+}
+.pipeline-svg .edge.pending {
+  stroke: #868585;
+}
+.pipeline-svg .edge.succeeded {
+  stroke: #11c560;
+}
+.pipeline-svg .edge.failed {
+  stroke: #ed4b35;
+}
+.pipeline-svg .edge.errored {
+  stroke: #f5a623;
+}
+.pipeline-svg .edge.aborted {
+  stroke: #8b572a;
+}
+.pipeline-svg .edge.paused {
+  stroke: #4a90e2;
+}
+.pipeline-svg .edge.trigger-false {
+  stroke-dasharray: 5, 5;
+}
+.pipeline-svg .node a {
+  cursor: pointer;
+}
+.pipeline-svg .node rect {
+  shape-rendering: crispEdges;
+}
+.pipeline-svg .edge path {
+  stroke-width: 2px;
+  fill: none;
+}
+.pipeline-svg .node text {
+  fill: #fff;
+}
+.pipeline-svg .node.constrained-input text {
+  fill: #868585;
+}
+.pipeline-svg .node.constrained-input.pinned text {
+  fill: #fff;
+  opacity: 0.7;
+}
+.pipeline-svg .active path {
+  stroke-width: 4px;
+}
+.pipeline-svg .active.node rect {
+  filter: url(#embiggen);
+}
+.pipeline-svg .active.node image {
+  transform: scale(1.09) translate(-5px, -1px);
+}
+.pipeline-svg .active.node text {
+  font-size: 1.06em;
+}
+.pipeline-svg .active.node use {
+  transform: scale(1.09) translate(-5px, -1px);
 }

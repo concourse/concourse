@@ -1,0 +1,200 @@
+.schema {
+  margin: 1.5em 0;
+  margin-bottom: 1.5em;
+}
+
+.schema .schema-header {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  position: relative; // for the anchor
+}
+
+.schema .schema .schema-header {
+  font-size: 18px;
+}
+
+.schema-scalar {
+  background: fade(@darkest-grey, 7%);
+  padding: 3px;
+  border-radius: 5px;
+}
+
+.toggleable {
+  .toggle {
+    display: none;
+  }
+
+  .toggle-title {
+    cursor: pointer;
+    user-select: none;
+
+    display: block;
+    padding: .25rem .5rem;
+    padding-left: 32px;
+
+    background-image: url('../images/icons/chevron-down.svg');
+    background-repeat: no-repeat;
+    background-size: 12px;
+    background-position-x: 10px;
+    background-position-y: calc(50% + 1px);
+
+    position: relative;
+
+    &:after {
+      font-family: 'Barlow', Helvetica, Arial, sans-serif;
+      font-style: italic;
+      margin-left: .5rem;
+      position: absolute;
+      right: .5rem;
+    }
+  }
+
+  .toggle-content {
+    display: none;
+    padding: 1em;
+    padding-left: 32px;
+  }
+
+  .toggle:checked + label {
+    &.toggle-title {
+      background-image: url('../images/icons/chevron-up.svg');
+      background-position-y: center;
+    }
+
+    & + .toggle-content {
+      display: block;
+    }
+  }
+}
+
+.example {
+  @example-color: @blue-primary;
+
+  margin-top: 1em;
+
+  .toggle-title {
+    background-color: fade(@example-color, 10%);
+
+    &:after {
+      content: "example";
+      color: @example-color;
+    }
+  }
+}
+
+.schema-group {
+  margin: 1em 0;
+}
+
+@one-of-color: @off-white;
+
+.schema-one-of {
+  border-bottom: .5em solid @one-of-color;
+  border-left: .5em solid @one-of-color;
+  border-right: .5em solid @one-of-color;
+  margin: 1em -1.5em;
+
+  .one-of-header {
+    display: block;
+    line-height: 32px;
+    padding: 0 .5rem;
+    font-style: italic;
+    font-weight: bold;
+    background-color: @one-of-color;
+  }
+
+  .one-of-option {
+    padding: 0 1em;
+    border-bottom: .5rem solid @one-of-color;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  // if you're seeing this color it's because nesting one-ofs is too confusing.
+  // try to avoid it.
+  .schema-one-of {
+    border-color: #f0f;
+
+    .one-of-header {
+      background-color: #f0f;
+    }
+
+    .one-of-option {
+      border-color: #f0f;
+    }
+  }
+}
+
+.schema-attribute {
+  margin-top: 1em;
+
+  &:first-child {
+    margin-top: 0;
+  }
+
+  .toggle-title {
+    a {
+      color: inherit;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    code {
+      background: initial;
+      padding: initial;
+      border-radius: initial;
+    }
+
+    .attribute-name {
+      font-weight: bold;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .attribute-type {
+      color: @grey-primary;
+
+      .schema-scalar, a {
+        color: @darker-grey;
+      }
+    }
+  }
+
+  .attribute-content {
+    .schema-header {
+      margin-bottom: 1rem;
+    }
+
+    .example {
+      margin-right: -1em;
+    }
+  }
+
+  &.required > .toggle-title {
+    @required-bg-color: @highlight;
+    @required-fg-color: @amber-secondary;
+
+    background-color: @required-bg-color;
+
+    &:after {
+      content: "required";
+      color: @required-fg-color;
+    }
+  }
+
+  &.optional > .toggle-title {
+    background-color: @off-white;
+
+    &:after {
+      content: "optional";
+      color: @dark-grey;
+    }
+  }
+}

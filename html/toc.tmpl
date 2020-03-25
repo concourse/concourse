@@ -1,14 +1,18 @@
-{{if and .Children (not .OmitChildrenFromTableOfContents)}}
-<ol class="toc">
-{{range .Children}}
-  <li>
-    {{- if eq .PageDepth 0 -}}
-      <span class="section-number">{{.Number}} </span>
-    {{- end -}}
-    <a href="{{.PrimaryTag | url}}">{{- .Title | render -}}</a>
+<div class="table-of-contents">
+  <span class="toc-header">Table of contents:</span>
 
-    {{template "toc.tmpl" .}}
-  </li>
-{{end}}
-</ol>
-{{end}}
+  {{block "toc" .}}
+  {{if and .Children (not .OmitChildrenFromTableOfContents)}}
+  <ol class="toc">
+  {{range .Children}}
+    <li>
+      <span class="section-number">{{.Number}}</span>
+      <a href="{{.PrimaryTag | url}}">{{- .Title | render -}}</a>
+
+      {{template "toc" .}}
+    </li>
+  {{end}}
+  </ol>
+  {{end}}
+  {{end}}
+</div>

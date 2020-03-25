@@ -23,15 +23,13 @@ Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
   pipeline definition in the YAML file specified.
 
   \section{
-    \title{Static \code{((vars))}}{pipeline-vars}
+    \title{Providing static values for vars}{pipeline-static-vars}
 
-    The pipeline configuration can contain template variables in the form of
-    \code{((foo-bar))}. They will be replaced with values populated by repeated
-    \code{--var}, \code{--yaml-var}, or \code{--load-vars-from} flags, or at
-    runtime via a \reference{creds}{credential manager}.
-
-    This allows for credentials to be extracted from a pipeline config, making it
-    safe to check in to a public repository or pass around.
+    The pipeline configuration can contain \reference{vars} which may be
+    \reference{static-vars}{replaced with static values} or
+    \reference{dynamic-vars}{loaded at runtime}. This allows for credentials
+    to be extracted from a pipeline config, making it safe to check in to a
+    public repository or pass around.
 
     For example, if you have a \code{pipeline.yml} as follows:
 
@@ -72,14 +70,21 @@ Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
         --load-vars-from credentials.yml
     }}
 
-    Concatenation is supported for string values - \code{foo-((var))} with
-    \code{var: bar} will resolve to \code{foo-bar}.
+    When configuring a pipeline, any vars not provided statically will be left
+    to resolve \reference{dynamic-vars}{at runtime}. To check that all vars are
+    resolveable, you can pass the \code{--check-creds} flag:
 
-    If both \code{--var}/\code{--yaml-var} and \code{--load-vars-from} are
-    specified, the \code{--var} and \code{--yaml-var} flags take precedence.
+    \codeblock{bash}{{
+    $ fly -t example set-pipeline \\
+        --pipeline my-pipeline \\
+        --config pipeline.yml \\
+        --load-vars-from credentials.yml \\
+        --check-creds
+    }}
 
-    Values other than strings (e.g. bools, arrays) may also be specified by
-    using either \code{--yaml-var} or \code{--load-vars-from}.
+    This will fill in all statically-provided vars and then attempt to resolve
+    all remanining vars server-side. If any fail to resolve, configuring the
+    pipeline will fail.
   }
 }
 
