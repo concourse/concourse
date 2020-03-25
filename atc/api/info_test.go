@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/creds/secretsmanager"
 	"github.com/concourse/concourse/atc/creds/ssm"
 	"github.com/concourse/concourse/atc/creds/vault"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	vaultapi "github.com/hashicorp/vault/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -54,7 +55,10 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		It("returns Content-Type 'application/json'", func() {
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			expectedHeaderEntries := map[string]string{
+				"Content-Type": "application/json",
+			}
+			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 		})
 
 		It("contains the version", func() {
@@ -86,7 +90,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			expectedHeaderEntries := map[string]string{
+				"Content-Type": "application/json",
+			}
+			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 
 			body, err = ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())

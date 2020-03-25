@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -144,7 +145,10 @@ var _ = Describe("Checks API", func() {
 							})
 
 							It("returns application/json", func() {
-								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+								expectedHeaderEntries := map[string]string{
+									"Content-Type": "application/json",
+								}
+								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 							})
 
 							It("returns the check", func() {

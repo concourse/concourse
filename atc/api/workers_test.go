@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -81,7 +82,10 @@ var _ = Describe("Workers API", func() {
 
 				It("returns all the workers", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 
 					Expect(dbWorkerFactory.WorkersCallCount()).To(Equal(1))
 
@@ -115,7 +119,10 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("returns Content-Type 'application/json'", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
 				It("returns the workers", func() {
@@ -827,7 +834,10 @@ var _ = Describe("Workers API", func() {
 		})
 
 		It("returns Content-Type 'application/json'", func() {
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			expectedHeaderEntries := map[string]string{
+				"Content-Type": "application/json",
+			}
+			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 		})
 
 		It("returns saved worker", func() {

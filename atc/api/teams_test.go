@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -215,7 +216,10 @@ var _ = Describe("Teams API", func() {
 			})
 
 			It("returns application/json", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				expectedHeaderEntries := map[string]string{
+					"Content-Type": "application/json",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 			})
 
 			It("returns a team JSON", func() {
@@ -251,7 +255,10 @@ var _ = Describe("Teams API", func() {
 			})
 
 			It("returns application/json", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				expectedHeaderEntries := map[string]string{
+					"Content-Type": "application/json",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 			})
 
 			It("returns a team JSON", func() {
@@ -717,7 +724,10 @@ var _ = Describe("Teams API", func() {
 				})
 
 				It("returns Content-Type 'application/json'", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
 				It("returns the builds", func() {

@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -112,7 +113,10 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		It("returns application/json", func() {
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			expectedHeaderEntries := map[string]string{
+				"Content-Type": "application/json",
+			}
+			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 		})
 
 		Context("when team is set in user context", func() {
@@ -273,7 +277,10 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns application/json", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				expectedHeaderEntries := map[string]string{
+					"Content-Type": "application/json",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 			})
 
 			It("constructs team with provided team name", func() {
@@ -446,7 +453,10 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns application/json", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				expectedHeaderEntries := map[string]string{
+					"Content-Type": "application/json",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 			})
 
 			It("returns a pipeline JSON", func() {
@@ -627,9 +637,12 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns Content-Type as image/svg+xml and disables caching", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("image/svg+xml"))
-				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
-				Expect(response.Header.Get("Expires")).To(Equal("0"))
+				expectedHeaderEntries := map[string]string{
+					"Content-Type":  "image/svg+xml",
+					"Cache-Control": "no-cache, no-store, must-revalidate",
+					"Expires":       "0",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 			})
 
 			Context("when the pipeline has no finished builds", func() {
@@ -1412,7 +1425,10 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns application/json", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
 				It("returns a json representation of all the versions in the pipeline", func() {
@@ -1493,7 +1509,10 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("does not return application/json", func() {
-					Expect(response.Header.Get("Content-Type")).To(BeEmpty())
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "",
+					}
+					Expect(response).ShouldNot(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 			})
 		})
@@ -1696,7 +1715,10 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns Content-Type 'application/json'", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
 				It("returns the builds", func() {
@@ -1854,7 +1876,10 @@ var _ = Describe("Pipelines API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("creates a started build", func() {

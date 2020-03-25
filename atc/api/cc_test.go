@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	"github.com/tedsuo/rata"
 
 	. "github.com/onsi/ginkgo"
@@ -103,7 +104,10 @@ var _ = Describe("cc.xml", func() {
 							})
 
 							It("returns Content-Type 'application/xml'", func() {
-								Expect(response.Header.Get("Content-Type")).To(Equal("application/xml"))
+								expectedHeaderEntries := map[string]string{
+									"Content-Type": "application/xml",
+								}
+								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 							})
 
 							It("returns the CC.xml", func() {
