@@ -772,10 +772,22 @@ var _ = Describe("Containers API", func() {
 								Expect(io.Stderr).NotTo(BeNil())
 							})
 
-							It("marks container as hijacked", func() {
+							It("updates the last hijack value", func() {
 								Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
 								Expect(fakeContainer.UpdateLastHijackCallCount()).To(Equal(1))
+							})
+
+							Context("when the hijack timer elapses", func() {
+								JustBeforeEach(func() {
+									fakeClock.WaitForWatcherAndIncrement(time.Second)
+								})
+
+								It("updates the last hijack value again", func() {
+									Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+
+									Eventually(fakeContainer.UpdateLastHijackCallCount).Should(Equal(2))
+								})
 							})
 
 							Context("when stdin is sent over the API", func() {
