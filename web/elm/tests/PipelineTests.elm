@@ -5,6 +5,7 @@ import Assets
 import Char
 import Common exposing (defineHoverBehaviour)
 import Concourse.Cli exposing (Cli(..))
+import Data
 import Expect exposing (..)
 import Html.Attributes as Attr
 import Json.Encode
@@ -88,14 +89,11 @@ all =
                         |> Tuple.first
                         |> Application.handleCallback
                             (Callback.PipelineFetched
-                                (Ok
-                                    { id = 0
-                                    , name = "pipeline"
-                                    , paused = False
-                                    , public = True
-                                    , teamName = "team"
-                                    , groups = groups
-                                    }
+                                (Ok <|
+                                    (Data.pipeline "team" 0
+                                        |> Data.withName "pipeline"
+                                        |> Data.withGroups groups
+                                    )
                                 )
                             )
                         |> Tuple.first
@@ -548,14 +546,11 @@ all =
                     Common.init "/teams/team/pipelines/pipeline"
                         |> Application.handleCallback
                             (Callback.PipelineFetched
-                                (Ok
-                                    { id = 0
-                                    , name = "pipeline"
-                                    , paused = True
-                                    , public = True
-                                    , teamName = "team"
-                                    , groups = []
-                                    }
+                                (Ok <|
+                                    (Data.pipeline "team" 0
+                                        |> Data.withName "pipeline"
+                                        |> Data.withPaused True
+                                    )
                                 )
                             )
                         |> Tuple.first

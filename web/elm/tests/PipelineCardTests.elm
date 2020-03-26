@@ -61,14 +61,7 @@ all =
                     >> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team"
-                                  , groups = []
-                                  }
-                                ]
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                         )
                     >> Tuple.first
                     >> Application.handleDelivery
@@ -91,14 +84,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "other-team"
-                                      , groups = []
-                                      }
-                                    ]
+                                    [ Data.pipeline "other-team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -208,14 +194,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team"
-                                  , groups = []
-                                  }
-                                ]
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -232,14 +211,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team"
-                                  , groups = []
-                                  }
-                                ]
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Application.update
@@ -259,14 +231,7 @@ all =
                     |> Application.handleDelivery
                         (CachedPipelinesReceived <|
                             Ok
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team"
-                                  , groups = []
-                                  }
-                                ]
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -283,14 +248,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team"
-                                  , groups = []
-                                  }
-                                ]
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -315,14 +273,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -381,14 +332,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ { id = 0
-                                          , name = "pipeline"
-                                          , paused = False
-                                          , public = True
-                                          , teamName = "team"
-                                          , groups = []
-                                          }
-                                        ]
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -402,13 +346,9 @@ all =
                             |> Application.handleDelivery
                                 (CachedPipelinesReceived <|
                                     Ok
-                                        [ { id = 0
-                                          , name = "pipeline"
-                                          , paused = True
-                                          , public = True
-                                          , teamName = "team"
-                                          , groups = []
-                                          }
+                                        [ Data.pipeline "team" 0
+                                            |> Data.withName "pipeline"
+                                            |> Data.withPaused True
                                         ]
                                 )
                             |> Tuple.first
@@ -423,13 +363,9 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ { id = 0
-                                          , name = "pipeline"
-                                          , paused = True
-                                          , public = True
-                                          , teamName = "team"
-                                          , groups = []
-                                          }
+                                        [ Data.pipeline "team" 0
+                                            |> Data.withName "pipeline"
+                                            |> Data.withPaused True
                                         ]
                                 )
                             |> Tuple.first
@@ -461,14 +397,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ { id = 0
-                                          , name = "pipeline"
-                                          , paused = False
-                                          , public = True
-                                          , teamName = "team"
-                                          , groups = []
-                                          }
-                                        ]
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -551,14 +480,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -602,14 +524,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ { id = 0
-                                          , name = "pipeline"
-                                          , paused = False
-                                          , public = True
-                                          , teamName = "team"
-                                          , groups = []
-                                          }
-                                        ]
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -625,14 +540,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -646,13 +554,9 @@ all =
                                 |> Application.handleDelivery
                                     (CachedPipelinesReceived <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = True
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
+                                            [ Data.pipeline "team" 0
+                                                |> Data.withName "pipeline"
+                                                |> Data.withPaused True
                                             ]
                                     )
                                 |> Tuple.first
@@ -667,13 +571,9 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = True
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
+                                            [ Data.pipeline "team" 0
+                                                |> Data.withName "pipeline"
+                                                |> Data.withPaused True
                                             ]
                                     )
                                 |> Tuple.first
@@ -705,14 +605,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -795,14 +688,7 @@ all =
                                     |> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ { id = 0
-                                                  , name = "pipeline"
-                                                  , paused = False
-                                                  , public = True
-                                                  , teamName = "team"
-                                                  , groups = []
-                                                  }
-                                                ]
+                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                         )
                                     |> Tuple.first
                                     |> Common.queryView
@@ -850,14 +736,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -875,14 +754,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "other-team"
-                                      , groups = []
-                                      }
-                                    ]
+                                    [ Data.pipeline "other-team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1014,14 +886,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ { id = 0
-                                          , name = "pipeline"
-                                          , paused = False
-                                          , public = True
-                                          , teamName = "team"
-                                          , groups = []
-                                          }
-                                        ]
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -1097,14 +962,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Application.handleCallback
@@ -1132,14 +990,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1182,14 +1033,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1215,14 +1059,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1243,14 +1080,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ { id = 0
-                                      , name = "pipeline"
-                                      , paused = False
-                                      , public = True
-                                      , teamName = "team"
-                                      , groups = []
-                                      }
-                                    ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1283,13 +1113,9 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = True
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
+                                            [ Data.pipeline "team" 0
+                                                |> Data.withName "pipeline"
+                                                |> Data.withPaused True
                                             ]
                                     )
                                 |> Tuple.first
@@ -1341,13 +1167,9 @@ all =
                                 |> Application.handleDelivery
                                     (CachedPipelinesReceived <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = True
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
+                                            [ Data.pipeline "team" 0
+                                                |> Data.withName "pipeline"
+                                                |> Data.withPaused True
                                             ]
                                     )
                                 |> Tuple.first
@@ -1473,14 +1295,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> afterSeconds 1
@@ -2000,14 +1815,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ { id = 0
-                                                  , name = "pipeline"
-                                                  , paused = False
-                                                  , public = True
-                                                  , teamName = "team"
-                                                  , groups = []
-                                                  }
-                                                ]
+                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                         )
 
                             whenAuthorizedNonPublic =
@@ -2020,13 +1828,9 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ { id = 0
-                                                  , name = "pipeline"
-                                                  , paused = False
-                                                  , public = False
-                                                  , teamName = "team"
-                                                  , groups = []
-                                                  }
+                                                [ Data.pipeline "team" 0
+                                                    |> Data.withName "pipeline"
+                                                    |> Data.withPublic False
                                                 ]
                                         )
                         in
@@ -2047,14 +1851,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ { id = 0
-                                                  , name = "pipeline"
-                                                  , paused = False
-                                                  , public = True
-                                                  , teamName = "team"
-                                                  , groups = []
-                                                  }
-                                                ]
+                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                         )
 
                             whenUnauthorizedNonPublic =
@@ -2067,13 +1864,9 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ { id = 0
-                                                  , name = "pipeline"
-                                                  , paused = False
-                                                  , public = False
-                                                  , teamName = "team"
-                                                  , groups = []
-                                                  }
+                                                [ Data.pipeline "team" 0
+                                                    |> Data.withName "pipeline"
+                                                    |> Data.withPublic False
                                                 ]
                                         )
                         in
@@ -2092,14 +1885,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ { id = 0
-                                                  , name = "pipeline"
-                                                  , paused = False
-                                                  , public = True
-                                                  , teamName = "team"
-                                                  , groups = []
-                                                  }
-                                                ]
+                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                         )
                         in
                         [ describe "on public pipeline" <|
@@ -2116,14 +1902,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ { id = 0
-                                          , name = "pipeline"
-                                          , paused = False
-                                          , public = True
-                                          , teamName = "team"
-                                          , groups = []
-                                          }
-                                        ]
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -2146,14 +1925,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2178,14 +1950,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2207,14 +1972,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2237,14 +1995,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                         , query =
@@ -2293,13 +2044,9 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = True
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
+                                            [ Data.pipeline "team" 0
+                                                |> Data.withName "pipeline"
+                                                |> Data.withPaused True
                                             ]
                                     )
                                 |> Tuple.first
@@ -2348,14 +2095,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2384,14 +2124,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2416,14 +2149,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2452,14 +2178,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2489,14 +2208,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ { id = 0
-                                              , name = "pipeline"
-                                              , paused = False
-                                              , public = True
-                                              , teamName = "team"
-                                              , groups = []
-                                              }
-                                            ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update

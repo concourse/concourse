@@ -6,6 +6,7 @@ import Common exposing (defineHoverBehaviour, isColorWithStripes, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.DashboardPreview as DP
+import Data
 import Expect
 import Message.Callback as Callback
 import Message.Message exposing (DomID(..))
@@ -192,20 +193,8 @@ dashboardWithJob j =
         |> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ { id = 0
-                      , name = "pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
-                    , { id = 1
-                      , name = "other"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
+                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 1 |> Data.withName "other"
                     ]
             )
         |> Tuple.first

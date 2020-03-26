@@ -1,6 +1,7 @@
 module SideBar.TeamTests exposing (all)
 
 import Common
+import Data
 import Expect
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
@@ -300,14 +301,7 @@ team { active, expanded, hovered } =
                 HoverState.NoHover
 
         pipelines =
-            [ { id = 1
-              , name = "pipeline"
-              , paused = False
-              , public = True
-              , teamName = "team"
-              , groups = []
-              }
-            ]
+            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
 
         activePipeline =
             if active then

@@ -16,6 +16,7 @@ import Common
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import DashboardTests
+import Data
 import Dict
 import Expect
 import Html.Attributes as Attr
@@ -756,20 +757,8 @@ apiDataLoads =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ { id = 0
-                      , name = "pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
-                    , { id = 1
-                      , name = "other-pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
+                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
                     ]
             )
 
@@ -780,20 +769,8 @@ dataRefreshes =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ { id = 0
-                      , name = "pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
-                    , { id = 1
-                      , name = "other-pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
+                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
                     ]
             )
 
@@ -1216,22 +1193,6 @@ iShrankTheViewport =
     Tuple.first >> Application.handleDelivery (Subscription.WindowResized 300 300)
 
 
-thePipelineIsPaused =
-    Tuple.first
-        >> Application.handleCallback
-            (Callback.PipelineFetched
-                (Ok
-                    { id = 1
-                    , name = "pipeline"
-                    , paused = True
-                    , public = True
-                    , teamName = "team"
-                    , groups = []
-                    }
-                )
-            )
-
-
 iAmLookingAtTheHamburgerIcon =
     iAmLookingAtTheHamburgerMenu
         >> Query.children []
@@ -1284,34 +1245,10 @@ myBrowserFetchedPipelinesFromMultipleTeams =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ { id = 0
-                      , name = "pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
-                    , { id = 1
-                      , name = "other-pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
-                    , { id = 2
-                      , name = "yet-another-pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
-                    , { id = 3
-                      , name = "yet-another-pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "other-team"
-                      , groups = []
-                      }
+                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
+                    , Data.pipeline "team" 2 |> Data.withName "yet-another-pipeline"
+                    , Data.pipeline "other-team" 3 |> Data.withName "yet-another-pipeline"
                     ]
             )
 
@@ -1321,20 +1258,8 @@ myBrowserFetchedPipelines =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ { id = 0
-                      , name = "pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
-                    , { id = 1
-                      , name = "other-pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
+                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
                     ]
             )
 
@@ -1628,14 +1553,7 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched
                 (Ok
-                    [ { id = 0
-                      , name = "pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
-                    ]
+                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                 )
             )
         >> Tuple.first
