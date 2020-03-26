@@ -915,6 +915,7 @@ pipelinesView session params =
         pipelines =
             params.pipelines
                 |> FetchResult.withDefault []
+                |> List.filter (not << .archived)
 
         jobs =
             params.jobs
