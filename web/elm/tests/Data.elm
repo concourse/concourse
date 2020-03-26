@@ -11,10 +11,10 @@ module Data exposing
     , teamName
     , version
     , versionedResource
+    , withGroups
     , withName
     , withPaused
     , withPublic
-    , withGroups
     )
 
 import Concourse
@@ -94,6 +94,7 @@ withPublic public p =
 withName : String -> { r | name : String } -> { r | name : String }
 withName name p =
     { p | name = name }
+
 
 withGroups : List Concourse.PipelineGroup -> { r | groups : List Concourse.PipelineGroup } -> { r | groups : List Concourse.PipelineGroup }
 withGroups groups p =
