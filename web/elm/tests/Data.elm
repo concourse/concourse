@@ -75,6 +75,7 @@ pipeline team id =
     { id = id
     , name = "pipeline-" ++ String.fromInt id
     , paused = False
+    , archived = False
     , public = True
     , teamName = team
     , groups = []

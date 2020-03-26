@@ -463,6 +463,7 @@ toDashboardPipeline p =
     , isToggleLoading = False
     , isVisibilityLoading = False
     , paused = p.paused
+    , archived = p.archived
     }
 
 
@@ -473,6 +474,7 @@ toConcoursePipeline p =
     , teamName = p.teamName
     , public = p.public
     , paused = p.paused
+    , archived = p.archived
     , groups = []
     }
 
