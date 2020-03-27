@@ -6,6 +6,7 @@ import Common exposing (defineHoverBehaviour)
 import Concourse
 import Concourse.Cli as Cli
 import DashboardTests exposing (apiData, darkGrey, givenDataAndUser, givenDataUnauthenticated, iconSelector, userWithRoles, whenOnDashboard)
+import Data
 import Expect
 import Html.Attributes as Attr
 import Message.Callback as Callback
@@ -100,14 +101,7 @@ all =
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenPipelines
-                        [ { id = 0
-                          , name = ""
-                          , paused = False
-                          , public = True
-                          , teamName = ""
-                          , groups = []
-                          }
-                        ]
+                        [ Data.pipeline "team" 0 ]
                     |> Tuple.first
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
                     |> Tuple.first

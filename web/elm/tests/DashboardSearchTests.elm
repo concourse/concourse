@@ -4,6 +4,7 @@ import Application.Application as Application
 import Common exposing (queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Data
 import Expect exposing (Expectation)
 import Message.Callback as Callback
 import Message.Message
@@ -80,20 +81,8 @@ hasData =
             |> Application.handleCallback
                 (Callback.AllPipelinesFetched <|
                     Ok
-                        [ { id = 0
-                          , name = "pipeline"
-                          , paused = False
-                          , public = True
-                          , teamName = "team1"
-                          , groups = []
-                          }
-                        , { id = 1
-                          , name = "other-pipeline"
-                          , paused = False
-                          , public = True
-                          , teamName = "team1"
-                          , groups = []
-                          }
+                        [ Data.pipeline "team1" 0 |> Data.withName "pipeline"
+                        , Data.pipeline "team1" 1 |> Data.withName "other-pipeline"
                         ]
                 )
             |> Tuple.first
@@ -184,14 +173,7 @@ hasData =
                 >> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ { id = 0
-                              , name = "pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team"
-                              , groups = []
-                              }
-                            ]
+                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                     )
                 >> Tuple.first
                 >> Application.update

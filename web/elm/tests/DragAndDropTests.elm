@@ -2,6 +2,7 @@ module DragAndDropTests exposing (all)
 
 import Application.Application as Application
 import Common exposing (given, then_, when)
+import Data
 import Dict exposing (Dict)
 import Expect exposing (Expectation)
 import Http
@@ -185,14 +186,7 @@ myBrowserFetchedOnePipeline =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ { id = 0
-                  , name = "pipeline"
-                  , paused = False
-                  , public = True
-                  , teamName = "team"
-                  , groups = []
-                  }
-                ]
+                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
         )
 
 
@@ -200,20 +194,8 @@ myBrowserFetchedTwoPipelines =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ { id = 0
-                  , name = "pipeline"
-                  , paused = False
-                  , public = True
-                  , teamName = "team"
-                  , groups = []
-                  }
-                , { id = 1
-                  , name = "other-pipeline"
-                  , paused = False
-                  , public = True
-                  , teamName = "team"
-                  , groups = []
-                  }
+                [ Data.pipeline "team" 0 |> Data.withName "pipeline"
+                , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
                 ]
         )
 
@@ -222,27 +204,9 @@ myBrowserFetchedPipelinesFromMultipleTeams =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ { id = 0
-                  , name = "pipeline"
-                  , paused = False
-                  , public = True
-                  , teamName = "team"
-                  , groups = []
-                  }
-                , { id = 1
-                  , name = "other-pipeline"
-                  , paused = False
-                  , public = True
-                  , teamName = "team"
-                  , groups = []
-                  }
-                , { id = 2
-                  , name = "third-pipeline"
-                  , paused = False
-                  , public = True
-                  , teamName = "other-team"
-                  , groups = []
-                  }
+                [ Data.pipeline "team" 0 |> Data.withName "pipeline"
+                , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
+                , Data.pipeline "other-team" 2 |> Data.withName "third-pipeline"
                 ]
         )
 
@@ -452,20 +416,8 @@ dashboardRefreshPipelines =
         >> Application.handleCallback
             (Callback.PipelinesFetched <|
                 Ok
-                    [ { id = 0
-                      , name = "pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
-                    , { id = 1
-                      , name = "other-pipeline"
-                      , paused = False
-                      , public = True
-                      , teamName = "team"
-                      , groups = []
-                      }
+                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
                     ]
             )
 
