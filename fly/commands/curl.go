@@ -12,9 +12,8 @@ import (
 
 type CurlCommand struct {
 	Args struct {
-		Path  string   `positional-arg-name:"PATH" required:"true"`
-		Query string   `positional-arg-name:"QUERY"`
-		Rest  []string `positional-arg-name:"curl flags" description:"To pass flags to curl, pass a -- argument, so that fly can distinguish them from its own flags"`
+		Path string   `positional-arg-name:"PATH" required:"true"`
+		Rest []string `positional-arg-name:"curl flags" description:"To pass flags to curl, pass a -- argument, so that fly can distinguish them from its own flags"`
 	} `positional-args:"yes"`
 	PrintAndExit bool `long:"print-and-exit" description:"Print curl command and exit"`
 }
@@ -30,7 +29,7 @@ func (command *CurlCommand) Execute([]string) error {
 		return err
 	}
 
-	fullUrl, err := command.makeFullUrl(target.URL(), command.Args.Path, command.Args.Query)
+	fullUrl, err := command.makeFullUrl(target.URL(), command.Args.Path)
 	if err != nil {
 		return err
 	}
@@ -54,13 +53,17 @@ func (command *CurlCommand) Execute([]string) error {
 	return nil
 }
 
-func (command *CurlCommand) makeFullUrl(host, path string, query string) (string, error) {
+func (command *CurlCommand) makeFullUrl(host, path string) (string, error) {
 	u, err := url.Parse(host)
 	if err != nil {
 		return "", err
 	}
-	u.Path = path
-	u.RawQuery = query
+	p, err := url.Parse(path)
+	if err != nil {
+		return "", err
+	}
+	u.Path = p.Path
+	u.RawQuery = p.RawQuery
 	return u.String(), nil
 }
 
