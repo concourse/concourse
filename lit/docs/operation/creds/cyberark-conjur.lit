@@ -103,8 +103,8 @@
 \section{
   \title{Conjur Permissions}
 
-  The following is an example conjur policy that can be used to
-  grant permissions to a conjur host. In this example \code{host/concourse} 
+  The following is an example Conjur policy that can be used to
+  grant permissions to a Conjur host. In this example \code{host/concourse} 
   will have permissions to read and update all of the secrets within 
   the TEAM_NAME and PIPELINE_NAME policies.
 
@@ -128,7 +128,7 @@
   Note that the \code{TEAM_NAME} and \code{PIPELINE_NAME} text above should be replaced to
   fit your Concourse setup.
 
-  For more information on how to create and load conjur policies,
+  For more information on how to create and load Conjur policies,
   review the
   \link{official documentation}{https://docs.conjur.org/Latest/en/Content/Operations/Policy/policy-overview.htm?tocpath=Fundamentals%7CPolicy%20Management%7C_____0}.
 }
