@@ -108,7 +108,9 @@ func (client *Client) Register(ctx context.Context, opts RegisterOptions) error 
 
 	defer sshClient.Close()
 
-	go client.keepAlive(ctx, sshClient, tcpConn)
+	keepAliveInterval := time.Second * 5
+	keepAliveTimeout := time.Second * 5
+	go KeepAlive(ctx, sshClient, tcpConn, keepAliveInterval, keepAliveTimeout)
 
 	gardenListener, err := sshClient.Listen("tcp", gardenForwardAddr)
 	if err != nil {
@@ -405,52 +407,6 @@ func (client *Client) checkHostKey(hostname string, remote net.Addr, remoteKey s
 	return errors.New("remote host public key mismatch")
 }
 
-
-func (client *Client) keepAlive(ctx context.Context, sshClient *ssh.Client, tcpConn *net.TCPConn) {
-	logger := lagerctx.WithSession(ctx, "keepalive")
-	keepAliveRequestTimeout := 5 * time.Second
-	kas := time.NewTicker(5 * time.Second)
-
-	for {
-		// ignore reply; server may just not have handled it, since there's no
-		// standard keepalive request name
-
-		sendKeepAliveRequest := make(chan error,1)
-		go func (){
-			defer close(sendKeepAliveRequest)
-			_, _, err := sshClient.Conn.SendRequest("keepalive", true, []byte("sup"))
-			sendKeepAliveRequest <- err
-		}()
-
-		select {
-		case <-time.After(keepAliveRequestTimeout):
-			logger.Error("timeout", errors.New("timed out sending keepalive request"))
-			sshClient.Close()
-			return
-		case err := <-sendKeepAliveRequest:
-			if err != nil {
-				logger.Error("failed sending keepalive request", err)
-				sshClient.Close()
-				return
-			}
-		}
-
-		select {
-		case <-kas.C:
-			logger.Debug("tick")
-
-		case <-ctx.Done():
-			logger.Debug("stopping")
-
-			if err := tcpConn.SetKeepAlive(false); err != nil {
-				logger.Error("failed-to-disable-keepalive", err)
-				return
-			}
-
-			return
-		}
-	}
-}
 
 func (client *Client) run(ctx context.Context, sshClient *ssh.Client, command string, stdout io.Writer) error {
 	argv := strings.Split(command, " ")
