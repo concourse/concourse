@@ -693,6 +693,9 @@ update msg ( model, effects ) =
             else
                 ( model, effects ++ [ RedirectToLogin ] )
 
+        Click EditButton ->
+            ( { model | isEditing = True }, effects )
+
         EditComment input ->
             let
                 newPinnedVersion =
@@ -1217,7 +1220,20 @@ commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEdi
                             ++ [ Html.Attributes.contenteditable True ]
                         )
                         [ Html.text commentState.pristineComment ]
-                    , editButton session
+                    , if
+                        UserState.isMember
+                            { teamName = resourceIdentifier.teamName
+                            , userState = session.userState
+                            }
+                      then
+                        if isEditing == False then
+                            editButton session
+
+                        else
+                            saveButton commentState pinCommentLoading session.hovered
+
+                      else
+                        Html.div [] []
                     ]
                 ]
 
