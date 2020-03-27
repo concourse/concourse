@@ -1737,13 +1737,22 @@ all =
                         let
                             editButton =
                                 init
+                                    |> givenUserIsAuthorized
                                     |> givenResourcePinnedWithComment
                                     |> iconContainer
                                     |> Query.find [ id "edit-button" ]
                         in
-                        [ test "edit button is on the far right" <|
+                        [ test "only shows up when user is authorized" <|
                             \_ ->
                                 init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.has [ id "edit-button" ]
+                        , test "edit button is on the far right" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
                                     |> givenResourcePinnedWithComment
                                     |> iconContainer
                                     |> Query.children []
@@ -1763,7 +1772,7 @@ all =
                                     |> Query.has [ style "cursor" "pointer" ]
                         , defineHoverBehaviour
                             { name = "edit button"
-                            , setup = init |> givenResourcePinnedWithComment
+                            , setup = init |> givenUserIsAuthorized |> givenResourcePinnedWithComment
                             , query = iconContainer >> Query.find [ id "edit-button" ]
                             , unhoveredSelector =
                                 { description = "transparent background"
@@ -1796,6 +1805,30 @@ all =
                                     |> Tuple.first
                                     |> iconContainer
                                     |> Query.has [ style "background-color" purpleHex ]
+                        , test "after clicking on edit button, edit button disappears" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> update
+                                        (Message.Message.Click <|
+                                            Message.Message.EditButton
+                                        )
+                                    |> Tuple.first
+                                    |> iconContainer
+                                    |> Query.hasNot [ id "edit-button" ]
+                        , test "after clicking on edit button, there's a save button" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> update
+                                        (Message.Message.Click <|
+                                            Message.Message.EditButton
+                                        )
+                                    |> Tuple.first
+                                    |> iconContainer
+                                    |> Query.has [ tag "button" ]
                         ]
                     ]
                 ]

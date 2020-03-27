@@ -693,6 +693,9 @@ update msg ( model, effects ) =
             else
                 ( model, effects ++ [ RedirectToLogin ] )
 
+        Click EditButton ->
+            ( { model | isEditing = True }, effects )
+
         EditComment input ->
             let
                 newPinnedVersion =
