@@ -76,6 +76,7 @@ type DomID
     | VersionHeader VersionId
     | VersionToggle VersionId
     | BuildTab Int String
+    | PipelineWrapper Concourse.PipelineIdentifier
     | JobPreview Concourse.JobIdentifier
     | HamburgerMenu
     | SideBarTeam String
