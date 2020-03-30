@@ -88,6 +88,11 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		bin    = "containerd"
 	)
 
+	err := os.MkdirAll(root, 0755)
+	if err != nil {
+		return nil, err
+	}
+
 	if cmd.Garden.Config.Path() != "" {
 		config = cmd.Garden.Config.Path()
 	} else {
