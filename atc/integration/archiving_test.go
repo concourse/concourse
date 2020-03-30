@@ -106,6 +106,7 @@ func whenIUnpauseIt(client concourse.Client, pipelineName string) {
 func whenIArchiveIt(client concourse.Client, pipelineName string) {
 	_, err := client.Team("main").ArchivePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
+	return response
 }
 
 func getPipeline(client concourse.Client, pipelineName string) atc.Pipeline {
