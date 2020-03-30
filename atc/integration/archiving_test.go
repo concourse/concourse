@@ -20,8 +20,11 @@ var _ = Describe("ATC Integration Test", func() {
 	)
 
 	BeforeEach(func() {
-		atcURL = fmt.Sprintf("http://localhost:%v", cmd.BindPort)
+		cmd.EnableArchivePipeline = true
+	})
 
+	JustBeforeEach(func() {
+		atcURL = fmt.Sprintf("http://localhost:%v", cmd.BindPort)
 		runner, err := cmd.Runner([]string{})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -39,13 +42,25 @@ var _ = Describe("ATC Integration Test", func() {
 	})
 
 	It("can archive pipelines", func() {
-		atcURL := fmt.Sprintf("http://localhost:%v", cmd.BindPort)
 		client := login(atcURL, "test", "test")
 		givenAPipeline(client, "pipeline")
 		whenIArchiveIt(client, "pipeline")
 		pipeline := getPipeline(client, "pipeline")
 		Expect(pipeline.Archived).To(BeTrue(), "pipeline was not archived")
 		Expect(pipeline.Paused).To(BeTrue(), "pipeline was not paused")
+	})
+
+	Context("when the archiving pipeline endpoint is not enabled", func() {
+		BeforeEach(func() {
+			cmd.EnableArchivePipeline = false
+		})
+
+		It("returns an error", func() {
+			client := login(atcURL, "test", "test")
+			givenAPipeline(client, "pipeline")
+			response := whenIArchiveIt(client, "pipeline")
+			Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+		})
 	})
 })
 
@@ -59,15 +74,16 @@ jobs:
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func whenIArchiveIt(client concourse.Client, pipelineName string) {
+func whenIArchiveIt(client concourse.Client, pipelineName string) *http.Response {
 	httpClient := client.HTTPClient()
 	request, _ := http.NewRequest(
 		"PUT",
 		client.URL()+"/api/v1/teams/main/pipelines/"+pipelineName+"/archive",
 		nil,
 	)
-	_, err := httpClient.Do(request)
+	response, err := httpClient.Do(request)
 	Expect(err).ToNot(HaveOccurred())
+	return response
 }
 
 func getPipeline(client concourse.Client, pipelineName string) atc.Pipeline {
