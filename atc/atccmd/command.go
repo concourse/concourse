@@ -219,6 +219,8 @@ type RunCommand struct {
 	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 
 	ConfigRBAC string `long:"config-rbac" description:"Customize RBAC role-action mapping."`
+
+	EnableArchivePipeline bool `long:"enable-archive-pipeline" description:"Enable /api/v1/teams/{team}/pipelines/{pipeline}/archive endpoint."`
 }
 
 type Migration struct {
@@ -1572,6 +1574,8 @@ func (cmd *RunCommand) constructAPIHandler(
 		time.Minute,
 		dbWall,
 		clock.NewClock(),
+
+		cmd.EnableArchivePipeline,
 	)
 }
 
