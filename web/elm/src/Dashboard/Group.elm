@@ -18,7 +18,7 @@ import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
-import Html.Events exposing (on, preventDefaultOn, stopPropagationOn)
+import Html.Events exposing (on, onMouseOut, onMouseOver, preventDefaultOn, stopPropagationOn)
 import Html.Keyed
 import Json.Decode
 import Maybe.Extra
@@ -249,6 +249,14 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
             (String.fromFloat bounds.height
                 ++ "px"
             )
+         , onMouseOver <|
+            Hover <|
+                Just <|
+                    PipelineWrapper
+                        { pipelineName = pipeline.name
+                        , teamName = pipeline.teamName
+                        }
+         , onMouseOut <| Hover Nothing
          ]
             ++ (if params.dragState /= NotDragging then
                     [ style "transition" "transform 0.2s ease-in-out" ]
@@ -256,16 +264,23 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
                 else
                     []
                )
-            ++ (case HoverState.hoveredElement params.hovered of
-                    Just (JobPreview jobID) ->
+            ++ (let
+                    hoverStyle id =
                         if
-                            (jobID.teamName == pipeline.teamName)
-                                && (jobID.pipelineName == pipeline.name)
+                            (id.pipelineName == pipeline.name)
+                                && (id.teamName == pipeline.teamName)
                         then
                             [ style "z-index" "1" ]
 
                         else
                             []
+                in
+                case HoverState.hoveredElement params.hovered of
+                    Just (JobPreview jobID) ->
+                        hoverStyle jobID
+
+                    Just (PipelineWrapper pipelineID) ->
+                        hoverStyle pipelineID
 
                     _ ->
                         []
