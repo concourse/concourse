@@ -200,6 +200,7 @@ pipelineCardBody =
     [ style "background-color" Colors.card
     , style "margin" "2px 0"
     , style "flex-grow" "1"
+    , style "display" "flex"
     ]
 
 
@@ -207,7 +208,6 @@ pipelinePreviewGrid : List (Html.Attribute msg)
 pipelinePreviewGrid =
     [ style "box-sizing" "border-box"
     , style "width" "100%"
-    , style "height" "100%"
     ]
 
 
