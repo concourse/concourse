@@ -119,6 +119,38 @@ var _ = Describe("Pipelines API", func() {
 			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 		})
 
+		It("returns a JSON array of pipeline objects", func() {
+			body, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(body).To(MatchJSON(`[
+				{
+					"id": 1,
+					"name": "public-pipeline",
+					"paused": true,
+					"public": true,
+					"archived": false,
+					"team_name": "main",
+					"last_updated": 1,
+					"groups": [
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+				},
+				{
+					"id": 2,
+					"name": "another-pipeline",
+					"paused": true,
+					"public": true,
+					"archived": false,
+					"team_name": "another",
+					"last_updated": 1
+				}
+			]`))
+		})
+
 		Context("when team is set in user context", func() {
 			BeforeEach(func() {
 				fakeaccess.TeamNamesReturns([]string{"some-team"})
@@ -135,31 +167,14 @@ var _ = Describe("Pipelines API", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(body).To(MatchJSON(`[
-				{
-					"id": 1,
-					"name": "public-pipeline",
-					"paused": true,
-					"public": true,
-					"team_name": "main",
-					"last_updated": 1,
-					"groups": [
-						{
-							"name": "group2",
-							"jobs": ["job3", "job4"],
-							"resources": ["resource3", "resource4"]
-						}
-					]
-				},
-				{
-					"id": 2,
-					"name": "another-pipeline",
-					"paused": true,
-					"public": true,
-					"team_name": "another",
-					"last_updated": 1
-				}]`))
+				var pipelines []map[string]interface{}
+				err = json.Unmarshal(body, &pipelines)
+				Expect(pipelines).To(ConsistOf(
+					HaveKeyWithValue("id", BeNumerically("==", publicPipeline.ID())),
+					HaveKeyWithValue("id", BeNumerically("==", anotherPublicPipeline.ID())),
+				))
 			})
+
 			It("populates pipeline factory with no team names", func() {
 				Expect(dbPipelineFactory.VisiblePipelinesCallCount()).To(Equal(1))
 				Expect(dbPipelineFactory.VisiblePipelinesArgsForCall(0)).To(BeEmpty())
@@ -178,45 +193,13 @@ var _ = Describe("Pipelines API", func() {
 
 				Expect(dbPipelineFactory.VisiblePipelinesCallCount()).To(Equal(1))
 
-				Expect(body).To(MatchJSON(`[
-				{
-					"id": 3,
-					"name": "private-pipeline",
-					"paused": false,
-					"public": false,
-					"team_name": "main",
-					"last_updated": 1,
-					"groups": [
-						{
-							"name": "group1",
-							"jobs": ["job1", "job2"],
-							"resources": ["resource1", "resource2"]
-						}
-					]
-				},
-				{
-					"id": 1,
-					"name": "public-pipeline",
-					"paused": true,
-					"public": true,
-					"team_name": "main",
-					"last_updated": 1,
-					"groups": [
-						{
-							"name": "group2",
-							"jobs": ["job3", "job4"],
-							"resources": ["resource3", "resource4"]
-						}
-					]
-				},
-				{
-					"id": 2,
-					"name": "another-pipeline",
-					"paused": true,
-					"public": true,
-					"team_name": "another",
-					"last_updated": 1
-				}]`))
+				var pipelines []map[string]interface{}
+				err = json.Unmarshal(body, &pipelines)
+				Expect(pipelines).To(ConsistOf(
+					HaveKeyWithValue("id", BeNumerically("==", publicPipeline.ID())),
+					HaveKeyWithValue("id", BeNumerically("==", privatePipeline.ID())),
+					HaveKeyWithValue("id", BeNumerically("==", anotherPublicPipeline.ID())),
+				))
 			})
 
 			Context("user has the Admin privilege", func() {
@@ -288,16 +271,16 @@ var _ = Describe("Pipelines API", func() {
 				Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("main"))
 			})
 
-			It("returns all team's pipelines", func() {
+			It("returns a JSON array of pipeline objects", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
-
 				Expect(body).To(MatchJSON(`[
 					{
 						"id": 3,
 						"name": "private-pipeline",
 						"paused": false,
 						"public": false,
+						"archived": false,
 						"team_name": "main",
 						"last_updated": 1,
 						"groups": [
@@ -313,6 +296,7 @@ var _ = Describe("Pipelines API", func() {
 						"name": "public-pipeline",
 						"paused": true,
 						"public": true,
+						"archived": false,
 						"team_name": "main",
 						"last_updated": 1,
 						"groups": [
@@ -322,7 +306,20 @@ var _ = Describe("Pipelines API", func() {
 								"resources": ["resource3", "resource4"]
 							}
 						]
-					}]`))
+					}
+				]`))
+			})
+
+			It("returns all team's pipelines", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+				var pipelines []map[string]interface{}
+				json.Unmarshal(body, &pipelines)
+
+				Expect(pipelines).To(ConsistOf(
+					HaveKeyWithValue("id", BeNumerically("==", publicPipeline.ID())),
+					HaveKeyWithValue("id", BeNumerically("==", privatePipeline.ID())),
+				))
 			})
 
 			Context("when the call to get active pipelines fails", func() {
@@ -345,23 +342,12 @@ var _ = Describe("Pipelines API", func() {
 			It("returns only team's public pipelines", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
+				var pipelines []map[string]interface{}
+				json.Unmarshal(body, &pipelines)
 
-				Expect(body).To(MatchJSON(`[
-					{
-						"id": 1,
-						"name": "public-pipeline",
-						"paused": true,
-						"public": true,
-						"team_name": "main",
-						"last_updated": 1,
-						"groups": [
-							{
-								"name": "group2",
-								"jobs": ["job3", "job4"],
-								"resources": ["resource3", "resource4"]
-							}
-						]
-					}]`))
+				Expect(pipelines).To(ConsistOf(
+					HaveKeyWithValue("id", BeNumerically("==", publicPipeline.ID())),
+				))
 			})
 		})
 
@@ -374,23 +360,12 @@ var _ = Describe("Pipelines API", func() {
 			It("returns only team's public pipelines", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
+				var pipelines []map[string]interface{}
+				json.Unmarshal(body, &pipelines)
 
-				Expect(body).To(MatchJSON(`[
-					{
-						"id": 1,
-						"name": "public-pipeline",
-						"paused": true,
-						"public": true,
-						"team_name": "main",
-						"last_updated": 1,
-						"groups": [
-							{
-								"name": "group2",
-								"jobs": ["job3", "job4"],
-								"resources": ["resource3", "resource4"]
-							}
-						]
-					}]`))
+				Expect(pipelines).To(ConsistOf(
+					HaveKeyWithValue("id", BeNumerically("==", publicPipeline.ID())),
+				))
 			})
 		})
 	})
@@ -469,6 +444,7 @@ var _ = Describe("Pipelines API", func() {
 						"name": "some-specific-pipeline",
 						"paused": false,
 						"public": true,
+						"archived": false,
 						"team_name": "a-team",
 						"last_updated": 1,
 						"groups": [
