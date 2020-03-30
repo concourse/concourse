@@ -304,24 +304,4 @@ var _ = Describe("Container", func() {
 			})
 		})
 	})
-
-	Describe("Discontinue", func() {
-		Context("when the container is already in destroying state", func() {
-			var createdContainer db.CreatedContainer
-
-			BeforeEach(func() {
-				var err error
-				createdContainer, err = creatingContainer.Created()
-				Expect(err).NotTo(HaveOccurred())
-				_, err = createdContainer.Discontinue()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns a discontinued container and no error", func() {
-				destroyingContainer, err := createdContainer.Discontinue()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(destroyingContainer).NotTo(BeNil())
-			})
-		})
-	})
 })

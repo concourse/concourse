@@ -172,6 +172,7 @@ type RunCommand struct {
 
 		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Period after which one-off build containers will be garbage-collected."`
 		MissingGracePeriod     time.Duration `long:"missing-grace-period" default:"5m" description:"Period after which to reap containers and volumes that were created but went missing from the worker."`
+		HijackGracePeriod      time.Duration `long:"hijack-grace-period" default:"10m" description:"Period after which hijacked containers will be garbage collected"`
 		CheckRecyclePeriod     time.Duration `long:"check-recycle-period" default:"1m" description:"Period after which to reap checks that are completed."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
@@ -969,52 +970,9 @@ func (cmd *RunCommand) constructGCMember(
 	dbCheckLifecycle := db.NewCheckLifecycle(gcConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
 	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	resourceFactory := resource.NewResourceFactory()
-	dbResourceCacheFactory := db.NewResourceCacheFactory(gcConn, lockFactory)
-	fetchSourceFactory := worker.NewFetchSourceFactory(dbResourceCacheFactory)
-	resourceFetcher := worker.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
-	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		resourceFactory,
-		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		resourceFetcher,
-	)
 
-	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(gcConn)
-	dbTaskCacheFactory := db.NewTaskCacheFactory(gcConn)
-	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(gcConn)
 	dbVolumeRepository := db.NewVolumeRepository(gcConn)
-	dbWorkerFactory := db.NewWorkerFactory(gcConn)
-	workerVersion, err := workerVersion()
-	if err != nil {
-		return members, err
-	}
-
-	teamFactory := db.NewTeamFactory(gcConn, lockFactory)
-	workerProvider := worker.NewDBWorkerProvider(
-		lockFactory,
-		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-		resourceFetcher,
-		image.NewImageFactory(imageResourceFetcherFactory),
-		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		dbWorkerBaseResourceTypeFactory,
-		dbTaskCacheFactory,
-		dbWorkerTaskCacheFactory,
-		dbVolumeRepository,
-		teamFactory,
-		dbWorkerFactory,
-		workerVersion,
-		cmd.BaggageclaimResponseHeaderTimeout,
-		cmd.GardenRequestTimeout,
-	)
-
-	jobRunner := gc.NewWorkerJobRunner(
-		logger.Session("container-collector-worker-job-runner"),
-		workerProvider,
-		time.Minute,
-	)
 
 	collectors := map[string]lockrunner.Task{
 		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
@@ -1025,7 +983,7 @@ func (cmd *RunCommand) constructGCMember(
 		atc.ComponentCollectorArtifacts:         gc.NewArtifactCollector(dbArtifactLifecycle),
 		atc.ComponentCollectorChecks:            gc.NewCheckCollector(dbCheckLifecycle, cmd.GC.CheckRecyclePeriod),
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
-		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, jobRunner, cmd.GC.MissingGracePeriod),
+		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, cmd.GC.MissingGracePeriod, cmd.GC.HijackGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
 		atc.ComponentCollectorVarSources:        gc.NewCollectorTask(cmd.varSourcePool.(gc.Collector)),
 	}
@@ -1611,7 +1569,9 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.varSourcePool,
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
+		time.Minute,
 		dbWall,
+		clock.NewClock(),
 	)
 }
 

@@ -1,6 +1,9 @@
 package containerserver
 
 import (
+	"time"
+
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -15,8 +18,10 @@ type Server struct {
 	secretManager           creds.Secrets
 	varSourcePool           creds.VarSourcePool
 	interceptTimeoutFactory InterceptTimeoutFactory
+	interceptUpdateInterval time.Duration
 	containerRepository     db.ContainerRepository
 	destroyer               gc.Destroyer
+	clock                   clock.Clock
 }
 
 func NewServer(
@@ -25,8 +30,10 @@ func NewServer(
 	secretManager creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	interceptTimeoutFactory InterceptTimeoutFactory,
+	interceptUpdateInterval time.Duration,
 	containerRepository db.ContainerRepository,
 	destroyer gc.Destroyer,
+	clock clock.Clock,
 ) *Server {
 	return &Server{
 		logger:                  logger,
@@ -34,7 +41,9 @@ func NewServer(
 		secretManager:           secretManager,
 		varSourcePool:           varSourcePool,
 		interceptTimeoutFactory: interceptTimeoutFactory,
+		interceptUpdateInterval: interceptUpdateInterval,
 		containerRepository:     containerRepository,
 		destroyer:               destroyer,
+		clock:                   clock,
 	}
 }

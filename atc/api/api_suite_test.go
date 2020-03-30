@@ -6,7 +6,9 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
+	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/api"
@@ -60,6 +62,7 @@ var (
 	isTLSEnabled            bool
 	cliDownloadsDir         string
 	logger                  *lagertest.TestLogger
+	fakeClock               *fakeclock.FakeClock
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -126,8 +129,10 @@ var _ = BeforeEach(func() {
 	fakeSecretManager = new(credsfakes.FakeSecrets)
 	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 	credsManagers = make(creds.Managers)
-	var err error
 
+	fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
+
+	var err error
 	cliDownloadsDir, err = ioutil.TempDir("", "cli-downloads")
 	Expect(err).NotTo(HaveOccurred())
 
@@ -190,7 +195,9 @@ var _ = BeforeEach(func() {
 		fakeVarSourcePool,
 		credsManagers,
 		interceptTimeoutFactory,
+		time.Second,
 		dbWall,
+		fakeClock,
 	)
 
 	Expect(err).NotTo(HaveOccurred())
