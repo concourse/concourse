@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/DataDog/zstd"
+	"github.com/klauspost/compress/zstd"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/hashicorp/go-multierror"
 )
@@ -78,7 +78,10 @@ func (source *artifactSource) StreamFile(
 		return nil, err
 	}
 
-	zstdReader := zstd.NewReader(out)
+	zstdReader, err := zstd.NewReader(out)
+	if err != nil {
+		return nil, err
+	}
 	tarReader := tar.NewReader(zstdReader)
 
 	_, err = tarReader.Next()
@@ -90,7 +93,7 @@ func (source *artifactSource) StreamFile(
 		reader: tarReader,
 		closers: []io.Closer{
 			out,
-			zstdReader,
+			CloseWithError{zstdReader},
 		},
 	}, nil
 }
@@ -109,6 +112,18 @@ func NewCacheArtifactSource(artifact runtime.CacheArtifact) ArtifactSource {
 
 func (source *cacheArtifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
 	return worker.FindVolumeForTaskCache(logger, source.TeamID, source.JobID, source.StepName, source.Path)
+}
+
+type CloseWithError struct {
+	NoErringCloser interface {
+		Close()
+	}
+}
+
+// I know this is bad
+func (cwe CloseWithError) Close() error {
+	cwe.NoErringCloser.Close()
+	return nil
 }
 
 type fileReadMultiCloser struct {

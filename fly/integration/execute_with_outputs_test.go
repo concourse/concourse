@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/klauspost/compress/zstd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -147,7 +147,10 @@ run:
 				func(w http.ResponseWriter, req *http.Request) {
 					Expect(req.FormValue("platform")).To(Equal("some-platform"))
 
-					tr := tar.NewReader(zstd.NewReader(req.Body))
+					zstdReader, err := zstd.NewReader(req.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					tr := tar.NewReader(zstdReader)
 
 					hdr, err := tr.Next()
 					Expect(err).NotTo(HaveOccurred())
@@ -274,12 +277,13 @@ run:
 })
 
 func tarHandler(w http.ResponseWriter, req *http.Request) {
-	zw := zstd.NewWriter(w)
+	zw, err := zstd.NewWriter(w)
+	Expect(err).NotTo(HaveOccurred())
 	tw := tar.NewWriter(zw)
 
 	tarContents := []byte("tar-contents")
 
-	err := tw.WriteHeader(&tar.Header{
+	err = tw.WriteHeader(&tar.Header{
 		Name: "some-file",
 		Mode: 0644,
 		Size: int64(len(tarContents)),

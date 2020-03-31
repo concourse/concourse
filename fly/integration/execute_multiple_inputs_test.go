@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
@@ -19,6 +18,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+	"github.com/klauspost/compress/zstd"
 	"github.com/vito/go-sse/sse"
 )
 
@@ -133,7 +133,10 @@ run:
 				func(w http.ResponseWriter, req *http.Request) {
 					Expect(req.FormValue("platform")).To(Equal("some-platform"))
 
-					tr := tar.NewReader(zstd.NewReader(req.Body))
+					zstdReader, err := zstd.NewReader(req.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					tr := tar.NewReader(zstdReader)
 
 					hdr, err := tr.Next()
 					Expect(err).NotTo(HaveOccurred())

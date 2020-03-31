@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/DataDog/zstd"
+	"github.com/klauspost/compress/zstd"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
@@ -115,13 +115,14 @@ var _ = Describe("StreamableArtifactSource", func() {
 			BeforeEach(func() {
 				tgzBuffer = gbytes.NewBuffer()
 				fakeVolume.StreamOutReturns(tgzBuffer, nil)
-				zstdWriter := zstd.NewWriter(tgzBuffer)
+				zstdWriter, err := zstd.NewWriter(tgzBuffer)
+				Expect(err).ToNot(HaveOccurred())
 				defer zstdWriter.Close()
 
 				tarWriter := tar.NewWriter(zstdWriter)
 				defer tarWriter.Close()
 
-				err := tarWriter.WriteHeader(&tar.Header{
+				err = tarWriter.WriteHeader(&tar.Header{
 					Name: "some-file",
 					Mode: 0644,
 					Size: int64(len(fileContent)),
