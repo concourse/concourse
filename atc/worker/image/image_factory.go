@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/worker"
 	w "github.com/concourse/concourse/atc/worker"
 )
@@ -13,13 +14,16 @@ var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 
 type imageFactory struct {
 	imageResourceFetcherFactory ImageResourceFetcherFactory
+	compression                 compression.Compression
 }
 
 func NewImageFactory(
 	imageResourceFetcherFactory ImageResourceFetcherFactory,
+	compression compression.Compression,
 ) worker.ImageFactory {
 	return &imageFactory{
 		imageResourceFetcherFactory: imageResourceFetcherFactory,
+		compression:                 compression,
 	}
 }
 
@@ -69,6 +73,7 @@ func (f *imageFactory) GetImage(
 			teamID,
 			resourceTypes.Without(imageSpec.ResourceType),
 			delegate,
+			f.compression,
 		)
 
 		return &imageFromResource{
@@ -91,6 +96,7 @@ func (f *imageFactory) GetImage(
 			teamID,
 			resourceTypes,
 			delegate,
+			f.compression,
 		)
 
 		return &imageFromResource{

@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
@@ -31,6 +32,7 @@ var _ = Describe("Image", func() {
 		fakeImageFetchingDelegate       *workerfakes.FakeImageFetchingDelegate
 		fakeImageResourceFetcherFactory *imagefakes.FakeImageResourceFetcherFactory
 		fakeImageResourceFetcher        *imagefakes.FakeImageResourceFetcher
+		fakeCompression                 *compressionfakes.FakeCompression
 	)
 
 	BeforeEach(func() {
@@ -42,11 +44,12 @@ var _ = Describe("Image", func() {
 		fakeVolumeClient = new(workerfakes.FakeVolumeClient)
 		fakeContainer = new(dbfakes.FakeCreatingContainer)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
+		fakeCompression = new(compressionfakes.FakeCompression)
 
 		fakeImageResourceFetcherFactory = new(imagefakes.FakeImageResourceFetcherFactory)
 		fakeImageResourceFetcher = new(imagefakes.FakeImageResourceFetcher)
 		fakeImageResourceFetcherFactory.NewImageResourceFetcherReturns(fakeImageResourceFetcher)
-		imageFactory = image.NewImageFactory(fakeImageResourceFetcherFactory)
+		imageFactory = image.NewImageFactory(fakeImageResourceFetcherFactory, fakeCompression)
 	})
 
 	Describe("imageProvidedByPreviousStepOnSameWorker", func() {
@@ -186,7 +189,7 @@ var _ = Describe("Image", func() {
 			Expect(fakeImageArtifactSource.StreamToCallCount()).To(Equal(1))
 
 			_, _, artifactDestination := fakeImageArtifactSource.StreamToArgsForCall(0)
-			artifactDestination.StreamIn(context.TODO(), "fake-path", strings.NewReader("fake-tar-stream"))
+			artifactDestination.StreamIn(context.TODO(), "fake-path", baggageclaim.GzipEncoding, strings.NewReader("fake-tar-stream"))
 			Expect(fakeContainerRootfsVolume.StreamInCallCount()).To(Equal(1))
 		})
 
@@ -267,7 +270,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches image without custom resource type", func() {
-				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, imageResource, version, teamID, resourceTypes, delegate, compression := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-image-resource-type"))
 				Expect(imageResource.Source).To(Equal(atc.Source{"some": "source"}))
@@ -275,6 +278,7 @@ var _ = Describe("Image", func() {
 				Expect(teamID).To(Equal(42))
 				Expect(resourceTypes).To(Equal(atc.VersionedResourceTypes{}))
 				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+				Expect(compression).To(Equal(fakeCompression))
 			})
 
 			It("finds or creates cow volume", func() {
@@ -348,7 +352,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches unprivileged image without custom resource type", func() {
-				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, imageResource, version, teamID, resourceTypes, delegate, compression := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-base-resource-type"))
 				Expect(imageResource.Source).To(Equal(atc.Source{
@@ -370,6 +374,7 @@ var _ = Describe("Image", func() {
 					},
 				}))
 				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+				Expect(compression).To(Equal(fakeCompression))
 			})
 
 			It("finds or creates unprivileged cow volume", func() {
@@ -443,7 +448,7 @@ var _ = Describe("Image", func() {
 			})
 
 			It("fetches image without custom resource type", func() {
-				worker, imageResource, version, teamID, resourceTypes, delegate := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
+				worker, imageResource, version, teamID, resourceTypes, delegate, compression := fakeImageResourceFetcherFactory.NewImageResourceFetcherArgsForCall(0)
 				Expect(worker).To(Equal(fakeWorker))
 				Expect(imageResource.Type).To(Equal("some-base-image-resource-type"))
 				Expect(imageResource.Source).To(Equal(atc.Source{
@@ -464,6 +469,7 @@ var _ = Describe("Image", func() {
 					},
 				}))
 				Expect(delegate).To(Equal(fakeImageFetchingDelegate))
+				Expect(compression).To(Equal(fakeCompression))
 			})
 
 			It("finds or creates cow volume", func() {

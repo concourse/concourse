@@ -20,8 +20,8 @@ type Volume interface {
 
 	SetPrivileged(bool) error
 
-	StreamIn(ctx context.Context, path string, tarStream io.Reader) error
-	StreamOut(ctx context.Context, path string) (io.ReadCloser, error)
+	StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error
+	StreamOut(ctx context.Context, path string, encoding baggageclaim.Encoding) (io.ReadCloser, error)
 
 	COWStrategy() baggageclaim.COWStrategy
 
@@ -84,12 +84,12 @@ func (v *volume) SetPrivileged(privileged bool) error {
 	return v.bcVolume.SetPrivileged(privileged)
 }
 
-func (v *volume) StreamIn(ctx context.Context, path string, tarStream io.Reader) error {
-	return v.bcVolume.StreamIn(ctx, path, baggageclaim.ZstdEncoding, tarStream)
+func (v *volume) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error {
+	return v.bcVolume.StreamIn(ctx, path, encoding, tarStream)
 }
 
-func (v *volume) StreamOut(ctx context.Context, path string) (io.ReadCloser, error) {
-	return v.bcVolume.StreamOut(ctx, path, baggageclaim.ZstdEncoding)
+func (v *volume) StreamOut(ctx context.Context, path string, encoding baggageclaim.Encoding) (io.ReadCloser, error) {
+	return v.bcVolume.StreamOut(ctx, path, encoding)
 }
 
 func (v *volume) Properties() (baggageclaim.VolumeProperties, error) {

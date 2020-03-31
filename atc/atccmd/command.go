@@ -26,6 +26,7 @@ import (
 	"github.com/concourse/concourse/atc/api/containerserver"
 	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/builds"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/noop"
 	"github.com/concourse/concourse/atc/db"
@@ -133,6 +134,7 @@ type RunCommand struct {
 	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
 	EnableGlobalResources bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
+	EnableZstdCompression bool `long:"enable-zstd-compression" description:"Enable zstd compression for internal streaming."`
 
 	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
 	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
@@ -619,11 +621,12 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
+	compressionLib := compression.NewGzipCompression()
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 		resourceFetcher,
-		image.NewImageFactory(imageResourceFetcherFactory),
+		image.NewImageFactory(imageResourceFetcherFactory, compressionLib),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
@@ -638,7 +641,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider)
+	workerClient := worker.NewClient(pool, workerProvider, compressionLib)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -845,11 +848,17 @@ func (cmd *RunCommand) constructBackendMembers(
 		return nil, err
 	}
 
+	var compressionLib compression.Compression
+	if cmd.EnableZstdCompression {
+		compressionLib = compression.NewZstdCompression()
+	} else {
+		compressionLib = compression.NewGzipCompression()
+	}
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 		resourceFetcher,
-		image.NewImageFactory(imageResourceFetcherFactory),
+		image.NewImageFactory(imageResourceFetcherFactory, compressionLib),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
@@ -864,7 +873,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider)
+	workerClient := worker.NewClient(pool, workerProvider, compressionLib)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {

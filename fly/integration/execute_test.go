@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
-	"github.com/klauspost/compress/zstd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -134,10 +134,10 @@ run:
 				func(w http.ResponseWriter, req *http.Request) {
 					close(uploading)
 
-					zstdReader, err := zstd.NewReader(req.Body)
+					gr, err := gzip.NewReader(req.Body)
 					Expect(err).NotTo(HaveOccurred())
 
-					tr := tar.NewReader(zstdReader)
+					tr := tar.NewReader(gr)
 
 					hdr, err := tr.Next()
 					Expect(err).NotTo(HaveOccurred())
@@ -377,7 +377,10 @@ run: {}
 							func(w http.ResponseWriter, req *http.Request) {
 								close(uploading)
 
-								tr := tar.NewReader(zstd.NewReader(req.Body))
+								gr, err := gzip.NewReader(req.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								tr := tar.NewReader(gr)
 
 								var matchFound = false
 								for {
@@ -426,7 +429,10 @@ run: {}
 
 								Expect(req.FormValue("platform")).To(Equal("some-platform"))
 
-								tr := tar.NewReader(zstd.NewReader(req.Body))
+								gr, err := gzip.NewReader(req.Body)
+								Expect(err).NotTo(HaveOccurred())
+
+								tr := tar.NewReader(gr)
 
 								var matchFound = false
 								for {

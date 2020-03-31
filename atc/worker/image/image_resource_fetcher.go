@@ -9,8 +9,8 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/klauspost/compress/zstd"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
@@ -36,6 +36,7 @@ type ImageResourceFetcherFactory interface {
 		int,
 		atc.VersionedResourceTypes,
 		worker.ImageFetchingDelegate,
+		compression.Compression,
 	) ImageResourceFetcher
 }
 
@@ -78,6 +79,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 	teamID int,
 	customTypes atc.VersionedResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
+	compression compression.Compression,
 ) ImageResourceFetcher {
 	return &imageResourceFetcher{
 		worker:                  worker,
@@ -91,6 +93,7 @@ func (f *imageResourceFetcherFactory) NewImageResourceFetcher(
 		teamID:                teamID,
 		customTypes:           customTypes,
 		imageFetchingDelegate: imageFetchingDelegate,
+		compression:           compression,
 	}
 }
 
@@ -106,6 +109,7 @@ type imageResourceFetcher struct {
 	teamID                int
 	customTypes           atc.VersionedResourceTypes
 	imageFetchingDelegate worker.ImageFetchingDelegate
+	compression           compression.Compression
 }
 
 func (i *imageResourceFetcher) Fetch(
@@ -201,16 +205,16 @@ func (i *imageResourceFetcher) Fetch(
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 
-	reader, err := volume.StreamOut(ctx, ImageMetadataFile)
+	reader, err := volume.StreamOut(ctx, ImageMetadataFile, i.compression.Encoding())
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	zstdReader, err := zstd.NewReader(reader)
+	compressionReader, err := i.compression.NewReader(reader)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	tarReader := tar.NewReader(zstdReader)
+	tarReader := tar.NewReader(compressionReader)
 
 	_, err = tarReader.Next()
 	if err != nil {
@@ -221,7 +225,7 @@ func (i *imageResourceFetcher) Fetch(
 		reader: tarReader,
 		closers: []io.Closer{
 			reader,
-			CloseWithError{zstdReader},
+			compressionReader,
 		},
 	}
 
@@ -336,18 +340,6 @@ func (i *imageResourceFetcher) getLatestVersion(
 	}
 
 	return versions[0], nil
-}
-
-type CloseWithError struct {
-	NoErringCloser interface {
-		Close()
-	}
-}
-
-// I know this is bad
-func (cwe CloseWithError) Close() error {
-	cwe.NoErringCloser.Close()
-	return nil
 }
 
 type fileReadMultiCloser struct {

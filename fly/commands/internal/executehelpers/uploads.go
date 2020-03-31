@@ -8,8 +8,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/concourse/go-archive/tarfs"
-	"github.com/klauspost/compress/zstd"
+	"github.com/concourse/go-archive/tgzfs"
 	"github.com/vbauerster/mpb/v4"
 )
 
@@ -18,20 +17,8 @@ func Upload(bar *mpb.Bar, team concourse.Team, path string, includeIgnored bool,
 
 	archiveStream, archiveWriter := io.Pipe()
 
-	zstdWriter, err := zstd.NewWriter(archiveWriter)
-	if err != nil {
-		return atc.WorkerArtifact{}, err
-	}
-
 	go func() {
-		err = tarfs.Compress(zstdWriter, path, files...)
-		if err != nil {
-			_ = zstdWriter.Close()
-			archiveWriter.CloseWithError(err)
-			return
-		}
-
-		archiveWriter.CloseWithError(zstdWriter.Close())
+		archiveWriter.CloseWithError(tgzfs.Compress(archiveWriter, path, files...))
 	}()
 
 	return team.CreateArtifact(bar.ProxyReader(archiveStream), platform)

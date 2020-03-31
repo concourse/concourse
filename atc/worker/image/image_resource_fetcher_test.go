@@ -2,6 +2,7 @@ package image_test
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"errors"
 	"io"
@@ -9,8 +10,9 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/klauspost/compress/zstd"
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/resource"
@@ -38,6 +40,8 @@ var _ = Describe("Image", func() {
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeCreatingContainer     *dbfakes.FakeCreatingContainer
 
+		comp compression.Compression
+
 		imageResourceFetcher image.ImageResourceFetcher
 
 		stderrBuf *gbytes.Buffer
@@ -58,6 +62,7 @@ var _ = Describe("Image", func() {
 		fetchErr              error
 		teamID                int
 	)
+
 	BeforeEach(func() {
 		fakeResourceFetcher = new(workerfakes.FakeFetcher)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -65,6 +70,7 @@ var _ = Describe("Image", func() {
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 		fakeCreatingContainer = new(dbfakes.FakeCreatingContainer)
 		stderrBuf = gbytes.NewBuffer()
+		comp = compression.NewGzipCompression()
 
 		logger = lagertest.NewTestLogger("test")
 		imageResource = worker.ImageResource{
@@ -129,6 +135,7 @@ var _ = Describe("Image", func() {
 			teamID,
 			customTypes,
 			fakeImageFetchingDelegate,
+			comp,
 		)
 
 		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = imageResourceFetcher.Fetch(
@@ -153,7 +160,6 @@ var _ = Describe("Image", func() {
 				fakeContainer = new(workerfakes.FakeContainer)
 				fakeContainer.HandleReturns("some-handle")
 				fakeWorker.FindOrCreateContainerReturnsOnCall(0, fakeContainer, nil)
-
 			})
 
 			Context("when the resource type the resource depends on a custom type", func() {
@@ -347,9 +353,10 @@ var _ = Describe("Image", func() {
 
 							It("calls StreamOut on the versioned source with the right metadata path", func() {
 								Expect(fakeVolume.StreamOutCallCount()).To(Equal(1))
-								volumeCtx, metadataFilePath := fakeVolume.StreamOutArgsForCall(0)
+								volumeCtx, metadataFilePath, encoding := fakeVolume.StreamOutArgsForCall(0)
 								Expect(volumeCtx).To(Equal(ctx))
 								Expect(metadataFilePath).To(Equal("metadata.json"))
+								Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
 							})
 
 							It("returns a tar stream containing the contents of metadata.json", func() {
@@ -572,9 +579,10 @@ var _ = Describe("Image", func() {
 
 					It("calls StreamOut on the versioned source with the right metadata path", func() {
 						Expect(fakeVolume.StreamOutCallCount()).To(Equal(1))
-						volumeCtx, metadataFilePath := fakeVolume.StreamOutArgsForCall(0)
+						volumeCtx, metadataFilePath, encoding := fakeVolume.StreamOutArgsForCall(0)
 						Expect(volumeCtx).To(Equal(ctx))
 						Expect(metadataFilePath).To(Equal("metadata.json"))
+						Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
 					})
 
 					It("returns a tar stream containing the contents of metadata.json", func() {
@@ -629,12 +637,11 @@ var _ = Describe("Image", func() {
 func tgzStreamWith(metadata string) io.ReadCloser {
 	buffer := gbytes.NewBuffer()
 
-	zstdWriter, err := zstd.NewWriter(buffer)
-	Expect(err).NotTo(HaveOccurred())
+	gzipWriter := gzip.NewWriter(buffer)
 
-	tarWriter := tar.NewWriter(zstdWriter)
+	tarWriter := tar.NewWriter(gzipWriter)
 
-	err = tarWriter.WriteHeader(&tar.Header{
+	err := tarWriter.WriteHeader(&tar.Header{
 		Name: "metadata.json",
 		Mode: 0600,
 		Size: int64(len(metadata)),
@@ -647,7 +654,7 @@ func tgzStreamWith(metadata string) io.ReadCloser {
 	err = tarWriter.Close()
 	Expect(err).NotTo(HaveOccurred())
 
-	err = zstdWriter.Close()
+	err = gzipWriter.Close()
 	Expect(err).NotTo(HaveOccurred())
 
 	return buffer
