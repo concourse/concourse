@@ -100,9 +100,10 @@ var _ = Describe("ATC Integration Test", func() {
 		It("returns an error", func() {
 			givenAPipeline(client, "pipeline")
 
-			response := whenIArchiveIt(client, "pipeline")
+			_, err := client.Team("main").ArchivePipeline("pipeline")
 
-			Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("forbidden"))
 		})
 	})
 })
@@ -117,16 +118,9 @@ func whenIUnpauseIt(client concourse.Client, pipelineName string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func whenIArchiveIt(client concourse.Client, pipelineName string) *http.Response {
-	httpClient := client.HTTPClient()
-	request, _ := http.NewRequest(
-		"PUT",
-		client.URL()+"/api/v1/teams/main/pipelines/"+pipelineName+"/archive",
-		nil,
-	)
-	response, err := httpClient.Do(request)
+func whenIArchiveIt(client concourse.Client, pipelineName string) {
+	_, err := client.Team("main").ArchivePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
-	return response
 }
 
 func getPipeline(client concourse.Client, pipelineName string) atc.Pipeline {
