@@ -231,8 +231,8 @@ type RunCommand struct {
 
 	ConfigRBAC string `long:"config-rbac" description:"Customize RBAC role-action mapping."`
 
-	SystemClaimKey    string   `long:"system-claim-key" default:"sub" description:"The token claim key to use when matching system-claim-values"`
-	SystemClaimValues []string `long:"system-claim-value" default:"ChBjb25jb3Vyc2Utd29ya2VyEgZjbGllbnQ" description:"Configure which token requests should be considered 'system' requests."`
+	SystemClaimKey    string   `long:"system-claim-key" default:"aud" description:"The token claim key to use when matching system-claim-values"`
+	SystemClaimValues []string `long:"system-claim-value" default:"concourse-worker" description:"Configure which token requests should be considered 'system' requests."`
 }
 
 type Migration struct {
