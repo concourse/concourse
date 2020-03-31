@@ -68,6 +68,15 @@ var _ = Describe("ATC Integration Test", func() {
 		Expect(pipeline.Paused).To(BeTrue(), "pipeline was not paused")
 	})
 
+	It("archiving a pipeline purges its config", func() {
+		givenAPipeline(client, "pipeline")
+
+		whenIArchiveIt(client, "pipeline")
+
+		_, hasConfig := getPipelineConfig(client, "pipeline")
+		Expect(hasConfig).To(BeFalse())
+	})
+
 	Context("when the archiving pipeline endpoint is not enabled", func() {
 		BeforeEach(func() {
 			cmd.EnableArchivePipeline = false
@@ -103,4 +112,10 @@ func getPipeline(client concourse.Client, pipelineName string) atc.Pipeline {
 	pipeline, _, err := client.Team("main").Pipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
 	return pipeline
+}
+
+func getPipelineConfig(client concourse.Client, pipelineName string) (atc.Config, bool) {
+	config, _, ok, err := client.Team("main").PipelineConfig(pipelineName)
+	Expect(err).ToNot(HaveOccurred())
+	return config, ok
 }

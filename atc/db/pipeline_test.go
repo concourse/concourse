@@ -227,12 +227,45 @@ var _ = Describe("Pipeline", func() {
 			Expect(pipeline.Archived()).To(BeTrue(), "pipeline was not archived")
 		})
 
-		Context("when the pipeline is unpaused", func() {
-			BeforeEach(func() {
-				pipeline.Unpause()
-			})
+		It("removes the config of each job", func() {
+			jobs, err := pipeline.Jobs()
+			Expect(err).ToNot(HaveOccurred())
 
+			jobConfigs, err := jobs.Configs()
+			emptyJobConfigs := make(atc.JobConfigs, len(pipelineConfig.Jobs))
+			Expect(jobConfigs).To(Equal(emptyJobConfigs))
+		})
+
+		It("removes the config of each resource", func() {
+			resources, err := pipeline.Resources()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceConfigs := resources.Configs()
+
+			emptyResourceConfigs := atc.ResourceConfigs{
+				{Name: "some-other-resource", Type: "some-type"},
+				{Name: "some-resource", Type: "some-type"},
+			}
+			Expect(resourceConfigs).To(Equal(emptyResourceConfigs))
+		})
+
+		It("removes the config of each resource_type", func() {
+			resourceTypes, err := pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceTypeConfigs := resourceTypes.Configs()
+
+			emptyResourceTypeConfigs := atc.ResourceTypes{
+				{Name: "some-other-resource-type", Type: "base-type"},
+				{Name: "some-resource-type", Type: "base-type"},
+			}
+			Expect(resourceTypeConfigs).To(Equal(emptyResourceTypeConfigs))
+		})
+
+		Context("when the pipeline is unpaused", func() {
 			It("pauses the pipeline", func() {
+				err := pipeline.Unpause()
+				Expect(err.Error()).To(ContainSubstring("conflict error: archived pipelines cannot be unpaused"))
 				Expect(pipeline.Paused()).To(BeTrue(), "pipeline was not paused")
 			})
 		})

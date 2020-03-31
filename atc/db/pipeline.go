@@ -632,16 +632,42 @@ func (p *pipeline) Unpause() error {
 }
 
 func (p *pipeline) Archive() error {
-	_, err := psql.Update("pipelines").
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	_, err = psql.Update("pipelines").
 		Set("archived", true).
 		Set("paused", true).
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Exec()
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	err = p.clearConfigForJobsInPipeline(tx)
+	if err != nil {
+		return err
+	}
+
+	err = p.clearConfigForResourcesInPipeline(tx)
+	if err != nil {
+		return err
+	}
+
+	err = p.clearConfigForResourceTypesInPipeline(tx)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (p *pipeline) Hide() error {
@@ -1185,6 +1211,87 @@ func requestScheduleForJobsInPipeline(tx Tx, pipelineID int) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (p *pipeline) clearConfigForJobsInPipeline(tx Tx) error {
+	var emptyConfig atc.JobConfig
+
+	es := p.conn.EncryptionStrategy()
+
+	configPayload, err := json.Marshal(emptyConfig)
+	if err != nil {
+		return err
+	}
+	encryptedPayload, nonce, err := es.Encrypt(configPayload)
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("jobs").
+		Set("config", encryptedPayload).
+		Set("nonce", nonce).
+		Where(sq.Eq{"pipeline_id": p.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *pipeline) clearConfigForResourcesInPipeline(tx Tx) error {
+	var emptyConfig atc.ResourceConfig
+
+	es := p.conn.EncryptionStrategy()
+
+	configPayload, err := json.Marshal(emptyConfig)
+	if err != nil {
+		return err
+	}
+	encryptedPayload, nonce, err := es.Encrypt(configPayload)
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("resources").
+		Set("config", encryptedPayload).
+		Set("nonce", nonce).
+		Where(sq.Eq{"pipeline_id": p.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *pipeline) clearConfigForResourceTypesInPipeline(tx Tx) error {
+	var emptyResourceType atc.ResourceType
+
+	es := p.conn.EncryptionStrategy()
+
+	configPayload, err := json.Marshal(emptyResourceType)
+	if err != nil {
+		return err
+	}
+
+	encryptedPayload, nonce, err := es.Encrypt(configPayload)
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("resource_types").
+		Set("config", encryptedPayload).
+		Set("nonce", nonce).
+		Where(sq.Eq{"pipeline_id": p.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
 	}
 
 	return nil
