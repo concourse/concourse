@@ -7,6 +7,8 @@
 #
 version: '3'
 
+volumes:
+  elasticsearch-data:
 services:
   web:
     environment:
@@ -20,6 +22,9 @@ services:
       - --log-level=debug
     environment:
       COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+      SPAN_STORAGE_TYPE: elasticsearch
+      ES_SERVER_URLS: http://elasticsearch:9200
+      ES_TAGS_AS_FIELDS_ALL: "true"
     ports:
       - '14268:14268'
       - '25000:16686'
@@ -28,3 +33,20 @@ services:
       - '6831:6831/udp'
       - '6832:6832/udp'
       - '9411:9411'
+
+  elasticsearch:
+    image: elasticsearch:7.6.1
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    environment:
+      discovery.type: single-node
+
+  kibana:
+    image: kibana:7.6.1
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - '5601:5601'
