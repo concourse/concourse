@@ -12,7 +12,7 @@ import (
 )
 
 type PipelinesCommand struct {
-	All  bool `short:"a"  long:"all" description:"Show all pipelines"`
+	All  bool `short:"a"  long:"all" description:"Show pipelines across all teams"`
 	Json bool `long:"json" description:"Print command result as JSON"`
 }
 
@@ -28,17 +28,24 @@ func (command *PipelinesCommand) Execute([]string) error {
 	}
 
 	var headers []string
-	var pipelines []atc.Pipeline
+	var unfilteredPipelines []atc.Pipeline
 
 	if command.All {
-		pipelines, err = target.Client().ListPipelines()
+		unfilteredPipelines, err = target.Client().ListPipelines()
 		headers = []string{"name", "team", "paused", "public", "last updated"}
 	} else {
-		pipelines, err = target.Team().ListPipelines()
+		unfilteredPipelines, err = target.Team().ListPipelines()
 		headers = []string{"name", "paused", "public", "last updated"}
 	}
 	if err != nil {
 		return err
+	}
+
+	var pipelines []atc.Pipeline
+	for _, p := range unfilteredPipelines {
+		if !p.Archived {
+			pipelines = append(pipelines, p)
+		}
 	}
 
 	if command.Json {
