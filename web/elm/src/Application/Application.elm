@@ -462,6 +462,9 @@ routeMatchesModel route model =
         ( Routes.Build _, SubPage.BuildModel _ ) ->
             True
 
+        ( Routes.OneOffBuild _, SubPage.BuildModel _ ) ->
+            True
+
         ( Routes.Job _, SubPage.JobModel _ ) ->
             True
 
