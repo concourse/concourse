@@ -45,6 +45,7 @@ backend you want to use.
 \include-section{creds/aws-ssm.lit}
 \include-section{creds/aws-secretsmanager.lit}
 \include-section{creds/kubernetes.lit}
+\include-section{creds/cyberark-conjur.lit}
 \include-section{creds/caching.lit}
 \include-section{creds/redacting.lit}
 \include-section{creds/retry.lit}

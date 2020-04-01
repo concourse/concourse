@@ -1,0 +1,162 @@
+\title{\aux{The }Conjur credential manager}{conjur-credential-manager}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+\section{
+  \title{Configuration}
+
+  Concourse can be configured to pull credentials from a \link{Cyberark Conjur}{https://conjur.org} instance.
+
+
+  The ATC is configured with a Conjur host username and api key or session token.
+  If no host username, api key, or session token is provided, 
+  Concourse will attempt to use environment variables.
+
+  The ATC's configuration specifies the following:
+
+  \define-attribute{conjur-appliance-url: string}{
+    URL of the Conjur instance.
+
+    Environment variable \code{CONCOURSE_CONJUR_APPLIANCE_URL}.
+  }
+
+  \define-attribute{conjur-account: string}{
+    The Conjur account.
+
+    Environment variable \code{CONCOURSE_CONJUR_ACCOUNT}.
+  }
+
+  \define-attribute{conjur-authn-login: string}{
+    A valid Conjur host username.
+
+    Environment variable \code{CONCOURSE_CONJUR_AUTHN_LOGIN}.
+  }
+
+  \define-attribute{conjur-authn-api-key: string}{
+    The api key that corresponds to the Conjur host username.
+
+    Environment variable \code{CONCOURSE_CONJUR_AUTHN_API_KEY}.
+  }
+
+  \define-attribute{conjur-authn-token-file: string}{
+    Token file used if Conjur instance is running in k8s or iam. 
+
+    Environment variable \code{CONCOURSE_CONJUR_AUTHN_TOKEN_FILE}.
+  }
+
+  \define-attribute{conjur-cert-file: string}{
+    Cert file used if conjur instance is using a self signed cert.
+
+    Environment variable \code{CONCOURSE_CONJUR_CERT_FILE}.
+  }
+
+  \define-attribute{conjur-pipeline-secret-template: string}{
+    The base path used when attempting to locate a pipeline-level secret.
+
+    Environment variable \code{CONCOURSE_CONJUR_PIPELINE_SECRET_TEMPLATE}.
+
+    Example:
+
+    Default: \code{concourse/\{\{.Team\}\}/\{\{.Pipeline\}\}/\{\{.Secret\}\}}
+  }
+
+  \define-attribute{conjur-team-secret-template: string}{
+    The base path used when attempting to locate a team-level secret.
+
+    Environment variable \code{CONCOURSE_CONJUR_TEAM_SECRET_TEMPLATE}.
+
+    Example:
+
+    Default: \code{concourse/\{\{.Team\}\}/\{\{.Secret\}\}}
+  }
+
+  \define-attribute{conjur-secret-template: string}{
+    The base path used when attempting to locate a vault or safe level secret.
+
+    Environment variable \code{CONCOURSE_CONJUR_SECRET_TEMPLATE}.
+
+    Example:
+
+    Default: \code{vaultName/\{\{.Secret\}\}}
+  }
+
+  For example, to launch the ATC and enable Conjur, you may
+  configure:
+
+  \codeblock{bash}{{{
+    concourse web ... \
+      --conjur-appliance-url https://conjur-master.local \
+      --conjur-account conjur \
+      --conjur-authn-login host/concourse/dev \
+      --conjur-authn-api-key 107eaqz167jkzm2q8wjv4mnyj0z12gfkws9wq9gzsjt29v2sn7yvy
+
+    # or use env variables
+    CONCOURSE_CONJUR_APPLIANCE_URL="https://conjur-master.local" \
+    CONCOURSE_CONJUR_ACCOUNT="conjur" \
+    CONCOURSE_CONJUR_AUTHN_LOGIN="host/concourse/dev" \
+    CONCOURSE_CONJUR_AUTHN_API_KEY="107eaqz167jkzm2q8wjv4mnyj0z12gfkws9wq9gzsjt29v2sn7yvy" \
+    concourse web ...
+  }}}
+}
+
+\section{
+  \title{Conjur Permissions}
+
+  The following is an example Conjur policy that can be used to
+  grant permissions to a Conjur host. In this example \code{host/concourse} 
+  will have permissions to read and update all of the secrets within 
+  the TEAM_NAME and PIPELINE_NAME policies.
+
+
+  \codeblock{yaml}{{{
+    - !host concourse
+    - !policy
+      id: concourse
+      owner: !host concourse
+      body:
+      - !policy 
+        id: TEAM_NAME
+        body:
+        - !variable team-secret-variable
+        - !policy
+          id: PIPELINE_NAME
+          body:
+          - !variable pipeline-secret-variable
+  }}}
+
+  Note that the \code{TEAM_NAME} and \code{PIPELINE_NAME} text above should be replaced to
+  fit your Concourse setup.
+
+  For more information on how to create and load Conjur policies,
+  review the
+  \link{official documentation}{https://docs.conjur.org/Latest/en/Content/Operations/Policy/policy-overview.htm?tocpath=Fundamentals%7CPolicy%20Management%7C_____0}.
+}
+
+\section{
+  \title{Credential Lookup Rules}
+
+  When resolving a parameter such as \code{((foo_param))}, Concourse will look in
+  the following paths, in order:
+
+  \list{
+    \codeblock{}{{{
+      concourse/TEAM_NAME/PIPELINE_NAME/foo_param
+    }}}
+  }{
+    \codeblock{}{{{
+      concourse/TEAM_NAME/foo_param
+    }}}
+  }{
+    \codeblock{}{{{
+      vaultName/foo_param
+    }}}
+  }
+
+  The leading \code{concourse} can be changed by specifying
+  \code{--conjur-pipeline-secret-template} or
+  \code{--conjur-team-secret-template} variables.
+
+  The leading \code{vaultName} can be changed by specifying
+  \code{--conjur-secret-template} variable.
+}
