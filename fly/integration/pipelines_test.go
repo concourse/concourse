@@ -247,6 +247,32 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
+		Context("when there are no pipelines", func() {
+			BeforeEach(func() {
+				flyCmd = exec.Command(flyPath, "-t", targetName, "pipelines")
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{}),
+					),
+				)
+			})
+
+			Context("when --json is given", func() {
+				BeforeEach(func() {
+					flyCmd.Args = append(flyCmd.Args, "--json")
+				})
+
+				It("prints an empty list", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gexec.Exit(0))
+
+					Expect(sess.Out.Contents()).To(MatchJSON(`[]`))
+				})
+			})
+		})
+
 		Context("and the api returns an internal server error", func() {
 			BeforeEach(func() {
 				flyCmd = exec.Command(flyPath, "-t", targetName, "pipelines")

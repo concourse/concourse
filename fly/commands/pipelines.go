@@ -41,7 +41,7 @@ func (command *PipelinesCommand) Execute([]string) error {
 		return err
 	}
 
-	var pipelines []atc.Pipeline
+	pipelines := []atc.Pipeline{}
 	for _, p := range unfilteredPipelines {
 		if !p.Archived {
 			pipelines = append(pipelines, p)
