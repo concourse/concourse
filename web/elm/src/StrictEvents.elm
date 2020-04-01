@@ -1,13 +1,13 @@
 module StrictEvents exposing
-    ( MouseWheelEvent
-    , ScrollState
+    ( ScrollState
+    , WheelEvent
     , onLeftClick
     , onLeftClickNoPreventDefault
     , onLeftClickOrShiftLeftClick
     , onLeftMouseDown
     , onLeftMouseDownCapturing
-    , onMouseWheel
     , onScroll
+    , onWheel
     )
 
 import Html
@@ -15,7 +15,7 @@ import Html.Events
 import Json.Decode
 
 
-type alias MouseWheelEvent =
+type alias WheelEvent =
     { deltaX : Float
     , deltaY : Float
     }
@@ -120,9 +120,9 @@ onLeftMouseDownCapturing captured msg =
         )
 
 
-onMouseWheel : (MouseWheelEvent -> msg) -> Html.Attribute msg
-onMouseWheel cons =
-    Html.Events.custom "mousewheel"
+onWheel : (WheelEvent -> msg) -> Html.Attribute msg
+onWheel cons =
+    Html.Events.custom "wheel"
         (Json.Decode.map
             (\x ->
                 { message = cons x
@@ -130,7 +130,7 @@ onMouseWheel cons =
                 , preventDefault = True
                 }
             )
-            decodeMouseWheelEvent
+            decodeWheelEvent
         )
 
 
@@ -190,9 +190,9 @@ assertLeftButton =
                 Err "not left button"
 
 
-decodeMouseWheelEvent : Json.Decode.Decoder MouseWheelEvent
-decodeMouseWheelEvent =
-    Json.Decode.map2 MouseWheelEvent
+decodeWheelEvent : Json.Decode.Decoder WheelEvent
+decodeWheelEvent =
+    Json.Decode.map2 WheelEvent
         (Json.Decode.field "deltaX" Json.Decode.float)
         (Json.Decode.field "deltaY" Json.Decode.float)
 
