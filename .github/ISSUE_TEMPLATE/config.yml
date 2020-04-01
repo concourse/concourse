@@ -1,0 +1,4 @@
+contact_links:
+- name: Discussions
+  url: https://github.com/concourse/concourse/discussions/new
+  description: Please open support requests as Discussions, not Issues.
