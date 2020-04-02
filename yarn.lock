@@ -708,10 +708,10 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
-"@mdi/svg@^4.5.95":
-  version "4.5.95"
-  resolved "https://registry.yarnpkg.com/@mdi/svg/-/svg-4.5.95.tgz#b02ea5ac4e118abdf64fee7af59c7807617f32bd"
-  integrity sha512-CwIV4cc6GB4qcNI8Z/5KSf51rONTQnB6dgF6Uji0Ns9eANzQQ14/cPvCFgJ42xNm+ivw+VXaQ5Ed9y/zcK/iXQ==
+"@mdi/svg@^5.0.45":
+  version "5.0.45"
+  resolved "https://registry.yarnpkg.com/@mdi/svg/-/svg-5.0.45.tgz#4544b114419effd5e1373bf1f07d567c27f44818"
+  integrity sha512-JAsxPV2Um/AxZluJxNnxqgrByQT3wj7f0V0YJI632qUwiU6EDmG1D43FMHlLS5oEPjYB4meiyF4/mPDXqfICSw==
 
 "@webassemblyjs/ast@1.8.5":
   version "1.8.5"
