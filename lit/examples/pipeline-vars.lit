@@ -5,7 +5,7 @@
 
 You can use params in a pipelines configuration file.
 
-\frame{https://ci.concourse-ci.org/teams/examples/pipelines/parameters}
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/pipeline-vars}
 
 \section{
   \title{Pipeline Configuration}{configuration}
