@@ -1,0 +1,70 @@
+\title{Set Pipelines Example}{set-pipelines-example}
+\omit-children-from-table-of-contents
+
+\use-plugin{concourse-docs}
+
+You can set a static set of pipelines from another pipeline on the same team.
+
+\frame{https://ci.concourse-ci.org/teams/examples/pipelines/set-pipelines}
+
+\section{
+  \title{Pipeline Configuration}{configuration}
+	\codeblock{yaml}{{{
+---
+resources:
+  - name: concourse-examples
+    type: git
+    icon: github-circle
+    source:
+      uri: https://github.com/concourse/examples
+
+jobs:
+  - name: set-example-pipelines
+    public: true
+    plan:
+      - get: concourse-examples
+        trigger: true
+      - set_pipeline: set-pipelines
+        file: concourse-examples/pipelines/set-pipelines.yml
+      - set_pipeline: job
+        file: concourse-examples/pipelines/hello-world.yml
+      - set_pipeline: serial-job
+        file: concourse-examples/pipelines/serial-job.yml
+      - set_pipeline: pipeline-vars
+        file: concourse-examples/pipelines/pipeline-vars.yml
+        vars:
+          first: initial
+          number: "9000"
+          hello: HAL
+      - set_pipeline: task-passing-artifact
+        file: concourse-examples/pipelines/task-passing-artifact.yml
+      - set_pipeline: time-triggered
+        file: concourse-examples/pipelines/time-triggered.yml
+      - set_pipeline: git-triggered
+        file: concourse-examples/pipelines/git-triggered.yml
+      - set_pipeline: manually-triggered
+        file: concourse-examples/pipelines/manually-triggered.yml
+      - set_pipeline: hooks
+        file: concourse-examples/pipelines/job-and-task-hooks.yml
+      - set_pipeline: golang-lib
+        file: concourse-examples/pipelines/golang-lib.yml
+      - set_pipeline: rails
+        file: concourse-examples/pipelines/rails-app-testing.yml
+      - set_pipeline: nodejs
+        file: concourse-examples/pipelines/nodejs-app-testing.yml
+      - set_pipeline: php
+        file: concourse-examples/pipelines/php-larvel-app-testing.yml
+	}}}
+}
+
+\section{
+	\title{References}{references}
+
+	\list{
+		\reference{jobs}
+	}{
+		\reference{steps}
+	}{
+		\reference{set-pipeline-step}
+	}
+}

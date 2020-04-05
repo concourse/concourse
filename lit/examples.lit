@@ -14,6 +14,7 @@ covered in the \reference{docs}.
 \include-section{./examples/job.lit}
 \include-section{./examples/serial-job.lit}
 \include-section{./examples/pipeline-vars.lit}
+\include-section{./examples/set-pipelines.lit}
 \include-section{./examples/task-passing-artifact.lit}
 \include-section{./examples/time-triggered.lit}
 \include-section{./examples/git-triggered.lit}
