@@ -83,6 +83,9 @@ port rawHttpRequest : String -> Cmd msg
 port renderSvgIcon : String -> Cmd msg
 
 
+port syncTextareaHeight : String -> Cmd msg
+
+
 type alias StickyHeaderConfig =
     { pageHeaderHeight : Float
     , pageBodyClass : String
@@ -178,6 +181,7 @@ type Effect
     | DeleteCachedTeams
     | GetViewportOf DomID TooltipPolicy
     | GetElement DomID
+    | SyncTextareaHeight DomID
 
 
 type alias VersionId =
@@ -622,6 +626,9 @@ runEffect effect key csrfToken =
             Browser.Dom.getElement (toHtmlID domID)
                 |> Task.attempt GotElement
 
+        SyncTextareaHeight domID ->
+            syncTextareaHeight (toHtmlID domID)
+
 
 toHtmlID : DomID -> String
 toHtmlID domId =
@@ -643,6 +650,9 @@ toHtmlID domId =
 
         DashboardGroup teamName ->
             teamName
+
+        ResourceCommentTextarea ->
+            "resource_comment"
 
         _ ->
             ""
