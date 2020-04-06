@@ -4,22 +4,23 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/api/accessor"
+
+	"github.com/concourse/concourse/skymarshal/token"
 )
 
 func CSRFValidationHandler(
 	handler http.Handler,
-	rejector Rejector,
+	middleware token.Middleware,
 ) http.Handler {
 	return csrfValidationHandler{
-		handler:  handler,
-		rejector: rejector,
+		handler:    handler,
+		middleware: middleware,
 	}
 }
 
 type csrfValidationHandler struct {
-	handler  http.Handler
-	rejector Rejector
+	handler    http.Handler
+	middleware token.Middleware
 }
 
 func (h csrfValidationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -35,15 +36,14 @@ func (h csrfValidationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		csrfHeader := r.Header.Get(CSRFHeaderName)
 		if csrfHeader == "" {
 			logger.Debug("csrf-header-is-not-set")
-			h.rejector.Unauthorized(w, r)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		acc := accessor.GetAccessor(r)
-		csrfToken := acc.CSRFToken()
+		csrfToken := h.middleware.GetCSRFToken(r)
 		if csrfToken == "" {
 			logger.Debug("csrf-is-not-provided-in-auth-token")
-			h.rejector.Unauthorized(w, r)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
@@ -52,7 +52,7 @@ func (h csrfValidationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 				"auth-csrf-token":    csrfToken,
 				"request-csrf-token": csrfHeader,
 			})
-			h.rejector.Unauthorized(w, r)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 	}

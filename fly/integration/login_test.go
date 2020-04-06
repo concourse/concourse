@@ -147,16 +147,6 @@ var _ = Describe("login Command", func() {
 	})
 
 	Context("with a team name", func() {
-		flyLogin := func() *gexec.Session {
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "dummy-user", "-p", "dummy-pass")
-
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(sess).Should(gbytes.Say("logging in to team 'some-team'"))
-
-			return sess
-		}
 
 		BeforeEach(func() {
 			loginATCServer = ghttp.NewServer()
@@ -181,118 +171,6 @@ var _ = Describe("login Command", func() {
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
-		})
-
-		Context("when the token is given", func() {
-			var encodedString string
-			var existedTeamName string = "some-team"
-			JustBeforeEach(func() {
-				Expect(encodedString).NotTo(Equal(""))
-				encodedToken := base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString([]byte(encodedString))
-				loginATCServer.AppendHandlers(
-					infoHandler(),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", "/sky/token"),
-						ghttp.RespondWithJSONEncoded(
-							200,
-							map[string]string{
-								"token_type":   "Bearer",
-								"access_token": "foo." + encodedToken,
-							},
-						),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams"),
-						ghttp.RespondWithJSONEncoded(200, []atc.Team{
-							atc.Team{
-								ID:   1,
-								Name: existedTeamName,
-							},
-						},
-						),
-					),
-				)
-			})
-			Context("when the token's roles doesn't include the team", func() {
-				BeforeEach(func() {
-					encodedString = `{
-					"teams": {
-						"some-other-team": ["owner"]
-					},
-					"user_id": "test",
-					"user_name": "test"
-				}`
-
-				})
-
-				It("fails", func() {
-					sess := flyLogin()
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(string(sess.Err.Contents())).To(ContainSubstring("user [test] is not in team [some-team]"))
-				})
-			})
-
-			Context("when the token's roles doesn't include the team, but the user is admin", func() {
-				BeforeEach(func() {
-					encodedString = `{
-					"teams": {
-						"some-other-team": ["owner"]
-					},
-					"user_id": "test",
-					"user_name": "test",
-						"is_admin": true
-					}`
-				})
-				Context("the team does exist", func() {
-					It("success", func() {
-						sess := flyLogin()
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
-						Expect(sess.Out).Should(gbytes.Say("target saved"))
-					})
-					BeforeEach(func() {
-						existedTeamName = "some-team"
-					})
-				})
-
-				Context("the team does NOT exist", func() {
-					It("fails", func() {
-						sess := flyLogin()
-						<-sess.Exited
-						Expect(sess.ExitCode()).NotTo(Equal(0))
-						Eventually(sess.Err).Should(gbytes.Say("error: team some-team doesn't exist"))
-					})
-					BeforeEach(func() {
-						existedTeamName = "some-other-existed-team"
-					})
-				})
-
-			})
-
-			Context("when the token's (legacy) team list doesn't include the team", func() {
-				BeforeEach(func() {
-					encodedString = `{
-					"teams": ["some-other-team"],
-					"user_id": "test",
-					"user_name": "test"
-				}`
-				})
-
-				It("fails", func() {
-					flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "dummy-user", "-p", "dummy-pass")
-
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
-
-					Eventually(sess).Should(gbytes.Say("logging in to team 'some-team'"))
-
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(sess.Err.Contents()).To(ContainSubstring("user [test] is not in team [some-team]"))
-				})
-			})
-
 		})
 
 		Context("when tracing is not enabled", func() {
@@ -542,7 +420,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", "/sky/token"),
+						ghttp.VerifyRequest("POST", "/sky/issuer/token"),
 						ghttp.VerifyHeaderKV("Content-Type", "application/x-www-form-urlencoded"),
 						ghttp.VerifyHeaderKV("Authorization", fmt.Sprintf("Basic %s", credentials)),
 						ghttp.VerifyFormKV("grant_type", "password"),
@@ -551,7 +429,8 @@ var _ = Describe("login Command", func() {
 						ghttp.VerifyFormKV("scope", "openid profile email federated:id groups"),
 						ghttp.RespondWithJSONEncoded(200, map[string]string{
 							"token_type":   "Bearer",
-							"access_token": "some-token",
+							"access_token": "access-token",
+							"id_token":     "some-token",
 						}),
 					),
 				)
@@ -625,7 +504,7 @@ var _ = Describe("login Command", func() {
 						loginATCServer.AppendHandlers(
 							infoHandler(),
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("POST", "/sky/token"),
+								ghttp.VerifyRequest("POST", "/sky/issuer/token"),
 								ghttp.VerifyHeaderKV("Content-Type", "application/x-www-form-urlencoded"),
 								ghttp.VerifyHeaderKV("Authorization", fmt.Sprintf("Basic %s", credentials)),
 								ghttp.VerifyFormKV("grant_type", "password"),
@@ -635,12 +514,13 @@ var _ = Describe("login Command", func() {
 								ghttp.RespondWithJSONEncoded(200, map[string]string{
 									"token_type":   "Bearer",
 									"access_token": "some-new-token",
+									"id_token":     "some-new-id-token",
 								}),
 							),
 							infoHandler(),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
-								ghttp.VerifyHeaderKV("Authorization", "Bearer some-new-token"),
+								ghttp.VerifyHeaderKV("Authorization", "Bearer some-new-id-token"),
 								ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 									{Name: "pipeline-2"},
 								}),
@@ -704,154 +584,6 @@ var _ = Describe("login Command", func() {
 				Eventually(sess).Should(gexec.Exit(0))
 				Expect(sess.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, atcVersion))
 				Expect(sess.Err).To(gbytes.Say(`fly.* -t some-target sync\n`))
-			})
-		})
-	})
-
-	Context("Super Admin", func() {
-		var encodedString string
-		var teams []atc.Team
-		credentials := base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))
-		var teamHandler = func(teams []atc.Team) http.HandlerFunc {
-			return ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/api/v1/teams"),
-				ghttp.VerifyHeaderKV("Authorization", "Bearer foo."+encodedString),
-				ghttp.RespondWithJSONEncoded(200, teams),
-			)
-		}
-		var adminTokenHandler = func() http.HandlerFunc {
-			return ghttp.CombineHandlers(
-				ghttp.VerifyRequest("POST", "/sky/token"),
-				ghttp.VerifyHeaderKV("Content-Type", "application/x-www-form-urlencoded"),
-				ghttp.VerifyHeaderKV("Authorization", fmt.Sprintf("Basic %s", credentials)),
-				ghttp.VerifyFormKV("grant_type", "password"),
-				ghttp.VerifyFormKV("username", "user"),
-				ghttp.VerifyFormKV("password", "pass"),
-				ghttp.VerifyFormKV("scope", "openid profile email federated:id groups"),
-				ghttp.RespondWithJSONEncoded(200, map[string]string{
-					"token_type":   "Bearer",
-					"access_token": "foo." + encodedString,
-				}),
-			)
-		}
-
-		BeforeEach(func() {
-			encodedString = base64.StdEncoding.EncodeToString([]byte(`{
-					"teams": {
-						"main": ["owner"]
-					},
-					"user_id": "test",
-					"is_admin": true,
-					"user_name": "test"
-			}`))
-
-			teams = []atc.Team{
-				atc.Team{
-					ID:   1,
-					Name: "main",
-				},
-				atc.Team{
-					ID:   2,
-					Name: "other-team",
-				},
-			}
-
-			loginATCServer = ghttp.NewServer()
-			loginATCServer.AppendHandlers(
-				infoHandler(),
-				adminTokenHandler(),
-				teamHandler(teams),
-			)
-
-			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "main", "-u", "user", "-p", "pass")
-
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(sess).Should(gbytes.Say("logging in to team 'main'"))
-
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
-			Expect(sess.Out).To(gbytes.Say("target saved"))
-		})
-
-		AfterEach(func() {
-			loginATCServer.Close()
-		})
-
-		Context("with the ATC Url unspecified", func() {
-			It("User logs in to any team", func() {
-				loginATCServer.AppendHandlers(
-					infoHandler(),
-					adminTokenHandler(),
-					teamHandler(teams),
-				)
-
-				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-n", "other-team", "-u", "user", "-p", "pass")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess).Should(gbytes.Say("logging in to team 'other-team'"))
-
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
-				Expect(sess.Out.Contents()).To(ContainSubstring("target saved"))
-			})
-		})
-
-		Context("when the CACert is provided", func() {
-			var caCertFilePath string
-			var loginATCServer *ghttp.Server
-			BeforeEach(func() {
-				loginATCServer = ghttp.NewUnstartedServer()
-				cert, err := tls.X509KeyPair([]byte(serverCert), []byte(serverKey))
-				Expect(err).NotTo(HaveOccurred())
-
-				loginATCServer.HTTPTestServer.TLS = &tls.Config{
-					Certificates: []tls.Certificate{cert},
-				}
-				loginATCServer.HTTPTestServer.StartTLS()
-
-				loginATCServer.AppendHandlers(
-					infoHandler(),
-					adminTokenHandler(),
-					teamHandler(teams),
-				)
-
-				caCertFile, err := ioutil.TempFile("", "fly-login-test")
-				Expect(err).NotTo(HaveOccurred())
-				caCertFilePath = caCertFile.Name()
-
-				err = ioutil.WriteFile(caCertFilePath, []byte(serverCert), os.ModePerm)
-				Expect(err).NotTo(HaveOccurred())
-				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "main", "--ca-cert", caCertFilePath, "-u", "user", "-p", "pass")
-
-				sess, err := gexec.Start(setupFlyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
-			})
-
-			AfterEach(func() {
-				os.RemoveAll(caCertFilePath)
-				loginATCServer.Close()
-			})
-
-			Context("when ca cert is not provided this time", func() {
-				It("is using saved ca cert", func() {
-					loginATCServer.AppendHandlers(
-						infoHandler(),
-						adminTokenHandler(),
-						teamHandler(teams),
-					)
-					flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-n", "main", "-u", "user", "-p", "pass")
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
-
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
-				})
 			})
 		})
 	})

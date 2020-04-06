@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/concourse/baggageclaim"
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/testhelpers"
@@ -22,25 +21,13 @@ import (
 )
 
 var _ = Describe("ArtifactRepository API", func() {
-	var fakeaccess *accessorfakes.FakeAccess
-
-	BeforeEach(func() {
-		fakeaccess = new(accessorfakes.FakeAccess)
-	})
-
-	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
-	})
 
 	Describe("POST /api/v1/teams/:team_name/artifacts", func() {
 		var request *http.Request
 		var response *http.Response
 
 		BeforeEach(func() {
-			fakeaccess = new(accessorfakes.FakeAccess)
-			fakeaccess.IsAuthenticatedReturns(true)
-
-			fakeAccessor.CreateReturns(fakeaccess)
+			fakeAccess.IsAuthenticatedReturns(true)
 		})
 
 		JustBeforeEach(func() {
@@ -60,7 +47,7 @@ var _ = Describe("ArtifactRepository API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -70,7 +57,7 @@ var _ = Describe("ArtifactRepository API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(false)
+				fakeAccess.IsAuthorizedReturns(false)
 			})
 
 			It("returns 403 Forbidden", func() {
@@ -80,7 +67,7 @@ var _ = Describe("ArtifactRepository API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when creating a volume fails", func() {
@@ -209,10 +196,7 @@ var _ = Describe("ArtifactRepository API", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
-			fakeaccess = new(accessorfakes.FakeAccess)
-			fakeaccess.IsAuthenticatedReturns(true)
-
-			fakeAccessor.CreateReturns(fakeaccess)
+			fakeAccess.IsAuthenticatedReturns(true)
 		})
 
 		JustBeforeEach(func() {
@@ -223,7 +207,7 @@ var _ = Describe("ArtifactRepository API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -233,7 +217,7 @@ var _ = Describe("ArtifactRepository API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(false)
+				fakeAccess.IsAuthorizedReturns(false)
 			})
 
 			It("returns 403 Forbidden", func() {
@@ -243,7 +227,7 @@ var _ = Describe("ArtifactRepository API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			It("uses the artifactID to fetch the db volume record", func() {

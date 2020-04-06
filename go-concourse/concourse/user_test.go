@@ -14,7 +14,7 @@ var _ = Describe("Skymarshal Handler User", func() {
 		var expectedUserInfo map[string]interface{}
 
 		BeforeEach(func() {
-			expectedURL := "/sky/userinfo"
+			expectedURL := "/api/v1/user"
 
 			expectedUserInfo = map[string]interface{}{
 				"email":     "test@test.com",

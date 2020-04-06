@@ -10,201 +10,577 @@ import (
 )
 
 type FakeMiddleware struct {
-	GetTokenStub        func(*http.Request) string
-	getTokenMutex       sync.RWMutex
-	getTokenArgsForCall []struct {
+	GetAuthTokenStub        func(*http.Request) string
+	getAuthTokenMutex       sync.RWMutex
+	getAuthTokenArgsForCall []struct {
 		arg1 *http.Request
 	}
-	getTokenReturns struct {
+	getAuthTokenReturns struct {
 		result1 string
 	}
-	getTokenReturnsOnCall map[int]struct {
+	getAuthTokenReturnsOnCall map[int]struct {
 		result1 string
 	}
-	SetTokenStub        func(http.ResponseWriter, string, time.Time) error
-	setTokenMutex       sync.RWMutex
-	setTokenArgsForCall []struct {
+	GetCSRFTokenStub        func(*http.Request) string
+	getCSRFTokenMutex       sync.RWMutex
+	getCSRFTokenArgsForCall []struct {
+		arg1 *http.Request
+	}
+	getCSRFTokenReturns struct {
+		result1 string
+	}
+	getCSRFTokenReturnsOnCall map[int]struct {
+		result1 string
+	}
+	GetStateTokenStub        func(*http.Request) string
+	getStateTokenMutex       sync.RWMutex
+	getStateTokenArgsForCall []struct {
+		arg1 *http.Request
+	}
+	getStateTokenReturns struct {
+		result1 string
+	}
+	getStateTokenReturnsOnCall map[int]struct {
+		result1 string
+	}
+	SetAuthTokenStub        func(http.ResponseWriter, string, time.Time) error
+	setAuthTokenMutex       sync.RWMutex
+	setAuthTokenArgsForCall []struct {
 		arg1 http.ResponseWriter
 		arg2 string
 		arg3 time.Time
 	}
-	setTokenReturns struct {
+	setAuthTokenReturns struct {
 		result1 error
 	}
-	setTokenReturnsOnCall map[int]struct {
+	setAuthTokenReturnsOnCall map[int]struct {
 		result1 error
 	}
-	UnsetTokenStub        func(http.ResponseWriter)
-	unsetTokenMutex       sync.RWMutex
-	unsetTokenArgsForCall []struct {
+	SetCSRFTokenStub        func(http.ResponseWriter, string, time.Time) error
+	setCSRFTokenMutex       sync.RWMutex
+	setCSRFTokenArgsForCall []struct {
+		arg1 http.ResponseWriter
+		arg2 string
+		arg3 time.Time
+	}
+	setCSRFTokenReturns struct {
+		result1 error
+	}
+	setCSRFTokenReturnsOnCall map[int]struct {
+		result1 error
+	}
+	SetStateTokenStub        func(http.ResponseWriter, string, time.Time) error
+	setStateTokenMutex       sync.RWMutex
+	setStateTokenArgsForCall []struct {
+		arg1 http.ResponseWriter
+		arg2 string
+		arg3 time.Time
+	}
+	setStateTokenReturns struct {
+		result1 error
+	}
+	setStateTokenReturnsOnCall map[int]struct {
+		result1 error
+	}
+	UnsetAuthTokenStub        func(http.ResponseWriter)
+	unsetAuthTokenMutex       sync.RWMutex
+	unsetAuthTokenArgsForCall []struct {
+		arg1 http.ResponseWriter
+	}
+	UnsetCSRFTokenStub        func(http.ResponseWriter)
+	unsetCSRFTokenMutex       sync.RWMutex
+	unsetCSRFTokenArgsForCall []struct {
+		arg1 http.ResponseWriter
+	}
+	UnsetStateTokenStub        func(http.ResponseWriter)
+	unsetStateTokenMutex       sync.RWMutex
+	unsetStateTokenArgsForCall []struct {
 		arg1 http.ResponseWriter
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeMiddleware) GetToken(arg1 *http.Request) string {
-	fake.getTokenMutex.Lock()
-	ret, specificReturn := fake.getTokenReturnsOnCall[len(fake.getTokenArgsForCall)]
-	fake.getTokenArgsForCall = append(fake.getTokenArgsForCall, struct {
+func (fake *FakeMiddleware) GetAuthToken(arg1 *http.Request) string {
+	fake.getAuthTokenMutex.Lock()
+	ret, specificReturn := fake.getAuthTokenReturnsOnCall[len(fake.getAuthTokenArgsForCall)]
+	fake.getAuthTokenArgsForCall = append(fake.getAuthTokenArgsForCall, struct {
 		arg1 *http.Request
 	}{arg1})
-	fake.recordInvocation("GetToken", []interface{}{arg1})
-	fake.getTokenMutex.Unlock()
-	if fake.GetTokenStub != nil {
-		return fake.GetTokenStub(arg1)
+	fake.recordInvocation("GetAuthToken", []interface{}{arg1})
+	fake.getAuthTokenMutex.Unlock()
+	if fake.GetAuthTokenStub != nil {
+		return fake.GetAuthTokenStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.getTokenReturns
+	fakeReturns := fake.getAuthTokenReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeMiddleware) GetTokenCallCount() int {
-	fake.getTokenMutex.RLock()
-	defer fake.getTokenMutex.RUnlock()
-	return len(fake.getTokenArgsForCall)
+func (fake *FakeMiddleware) GetAuthTokenCallCount() int {
+	fake.getAuthTokenMutex.RLock()
+	defer fake.getAuthTokenMutex.RUnlock()
+	return len(fake.getAuthTokenArgsForCall)
 }
 
-func (fake *FakeMiddleware) GetTokenCalls(stub func(*http.Request) string) {
-	fake.getTokenMutex.Lock()
-	defer fake.getTokenMutex.Unlock()
-	fake.GetTokenStub = stub
+func (fake *FakeMiddleware) GetAuthTokenCalls(stub func(*http.Request) string) {
+	fake.getAuthTokenMutex.Lock()
+	defer fake.getAuthTokenMutex.Unlock()
+	fake.GetAuthTokenStub = stub
 }
 
-func (fake *FakeMiddleware) GetTokenArgsForCall(i int) *http.Request {
-	fake.getTokenMutex.RLock()
-	defer fake.getTokenMutex.RUnlock()
-	argsForCall := fake.getTokenArgsForCall[i]
+func (fake *FakeMiddleware) GetAuthTokenArgsForCall(i int) *http.Request {
+	fake.getAuthTokenMutex.RLock()
+	defer fake.getAuthTokenMutex.RUnlock()
+	argsForCall := fake.getAuthTokenArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *FakeMiddleware) GetTokenReturns(result1 string) {
-	fake.getTokenMutex.Lock()
-	defer fake.getTokenMutex.Unlock()
-	fake.GetTokenStub = nil
-	fake.getTokenReturns = struct {
+func (fake *FakeMiddleware) GetAuthTokenReturns(result1 string) {
+	fake.getAuthTokenMutex.Lock()
+	defer fake.getAuthTokenMutex.Unlock()
+	fake.GetAuthTokenStub = nil
+	fake.getAuthTokenReturns = struct {
 		result1 string
 	}{result1}
 }
 
-func (fake *FakeMiddleware) GetTokenReturnsOnCall(i int, result1 string) {
-	fake.getTokenMutex.Lock()
-	defer fake.getTokenMutex.Unlock()
-	fake.GetTokenStub = nil
-	if fake.getTokenReturnsOnCall == nil {
-		fake.getTokenReturnsOnCall = make(map[int]struct {
+func (fake *FakeMiddleware) GetAuthTokenReturnsOnCall(i int, result1 string) {
+	fake.getAuthTokenMutex.Lock()
+	defer fake.getAuthTokenMutex.Unlock()
+	fake.GetAuthTokenStub = nil
+	if fake.getAuthTokenReturnsOnCall == nil {
+		fake.getAuthTokenReturnsOnCall = make(map[int]struct {
 			result1 string
 		})
 	}
-	fake.getTokenReturnsOnCall[i] = struct {
+	fake.getAuthTokenReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
 }
 
-func (fake *FakeMiddleware) SetToken(arg1 http.ResponseWriter, arg2 string, arg3 time.Time) error {
-	fake.setTokenMutex.Lock()
-	ret, specificReturn := fake.setTokenReturnsOnCall[len(fake.setTokenArgsForCall)]
-	fake.setTokenArgsForCall = append(fake.setTokenArgsForCall, struct {
+func (fake *FakeMiddleware) GetCSRFToken(arg1 *http.Request) string {
+	fake.getCSRFTokenMutex.Lock()
+	ret, specificReturn := fake.getCSRFTokenReturnsOnCall[len(fake.getCSRFTokenArgsForCall)]
+	fake.getCSRFTokenArgsForCall = append(fake.getCSRFTokenArgsForCall, struct {
+		arg1 *http.Request
+	}{arg1})
+	fake.recordInvocation("GetCSRFToken", []interface{}{arg1})
+	fake.getCSRFTokenMutex.Unlock()
+	if fake.GetCSRFTokenStub != nil {
+		return fake.GetCSRFTokenStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.getCSRFTokenReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeMiddleware) GetCSRFTokenCallCount() int {
+	fake.getCSRFTokenMutex.RLock()
+	defer fake.getCSRFTokenMutex.RUnlock()
+	return len(fake.getCSRFTokenArgsForCall)
+}
+
+func (fake *FakeMiddleware) GetCSRFTokenCalls(stub func(*http.Request) string) {
+	fake.getCSRFTokenMutex.Lock()
+	defer fake.getCSRFTokenMutex.Unlock()
+	fake.GetCSRFTokenStub = stub
+}
+
+func (fake *FakeMiddleware) GetCSRFTokenArgsForCall(i int) *http.Request {
+	fake.getCSRFTokenMutex.RLock()
+	defer fake.getCSRFTokenMutex.RUnlock()
+	argsForCall := fake.getCSRFTokenArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeMiddleware) GetCSRFTokenReturns(result1 string) {
+	fake.getCSRFTokenMutex.Lock()
+	defer fake.getCSRFTokenMutex.Unlock()
+	fake.GetCSRFTokenStub = nil
+	fake.getCSRFTokenReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeMiddleware) GetCSRFTokenReturnsOnCall(i int, result1 string) {
+	fake.getCSRFTokenMutex.Lock()
+	defer fake.getCSRFTokenMutex.Unlock()
+	fake.GetCSRFTokenStub = nil
+	if fake.getCSRFTokenReturnsOnCall == nil {
+		fake.getCSRFTokenReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.getCSRFTokenReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeMiddleware) GetStateToken(arg1 *http.Request) string {
+	fake.getStateTokenMutex.Lock()
+	ret, specificReturn := fake.getStateTokenReturnsOnCall[len(fake.getStateTokenArgsForCall)]
+	fake.getStateTokenArgsForCall = append(fake.getStateTokenArgsForCall, struct {
+		arg1 *http.Request
+	}{arg1})
+	fake.recordInvocation("GetStateToken", []interface{}{arg1})
+	fake.getStateTokenMutex.Unlock()
+	if fake.GetStateTokenStub != nil {
+		return fake.GetStateTokenStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.getStateTokenReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeMiddleware) GetStateTokenCallCount() int {
+	fake.getStateTokenMutex.RLock()
+	defer fake.getStateTokenMutex.RUnlock()
+	return len(fake.getStateTokenArgsForCall)
+}
+
+func (fake *FakeMiddleware) GetStateTokenCalls(stub func(*http.Request) string) {
+	fake.getStateTokenMutex.Lock()
+	defer fake.getStateTokenMutex.Unlock()
+	fake.GetStateTokenStub = stub
+}
+
+func (fake *FakeMiddleware) GetStateTokenArgsForCall(i int) *http.Request {
+	fake.getStateTokenMutex.RLock()
+	defer fake.getStateTokenMutex.RUnlock()
+	argsForCall := fake.getStateTokenArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeMiddleware) GetStateTokenReturns(result1 string) {
+	fake.getStateTokenMutex.Lock()
+	defer fake.getStateTokenMutex.Unlock()
+	fake.GetStateTokenStub = nil
+	fake.getStateTokenReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeMiddleware) GetStateTokenReturnsOnCall(i int, result1 string) {
+	fake.getStateTokenMutex.Lock()
+	defer fake.getStateTokenMutex.Unlock()
+	fake.GetStateTokenStub = nil
+	if fake.getStateTokenReturnsOnCall == nil {
+		fake.getStateTokenReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.getStateTokenReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeMiddleware) SetAuthToken(arg1 http.ResponseWriter, arg2 string, arg3 time.Time) error {
+	fake.setAuthTokenMutex.Lock()
+	ret, specificReturn := fake.setAuthTokenReturnsOnCall[len(fake.setAuthTokenArgsForCall)]
+	fake.setAuthTokenArgsForCall = append(fake.setAuthTokenArgsForCall, struct {
 		arg1 http.ResponseWriter
 		arg2 string
 		arg3 time.Time
 	}{arg1, arg2, arg3})
-	fake.recordInvocation("SetToken", []interface{}{arg1, arg2, arg3})
-	fake.setTokenMutex.Unlock()
-	if fake.SetTokenStub != nil {
-		return fake.SetTokenStub(arg1, arg2, arg3)
+	fake.recordInvocation("SetAuthToken", []interface{}{arg1, arg2, arg3})
+	fake.setAuthTokenMutex.Unlock()
+	if fake.SetAuthTokenStub != nil {
+		return fake.SetAuthTokenStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setTokenReturns
+	fakeReturns := fake.setAuthTokenReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeMiddleware) SetTokenCallCount() int {
-	fake.setTokenMutex.RLock()
-	defer fake.setTokenMutex.RUnlock()
-	return len(fake.setTokenArgsForCall)
+func (fake *FakeMiddleware) SetAuthTokenCallCount() int {
+	fake.setAuthTokenMutex.RLock()
+	defer fake.setAuthTokenMutex.RUnlock()
+	return len(fake.setAuthTokenArgsForCall)
 }
 
-func (fake *FakeMiddleware) SetTokenCalls(stub func(http.ResponseWriter, string, time.Time) error) {
-	fake.setTokenMutex.Lock()
-	defer fake.setTokenMutex.Unlock()
-	fake.SetTokenStub = stub
+func (fake *FakeMiddleware) SetAuthTokenCalls(stub func(http.ResponseWriter, string, time.Time) error) {
+	fake.setAuthTokenMutex.Lock()
+	defer fake.setAuthTokenMutex.Unlock()
+	fake.SetAuthTokenStub = stub
 }
 
-func (fake *FakeMiddleware) SetTokenArgsForCall(i int) (http.ResponseWriter, string, time.Time) {
-	fake.setTokenMutex.RLock()
-	defer fake.setTokenMutex.RUnlock()
-	argsForCall := fake.setTokenArgsForCall[i]
+func (fake *FakeMiddleware) SetAuthTokenArgsForCall(i int) (http.ResponseWriter, string, time.Time) {
+	fake.setAuthTokenMutex.RLock()
+	defer fake.setAuthTokenMutex.RUnlock()
+	argsForCall := fake.setAuthTokenArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeMiddleware) SetTokenReturns(result1 error) {
-	fake.setTokenMutex.Lock()
-	defer fake.setTokenMutex.Unlock()
-	fake.SetTokenStub = nil
-	fake.setTokenReturns = struct {
+func (fake *FakeMiddleware) SetAuthTokenReturns(result1 error) {
+	fake.setAuthTokenMutex.Lock()
+	defer fake.setAuthTokenMutex.Unlock()
+	fake.SetAuthTokenStub = nil
+	fake.setAuthTokenReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeMiddleware) SetTokenReturnsOnCall(i int, result1 error) {
-	fake.setTokenMutex.Lock()
-	defer fake.setTokenMutex.Unlock()
-	fake.SetTokenStub = nil
-	if fake.setTokenReturnsOnCall == nil {
-		fake.setTokenReturnsOnCall = make(map[int]struct {
+func (fake *FakeMiddleware) SetAuthTokenReturnsOnCall(i int, result1 error) {
+	fake.setAuthTokenMutex.Lock()
+	defer fake.setAuthTokenMutex.Unlock()
+	fake.SetAuthTokenStub = nil
+	if fake.setAuthTokenReturnsOnCall == nil {
+		fake.setAuthTokenReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.setTokenReturnsOnCall[i] = struct {
+	fake.setAuthTokenReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeMiddleware) UnsetToken(arg1 http.ResponseWriter) {
-	fake.unsetTokenMutex.Lock()
-	fake.unsetTokenArgsForCall = append(fake.unsetTokenArgsForCall, struct {
+func (fake *FakeMiddleware) SetCSRFToken(arg1 http.ResponseWriter, arg2 string, arg3 time.Time) error {
+	fake.setCSRFTokenMutex.Lock()
+	ret, specificReturn := fake.setCSRFTokenReturnsOnCall[len(fake.setCSRFTokenArgsForCall)]
+	fake.setCSRFTokenArgsForCall = append(fake.setCSRFTokenArgsForCall, struct {
+		arg1 http.ResponseWriter
+		arg2 string
+		arg3 time.Time
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SetCSRFToken", []interface{}{arg1, arg2, arg3})
+	fake.setCSRFTokenMutex.Unlock()
+	if fake.SetCSRFTokenStub != nil {
+		return fake.SetCSRFTokenStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.setCSRFTokenReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeMiddleware) SetCSRFTokenCallCount() int {
+	fake.setCSRFTokenMutex.RLock()
+	defer fake.setCSRFTokenMutex.RUnlock()
+	return len(fake.setCSRFTokenArgsForCall)
+}
+
+func (fake *FakeMiddleware) SetCSRFTokenCalls(stub func(http.ResponseWriter, string, time.Time) error) {
+	fake.setCSRFTokenMutex.Lock()
+	defer fake.setCSRFTokenMutex.Unlock()
+	fake.SetCSRFTokenStub = stub
+}
+
+func (fake *FakeMiddleware) SetCSRFTokenArgsForCall(i int) (http.ResponseWriter, string, time.Time) {
+	fake.setCSRFTokenMutex.RLock()
+	defer fake.setCSRFTokenMutex.RUnlock()
+	argsForCall := fake.setCSRFTokenArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeMiddleware) SetCSRFTokenReturns(result1 error) {
+	fake.setCSRFTokenMutex.Lock()
+	defer fake.setCSRFTokenMutex.Unlock()
+	fake.SetCSRFTokenStub = nil
+	fake.setCSRFTokenReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeMiddleware) SetCSRFTokenReturnsOnCall(i int, result1 error) {
+	fake.setCSRFTokenMutex.Lock()
+	defer fake.setCSRFTokenMutex.Unlock()
+	fake.SetCSRFTokenStub = nil
+	if fake.setCSRFTokenReturnsOnCall == nil {
+		fake.setCSRFTokenReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setCSRFTokenReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeMiddleware) SetStateToken(arg1 http.ResponseWriter, arg2 string, arg3 time.Time) error {
+	fake.setStateTokenMutex.Lock()
+	ret, specificReturn := fake.setStateTokenReturnsOnCall[len(fake.setStateTokenArgsForCall)]
+	fake.setStateTokenArgsForCall = append(fake.setStateTokenArgsForCall, struct {
+		arg1 http.ResponseWriter
+		arg2 string
+		arg3 time.Time
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SetStateToken", []interface{}{arg1, arg2, arg3})
+	fake.setStateTokenMutex.Unlock()
+	if fake.SetStateTokenStub != nil {
+		return fake.SetStateTokenStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.setStateTokenReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeMiddleware) SetStateTokenCallCount() int {
+	fake.setStateTokenMutex.RLock()
+	defer fake.setStateTokenMutex.RUnlock()
+	return len(fake.setStateTokenArgsForCall)
+}
+
+func (fake *FakeMiddleware) SetStateTokenCalls(stub func(http.ResponseWriter, string, time.Time) error) {
+	fake.setStateTokenMutex.Lock()
+	defer fake.setStateTokenMutex.Unlock()
+	fake.SetStateTokenStub = stub
+}
+
+func (fake *FakeMiddleware) SetStateTokenArgsForCall(i int) (http.ResponseWriter, string, time.Time) {
+	fake.setStateTokenMutex.RLock()
+	defer fake.setStateTokenMutex.RUnlock()
+	argsForCall := fake.setStateTokenArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeMiddleware) SetStateTokenReturns(result1 error) {
+	fake.setStateTokenMutex.Lock()
+	defer fake.setStateTokenMutex.Unlock()
+	fake.SetStateTokenStub = nil
+	fake.setStateTokenReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeMiddleware) SetStateTokenReturnsOnCall(i int, result1 error) {
+	fake.setStateTokenMutex.Lock()
+	defer fake.setStateTokenMutex.Unlock()
+	fake.SetStateTokenStub = nil
+	if fake.setStateTokenReturnsOnCall == nil {
+		fake.setStateTokenReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setStateTokenReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeMiddleware) UnsetAuthToken(arg1 http.ResponseWriter) {
+	fake.unsetAuthTokenMutex.Lock()
+	fake.unsetAuthTokenArgsForCall = append(fake.unsetAuthTokenArgsForCall, struct {
 		arg1 http.ResponseWriter
 	}{arg1})
-	fake.recordInvocation("UnsetToken", []interface{}{arg1})
-	fake.unsetTokenMutex.Unlock()
-	if fake.UnsetTokenStub != nil {
-		fake.UnsetTokenStub(arg1)
+	fake.recordInvocation("UnsetAuthToken", []interface{}{arg1})
+	fake.unsetAuthTokenMutex.Unlock()
+	if fake.UnsetAuthTokenStub != nil {
+		fake.UnsetAuthTokenStub(arg1)
 	}
 }
 
-func (fake *FakeMiddleware) UnsetTokenCallCount() int {
-	fake.unsetTokenMutex.RLock()
-	defer fake.unsetTokenMutex.RUnlock()
-	return len(fake.unsetTokenArgsForCall)
+func (fake *FakeMiddleware) UnsetAuthTokenCallCount() int {
+	fake.unsetAuthTokenMutex.RLock()
+	defer fake.unsetAuthTokenMutex.RUnlock()
+	return len(fake.unsetAuthTokenArgsForCall)
 }
 
-func (fake *FakeMiddleware) UnsetTokenCalls(stub func(http.ResponseWriter)) {
-	fake.unsetTokenMutex.Lock()
-	defer fake.unsetTokenMutex.Unlock()
-	fake.UnsetTokenStub = stub
+func (fake *FakeMiddleware) UnsetAuthTokenCalls(stub func(http.ResponseWriter)) {
+	fake.unsetAuthTokenMutex.Lock()
+	defer fake.unsetAuthTokenMutex.Unlock()
+	fake.UnsetAuthTokenStub = stub
 }
 
-func (fake *FakeMiddleware) UnsetTokenArgsForCall(i int) http.ResponseWriter {
-	fake.unsetTokenMutex.RLock()
-	defer fake.unsetTokenMutex.RUnlock()
-	argsForCall := fake.unsetTokenArgsForCall[i]
+func (fake *FakeMiddleware) UnsetAuthTokenArgsForCall(i int) http.ResponseWriter {
+	fake.unsetAuthTokenMutex.RLock()
+	defer fake.unsetAuthTokenMutex.RUnlock()
+	argsForCall := fake.unsetAuthTokenArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeMiddleware) UnsetCSRFToken(arg1 http.ResponseWriter) {
+	fake.unsetCSRFTokenMutex.Lock()
+	fake.unsetCSRFTokenArgsForCall = append(fake.unsetCSRFTokenArgsForCall, struct {
+		arg1 http.ResponseWriter
+	}{arg1})
+	fake.recordInvocation("UnsetCSRFToken", []interface{}{arg1})
+	fake.unsetCSRFTokenMutex.Unlock()
+	if fake.UnsetCSRFTokenStub != nil {
+		fake.UnsetCSRFTokenStub(arg1)
+	}
+}
+
+func (fake *FakeMiddleware) UnsetCSRFTokenCallCount() int {
+	fake.unsetCSRFTokenMutex.RLock()
+	defer fake.unsetCSRFTokenMutex.RUnlock()
+	return len(fake.unsetCSRFTokenArgsForCall)
+}
+
+func (fake *FakeMiddleware) UnsetCSRFTokenCalls(stub func(http.ResponseWriter)) {
+	fake.unsetCSRFTokenMutex.Lock()
+	defer fake.unsetCSRFTokenMutex.Unlock()
+	fake.UnsetCSRFTokenStub = stub
+}
+
+func (fake *FakeMiddleware) UnsetCSRFTokenArgsForCall(i int) http.ResponseWriter {
+	fake.unsetCSRFTokenMutex.RLock()
+	defer fake.unsetCSRFTokenMutex.RUnlock()
+	argsForCall := fake.unsetCSRFTokenArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeMiddleware) UnsetStateToken(arg1 http.ResponseWriter) {
+	fake.unsetStateTokenMutex.Lock()
+	fake.unsetStateTokenArgsForCall = append(fake.unsetStateTokenArgsForCall, struct {
+		arg1 http.ResponseWriter
+	}{arg1})
+	fake.recordInvocation("UnsetStateToken", []interface{}{arg1})
+	fake.unsetStateTokenMutex.Unlock()
+	if fake.UnsetStateTokenStub != nil {
+		fake.UnsetStateTokenStub(arg1)
+	}
+}
+
+func (fake *FakeMiddleware) UnsetStateTokenCallCount() int {
+	fake.unsetStateTokenMutex.RLock()
+	defer fake.unsetStateTokenMutex.RUnlock()
+	return len(fake.unsetStateTokenArgsForCall)
+}
+
+func (fake *FakeMiddleware) UnsetStateTokenCalls(stub func(http.ResponseWriter)) {
+	fake.unsetStateTokenMutex.Lock()
+	defer fake.unsetStateTokenMutex.Unlock()
+	fake.UnsetStateTokenStub = stub
+}
+
+func (fake *FakeMiddleware) UnsetStateTokenArgsForCall(i int) http.ResponseWriter {
+	fake.unsetStateTokenMutex.RLock()
+	defer fake.unsetStateTokenMutex.RUnlock()
+	argsForCall := fake.unsetStateTokenArgsForCall[i]
 	return argsForCall.arg1
 }
 
 func (fake *FakeMiddleware) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getTokenMutex.RLock()
-	defer fake.getTokenMutex.RUnlock()
-	fake.setTokenMutex.RLock()
-	defer fake.setTokenMutex.RUnlock()
-	fake.unsetTokenMutex.RLock()
-	defer fake.unsetTokenMutex.RUnlock()
+	fake.getAuthTokenMutex.RLock()
+	defer fake.getAuthTokenMutex.RUnlock()
+	fake.getCSRFTokenMutex.RLock()
+	defer fake.getCSRFTokenMutex.RUnlock()
+	fake.getStateTokenMutex.RLock()
+	defer fake.getStateTokenMutex.RUnlock()
+	fake.setAuthTokenMutex.RLock()
+	defer fake.setAuthTokenMutex.RUnlock()
+	fake.setCSRFTokenMutex.RLock()
+	defer fake.setCSRFTokenMutex.RUnlock()
+	fake.setStateTokenMutex.RLock()
+	defer fake.setStateTokenMutex.RUnlock()
+	fake.unsetAuthTokenMutex.RLock()
+	defer fake.unsetAuthTokenMutex.RUnlock()
+	fake.unsetCSRFTokenMutex.RLock()
+	defer fake.unsetCSRFTokenMutex.RUnlock()
+	fake.unsetStateTokenMutex.RLock()
+	defer fake.unsetStateTokenMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

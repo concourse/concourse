@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +14,6 @@ import (
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
-	"github.com/mitchellh/mapstructure"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/vito/go-interact/interact"
 	"golang.org/x/oauth2"
@@ -130,22 +128,6 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	fmt.Println("")
 
-	payload, unmarshalErr := unmarshalToken(tokenValue)
-	if unmarshalErr != nil {
-		return unmarshalErr
-	}
-
-	if payload != nil {
-		if isAdmin(payload) {
-			err = command.adminCheckTeamExists(target.URL(), tokenType, tokenValue, target.CACert())
-		} else {
-			err = checkTokenTeams(payload, command.TeamName)
-		}
-	}
-	if err != nil {
-		return err
-	}
-
 	return command.saveTarget(
 		client.URL(),
 		&rc.TargetToken{
@@ -161,7 +143,7 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 	oauth2Config := oauth2.Config{
 		ClientID:     "fly",
 		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: client.URL() + "/sky/token"},
+		Endpoint:     oauth2.Endpoint{TokenURL: client.URL() + "/sky/issuer/token"},
 		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
 	}
 
@@ -172,7 +154,12 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 		return "", "", err
 	}
 
-	return token.TokenType, token.AccessToken, nil
+	idToken, ok := token.Extra("id_token").(string)
+	if !ok {
+		return "", "", errors.New("invalid id_token")
+	}
+
+	return token.TokenType, idToken, nil
 }
 
 func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (string, string, error) {
@@ -222,98 +209,11 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (
 
 	segments := strings.SplitN(tokenStr, " ", 2)
 
-	return segments[0], segments[1], nil
-}
-
-func unmarshalToken(tokenValue string) (map[string]interface{}, error) {
-	tokenContents := strings.Split(tokenValue, ".")
-	if len(tokenContents) < 2 {
-		// this is really bad and makes it hard to write proper integration tests
-		return nil, nil
+	if len(segments) > 1 {
+		return segments[0], segments[1], nil
+	} else {
+		return "", "", fmt.Errorf("invalid token: %v", tokenStr)
 	}
-
-	rawData, err := base64.StdEncoding.WithPadding(base64.NoPadding).DecodeString(tokenContents[1])
-	if err != nil {
-		return nil, err
-	}
-
-	var payload map[string]interface{}
-	if err := json.Unmarshal(rawData, &payload); err != nil {
-		return nil, err
-	}
-	return payload, nil
-}
-
-func isAdmin(payload map[string]interface{}) bool {
-	if isAdmin, isAdminExistsInToken := payload["is_admin"]; isAdminExistsInToken && isAdmin.(bool) {
-		return true
-	}
-	return false
-}
-
-func (command *LoginCommand) adminCheckTeamExists(atcUrl, tokenType, tokenValue, caCert string) error {
-	target, err := rc.NewAuthenticatedTarget(
-		Fly.Target,
-		atcUrl,
-		command.TeamName,
-		command.Insecure,
-		&rc.TargetToken{
-			Type:  tokenType,
-			Value: tokenValue,
-		},
-		caCert,
-		Fly.Verbose,
-	)
-	if err != nil {
-		return err
-	}
-
-	teams, err := target.Client().ListTeams()
-	if err != nil {
-		return err
-	}
-
-	var teamExists bool
-	for _, team := range teams {
-		if command.TeamName == team.Name {
-			teamExists = true
-			break
-		}
-	}
-	if !teamExists {
-		return fmt.Errorf("team %s doesn't exist", command.TeamName)
-	}
-	return nil
-}
-
-func getPayloadTeams(payload map[string]interface{}) ([]string, error) {
-	var teamNames []string
-	teamRoles := map[string][]string{}
-
-	if err := mapstructure.Decode(payload["teams"], &teamRoles); err == nil {
-		for team := range teamRoles {
-			teamNames = append(teamNames, team)
-		}
-	} else if err := mapstructure.Decode(payload["teams"], &teamNames); err != nil {
-		return nil, err
-	}
-	return teamNames, nil
-}
-
-func checkTokenTeams(payload map[string]interface{}, loginTeam string) error {
-	tokenTeams, err := getPayloadTeams(payload)
-	if err != nil {
-		return err
-	}
-
-	for _, team := range tokenTeams {
-		if team == loginTeam {
-			return nil
-		}
-	}
-
-	userName, _ := payload["user_name"].(string)
-	return fmt.Errorf("user [%s] is not in team [%s]", userName, loginTeam)
 }
 
 func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, portChannel chan string, targetUrl string) {

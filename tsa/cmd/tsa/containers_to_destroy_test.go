@@ -2,9 +2,7 @@ package main_test
 
 import (
 	"context"
-	"net/http"
 
-	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -33,11 +31,6 @@ var _ = Describe("ContainersToDestroy", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/containers/destroying", "worker_name=some-worker"),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.ListDestroyingContainers)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsSystem()).To(BeTrue())
-						}),
 						ghttp.RespondWithJSONEncoded(200, []string{"a", "b"}),
 					))
 				})
@@ -77,11 +70,6 @@ var _ = Describe("ContainersToDestroy", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/containers/destroying", "worker_name=some-worker"),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.LandWorker)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsSystem()).To(BeTrue())
-						}),
 						ghttp.RespondWithJSONEncoded(200, []string{"a", "b"}),
 					))
 				})
@@ -108,11 +96,6 @@ var _ = Describe("ContainersToDestroy", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/containers/destroying", "worker_name=some-worker"),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.LandWorker)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsSystem()).To(BeTrue())
-						}),
 						ghttp.RespondWithJSONEncoded(200, []string{"a", "b"}),
 					))
 				})
@@ -137,11 +120,6 @@ var _ = Describe("ContainersToDestroy", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/containers/destroying", "worker_name=some-worker"),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.LandWorker)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsSystem()).To(BeTrue())
-						}),
 						ghttp.RespondWithJSONEncoded(200, []string{"a", "b"}),
 					))
 				})
@@ -162,11 +140,6 @@ var _ = Describe("ContainersToDestroy", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/containers/destroying", "worker_name=some-worker"),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.LandWorker)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsSystem()).To(BeTrue())
-						}),
 						ghttp.RespondWithJSONEncoded(200, []string{"a", "b"}),
 					))
 				})

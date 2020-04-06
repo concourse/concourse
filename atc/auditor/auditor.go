@@ -132,6 +132,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.GetInfo,
 		atc.GetInfoCreds,
 		atc.ListActiveUsersSince,
+		atc.GetUser,
 		atc.GetWall,
 		atc.SetWall,
 		atc.ClearWall:

@@ -22,6 +22,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/rata"
+	"golang.org/x/oauth2"
 )
 
 var _ = Describe("Heartbeater", func() {
@@ -41,11 +42,11 @@ var _ = Describe("Heartbeater", func() {
 		resourceTypes  []atc.WorkerResourceType
 
 		expectedWorker         atc.Worker
-		fakeTokenGenerator     *tsafakes.FakeTokenGenerator
 		fakeGardenClient       *gardenfakes.FakeClient
 		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
 		fakeATC1               *ghttp.Server
 		fakeATC2               *ghttp.Server
+		httpClient             *http.Client
 		atcEndpointPicker      *tsafakes.FakeEndpointPicker
 		heartbeatErr           <-chan error
 
@@ -131,10 +132,7 @@ var _ = Describe("Heartbeater", func() {
 
 		fakeGardenClient = new(gardenfakes.FakeClient)
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
-		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
 
-		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)
-		fakeTokenGenerator.GenerateTeamTokenReturns("yo", nil)
 		clientWriter = gbytes.NewBuffer()
 
 		pickCallCount := 0
@@ -149,6 +147,8 @@ var _ = Describe("Heartbeater", func() {
 			return rata.NewRequestGenerator(fakeATC1.URL(), atc.Routes)
 		}
 
+		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
+		httpClient = oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))
 	})
 
 	JustBeforeEach(func() {
@@ -159,7 +159,7 @@ var _ = Describe("Heartbeater", func() {
 			fakeGardenClient,
 			fakeBaggageclaimClient,
 			atcEndpointPicker,
-			fakeTokenGenerator,
+			httpClient,
 			worker,
 			NewEventWriter(clientWriter),
 		)

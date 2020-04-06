@@ -9,7 +9,7 @@ import (
 func (client *client) UserInfo() (map[string]interface{}, error) {
 	var connection = client.connection
 
-	req, err := http.NewRequest("GET", connection.URL()+"/sky/userinfo", nil)
+	req, err := http.NewRequest("GET", connection.URL()+"/api/v1/user", nil)
 	if err != nil {
 		return nil, err
 	}

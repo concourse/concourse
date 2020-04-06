@@ -1,85 +1,92 @@
 package skyserver_test
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
-	"github.com/concourse/concourse/skymarshal/token"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/onsi/gomega/ghttp"
-	"golang.org/x/oauth2"
 )
 
 var _ = Describe("Sky Server API", func() {
 
-	defaultUsername := "user"
-	defaultConnector := "github"
-	defaultSub := "sub"
-
 	ExpectServerBehaviour := func() {
+
 		Describe("GET /sky/login", func() {
-			var params url.Values
-			var response *http.Response
-			var cookies []*http.Cookie
-			var tokenString string
-			var defaultRedirect = "/teams"
+			var (
+				err      error
+				request  *http.Request
+				response *http.Response
+			)
 
 			BeforeEach(func() {
-				params = url.Values{}
-				params.Add("redirect_uri", defaultRedirect)
+				request, err = http.NewRequest("GET", skyServer.URL+"/sky/login", nil)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			JustBeforeEach(func() {
+				skyServer.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				}
+
+				response, err = skyServer.Client().Do(request)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			ExpectNewLogin := func() {
+
 				It("stores a state cookie", func() {
-					Expect(cookies).To(HaveLen(1))
-					Expect(cookies[0].Name).To(Equal("skymarshal_state"))
-					Expect(cookies[0].Secure).To(Equal(config.SecureCookies))
-					Expect(cookies[0].HttpOnly).To(BeTrue())
-					Expect(cookies[0].Value).NotTo(BeEmpty())
+					Expect(fakeTokenMiddleware.SetStateTokenCallCount()).To(Equal(1))
+					_, state, _ := fakeTokenMiddleware.SetStateTokenArgsForCall(0)
+					Expect(state).NotTo(BeEmpty())
 				})
 
-				It("redirects the initial request to /sky/issuer/auth", func() {
+				It("redirects the initial request to the oauthConfig.AuthURL", func() {
+					_, state, _ := fakeTokenMiddleware.SetStateTokenArgsForCall(0)
+
 					redirectURL, err := response.Location()
 					Expect(err).NotTo(HaveOccurred())
-					Expect(redirectURL.Path).To(Equal("/sky/issuer/auth"))
+					Expect(redirectURL.Path).To(Equal("/auth"))
 
 					redirectValues := redirectURL.Query()
 					Expect(redirectValues.Get("access_type")).To(Equal("offline"))
 					Expect(redirectValues.Get("response_type")).To(Equal("code"))
-					Expect(redirectValues.Get("state")).To(Equal(cookies[0].Value))
-					Expect(redirectValues.Get("scope")).To(Equal("openid profile email federated:id groups"))
+					Expect(redirectValues.Get("state")).To(Equal(state))
+					Expect(redirectValues.Get("scope")).To(Equal("some-scope"))
 				})
 
 				Context("when redirect_uri is provided", func() {
 					BeforeEach(func() {
-						params.Add("redirect_uri", defaultRedirect)
+						request.URL.RawQuery = "redirect_uri=/redirect"
 					})
 
 					It("stores redirect_uri in the state token cookie", func() {
-						data, err := base64.StdEncoding.DecodeString(cookies[0].Value)
+						_, raw, _ := fakeTokenMiddleware.SetStateTokenArgsForCall(0)
+
+						data, err := base64.StdEncoding.DecodeString(raw)
 						Expect(err).NotTo(HaveOccurred())
 
 						var state map[string]string
 						json.Unmarshal(data, &state)
-						Expect(state["redirect_uri"]).To(Equal(defaultRedirect))
+						Expect(state["redirect_uri"]).To(Equal("/redirect"))
 					})
 				})
 
 				Context("when redirect_uri is NOT provided", func() {
 					BeforeEach(func() {
-						params.Del("redirect_uri")
+						request.URL.RawQuery = ""
 					})
 
 					It("stores / as the default redirect_uri in the state token cookie", func() {
-						data, err := base64.StdEncoding.DecodeString(cookies[0].Value)
+						_, raw, _ := fakeTokenMiddleware.SetStateTokenArgsForCall(0)
+
+						data, err := base64.StdEncoding.DecodeString(raw)
 						Expect(err).NotTo(HaveOccurred())
 
 						var state map[string]string
@@ -91,836 +98,352 @@ var _ = Describe("Sky Server API", func() {
 
 			Context("without an existing token", func() {
 				BeforeEach(func() {
-					dexServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/sky/issuer/auth"),
-							ghttp.VerifyFormKV("scope", "openid profile email federated:id groups"),
-							ghttp.RespondWith(http.StatusTemporaryRedirect, nil, http.Header{
-								"Location": {defaultRedirect},
-							}),
-						),
-					)
+					fakeTokenMiddleware.GetAuthTokenReturns("")
 				})
-
-				JustBeforeEach(func() {
-					client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-						return http.ErrUseLastResponse
-					}
-
-					request, err := http.NewRequest("GET", skyServer.URL+"/sky/login?"+params.Encode(), nil)
-					Expect(err).NotTo(HaveOccurred())
-
-					response, err = client.Do(request)
-					Expect(err).NotTo(HaveOccurred())
-
-					cookies = response.Cookies()
-					Expect(cookies).To(HaveLen(1))
-				})
-
 				ExpectNewLogin()
 			})
 
-			Context("with existing token", func() {
-				var cookieExpiration time.Time
+			Context("when the token has no type", func() {
+				BeforeEach(func() {
+					fakeTokenMiddleware.GetAuthTokenReturns("some-token")
+				})
+				ExpectNewLogin()
+			})
 
-				JustBeforeEach(func() {
-					client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-						return http.ErrUseLastResponse
-					}
+			Context("when the token is not a valid bearer token", func() {
+				BeforeEach(func() {
+					fakeTokenMiddleware.GetAuthTokenReturns("not-bearer some-token")
+				})
+				ExpectNewLogin()
+			})
 
-					request, err := http.NewRequest("GET", skyServer.URL+"/sky/login?"+params.Encode(), nil)
+			Context("when the token is not signed", func() {
+				BeforeEach(func() {
+					fakeTokenMiddleware.GetAuthTokenReturns("bearer some-token")
+				})
+				ExpectNewLogin()
+			})
+
+			Context("when the token is expired", func() {
+				BeforeEach(func() {
+					token := newToken(map[string]interface{}{
+						"exp": time.Now().Add(-1 * time.Hour).Unix(),
+					})
+
+					fakeTokenMiddleware.GetAuthTokenReturns("bearer " + token)
+				})
+				ExpectNewLogin()
+			})
+
+			Context("when the token is valid", func() {
+				var token string
+
+				BeforeEach(func() {
+					token = newToken(map[string]interface{}{
+						"exp": time.Now().Add(time.Hour).Unix(),
+					})
+
+					fakeTokenMiddleware.GetAuthTokenReturns("bearer " + token)
+				})
+
+				It("updates the auth token", func() {
+					Expect(fakeTokenMiddleware.SetAuthTokenCallCount()).To(Equal(1))
+					_, tokenArg, _ := fakeTokenMiddleware.SetAuthTokenArgsForCall(0)
+					Expect(tokenArg).To(Equal("bearer " + token))
+				})
+
+				It("updates the csrf token", func() {
+					Expect(fakeTokenMiddleware.SetCSRFTokenCallCount()).To(Equal(1))
+					_, tokenArg, _ := fakeTokenMiddleware.SetCSRFTokenArgsForCall(0)
+					Expect(tokenArg).NotTo(BeEmpty())
+				})
+
+				It("redirects the request to the provided redirect_uri", func() {
+					_, tokenArg, _ := fakeTokenMiddleware.SetCSRFTokenArgsForCall(0)
+
+					redirectURL, err := response.Location()
 					Expect(err).NotTo(HaveOccurred())
 
-					fakeTokenMiddleware.GetTokenReturns(tokenString)
-
-					response, err = client.Do(request)
+					atcURL, err := url.Parse(skyServer.URL)
 					Expect(err).NotTo(HaveOccurred())
+					Expect(redirectURL.Host).To(Equal(atcURL.Host))
 
-					cookies = response.Cookies()
-				})
-
-				Context("which is not a valid bearer token", func() {
-					BeforeEach(func() {
-						tokenString = "NotBearer some-token"
-					})
-					ExpectNewLogin()
-				})
-
-				Context("which is not a signed auth token", func() {
-					BeforeEach(func() {
-						tokenString = "Bearer some-token"
-					})
-					ExpectNewLogin()
-				})
-
-				Context("which is an expired auth token", func() {
-					BeforeEach(func() {
-						cookieExpiration = time.Now().Add(-1 * time.Hour)
-
-						tokenGenerator := token.NewGenerator(signingKey)
-						oauthToken, err := tokenGenerator.Generate(map[string]interface{}{
-							"exp":  cookieExpiration.Unix(),
-							"csrf": "some-csrf",
-						})
-						Expect(err).NotTo(HaveOccurred())
-
-						tokenString = oauthToken.TokenType + " " + oauthToken.AccessToken
-					})
-					ExpectNewLogin()
-				})
-
-				Context("which is a valid auth token", func() {
-					BeforeEach(func() {
-						cookieExpiration = time.Now().Add(1 * time.Hour)
-
-						tokenGenerator := token.NewGenerator(signingKey)
-						oauthToken, err := tokenGenerator.Generate(map[string]interface{}{
-							"exp":  cookieExpiration.Unix(),
-							"csrf": "some-csrf",
-						})
-						Expect(err).NotTo(HaveOccurred())
-
-						tokenString = oauthToken.TokenType + " " + oauthToken.AccessToken
-					})
-
-					It("redirects the request to the provided redirect_uri", func() {
-						redirectURL, err := response.Location()
-						Expect(err).NotTo(HaveOccurred())
-
-						atcURL, err := url.Parse(skyServer.URL)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(redirectURL.Host).To(Equal(atcURL.Host))
-
-						redirectValues := redirectURL.Query()
-						Expect(redirectValues.Get("token")).To(Equal(""))
-						Expect(redirectValues.Get("csrf_token")).To(Equal("some-csrf"))
-					})
+					redirectValues := redirectURL.Query()
+					Expect(redirectValues.Get("csrf_token")).To(Equal(tokenArg))
 				})
 			})
 		})
 
 		Describe("GET /sky/logout", func() {
-			It("removes auth token cookie", func() {
-				skyURL, err := url.Parse(skyServer.URL)
-				Expect(err).NotTo(HaveOccurred())
-
-				cookieJar.SetCookies(skyURL, []*http.Cookie{
-					{Name: "skymarshal_auth", Value: "some-cookie"},
-				})
-				Expect(cookieJar.Cookies(skyURL)).NotTo(BeEmpty())
-
-				_, err = client.Get(skyServer.URL + "/sky/logout")
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(fakeTokenMiddleware.UnsetTokenCallCount()).To(Equal(1))
-			})
-		})
-
-		Describe("GET /sky/callback", func() {
-			var (
-				err         error
-				request     *http.Request
-				response    *http.Response
-				stateCookie *http.Cookie
-				reqPath     string
-			)
-			BeforeEach(func() {
-				reqPath = "/sky/callback?state=some-state&code=some-code"
-				stateCookie = &http.Cookie{Name: "skymarshal_state", Value: "some-state"}
-			})
-
-			JustBeforeEach(func() {
-				request, err = http.NewRequest("GET", skyServer.URL+reqPath, nil)
-				Expect(err).NotTo(HaveOccurred())
-
-				skyURL, err := url.Parse(skyServer.URL)
-				Expect(err).NotTo(HaveOccurred())
-
-				cookieJar.SetCookies(skyURL, []*http.Cookie{stateCookie})
-
-				response, err = client.Do(request)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			Context("the state cookie doesn't exist", func() {
-				BeforeEach(func() {
-					stateCookie = &http.Cookie{}
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-				})
-			})
-
-			Context("dex returns an error param", func() {
-				BeforeEach(func() {
-					reqPath = "/sky/callback?error=some-error"
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-				})
-			})
-
-			Context("the cookie state doesn't match the form state", func() {
-				BeforeEach(func() {
-					stateCookie = &http.Cookie{Name: "skymarshal_state", Value: "not-some-state"}
-					reqPath = "/sky/callback?code=some-code&state=some-state"
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-				})
-			})
-
-			Context("dex doesn't return an authorization code", func() {
-				BeforeEach(func() {
-					reqPath = "/sky/callback?state=some-state"
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-				})
-			})
-
-			Context("requesting a token from dex fails", func() {
-				BeforeEach(func() {
-					dexServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("POST", "/sky/issuer/token"),
-							ghttp.RespondWith(http.StatusInternalServerError, nil),
-						),
-					)
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			Context("requesting a token from dex succeeds", func() {
-				var fakeVerifiedClaims *token.VerifiedClaims
-				var fakeOAuthToken *oauth2.Token
-
-				BeforeEach(func() {
-					dexServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("POST", "/sky/issuer/token"),
-							ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
-							ghttp.VerifyFormKV("grant_type", "authorization_code"),
-							ghttp.VerifyFormKV("code", "some-code"),
-							ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]string{
-								"token_type":   "some-type",
-								"access_token": "some-token",
-								"id_token":     "some-id-token",
-							}),
-						),
-					)
-				})
-
-				Context("the token verification fails", func() {
-					BeforeEach(func() {
-						fakeTokenVerifier.VerifyReturns(nil, errors.New("error"))
-					})
-
-					It("passes the correct args to the token verifier", func() {
-						_, dexToken := fakeTokenVerifier.VerifyArgsForCall(0)
-						Expect(dexToken.AccessToken).To(Equal("some-token"))
-						Expect(dexToken.TokenType).To(Equal("some-type"))
-						Expect(dexToken.Extra("id_token")).To(Equal("some-id-token"))
-					})
-
-					It("errors", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
-				})
-
-				Context("issuing the concourse token fails", func() {
-					BeforeEach(func() {
-						fakeVerifiedClaims = &token.VerifiedClaims{}
-						fakeTokenVerifier.VerifyReturns(fakeVerifiedClaims, nil)
-						fakeTokenIssuer.IssueReturns(nil, errors.New("error"))
-					})
-
-					It("passes the correct args to the token issuer", func() {
-						idToken := fakeTokenIssuer.IssueArgsForCall(0)
-						Expect(idToken).To(Equal(fakeVerifiedClaims))
-					})
-
-					It("errors", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-					})
-
-					It("doesn't record the user login", func() {
-						Expect(fakeUserFactory.CreateOrUpdateUserCallCount()).To(Equal(0))
-					})
-				})
-
-				Context("the request fails when NOT redirecting to the ATC", func() {
-					BeforeEach(func() {
-						fakeVerifiedClaims = &token.VerifiedClaims{}
-
-						fakeOAuthToken = (&oauth2.Token{
-							TokenType:   "some-type",
-							AccessToken: "some-token",
-							Expiry:      time.Now().Add(time.Minute),
-						}).WithExtra(map[string]interface{}{
-							"csrf": "some-csrf",
-						})
-
-						fakeTokenVerifier.VerifyReturns(fakeVerifiedClaims, nil)
-						fakeTokenIssuer.IssueReturns(fakeOAuthToken, nil)
-					})
-
-					Context("when redirect URI is http://example.com", func() {
-						BeforeEach(func() {
-							state, _ := json.Marshal(map[string]string{
-								"redirect_uri": "http://example.com",
-							})
-
-							stateToken := base64.StdEncoding.EncodeToString(state)
-							stateCookie = &http.Cookie{Name: "skymarshal_state", Value: stateToken}
-							reqPath = "/sky/callback?code=some-code&state=" + stateToken
-						})
-
-						It("errors", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-						})
-					})
-
-					Context("when redirect URI is https:example.com", func() {
-						BeforeEach(func() {
-							state, _ := json.Marshal(map[string]string{
-								"redirect_uri": "https:google.com",
-							})
-
-							stateToken := base64.StdEncoding.EncodeToString(state)
-							stateCookie = &http.Cookie{Name: "skymarshal_state", Value: stateToken}
-							reqPath = "/sky/callback?code=some-code&state=" + stateToken
-						})
-
-						It("doesn't error on Get https:google.com", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-						})
-					})
-
-					Context("when redirect URI is example.com", func() {
-						BeforeEach(func() {
-							state, _ := json.Marshal(map[string]string{
-								"redirect_uri": "example.com",
-							})
-
-							stateToken := base64.StdEncoding.EncodeToString(state)
-							stateCookie = &http.Cookie{Name: "skymarshal_state", Value: stateToken}
-							reqPath = "/sky/callback?code=some-code&state=" + stateToken
-						})
-
-						It("errors", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-						})
-					})
-				})
-
-				Context("the request succeeds when redirecting to the ATC", func() {
-					BeforeEach(func() {
-						fakeVerifiedClaims = &token.VerifiedClaims{
-							UserName:    defaultUsername,
-							ConnectorID: defaultConnector,
-							Sub:         defaultSub,
-						}
-
-						fakeOAuthToken = (&oauth2.Token{
-							TokenType:   "some-type",
-							AccessToken: "some-token",
-							Expiry:      time.Now().Add(time.Minute),
-						}).WithExtra(map[string]interface{}{
-							"csrf": "some-csrf",
-						})
-
-						fakeTokenVerifier.VerifyReturns(fakeVerifiedClaims, nil)
-						fakeTokenIssuer.IssueReturns(fakeOAuthToken, nil)
-
-						state, _ := json.Marshal(map[string]string{
-							"redirect_uri": "/teams/my-team",
-						})
-
-						stateToken := base64.StdEncoding.EncodeToString(state)
-						stateCookie = &http.Cookie{Name: "skymarshal_state", Value: stateToken}
-						reqPath = "/sky/callback?code=some-code&state=" + stateToken
-					})
-
-					It("sets auth token and clears the state cookie", func() {
-						serverURL, err := url.Parse(skyServer.URL)
-						Expect(err).NotTo(HaveOccurred())
-
-						cookies := cookieJar.Cookies(serverURL)
-						Expect(cookies).To(HaveLen(0))
-
-						Expect(fakeTokenMiddleware.SetTokenCallCount()).To(Equal(1))
-						_, tokenString, _ := fakeTokenMiddleware.SetTokenArgsForCall(0)
-						Expect(tokenString).To(Equal("some-type some-token"))
-					})
-
-					It("redirects to redirect_uri from state token with only the csrf_token", func() {
-						redirectResponse := response.Request.Response
-						Expect(redirectResponse).NotTo(BeNil())
-						Expect(redirectResponse.StatusCode).To(Equal(http.StatusTemporaryRedirect))
-
-						locationURL, err := redirectResponse.Location()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(locationURL.String()).To(Equal(skyServer.URL + "/teams/my-team?csrf_token=some-csrf"))
-					})
-
-					It("records the user login", func() {
-						Expect(fakeUserFactory.CreateOrUpdateUserCallCount()).To(Equal(1))
-						user, connector, sub := fakeUserFactory.CreateOrUpdateUserArgsForCall(0)
-						Expect(user).To(Equal(defaultUsername))
-						Expect(connector).To(Equal(defaultConnector))
-						Expect(sub).To(Equal(defaultSub))
-					})
-				})
-			})
-		})
-
-		Describe("GET /sky/token", func() {
 			var (
 				err      error
 				request  *http.Request
 				response *http.Response
 			)
 
-			JustBeforeEach(func() {
-				reqPayload := "grant_type=password&username=some-username&password=some-password&scope=some-scope"
-
-				request, err = http.NewRequest("GET", skyServer.URL+"/sky/token?"+reqPayload, nil)
-				request.Header.Add("Authorization", "Basic "+string(base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))))
-				Expect(err).NotTo(HaveOccurred())
-
-				response, err = client.Do(request)
+			BeforeEach(func() {
+				request, err = http.NewRequest("GET", skyServer.URL+"/sky/logout", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("rejects every request", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+			JustBeforeEach(func() {
+				response, err = skyServer.Client().Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("succeeds", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("removes auth token and csrf token", func() {
+				Expect(fakeTokenMiddleware.UnsetAuthTokenCallCount()).To(Equal(1))
+				Expect(fakeTokenMiddleware.UnsetCSRFTokenCallCount()).To(Equal(1))
 			})
 		})
 
-		Describe("POST /sky/token", func() {
+		Describe("GET /sky/callback", func() {
 			var (
-				err        error
-				request    *http.Request
-				response   *http.Response
-				reqHeader  http.Header
-				reqPayload string
+				err      error
+				request  *http.Request
+				response *http.Response
 			)
 
 			BeforeEach(func() {
-				reqPayload = "grant_type=password&username=some-username&password=some-password&scope=some-scope"
-
-				reqHeader = http.Header{}
-				reqHeader.Set("Authorization", "Basic "+string(base64.StdEncoding.EncodeToString([]byte("fly:Zmx5"))))
-				reqHeader.Set("Content-Type", "application/x-www-form-urlencoded")
+				request, err = http.NewRequest("GET", skyServer.URL+"/sky/callback", nil)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			JustBeforeEach(func() {
-				request, err = http.NewRequest("POST", skyServer.URL+"/sky/token", strings.NewReader(reqPayload))
-				request.Header = reqHeader
-				Expect(err).NotTo(HaveOccurred())
-
-				response, err = client.Do(request)
+				response, err = skyServer.Client().Do(request)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when missing authorization header", func() {
+			Context("when there's an error param", func() {
 				BeforeEach(func() {
-					reqHeader.Del("Authorization")
+					request.URL.RawQuery = "error=some-error"
 				})
 
 				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 
-			Context("when authorization header is not basic auth", func() {
+			Context("when the state cookie doesn't exist", func() {
 				BeforeEach(func() {
-					reqHeader.Set("Authorization", "Bearer token")
+					fakeTokenMiddleware.GetStateTokenReturns("")
 				})
 
 				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 
-			Context("when authorization header is not of the form 'client_id:client_secret'", func() {
+			Context("when the cookie state doesn't match the form state", func() {
 				BeforeEach(func() {
-					credentials := base64.StdEncoding.EncodeToString([]byte("some-string"))
-					reqHeader.Set("Authorization", "Basic "+string(credentials))
+					fakeTokenMiddleware.GetStateTokenReturns("not-state")
+					request.URL.RawQuery = "state=some-state"
 				})
 
 				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 
-			Context("when not using the public fly client id", func() {
+			Context("when the cookie state matches the form state", func() {
 				BeforeEach(func() {
-					credentials := base64.StdEncoding.EncodeToString([]byte("not-fly:Zmx5"))
-					reqHeader.Set("Authorization", "Basic "+string(credentials))
+					fakeTokenMiddleware.GetStateTokenReturns("some-state")
+					request.URL.RawQuery = "state=some-state"
 				})
 
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-			})
-
-			Context("when not using the public fly client secret", func() {
-				BeforeEach(func() {
-					credentials := base64.StdEncoding.EncodeToString([]byte("fly:not-fly-secret"))
-					reqHeader.Set("Authorization", "Basic "+string(credentials))
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-			})
-
-			Context("payload is malformed", func() {
-
-				Context("grant type is not 'password'", func() {
+				Context("when there is an authorization code", func() {
 					BeforeEach(func() {
-						reqPayload = "grant_type=client_credentials&username=some-username&password=some-password&scope=some-scope"
+						request.URL.RawQuery = "code=some-code&state=some-state"
 					})
 
-					It("errors", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
-				})
-
-				Context("username is missing", func() {
-					BeforeEach(func() {
-						reqPayload = "grant_type=client_credentials&password=some-password&scope=some-scope"
-					})
-
-					It("errors", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
-				})
-
-				Context("password is missing", func() {
-					BeforeEach(func() {
-						reqPayload = "grant_type=client_credentials&username=some-username&scope=some-scope"
-					})
-
-					It("errors", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
-				})
-
-				Context("scope is missing", func() {
-					BeforeEach(func() {
-						reqPayload = "grant_type=client_credentials&username=some-username&password=some-password"
-					})
-
-					It("errors", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
-				})
-			})
-
-			Context("requesting a token from dex fails", func() {
-				BeforeEach(func() {
-					dexServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("POST", "/sky/issuer/token"),
-							ghttp.RespondWith(http.StatusInternalServerError, nil),
-						),
-					)
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			Context("requesting a token from dex succeeds", func() {
-				var fakeVerifiedClaims *token.VerifiedClaims
-				var fakeOAuthToken *oauth2.Token
-
-				BeforeEach(func() {
-					dexServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("POST", "/sky/issuer/token"),
-							ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
-							ghttp.VerifyFormKV("grant_type", "password"),
-							ghttp.VerifyFormKV("username", "some-username"),
-							ghttp.VerifyFormKV("password", "some-password"),
-							ghttp.VerifyFormKV("scope", "some-scope"),
-							ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]string{
-								"token_type":   "some-type",
-								"access_token": "some-token",
-								"id_token":     "some-id-token",
-							}),
-						),
-					)
-				})
-
-				Context("the token verification fails", func() {
-					BeforeEach(func() {
-						fakeTokenVerifier.VerifyReturns(nil, errors.New("error"))
-					})
-
-					It("passes the correct args to the token verifier", func() {
-						_, dexToken := fakeTokenVerifier.VerifyArgsForCall(0)
-						Expect(dexToken.AccessToken).To(Equal("some-token"))
-						Expect(dexToken.TokenType).To(Equal("some-type"))
-						Expect(dexToken.Extra("id_token")).To(Equal("some-id-token"))
-					})
-
-					It("errors", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
-
-					It("doesn't record the user login", func() {
-						Expect(fakeUserFactory.CreateOrUpdateUserCallCount()).To(Equal(0))
-					})
-				})
-
-				Context("issuing the concourse token fails", func() {
-					BeforeEach(func() {
-						fakeVerifiedClaims = &token.VerifiedClaims{}
-						fakeTokenVerifier.VerifyReturns(fakeVerifiedClaims, nil)
-						fakeTokenIssuer.IssueReturns(nil, errors.New("error"))
-					})
-
-					It("passes the correct args to the token issuer", func() {
-						idToken := fakeTokenIssuer.IssueArgsForCall(0)
-						Expect(idToken).To(Equal(fakeVerifiedClaims))
-					})
-
-					It("errors", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
-				})
-
-				Context("the request succeeds", func() {
-					BeforeEach(func() {
-						fakeVerifiedClaims = &token.VerifiedClaims{
-							UserName:    defaultUsername,
-							ConnectorID: defaultConnector,
-							Sub:         defaultSub,
-						}
-
-						fakeOAuthToken = &oauth2.Token{
-							TokenType:   "some-type",
-							AccessToken: "some-token",
-						}
-
-						fakeTokenVerifier.VerifyReturns(fakeVerifiedClaims, nil)
-						fakeTokenIssuer.IssueReturns(fakeOAuthToken, nil)
-					})
-
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("returns application/json", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-					})
-
-					It("returns the concourse token", func() {
-						var token map[string]string
-						err := json.NewDecoder(response.Body).Decode(&token)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(token["token_type"]).To(Equal(fakeOAuthToken.TokenType))
-						Expect(token["access_token"]).To(Equal(fakeOAuthToken.AccessToken))
-					})
-
-					It("records the user login", func() {
-						Expect(fakeUserFactory.CreateOrUpdateUserCallCount()).To(Equal(1))
-						user, connector, sub := fakeUserFactory.CreateOrUpdateUserArgsForCall(0)
-						Expect(user).To(Equal(defaultUsername))
-						Expect(connector).To(Equal(defaultConnector))
-						Expect(sub).To(Equal(defaultSub))
-					})
-				})
-			})
-		})
-
-		Describe("GET /sky/userinfo", func() {
-			var (
-				err       error
-				request   *http.Request
-				response  *http.Response
-				reqHeader http.Header
-			)
-
-			BeforeEach(func() {
-				reqHeader = http.Header{}
-			})
-
-			JustBeforeEach(func() {
-				request, err = http.NewRequest("GET", skyServer.URL+"/sky/userinfo", nil)
-				request.Header = reqHeader
-				Expect(err).NotTo(HaveOccurred())
-
-				response, err = client.Do(request)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			Context("missing authorization header", func() {
-				BeforeEach(func() {
-					reqHeader.Del("Authorization")
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-			})
-
-			Context("authorization header is not a bearer token", func() {
-				BeforeEach(func() {
-					reqHeader.Set("Authorization", "Basic some-token")
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-			})
-
-			Context("bearer token is not valid", func() {
-				BeforeEach(func() {
-					reqHeader.Set("Authorization", "Bearer some-invalid-token")
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-			})
-
-			Context("bearer token is signed with the wrong key", func() {
-				BeforeEach(func() {
-					wrongSigningKey, err := rsa.GenerateKey(rand.Reader, 2048)
-					Expect(err).NotTo(HaveOccurred())
-
-					tokenGenerator := token.NewGenerator(wrongSigningKey)
-					token, err := tokenGenerator.Generate(map[string]interface{}{"sub": "some-sub"})
-					Expect(err).NotTo(HaveOccurred())
-
-					reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-			})
-
-			Context("bearer token is expired", func() {
-				BeforeEach(func() {
-					tokenGenerator := token.NewGenerator(signingKey)
-					token, err := tokenGenerator.Generate(map[string]interface{}{
-						"exp": time.Now().Add(-1 * time.Hour).Unix(),
-					})
-					Expect(err).NotTo(HaveOccurred())
-
-					reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
-				})
-
-				It("errors", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-				})
-			})
-
-			Context("bearer token is valid", func() {
-				var expiration int64
-
-				Context("using the old token format for teams", func() {
-					BeforeEach(func() {
-						expiration = time.Now().Add(1 * time.Hour).Unix()
-
-						tokenGenerator := token.NewGenerator(signingKey)
-						token, err := tokenGenerator.Generate(map[string]interface{}{
-							"exp":       expiration,
-							"sub":       "some-sub",
-							"user_id":   "some-user-id",
-							"user_name": "some-user-name",
-							"teams":     []string{"some-team"},
-							"csrf":      "some-csrf",
-							"email":     "some@email.com",
-							"name":      "Some Name",
-							"is_admin":  true,
+					Context("when requesting a token fails", func() {
+						BeforeEach(func() {
+							dexServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("POST", "/token"),
+									ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
+									ghttp.VerifyFormKV("grant_type", "authorization_code"),
+									ghttp.VerifyFormKV("code", "some-code"),
+									ghttp.RespondWith(http.StatusInternalServerError, nil),
+								),
+							)
 						})
-						Expect(err).NotTo(HaveOccurred())
 
-						reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
-					})
-
-					It("succeeds", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("outputs the claims from the token", func() {
-						var token map[string]interface{}
-						err := json.NewDecoder(response.Body).Decode(&token)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(token["exp"]).To(Equal(float64(expiration)))
-						Expect(token["sub"]).To(Equal("some-sub"))
-						Expect(token["user_id"]).To(Equal("some-user-id"))
-						Expect(token["user_name"]).To(Equal("some-user-name"))
-						Expect(token["csrf"]).To(Equal("some-csrf"))
-						Expect(token["email"]).To(Equal("some@email.com"))
-						Expect(token["name"]).To(Equal("Some Name"))
-						Expect(token["is_admin"]).To(Equal(true))
-
-						By("defaulting any teams to the owner role")
-						Expect(token["teams"]).To(HaveKeyWithValue("some-team", ContainElement("owner")))
-					})
-				})
-
-				Context("using the new token format for teams", func() {
-					BeforeEach(func() {
-						expiration = time.Now().Add(1 * time.Hour).Unix()
-
-						tokenGenerator := token.NewGenerator(signingKey)
-						token, err := tokenGenerator.Generate(map[string]interface{}{
-							"exp":       expiration,
-							"sub":       "some-sub",
-							"user_id":   "some-user-id",
-							"user_name": "some-user-name",
-							"teams": map[string]interface{}{
-								"some-team": []string{"some-role"},
-							},
-							"csrf":     "some-csrf",
-							"email":    "some@email.com",
-							"name":     "Some Name",
-							"is_admin": true,
+						It("errors", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 						})
-						Expect(err).NotTo(HaveOccurred())
-
-						reqHeader.Set("Authorization", token.TokenType+" "+token.AccessToken)
 					})
 
-					It("succeeds", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Context("when the server response does not include an id_token", func() {
+
+						BeforeEach(func() {
+							dexServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("POST", "/token"),
+									ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
+									ghttp.VerifyFormKV("grant_type", "authorization_code"),
+									ghttp.VerifyFormKV("code", "some-code"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]string{
+										"token_type":   "some-type",
+										"access_token": "some-token",
+									}),
+								),
+							)
+						})
+
+						It("errors", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
 					})
 
-					It("outputs the claims from the token", func() {
-						var token map[string]interface{}
-						err := json.NewDecoder(response.Body).Decode(&token)
-						Expect(err).NotTo(HaveOccurred())
+					Context("when the server returns a token", func() {
 
-						Expect(token["exp"]).To(Equal(float64(expiration)))
-						Expect(token["sub"]).To(Equal("some-sub"))
-						Expect(token["user_id"]).To(Equal("some-user-id"))
-						Expect(token["user_name"]).To(Equal("some-user-name"))
-						Expect(token["csrf"]).To(Equal("some-csrf"))
-						Expect(token["email"]).To(Equal("some@email.com"))
-						Expect(token["name"]).To(Equal("Some Name"))
-						Expect(token["is_admin"]).To(Equal(true))
+						BeforeEach(func() {
+							dexServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("POST", "/token"),
+									ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
+									ghttp.VerifyFormKV("grant_type", "authorization_code"),
+									ghttp.VerifyFormKV("code", "some-code"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]string{
+										"token_type":   "some-type",
+										"access_token": "some-token",
+										"id_token":     "some-id-token",
+									}),
+								),
+							)
+						})
 
-						By("mapping teams to their corresponding role")
-						Expect(token["teams"]).To(HaveKeyWithValue("some-team", ContainElement("some-role")))
+						Context("when redirect URI is http://example.com", func() {
+							BeforeEach(func() {
+								state, _ := json.Marshal(map[string]string{
+									"redirect_uri": "http://example.com",
+								})
+
+								stateToken := base64.StdEncoding.EncodeToString(state)
+								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
+
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("errors", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							})
+						})
+
+						Context("when redirect URI is https:example.com", func() {
+							BeforeEach(func() {
+								state, _ := json.Marshal(map[string]string{
+									"redirect_uri": "https:google.com",
+								})
+
+								stateToken := base64.StdEncoding.EncodeToString(state)
+								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
+
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("doesn't error on Get https:google.com", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+							})
+						})
+
+						Context("when redirect URI is example.com", func() {
+							BeforeEach(func() {
+								state, _ := json.Marshal(map[string]string{
+									"redirect_uri": "example.com",
+								})
+
+								stateToken := base64.StdEncoding.EncodeToString(state)
+								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
+
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("errors", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							})
+						})
+
+						Context("when redirecting to the ATC", func() {
+							BeforeEach(func() {
+								state, _ := json.Marshal(map[string]string{
+									"redirect_uri": "/valid-redirect",
+								})
+
+								stateToken := base64.StdEncoding.EncodeToString(state)
+								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
+
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							Context("when setting the auth token fails", func() {
+								BeforeEach(func() {
+									fakeTokenMiddleware.SetAuthTokenReturns(errors.New("nope"))
+								})
+								It("errors", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+								})
+							})
+
+							Context("when setting the auth token succeeds", func() {
+								BeforeEach(func() {
+									fakeTokenMiddleware.SetAuthTokenReturns(nil)
+								})
+
+								Context("when setting the csrf token fails", func() {
+									BeforeEach(func() {
+										fakeTokenMiddleware.SetCSRFTokenReturns(errors.New("nope"))
+									})
+									It("errors", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+									})
+								})
+
+								Context("when setting the csrf token succeeds", func() {
+									BeforeEach(func() {
+										fakeTokenMiddleware.SetCSRFTokenReturns(nil)
+									})
+
+									It("unsets the cookie state", func() {
+										Expect(fakeTokenMiddleware.UnsetStateTokenCallCount()).To(Equal(1))
+									})
+
+									It("saves the id-token from the response", func() {
+										Expect(fakeTokenMiddleware.SetAuthTokenCallCount()).To(Equal(1))
+										_, tokenString, _ := fakeTokenMiddleware.SetAuthTokenArgsForCall(0)
+										Expect(tokenString).To(Equal("some-type some-id-token"))
+									})
+
+									It("sets a new csrf token", func() {
+										Expect(fakeTokenMiddleware.SetCSRFTokenCallCount()).To(Equal(1))
+										_, tokenString, _ := fakeTokenMiddleware.SetCSRFTokenArgsForCall(0)
+										Expect(tokenString).NotTo(BeEmpty())
+									})
+
+									It("redirects to redirect_uri from state token with the csrf_token", func() {
+										_, tokenArg, _ := fakeTokenMiddleware.SetCSRFTokenArgsForCall(0)
+
+										redirectResponse := response.Request.Response
+										Expect(redirectResponse).NotTo(BeNil())
+										Expect(redirectResponse.StatusCode).To(Equal(http.StatusTemporaryRedirect))
+
+										skyServerURL, err := url.Parse(skyServer.URL)
+										Expect(err).NotTo(HaveOccurred())
+
+										locationURL, err := redirectResponse.Location()
+										Expect(err).NotTo(HaveOccurred())
+										Expect(locationURL.Host).To(Equal(skyServerURL.Host))
+										Expect(locationURL.Path).To(Equal("/valid-redirect"))
+										Expect(locationURL.Query().Get("csrf_token")).To(Equal(tokenArg))
+									})
+								})
+							})
+						})
 					})
 				})
 			})
@@ -929,7 +452,6 @@ var _ = Describe("Sky Server API", func() {
 
 	Describe("With TLS Server", func() {
 		BeforeEach(func() {
-			config.SecureCookies = true
 			skyServer.StartTLS()
 		})
 
@@ -938,7 +460,6 @@ var _ = Describe("Sky Server API", func() {
 
 	Describe("Without TLS Server", func() {
 		BeforeEach(func() {
-			config.SecureCookies = false
 			skyServer.Start()
 		})
 

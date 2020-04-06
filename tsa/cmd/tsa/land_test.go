@@ -2,9 +2,7 @@ package main_test
 
 import (
 	"context"
-	"net/http"
 
-	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -32,10 +30,6 @@ var _ = Describe("Land", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.LandWorker)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-						}),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -86,12 +80,6 @@ var _ = Describe("Land", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.LandWorker)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsAuthorized("some-team")).To(BeTrue())
-							Expect(accessor.IsAuthorized("some-other-team")).To(BeFalse())
-						}),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -118,12 +106,6 @@ var _ = Describe("Land", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.LandWorker)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsAuthorized("some-team")).To(BeTrue())
-							Expect(accessor.IsAuthorized("some-other-team")).To(BeFalse())
-						}),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -144,12 +126,6 @@ var _ = Describe("Land", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.LandWorker)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsAuthorized("some-team")).To(BeTrue())
-							Expect(accessor.IsAuthorized("some-other-team")).To(BeFalse())
-						}),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -170,12 +146,6 @@ var _ = Describe("Land", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.LandWorker)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsAuthorized("some-team")).To(BeTrue())
-							Expect(accessor.IsAuthorized("some-other-team")).To(BeFalse())
-						}),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})

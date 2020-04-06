@@ -26,7 +26,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/sky/userinfo"),
+						ghttp.VerifyRequest("GET", "/api/v1/user"),
 						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
 							"user_name": "test_user",
 							"teams": map[string][]string{
@@ -79,7 +79,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/sky/userinfo"),
+						ghttp.VerifyRequest("GET", "/api/v1/user"),
 						ghttp.RespondWith(500, ""),
 					),
 				)

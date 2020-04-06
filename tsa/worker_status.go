@@ -20,7 +20,7 @@ import (
 
 type WorkerStatus struct {
 	ATCEndpoint      *rata.RequestGenerator
-	TokenGenerator   TokenGenerator
+	HTTPClient       *http.Client
 	ContainerHandles []string
 	VolumeHandles    []string
 }
@@ -78,17 +78,7 @@ func (l *WorkerStatus) WorkerStatus(ctx context.Context, worker atc.Worker, reso
 		"worker_name": []string{worker.Name},
 	}.Encode()
 
-	var jwtToken string
-	jwtToken, err = l.TokenGenerator.GenerateSystemToken()
-
-	if err != nil {
-		logger.Error("failed-to-generate-token", err)
-		return err
-	}
-
-	request.Header.Add("Authorization", "Bearer "+jwtToken)
-
-	response, err := http.DefaultClient.Do(request)
+	response, err := l.HTTPClient.Do(request)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed-to-%s", resourceAction), err)
 		return err
