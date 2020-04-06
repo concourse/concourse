@@ -53,6 +53,7 @@ type DomID
     | CheckButton Bool
     | EditButton
     | SaveCommentButton
+    | ResourceCommentTextarea
     | FirstOccurrenceGetStepLabel StepID
     | StepState StepID
     | PinIcon

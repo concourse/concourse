@@ -41,6 +41,7 @@ import Html.Attributes
         , href
         , id
         , placeholder
+        , readonly
         , style
         , title
         , value
@@ -62,7 +63,7 @@ import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message
     exposing
         ( DomID(..)
@@ -128,6 +129,7 @@ init flags =
       , FetchVersionedResources flags.resourceId flags.paging
       , GetCurrentTimeZone
       , FetchAllPipelines
+      , SyncTextareaHeight ResourceCommentTextarea
       ]
     )
 
@@ -141,7 +143,10 @@ changeToResource flags ( model, effects ) =
             , pagination = { previousPage = Nothing, nextPage = Nothing }
             }
       }
-    , effects ++ [ FetchVersionedResources model.resourceIdentifier flags.paging ]
+    , effects
+        ++ [ FetchVersionedResources model.resourceIdentifier flags.paging
+           , SyncTextareaHeight ResourceCommentTextarea
+           ]
     )
 
 
@@ -252,6 +257,7 @@ handleCallback callback session ( model, effects ) =
                         Nothing ->
                             []
                    )
+                ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
 
         ResourceFetched (Err err) ->
@@ -491,7 +497,10 @@ handleCallback callback session ( model, effects ) =
                         ( _, pv ) ->
                             pv
               }
-            , effects ++ [ FetchResource model.resourceIdentifier ]
+            , effects
+                ++ [ FetchResource model.resourceIdentifier
+                   , SyncTextareaHeight ResourceCommentTextarea
+                   ]
             )
 
         _ ->
@@ -710,7 +719,9 @@ update msg ( model, effects ) =
                         x ->
                             x
             in
-            ( { model | pinnedVersion = newPinnedVersion }, effects )
+            ( { model | pinnedVersion = newPinnedVersion }
+            , effects ++ [ SyncTextareaHeight ResourceCommentTextarea ]
+            )
 
         Click SaveCommentButton ->
             case model.pinnedVersion of
@@ -1210,31 +1221,43 @@ commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEdi
                 (id "comment-bar" :: Resource.Styles.commentBar isPinned)
                 [ Html.div
                     (id "icon-container" :: Resource.Styles.commentBarIconContainer isEditing)
-                    [ Icon.icon
+                    (Icon.icon
                         { sizePx = 25
                         , image = Assets.MessageIcon
                         }
                         Resource.Styles.commentBarMessageIcon
-                    , Html.pre
-                        (Resource.Styles.commentText
-                            ++ [ Html.Attributes.contenteditable True ]
-                        )
-                        [ Html.text commentState.pristineComment ]
-                    , if
-                        UserState.isMember
-                            { teamName = resourceIdentifier.teamName
-                            , userState = session.userState
-                            }
-                      then
-                        if isEditing == False then
-                            editButton session
+                        :: (if
+                                UserState.isMember
+                                    { teamName = resourceIdentifier.teamName
+                                    , userState = session.userState
+                                    }
+                            then
+                                [ Html.textarea
+                                    ([ id (toHtmlID ResourceCommentTextarea)
+                                     , value commentState.comment
+                                     , onInput EditComment
+                                     , onFocus FocusTextArea
+                                     , onBlur BlurTextArea
+                                     , readonly (not isEditing)
+                                     ]
+                                        ++ Resource.Styles.commentTextArea
+                                    )
+                                    []
+                                ]
+                                    ++ (if isEditing == False then
+                                            [ editButton session ]
 
-                        else
-                            saveButton commentState pinCommentLoading session.hovered
+                                        else
+                                            [ saveButton commentState pinCommentLoading session.hovered ]
+                                       )
 
-                      else
-                        Html.div [] []
-                    ]
+                            else
+                                [ Html.pre
+                                    Resource.Styles.commentText
+                                    [ Html.text commentState.pristineComment ]
+                                ]
+                           )
+                    )
                 ]
 
         _ ->

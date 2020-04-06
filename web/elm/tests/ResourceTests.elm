@@ -1723,9 +1723,6 @@ all =
                         , test "pre contains the comment" <|
                             \_ ->
                                 commentPre |> Query.has [ text "some pin comment" ]
-                        , test "has editable content" <|
-                            \_ ->
-                                commentPre |> Query.has [ attribute <| Attr.contenteditable True ]
                         , test "has no default outline" <|
                             \_ ->
                                 commentPre |> Query.has [ style "outline" "0" ]
@@ -1829,6 +1826,225 @@ all =
                                     |> Tuple.first
                                     |> iconContainer
                                     |> Query.has [ tag "button" ]
+                        ]
+                    , describe "textarea" <|
+                        let
+                            textarea =
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ tag "textarea" ]
+
+                            whenUserEditsComment =
+                                update (Message.Message.EditComment "foo")
+
+                            givenUserEditedComment =
+                                whenUserEditsComment
+                                    >> Tuple.first
+                        in
+                        [ test "only shows up when user is authorized and editing" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.has [ tag "textarea" ]
+                        , test "has comment as value" <|
+                            \_ ->
+                                textarea
+                                    |> Query.has
+                                        [ attribute <|
+                                            Attr.value "some pin comment"
+                                        ]
+                        , test "has the id resource_comment" <|
+                            \_ ->
+                                textarea |> Query.has [ id "resource_comment" ]
+                        , test "has a transparent background" <|
+                            \_ ->
+                                textarea |> Query.has [ style "background-color" "transparent" ]
+                        , test "has no border or outline" <|
+                            \_ ->
+                                textarea |> Query.has [ style "outline" "none", style "border" "none" ]
+                        , test "has the text color" <|
+                            \_ ->
+                                textarea |> Query.has [ style "color" "#e6e7e8" ]
+                        , test "has no resize handler" <|
+                            \_ ->
+                                textarea |> Query.has [ style "resize" "none" ]
+                        , test "has border-box" <|
+                            \_ ->
+                                textarea
+                                    |> Query.has [ style "box-sizing" "border-box" ]
+                        , test "matches app font" <|
+                            \_ ->
+                                textarea
+                                    |> Query.has
+                                        [ style "font-size" "12px"
+                                        , style "font-family" "Inconsolata, monospace"
+                                        , style "font-weight" "700"
+                                        ]
+                        , test "has a max height of 150px" <|
+                            \_ ->
+                                textarea
+                                    |> Query.has [ style "max-height" "150px" ]
+                        , test "has flex-grow 1" <|
+                            \_ ->
+                                textarea
+                                    |> Query.has [ style "flex-grow" "1" ]
+                        , test "has a top and bottom margin of 10px" <|
+                            \_ ->
+                                textarea
+                                    |> Query.has [ style "margin" "10px 0" ]
+                        , test "is readonly when not editing" <|
+                            \_ ->
+                                textarea
+                                    |> Query.has [ attribute <| Attr.readonly True ]
+                        , describe "sync textarea height" <|
+                            [ test "sync when editing" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> whenUserEditsComment
+                                        |> Tuple.second
+                                        |> Common.contains (Effects.SyncTextareaHeight ResourceCommentTextarea)
+                            , test "sync when resource is first loaded" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> whenResourceLoadsWithPinnedComment
+                                        |> Tuple.second
+                                        |> Common.contains (Effects.SyncTextareaHeight ResourceCommentTextarea)
+                            ]
+                        , describe "when editing the textarea" <|
+                            [ test "is not readonly" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> Application.update (Msgs.Update <| Message.Message.Click Message.Message.EditButton)
+                                        |> Tuple.first
+                                        |> queryView
+                                        |> Query.find [ tag "textarea" ]
+                                        |> Query.has [ attribute <| Attr.readonly False ]
+                            , test "input in textarea produces EditComment msg" <|
+                                \_ ->
+                                    textarea
+                                        |> Event.simulate (Event.input "foo")
+                                        |> Event.expect
+                                            (Msgs.Update <|
+                                                Message.Message.EditComment "foo"
+                                            )
+                            , test "EditComment updates textarea value" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> queryView
+                                        |> Query.find [ tag "textarea" ]
+                                        |> Query.has [ attribute <| Attr.value "foo" ]
+                            , test "autorefresh doesn't change textarea" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenResourcePinnedWithComment
+                                        |> queryView
+                                        |> Query.find [ tag "textarea" ]
+                                        |> Query.has
+                                            [ attribute <| Attr.value "foo" ]
+                            , test "focusing textarea triggers FocusTextArea msg" <|
+                                \_ ->
+                                    textarea
+                                        |> Event.simulate Event.focus
+                                        |> Event.expect
+                                            (Msgs.Update
+                                                Message.Message.FocusTextArea
+                                            )
+                            , test "keydown subscription active when textarea is focused" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenTextareaFocused
+                                        |> Application.subscriptions
+                                        |> Common.contains Subscription.OnKeyDown
+                            , test "keyup subscription active when textarea is focused" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenTextareaFocused
+                                        |> Application.subscriptions
+                                        |> Common.contains Subscription.OnKeyUp
+                            , test "Ctrl-Enter sends SaveComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> pressControlEnter
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ Effects.SetPinComment
+                                                { teamName = teamName
+                                                , pipelineName = pipelineName
+                                                , resourceName = resourceName
+                                                }
+                                                "foo"
+                                            ]
+                            , test "Command + Enter sends SaveComment msg" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> pressMetaEnter
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ Effects.SetPinComment
+                                                { teamName = teamName
+                                                , pipelineName = pipelineName
+                                                , resourceName = resourceName
+                                                }
+                                                "foo"
+                                            ]
+                            , test "blurring input triggers BlurTextArea msg" <|
+                                \_ ->
+                                    textarea
+                                        |> Event.simulate Event.blur
+                                        |> Event.expect
+                                            (Msgs.Update
+                                                Message.Message.BlurTextArea
+                                            )
+                            , test "Ctrl-Enter after blurring input does nothing" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> givenTextareaBlurred
+                                        |> pressControlEnter
+                                        |> Tuple.second
+                                        |> Expect.equal []
+                            , test "releasing Ctrl key and pressing enter does nothing" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserEditedComment
+                                        |> givenTextareaFocused
+                                        |> pressEnterKey
+                                        |> Tuple.second
+                                        |> Expect.equal []
+                            ]
                         ]
                     ]
                 ]
@@ -2934,8 +3150,8 @@ givenResourcePinnedDynamically =
         >> Tuple.first
 
 
-givenResourcePinnedWithComment : Application.Model -> Application.Model
-givenResourcePinnedWithComment =
+whenResourceLoadsWithPinnedComment : Application.Model -> ( Application.Model, List Effects.Effect )
+whenResourceLoadsWithPinnedComment =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
@@ -2953,7 +3169,11 @@ givenResourcePinnedWithComment =
                 , icon = Nothing
                 }
         )
-        >> Tuple.first
+
+
+givenResourcePinnedWithComment : Application.Model -> Application.Model
+givenResourcePinnedWithComment =
+    whenResourceLoadsWithPinnedComment >> Tuple.first
 
 
 givenResourceIsNotPinned : Application.Model -> Application.Model

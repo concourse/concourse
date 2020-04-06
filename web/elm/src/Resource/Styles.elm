@@ -254,17 +254,18 @@ commentBarMessageIcon =
 
 commentTextArea : List (Html.Attribute msg)
 commentTextArea =
-    [ style "background-color" "transparent"
-    , style "color" Colors.text
-    , style "outline" "none"
-    , style "border" <| "1px solid " ++ Colors.background
-    , style "font-size" "12px"
+    [ style "font-size" "12px"
     , style "font-family" "Inconsolata, monospace"
     , style "font-weight" "700"
-    , style "resize" "none"
-    , style "margin" "10px 0"
+    , style "box-sizing" "border-box"
     , style "flex-grow" "1"
-    , style "padding" "10px"
+    , style "resize" "none"
+    , style "outline" "none"
+    , style "border" "none"
+    , style "color" Colors.text
+    , style "background-color" "transparent"
+    , style "max-height" "150px"
+    , style "margin" "10px 0"
     ]
 
 
