@@ -983,6 +983,16 @@ var _ = Describe("Pipelines API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeaccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
 	})
 
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/unpause", func() {
