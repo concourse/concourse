@@ -33,6 +33,7 @@ import Message.Subscription
         , Subscription(..)
         )
 import Routes
+import StrictEvents exposing (DeltaMode(..))
 import Time
 
 
@@ -394,12 +395,23 @@ update msg ( model, effects ) =
     case msg of
         ScrollBuilds event ->
             let
+                scrollFactor =
+                    case event.deltaMode of
+                        DeltaModePixel ->
+                            1
+
+                        DeltaModeLine ->
+                            20
+
+                        DeltaModePage ->
+                            800
+
                 scroll =
                     if event.deltaX == 0 then
-                        [ Scroll (Sideways event.deltaY) historyId ]
+                        [ Scroll (Sideways <| event.deltaY * scrollFactor) historyId ]
 
                     else
-                        [ Scroll (Sideways -event.deltaX) historyId ]
+                        [ Scroll (Sideways <| -event.deltaX * scrollFactor) historyId ]
 
                 checkVisibility =
                     case model.history |> List.Extra.last of

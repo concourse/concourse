@@ -1,5 +1,6 @@
 module StrictEvents exposing
-    ( ScrollState
+    ( DeltaMode(..)
+    , ScrollState
     , WheelEvent
     , onLeftClick
     , onLeftClickNoPreventDefault
@@ -18,6 +19,7 @@ import Json.Decode
 type alias WheelEvent =
     { deltaX : Float
     , deltaY : Float
+    , deltaMode : DeltaMode
     }
 
 
@@ -26,6 +28,12 @@ type alias ScrollState =
     , scrollTop : Float
     , clientHeight : Float
     }
+
+
+type DeltaMode
+    = DeltaModePixel
+    | DeltaModeLine
+    | DeltaModePage
 
 
 onLeftClick : msg -> Html.Attribute msg
@@ -192,9 +200,30 @@ assertLeftButton =
 
 decodeWheelEvent : Json.Decode.Decoder WheelEvent
 decodeWheelEvent =
-    Json.Decode.map2 WheelEvent
+    Json.Decode.map3 WheelEvent
         (Json.Decode.field "deltaX" Json.Decode.float)
         (Json.Decode.field "deltaY" Json.Decode.float)
+        (Json.Decode.field "deltaMode" decodeDeltaMode)
+
+
+decodeDeltaMode : Json.Decode.Decoder DeltaMode
+decodeDeltaMode =
+    Json.Decode.int
+        |> Json.Decode.andThen
+            (\mode ->
+                case mode of
+                    0 ->
+                        Json.Decode.succeed DeltaModePixel
+
+                    1 ->
+                        Json.Decode.succeed DeltaModeLine
+
+                    2 ->
+                        Json.Decode.succeed DeltaModePage
+
+                    _ ->
+                        Json.Decode.fail <| "invalid deltaMode " ++ String.fromInt mode
+            )
 
 
 decodeScrollEvent : Json.Decode.Decoder ScrollState
