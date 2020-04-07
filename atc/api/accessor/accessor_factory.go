@@ -18,16 +18,22 @@ type AccessFactory interface {
 	Create(*http.Request, string) (Access, error)
 }
 
+//go:generate counterfeiter .  TeamFetcher
+
+type TeamFetcher interface {
+	GetTeams() ([]db.Team, error)
+}
+
 func NewAccessFactory(
 	verifier Verifier,
-	teamFactory db.TeamFactory,
+	teamFetcher TeamFetcher,
 	systemClaimKey string,
 	systemClaimValues []string,
 	customRoles map[string]string,
 ) AccessFactory {
 	return &accessFactory{
 		verifier:          verifier,
-		teamFactory:       teamFactory,
+		teamFetcher:       teamFetcher,
 		systemClaimKey:    systemClaimKey,
 		systemClaimValues: systemClaimValues,
 		customRoles:       customRoles,
@@ -36,7 +42,7 @@ func NewAccessFactory(
 
 type accessFactory struct {
 	verifier          Verifier
-	teamFactory       db.TeamFactory
+	teamFetcher       TeamFetcher
 	systemClaimKey    string
 	systemClaimValues []string
 	customRoles       map[string]string
@@ -56,7 +62,7 @@ func (a *accessFactory) Create(r *http.Request, action string) (Access, error) {
 		return NewAccessor(verification, role, a.systemClaimKey, a.systemClaimValues, nil), nil
 	}
 
-	teams, err := a.teamFactory.GetTeams()
+	teams, err := a.teamFetcher.GetTeams()
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +71,6 @@ func (a *accessFactory) Create(r *http.Request, action string) (Access, error) {
 }
 
 func (a *accessFactory) verify(r *http.Request) Verification {
-
 	claims, err := a.verifier.Verify(r)
 	if err != nil {
 		switch err {

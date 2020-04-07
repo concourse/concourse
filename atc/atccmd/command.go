@@ -656,9 +656,11 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
+	cacher := accessor.NewCacher(logger, dbConn.Bus(), teamFactory)
+
 	accessFactory := accessor.NewAccessFactory(
 		cmd.constructTokenVerifier(httpClient),
-		teamFactory,
+		cacher,
 		cmd.SystemClaimKey,
 		cmd.SystemClaimValues,
 		customRoles,
