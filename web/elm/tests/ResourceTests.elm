@@ -1665,11 +1665,6 @@ all =
                             |> Query.has
                                 [ style "flex" "1" ]
                 , describe "has an icon container" <|
-                    let
-                        iconContainer : Application.Model -> Query.Single Msgs.TopLevelMessage
-                        iconContainer =
-                            commentBar >> Query.children [] >> Query.first
-                    in
                     [ test "lays out children horizontally" <|
                         \_ ->
                             init
@@ -1708,15 +1703,6 @@ all =
                                     , style "margin" "10px"
                                     ]
                     , describe "comment pre" <|
-                        let
-                            commentPre : Query.Single Msgs.TopLevelMessage
-                            commentPre =
-                                init
-                                    |> givenResourcePinnedWithComment
-                                    |> iconContainer
-                                    |> Query.children []
-                                    |> Query.index 1
-                        in
                         [ test "displays inline and grows to fill available space" <|
                             \_ ->
                                 commentPre |> Query.has [ style "flex-grow" "1", style "margin" "0" ]
@@ -1729,6 +1715,12 @@ all =
                         , test "has vertical padding" <|
                             \_ ->
                                 commentPre |> Query.has [ style "padding" "10px 0" ]
+                        , test "has a maximum height of 150px" <|
+                            \_ ->
+                                commentPre |> Query.has [ style "max-height" "150px" ]
+                        , test "can scroll vertically" <|
+                            \_ ->
+                                commentPre |> Query.has [ style "overflow-y" "scroll" ]
                         ]
                     , describe "edit button" <|
                         let
@@ -1763,6 +1755,10 @@ all =
                             \_ ->
                                 editButton
                                     |> Query.has [ style "padding" "5px" ]
+                        , test "has margin of 5 px" <|
+                            \_ ->
+                                editButton
+                                    |> Query.has [ style "margin" "5px" ]
                         , test "has a pointer cursor" <|
                             \_ ->
                                 editButton
@@ -1835,13 +1831,6 @@ all =
                                     |> givenResourcePinnedWithComment
                                     |> commentBar
                                     |> Query.find [ tag "textarea" ]
-
-                            whenUserEditsComment =
-                                update (Message.Message.EditComment "foo")
-
-                            givenUserEditedComment =
-                                whenUserEditsComment
-                                    >> Tuple.first
                         in
                         [ test "only shows up when user is authorized and editing" <|
                             \_ ->
@@ -2045,6 +2034,254 @@ all =
                                         |> Tuple.second
                                         |> Expect.equal []
                             ]
+                        ]
+                    , describe "edit and save buttons' wrapper div" <|
+                        let
+                            editSaveWrapper =
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> commentBar
+                                    |> Query.find [ id "edit-save-wrapper" ]
+                        in
+                        [ test "has a fixed width for both buttons" <|
+                            \_ ->
+                                editSaveWrapper
+                                    |> Query.has
+                                        [ style "width" "80px"
+                                        ]
+                        , test "buttons are right aligned in the div" <|
+                            \_ ->
+                                editSaveWrapper
+                                    |> Query.has [ style "display" "flex", style "justify-content" "flex-end" ]
+                        ]
+                    , describe "save button" <|
+                        let
+                            saveButtonUnedited =
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> givenUserClicksEditButton
+                                    |> iconContainer
+                                    |> Query.find [ id "save-button" ]
+
+                            saveButton =
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> givenUserClicksEditButton
+                                    |> givenUserEditedComment
+                                    |> iconContainer
+                                    |> Query.find [ id "save-button" ]
+                        in
+                        [ test "after clicking on edit button, there's a save button" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> givenUserClicksEditButton
+                                    |> iconContainer
+                                    |> Query.has [ id "save-button" ]
+                        , test "has a pointer cursor" <|
+                            \_ ->
+                                saveButton
+                                    |> Query.has [ style "cursor" "pointer" ]
+                        , test "has a white border and nearly white text when the comment has changed" <|
+                            \_ ->
+                                saveButton
+                                    |> Query.has
+                                        [ style "border" "1px solid #ffffff"
+                                        , style "color" "#e6e7e8"
+                                        ]
+                        , test "has a grey border and text when the comment has not changed" <|
+                            \_ ->
+                                saveButtonUnedited
+                                    |> Query.has
+                                        [ style "border" "1px solid #979797"
+                                        , style "color" "#979797"
+                                        ]
+                        , test "has a border and text color transition" <|
+                            \_ ->
+                                saveButton
+                                    |> Query.has [ style "transition" "border 200ms ease, color 200ms ease" ]
+                        , test "has a margin of 10 px" <|
+                            \_ ->
+                                saveButton
+                                    |> Query.has [ style "margin" "10px" ]
+                        , defineHoverBehaviour
+                            { name = "save button"
+                            , setup =
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> givenUserClicksEditButton
+                                    |> givenUserEditedComment
+                            , query = iconContainer >> Query.find [ id "save-button" ]
+                            , unhoveredSelector =
+                                { description = "transparent background"
+                                , selector = [ style "background-color" "transparent" ]
+                                }
+                            , hoverable = Message.Message.SaveCommentButton
+                            , hoveredSelector =
+                                { description = "dark background"
+                                , selector =
+                                    [ style "background-color" almostBlack ]
+                                }
+                            }
+                        , defineHoverBehaviour
+                            { name = "save button without changing comment"
+                            , setup =
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> givenUserClicksEditButton
+                            , query = iconContainer >> Query.find [ id "save-button" ]
+                            , unhoveredSelector =
+                                { description = "transparent background"
+                                , selector = [ style "background-color" "transparent" ]
+                                }
+                            , hoverable = Message.Message.SaveCommentButton
+                            , hoveredSelector =
+                                { description = "transparent background"
+                                , selector = [ style "background-color" "transparent" ]
+                                }
+                            }
+                        , test "button click sends SaveComment msg" <|
+                            \_ ->
+                                saveButton
+                                    |> Event.simulate Event.click
+                                    |> Event.expect
+                                        (Msgs.Update <|
+                                            Message.Message.Click
+                                                Message.Message.SaveCommentButton
+                                        )
+                        , test "SaveComment msg makes API call if comment has changed" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> givenUserEditedComment
+                                    |> update
+                                        (Message.Message.Click Message.Message.SaveCommentButton)
+                                    |> Tuple.second
+                                    |> Common.contains
+                                        (Effects.SetPinComment
+                                            { teamName = teamName
+                                            , pipelineName = pipelineName
+                                            , resourceName = resourceName
+                                            }
+                                            "foo"
+                                        )
+                        , test "SaveComment msg does not make API call if comment has not changed" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> update
+                                        (Message.Message.Click Message.Message.SaveCommentButton)
+                                    |> Tuple.second
+                                    |> Expect.equal []
+                        , describe "button loading state" <|
+                            let
+                                givenCommentSavingInProgress : Application.Model
+                                givenCommentSavingInProgress =
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> givenUserClicksEditButton
+                                        |> givenUserEditedComment
+                                        |> update
+                                            (Message.Message.Click Message.Message.SaveCommentButton)
+                                        |> Tuple.first
+
+                                viewButton : Application.Model -> Query.Single Msgs.TopLevelMessage
+                                viewButton =
+                                    Common.queryView >> Query.find [ id "save-button" ]
+                            in
+                            [ test "shows spinner" <|
+                                \_ ->
+                                    givenCommentSavingInProgress
+                                        |> viewButton
+                                        |> Query.has
+                                            [ style "animation"
+                                                "container-rotate 1568ms linear infinite"
+                                            , style "height" "12px"
+                                            , style "width" "12px"
+                                            ]
+                            , test "clears button text" <|
+                                \_ ->
+                                    givenCommentSavingInProgress
+                                        |> viewButton
+                                        |> Query.hasNot [ text "save" ]
+                            ]
+                        ]
+                    , describe "when saving completes" <|
+                        [ test "on success, leaves editing mode" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> givenUserClicksEditButton
+                                    |> givenUserEditedComment
+                                    |> update
+                                        (Message.Message.Click Message.Message.SaveCommentButton)
+                                    |> Tuple.first
+                                    |> Application.handleCallback (CommentSet <| Ok ())
+                                    |> Tuple.first
+                                    |> iconContainer
+                                    |> Query.hasNot [ id "save-button" ]
+                        , test "on error, stays in editing mode" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> givenUserClicksEditButton
+                                    |> givenUserEditedComment
+                                    |> update
+                                        (Message.Message.Click Message.Message.SaveCommentButton)
+                                    |> Tuple.first
+                                    |> Application.handleCallback (CommentSet <| badResponse)
+                                    |> Tuple.first
+                                    |> iconContainer
+                                    |> Query.has [ id "save-button" ]
+                        , test "on success, refetches data" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> givenUserClicksEditButton
+                                    |> givenUserEditedComment
+                                    |> update
+                                        (Message.Message.Click Message.Message.SaveCommentButton)
+                                    |> Tuple.first
+                                    |> Application.handleCallback (CommentSet <| Ok ())
+                                    |> Tuple.second
+                                    |> Common.contains
+                                        (Effects.FetchResource
+                                            { teamName = teamName
+                                            , pipelineName = pipelineName
+                                            , resourceName = resourceName
+                                            }
+                                        )
+                        , test "on error, refetches data" <|
+                            \_ ->
+                                init
+                                    |> givenUserIsAuthorized
+                                    |> givenResourcePinnedWithComment
+                                    |> givenUserClicksEditButton
+                                    |> givenUserEditedComment
+                                    |> update
+                                        (Message.Message.Click Message.Message.SaveCommentButton)
+                                    |> Tuple.first
+                                    |> Application.handleCallback (CommentSet <| badResponse)
+                                    |> Tuple.second
+                                    |> Common.contains
+                                        (Effects.FetchResource
+                                            { teamName = teamName
+                                            , pipelineName = pipelineName
+                                            , resourceName = resourceName
+                                            }
+                                        )
                         ]
                     ]
                 ]
@@ -2319,6 +2556,16 @@ all =
                                 >> Tuple.first
                                 >> queryView
                                 >> pinBarHasPinnedState version
+                        , test "fills in comment input with default text" <|
+                            onSuccess
+                                >> Tuple.first
+                                >> commentBar
+                                >> Query.find [ tag "textarea" ]
+                                >> Query.has
+                                    [ attribute <|
+                                        Attr.value
+                                            "pinned by some-user at Jan 1 1970 12:00:00 AM"
+                                    ]
                         , test "automatically tries to set comment" <|
                             onSuccess
                                 >> Tuple.second
@@ -3334,6 +3581,26 @@ givenTextareaBlurred =
         >> Tuple.first
 
 
+whenUserEditsComment : Application.Model -> ( Application.Model, List Effects.Effect )
+whenUserEditsComment =
+    update (Message.Message.EditComment "foo")
+
+
+givenUserEditedComment : Application.Model -> Application.Model
+givenUserEditedComment =
+    whenUserEditsComment
+        >> Tuple.first
+
+
+givenUserClicksEditButton : Application.Model -> Application.Model
+givenUserClicksEditButton =
+    update
+        (Message.Message.Click <|
+            Message.Message.EditButton
+        )
+        >> Tuple.first
+
+
 pressEnterKey :
     Application.Model
     -> ( Application.Model, List Effects.Effect )
@@ -3383,6 +3650,20 @@ commentBar : Application.Model -> Query.Single Msgs.TopLevelMessage
 commentBar =
     queryView
         >> Query.find [ id "comment-bar" ]
+
+
+iconContainer : Application.Model -> Query.Single Msgs.TopLevelMessage
+iconContainer =
+    commentBar >> Query.children [] >> Query.first
+
+
+commentPre : Query.Single Msgs.TopLevelMessage
+commentPre =
+    init
+        |> givenResourcePinnedWithComment
+        |> iconContainer
+        |> Query.children []
+        |> Query.index 1
 
 
 versionSelector : String -> List Selector

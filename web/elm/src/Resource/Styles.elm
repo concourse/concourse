@@ -11,6 +11,7 @@ module Resource.Styles exposing
     , commentText
     , commentTextArea
     , editButton
+    , editSaveWrapper
     , enabledCheckbox
     , headerBar
     , headerHeight
@@ -275,35 +276,44 @@ commentText =
     , style "margin" "0"
     , style "outline" "0"
     , style "padding" "10px 0"
+    , style "max-height" "150px"
+    , style "overflow-y" "scroll"
     ]
 
 
 commentSaveButton :
-    { commentChanged : Bool, isHovered : Bool }
+    { isHovered : Bool, commentChanged : Bool, pinCommentLoading : Bool }
     -> List (Html.Attribute msg)
-commentSaveButton { commentChanged, isHovered } =
+commentSaveButton { commentChanged, isHovered, pinCommentLoading } =
     [ style "font-size" "12px"
     , style "font-family" "Inconsolata, monospace"
     , style "font-weight" "700"
     , style "border" <|
         "1px solid "
-            ++ (if commentChanged then
-                    Colors.comment
+            ++ (if commentChanged && not pinCommentLoading then
+                    Colors.white
 
                 else
-                    Colors.background
+                    Colors.buttonDisabledGrey
                )
     , style "background-color" <|
-        if isHovered then
-            Colors.comment
+        if isHovered && commentChanged && not pinCommentLoading then
+            Colors.frame
 
         else
             "transparent"
-    , style "color" Colors.text
+    , style "color" <|
+        if commentChanged && not pinCommentLoading then
+            Colors.text
+
+        else
+            Colors.buttonDisabledGrey
     , style "padding" "5px 10px"
+    , style "margin" "10px"
     , style "outline" "none"
+    , style "transition" "border 200ms ease, color 200ms ease"
     , style "cursor" <|
-        if isHovered then
+        if commentChanged && not pinCommentLoading then
             "pointer"
 
         else
@@ -328,6 +338,7 @@ commentBarIconContainer isEditing =
 editButton : Bool -> List (Html.Attribute msg)
 editButton isHovered =
     [ style "padding" "5px"
+    , style "margin" "5px"
     , style "cursor" "pointer"
     , style "background-color" <|
         if isHovered then
@@ -335,6 +346,14 @@ editButton isHovered =
 
         else
             Colors.pinTools
+    ]
+
+
+editSaveWrapper : List (Html.Attribute msg)
+editSaveWrapper =
+    [ style "width" "80px"
+    , style "display" "flex"
+    , style "justify-content" "flex-end"
     ]
 
 
