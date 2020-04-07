@@ -340,13 +340,6 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 		return false, err
 	}
 
-	if b.jobID != 0 {
-		err = updateNextBuildForJob(tx, b.jobID)
-		if err != nil {
-			return false, err
-		}
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return false, err
@@ -514,12 +507,17 @@ func (b *build) Finish(status BuildStatus) error {
 			return err
 		}
 
-		err = updateLatestCompletedBuildForJob(tx, b.jobID)
+		latestNonRerunID, err := latestCompletedNonRerunBuild(tx, b.jobID)
 		if err != nil {
 			return err
 		}
 
-		err = updateNextBuildForJob(tx, b.jobID)
+		err = updateLatestCompletedBuildForJob(tx, b.jobID, latestNonRerunID)
+		if err != nil {
+			return err
+		}
+
+		err = updateNextBuildForJob(tx, b.jobID, latestNonRerunID)
 		if err != nil {
 			return err
 		}
@@ -1529,8 +1527,16 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 
 func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	var buildID int
+
+	buildVals := make(map[string]interface{})
+	for name, value := range vals {
+		buildVals[name] = value
+	}
+
+	buildVals["needs_v6_migration"] = false
+
 	err := psql.Insert("builds").
-		SetMap(vals).
+		SetMap(buildVals).
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -1564,7 +1570,22 @@ func buildAbortChannel(buildID int) string {
 	return fmt.Sprintf("build_abort_%d", buildID)
 }
 
-func updateNextBuildForJob(tx Tx, jobID int) error {
+func latestCompletedNonRerunBuild(tx Tx, jobID int) (int, error) {
+	var latestNonRerunId int
+	err := latestCompletedBuildQuery.
+		Where(sq.Eq{"job_id": jobID}).
+		Where(sq.Eq{"rerun_of": nil}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&latestNonRerunId)
+	if err != nil && err == sql.ErrNoRows {
+		return 0, nil
+	}
+
+	return latestNonRerunId, nil
+}
+
+func updateNextBuildForJob(tx Tx, jobID int, latestNonRerunId int) error {
 	_, err := tx.Exec(`
 		UPDATE jobs AS j
 		SET next_build_id = (
@@ -1573,30 +1594,19 @@ func updateNextBuildForJob(tx Tx, jobID int) error {
 			INNER JOIN jobs j ON j.id = b.job_id
 			WHERE b.job_id = $1
 			AND b.status IN ('pending', 'started')
-			AND (b.rerun_of IS NULL OR b.rerun_of = j.latest_completed_build_id)
+			AND (b.rerun_of IS NULL OR b.rerun_of = $2)
 		)
 		WHERE j.id = $1
-	`, jobID)
+	`, jobID, latestNonRerunId)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func updateLatestCompletedBuildForJob(tx Tx, jobID int) error {
-	var latestNonRerunId int
-	err := latestCompletedBuildQuery.
-		Where(sq.Eq{"job_id": jobID}).
-		Where(sq.Eq{"rerun_of": nil}).
-		RunWith(tx).
-		QueryRow().
-		Scan(&latestNonRerunId)
-	if err != nil {
-		return err
-	}
-
+func updateLatestCompletedBuildForJob(tx Tx, jobID int, latestNonRerunId int) error {
 	var latestRerunId sql.NullString
-	err = latestCompletedBuildQuery.
+	err := latestCompletedBuildQuery.
 		Where(sq.Eq{"job_id": jobID}).
 		Where(sq.Eq{"rerun_of": latestNonRerunId}).
 		RunWith(tx).

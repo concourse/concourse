@@ -562,8 +562,8 @@ func (j *job) EnsurePendingBuildExists() error {
 	}
 
 	rows, err := tx.Query(`
-		INSERT INTO builds (name, job_id, pipeline_id, team_id, status)
-		SELECT $1, $2, $3, $4, 'pending'
+		INSERT INTO builds (name, job_id, pipeline_id, team_id, status, needs_v6_migration)
+		SELECT $1, $2, $3, $4, 'pending', false
 		WHERE NOT EXISTS
 			(SELECT id FROM builds WHERE job_id = $2 AND status = 'pending')
 		RETURNING id
@@ -587,6 +587,16 @@ func (j *job) EnsurePendingBuildExists() error {
 		}
 
 		err = createBuildEventSeq(tx, buildID)
+		if err != nil {
+			return err
+		}
+
+		latestNonRerunID, err := latestCompletedNonRerunBuild(tx, j.id)
+		if err != nil {
+			return err
+		}
+
+		err = updateNextBuildForJob(tx, j.id, latestNonRerunID)
 		if err != nil {
 			return err
 		}
@@ -617,7 +627,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 			"b.job_id": j.id,
 			"b.status": BuildStatusPending,
 		}).
-		OrderBy("b.id ASC").
+		OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC").
 		RunWith(j.conn).
 		Query()
 	if err != nil {
@@ -665,7 +675,12 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
-	err = updateNextBuildForJob(tx, j.id)
+	latestNonRerunID, err := latestCompletedNonRerunBuild(tx, j.id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = updateNextBuildForJob(tx, j.id, latestNonRerunID)
 	if err != nil {
 		return nil, err
 	}
@@ -730,7 +745,12 @@ func (j *job) tryRerunBuild(buildToRerun Build) (Build, error) {
 		return nil, err
 	}
 
-	err = updateNextBuildForJob(tx, j.id)
+	latestNonRerunID, err := latestCompletedNonRerunBuild(tx, j.id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = updateNextBuildForJob(tx, j.id, latestNonRerunID)
 	if err != nil {
 		return nil, err
 	}

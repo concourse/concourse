@@ -34,6 +34,7 @@ module Colors exposing
     , pendingFaded
     , pinHighlight
     , pinIconHover
+    , pinTools
     , pinned
     , resourceError
     , retryTabText
@@ -48,6 +49,7 @@ module Colors exposing
     , successFaded
     , text
     , tooltipBackground
+    , unknown
     , white
     )
 
@@ -88,6 +90,11 @@ tooltipBackground =
 pinIconHover : String
 pinIconHover =
     "#1e1d1d"
+
+
+pinTools : String
+pinTools =
+    "#2e2c2c"
 
 
 white : String
@@ -133,6 +140,11 @@ pending =
 pendingFaded : String
 pendingFaded =
     "#7a7373"
+
+
+unknown : String
+unknown =
+    "#9b9b9b"
 
 
 failure : String
@@ -315,6 +327,9 @@ statusColor status =
 
         PipelineStatusAborted _ ->
             aborted
+
+        PipelineStatusUnknown ->
+            unknown
 
 
 buildStatusColor : Bool -> BuildStatus -> String

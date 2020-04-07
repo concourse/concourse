@@ -86,13 +86,3 @@ func (u user) create(tx Tx) (User, error) {
 
 	return &user{id: id, name: u.name, connector: u.connector, lastLogin: lastLogin, sub: u.sub}, nil
 }
-
-func (u user) delete(tx Tx) error {
-	_, err := psql.Delete("users").
-		Where(sq.Eq{
-			"id": u.id,
-		}).
-		RunWith(tx).
-		Exec()
-	return err
-}

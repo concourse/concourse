@@ -2,6 +2,7 @@ module ResourceTests exposing (all)
 
 import Application.Application as Application
 import Application.Models exposing (Session)
+import Assets
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -152,6 +153,11 @@ darkGreyHex =
     "#1e1d1d"
 
 
+failureRed : String
+failureRed =
+    "#ed4b35"
+
+
 badResponse : Result Http.Error ()
 badResponse =
     Err <|
@@ -245,7 +251,7 @@ all =
                 init
                     |> Application.subscriptions
                     |> Common.contains (Subscription.OnClockTick FiveSeconds)
-        , test "autorefreshes resource and versions every 5 seconds" <|
+        , test "autorefreshes resource and versions every five seconds" <|
             \_ ->
                 init
                     |> Application.update
@@ -508,8 +514,7 @@ all =
                                                     ++ middleGrey
                                             , containing
                                                 (iconSelector
-                                                    { image =
-                                                        "baseline-chevron-left-24px.svg"
+                                                    { image = Assets.ChevronLeft
                                                     , size = "24px"
                                                     }
                                                     ++ [ style "padding" "5px"
@@ -527,8 +532,7 @@ all =
                                                     ++ middleGrey
                                             , containing
                                                 (iconSelector
-                                                    { image =
-                                                        "baseline-chevron-right-24px.svg"
+                                                    { image = Assets.ChevronRight
                                                     , size = "24px"
                                                     }
                                                     ++ [ style "padding" "5px"
@@ -563,8 +567,7 @@ all =
                                         ++ middleGrey
                                 , containing
                                     (iconSelector
-                                        { image =
-                                            "baseline-chevron-left-24px.svg"
+                                        { image = Assets.ChevronLeft
                                         , size = "24px"
                                         }
                                         ++ [ style "padding" "5px"
@@ -586,8 +589,7 @@ all =
                                         ++ middleGrey
                                 , containing
                                     (iconSelector
-                                        { image =
-                                            "baseline-chevron-left-24px.svg"
+                                        { image = Assets.ChevronLeft
                                         , size = "24px"
                                         }
                                         ++ [ style "padding" "5px"
@@ -631,7 +633,8 @@ all =
         , describe "checkboxes" <|
             let
                 checkIcon =
-                    "url(/public/images/checkmark-ic.svg)"
+                    Assets.backgroundImage <|
+                        Just Assets.CheckmarkIcon
             in
             [ test "there is a checkbox for every version" <|
                 \_ ->
@@ -825,13 +828,6 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-bar" ]
                             |> Query.has [ text version ]
-                , test "then pin bar has purple border" <|
-                    \_ ->
-                        init
-                            |> givenResourcePinnedStatically
-                            |> queryView
-                            |> Query.find [ id "pin-bar" ]
-                            |> Query.has purpleOutlineSelector
                 , test "pin icon on pin bar has default cursor" <|
                     \_ ->
                         init
@@ -1113,6 +1109,25 @@ all =
                             |> Event.simulate Event.mouseEnter
                             |> Event.toResult
                             |> Expect.err
+                , test "pin bar has a white pin icon of size 25 px" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-bar" ]
+                            |> Query.has
+                                (iconSelector
+                                    { size = "25px"
+                                    , image = Assets.PinIconWhite
+                                    }
+                                )
+                , test "pin icon on pin bar has a margin right of 10 px" <|
+                    \_ ->
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+                            |> Query.has [ style "margin-right" "10px" ]
                 , test "pin icon on pin bar has pointer cursor" <|
                     \_ ->
                         init
@@ -1183,7 +1198,7 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-icon" ]
                             |> Query.has [ style "background-color" "transparent" ]
-                , test "pin bar shows unpinned state when upon successful VersionUnpinned msg" <|
+                , test "pin bar is not visible when upon successful VersionUnpinned msg" <|
                     \_ ->
                         init
                             |> givenResourcePinnedDynamically
@@ -1192,7 +1207,8 @@ all =
                             |> Application.handleCallback (Callback.VersionUnpinned (Ok ()))
                             |> Tuple.first
                             |> queryView
-                            |> pinBarHasUnpinnedState
+                            |> Query.findAll [ id "pin-bar" ]
+                            |> Query.count (Expect.equal 0)
                 , test "pin bar shows unpinned state upon receiving failing (VersionUnpinned) msg" <|
                     \_ ->
                         init
@@ -1209,7 +1225,11 @@ all =
                             |> givenResourcePinnedDynamically
                             |> queryView
                             |> Query.find [ id "pin-icon" ]
-                            |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+                            |> Query.has
+                                [ style "background-image" <|
+                                    Assets.backgroundImage <|
+                                        Just Assets.PinIconWhite
+                                ]
                 ]
             , describe "versions list"
                 [ test "version pin states reflect resource pin state" <|
@@ -1572,7 +1592,11 @@ all =
                             |> queryView
                             |> Query.find (versionSelector version)
                             |> Query.find pinButtonSelector
-                            |> Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+                            |> Query.has
+                                [ style "background-image" <|
+                                    Assets.backgroundImage <|
+                                        Just Assets.PinIconWhite
+                                ]
                 , test "does not show tooltip on the pin button on ToggleVersionTooltip" <|
                     \_ ->
                         init
@@ -1734,10 +1758,6 @@ all =
                                         |> Query.has
                                             [ style "align-items" "center" ]
                             , test "has message icon at the left" <|
-                                let
-                                    messageIcon =
-                                        "baseline-message.svg"
-                                in
                                 \_ ->
                                     init
                                         |> givenResourcePinnedWithComment
@@ -1746,19 +1766,14 @@ all =
                                         |> Query.first
                                         |> Query.has
                                             [ style "background-image" <|
-                                                "url(/public/images/"
-                                                    ++ messageIcon
-                                                    ++ ")"
+                                                Assets.backgroundImage <|
+                                                    Just Assets.MessageIcon
                                             , style "background-size" "contain"
                                             , style "width" "24px"
                                             , style "height" "24px"
                                             , style "margin-right" "10px"
                                             ]
                             , test "has pin icon on the right" <|
-                                let
-                                    pinIcon =
-                                        "pin-ic-white.svg"
-                                in
                                 \_ ->
                                     init
                                         |> givenResourcePinnedWithComment
@@ -1767,7 +1782,7 @@ all =
                                         |> Query.index 1
                                         |> Query.has
                                             (iconSelector
-                                                { image = pinIcon
+                                                { image = Assets.PinIconWhite
                                                 , size = "20px"
                                                 }
                                                 ++ [ style "margin-right" "10px" ]
@@ -2410,7 +2425,19 @@ all =
                 ]
             ]
         , describe "given resource is not pinned"
-            [ test "pin comment bar is not visible" <|
+            [ test "pin tool is not visible" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.hasNot [ id "pin-tools" ]
+            , test "pin bar is not visible" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> queryView
+                        |> Query.hasNot [ id "pin-bar" ]
+            , test "pin comment bar is not visible" <|
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
@@ -2532,13 +2559,6 @@ all =
                                     [ style "padding-left" "10px" ]
                             )
                 ]
-            , test "pin icon on pin bar has default cursor" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Query.has defaultCursor
             , test "clicking pin icon on pin bar does nothing" <|
                 \_ ->
                     init
@@ -2654,7 +2674,7 @@ all =
                     , test "pin bar shows unpinned state" <|
                         afterClick
                             >> queryView
-                            >> pinBarHasUnpinnedState
+                            >> pinToolsHasTransitionState
                     , test "autorefresh respects transition state" <|
                         afterClick
                             >> givenResourceIsNotPinned
@@ -2696,13 +2716,6 @@ all =
                                         "pinned by some-user at Jan 1 1970 12:00:00 AM"
                                     ]
                         ]
-                    , test "pin bar shows unpinned state when pinning fails" <|
-                        afterClick
-                            >> Application.handleCallback
-                                (Callback.VersionPinned badResponse)
-                            >> Tuple.first
-                            >> queryView
-                            >> pinBarHasUnpinnedState
                     , test "clicked button shows unpinned state when pinning fails" <|
                         afterClick
                             >> Application.handleCallback
@@ -2714,69 +2727,63 @@ all =
                             >> pinButtonHasUnpinnedState
                     ]
                 ]
-            , test "pin bar expands horizontally to fill available space" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.has [ style "flex-grow" "1" ]
-            , test "pin bar margin causes outline to appear inset from the rest of the secondary top bar" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.has [ style "margin" "10px" ]
-            , test "there is some space between the check age and the pin bar" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.has [ style "padding-left" "7px" ]
-            , test "pin bar lays out contents horizontally, centering them vertically" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.has
-                            [ style "display" "flex"
-                            , style "align-items" "center"
-                            ]
-            , test "pin bar is positioned relatively, to facilitate a tooltip" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-bar" ]
-                        |> Query.has [ style "position" "relative" ]
-            , test "pin icon is a 25px square icon" <|
-                \_ ->
-                    init
-                        |> givenResourceIsNotPinned
-                        |> queryView
-                        |> Query.find [ id "pin-icon" ]
-                        |> Query.has
-                            [ style "background-repeat" "no-repeat"
-                            , style "background-position" "50% 50%"
-                            , style "height" "25px"
-                            , style "width" "25px"
-                            ]
             ]
-        , describe "given versioned resource fetched"
-            [ test "there is a pin button for each version" <|
+        , describe "pin tools" <|
+            let
+                pinTools =
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> queryView
+                        |> Query.find [ id "pin-tools" ]
+            in
+            [ test "has grey background" <|
+                \_ ->
+                    pinTools
+                        |> Query.has [ style "background-color" "#2e2c2c" ]
+            , test "has height of 28 px" <|
+                \_ ->
+                    pinTools
+                        |> Query.has [ style "height" "28px" ]
+            , test "not display check status bar when resources being pinned" <|
+                \_ ->
+                    init
+                        |> givenResourcePinnedDynamically
+                        |> queryView
+                        |> Query.hasNot [ class "resource-check-status" ]
+            , test "only appears when the resource is pinned" <|
                 \_ ->
                     init
                         |> givenResourceIsNotPinned
-                        |> givenVersionsWithoutPagination
                         |> queryView
-                        |> Query.find (versionSelector version)
-                        |> Query.findAll pinButtonSelector
-                        |> Query.count (Expect.equal 1)
+                        |> Query.hasNot [ id "pin-tools" ]
+            , test "has a bottom margin of 24 px" <|
+                \_ ->
+                    pinTools
+                        |> Query.has [ style "margin-bottom" "24px" ]
+            , test "shows a pinned version" <|
+                \_ ->
+                    pinTools
+                        |> Query.has [ text version ]
+            , test "version text vertically centers" <|
+                \_ ->
+                    pinTools
+                        |> Query.has [ style "display" "flex", style "align-items" "center" ]
+            , test "after pinning it has a purple border" <|
+                \_ ->
+                    pinTools
+                        |> Query.has purpleOutlineSelector
+            , test "pin tools size includes its border" <|
+                \_ ->
+                    pinTools
+                        |> Query.has [ style "box-sizing" "border-box" ]
+            , test "contains pin bar on the left" <|
+                \_ ->
+                    pinTools
+                        |> Query.children []
+                        |> Query.index 0
+                        |> Query.has [ id "pin-bar" ]
             ]
-        , describe "check bar" <|
+        , describe "check status" <|
             let
                 checkBar userState =
                     let
@@ -2861,7 +2868,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "0.5"
                                        , style "margin" "4px"
@@ -2880,7 +2887,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "1"
                                        , style "margin" "4px"
@@ -2953,7 +2960,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "0.5"
                                        , style "margin" "4px"
@@ -2972,7 +2979,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "1"
                                        , style "margin" "4px"
@@ -3074,7 +3081,7 @@ all =
                                 , containing <|
                                     iconSelector
                                         { size = "20px"
-                                        , image = "baseline-refresh-24px.svg"
+                                        , image = Assets.RefreshIcon
                                         }
                                         ++ [ style "opacity" "1"
                                            , style "margin" "4px"
@@ -3093,7 +3100,7 @@ all =
                                 , containing <|
                                     iconSelector
                                         { size = "20px"
-                                        , image = "baseline-refresh-24px.svg"
+                                        , image = Assets.RefreshIcon
                                         }
                                         ++ [ style "opacity" "1"
                                            , style "margin" "4px"
@@ -3124,7 +3131,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "28px"
-                                    , image = "ic-success-check.svg"
+                                    , image = Assets.SuccessCheckIcon
                                     }
                                     ++ [ style "background-size" "14px 14px" ]
                                 )
@@ -3201,7 +3208,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "28px"
-                                    , image = "ic-exclamation-triangle.svg"
+                                    , image = Assets.ExclamationTriangleIcon
                                     }
                                     ++ [ style "background-size" "14px 14px" ]
                                 )
@@ -3282,7 +3289,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "0.5"
                                        , style "margin" "4px"
@@ -3300,7 +3307,7 @@ all =
                             , containing <|
                                 iconSelector
                                     { size = "20px"
-                                    , image = "baseline-refresh-24px.svg"
+                                    , image = Assets.RefreshIcon
                                     }
                                     ++ [ style "opacity" "0.5"
                                        , style "margin" "4px"
@@ -3412,7 +3419,7 @@ all =
                         |> Query.has
                             (iconSelector
                                 { size = "28px"
-                                , image = "ic-exclamation-triangle.svg"
+                                , image = Assets.ExclamationTriangleIcon
                                 }
                                 ++ [ style "background-size" "14px 14px"
                                    , containing [ text "some error" ]
@@ -3790,6 +3797,11 @@ purpleOutlineSelector =
     [ style "border" <| "1px solid " ++ purpleHex ]
 
 
+redOutlineSelector : List Selector
+redOutlineSelector =
+    [ style "border" <| "1px solid " ++ failureRed ]
+
+
 findLast : List Selector -> Query.Single msg -> Query.Single msg
 findLast selectors =
     Query.findAll selectors >> Query.index -1
@@ -3816,24 +3828,36 @@ pinButtonHasTransitionState : Query.Single msg -> Expectation
 pinButtonHasTransitionState =
     Expect.all
         [ Query.has loadingSpinnerSelector
-        , Query.hasNot [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+        , Query.hasNot
+            [ style "background-image" <|
+                Assets.backgroundImage <|
+                    Just Assets.PinIconWhite
+            ]
         ]
 
 
 pinButtonHasUnpinnedState : Query.Single msg -> Expectation
 pinButtonHasUnpinnedState =
     Expect.all
-        [ Query.has [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+        [ Query.has
+            [ style "background-image" <|
+                Assets.backgroundImage <|
+                    Just Assets.PinIconWhite
+            ]
         , Query.hasNot purpleOutlineSelector
         ]
 
 
-pinBarHasUnpinnedState : Query.Single msg -> Expectation
-pinBarHasUnpinnedState =
-    Query.find [ id "pin-bar" ]
+pinToolsHasTransitionState : Query.Single msg -> Expectation
+pinToolsHasTransitionState =
+    Query.find [ id "pin-tools" ]
         >> Expect.all
             [ Query.has [ style "border" <| "1px solid " ++ lightGreyHex ]
-            , Query.findAll [ style "background-image" "url(/public/images/pin-ic-grey.svg)" ]
+            , Query.findAll
+                [ style "background-image" <|
+                    Assets.backgroundImage <|
+                        Just Assets.PinIconGrey
+                ]
                 >> Query.count (Expect.equal 1)
             , Query.hasNot [ tag "table" ]
             ]
@@ -3843,9 +3867,12 @@ pinBarHasPinnedState : String -> Query.Single msg -> Expectation
 pinBarHasPinnedState v =
     Query.find [ id "pin-bar" ]
         >> Expect.all
-            [ Query.has [ style "border" <| "1px solid " ++ purpleHex ]
-            , Query.has [ text v ]
-            , Query.findAll [ style "background-image" "url(/public/images/pin-ic-white.svg)" ]
+            [ Query.has [ text v ]
+            , Query.findAll
+                [ style "background-image" <|
+                    Assets.backgroundImage <|
+                        Just Assets.PinIconWhite
+                ]
                 >> Query.count (Expect.equal 1)
             ]
 
@@ -3864,7 +3891,10 @@ checkboxHasTransitionState =
     Expect.all
         [ Query.has loadingSpinnerSelector
         , Query.hasNot
-            [ style "background-image" "url(/public/images/checkmark-ic.svg)" ]
+            [ style "background-image" <|
+                Assets.backgroundImage <|
+                    Just Assets.CheckmarkIcon
+            ]
         ]
 
 
@@ -3873,7 +3903,10 @@ checkboxHasDisabledState =
     Expect.all
         [ Query.hasNot loadingSpinnerSelector
         , Query.hasNot
-            [ style "background-image" "url(/public/images/checkmark-ic.svg)" ]
+            [ style "background-image" <|
+                Assets.backgroundImage <|
+                    Just Assets.CheckmarkIcon
+            ]
         ]
 
 
@@ -3882,7 +3915,10 @@ checkboxHasEnabledState =
     Expect.all
         [ Query.hasNot loadingSpinnerSelector
         , Query.has
-            [ style "background-image" "url(/public/images/checkmark-ic.svg)" ]
+            [ style "background-image" <|
+                Assets.backgroundImage <|
+                    Just Assets.CheckmarkIcon
+            ]
         ]
 
 

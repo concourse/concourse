@@ -65,6 +65,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		// pipeline is public or authorized
 		case atc.GetPipeline,
 			atc.GetJobBuild,
+			atc.PipelineBadge,
+			atc.JobBadge,
 			atc.ListJobs,
 			atc.GetJob,
 			atc.ListJobBuilds,
@@ -93,7 +95,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListTeamBuilds,
 			atc.RenameTeam,
 			atc.DestroyTeam,
-			atc.ListVolumes:
+			atc.ListVolumes,
+			atc.GetUser:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 
 		// unauthenticated / delegating to handler (validate token if provided)
@@ -107,8 +110,6 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListAllJobs,
 			atc.ListAllResources,
 			atc.ListBuilds,
-			atc.PipelineBadge,
-			atc.JobBadge,
 			atc.MainJobBadge,
 			atc.GetWall:
 			newHandler = auth.CheckAuthenticationIfProvidedHandler(handler, rejector)
@@ -157,7 +158,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			panic("you missed a spot")
 		}
 
-		wrapped[name] = auth.CSRFValidationHandler(newHandler, rejector)
+		wrapped[name] = newHandler
 	}
 
 	return wrapped

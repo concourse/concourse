@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -46,19 +47,11 @@ var _ = Describe("AuthenticationHandler", func() {
 		fakeRejector = new(authfakes.FakeRejector)
 		fakeAuditor = new(auditorfakes.FakeAuditor)
 
-		fakeAccessor.CreateReturns(fakeAccess)
+		fakeAccessor.CreateReturns(fakeAccess, nil)
 
 		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "nope", http.StatusUnauthorized)
 		}
-
-		server = httptest.NewServer(accessor.NewHandler(auth.CheckAuthenticationHandler(
-			simpleHandler,
-			fakeRejector,
-		), fakeAccessor,
-			"some-action",
-			fakeAuditor,
-		))
 
 		client = http.DefaultClient
 	})
@@ -71,12 +64,13 @@ var _ = Describe("AuthenticationHandler", func() {
 	Describe("CheckAuthenticationHandler", func() {
 
 		BeforeEach(func() {
-			server = httptest.NewServer(accessor.NewHandler(auth.CheckAuthenticationHandler(
+			server = httptest.NewServer(accessor.NewHandler(logger, auth.CheckAuthenticationHandler(
 				simpleHandler,
 				fakeRejector,
 			), fakeAccessor,
 				"some-action",
 				fakeAuditor,
+				new(dbfakes.FakeUserFactory),
 			))
 		})
 
@@ -123,12 +117,13 @@ var _ = Describe("AuthenticationHandler", func() {
 	Describe("CheckAuthenticationIfProvidedHandler", func() {
 
 		BeforeEach(func() {
-			server = httptest.NewServer(accessor.NewHandler(auth.CheckAuthenticationIfProvidedHandler(
+			server = httptest.NewServer(accessor.NewHandler(logger, auth.CheckAuthenticationIfProvidedHandler(
 				simpleHandler,
 				fakeRejector,
 			), fakeAccessor,
 				"some-action",
 				fakeAuditor,
+				new(dbfakes.FakeUserFactory),
 			))
 		})
 

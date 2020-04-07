@@ -31,7 +31,7 @@ type Container interface {
 	// TODO: get rid of this, its not used anywhere
 	WorkerName() string
 
-	MarkAsHijacked() error
+	UpdateLastHijack() error
 }
 
 type gardenWorkerContainer struct {
@@ -100,8 +100,8 @@ func (container *gardenWorkerContainer) WorkerName() string {
 	return container.workerName
 }
 
-func (container *gardenWorkerContainer) MarkAsHijacked() error {
-	return container.dbContainer.MarkAsHijacked()
+func (container *gardenWorkerContainer) UpdateLastHijack() error {
+	return container.dbContainer.UpdateLastHijack()
 }
 
 func (container *gardenWorkerContainer) Run(ctx context.Context, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {

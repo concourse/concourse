@@ -708,10 +708,10 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
-"@mdi/svg@^4.5.95":
-  version "4.5.95"
-  resolved "https://registry.yarnpkg.com/@mdi/svg/-/svg-4.5.95.tgz#b02ea5ac4e118abdf64fee7af59c7807617f32bd"
-  integrity sha512-CwIV4cc6GB4qcNI8Z/5KSf51rONTQnB6dgF6Uji0Ns9eANzQQ14/cPvCFgJ42xNm+ivw+VXaQ5Ed9y/zcK/iXQ==
+"@mdi/svg@^5.0.45":
+  version "5.0.45"
+  resolved "https://registry.yarnpkg.com/@mdi/svg/-/svg-5.0.45.tgz#4544b114419effd5e1373bf1f07d567c27f44818"
+  integrity sha512-JAsxPV2Um/AxZluJxNnxqgrByQT3wj7f0V0YJI632qUwiU6EDmG1D43FMHlLS5oEPjYB4meiyF4/mPDXqfICSw==
 
 "@webassemblyjs/ast@1.8.5":
   version "1.8.5"
@@ -878,9 +878,9 @@ accepts@~1.3.5:
     negotiator "0.6.2"
 
 acorn@^6.2.1:
-  version "6.4.0"
-  resolved "https://registry.yarnpkg.com/acorn/-/acorn-6.4.0.tgz#b659d2ffbafa24baf5db1cdbb2c94a983ecd2784"
-  integrity sha512-gac8OEcQ2Li1dxIEWGZzsp2BitJxwkwcOm0zHAJLcPJaVvm58FRnk6RkuLRpU1EujipU2ZFODv2P9DLMfnV8mw==
+  version "6.4.1"
+  resolved "https://registry.yarnpkg.com/acorn/-/acorn-6.4.1.tgz#531e58ba3f51b9dacb9a6646ca4debf5b14ca474"
+  integrity sha512-ZVA9k326Nwrj3Cj9jlh3wGFutC2ZornPNARZwsNYqQYgN0EsV2d53w5RN/co65Ohn4sUAUtb1rSUAOD6XN9idA==
 
 agent-base@^4.3.0:
   version "4.3.0"

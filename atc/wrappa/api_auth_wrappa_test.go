@@ -37,91 +37,64 @@ var _ = Describe("APIAuthWrappa", func() {
 	})
 
 	authenticateIfTokenProvided := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			auth.CheckAuthenticationIfProvidedHandler(
-				handler,
-				rejector,
-			),
+		return auth.CheckAuthenticationIfProvidedHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	authenticated := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			auth.CheckAuthenticationHandler(
-				handler,
-				rejector,
-			),
+		return auth.CheckAuthenticationHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	authenticatedAndAdmin := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			auth.CheckAdminHandler(
-				handler,
-				rejector,
-			),
+		return auth.CheckAdminHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	authorized := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			auth.CheckAuthorizationHandler(
-				handler,
-				rejector,
-			),
+		return auth.CheckAuthorizationHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	openForPublicPipelineOrAuthorized := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			fakeCheckPipelineAccessHandlerFactory.HandlerFor(
-				handler,
-				rejector,
-			),
+		return fakeCheckPipelineAccessHandlerFactory.HandlerFor(
+			handler,
 			rejector,
 		)
 	}
 
 	doesNotCheckIfPrivateJob := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			fakeCheckBuildReadAccessHandlerFactory.AnyJobHandler(
-				handler,
-				rejector,
-			),
+		return fakeCheckBuildReadAccessHandlerFactory.AnyJobHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	checksIfPrivateJob := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			fakeCheckBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(
-				handler,
-				rejector,
-			),
+		return fakeCheckBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(
+			handler,
 			rejector,
 		)
 	}
 
 	checkWritePermissionForBuild := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			fakeCheckBuildWriteAccessHandlerFactory.HandlerFor(
-				handler,
-				rejector,
-			),
+		return fakeCheckBuildWriteAccessHandlerFactory.HandlerFor(
+			handler,
 			rejector,
 		)
 	}
 
 	checkTeamAccessForWorker := func(handler http.Handler) http.Handler {
-		return auth.CSRFValidationHandler(
-			fakeCheckWorkerTeamAccessHandlerFactory.HandlerFor(
-				handler,
-				rejector,
-			),
+		return fakeCheckWorkerTeamAccessHandlerFactory.HandlerFor(
+			handler,
 			rejector,
 		)
 	}
@@ -168,6 +141,8 @@ var _ = Describe("APIAuthWrappa", func() {
 				// belongs to public pipeline or authorized
 				atc.GetPipeline:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetPipeline]),
 				atc.GetJobBuild:                   openForPublicPipelineOrAuthorized(inputHandlers[atc.GetJobBuild]),
+				atc.PipelineBadge:                 openForPublicPipelineOrAuthorized(inputHandlers[atc.PipelineBadge]),
+				atc.JobBadge:                      openForPublicPipelineOrAuthorized(inputHandlers[atc.JobBadge]),
 				atc.ListJobs:                      openForPublicPipelineOrAuthorized(inputHandlers[atc.ListJobs]),
 				atc.GetJob:                        openForPublicPipelineOrAuthorized(inputHandlers[atc.GetJob]),
 				atc.ListJobBuilds:                 openForPublicPipelineOrAuthorized(inputHandlers[atc.ListJobBuilds]),
@@ -196,6 +171,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.SetTeam:         authenticated(inputHandlers[atc.SetTeam]),
 				atc.RenameTeam:      authenticated(inputHandlers[atc.RenameTeam]),
 				atc.DestroyTeam:     authenticated(inputHandlers[atc.DestroyTeam]),
+				atc.GetUser:         authenticated(inputHandlers[atc.GetUser]),
 
 				//authenticateIfTokenProvided / delegating to handler
 				atc.GetInfo:              authenticateIfTokenProvided(inputHandlers[atc.GetInfo]),
@@ -208,8 +184,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListAllJobs:          authenticateIfTokenProvided(inputHandlers[atc.ListAllJobs]),
 				atc.ListAllResources:     authenticateIfTokenProvided(inputHandlers[atc.ListAllResources]),
 				atc.ListTeams:            authenticateIfTokenProvided(inputHandlers[atc.ListTeams]),
-				atc.PipelineBadge:        authenticateIfTokenProvided(inputHandlers[atc.PipelineBadge]),
-				atc.JobBadge:             authenticateIfTokenProvided(inputHandlers[atc.JobBadge]),
 				atc.MainJobBadge:         authenticateIfTokenProvided(inputHandlers[atc.MainJobBadge]),
 				atc.GetWall:              authenticateIfTokenProvided(inputHandlers[atc.GetWall]),
 

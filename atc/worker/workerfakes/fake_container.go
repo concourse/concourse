@@ -118,16 +118,6 @@ type FakeContainer struct {
 		result1 garden.ContainerInfo
 		result2 error
 	}
-	MarkAsHijackedStub        func() error
-	markAsHijackedMutex       sync.RWMutex
-	markAsHijackedArgsForCall []struct {
-	}
-	markAsHijackedReturns struct {
-		result1 error
-	}
-	markAsHijackedReturnsOnCall map[int]struct {
-		result1 error
-	}
 	MetricsStub        func() (garden.Metrics, error)
 	metricsMutex       sync.RWMutex
 	metricsArgsForCall []struct {
@@ -292,6 +282,16 @@ type FakeContainer struct {
 	streamOutReturnsOnCall map[int]struct {
 		result1 io.ReadCloser
 		result2 error
+	}
+	UpdateLastHijackStub        func() error
+	updateLastHijackMutex       sync.RWMutex
+	updateLastHijackArgsForCall []struct {
+	}
+	updateLastHijackReturns struct {
+		result1 error
+	}
+	updateLastHijackReturnsOnCall map[int]struct {
+		result1 error
 	}
 	VolumeMountsStub        func() []worker.VolumeMount
 	volumeMountsMutex       sync.RWMutex
@@ -824,58 +824,6 @@ func (fake *FakeContainer) InfoReturnsOnCall(i int, result1 garden.ContainerInfo
 		result1 garden.ContainerInfo
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeContainer) MarkAsHijacked() error {
-	fake.markAsHijackedMutex.Lock()
-	ret, specificReturn := fake.markAsHijackedReturnsOnCall[len(fake.markAsHijackedArgsForCall)]
-	fake.markAsHijackedArgsForCall = append(fake.markAsHijackedArgsForCall, struct {
-	}{})
-	fake.recordInvocation("MarkAsHijacked", []interface{}{})
-	fake.markAsHijackedMutex.Unlock()
-	if fake.MarkAsHijackedStub != nil {
-		return fake.MarkAsHijackedStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.markAsHijackedReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeContainer) MarkAsHijackedCallCount() int {
-	fake.markAsHijackedMutex.RLock()
-	defer fake.markAsHijackedMutex.RUnlock()
-	return len(fake.markAsHijackedArgsForCall)
-}
-
-func (fake *FakeContainer) MarkAsHijackedCalls(stub func() error) {
-	fake.markAsHijackedMutex.Lock()
-	defer fake.markAsHijackedMutex.Unlock()
-	fake.MarkAsHijackedStub = stub
-}
-
-func (fake *FakeContainer) MarkAsHijackedReturns(result1 error) {
-	fake.markAsHijackedMutex.Lock()
-	defer fake.markAsHijackedMutex.Unlock()
-	fake.MarkAsHijackedStub = nil
-	fake.markAsHijackedReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeContainer) MarkAsHijackedReturnsOnCall(i int, result1 error) {
-	fake.markAsHijackedMutex.Lock()
-	defer fake.markAsHijackedMutex.Unlock()
-	fake.MarkAsHijackedStub = nil
-	if fake.markAsHijackedReturnsOnCall == nil {
-		fake.markAsHijackedReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.markAsHijackedReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeContainer) Metrics() (garden.Metrics, error) {
@@ -1683,6 +1631,58 @@ func (fake *FakeContainer) StreamOutReturnsOnCall(i int, result1 io.ReadCloser, 
 	}{result1, result2}
 }
 
+func (fake *FakeContainer) UpdateLastHijack() error {
+	fake.updateLastHijackMutex.Lock()
+	ret, specificReturn := fake.updateLastHijackReturnsOnCall[len(fake.updateLastHijackArgsForCall)]
+	fake.updateLastHijackArgsForCall = append(fake.updateLastHijackArgsForCall, struct {
+	}{})
+	fake.recordInvocation("UpdateLastHijack", []interface{}{})
+	fake.updateLastHijackMutex.Unlock()
+	if fake.UpdateLastHijackStub != nil {
+		return fake.UpdateLastHijackStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.updateLastHijackReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeContainer) UpdateLastHijackCallCount() int {
+	fake.updateLastHijackMutex.RLock()
+	defer fake.updateLastHijackMutex.RUnlock()
+	return len(fake.updateLastHijackArgsForCall)
+}
+
+func (fake *FakeContainer) UpdateLastHijackCalls(stub func() error) {
+	fake.updateLastHijackMutex.Lock()
+	defer fake.updateLastHijackMutex.Unlock()
+	fake.UpdateLastHijackStub = stub
+}
+
+func (fake *FakeContainer) UpdateLastHijackReturns(result1 error) {
+	fake.updateLastHijackMutex.Lock()
+	defer fake.updateLastHijackMutex.Unlock()
+	fake.UpdateLastHijackStub = nil
+	fake.updateLastHijackReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeContainer) UpdateLastHijackReturnsOnCall(i int, result1 error) {
+	fake.updateLastHijackMutex.Lock()
+	defer fake.updateLastHijackMutex.Unlock()
+	fake.UpdateLastHijackStub = nil
+	if fake.updateLastHijackReturnsOnCall == nil {
+		fake.updateLastHijackReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.updateLastHijackReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeContainer) VolumeMounts() []worker.VolumeMount {
 	fake.volumeMountsMutex.Lock()
 	ret, specificReturn := fake.volumeMountsReturnsOnCall[len(fake.volumeMountsArgsForCall)]
@@ -1808,8 +1808,6 @@ func (fake *FakeContainer) Invocations() map[string][][]interface{} {
 	defer fake.handleMutex.RUnlock()
 	fake.infoMutex.RLock()
 	defer fake.infoMutex.RUnlock()
-	fake.markAsHijackedMutex.RLock()
-	defer fake.markAsHijackedMutex.RUnlock()
 	fake.metricsMutex.RLock()
 	defer fake.metricsMutex.RUnlock()
 	fake.netInMutex.RLock()
@@ -1836,6 +1834,8 @@ func (fake *FakeContainer) Invocations() map[string][][]interface{} {
 	defer fake.streamInMutex.RUnlock()
 	fake.streamOutMutex.RLock()
 	defer fake.streamOutMutex.RUnlock()
+	fake.updateLastHijackMutex.RLock()
+	defer fake.updateLastHijackMutex.RUnlock()
 	fake.volumeMountsMutex.RLock()
 	defer fake.volumeMountsMutex.RUnlock()
 	fake.workerNameMutex.RLock()

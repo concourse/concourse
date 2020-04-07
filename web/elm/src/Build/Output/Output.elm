@@ -7,6 +7,7 @@ module Build.Output.Output exposing
     )
 
 import Ansi.Log
+import Api.Endpoints as Endpoints
 import Array
 import Build.Output.Models exposing (OutputModel, OutputState(..))
 import Build.StepTree.Models as StepTree
@@ -84,7 +85,9 @@ planAndResourcesFetched :
 planAndResourcesFetched buildId ( plan, resources ) model =
     let
         url =
-            "/api/v1/builds/" ++ String.fromInt buildId ++ "/events"
+            Endpoints.BuildEventStream
+                |> Endpoints.Build buildId
+                |> Endpoints.toString []
     in
     ( { model
         | steps =

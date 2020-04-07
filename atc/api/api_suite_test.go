@@ -6,7 +6,9 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
+	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/api"
@@ -60,6 +62,7 @@ var (
 	isTLSEnabled            bool
 	cliDownloadsDir         string
 	logger                  *lagertest.TestLogger
+	fakeClock               *fakeclock.FakeClock
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -109,7 +112,7 @@ var _ = BeforeEach(func() {
 
 	fakeAccess = new(accessorfakes.FakeAccess)
 	fakeAccessor = new(accessorfakes.FakeAccessFactory)
-	fakeAccessor.CreateReturns(fakeAccess)
+	fakeAccessor.CreateReturns(fakeAccess, nil)
 
 	fakePipeline = new(dbfakes.FakePipeline)
 	dbTeam.PipelineReturns(fakePipeline, true, nil)
@@ -126,8 +129,10 @@ var _ = BeforeEach(func() {
 	fakeSecretManager = new(credsfakes.FakeSecrets)
 	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 	credsManagers = make(creds.Managers)
-	var err error
 
+	fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
+
+	var err error
 	cliDownloadsDir, err = ioutil.TempDir("", "cli-downloads")
 	Expect(err).NotTo(HaveOccurred())
 
@@ -190,11 +195,22 @@ var _ = BeforeEach(func() {
 		fakeVarSourcePool,
 		credsManagers,
 		interceptTimeoutFactory,
+		time.Second,
 		dbWall,
+		fakeClock,
 	)
 
 	Expect(err).NotTo(HaveOccurred())
-	accessorHandler := accessor.NewHandler(handler, fakeAccessor, "some-action", new(auditorfakes.FakeAuditor))
+
+	accessorHandler := accessor.NewHandler(
+		logger,
+		handler,
+		fakeAccessor,
+		"some-action",
+		new(auditorfakes.FakeAuditor),
+		new(dbfakes.FakeUserFactory),
+	)
+
 	handler = wrappa.LoggerHandler{
 		Logger:  logger,
 		Handler: accessorHandler,
@@ -205,10 +221,6 @@ var _ = BeforeEach(func() {
 	client = &http.Client{
 		Transport: &http.Transport{},
 	}
-})
-
-var _ = JustBeforeEach(func() {
-	fakeAccessor.CreateReturns(fakeAccess)
 })
 
 var _ = AfterEach(func() {

@@ -5,6 +5,7 @@ module Pipeline.Styles exposing
     , pauseToggle
     )
 
+import Assets
 import Colors
 import Concourse.Cli as Cli
 import Html
@@ -60,7 +61,9 @@ cliIcon : Cli.Cli -> List (Html.Attribute msg)
 cliIcon cli =
     [ style "width" "12px"
     , style "height" "12px"
-    , style "background-image" <| Cli.iconUrl cli
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.CliIcon cli)
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "background-size" "contain"

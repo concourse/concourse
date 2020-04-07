@@ -7,6 +7,7 @@ module SideBar.SideBar exposing
     , view
     )
 
+import Assets
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
@@ -122,7 +123,7 @@ handleCallback callback currentPipeline ( model, effects ) =
 handleDelivery : Delivery -> ET (Model m)
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        SideBarStateReceived (Just "true") ->
+        SideBarStateReceived (Ok True) ->
             ( { model | isSideBarOpen = True }, effects )
 
         _ ->
@@ -197,7 +198,7 @@ hamburgerMenu model =
                    )
             )
             [ Icon.icon
-                { sizePx = 54, image = "baseline-menu-24px.svg" }
+                { sizePx = 54, image = Assets.HamburgerMenuIcon }
               <|
                 (Styles.hamburgerIcon <|
                     { isHovered =

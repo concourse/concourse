@@ -350,7 +350,7 @@ handleDeliveryForApplication delivery model =
         NonHrefLinkClicked route ->
             ( model, [ LoadExternal route ] )
 
-        TokenReceived (Just tokenValue) ->
+        TokenReceived (Ok tokenValue) ->
             let
                 session =
                     model.session
@@ -460,6 +460,9 @@ routeMatchesModel route model =
             True
 
         ( Routes.Build _, SubPage.BuildModel _ ) ->
+            True
+
+        ( Routes.OneOffBuild _, SubPage.BuildModel _ ) ->
             True
 
         ( Routes.Job _, SubPage.JobModel _ ) ->

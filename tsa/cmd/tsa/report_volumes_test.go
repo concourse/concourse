@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -33,11 +32,6 @@ var _ = Describe("ReportVolumes", func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/volumes/report", "worker_name=some-worker"),
 						ghttp.VerifyJSONRepresenting([]string{"a", "b"}),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.ListDestroyingVolumes)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsSystem()).To(BeTrue())
-						}),
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					))
 				})
@@ -74,11 +68,6 @@ var _ = Describe("ReportVolumes", func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/volumes/report", "worker_name=some-worker"),
 						ghttp.VerifyJSONRepresenting([]string{"a", "b"}),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.ListDestroyingVolumes)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsSystem()).To(BeTrue())
-						}),
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					))
 				})
@@ -106,11 +95,6 @@ var _ = Describe("ReportVolumes", func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/volumes/report", "worker_name=some-worker"),
 						ghttp.VerifyJSONRepresenting([]string{"a", "b"}),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.ListDestroyingVolumes)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsSystem()).To(BeTrue())
-						}),
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					))
 				})
@@ -132,11 +116,6 @@ var _ = Describe("ReportVolumes", func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/volumes/report", "worker_name=some-worker"),
 						ghttp.VerifyJSONRepresenting([]string{"a", "b"}),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.ListDestroyingVolumes)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsSystem()).To(BeTrue())
-						}),
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					))
 				})
@@ -158,11 +137,6 @@ var _ = Describe("ReportVolumes", func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/volumes/report", "worker_name=some-worker"),
 						ghttp.VerifyJSONRepresenting([]string{"a", "b"}),
-						http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-							accessor := accessFactory.Create(r, atc.ListDestroyingVolumes)
-							Expect(accessor.IsAuthenticated()).To(BeTrue())
-							Expect(accessor.IsSystem()).To(BeTrue())
-						}),
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					))
 				})

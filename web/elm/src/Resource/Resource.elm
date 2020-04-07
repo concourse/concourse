@@ -16,14 +16,16 @@ module Resource.Resource exposing
     )
 
 import Application.Models exposing (Session)
+import Assets
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
     exposing
         ( Page
         , Paginated
-        , chevron
         , chevronContainer
+        , chevronLeft
+        , chevronRight
         , equal
         )
 import DateFormat
@@ -888,7 +890,6 @@ header session model =
         , Html.div
             Resource.Styles.headerLastCheckedSection
             [ lastCheckedView ]
-        , pinBar session model
         , paginationMenu session model
         ]
 
@@ -910,9 +911,14 @@ body session model =
     in
     Html.div
         (id "body" :: Resource.Styles.body)
-        [ checkSection sectionModel
-        , viewVersionedResources session model
-        ]
+    <|
+        (if model.pinnedVersion == NotPinned then
+            [ checkSection sectionModel ]
+
+         else
+            [ pinTools session model ]
+        )
+            ++ [ viewVersionedResources session model ]
 
 
 paginationMenu :
@@ -952,9 +958,8 @@ paginationMenu { hovered } model =
                 Html.div
                     chevronContainer
                     [ Html.div
-                        (chevron
-                            { direction = "left"
-                            , enabled = False
+                        (chevronLeft
+                            { enabled = False
                             , hovered = False
                             }
                         )
@@ -978,9 +983,8 @@ paginationMenu { hovered } model =
                                     }
                          , attribute "aria-label" "Previous Page"
                          ]
-                            ++ chevron
-                                { direction = "left"
-                                , enabled = True
+                            ++ chevronLeft
+                                { enabled = True
                                 , hovered = HoverState.isHovered PreviousPageButton hovered
                                 }
                         )
@@ -991,9 +995,8 @@ paginationMenu { hovered } model =
                 Html.div
                     chevronContainer
                     [ Html.div
-                        (chevron
-                            { direction = "right"
-                            , enabled = False
+                        (chevronRight
+                            { enabled = False
                             , hovered = False
                             }
                         )
@@ -1017,9 +1020,8 @@ paginationMenu { hovered } model =
                                     }
                          , attribute "aria-label" "Next Page"
                          ]
-                            ++ chevron
-                                { direction = "right"
-                                , enabled = True
+                            ++ chevronRight
+                                { enabled = True
                                 , hovered = HoverState.isHovered NextPageButton hovered
                                 }
                         )
@@ -1093,10 +1095,10 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
                         { sizePx = 28
                         , image =
                             if failingToCheck then
-                                "ic-exclamation-triangle.svg"
+                                Assets.ExclamationTriangleIcon
 
                             else
-                                "ic-success-check.svg"
+                                Assets.SuccessCheckIcon
                         }
                         Resource.Styles.checkStatusIcon
 
@@ -1168,7 +1170,7 @@ checkButton ({ hovered, userState, checkStatus } as params) =
         )
         [ Icon.icon
             { sizePx = 20
-            , image = "baseline-refresh-24px.svg"
+            , image = Assets.RefreshIcon
             }
             (Resource.Styles.checkButtonIcon isHighlighted)
         ]
@@ -1203,12 +1205,12 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
                                     Resource.Styles.commentBarIconContainer
                                     [ Icon.icon
                                         { sizePx = 24
-                                        , image = "baseline-message.svg"
+                                        , image = Assets.MessageIcon
                                         }
                                         Resource.Styles.commentBarMessageIcon
                                     , Icon.icon
                                         { sizePx = 20
-                                        , image = "pin-ic-white.svg"
+                                        , image = Assets.PinIconWhite
                                         }
                                         Resource.Styles.commentBarPinIcon
                                     ]
@@ -1275,6 +1277,25 @@ commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommen
             Html.text ""
 
 
+pinTools :
+    { s | hovered : HoverState.HoverState, userState : UserState }
+    ->
+        { b
+            | pinnedVersion : Models.PinnedVersion
+            , resourceIdentifier : Concourse.ResourceIdentifier
+            , pinCommentLoading : Bool
+        }
+    -> Html Message
+pinTools session model =
+    let
+        pinBarVersion =
+            Pinned.stable model.pinnedVersion
+    in
+    Html.div
+        (id "pin-tools" :: Resource.Styles.pinTools (ME.isJust pinBarVersion))
+        [ pinBar session model ]
+
+
 pinBar :
     { a | hovered : HoverState.HoverState }
     -> { b | pinnedVersion : Models.PinnedVersion }
@@ -1310,16 +1331,16 @@ pinBar { hovered } { pinnedVersion } =
             , ( onMouseEnter <| Hover <| Just PinBar, isPinnedStatically )
             , ( onMouseLeave <| Hover Nothing, isPinnedStatically )
             ]
-            ++ Resource.Styles.pinBar (ME.isJust pinBarVersion)
+            ++ Resource.Styles.pinBar
         )
         (Icon.icon
             { sizePx = 25
             , image =
                 if ME.isJust pinBarVersion then
-                    "pin-ic-white.svg"
+                    Assets.PinIconWhite
 
                 else
-                    "pin-ic-grey.svg"
+                    Assets.PinIconGrey
             }
             (attrList
                 [ ( id "pin-icon", True )

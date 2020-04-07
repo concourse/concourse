@@ -1,6 +1,8 @@
 package atccmd
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -45,9 +47,12 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/concourse/concourse/skymarshal"
+	"github.com/concourse/concourse/skymarshal/dexserver"
+	"github.com/concourse/concourse/skymarshal/legacyserver"
 	"github.com/concourse/concourse/skymarshal/skycmd"
+	"github.com/concourse/concourse/skymarshal/skyserver"
 	"github.com/concourse/concourse/skymarshal/storage"
+	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
 	"github.com/concourse/flag"
@@ -62,6 +67,7 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/oauth2"
 
 	// dynamically registered metric emitters
 	_ "github.com/concourse/concourse/atc/metric/emitter"
@@ -83,7 +89,8 @@ var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
 var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
 
-const runnerInterval = 10 * time.Second
+var flyClientID = "fly"
+var flyClientSecret = "Zmx5"
 
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
@@ -130,8 +137,10 @@ type RunCommand struct {
 	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
 	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
-	GlobalResourceCheckTimeout   time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
-	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	ComponentRunnerInterval time.Duration `long:"runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
+
+	GlobalResourceCheckTimeout time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
+	ResourceCheckingInterval   time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
 
 	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
 	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
@@ -162,6 +171,8 @@ type RunCommand struct {
 	Server struct {
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
 		ClusterName   string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
+		ClientID      string `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
+		ClientSecret  string `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
 	} `group:"Web Server"`
 
 	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
@@ -172,6 +183,7 @@ type RunCommand struct {
 
 		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Period after which one-off build containers will be garbage-collected."`
 		MissingGracePeriod     time.Duration `long:"missing-grace-period" default:"5m" description:"Period after which to reap containers and volumes that were created but went missing from the worker."`
+		HijackGracePeriod      time.Duration `long:"hijack-grace-period" default:"10m" description:"Period after which hijacked containers will be garbage collected"`
 		CheckRecyclePeriod     time.Duration `long:"check-recycle-period" default:"1m" description:"Period after which to reap checks that are completed."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
@@ -218,6 +230,9 @@ type RunCommand struct {
 	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 
 	ConfigRBAC string `long:"config-rbac" description:"Customize RBAC role-action mapping."`
+
+	SystemClaimKey    string   `long:"system-claim-key" default:"aud" description:"The token claim key to use when matching system-claim-values"`
+	SystemClaimValues []string `long:"system-claim-value" default:"concourse-worker" description:"Configure which token requests should be considered 'system' requests."`
 }
 
 type Migration struct {
@@ -560,35 +575,25 @@ func (cmd *RunCommand) constructAPIMembers(
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
 ) ([]grouper.Member, error) {
-	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
-	userFactory := db.NewUserFactory(dbConn)
-
-	_, err := teamFactory.CreateDefaultTeamIfNotExists()
-	if err != nil {
-		return nil, err
-	}
-	err = cmd.configureAuthForDefaultTeam(teamFactory)
-	if err != nil {
-		return nil, err
-	}
 
 	httpClient, err := cmd.skyHttpClient()
 	if err != nil {
 		return nil, err
 	}
 
-	authHandler, err := skymarshal.NewServer(&skymarshal.Config{
-		Logger:      logger,
-		TeamFactory: teamFactory,
-		UserFactory: userFactory,
-		Flags:       cmd.Auth.AuthFlags,
-		ExternalURL: cmd.ExternalURL.String(),
-		HTTPClient:  httpClient,
-		Storage:     storage,
-	})
+	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
+
+	_, err = teamFactory.CreateDefaultTeamIfNotExists()
 	if err != nil {
 		return nil, err
 	}
+
+	err = cmd.configureAuthForDefaultTeam(teamFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	userFactory := db.NewUserFactory(dbConn)
 
 	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
@@ -644,7 +649,13 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
-	accessFactory := accessor.NewAccessFactory(authHandler.PublicKey())
+	accessFactory := accessor.NewAccessFactory(
+		cmd.constructTokenVerifier(httpClient),
+		teamFactory,
+		cmd.SystemClaimKey,
+		cmd.SystemClaimValues,
+	)
+
 	customActionRoleMap := accessor.CustomActionRoleMap{}
 	err = accessor.ParseCustomActionRoleMap(cmd.ConfigRBAC, &customActionRoleMap)
 	if err != nil {
@@ -654,6 +665,8 @@ func (cmd *RunCommand) constructAPIMembers(
 	if err != nil {
 		return nil, fmt.Errorf("failed to customize RBAC: %s", err.Error())
 	}
+
+	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
 
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
@@ -676,12 +689,35 @@ func (cmd *RunCommand) constructAPIMembers(
 		accessFactory,
 		dbWall,
 	)
-
 	if err != nil {
 		return nil, err
 	}
 
-	webHandler, err := webHandler(logger)
+	webHandler, err := cmd.constructWebHandler(logger)
+	if err != nil {
+		return nil, err
+	}
+
+	authHandler, err := cmd.constructAuthHandler(
+		logger,
+		storage,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	loginHandler, err := cmd.constructLoginHandler(
+		logger,
+		httpClient,
+		middleware,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	legacyHandler, err := cmd.constructLegacyHandler(
+		logger,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -711,6 +747,17 @@ func (cmd *RunCommand) constructAPIMembers(
 				externalHost:  cmd.ExternalURL.URL.Host,
 				baseHandler:   authHandler,
 			},
+			tlsRedirectHandler{
+				matchHostname: cmd.ExternalURL.URL.Hostname(),
+				externalHost:  cmd.ExternalURL.URL.Host,
+				baseHandler:   loginHandler,
+			},
+			tlsRedirectHandler{
+				matchHostname: cmd.ExternalURL.URL.Hostname(),
+				externalHost:  cmd.ExternalURL.URL.Host,
+				baseHandler:   legacyHandler,
+			},
+			middleware,
 		)
 
 		httpsHandler = cmd.constructHTTPHandler(
@@ -718,6 +765,9 @@ func (cmd *RunCommand) constructAPIMembers(
 			webHandler,
 			apiHandler,
 			authHandler,
+			loginHandler,
+			legacyHandler,
+			middleware,
 		)
 	} else {
 		httpHandler = cmd.constructHTTPHandler(
@@ -725,6 +775,9 @@ func (cmd *RunCommand) constructAPIMembers(
 			webHandler,
 			apiHandler,
 			authHandler,
+			loginHandler,
+			legacyHandler,
+			middleware,
 		)
 	}
 
@@ -869,7 +922,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbCheckFactory,
 				engine,
 			),
-			runnerInterval,
+			cmd.ComponentRunnerInterval,
 			bus,
 			lockFactory,
 			componentFactory,
@@ -892,7 +945,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				},
 				cmd.JobSchedulingMaxInFlight,
 			),
-			10*time.Second,
+			cmd.ComponentRunnerInterval,
 		)},
 		{Name: atc.ComponentBuildTracker, Runner: builds.NewRunner(
 			logger.Session("tracker-runner"),
@@ -902,7 +955,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				dbBuildFactory,
 				engine,
 			),
-			runnerInterval,
+			cmd.ComponentRunnerInterval,
 			bus,
 			lockFactory,
 			componentFactory,
@@ -925,7 +978,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			lockFactory,
 			componentFactory,
 			clock.NewClock(),
-			runnerInterval,
+			cmd.ComponentRunnerInterval,
 		)},
 	}
 
@@ -944,7 +997,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				lockFactory,
 				componentFactory,
 				clock.NewClock(),
-				runnerInterval,
+				cmd.ComponentRunnerInterval,
 			)},
 		)
 	}
@@ -969,52 +1022,9 @@ func (cmd *RunCommand) constructGCMember(
 	dbCheckLifecycle := db.NewCheckLifecycle(gcConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
 	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	resourceFactory := resource.NewResourceFactory()
-	dbResourceCacheFactory := db.NewResourceCacheFactory(gcConn, lockFactory)
-	fetchSourceFactory := worker.NewFetchSourceFactory(dbResourceCacheFactory)
-	resourceFetcher := worker.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
-	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		resourceFactory,
-		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		resourceFetcher,
-	)
 
-	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(gcConn)
-	dbTaskCacheFactory := db.NewTaskCacheFactory(gcConn)
-	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(gcConn)
 	dbVolumeRepository := db.NewVolumeRepository(gcConn)
-	dbWorkerFactory := db.NewWorkerFactory(gcConn)
-	workerVersion, err := workerVersion()
-	if err != nil {
-		return members, err
-	}
-
-	teamFactory := db.NewTeamFactory(gcConn, lockFactory)
-	workerProvider := worker.NewDBWorkerProvider(
-		lockFactory,
-		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
-		resourceFetcher,
-		image.NewImageFactory(imageResourceFetcherFactory),
-		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		dbWorkerBaseResourceTypeFactory,
-		dbTaskCacheFactory,
-		dbWorkerTaskCacheFactory,
-		dbVolumeRepository,
-		teamFactory,
-		dbWorkerFactory,
-		workerVersion,
-		cmd.BaggageclaimResponseHeaderTimeout,
-		cmd.GardenRequestTimeout,
-	)
-
-	jobRunner := gc.NewWorkerJobRunner(
-		logger.Session("container-collector-worker-job-runner"),
-		workerProvider,
-		time.Minute,
-	)
 
 	collectors := map[string]lockrunner.Task{
 		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
@@ -1025,7 +1035,7 @@ func (cmd *RunCommand) constructGCMember(
 		atc.ComponentCollectorArtifacts:         gc.NewArtifactCollector(dbArtifactLifecycle),
 		atc.ComponentCollectorChecks:            gc.NewCheckCollector(dbCheckLifecycle, cmd.GC.CheckRecyclePeriod),
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
-		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, jobRunner, cmd.GC.MissingGracePeriod),
+		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, cmd.GC.MissingGracePeriod, cmd.GC.HijackGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
 		atc.ComponentCollectorVarSources:        gc.NewCollectorTask(cmd.varSourcePool.(gc.Collector)),
 	}
@@ -1039,7 +1049,7 @@ func (cmd *RunCommand) constructGCMember(
 				lockFactory,
 				componentFactory,
 				clock.NewClock(),
-				runnerInterval,
+				cmd.ComponentRunnerInterval,
 			)},
 		)
 	}
@@ -1106,7 +1116,7 @@ func (cmd *RunCommand) oldKey() *encryption.Key {
 	return oldKey
 }
 
-func webHandler(logger lager.Logger) (http.Handler, error) {
+func (cmd *RunCommand) constructWebHandler(logger lager.Logger) (http.Handler, error) {
 	webHandler, err := web.NewHandler(logger)
 	if err != nil {
 		return nil, err
@@ -1499,13 +1509,23 @@ func (cmd *RunCommand) constructHTTPHandler(
 	webHandler http.Handler,
 	apiHandler http.Handler,
 	authHandler http.Handler,
+	loginHandler http.Handler,
+	legacyHandler http.Handler,
+	middleware token.Middleware,
 ) http.Handler {
+
+	csrfHandler := auth.CSRFValidationHandler(
+		apiHandler,
+		middleware,
+	)
+
 	webMux := http.NewServeMux()
-	webMux.Handle("/api/v1/", apiHandler)
-	webMux.Handle("/sky/", authHandler)
-	webMux.Handle("/auth/", authHandler)
-	webMux.Handle("/login", authHandler)
-	webMux.Handle("/logout", authHandler)
+	webMux.Handle("/api/v1/", csrfHandler)
+	webMux.Handle("/sky/issuer/", authHandler)
+	webMux.Handle("/sky/", loginHandler)
+	webMux.Handle("/auth/", legacyHandler)
+	webMux.Handle("/login", legacyHandler)
+	webMux.Handle("/logout", legacyHandler)
 	webMux.Handle("/", webHandler)
 
 	httpHandler := wrappa.LoggerHandler{
@@ -1517,12 +1537,112 @@ func (cmd *RunCommand) constructHTTPHandler(
 			// proxy Authorization header to/from auth cookie,
 			// to support auth from JS (EventSource) and custom JWT auth
 			Handler: auth.WebAuthHandler{
-				Handler: webMux,
+				Handler:    webMux,
+				Middleware: middleware,
 			},
 		},
 	}
 
 	return httpHandler
+}
+
+func (cmd *RunCommand) constructLegacyHandler(
+	logger lager.Logger,
+) (http.Handler, error) {
+	return legacyserver.NewLegacyServer(&legacyserver.LegacyConfig{
+		Logger: logger.Session("legacy"),
+	})
+}
+
+func (cmd *RunCommand) constructAuthHandler(
+	logger lager.Logger,
+	storage storage.Storage,
+) (http.Handler, error) {
+
+	issuerPath, _ := url.Parse("/sky/issuer")
+	redirectPath, _ := url.Parse("/sky/callback")
+
+	issuerURL := cmd.ExternalURL.URL.ResolveReference(issuerPath)
+	redirectURL := cmd.ExternalURL.URL.ResolveReference(redirectPath)
+
+	signingKey, err := loadOrGenerateSigningKey(cmd.Auth.AuthFlags.SigningKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add public fly client
+	cmd.Auth.AuthFlags.Clients[flyClientID] = flyClientSecret
+
+	dexServer, err := dexserver.NewDexServer(&dexserver.DexConfig{
+		Logger:      logger.Session("dex"),
+		Users:       cmd.Auth.AuthFlags.LocalUsers,
+		Clients:     cmd.Auth.AuthFlags.Clients,
+		Expiration:  cmd.Auth.AuthFlags.Expiration,
+		IssuerURL:   issuerURL.String(),
+		RedirectURL: redirectURL.String(),
+		WebHostURL:  "/sky/issuer",
+		SigningKey:  signingKey,
+		Storage:     storage,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return dexServer, nil
+}
+
+func (cmd *RunCommand) constructLoginHandler(
+	logger lager.Logger,
+	httpClient *http.Client,
+	middleware token.Middleware,
+) (http.Handler, error) {
+
+	authPath, _ := url.Parse("/sky/issuer/auth")
+	tokenPath, _ := url.Parse("/sky/issuer/token")
+	redirectPath, _ := url.Parse("/sky/callback")
+
+	authURL := cmd.ExternalURL.URL.ResolveReference(authPath)
+	tokenURL := cmd.ExternalURL.URL.ResolveReference(tokenPath)
+	redirectURL := cmd.ExternalURL.URL.ResolveReference(redirectPath)
+
+	endpoint := oauth2.Endpoint{
+		AuthURL:   authURL.String(),
+		TokenURL:  tokenURL.String(),
+		AuthStyle: oauth2.AuthStyleInHeader,
+	}
+
+	oauth2Config := &oauth2.Config{
+		Endpoint:     endpoint,
+		ClientID:     cmd.Server.ClientID,
+		ClientSecret: cmd.Server.ClientSecret,
+		RedirectURL:  redirectURL.String(),
+		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
+	}
+
+	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
+		Logger:          logger.Session("sky"),
+		TokenMiddleware: middleware,
+		OAuthConfig:     oauth2Config,
+		HTTPClient:      httpClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return skyserver.NewSkyHandler(skyServer), nil
+}
+
+func (cmd *RunCommand) constructTokenVerifier(httpClient *http.Client) accessor.Verifier {
+
+	publicKeyPath, _ := url.Parse("/sky/issuer/keys")
+	publicKeyURL := cmd.ExternalURL.URL.ResolveReference(publicKeyPath)
+
+	validClients := []string{flyClientID}
+	for clientId, _ := range cmd.Auth.AuthFlags.Clients {
+		validClients = append(validClients, clientId)
+	}
+
+	return accessor.NewVerifier(httpClient, publicKeyURL, validClients)
 }
 
 func (cmd *RunCommand) constructAPIHandler(
@@ -1573,7 +1693,7 @@ func (cmd *RunCommand) constructAPIHandler(
 			checkWorkerTeamAccessHandlerFactory,
 		),
 		wrappa.NewConcourseVersionWrappa(concourse.Version),
-		wrappa.NewAccessorWrappa(accessFactory, aud),
+		wrappa.NewAccessorWrappa(logger, accessFactory, aud, dbUserFactory),
 		wrappa.NewCompressionWrappa(logger),
 	}
 
@@ -1611,7 +1731,9 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.varSourcePool,
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
+		time.Minute,
 		dbWall,
+		clock.NewClock(),
 	)
 }
 
@@ -1666,4 +1788,12 @@ func (cmd *RunCommand) appendStaticWorker(
 
 func (cmd *RunCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
+}
+
+func loadOrGenerateSigningKey(keyFlag *flag.PrivateKey) (*rsa.PrivateKey, error) {
+	if keyFlag != nil && keyFlag.PrivateKey != nil {
+		return keyFlag.PrivateKey, nil
+	}
+
+	return rsa.GenerateKey(rand.Reader, 2048)
 }

@@ -78,10 +78,10 @@ instance_groups:
     name: worker
     properties:
       log_level: debug
-
       worker_gateway:
         worker_key: ((worker_key))
-
+      baggageclaim:
+        driver: overlay
       # prevent tests from hanging forever
       drain_timeout: 10m
 

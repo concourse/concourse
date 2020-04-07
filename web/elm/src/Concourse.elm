@@ -57,6 +57,11 @@ module Concourse exposing
     , decodeUser
     , decodeVersion
     , decodeVersionedResource
+    , emptyBuildResources
+    , encodeBuild
+    , encodeJob
+    , encodePipeline
+    , encodeTeam
     , retrieveCSRFToken
     )
 
@@ -167,6 +172,33 @@ type alias BuildDuration =
     }
 
 
+encodeBuild : Build -> Json.Encode.Value
+encodeBuild build =
+    Json.Encode.object
+        ([ ( "id", build.id |> Json.Encode.int ) |> Just
+         , ( "name", build.name |> Json.Encode.string ) |> Just
+         , optionalField "team_name" Json.Encode.string (build.job |> Maybe.map .teamName)
+         , optionalField "pipeline_name" Json.Encode.string (build.job |> Maybe.map .pipelineName)
+         , optionalField "job_name" Json.Encode.string (build.job |> Maybe.map .jobName)
+         , ( "status", build.status |> Concourse.BuildStatus.encodeBuildStatus ) |> Just
+         , optionalField "start_time" (secondsFromDate >> Json.Encode.int) build.duration.startedAt
+         , optionalField "end_time" (secondsFromDate >> Json.Encode.int) build.duration.finishedAt
+         , optionalField "reap_time" (secondsFromDate >> Json.Encode.int) build.reapTime
+         ]
+            |> List.filterMap identity
+        )
+
+
+encodeMaybeBuild : Maybe Build -> Json.Encode.Value
+encodeMaybeBuild maybeBuild =
+    case maybeBuild of
+        Nothing ->
+            Json.Encode.null
+
+        Just build ->
+            encodeBuild build
+
+
 decodeBuild : Json.Decode.Decoder Build
 decodeBuild =
     Json.Decode.succeed Build
@@ -258,6 +290,13 @@ type alias BuildResourcesInput =
 type alias BuildResourcesOutput =
     { name : String
     , version : Version
+    }
+
+
+emptyBuildResources : BuildResources
+emptyBuildResources =
+    { inputs = []
+    , outputs = []
     }
 
 
@@ -536,8 +575,7 @@ type alias JobIdentifier =
 
 
 type alias Job =
-    { pipeline : PipelineIdentifier
-    , name : JobName
+    { name : JobName
     , pipelineName : PipelineName
     , teamName : TeamName
     , nextBuild : Maybe Build
@@ -565,9 +603,27 @@ type alias JobOutput =
     }
 
 
-decodeJob : PipelineIdentifier -> Json.Decode.Decoder Job
-decodeJob pi =
-    Json.Decode.succeed (Job pi)
+encodeJob : Job -> Json.Encode.Value
+encodeJob job =
+    Json.Encode.object
+        [ ( "name", job.name |> Json.Encode.string )
+        , ( "pipeline_name", job.pipelineName |> Json.Encode.string )
+        , ( "team_name", job.teamName |> Json.Encode.string )
+        , ( "next_build", job.nextBuild |> encodeMaybeBuild )
+        , ( "finished_build", job.finishedBuild |> encodeMaybeBuild )
+        , ( "transition_build", job.finishedBuild |> encodeMaybeBuild )
+        , ( "paused", job.paused |> Json.Encode.bool )
+        , ( "disable_manual_trigger", job.paused |> Json.Encode.bool )
+        , ( "disable_manual_trigger", job.disableManualTrigger |> Json.Encode.bool )
+        , ( "inputs", job.inputs |> Json.Encode.list encodeJobInput )
+        , ( "outputs", job.outputs |> Json.Encode.list encodeJobOutput )
+        , ( "groups", job.groups |> Json.Encode.list Json.Encode.string )
+        ]
+
+
+decodeJob : Json.Decode.Decoder Job
+decodeJob =
+    Json.Decode.succeed Job
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
@@ -581,6 +637,16 @@ decodeJob pi =
         |> andMap (defaultTo [] <| Json.Decode.field "groups" <| Json.Decode.list Json.Decode.string)
 
 
+encodeJobInput : JobInput -> Json.Encode.Value
+encodeJobInput jobInput =
+    Json.Encode.object
+        [ ( "name", jobInput.name |> Json.Encode.string )
+        , ( "resource", jobInput.resource |> Json.Encode.string )
+        , ( "passed", jobInput.passed |> Json.Encode.list Json.Encode.string )
+        , ( "trigger", jobInput.trigger |> Json.Encode.bool )
+        ]
+
+
 decodeJobInput : Json.Decode.Decoder JobInput
 decodeJobInput =
     Json.Decode.succeed JobInput
@@ -588,6 +654,14 @@ decodeJobInput =
         |> andMap (Json.Decode.field "resource" Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "passed" <| Json.Decode.list Json.Decode.string)
         |> andMap (defaultTo False <| Json.Decode.field "trigger" Json.Decode.bool)
+
+
+encodeJobOutput : JobOutput -> Json.Encode.Value
+encodeJobOutput jobOutput =
+    Json.Encode.object
+        [ ( "name", jobOutput.name |> Json.Encode.string )
+        , ( "resource", jobOutput.resource |> Json.Encode.string )
+        ]
 
 
 decodeJobOutput : Json.Decode.Decoder JobOutput
@@ -628,6 +702,18 @@ type alias PipelineGroup =
     }
 
 
+encodePipeline : Pipeline -> Json.Encode.Value
+encodePipeline pipeline =
+    Json.Encode.object
+        [ ( "id", pipeline.id |> Json.Encode.int )
+        , ( "name", pipeline.name |> Json.Encode.string )
+        , ( "paused", pipeline.paused |> Json.Encode.bool )
+        , ( "public", pipeline.public |> Json.Encode.bool )
+        , ( "team_name", pipeline.teamName |> Json.Encode.string )
+        , ( "groups", pipeline.groups |> Json.Encode.list encodePipelineGroup )
+        ]
+
+
 decodePipeline : Json.Decode.Decoder Pipeline
 decodePipeline =
     Json.Decode.succeed Pipeline
@@ -637,6 +723,15 @@ decodePipeline =
         |> andMap (Json.Decode.field "public" Json.Decode.bool)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "groups" (Json.Decode.list decodePipelineGroup))
+
+
+encodePipelineGroup : PipelineGroup -> Json.Encode.Value
+encodePipelineGroup pipelineGroup =
+    Json.Encode.object
+        [ ( "name", pipelineGroup.name |> Json.Encode.string )
+        , ( "jobs", pipelineGroup.jobs |> Json.Encode.list Json.Encode.string )
+        , ( "resources", pipelineGroup.resources |> Json.Encode.list Json.Encode.string )
+        ]
 
 
 decodePipelineGroup : Json.Decode.Decoder PipelineGroup
@@ -822,6 +917,14 @@ type alias Team =
     }
 
 
+encodeTeam : Team -> Json.Encode.Value
+encodeTeam team =
+    Json.Encode.object
+        [ ( "id", team.id |> Json.Encode.int )
+        , ( "name", team.name |> Json.Encode.string )
+        ]
+
+
 decodeTeam : Json.Decode.Decoder Team
 decodeTeam =
     Json.Decode.succeed Team
@@ -880,6 +983,11 @@ dateFromSeconds =
     Time.millisToPosix << (*) 1000
 
 
+secondsFromDate : Time.Posix -> Int
+secondsFromDate =
+    Time.posixToMillis >> (\m -> m // 1000)
+
+
 lazy : (() -> Json.Decode.Decoder a) -> Json.Decode.Decoder a
 lazy thunk =
     customDecoder Json.Decode.value
@@ -903,3 +1011,8 @@ customDecoder decoder toResult =
                     Json.Decode.fail <| Json.Decode.errorToString err
         )
         decoder
+
+
+optionalField : String -> (a -> Json.Encode.Value) -> Maybe a -> Maybe ( String, Json.Encode.Value )
+optionalField field encoder =
+    Maybe.map (\val -> ( field, encoder val ))

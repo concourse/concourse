@@ -2,6 +2,7 @@ module SideBar.PipelineTests exposing (all)
 
 import Colors
 import Common
+import Data
 import Expect
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
@@ -112,13 +113,7 @@ pipeline { active, hovered } =
 
 
 singlePipeline =
-    { id = 1
-    , name = "pipeline"
-    , paused = False
-    , public = True
-    , teamName = "team"
-    , groups = []
-    }
+    Data.pipeline "team" 0 |> Data.withName "pipeline"
 
 
 pipelineIcon : Html Message -> Query.Single Message

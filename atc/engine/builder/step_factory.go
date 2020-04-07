@@ -112,6 +112,7 @@ func (factory *stepFactory) CheckStep(
 		worker.NewRandomPlacementStrategy(),
 		factory.pool,
 		delegate,
+		factory.client,
 	)
 
 	return checkStep

@@ -9,8 +9,6 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
-// requiredRoles should be a const, never be updated.
-const System = "system"
 const (
 	MemberRole   = "member"
 	OwnerRole    = "owner"
@@ -18,6 +16,7 @@ const (
 	ViewerRole   = "viewer"
 )
 
+// requiredRoles should be a const, never be updated.
 var requiredRoles = map[string]string{
 	atc.SaveConfig:                    MemberRole,
 	atc.GetConfig:                     ViewerRole,

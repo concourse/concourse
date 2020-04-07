@@ -2,6 +2,7 @@ module SideBarTests exposing (all)
 
 import Browser.Dom
 import Common
+import Data
 import Expect
 import HoverState
 import Message.Callback as Callback exposing (TooltipPolicy(..))
@@ -40,14 +41,7 @@ model =
     { expandedTeams = Set.fromList [ "team" ]
     , pipelines =
         RemoteData.Success
-            [ { id = 0
-              , name = "pipeline"
-              , paused = False
-              , public = True
-              , teamName = "team"
-              , groups = []
-              }
-            ]
+            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
     , hovered = HoverState.NoHover
     , isSideBarOpen = True
     , screenSize = ScreenSize.Desktop

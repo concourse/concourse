@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -112,7 +113,10 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("creates a started build", func() {
@@ -242,7 +246,10 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns Content-Type 'application/json'", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
 				It("returns all builds", func() {
@@ -366,7 +373,10 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns Content-Type 'application/json'", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
 				It("returns all builds", func() {
@@ -441,7 +451,6 @@ var _ = Describe("Builds API", func() {
 
 		Context("when parsing the build_id fails", func() {
 			BeforeEach(func() {
-				fakeAccessor.CreateReturns(fakeAccess)
 				var err error
 
 				response, err = client.Get(server.URL + "/api/v1/builds/nope")
@@ -561,7 +570,10 @@ var _ = Describe("Builds API", func() {
 						})
 
 						It("returns Content-Type 'application/json'", func() {
-							Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+							expectedHeaderEntries := map[string]string{
+								"Content-Type": "application/json",
+							}
+							Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 						})
 
 						It("returns the build with the given build_id", func() {
@@ -698,7 +710,10 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("returns the build with it's input and output versioned resources", func() {
@@ -1196,7 +1211,10 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns Content-Type 'application/json'", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
 				It("returns the build preparation", func() {
@@ -1410,7 +1428,10 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("returns the plan", func() {
@@ -1430,7 +1451,10 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns no Content-Type header", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal(""))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "",
+						}
+						Expect(response).ShouldNot(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("returns not found", func() {

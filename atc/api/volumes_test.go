@@ -9,9 +9,9 @@ import (
 	"net/url"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,10 +20,8 @@ import (
 var _ = Describe("Volumes API", func() {
 
 	var fakeWorker *dbfakes.FakeWorker
-	var fakeaccess *accessorfakes.FakeAccess
 
 	BeforeEach(func() {
-		fakeaccess = new(accessorfakes.FakeAccess)
 		fakeWorker = new(dbfakes.FakeWorker)
 		fakeWorker.NameReturns("some-worker")
 	})
@@ -32,8 +30,6 @@ var _ = Describe("Volumes API", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
-			fakeAccessor.CreateReturns(fakeaccess)
-
 			var err error
 			response, err = client.Get(server.URL + "/api/v1/teams/a-team/volumes")
 			Expect(err).NotTo(HaveOccurred())
@@ -41,7 +37,7 @@ var _ = Describe("Volumes API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -51,8 +47,8 @@ var _ = Describe("Volumes API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when identifying the team succeeds", func() {
@@ -61,7 +57,7 @@ var _ = Describe("Volumes API", func() {
 				})
 
 				It("receives correct team name as function argument", func() {
-					Expect(fakeaccess.IsAuthorizedArgsForCall(0)).To(Equal("a-team"))
+					Expect(fakeAccess.IsAuthorizedArgsForCall(0)).To(Equal("a-team"))
 				})
 
 				It("asks the factory for the volumes", func() {
@@ -133,7 +129,10 @@ var _ = Describe("Volumes API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("returns all volumes", func() {
@@ -284,7 +283,10 @@ var _ = Describe("Volumes API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 				})
 			})
@@ -303,15 +305,13 @@ var _ = Describe("Volumes API", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			fakeAccessor.CreateReturns(fakeaccess)
-
 			response, err = client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -321,8 +321,8 @@ var _ = Describe("Volumes API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsSystemReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsSystemReturns(true)
 			})
 
 			Context("when worker name is in params", func() {
@@ -411,7 +411,6 @@ var _ = Describe("Volumes API", func() {
 			`)
 		})
 		JustBeforeEach(func() {
-			fakeAccessor.CreateReturns(fakeaccess)
 			req, err = http.NewRequest("PUT", server.URL+"/api/v1/volumes/report", body)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
@@ -419,7 +418,7 @@ var _ = Describe("Volumes API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401 Unauthorized", func() {
@@ -431,8 +430,8 @@ var _ = Describe("Volumes API", func() {
 
 		Context("when authenticated as system", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsSystemReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsSystemReturns(true)
 			})
 
 			Context("with no params", func() {
@@ -447,7 +446,10 @@ var _ = Describe("Volumes API", func() {
 					response, err = client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 			})
 

@@ -7,15 +7,17 @@ module Dashboard.SearchBar exposing
 
 import Application.Models exposing (Session)
 import Array
+import Concourse
 import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
         , StatusDetails(..)
         )
-import Dashboard.Group.Models exposing (Group, Pipeline)
+import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), Model)
 import Dashboard.Styles as Styles
 import EffectTransformer exposing (ET)
+import FetchResult exposing (FetchResult)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, id, placeholder, value)
 import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseDown)
@@ -229,9 +231,9 @@ view :
         { b
             | query : String
             , dropdown : Dropdown
-            , groups : List Group
+            , teams : FetchResult (List Concourse.Team)
             , highDensity : Bool
-            , pipelines : List Pipeline
+            , pipelines : FetchResult (List Pipeline)
         }
     -> Html Message
 view session ({ query, dropdown, pipelines } as params) =
@@ -243,7 +245,9 @@ view session ({ query, dropdown, pipelines } as params) =
             session.screenSize == ScreenSize.Mobile
 
         noPipelines =
-            List.isEmpty pipelines
+            pipelines
+                |> FetchResult.withDefault []
+                |> List.isEmpty
     in
     if noPipelines then
         Html.text ""
@@ -299,8 +303,8 @@ viewDropdownItems :
         { b
             | query : String
             , dropdown : Dropdown
-            , groups : List Group
-            , pipelines : List Pipeline
+            , teams : FetchResult (List Concourse.Team)
+            , pipelines : FetchResult (List Pipeline)
         }
     -> List (Html Message)
 viewDropdownItems { screenSize } ({ dropdown } as model) =
@@ -324,8 +328,8 @@ viewDropdownItems { screenSize } ({ dropdown } as model) =
             ]
 
 
-dropdownOptions : { a | query : String, groups : List Group, pipelines : List Pipeline } -> List String
-dropdownOptions { query, groups, pipelines } =
+dropdownOptions : { a | query : String, teams : FetchResult (List Concourse.Team), pipelines : FetchResult (List Pipeline) } -> List String
+dropdownOptions { query, teams, pipelines } =
     case String.trim query of
         "" ->
             [ "status: ", "team: " ]
@@ -342,8 +346,16 @@ dropdownOptions { query, groups, pipelines } =
 
         "team:" ->
             Set.union
-                (groups |> List.map .teamName |> Set.fromList)
-                (pipelines |> List.map .teamName |> Set.fromList)
+                (teams
+                    |> FetchResult.withDefault []
+                    |> List.map .name
+                    |> Set.fromList
+                )
+                (pipelines
+                    |> FetchResult.withDefault []
+                    |> List.map .teamName
+                    |> Set.fromList
+                )
                 |> Set.toList
                 |> List.take 10
                 |> List.map (\teamName -> "team: " ++ teamName)

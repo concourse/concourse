@@ -22,6 +22,7 @@ module SideBar.Styles exposing
     , tooltipBody
     )
 
+import Assets
 import Colors
 import Html
 import Html.Attributes exposing (style)
@@ -94,7 +95,7 @@ teamIcon : Opacity -> Html.Html msg
 teamIcon opacity =
     Icon.icon
         { sizePx = 20
-        , image = "baseline-people-24px.svg"
+        , image = Assets.PeopleIcon
         }
         [ style "margin-left" "10px"
         , style "background-size" "contain"
@@ -113,15 +114,12 @@ arrow { opacity, icon } =
     Icon.icon
         { sizePx = 12
         , image =
-            "baseline-keyboard-arrow-"
-                ++ (case icon of
-                        Right ->
-                            "right"
+            case icon of
+                Right ->
+                    Assets.KeyboardArrowRight
 
-                        Down ->
-                            "down"
-                   )
-                ++ "-24px.svg"
+                Down ->
+                    Assets.KeyboardArrowDown
         }
         [ style "margin-left" "10px"
         , style "flex-shrink" "0"
@@ -239,8 +237,10 @@ pipeline =
 
 pipelineIcon : Opacity -> List (Html.Attribute msg)
 pipelineIcon opacity =
-    [ style "background-image"
-        "url(/public/images/ic-breadcrumb-pipeline.svg)"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just <|
+                Assets.BreadcrumbIcon Assets.PipelineComponent
     , style "background-repeat" "no-repeat"
     , style "height" "16px"
     , style "width" "32px"

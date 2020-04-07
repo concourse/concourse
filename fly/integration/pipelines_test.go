@@ -53,6 +53,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-1-longer",
                   "paused": false,
                   "public": false,
+                  "archived": false,
                   "team_name": "",
                   "last_updated": 1
                 },
@@ -61,6 +62,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-2",
                   "paused": true,
                   "public": false,
+                  "archived": false,
                   "team_name": "",
                   "last_updated": 1
                 },
@@ -69,6 +71,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-3",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "",
                   "last_updated": 1
                 }
@@ -130,6 +133,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-1-longer",
                   "paused": false,
                   "public": false,
+                  "archived": false,
                   "team_name": "main",
                   "last_updated": 1
                 },
@@ -138,6 +142,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-2",
                   "paused": true,
                   "public": false,
+                  "archived": false,
                   "team_name": "main",
                   "last_updated": 1
                 },
@@ -146,6 +151,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-3",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "main",
                   "last_updated": 1
                 },
@@ -154,6 +160,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "foreign-pipeline-1",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "other",
                   "last_updated": 1
                 },
@@ -162,6 +169,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "foreign-pipeline-2",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "other",
                   "last_updated": 1
                 }

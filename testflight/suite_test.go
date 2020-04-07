@@ -208,7 +208,7 @@ func fetchToken(atcURL string, username, password string) (*oauth2.Token, error)
 	oauth2Config := oauth2.Config{
 		ClientID:     "fly",
 		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: atcURL + "/sky/token"},
+		Endpoint:     oauth2.Endpoint{TokenURL: atcURL + "/sky/issuer/token"},
 		Scopes:       []string{"openid", "profile", "email", "federated:id"},
 	}
 

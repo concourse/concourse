@@ -10,6 +10,7 @@ module Build.Header.Views exposing
     , viewHeader
     )
 
+import Assets
 import Build.Styles as Styles
 import Colors
 import Concourse
@@ -243,13 +244,13 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
         image =
             case type_ of
                 Abort ->
-                    "ic-abort-circle-outline-white.svg"
+                    Assets.AbortCircleIcon |> Assets.CircleOutlineIcon
 
                 Trigger ->
-                    "ic-add-circle-outline-white.svg"
+                    Assets.AddCircleIcon |> Assets.CircleOutlineIcon
 
                 Rerun ->
-                    "ic-rerun.svg"
+                    Assets.RerunIcon
 
         accessibilityLabel =
             case type_ of

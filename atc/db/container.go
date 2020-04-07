@@ -1,8 +1,8 @@
 package db
 
 import (
-	"database/sql"
 	"errors"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -91,7 +91,7 @@ func (container *creatingContainer) Created() (CreatedContainer, error) {
 		container.handle,
 		container.workerName,
 		container.metadata,
-		false,
+		time.Time{},
 		container.conn,
 	), nil
 }
@@ -135,10 +135,9 @@ func (container *creatingContainer) Failed() (FailedContainer, error) {
 type CreatedContainer interface {
 	Container
 
-	Discontinue() (DestroyingContainer, error)
 	Destroying() (DestroyingContainer, error)
-	IsHijacked() bool
-	MarkAsHijacked() error
+	LastHijack() time.Time
+	UpdateLastHijack() error
 }
 
 type createdContainer struct {
@@ -147,7 +146,7 @@ type createdContainer struct {
 	workerName string
 	metadata   ContainerMetadata
 
-	hijacked bool
+	lastHijack time.Time
 
 	conn Conn
 }
@@ -157,7 +156,7 @@ func newCreatedContainer(
 	handle string,
 	workerName string,
 	metadata ContainerMetadata,
-	hijacked bool,
+	lastHijack time.Time,
 	conn Conn,
 ) *createdContainer {
 	return &createdContainer{
@@ -165,7 +164,7 @@ func newCreatedContainer(
 		handle:     handle,
 		workerName: workerName,
 		metadata:   metadata,
-		hijacked:   hijacked,
+		lastHijack: lastHijack,
 		conn:       conn,
 	}
 }
@@ -176,46 +175,12 @@ func (container *createdContainer) Handle() string              { return contain
 func (container *createdContainer) WorkerName() string          { return container.workerName }
 func (container *createdContainer) Metadata() ContainerMetadata { return container.metadata }
 
-func (container *createdContainer) IsHijacked() bool { return container.hijacked }
+func (container *createdContainer) LastHijack() time.Time { return container.lastHijack }
 
 func (container *createdContainer) Destroying() (DestroyingContainer, error) {
-	var isDiscontinued bool
 
-	err := psql.Update("containers").
-		Set("state", atc.ContainerStateDestroying).
-		Where(sq.And{
-			sq.Eq{"id": container.id},
-			sq.Or{
-				sq.Eq{"state": string(atc.ContainerStateDestroying)},
-				sq.Eq{"state": string(atc.ContainerStateCreated)},
-			},
-		}).
-		Suffix("RETURNING discontinued").
-		RunWith(container.conn).
-		QueryRow().
-		Scan(&isDiscontinued)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrContainerDisappeared
-		}
-
-		return nil, err
-	}
-
-	return newDestroyingContainer(
-		container.id,
-		container.handle,
-		container.workerName,
-		container.metadata,
-		isDiscontinued,
-		container.conn,
-	), nil
-}
-
-func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
 	rows, err := psql.Update("containers").
 		Set("state", atc.ContainerStateDestroying).
-		Set("discontinued", true).
 		Where(sq.And{
 			sq.Eq{"id": container.id},
 			sq.Or{
@@ -243,18 +208,14 @@ func (container *createdContainer) Discontinue() (DestroyingContainer, error) {
 		container.handle,
 		container.workerName,
 		container.metadata,
-		true,
 		container.conn,
 	), nil
 }
 
-func (container *createdContainer) MarkAsHijacked() error {
-	if container.hijacked {
-		return nil
-	}
+func (container *createdContainer) UpdateLastHijack() error {
 
 	rows, err := psql.Update("containers").
-		Set("hijacked", true).
+		Set("last_hijack", sq.Expr("now()")).
 		Where(sq.Eq{
 			"id":    container.id,
 			"state": atc.ContainerStateCreated,
@@ -283,7 +244,6 @@ type DestroyingContainer interface {
 	Container
 
 	Destroy() (bool, error)
-	IsDiscontinued() bool
 }
 
 type destroyingContainer struct {
@@ -291,8 +251,6 @@ type destroyingContainer struct {
 	handle     string
 	workerName string
 	metadata   ContainerMetadata
-
-	isDiscontinued bool
 
 	conn Conn
 }
@@ -302,16 +260,14 @@ func newDestroyingContainer(
 	handle string,
 	workerName string,
 	metadata ContainerMetadata,
-	isDiscontinued bool,
 	conn Conn,
 ) *destroyingContainer {
 	return &destroyingContainer{
-		id:             id,
-		handle:         handle,
-		workerName:     workerName,
-		metadata:       metadata,
-		isDiscontinued: isDiscontinued,
-		conn:           conn,
+		id:         id,
+		handle:     handle,
+		workerName: workerName,
+		metadata:   metadata,
+		conn:       conn,
 	}
 }
 
@@ -320,8 +276,6 @@ func (container *destroyingContainer) State() string               { return atc.
 func (container *destroyingContainer) Handle() string              { return container.handle }
 func (container *destroyingContainer) WorkerName() string          { return container.workerName }
 func (container *destroyingContainer) Metadata() ContainerMetadata { return container.metadata }
-
-func (container *destroyingContainer) IsDiscontinued() bool { return container.isDiscontinued }
 
 func (container *destroyingContainer) Destroy() (bool, error) {
 	rows, err := psql.Delete("containers").

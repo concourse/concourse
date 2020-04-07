@@ -2,6 +2,7 @@ package wrappa_test
 
 import (
 	"fmt"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	"net/http"
 	"net/http/httptest"
 
@@ -46,6 +47,9 @@ var _ = Describe("VersionedHandler", func() {
 	})
 
 	It("sets the X-Concourse-Version header", func() {
-		Expect(response.Header.Get("X-Concourse-Version")).To(Equal("1.2.3-test"))
+		expectedHeaderEntries := map[string]string{
+			"X-Concourse-Version": "1.2.3-test",
+		}
+		Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 	})
 })

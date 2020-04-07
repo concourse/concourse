@@ -7,12 +7,16 @@ port module Message.Effects exposing
     , toHtmlID
     )
 
+import Api
+import Api.Endpoints as Endpoints
+import Assets
 import Base64
 import Browser.Dom exposing (Element, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
-import Concourse
+import Concourse exposing (encodeJob, encodePipeline, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
+import Json.Decode
 import Json.Encode
 import Maybe exposing (Maybe)
 import Message.Callback exposing (Callback(..), TooltipPolicy(..))
@@ -23,16 +27,19 @@ import Message.Message
         , VisibilityAction(..)
         )
 import Message.ScrollDirection exposing (ScrollDirection(..))
-import Network.Build
-import Network.BuildPlan
-import Network.BuildPrep
-import Network.BuildResources
-import Network.Info
-import Network.Job
-import Network.Pipeline
-import Network.Resource
-import Network.Team
-import Network.User
+import Message.Storage
+    exposing
+        ( deleteFromLocalStorage
+        , jobsKey
+        , loadFromLocalStorage
+        , loadFromSessionStorage
+        , pipelinesKey
+        , saveToLocalStorage
+        , saveToSessionStorage
+        , sideBarStateKey
+        , teamsKey
+        , tokenKey
+        )
 import Process
 import Routes
 import Task
@@ -55,12 +62,6 @@ port tooltipHd : ( String, String ) -> Cmd msg
 port resetPipelineFocus : () -> Cmd msg
 
 
-port loadToken : () -> Cmd msg
-
-
-port saveToken : String -> Cmd msg
-
-
 port requestLoginRedirect : String -> Cmd msg
 
 
@@ -80,12 +81,6 @@ port rawHttpRequest : String -> Cmd msg
 
 
 port renderSvgIcon : String -> Cmd msg
-
-
-port loadSideBarState : () -> Cmd msg
-
-
-port saveSideBarState : Bool -> Cmd msg
 
 
 type alias StickyHeaderConfig =
@@ -161,8 +156,6 @@ type Effect
     | PinTeamNames StickyHeaderConfig
     | Scroll ScrollDirection String
     | SetFavIcon (Maybe BuildStatus)
-    | SaveToken String
-    | LoadToken
     | OpenBuildEventStream { url : String, eventTypes : List String }
     | CloseBuildEventStream
     | CheckIsVisible String
@@ -170,8 +163,19 @@ type Effect
     | Blur String
     | RenderSvgIcon String
     | ChangeVisibility VisibilityAction Concourse.PipelineIdentifier
-    | LoadSideBarState
+    | SaveToken String
+    | LoadToken
     | SaveSideBarState Bool
+    | LoadSideBarState
+    | SaveCachedJobs (List Concourse.Job)
+    | LoadCachedJobs
+    | DeleteCachedJobs
+    | SaveCachedPipelines (List Concourse.Pipeline)
+    | LoadCachedPipelines
+    | DeleteCachedPipelines
+    | SaveCachedTeams (List Concourse.Team)
+    | LoadCachedTeams
+    | DeleteCachedTeams
     | GetViewportOf DomID TooltipPolicy
     | GetElement DomID
 
@@ -184,77 +188,126 @@ runEffect : Effect -> Navigation.Key -> Concourse.CSRFToken -> Cmd Callback
 runEffect effect key csrfToken =
     case effect of
         FetchJob id ->
-            Network.Job.fetchJob id
+            Api.get (Endpoints.BaseJob |> Endpoints.Job id)
+                |> Api.expectJson Concourse.decodeJob
+                |> Api.request
                 |> Task.attempt JobFetched
 
         FetchJobs id ->
-            Network.Job.fetchJobsRaw id
+            Api.get
+                (Endpoints.PipelineJobsList |> Endpoints.Pipeline id)
+                |> Api.expectJson Json.Decode.value
+                |> Api.request
                 |> Task.attempt JobsFetched
 
         FetchJobBuilds id page ->
-            Network.Build.fetchJobBuilds id page
+            Api.paginatedGet
+                (Endpoints.JobBuildsList |> Endpoints.Job id)
+                page
+                Concourse.decodeBuild
+                |> Api.request
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
-            Network.Resource.fetchResource id
+            Api.get (Endpoints.BaseResource |> Endpoints.Resource id)
+                |> Api.expectJson Concourse.decodeResource
+                |> Api.request
                 |> Task.attempt ResourceFetched
 
         FetchCheck id ->
-            Network.Resource.fetchCheck id
+            Api.get (Endpoints.Check id)
+                |> Api.expectJson Concourse.decodeCheck
+                |> Api.request
                 |> Task.attempt Checked
 
         FetchVersionedResources id paging ->
-            Network.Resource.fetchVersionedResources id paging
+            Api.paginatedGet
+                (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
+                paging
+                Concourse.decodeVersionedResource
+                |> Api.request
                 |> Task.map (\b -> ( paging, b ))
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
-            Network.Resource.fetchResourcesRaw id
+            Api.get
+                (Endpoints.PipelineResourcesList |> Endpoints.Pipeline id)
+                |> Api.expectJson Json.Decode.value
+                |> Api.request
                 |> Task.attempt ResourcesFetched
 
         FetchBuildResources id ->
-            Network.BuildResources.fetch id
+            Api.get
+                (Endpoints.BuildResourcesList |> Endpoints.Build id)
+                |> Api.expectJson Concourse.decodeBuildResources
+                |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt BuildResourcesFetched
 
         FetchPipeline id ->
-            Network.Pipeline.fetchPipeline id
+            Api.get (Endpoints.BasePipeline |> Endpoints.Pipeline id)
+                |> Api.expectJson Concourse.decodePipeline
+                |> Api.request
                 |> Task.attempt PipelineFetched
 
         FetchPipelines team ->
-            Network.Pipeline.fetchPipelinesForTeam team
+            Api.get (Endpoints.TeamPipelinesList |> Endpoints.Team team)
+                |> Api.expectJson (Json.Decode.list Concourse.decodePipeline)
+                |> Api.request
                 |> Task.attempt PipelinesFetched
 
         FetchAllResources ->
-            Network.Resource.fetchAllResources
+            Api.get Endpoints.ResourcesList
+                |> Api.expectJson
+                    (Json.Decode.nullable <|
+                        Json.Decode.list Concourse.decodeResource
+                    )
+                |> Api.request
                 |> Task.map (Maybe.withDefault [])
                 |> Task.attempt AllResourcesFetched
 
         FetchAllJobs ->
-            Network.Job.fetchAllJobs
+            Api.get Endpoints.JobsList
+                |> Api.expectJson
+                    (Json.Decode.nullable <|
+                        Json.Decode.list Concourse.decodeJob
+                    )
+                |> Api.request
                 |> Task.map (Maybe.withDefault [])
                 |> Task.attempt AllJobsFetched
 
         FetchClusterInfo ->
-            Network.Info.fetch
+            Api.get Endpoints.ClusterInfo
+                |> Api.expectJson Concourse.decodeInfo
+                |> Api.request
                 |> Task.attempt ClusterInfoFetched
 
         FetchInputTo id ->
-            Network.Resource.fetchInputTo id
+            Api.get
+                (Endpoints.ResourceVersionInputTo |> Endpoints.ResourceVersion id)
+                |> Api.expectJson (Json.Decode.list Concourse.decodeBuild)
+                |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt InputToFetched
 
         FetchOutputOf id ->
-            Network.Resource.fetchOutputOf id
+            Api.get
+                (Endpoints.ResourceVersionOutputOf |> Endpoints.ResourceVersion id)
+                |> Api.expectJson (Json.Decode.list Concourse.decodeBuild)
+                |> Api.request
                 |> Task.map (\b -> ( id, b ))
                 |> Task.attempt OutputOfFetched
 
         FetchAllTeams ->
-            Network.Team.fetchTeams
+            Api.get Endpoints.TeamsList
+                |> Api.expectJson (Json.Decode.list Concourse.decodeTeam)
+                |> Api.request
                 |> Task.attempt AllTeamsFetched
 
         FetchAllPipelines ->
-            Network.Pipeline.fetchPipelines
+            Api.get Endpoints.PipelinesList
+                |> Api.expectJson (Json.Decode.list Concourse.decodePipeline)
+                |> Api.request
                 |> Task.attempt AllPipelinesFetched
 
         GetCurrentTime ->
@@ -264,19 +317,31 @@ runEffect effect key csrfToken =
             Task.perform GotCurrentTimeZone Time.here
 
         DoTriggerBuild id ->
-            Network.Job.triggerBuild id csrfToken
+            Api.post
+                (Endpoints.JobBuildsList |> Endpoints.Job id)
+                csrfToken
+                |> Api.expectJson Concourse.decodeBuild
+                |> Api.request
                 |> Task.attempt BuildTriggered
 
         RerunJobBuild id ->
-            Network.Job.rerunJobBuild id csrfToken
+            Api.post (Endpoints.JobBuild id) csrfToken
+                |> Api.expectJson Concourse.decodeBuild
+                |> Api.request
                 |> Task.attempt BuildTriggered
 
         PauseJob id ->
-            Network.Job.pause id csrfToken
+            Api.put
+                (Endpoints.PauseJob |> Endpoints.Job id)
+                csrfToken
+                |> Api.request
                 |> Task.attempt PausedToggled
 
         UnpauseJob id ->
-            Network.Job.unpause id csrfToken
+            Api.put
+                (Endpoints.UnpauseJob |> Endpoints.Job id)
+                csrfToken
+                |> Api.request
                 |> Task.attempt PausedToggled
 
         RedirectToLogin ->
@@ -297,36 +362,75 @@ runEffect effect key csrfToken =
         RenderPipeline jobs resources ->
             renderPipeline ( jobs, resources )
 
-        DoPinVersion version ->
-            Network.Resource.pinVersion version csrfToken
+        DoPinVersion id ->
+            Api.put
+                (Endpoints.PinResourceVersion |> Endpoints.ResourceVersion id)
+                csrfToken
+                |> Api.request
                 |> Task.attempt VersionPinned
 
         DoUnpinVersion id ->
-            Network.Resource.unpinVersion id csrfToken
+            Api.put
+                (Endpoints.UnpinResource |> Endpoints.Resource id)
+                csrfToken
+                |> Api.request
                 |> Task.attempt VersionUnpinned
 
         DoToggleVersion action id ->
-            Network.Resource.enableDisableVersionedResource (action == Enable) id csrfToken
+            let
+                endpoint =
+                    Endpoints.ResourceVersion id <|
+                        case action of
+                            Enable ->
+                                Endpoints.EnableResourceVersion
+
+                            Disable ->
+                                Endpoints.DisableResourceVersion
+            in
+            Api.put endpoint csrfToken
+                |> Api.request
                 |> Task.attempt (VersionToggled action id)
 
         DoCheck rid ->
-            Network.Resource.check rid csrfToken
+            Api.post
+                (Endpoints.CheckResource |> Endpoints.Resource rid)
+                csrfToken
+                |> Api.withJsonBody
+                    (Json.Encode.object [ ( "from", Json.Encode.null ) ])
+                |> Api.expectJson Concourse.decodeCheck
+                |> Api.request
                 |> Task.attempt Checked
 
         SetPinComment rid comment ->
-            Network.Resource.setPinComment rid csrfToken comment
+            Api.put
+                (Endpoints.PinResourceComment |> Endpoints.Resource rid)
+                csrfToken
+                |> Api.withJsonBody
+                    (Json.Encode.object
+                        [ ( "pin_comment"
+                          , Json.Encode.string comment
+                          )
+                        ]
+                    )
+                |> Api.request
                 |> Task.attempt CommentSet
 
         SendTokenToFly authToken flyPort ->
             rawHttpRequest <| Routes.tokenToFlyRoute authToken flyPort
 
-        SendTogglePipelineRequest pipelineIdentifier isPaused ->
-            Network.Pipeline.togglePause
-                isPaused
-                pipelineIdentifier.teamName
-                pipelineIdentifier.pipelineName
-                csrfToken
-                |> Task.attempt (PipelineToggled pipelineIdentifier)
+        SendTogglePipelineRequest id isPaused ->
+            let
+                endpoint =
+                    Endpoints.Pipeline id <|
+                        if isPaused then
+                            Endpoints.UnpausePipeline
+
+                        else
+                            Endpoints.PausePipeline
+            in
+            Api.put endpoint csrfToken
+                |> Api.request
+                |> Task.attempt (PipelineToggled id)
 
         ShowTooltip ( teamName, pipelineName ) ->
             tooltip ( teamName, pipelineName )
@@ -335,11 +439,18 @@ runEffect effect key csrfToken =
             tooltipHd ( teamName, pipelineName )
 
         SendOrderPipelinesRequest teamName pipelineNames ->
-            Network.Pipeline.order teamName pipelineNames csrfToken
+            Api.put
+                (Endpoints.OrderTeamPipelines |> Endpoints.Team teamName)
+                csrfToken
+                |> Api.withJsonBody
+                    (Json.Encode.list Json.Encode.string pipelineNames)
+                |> Api.request
                 |> Task.attempt (PipelinesOrdered teamName)
 
         SendLogOutRequest ->
-            Task.attempt LoggedOut Network.User.logOut
+            Api.get Endpoints.Logout
+                |> Api.request
+                |> Task.attempt LoggedOut
 
         GetScreenSize ->
             Task.perform ScreenResized getViewport
@@ -349,54 +460,85 @@ runEffect effect key csrfToken =
 
         FetchBuild delay buildId ->
             Process.sleep delay
-                |> Task.andThen (always <| Network.Build.fetch buildId)
+                |> Task.andThen
+                    (always
+                        (Api.get (Endpoints.BaseBuild |> Endpoints.Build buildId)
+                            |> Api.expectJson Concourse.decodeBuild
+                            |> Api.request
+                        )
+                    )
                 |> Task.attempt BuildFetched
 
         FetchJobBuild jbi ->
-            Network.Build.fetchJobBuild jbi
+            Api.get (Endpoints.JobBuild jbi)
+                |> Api.expectJson Concourse.decodeBuild
+                |> Api.request
                 |> Task.attempt BuildFetched
 
         FetchBuildJobDetails buildJob ->
-            Network.Job.fetchJob buildJob
+            Api.get (Endpoints.BaseJob |> Endpoints.Job buildJob)
+                |> Api.expectJson Concourse.decodeJob
+                |> Api.request
                 |> Task.attempt BuildJobDetailsFetched
 
         FetchBuildHistory job page ->
-            Network.Build.fetchJobBuilds job page
+            Api.paginatedGet
+                (Endpoints.JobBuildsList |> Endpoints.Job job)
+                page
+                Concourse.decodeBuild
+                |> Api.request
                 |> Task.attempt BuildHistoryFetched
 
         FetchBuildPrep delay buildId ->
             Process.sleep delay
-                |> Task.andThen (always <| Network.BuildPrep.fetch buildId)
+                |> Task.andThen
+                    (always
+                        (Api.get
+                            (Endpoints.BuildPrep |> Endpoints.Build buildId)
+                            |> Api.expectJson Concourse.decodeBuildPrep
+                            |> Api.request
+                        )
+                    )
                 |> Task.attempt (BuildPrepFetched buildId)
 
         FetchBuildPlanAndResources buildId ->
-            Task.map2 (\a b -> ( a, b )) (Network.BuildPlan.fetch buildId) (Network.BuildResources.fetch buildId)
+            Task.map2 (\a b -> ( a, b ))
+                (Api.get (Endpoints.BuildPlan |> Endpoints.Build buildId)
+                    |> Api.expectJson Concourse.decodeBuildPlan
+                    |> Api.request
+                )
+                (Api.get (Endpoints.BuildResourcesList |> Endpoints.Build buildId)
+                    |> Api.expectJson Concourse.decodeBuildResources
+                    |> Api.request
+                )
                 |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchBuildPlan buildId ->
-            Network.BuildPlan.fetch buildId
-                |> Task.map (\p -> ( p, Network.BuildResources.empty ))
+            Api.get (Endpoints.BuildPlan |> Endpoints.Build buildId)
+                |> Api.expectJson Concourse.decodeBuildPlan
+                |> Api.request
+                |> Task.map (\p -> ( p, Concourse.emptyBuildResources ))
                 |> Task.attempt (PlanAndResourcesFetched buildId)
 
         FetchUser ->
-            Network.User.fetchUser
+            Api.get Endpoints.UserInfo
+                |> Api.expectJson Concourse.decodeUser
+                |> Api.request
                 |> Task.attempt UserFetched
 
         SetFavIcon status ->
-            setFavicon (faviconName status)
+            status
+                |> Assets.BuildFavicon
+                |> Assets.toString
+                |> setFavicon
 
         DoAbortBuild buildId ->
-            Network.Build.abort buildId csrfToken
+            Api.put (Endpoints.AbortBuild |> Endpoints.Build buildId) csrfToken
+                |> Api.request
                 |> Task.attempt BuildAborted
 
         Scroll direction id ->
             scroll direction id
-
-        SaveToken tokenValue ->
-            saveToken tokenValue
-
-        LoadToken ->
-            loadToken ()
 
         Focus id ->
             Browser.Dom.focus id
@@ -419,18 +561,58 @@ runEffect effect key csrfToken =
             renderSvgIcon icon
 
         ChangeVisibility action pipelineId ->
-            Network.Pipeline.changeVisibility
-                action
-                pipelineId.teamName
-                pipelineId.pipelineName
-                csrfToken
+            let
+                endpoint =
+                    Endpoints.Pipeline pipelineId <|
+                        case action of
+                            Hide ->
+                                Endpoints.HidePipeline
+
+                            Expose ->
+                                Endpoints.ExposePipeline
+            in
+            Api.put endpoint csrfToken
+                |> Api.request
                 |> Task.attempt (VisibilityChanged action pipelineId)
 
-        LoadSideBarState ->
-            loadSideBarState ()
+        SaveToken token ->
+            saveToLocalStorage ( tokenKey, Json.Encode.string token )
+
+        LoadToken ->
+            loadFromLocalStorage tokenKey
 
         SaveSideBarState isOpen ->
-            saveSideBarState isOpen
+            saveToSessionStorage ( sideBarStateKey, Json.Encode.bool isOpen )
+
+        LoadSideBarState ->
+            loadFromSessionStorage sideBarStateKey
+
+        SaveCachedJobs jobs ->
+            saveToLocalStorage ( jobsKey, jobs |> Json.Encode.list encodeJob )
+
+        LoadCachedJobs ->
+            loadFromLocalStorage jobsKey
+
+        DeleteCachedJobs ->
+            deleteFromLocalStorage jobsKey
+
+        SaveCachedPipelines pipelines ->
+            saveToLocalStorage ( pipelinesKey, pipelines |> Json.Encode.list encodePipeline )
+
+        LoadCachedPipelines ->
+            loadFromLocalStorage pipelinesKey
+
+        DeleteCachedPipelines ->
+            deleteFromLocalStorage pipelinesKey
+
+        SaveCachedTeams teams ->
+            saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )
+
+        LoadCachedTeams ->
+            loadFromLocalStorage teamsKey
+
+        DeleteCachedTeams ->
+            deleteFromLocalStorage teamsKey
 
         GetViewportOf domID tooltipPolicy ->
             Browser.Dom.getViewportOf (toHtmlID domID)
@@ -546,13 +728,3 @@ scrollCoords srcId idOfThingToScroll getX getY =
                         Task.fail <|
                             Browser.Dom.NotFound "unexpected number of elements"
             )
-
-
-faviconName : Maybe BuildStatus -> String
-faviconName status =
-    case status of
-        Just bs ->
-            "/public/images/favicon-" ++ Concourse.BuildStatus.show bs ++ ".png"
-
-        Nothing ->
-            "/public/images/favicon.png"

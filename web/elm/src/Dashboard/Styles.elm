@@ -33,6 +33,7 @@ module Dashboard.Styles exposing
     , pipelineCardTransitionAge
     , pipelineName
     , pipelinePreviewGrid
+    , pipelineStatusIcon
     , previewPlaceholder
     , resourceErrorTriangle
     , searchButton
@@ -51,6 +52,7 @@ module Dashboard.Styles exposing
     )
 
 import Application.Styles
+import Assets
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -115,6 +117,11 @@ pipelineCardBanner { status, pipelineRunningKeyframes } =
             Concourse.PipelineStatus.isRunning status
     in
     style "height" "7px" :: texture pipelineRunningKeyframes isRunning color
+
+
+pipelineStatusIcon : List (Html.Attribute msg)
+pipelineStatusIcon =
+    [ style "background-size" "contain" ]
 
 
 noPipelineCard : List (Html.Attribute msg)
@@ -193,6 +200,7 @@ pipelineCardBody =
     [ style "background-color" Colors.card
     , style "margin" "2px 0"
     , style "flex-grow" "1"
+    , style "display" "flex"
     ]
 
 
@@ -200,7 +208,6 @@ pipelinePreviewGrid : List (Html.Attribute msg)
 pipelinePreviewGrid =
     [ style "box-sizing" "border-box"
     , style "width" "100%"
-    , style "height" "100%"
     ]
 
 
@@ -412,11 +419,8 @@ highDensityToggle =
 highDensityIcon : Bool -> List (Html.Attribute msg)
 highDensityIcon highDensity =
     [ style "background-image" <|
-        if highDensity then
-            "url(/public/images/ic-hd-on.svg)"
-
-        else
-            "url(/public/images/ic-hd-off.svg)"
+        Assets.backgroundImage <|
+            Just (Assets.HighDensityIcon highDensity)
     , style "background-size" "contain"
     , style "height" "20px"
     , style "width" "35px"
@@ -446,7 +450,9 @@ infoCliIcon { hovered, cli } =
     [ style "margin-right" "10px"
     , style "width" "20px"
     , style "height" "20px"
-    , style "background-image" <| Cli.iconUrl cli
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.CliIcon cli)
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
@@ -467,7 +473,9 @@ topCliIcon { hovered, cli } =
 
         else
             "0.5"
-    , style "background-image" <| Cli.iconUrl cli
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.CliIcon cli)
     , style "background-position" "50% 50%"
     , style "background-repeat" "no-repeat"
     , style "width" "32px"
@@ -570,7 +578,9 @@ searchInput screenSize =
                     [ style "width" "220px" ]
     in
     [ style "background-color" "transparent"
-    , style "background-image" "url('public/images/ic-search-white-24px.svg')"
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.SearchIcon
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "30px"
@@ -594,7 +604,9 @@ searchClearButton active =
             else
                 "0.2"
     in
-    [ style "background-image" "url('public/images/ic-close-white-24px.svg')"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.CloseIcon
     , style "background-repeat" "no-repeat"
     , style "background-position" "10px 10px"
     , style "border" "0"
@@ -673,7 +685,9 @@ showSearchContainer { highDensity } =
 
 searchButton : List (Html.Attribute msg)
 searchButton =
-    [ style "background-image" "url('public/images/ic-search-white-24px.svg')"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.SearchIcon
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "32px"
@@ -690,15 +704,9 @@ visibilityToggle :
     }
     -> List (Html.Attribute msg)
 visibilityToggle { public, isClickable, isHovered } =
-    let
-        image =
-            if public then
-                "baseline-visibility-24px.svg"
-
-            else
-                "baseline-visibility-off-24px.svg"
-    in
-    [ style "background-image" ("url(/public/images/" ++ image ++ ")")
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.VisibilityToggleIcon public)
     , style "height" "20px"
     , style "width" "20px"
     , style "background-position" "50% 50%"

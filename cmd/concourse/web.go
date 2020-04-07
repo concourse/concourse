@@ -1,9 +1,7 @@
 package main
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"fmt"
+	"net/url"
 	"os"
 
 	concourseCmd "github.com/concourse/concourse/cmd"
@@ -27,9 +25,7 @@ type WebCommand struct {
 func (WebCommand) LessenRequirements(command *flags.Command) {
 	// defaults to atc external URL
 	command.FindOptionByLongName("tsa-atc-url").Required = false
-
-	// defaults to atc session signing key
-	command.FindOptionByLongName("tsa-session-signing-key").Required = false
+	command.FindOptionByLongName("tsa-token-url").Required = false
 }
 
 func (cmd *WebCommand) Execute(args []string) error {
@@ -72,23 +68,19 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 }
 
 func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
-	cmd.TSACommand.SessionSigningKey = cmd.RunCommand.Auth.AuthFlags.SigningKey
 	cmd.TSACommand.PeerAddress = cmd.PeerAddress
-
-	if (cmd.RunCommand.Auth.AuthFlags.SigningKey == nil || cmd.RunCommand.Auth.AuthFlags.SigningKey.PrivateKey == nil) &&
-		(cmd.TSACommand.SessionSigningKey == nil || cmd.TSACommand.SessionSigningKey.PrivateKey == nil) {
-		signingKey, err := rsa.GenerateKey(rand.Reader, 2048)
-		if err != nil {
-			return fmt.Errorf("failed to generate session signing key: %s", err)
-		}
-
-		cmd.RunCommand.Auth.AuthFlags.SigningKey = &flag.PrivateKey{PrivateKey: signingKey}
-		cmd.TSACommand.SessionSigningKey = &flag.PrivateKey{PrivateKey: signingKey}
-	}
 
 	if len(cmd.TSACommand.ATCURLs) == 0 {
 		cmd.TSACommand.ATCURLs = []flag.URL{cmd.RunCommand.DefaultURL()}
 	}
+
+	if cmd.TSACommand.TokenURL.URL == nil {
+		tokenPath, _ := url.Parse("/sky/issuer/token")
+		cmd.TSACommand.TokenURL.URL = cmd.RunCommand.DefaultURL().URL.ResolveReference(tokenPath)
+	}
+
+	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.TSACommand.ClientID] = cmd.TSACommand.ClientSecret
+	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.RunCommand.Server.ClientID] = cmd.RunCommand.Server.ClientSecret
 
 	cmd.TSACommand.ClusterName = cmd.RunCommand.Server.ClusterName
 	cmd.TSACommand.LogClusterName = cmd.RunCommand.LogClusterName

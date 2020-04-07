@@ -1,5 +1,6 @@
 module Views.PauseToggle exposing (view)
 
+import Assets
 import Concourse
 import Html exposing (Html)
 import Html.Attributes exposing (class)
@@ -52,10 +53,10 @@ view params =
                 { sizePx = 20
                 , image =
                     if params.isPaused then
-                        "ic-play-white.svg"
+                        Assets.PlayIcon
 
                     else
-                        "ic-pause-white.svg"
+                        Assets.PauseIcon
                 }
                 (Styles.pauseToggleIcon
                     { isHovered = isClickable && params.isToggleHovered

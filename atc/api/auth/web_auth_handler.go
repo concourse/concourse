@@ -7,12 +7,40 @@ import (
 	"github.com/concourse/concourse/skymarshal/token"
 )
 
+//go:generate counterfeiter net/http.Handler
+
+func NewResponseWrapper(w http.ResponseWriter, m token.Middleware) *responseWrapper {
+	return &responseWrapper{w, m}
+}
+
+type responseWrapper struct {
+	http.ResponseWriter
+	token.Middleware
+}
+
+func (r *responseWrapper) WriteHeader(statusCode int) {
+
+	// we need to unset cookies before writing the header
+	if statusCode == http.StatusUnauthorized {
+		r.Middleware.UnsetAuthToken(r.ResponseWriter)
+		r.Middleware.UnsetCSRFToken(r.ResponseWriter)
+	}
+
+	r.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (r *responseWrapper) Flush() {
+	r.ResponseWriter.(http.Flusher).Flush()
+}
+
 type WebAuthHandler struct {
-	Handler http.Handler
+	Handler    http.Handler
+	Middleware token.Middleware
 }
 
 func (handler WebAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	tokenString := token.NewMiddleware(true).GetToken(r)
+
+	tokenString := handler.Middleware.GetAuthToken(r)
 	if tokenString != "" {
 		ctx := context.WithValue(r.Context(), CSRFRequiredKey, handler.isCSRFRequired(r))
 		r = r.WithContext(ctx)
@@ -20,9 +48,12 @@ func (handler WebAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		if r.Header.Get("Authorization") == "" {
 			r.Header.Set("Authorization", tokenString)
 		}
-	}
 
-	handler.Handler.ServeHTTP(w, r)
+		wrapper := NewResponseWrapper(w, handler.Middleware)
+		handler.Handler.ServeHTTP(wrapper, r)
+	} else {
+		handler.Handler.ServeHTTP(w, r)
+	}
 }
 
 // We don't validate CSRF token for GET requests

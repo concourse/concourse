@@ -3,6 +3,7 @@ module Benchmarks exposing (main)
 import Ansi.Log
 import Application.Models exposing (Session)
 import Array
+import Assets
 import Benchmark
 import Benchmark.Runner exposing (BenchmarkProgram, program)
 import Build.Build as Build
@@ -278,7 +279,7 @@ viewBuildHeader session model build =
                     <|
                         [ Icon.icon
                             { sizePx = 40
-                            , image = "ic-add-circle-outline-white.svg"
+                            , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                             }
                             []
                         ]
@@ -318,7 +319,7 @@ viewBuildHeader session model build =
                     )
                     [ Icon.icon
                         { sizePx = 40
-                        , image = "ic-abort-circle-outline-white.svg"
+                        , image = Assets.AbortCircleIcon |> Assets.CircleOutlineIcon
                         }
                         []
                     ]
@@ -537,7 +538,7 @@ viewBuildPrep buildPrep =
                     , style "align-items" "center"
                     ]
                     [ Icon.icon
-                        { sizePx = 15, image = "ic-cogs.svg" }
+                        { sizePx = 15, image = Assets.CogsIcon }
                         [ style "margin" "6.5px"
                         , style "margin-right" "0.5px"
                         , style "background-size" "contain"
@@ -666,7 +667,7 @@ viewBuildPrepStatus status =
         Concourse.BuildPrepStatusNotBlocking ->
             Icon.icon
                 { sizePx = 12
-                , image = "ic-not-blocking-check.svg"
+                , image = Assets.NotBlockingCheckIcon
                 }
                 [ style "margin-right" "5px"
                 , style "background-size" "contain"
@@ -843,8 +844,7 @@ steps =
 
 sampleJob : String -> List String -> Concourse.Job
 sampleJob name passed =
-    { pipeline = pipelineId
-    , name = name
+    { name = name
     , pipelineName = "pipeline"
     , teamName = "team"
     , nextBuild = Nothing
@@ -872,11 +872,6 @@ sampleJobs =
     , sampleJob "job3" [ "job2a" ]
     , sampleJob "job4" [ "job3" ]
     ]
-
-
-pipelineId : Concourse.PipelineIdentifier
-pipelineId =
-    { pipelineName = "pipeline", teamName = "team" }
 
 
 dashboardPreviewView : List Concourse.Job -> Html msg
@@ -972,8 +967,7 @@ jobByName jobs job =
             a
 
         Nothing ->
-            { pipeline = { pipelineName = "", teamName = "" }
-            , name = ""
+            { name = ""
             , pipelineName = ""
             , teamName = ""
             , nextBuild = Nothing

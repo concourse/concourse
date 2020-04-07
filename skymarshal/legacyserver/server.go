@@ -27,6 +27,7 @@ func NewLegacyServer(config *LegacyConfig) (http.Handler, error) {
 	})
 
 	handlers := map[string]http.Handler{
+
 		LoginRoute: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			u := url.URL{
 				Scheme:   r.URL.Scheme,

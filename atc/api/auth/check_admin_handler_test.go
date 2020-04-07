@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -48,12 +49,13 @@ var _ = Describe("CheckAdminHandler", func() {
 			http.Error(w, "still nope", http.StatusForbidden)
 		}
 
-		server = httptest.NewServer(accessor.NewHandler(auth.CheckAdminHandler(
+		server = httptest.NewServer(accessor.NewHandler(logger, auth.CheckAdminHandler(
 			simpleHandler,
 			fakeRejector,
 		), fakeAccessor,
 			"some-action",
 			new(auditorfakes.FakeAuditor),
+			new(dbfakes.FakeUserFactory),
 		))
 
 		client = &http.Client{
@@ -62,7 +64,7 @@ var _ = Describe("CheckAdminHandler", func() {
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
+		fakeAccessor.CreateReturns(fakeaccess, nil)
 	})
 
 	Context("when a request is made", func() {

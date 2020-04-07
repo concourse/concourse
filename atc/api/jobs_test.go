@@ -10,22 +10,20 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Jobs API", func() {
 	var fakeJob *dbfakes.FakeJob
-	var fakeaccess *accessorfakes.FakeAccess
 	var versionedResourceTypes atc.VersionedResourceTypes
 	var fakePipeline *dbfakes.FakePipeline
 
 	BeforeEach(func() {
 		fakeJob = new(dbfakes.FakeJob)
-		fakeaccess = new(accessorfakes.FakeAccess)
 		fakePipeline = new(dbfakes.FakePipeline)
 		dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 		dbTeam.PipelineReturns(fakePipeline, true, nil)
@@ -62,10 +60,6 @@ var _ = Describe("Jobs API", func() {
 			fakeDBResourceType(versionedResourceTypes[1]),
 			fakeDBResourceType(versionedResourceTypes[2]),
 		}, nil)
-	})
-
-	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
 	})
 
 	Describe("GET /api/v1/jobs", func() {
@@ -133,7 +127,10 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		It("returns application/json", func() {
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			expectedHeaderEntries := map[string]string{
+				"Content-Type": "application/json",
+			}
+			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 		})
 
 		It("returns all jobs from public pipelines and pipelines in authenticated teams", func() {
@@ -220,7 +217,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.TeamNamesReturns([]string{"some-team"})
+				fakeAccess.TeamNamesReturns([]string{"some-team"})
 			})
 
 			It("constructs job factory with provided team names", func() {
@@ -230,7 +227,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("user has the admin privilege", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAdminReturns(true)
+					fakeAccess.IsAdminReturns(true)
 				})
 
 				It("returns all jobs from public and private pipelines from unauthenticated teams", func() {
@@ -252,7 +249,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -280,8 +277,8 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authenticated and not authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(false)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -312,8 +309,8 @@ var _ = Describe("Jobs API", func() {
 			var build2 *dbfakes.FakeBuild
 
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when getting the build succeeds", func() {
@@ -427,7 +424,10 @@ var _ = Describe("Jobs API", func() {
 							})
 
 							It("returns Content-Type 'application/json'", func() {
-								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+								expectedHeaderEntries := map[string]string{
+									"Content-Type": "application/json",
+								}
+								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 							})
 
 							It("returns the job's name, if it's paused, and any running and finished builds", func() {
@@ -542,18 +542,17 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authenticated and not authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(false)
 			})
 
 			Context("and the pipeline is private", func() {
 				BeforeEach(func() {
 					fakePipeline.PublicReturns(false)
-					fakePipeline.JobReturns(fakeJob, true, nil)
 				})
 
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 
@@ -571,8 +570,8 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 
 				fakePipeline.JobReturns(fakeJob, true, nil)
 				fakeJob.NameReturns("some-job")
@@ -587,9 +586,12 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns Content-Type as image/svg+xml and disables caching", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("image/svg+xml"))
-				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
-				Expect(response.Header.Get("Expires")).To(Equal("0"))
+				expectedHeaderEntries := map[string]string{
+					"Content-Type":  "image/svg+xml",
+					"Cache-Control": "no-cache, no-store, must-revalidate",
+					"Expires":       "0",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 			})
 
 			Context("when generates bagde title", func() {
@@ -1020,12 +1022,12 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthorizedReturns(false)
 				})
 
 				Context("when not authenticated", func() {
 					BeforeEach(func() {
-						fakeaccess.IsAuthenticatedReturns(false)
+						fakeAccess.IsAuthenticatedReturns(false)
 					})
 
 					Context("and the pipeline is private", func() {
@@ -1052,8 +1054,8 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(true)
-					fakeaccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthenticatedReturns(true)
 				})
 
 				It("returns 200 OK", func() {
@@ -1061,7 +1063,10 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns Content-Type 'application/json'", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
 				It("returns each job's name and any running and finished builds", func() {
@@ -1186,8 +1191,8 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authenticated and not authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(false)
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -1217,7 +1222,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when getting the job succeeds", func() {
@@ -1304,7 +1309,10 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("returns the builds", func() {
@@ -1423,8 +1431,8 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authorized and authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(true)
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when getting the job fails", func() {
@@ -1570,7 +1578,10 @@ var _ = Describe("Jobs API", func() {
 									})
 
 									It("returns Content-Type 'application/json'", func() {
-										Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+										expectedHeaderEntries := map[string]string{
+											"Content-Type": "application/json",
+										}
+										Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 									})
 
 									It("creates a check for the resource", func() {
@@ -1623,7 +1634,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns 401", func() {
@@ -1633,12 +1644,12 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when not authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthorizedReturns(false)
 				})
 
 				It("returns 403", func() {
@@ -1648,7 +1659,7 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 				})
 
 				Context("when getting the job fails", func() {
@@ -1782,7 +1793,10 @@ var _ = Describe("Jobs API", func() {
 								})
 
 								It("returns Content-Type 'application/json'", func() {
-									Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+									expectedHeaderEntries := map[string]string{
+										"Content-Type": "application/json",
+									}
+									Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 								})
 
 								It("returns the inputs", func() {
@@ -1829,8 +1843,8 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(true)
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when getting the job succeeds", func() {
@@ -1861,7 +1875,10 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("fetches by job and build name", func() {
@@ -1934,7 +1951,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when not authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(false)
+				fakeAccess.IsAuthorizedReturns(false)
 			})
 
 			Context("and the pipeline is private", func() {
@@ -1944,7 +1961,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when not authenticated", func() {
 					BeforeEach(func() {
-						fakeaccess.IsAuthenticatedReturns(false)
+						fakeAccess.IsAuthenticatedReturns(false)
 					})
 					It("returns 401", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
@@ -1953,7 +1970,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when authenticated", func() {
 					BeforeEach(func() {
-						fakeaccess.IsAuthenticatedReturns(true)
+						fakeAccess.IsAuthenticatedReturns(true)
 					})
 
 					It("returns 403", func() {
@@ -1998,8 +2015,8 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authorized and authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(true)
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 
 			Context("when getting the job fails", func() {
@@ -2112,7 +2129,10 @@ var _ = Describe("Jobs API", func() {
 							})
 
 							It("returns Content-Type 'application/json'", func() {
-								Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+								expectedHeaderEntries := map[string]string{
+									"Content-Type": "application/json",
+								}
+								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 							})
 
 							It("returns the build", func() {
@@ -2153,11 +2173,11 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 
 					fakePipeline.JobReturns(fakeJob, true, nil)
 					fakeJob.PauseReturns(nil)
@@ -2206,7 +2226,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Status Unauthorized", func() {
@@ -2230,12 +2250,12 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthenticatedReturns(true)
 
 					fakePipeline.JobReturns(fakeJob, true, nil)
 					fakeJob.UnpauseReturns(nil)
@@ -2284,7 +2304,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Status Unauthorized", func() {
@@ -2315,12 +2335,12 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthorizedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthenticatedReturns(true)
 
 					fakePipeline.JobReturns(fakeJob, true, nil)
 					fakeJob.ClearTaskCacheReturns(1, nil)
@@ -2344,7 +2364,10 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("it returns the number of rows deleted", func() {
@@ -2392,7 +2415,10 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns Content-Type 'application/json'", func() {
-						Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 					})
 
 					It("it returns the number of rows deleted", func() {
@@ -2450,7 +2476,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Status Unauthorized", func() {
@@ -2474,11 +2500,11 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
 			})
 			Context("when authorized", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 
 					fakePipeline.JobReturns(fakeJob, true, nil)
 					fakeJob.RequestScheduleReturns(nil)
@@ -2527,7 +2553,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
-				fakeaccess.IsAuthenticatedReturns(false)
+				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
 			It("returns Status Unauthorized", func() {

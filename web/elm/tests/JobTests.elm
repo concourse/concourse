@@ -1,6 +1,7 @@
 module JobTests exposing (all)
 
 import Application.Application as Application
+import Assets
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse exposing (Build, BuildId, Job)
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -71,10 +72,6 @@ all =
                     { name = "some-job"
                     , pipelineName = "some-pipeline"
                     , teamName = "some-team"
-                    , pipeline =
-                        { pipelineName = "some-pipeline"
-                        , teamName = "some-team"
-                        }
                     , nextBuild = Nothing
                     , finishedBuild = Just someBuild
                     , transitionBuild = Nothing
@@ -118,10 +115,6 @@ all =
                                     { name = "job"
                                     , pipelineName = "pipeline"
                                     , teamName = "team"
-                                    , pipeline =
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
                                     , nextBuild = Nothing
                                     , finishedBuild = Just someBuild
                                     , transitionBuild = Nothing
@@ -287,7 +280,7 @@ all =
                         [ style "opacity" "0.5" ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-pause-circle-outline-white.svg"
+                                , image = Assets.PauseCircleIcon |> Assets.CircleOutlineIcon
                                 }
                     }
                 , hoveredSelector =
@@ -296,7 +289,7 @@ all =
                         [ style "opacity" "1" ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-pause-circle-outline-white.svg"
+                                , image = Assets.PauseCircleIcon |> Assets.CircleOutlineIcon
                                 }
                     }
                 , hoverable = Message.Message.ToggleJobButton
@@ -313,7 +306,7 @@ all =
                         [ style "opacity" "0.5" ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-play-circle-outline.svg"
+                                , image = Assets.PlayCircleIcon |> Assets.CircleOutlineIcon
                                 }
                     }
                 , hoveredSelector =
@@ -322,7 +315,7 @@ all =
                         [ style "opacity" "1" ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-play-circle-outline.svg"
+                                , image = Assets.PlayCircleIcon |> Assets.CircleOutlineIcon
                                 }
                     }
                 , hoverable = Message.Message.ToggleJobButton
@@ -371,7 +364,7 @@ all =
                     >> Query.has
                         (iconSelector
                             { size = "40px"
-                            , image = "ic-add-circle-outline-white.svg"
+                            , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                             }
                         )
             , defineHoverBehaviour
@@ -390,7 +383,7 @@ all =
                         [ style "opacity" "0.5" ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-add-circle-outline-white.svg"
+                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                     }
                 , hoveredSelector =
@@ -399,7 +392,7 @@ all =
                         [ style "opacity" "1" ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-add-circle-outline-white.svg"
+                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                     }
                 , hoverable = Message.Message.TriggerBuildButton
@@ -420,7 +413,7 @@ all =
                         [ style "opacity" "0.5" ]
                             ++ iconSelector
                                 { size = "40px"
-                                , image = "ic-add-circle-outline-white.svg"
+                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                     }
                 , hoveredSelector =
@@ -444,7 +437,7 @@ all =
                             [ style "opacity" "0.5" ]
                                 ++ iconSelector
                                     { size = "40px"
-                                    , image = "ic-add-circle-outline-white.svg"
+                                    , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                     }
                         ]
                     }
@@ -558,7 +551,7 @@ all =
                             >> Query.has
                                 (iconSelector
                                     { size = "12px"
-                                    , image = "ic-arrow-downward.svg"
+                                    , image = Assets.DownArrow
                                     }
                                     ++ [ style "background-size" "contain"
                                        , style "margin-right" "5px"
@@ -616,7 +609,7 @@ all =
                             >> Query.has
                                 (iconSelector
                                     { size = "12px"
-                                    , image = "ic-arrow-upward.svg"
+                                    , image = Assets.UpArrow
                                     }
                                     ++ [ style "background-size" "contain"
                                        , style "margin-right" "5px"
@@ -703,8 +696,7 @@ all =
                                         ++ middleGrey
                                 , containing
                                     (iconSelector
-                                        { image =
-                                            "baseline-chevron-left-24px.svg"
+                                        { image = Assets.ChevronLeft
                                         , size = "24px"
                                         }
                                         ++ [ style "padding" "5px"
@@ -722,8 +714,7 @@ all =
                                         ++ middleGrey
                                 , containing
                                     (iconSelector
-                                        { image =
-                                            "baseline-chevron-right-24px.svg"
+                                        { image = Assets.ChevronRight
                                         , size = "24px"
                                         }
                                         ++ [ style "padding" "5px"
@@ -796,8 +787,7 @@ all =
                                 ++ middleGrey
                         , containing
                             (iconSelector
-                                { image =
-                                    "baseline-chevron-left-24px.svg"
+                                { image = Assets.ChevronLeft
                                 , size = "24px"
                                 }
                                 ++ [ style "padding" "5px"
@@ -819,8 +809,7 @@ all =
                                 ++ middleGrey
                         , containing
                             (iconSelector
-                                { image =
-                                    "baseline-chevron-left-24px.svg"
+                                { image = Assets.ChevronLeft
                                 , size = "24px"
                                 }
                                 ++ [ style "padding" "5px"

@@ -53,7 +53,6 @@ var _ = Describe("Register", func() {
 
 		atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 			var worker atc.Worker
-			Expect(accessFactory.Create(r, "some-action").IsAuthenticated()).To(BeTrue())
 
 			err := json.NewDecoder(r.Body).Decode(&worker)
 			Expect(err).NotTo(HaveOccurred())
@@ -66,7 +65,6 @@ var _ = Describe("Register", func() {
 
 		atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
 			var worker atc.Worker
-			Expect(accessFactory.Create(r, "some-action").IsAuthenticated()).To(BeTrue())
 
 			err := json.NewDecoder(r.Body).Decode(&worker)
 			Expect(err).NotTo(HaveOccurred())
@@ -477,7 +475,6 @@ var _ = Describe("Register", func() {
 		Context("when the ATC returns a 404 for the heartbeat", func() {
 			BeforeEach(func() {
 				atcServer.RouteToHandler("PUT", "/api/v1/workers/some-worker/heartbeat", func(w http.ResponseWriter, r *http.Request) {
-					Expect(accessFactory.Create(r, "some-action").IsAuthenticated()).To(BeTrue())
 					w.WriteHeader(404)
 				})
 			})

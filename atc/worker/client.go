@@ -36,6 +36,19 @@ type Client interface {
 		filePath string,
 	) (io.ReadCloser, error)
 
+	RunCheckStep(
+		ctx context.Context,
+		logger lager.Logger,
+		owner db.ContainerOwner,
+		containerSpec ContainerSpec,
+		workerSpec WorkerSpec,
+		strategy ContainerPlacementStrategy,
+		containerMetadata db.ContainerMetadata,
+		resourceTypes atc.VersionedResourceTypes,
+		timeout time.Duration,
+		checkable resource.Resource,
+	) (CheckResult, error)
+
 	RunTaskStep(
 		context.Context,
 		lager.Logger,
@@ -97,6 +110,10 @@ type TaskResult struct {
 	VolumeMounts []VolumeMount
 }
 
+type CheckResult struct {
+	Versions []atc.Version
+}
+
 type PutResult struct {
 	ExitStatus    int
 	VersionResult runtime.VersionResult
@@ -154,6 +171,62 @@ func (client *client) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, w
 	}
 
 	return worker.CreateVolume(logger, volumeSpec, workerSpec.TeamID, volumeType)
+}
+
+var checkProcessSpec = runtime.ProcessSpec{
+	Path: "/opt/resource/check",
+}
+
+func (client *client) RunCheckStep(
+	ctx context.Context,
+	logger lager.Logger,
+	owner db.ContainerOwner,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec,
+	strategy ContainerPlacementStrategy,
+	containerMetadata db.ContainerMetadata,
+	resourceTypes atc.VersionedResourceTypes,
+	timeout time.Duration,
+	checkable resource.Resource,
+) (CheckResult, error) {
+	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
+		ctx,
+		logger,
+		owner,
+		containerSpec,
+		workerSpec,
+		strategy,
+	)
+	if err != nil {
+		return CheckResult{}, fmt.Errorf("find or choose worker for container: %w", err)
+	}
+
+	container, err := chosenWorker.FindOrCreateContainer(
+		ctx,
+		logger,
+		&NoopImageFetchingDelegate{},
+		owner,
+		containerMetadata,
+		containerSpec,
+		resourceTypes,
+	)
+	if err != nil {
+		return CheckResult{}, fmt.Errorf("find or create container: %w", err)
+	}
+
+	deadline, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	versions, err := checkable.Check(deadline, checkProcessSpec, container)
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			return CheckResult{}, fmt.Errorf("timed out after %v checking for new versions", timeout)
+		}
+
+		return CheckResult{}, fmt.Errorf("check: %w", err)
+	}
+
+	return CheckResult{Versions: versions}, nil
 }
 
 func (client *client) RunTaskStep(

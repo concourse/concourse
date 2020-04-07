@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/concourse/concourse/tsa"
+	"golang.org/x/oauth2"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/tsa/tsafakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -19,10 +19,9 @@ var _ = Describe("Lander", func() {
 	var (
 		lander *tsa.Lander
 
-		ctx                context.Context
-		worker             atc.Worker
-		fakeTokenGenerator *tsafakes.FakeTokenGenerator
-		fakeATC            *ghttp.Server
+		ctx     context.Context
+		worker  atc.Worker
+		fakeATC *ghttp.Server
 	)
 
 	BeforeEach(func() {
@@ -30,17 +29,16 @@ var _ = Describe("Lander", func() {
 		worker = atc.Worker{
 			Name: "some-worker",
 		}
-		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
-		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)
-		fakeTokenGenerator.GenerateTeamTokenReturns("yo-team", nil)
-
 		fakeATC = ghttp.NewServer()
 
 		atcEndpoint := rata.NewRequestGenerator(fakeATC.URL(), atc.Routes)
 
+		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
+		httpClient := oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))
+
 		lander = &tsa.Lander{
-			ATCEndpoint:    atcEndpoint,
-			TokenGenerator: fakeTokenGenerator,
+			ATCEndpoint: atcEndpoint,
+			HTTPClient:  httpClient,
 		}
 	})
 
@@ -53,10 +51,10 @@ var _ = Describe("Lander", func() {
 			worker.Team = "some-team"
 		})
 
-		It("generates a team-specific token", func() {
+		It("tells the ATC to land the worker", func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-				ghttp.VerifyHeaderKV("Authorization", "Bearer yo-team"),
+				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
 				ghttp.RespondWith(200, nil, nil),
 			))
 

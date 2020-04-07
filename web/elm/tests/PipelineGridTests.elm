@@ -105,7 +105,7 @@ all =
         , test "fetches the viewport of the scrollable area when the sidebar state is loaded" <|
             \_ ->
                 Common.init "/"
-                    |> Application.handleDelivery (SideBarStateReceived Nothing)
+                    |> Application.handleDelivery (SideBarStateReceived (Ok True))
                     |> Tuple.second
                     |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
         , test "renders pipeline cards in a single column grid when the viewport is narrow" <|
@@ -221,7 +221,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok <|
-                                List.repeat 15 (Data.job 0)
+                                jobsWithHeight 0 15
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -427,7 +427,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok <|
-                                List.repeat 30 (Data.job 0)
+                                jobsWithHeight 0 30
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -491,7 +491,7 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "team-2" ]
                     |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-2" ] ]
-        , test "pipeline wrapper has a z-index of 1 when hovering over it" <|
+        , test "pipeline wrapper has a z-index of 1 when hovering over a job" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
@@ -513,6 +513,57 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Query.has [ class "pipeline-wrapper", style "z-index" "1" ]
+        , test "pipeline wrapper has a z-index of 1 when hovering over the wrapper" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok [ Data.pipeline "team" 0 ]
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Update <|
+                            Hover <|
+                                Just <|
+                                    PipelineWrapper
+                                        { teamName = "team"
+                                        , pipelineName = "pipeline-0"
+                                        }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ class "dashboard-team-pipelines" ]
+                    |> Query.has [ class "pipeline-wrapper", style "z-index" "1" ]
+        , test "pipeline wrapper responds to mouse over" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok [ Data.pipeline "team" 0 ]
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ class "pipeline-wrapper" ]
+                    |> Event.simulate Event.mouseOver
+                    |> Event.expect
+                        (Update <|
+                            Hover <|
+                                Just <|
+                                    PipelineWrapper <|
+                                        { pipelineName = "pipeline-0", teamName = "team" }
+                        )
+        , test "pipeline wrapper responds to mouse out" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok [ Data.pipeline "team" 0 ]
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ class "pipeline-wrapper" ]
+                    |> Event.simulate Event.mouseOut
+                    |> Event.expect (Update <| Hover Nothing)
         , describe "drop areas" <|
             [ test "renders a drop area over each pipeline card" <|
                 \_ ->
@@ -613,6 +664,19 @@ all =
                             ]
             ]
         ]
+
+
+jobsWithHeight : Int -> Int -> List Concourse.Job
+jobsWithHeight pipelineID height =
+    List.range 1 height
+        |> List.map
+            (\i ->
+                let
+                    job =
+                        Data.job pipelineID
+                in
+                { job | name = String.fromInt i }
+            )
 
 
 jobsWithDepth : Int -> Int -> List Concourse.Job

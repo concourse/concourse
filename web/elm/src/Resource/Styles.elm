@@ -24,9 +24,11 @@ module Resource.Styles exposing
     , pinButton
     , pinButtonTooltip
     , pinIcon
+    , pinTools
     , versionHeader
     )
 
+import Assets
 import Colors
 import Html
 import Html.Attributes exposing (style)
@@ -39,23 +41,12 @@ headerHeight =
     60
 
 
-pinBar : Bool -> List (Html.Attribute msg)
-pinBar isPinned =
-    let
-        pinBarBorderColor =
-            if isPinned then
-                Colors.pinned
-
-            else
-                Colors.background
-    in
-    [ style "flex-grow" "1"
-    , style "margin" "10px"
-    , style "padding-left" "7px"
-    , style "display" "flex"
+pinBar : List (Html.Attribute msg)
+pinBar =
+    [ style "display" "flex"
     , style "align-items" "center"
     , style "position" "relative"
-    , style "border" <| "1px solid " ++ pinBarBorderColor
+    , style "background-color" Colors.pinTools
     ]
 
 
@@ -97,6 +88,26 @@ pinBarTooltip =
     ]
 
 
+pinTools : Bool -> List (Html.Attribute msg)
+pinTools isPinned =
+    let
+        pinToolsBorderColor =
+            if isPinned then
+                Colors.pinned
+
+            else
+                Colors.background
+    in
+    [ style "background-color" Colors.pinTools
+    , style "height" "28px"
+    , style "margin-bottom" "24px"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "border" <| "1px solid " ++ pinToolsBorderColor
+    , style "box-sizing" "border-box"
+    ]
+
+
 checkStatusIcon : List (Html.Attribute msg)
 checkStatusIcon =
     [ style "background-size" "14px 14px" ]
@@ -118,15 +129,16 @@ enabledCheckbox { enabled, pinState } =
     , style "border" <| "1px solid " ++ borderColor pinState
     , style "background-color" Colors.sectionHeader
     , style "background-image" <|
-        case enabled of
-            Models.Enabled ->
-                "url(/public/images/checkmark-ic.svg)"
+        Assets.backgroundImage <|
+            case enabled of
+                Models.Enabled ->
+                    Just Assets.CheckmarkIcon
 
-            Models.Changing ->
-                "none"
+                Models.Changing ->
+                    Nothing
 
-            Models.Disabled ->
-                "none"
+                Models.Disabled ->
+                    Nothing
     ]
 
 
@@ -160,12 +172,13 @@ pinButton pinState =
             Pinned.InTransition ->
                 "default"
     , style "background-image" <|
-        case pinState of
-            Pinned.InTransition ->
-                "none"
+        Assets.backgroundImage <|
+            case pinState of
+                Pinned.InTransition ->
+                    Nothing
 
-            _ ->
-                "url(/public/images/pin-ic-white.svg)"
+                _ ->
+                    Just Assets.PinIconWhite
     ]
 
 
@@ -350,6 +363,7 @@ pagination : List (Html.Attribute msg)
 pagination =
     [ style "display" "flex"
     , style "align-items" "stretch"
+    , style "margin-left" "auto"
     ]
 
 

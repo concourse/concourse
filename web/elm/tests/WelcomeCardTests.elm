@@ -1,9 +1,12 @@
 module WelcomeCardTests exposing (all, hasWelcomeCard)
 
 import Application.Application as Application
+import Assets
 import Common exposing (defineHoverBehaviour)
+import Concourse
 import Concourse.Cli as Cli
 import DashboardTests exposing (apiData, darkGrey, givenDataAndUser, givenDataUnauthenticated, iconSelector, userWithRoles, whenOnDashboard)
+import Data
 import Expect
 import Html.Attributes as Attr
 import Message.Callback as Callback
@@ -23,11 +26,15 @@ all =
                 (\_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [])
+                        |> Tuple.first
+                        |> givenPipelines []
                 )
                 ++ [ test "page body is empty" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
                                 |> givenDataUnauthenticated (apiData [])
+                                |> Tuple.first
+                                |> givenPipelines []
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> Query.find [ id "page-below-top-bar" ]
@@ -41,6 +48,8 @@ all =
                 (\_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                        |> Tuple.first
+                        |> givenPipelines []
                 )
         , describe
             ("when logged in with teams but no pipelines, "
@@ -53,6 +62,8 @@ all =
                         |> givenDataAndUser
                             (apiData [ ( "team", [] ) ])
                             (userWithRoles [])
+                        |> Tuple.first
+                        |> givenPipelines []
                 )
         , test "no login instruction when logged in" <|
             \_ ->
@@ -61,12 +72,16 @@ all =
                         (apiData [ ( "team", [] ) ])
                         (userWithRoles [])
                     |> Tuple.first
+                    |> givenPipelines []
+                    |> Tuple.first
                     |> Common.queryView
                     |> Query.hasNot [ id "login-instruction" ]
         , test "has login instruction when unauthenticated" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                    |> Tuple.first
+                    |> givenPipelines []
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "welcome-card" ]
@@ -85,19 +100,16 @@ all =
         , test "does not appear when there are visible pipelines" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
-                    |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <|
-                            Ok
-                                [ { id = 0
-                                  , name = ""
-                                  , paused = False
-                                  , public = True
-                                  , teamName = ""
-                                  , groups = []
-                                  }
-                                ]
-                        )
+                    |> givenPipelines
+                        [ Data.pipeline "team" 0 ]
                     |> Tuple.first
+                    |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "welcome to concourse" ]
+        , test "does not appear when pipelines have not yet been fetched" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
                     |> Tuple.first
                     |> Common.queryView
@@ -251,7 +263,7 @@ hasWelcomeCard setup =
                             ]
                                 ++ iconSelector
                                     { size = "32px"
-                                    , image = "apple-logo.svg"
+                                    , image = Assets.CliIcon Cli.OSX
                                     }
                         }
                     , hoverable =
@@ -264,7 +276,7 @@ hasWelcomeCard setup =
                             ]
                                 ++ iconSelector
                                     { size = "32px"
-                                    , image = "apple-logo.svg"
+                                    , image = Assets.CliIcon Cli.OSX
                                     }
                         }
                     }
@@ -283,7 +295,7 @@ hasWelcomeCard setup =
                             ]
                                 ++ iconSelector
                                     { size = "32px"
-                                    , image = "windows-logo.svg"
+                                    , image = Assets.CliIcon Cli.Windows
                                     }
                         }
                     , hoverable =
@@ -296,7 +308,7 @@ hasWelcomeCard setup =
                             ]
                                 ++ iconSelector
                                     { size = "32px"
-                                    , image = "windows-logo.svg"
+                                    , image = Assets.CliIcon Cli.Windows
                                     }
                         }
                     }
@@ -315,7 +327,7 @@ hasWelcomeCard setup =
                             ]
                                 ++ iconSelector
                                     { size = "32px"
-                                    , image = "linux-logo.svg"
+                                    , image = Assets.CliIcon Cli.Linux
                                     }
                         }
                     , hoverable =
@@ -328,7 +340,7 @@ hasWelcomeCard setup =
                             ]
                                 ++ iconSelector
                                     { size = "32px"
-                                    , image = "linux-logo.svg"
+                                    , image = Assets.CliIcon Cli.Linux
                                     }
                         }
                     }
@@ -356,3 +368,9 @@ hasWelcomeCard setup =
                 >> Query.has [ style "cursor" "default" ]
         ]
     ]
+
+
+givenPipelines : List Concourse.Pipeline -> Application.Model -> ( Application.Model, List Effects.Effect )
+givenPipelines pipelines model =
+    model
+        |> Application.handleCallback (Callback.AllPipelinesFetched <| Ok pipelines)

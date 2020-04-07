@@ -11,6 +11,10 @@ module Data exposing
     , teamName
     , version
     , versionedResource
+    , withGroups
+    , withName
+    , withPaused
+    , withPublic
     )
 
 import Concourse
@@ -77,13 +81,29 @@ pipeline team id =
     }
 
 
+withPaused : Bool -> { r | paused : Bool } -> { r | paused : Bool }
+withPaused paused p =
+    { p | paused = paused }
+
+
+withPublic : Bool -> { r | public : Bool } -> { r | public : Bool }
+withPublic public p =
+    { p | public = public }
+
+
+withName : String -> { r | name : String } -> { r | name : String }
+withName name p =
+    { p | name = name }
+
+
+withGroups : List Concourse.PipelineGroup -> { r | groups : List Concourse.PipelineGroup } -> { r | groups : List Concourse.PipelineGroup }
+withGroups groups p =
+    { p | groups = groups }
+
+
 job : Int -> Concourse.Job
 job pipelineID =
-    { pipeline =
-        { teamName = teamName
-        , pipelineName = "pipeline-" ++ String.fromInt pipelineID
-        }
-    , name = jobName
+    { name = jobName
     , pipelineName = "pipeline-" ++ String.fromInt pipelineID
     , teamName = teamName
     , nextBuild = Nothing

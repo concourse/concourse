@@ -3,6 +3,7 @@ version: '3'
 services:
   db:
     image: postgres
+    shm_size: 1gb
     ports:
     - 6543:5432
     environment:
@@ -29,6 +30,8 @@ services:
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
+      CONCOURSE_CLIENT_SECRET: Y29uY291cnNlLXdlYgo=
+      CONCOURSE_TSA_CLIENT_SECRET: Y29uY291cnNlLXdvcmtlcgo=
 
   worker:
     build: .

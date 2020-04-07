@@ -3,6 +3,7 @@ package buildserver_test
 import (
 	"encoding/json"
 	"errors"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -114,15 +115,26 @@ var _ = Describe("Handler", func() {
 
 			It("returns Content-Type as text/event-stream", func() {
 				_ = response.Body.Close()
-				Expect(response.Header.Get("Content-Type")).To(Equal("text/event-stream; charset=utf-8"))
-				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
-				Expect(response.Header.Get("X-Accel-Buffering")).To(Equal("no"))
-				Expect(response.Header.Get("Connection")).NotTo(Equal("keep-alive"))
+				expectedHeaderEntries := map[string]string{
+					"Content-Type":      "text/event-stream; charset=utf-8",
+					"Cache-Control":     "no-cache, no-store, must-revalidate",
+					"X-Accel-Buffering": "no",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+
+				expectedHeaderEntries = map[string]string{
+					"Connection":        "keep-alive",
+				}
+				Expect(response).ShouldNot(IncludeHeaderEntries(expectedHeaderEntries))
+
 			})
 
 			It("returns the protocol version as X-ATC-Stream-Version", func() {
 				_ = response.Body.Close()
-				Expect(response.Header.Get("X-ATC-Stream-Version")).To(Equal("2.0"))
+				expectedHeaderEntries := map[string]string{
+					"X-Atc-Stream-Version": "2.0",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 			})
 
 			It("emits them, followed by an end event", func() {

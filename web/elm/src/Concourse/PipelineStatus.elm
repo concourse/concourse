@@ -2,15 +2,11 @@ module Concourse.PipelineStatus exposing
     ( PipelineStatus(..)
     , StatusDetails(..)
     , equal
-    , icon
     , isRunning
     , show
     )
 
-import Html exposing (Html)
-import Html.Attributes exposing (style)
 import Time
-import Views.Icon as Icon
 
 
 type StatusDetails
@@ -25,6 +21,7 @@ type PipelineStatus
     | PipelineStatusFailed StatusDetails
     | PipelineStatusPending Bool
     | PipelineStatusSucceeded StatusDetails
+    | PipelineStatusUnknown
 
 
 equal : PipelineStatus -> PipelineStatus -> Bool
@@ -73,6 +70,9 @@ show status =
         PipelineStatusSucceeded _ ->
             "succeeded"
 
+        PipelineStatusUnknown ->
+            "unknown"
+
 
 isRunning : PipelineStatus -> Bool
 isRunning status =
@@ -95,29 +95,5 @@ isRunning status =
         PipelineStatusSucceeded details ->
             details == Running
 
-
-icon : PipelineStatus -> Html msg
-icon status =
-    Icon.icon
-        { sizePx = 20
-        , image =
-            case status of
-                PipelineStatusPaused ->
-                    "ic-pause-blue.svg"
-
-                PipelineStatusPending _ ->
-                    "ic-pending-grey.svg"
-
-                PipelineStatusSucceeded _ ->
-                    "ic-running-green.svg"
-
-                PipelineStatusFailed _ ->
-                    "ic-failing-red.svg"
-
-                PipelineStatusAborted _ ->
-                    "ic-aborted-brown.svg"
-
-                PipelineStatusErrored _ ->
-                    "ic-error-orange.svg"
-        }
-        [ style "background-size" "contain" ]
+        PipelineStatusUnknown ->
+            False

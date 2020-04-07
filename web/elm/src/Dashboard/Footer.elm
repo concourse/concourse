@@ -1,10 +1,12 @@
 module Dashboard.Footer exposing (handleDelivery, view)
 
+import Assets
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
+import FetchResult exposing (FetchResult)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, download, href, id, style)
@@ -33,6 +35,7 @@ handleDelivery delivery ( model, effects ) =
                             | showHelp =
                                 if
                                     model.pipelines
+                                        |> FetchResult.withDefault []
                                         |> List.isEmpty
                                 then
                                     False
@@ -125,7 +128,7 @@ infoBar :
     ->
         { b
             | highDensity : Bool
-            , pipelines : List Pipeline
+            , pipelines : FetchResult (List Pipeline)
         }
     -> Html Message
 infoBar session model =
@@ -145,7 +148,7 @@ legend :
     { a | screenSize : ScreenSize.ScreenSize }
     ->
         { b
-            | pipelines : List Pipeline
+            | pipelines : FetchResult (List Pipeline)
             , highDensity : Bool
         }
     -> Html Message
@@ -165,7 +168,7 @@ legend session model =
                     Styles.legendItem
                     [ Icon.icon
                         { sizePx = 20
-                        , image = "ic-running-legend.svg"
+                        , image = Assets.RunningLegend
                         }
                         []
                     , Html.div [ style "width" "10px" ] []
@@ -198,16 +201,20 @@ concourseInfo { hovered, version } =
         ]
 
 
-hideLegend : { a | pipelines : List Pipeline } -> Bool
+hideLegend : { a | pipelines : FetchResult (List Pipeline) } -> Bool
 hideLegend { pipelines } =
-    List.isEmpty pipelines
+    pipelines
+        |> FetchResult.withDefault []
+        |> List.isEmpty
 
 
 legendItem : PipelineStatus -> Html Message
 legendItem status =
     Html.div
         Styles.legendItem
-        [ PipelineStatus.icon status
+        [ Icon.icon
+            { sizePx = 20, image = Assets.PipelineStatusIcon status }
+            Styles.pipelineStatusIcon
         , Html.div [ style "width" "10px" ] []
         , Html.text <| PipelineStatus.show status
         ]

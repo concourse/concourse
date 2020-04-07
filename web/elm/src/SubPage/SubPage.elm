@@ -260,6 +260,19 @@ urlUpdate routes =
                                 Nothing
                     }
 
+            Routes.OneOffBuild { id, highlight } ->
+                Build.changeToBuild
+                    { pageType = Build.Header.Models.OneOffBuildPage id
+                    , highlight = highlight
+                    , fromBuildPage =
+                        case routes.from of
+                            Routes.OneOffBuild params ->
+                                Just <| Build.Header.Models.OneOffBuildPage params.id
+
+                            _ ->
+                                Nothing
+                    }
+
             _ ->
                 identity
         )

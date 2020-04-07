@@ -13,6 +13,7 @@ module Job.Job exposing
     )
 
 import Application.Models exposing (Session)
+import Assets
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -20,8 +21,9 @@ import Concourse.Pagination
     exposing
         ( Page
         , Paginated
-        , chevron
         , chevronContainer
+        , chevronLeft
+        , chevronRight
         )
 import Dict
 import EffectTransformer exposing (ET)
@@ -474,11 +476,12 @@ viewMainJobsSection session model =
                                 [ Icon.icon
                                     { sizePx = 40
                                     , image =
-                                        if job.paused then
-                                            "ic-play-circle-outline.svg"
+                                        Assets.CircleOutlineIcon <|
+                                            if job.paused then
+                                                Assets.PlayCircleIcon
 
-                                        else
-                                            "ic-pause-circle-outline-white.svg"
+                                            else
+                                                Assets.PauseCircleIcon
                                     }
                                     (Styles.icon toggleHovered)
                                 ]
@@ -503,7 +506,7 @@ viewMainJobsSection session model =
                           <|
                             [ Icon.icon
                                 { sizePx = 40
-                                , image = "ic-add-circle-outline-white.svg"
+                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
                                 }
                                 (Styles.icon <|
                                     triggerHovered
@@ -584,9 +587,8 @@ viewPaginationBar session model =
                 Html.div
                     chevronContainer
                     [ Html.div
-                        (chevron
-                            { direction = "left"
-                            , enabled = False
+                        (chevronLeft
+                            { enabled = False
                             , hovered = False
                             }
                         )
@@ -609,9 +611,8 @@ viewPaginationBar session model =
                          , href <| Routes.toString <| jobRoute
                          , attribute "aria-label" "Previous Page"
                          ]
-                            ++ chevron
-                                { direction = "left"
-                                , enabled = True
+                            ++ chevronLeft
+                                { enabled = True
                                 , hovered =
                                     HoverState.isHovered
                                         PreviousPageButton
@@ -625,9 +626,8 @@ viewPaginationBar session model =
                 Html.div
                     chevronContainer
                     [ Html.div
-                        (chevron
-                            { direction = "right"
-                            , enabled = False
+                        (chevronRight
+                            { enabled = False
                             , hovered = False
                             }
                         )
@@ -650,9 +650,8 @@ viewPaginationBar session model =
                          , href <| Routes.toString jobRoute
                          , attribute "aria-label" "Next Page"
                          ]
-                            ++ chevron
-                                { direction = "right"
-                                , enabled = True
+                            ++ chevronRight
+                                { enabled = True
                                 , hovered =
                                     HoverState.isHovered
                                         NextPageButton
@@ -723,7 +722,7 @@ viewBuildResources buildWithResources =
             Styles.buildResourceHeader
             [ Icon.icon
                 { sizePx = 12
-                , image = "ic-arrow-downward.svg"
+                , image = Assets.DownArrow
                 }
                 Styles.buildResourceIcon
             , Html.text "inputs"
@@ -735,7 +734,7 @@ viewBuildResources buildWithResources =
             Styles.buildResourceHeader
             [ Icon.icon
                 { sizePx = 12
-                , image = "ic-arrow-upward.svg"
+                , image = Assets.UpArrow
                 }
                 Styles.buildResourceIcon
             , Html.text "outputs"

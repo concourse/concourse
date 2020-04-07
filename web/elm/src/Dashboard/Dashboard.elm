@@ -26,6 +26,7 @@ import Dashboard.Styles as Styles
 import Dashboard.Text as Text
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
+import FetchResult exposing (FetchResult(..), changedFrom)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes
@@ -72,17 +73,16 @@ init : Routes.SearchType -> ( Model, List Effect )
 init searchType =
     ( { showTurbulence = False
       , now = Nothing
-      , groups = []
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
       , highDensity = searchType == Routes.HighDensity
       , query = Routes.extractQuery searchType
       , pipelinesWithResourceErrors = Dict.empty
-      , existingJobs = []
-      , pipelines = []
+      , jobs = None
+      , pipelines = None
       , pipelineLayers = Dict.empty
-      , teams = []
+      , teams = None
       , isUserMenuExpanded = False
       , dropdown = Hidden
       , dragState = Models.NotDragging
@@ -102,6 +102,9 @@ init searchType =
       , FetchAllResources
       , FetchAllJobs
       , FetchAllPipelines
+      , LoadCachedJobs
+      , LoadCachedPipelines
+      , LoadCachedTeams
       , GetViewportOf Dashboard AlwaysShow
       ]
     )
@@ -171,47 +174,65 @@ handleCallback callback ( model, effects ) =
             ( { model | showTurbulence = True }, effects )
 
         AllTeamsFetched (Ok teams) ->
-            ( { model
-                | groups =
-                    List.map
-                        (\team ->
-                            { pipelines = []
-                            , teamName = team.name
-                            }
-                        )
-                        teams
-                , teams = teams
-              }
+            let
+                newTeams =
+                    Fetched teams
+            in
+            ( { model | teams = newTeams }
             , effects
+                ++ (if newTeams |> changedFrom model.teams then
+                        [ SaveCachedTeams teams ]
+
+                    else
+                        []
+                   )
             )
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
-            ( if model.existingJobs == allJobsInEntireCluster then
-                model
+            let
+                removeBuild job =
+                    { job
+                        | finishedBuild = Nothing
+                        , transitionBuild = Nothing
+                        , nextBuild = Nothing
+                    }
 
-              else
-                let
-                    pipelinesWithJobs =
-                        allJobsInEntireCluster
-                            |> List.map (\j -> ( j.teamName, j.pipelineName ))
-                            |> List.Extra.unique
-                            |> List.map
-                                (\( teamName, pipelineName ) ->
-                                    allJobsInEntireCluster
-                                        |> List.filter (\j -> j.teamName == teamName && j.pipelineName == pipelineName)
-                                        |> Tuple.pair ( teamName, pipelineName )
+                newJobs =
+                    allJobsInEntireCluster
+                        |> List.map
+                            (\job ->
+                                ( ( job.teamName
+                                  , job.pipelineName
+                                  , job.name
+                                  )
+                                , job
                                 )
-                in
-                { model
-                    | existingJobs = allJobsInEntireCluster
-                    , pipelineLayers =
-                        pipelinesWithJobs
-                            |> List.map (\( key, jobs ) -> ( key, DashboardPreview.groupByRank jobs ))
-                            |> Dict.fromList
-                    , pipelineJobs = pipelinesWithJobs |> Dict.fromList
-                }
-            , effects
-            )
+                            )
+                        |> Dict.fromList
+                        |> Fetched
+
+                maxJobsInCache =
+                    1000
+
+                mapToJobIds jobsResult =
+                    jobsResult
+                        |> FetchResult.map (Dict.toList >> List.map Tuple.first)
+
+                newModel =
+                    { model | jobs = newJobs }
+            in
+            if mapToJobIds newJobs |> changedFrom (mapToJobIds model.jobs) then
+                ( newModel |> precomputeJobMetadata
+                , effects
+                    ++ [ allJobsInEntireCluster
+                            |> List.take maxJobsInCache
+                            |> List.map removeBuild
+                            |> SaveCachedJobs
+                       ]
+                )
+
+            else
+                ( newModel, effects )
 
         AllJobsFetched (Err _) ->
             ( { model | showTurbulence = True }, effects )
@@ -237,26 +258,26 @@ handleCallback callback ( model, effects ) =
             ( { model | showTurbulence = True }, effects )
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
-            ( { model
-                | pipelines =
+            let
+                newPipelines =
                     allPipelinesInEntireCluster
-                        |> List.map
-                            (\p ->
-                                { id = p.id
-                                , name = p.name
-                                , teamName = p.teamName
-                                , public = p.public
-                                , isToggleLoading = False
-                                , isVisibilityLoading = False
-                                , paused = p.paused
-                                }
-                            )
-              }
-            , if List.isEmpty allPipelinesInEntireCluster then
-                effects ++ [ ModifyUrl "/" ]
+                        |> List.map toDashboardPipeline
+                        |> Fetched
+            in
+            ( { model | pipelines = newPipelines }
+            , effects
+                ++ (if List.isEmpty allPipelinesInEntireCluster then
+                        [ ModifyUrl "/" ]
 
-              else
-                effects
+                    else
+                        []
+                   )
+                ++ (if newPipelines |> changedFrom model.pipelines then
+                        [ SaveCachedPipelines allPipelinesInEntireCluster ]
+
+                    else
+                        []
+                   )
             )
 
         AllPipelinesFetched (Err _) ->
@@ -279,6 +300,12 @@ handleCallback callback ( model, effects ) =
                             Routes.dashboardRoute <|
                                 model.highDensity
                    , FetchAllTeams
+                   , FetchAllResources
+                   , FetchAllJobs
+                   , FetchAllPipelines
+                   , DeleteCachedPipelines
+                   , DeleteCachedJobs
+                   , DeleteCachedTeams
                    ]
             )
 
@@ -341,11 +368,13 @@ updatePipeline updater pipelineId model =
     { model
         | pipelines =
             model.pipelines
-                |> List.Extra.updateIf
-                    (\p ->
-                        p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
+                |> FetchResult.map
+                    (List.Extra.updateIf
+                        (\p ->
+                            p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
+                        )
+                        updater
                     )
-                    updater
     }
 
 
@@ -369,8 +398,126 @@ handleDeliveryBody delivery ( model, effects ) =
         SideBarStateReceived _ ->
             ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
 
+        CachedPipelinesReceived (Ok pipelines) ->
+            let
+                newPipelines =
+                    pipelines
+                        |> List.map toDashboardPipeline
+                        |> Cached
+            in
+            if newPipelines |> changedFrom model.pipelines then
+                ( { model | pipelines = newPipelines }, effects )
+
+            else
+                ( model, effects )
+
+        CachedJobsReceived (Ok jobs) ->
+            let
+                newJobs =
+                    jobs
+                        |> List.map
+                            (\job ->
+                                ( ( job.teamName
+                                  , job.pipelineName
+                                  , job.name
+                                  )
+                                , job
+                                )
+                            )
+                        |> Dict.fromList
+                        |> Cached
+
+                mapToJobIds jobsResult =
+                    jobsResult
+                        |> FetchResult.map (Dict.toList >> List.map Tuple.first)
+            in
+            if mapToJobIds newJobs |> changedFrom (mapToJobIds model.jobs) then
+                ( { model | jobs = newJobs } |> precomputeJobMetadata
+                , effects
+                )
+
+            else
+                ( model, effects )
+
+        CachedTeamsReceived (Ok teams) ->
+            let
+                newTeams =
+                    Cached teams
+            in
+            if newTeams |> changedFrom model.teams then
+                ( { model | teams = newTeams }, effects )
+
+            else
+                ( model, effects )
+
         _ ->
             ( model, effects )
+
+
+toDashboardPipeline : Concourse.Pipeline -> Pipeline
+toDashboardPipeline p =
+    { id = p.id
+    , name = p.name
+    , teamName = p.teamName
+    , public = p.public
+    , isToggleLoading = False
+    , isVisibilityLoading = False
+    , paused = p.paused
+    }
+
+
+toConcoursePipeline : Pipeline -> Concourse.Pipeline
+toConcoursePipeline p =
+    { id = p.id
+    , name = p.name
+    , teamName = p.teamName
+    , public = p.public
+    , paused = p.paused
+    , groups = []
+    }
+
+
+groupBy : (a -> comparable) -> List a -> Dict comparable (List a)
+groupBy keyfn list =
+    -- From https://github.com/elm-community/dict-extra/blob/2.3.0/src/Dict/Extra.elm
+    List.foldr
+        (\x acc ->
+            Dict.update (keyfn x) (Maybe.map ((::) x) >> Maybe.withDefault [ x ] >> Just) acc
+        )
+        Dict.empty
+        list
+
+
+precomputeJobMetadata : Model -> Model
+precomputeJobMetadata model =
+    let
+        allJobs =
+            model.jobs
+                |> FetchResult.withDefault Dict.empty
+                |> Dict.values
+
+        pipelineJobs =
+            allJobs |> groupBy (\j -> ( j.teamName, j.pipelineName ))
+
+        jobToId job =
+            { teamName = job.teamName
+            , pipelineName = job.pipelineName
+            , jobName = job.name
+            }
+    in
+    { model
+        | pipelineLayers =
+            pipelineJobs
+                |> Dict.map
+                    (\_ jobs ->
+                        jobs
+                            |> DashboardPreview.groupByRank
+                            |> List.map (List.map jobToId)
+                    )
+        , pipelineJobs =
+            pipelineJobs
+                |> Dict.map (\_ jobs -> jobs |> List.map jobToId)
+    }
 
 
 update : Session -> Message -> ET Model
@@ -399,13 +546,16 @@ updateBody msg ( model, effects ) =
                     let
                         teamStartIndex =
                             model.pipelines
+                                |> FetchResult.withDefault []
                                 |> List.Extra.findIndex (\p -> p.teamName == teamName)
 
                         pipelines =
                             case teamStartIndex of
                                 Just teamStartIdx ->
                                     model.pipelines
-                                        |> Drag.drag (teamStartIdx + dragIdx)
+                                        |> FetchResult.withDefault []
+                                        |> Drag.drag
+                                            (teamStartIdx + dragIdx)
                                             (teamStartIdx
                                                 + (case model.dropState of
                                                     Dropping dropIdx ->
@@ -417,10 +567,10 @@ updateBody msg ( model, effects ) =
                                             )
 
                                 _ ->
-                                    model.pipelines
+                                    model.pipelines |> FetchResult.withDefault []
                     in
                     ( { model
-                        | pipelines = pipelines
+                        | pipelines = Fetched pipelines
                         , dragState = NotDragging
                         , dropState = DroppingWhileApiRequestInFlight teamName
                       }
@@ -429,6 +579,9 @@ updateBody msg ( model, effects ) =
                                 |> List.filter (.teamName >> (==) teamName)
                                 |> List.map .name
                                 |> SendOrderPipelinesRequest teamName
+                           , pipelines
+                                |> List.map toConcoursePipeline
+                                |> SaveCachedPipelines
                            ]
                     )
 
@@ -436,12 +589,19 @@ updateBody msg ( model, effects ) =
                     ( model, effects )
 
         Click LogoutButton ->
-            ( { model | teams = [], pipelines = [] }, effects )
+            ( { model
+                | teams = None
+                , pipelines = None
+                , jobs = None
+              }
+            , effects
+            )
 
         Click (PipelineButton pipelineId) ->
             let
                 isPaused =
                     model.pipelines
+                        |> FetchResult.withDefault []
                         |> List.Extra.find
                             (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
                         |> Maybe.map .paused
@@ -463,6 +623,7 @@ updateBody msg ( model, effects ) =
             let
                 isPublic =
                     model.pipelines
+                        |> FetchResult.withDefault []
                         |> List.Extra.find
                             (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
                         |> Maybe.map .public
@@ -503,6 +664,9 @@ subscriptions =
     , OnKeyDown
     , OnKeyUp
     , OnWindowResize
+    , OnCachedJobsReceived
+    , OnCachedPipelinesReceived
+    , OnCachedTeamsReceived
     ]
 
 
@@ -605,7 +769,7 @@ dashboardView session model =
 
 welcomeCard :
     { a | hovered : HoverState.HoverState, userState : UserState.UserState }
-    -> { b | pipelines : List Pipeline }
+    -> { b | pipelines : FetchResult (List Pipeline) }
     -> Html Message
 welcomeCard session { pipelines } =
     let
@@ -628,8 +792,19 @@ welcomeCard session { pipelines } =
                         }
                 )
                 []
+
+        noPipelines =
+            case pipelines of
+                None ->
+                    False
+
+                Cached p ->
+                    List.isEmpty p
+
+                Fetched p ->
+                    List.isEmpty p
     in
-    if List.isEmpty pipelines then
+    if noPipelines then
         Html.div
             (id "welcome-card" :: Styles.welcomeCard)
             [ Html.div
@@ -717,26 +892,56 @@ pipelinesView :
     }
     ->
         { b
-            | teams : List Concourse.Team
+            | teams : FetchResult (List Concourse.Team)
             , query : String
             , highDensity : Bool
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.Job))
-            , pipelines : List Pipeline
+            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
+            , pipelines : FetchResult (List Pipeline)
+            , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
             , dragState : DragState
             , dropState : DropState
             , now : Maybe Time.Posix
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
-            , pipelineJobs : Dict ( String, String ) (List Concourse.Job)
+            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
         }
     -> List (Html Message)
 pipelinesView session params =
     let
+        pipelines =
+            params.pipelines
+                |> FetchResult.withDefault []
+
+        jobs =
+            params.jobs
+                |> FetchResult.withDefault Dict.empty
+
+        teams =
+            params.teams
+                |> FetchResult.withDefault []
+
         filteredGroups =
-            Filter.filterGroups params.pipelineJobs params.query params.teams params.pipelines
+            Filter.filterGroups
+                { pipelineJobs = params.pipelineJobs
+                , jobs = jobs
+                , query = params.query
+                , teams = teams
+                , pipelines = pipelines
+                }
                 |> List.sortWith (Group.ordering session)
+
+        isCached =
+            case ( params.pipelines, params.jobs ) of
+                ( Cached _, _ ) ->
+                    True
+
+                ( _, Cached _ ) ->
+                    True
+
+                _ ->
+                    False
 
         groupViews =
             filteredGroups
@@ -746,6 +951,8 @@ pipelinesView session params =
                                 { pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                 , pipelineJobs = params.pipelineJobs
+                                , jobs = jobs
+                                , isCached = isCached
                                 }
                                 session
                             )
@@ -779,6 +986,8 @@ pipelinesView session params =
                                     , dropAreas = layout.dropAreas
                                     , groupCardsHeight = layout.height
                                     , pipelineJobs = params.pipelineJobs
+                                    , jobs = jobs
+                                    , isCached = isCached
                                     }
                                     g
                                     |> (\html ->
@@ -795,7 +1004,11 @@ pipelinesView session params =
                             >> List.reverse
                    )
     in
-    if List.isEmpty groupViews && not (String.isEmpty params.query) then
+    if
+        (params.pipelines /= None)
+            && List.isEmpty groupViews
+            && not (String.isEmpty params.query)
+    then
         [ noResultsView params.query ]
 
     else

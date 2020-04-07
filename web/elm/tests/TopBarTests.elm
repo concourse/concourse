@@ -1,11 +1,13 @@
 module TopBarTests exposing (all)
 
 import Application.Application as Application
+import Assets
 import Char
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Dashboard.SearchBar as SearchBar
 import DashboardTests exposing (iconSelector)
+import Data
 import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
@@ -137,8 +139,9 @@ all =
                 queryView
                 [ it "shows concourse logo" <|
                     Query.has
-                        [ style "background-image"
-                            "url(/public/images/concourse-logo-white.svg)"
+                        [ style "background-image" <|
+                            Assets.backgroundImage <|
+                                Just Assets.ConcourseLogoWhite
                         , style "background-position" "50% 50%"
                         , style "background-repeat" "no-repeat"
                         , style "background-size" "42px 42px"
@@ -285,7 +288,10 @@ all =
                         >> Query.children []
                         >> Query.first
                         >> Query.has
-                            [ style "background-image" "url(/public/images/ic-pause-white.svg)" ]
+                            [ style "background-image" <|
+                                Assets.backgroundImage <|
+                                    Just Assets.PauseIcon
+                            ]
                 , it "draws lighter grey line to the left of pause pipeline button" <|
                     Query.find [ id "top-bar-pause-toggle" ]
                         >> Query.has
@@ -321,14 +327,11 @@ all =
             , context "when pipeline is paused"
                 (Application.handleCallback
                     (Callback.PipelineFetched <|
-                        Ok
-                            { id = 0
-                            , name = "p"
-                            , paused = True
-                            , public = True
-                            , teamName = "t"
-                            , groups = []
-                            }
+                        Ok <|
+                            (Data.pipeline "t" 0
+                                |> Data.withName "p"
+                                |> Data.withPaused True
+                            )
                     )
                     >> Tuple.first
                     >> Application.handleCallback
@@ -574,14 +577,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ { id = 0
-                              , name = "pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team1"
-                              , groups = []
-                              }
-                            ]
+                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -625,14 +621,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ { id = 0
-                              , name = "pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team1"
-                              , groups = []
-                              }
-                            ]
+                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -661,8 +650,9 @@ all =
                 , it "sets magnifying glass on search bar in correct position" <|
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
-                            [ style "background-image"
-                                "url('public/images/ic-search-white-24px.svg')"
+                            [ style "background-image" <|
+                                Assets.backgroundImage <|
+                                    Just Assets.SearchIcon
                             , style "background-position" "12px 8px"
                             , style "background-repeat" "no-repeat"
                             ]
@@ -715,8 +705,9 @@ all =
                 , it "has the appropriate background image for clear search and is in correct position" <|
                     Query.find [ id "search-clear" ]
                         >> Query.has
-                            [ style "background-image"
-                                "url('public/images/ic-close-white-24px.svg')"
+                            [ style "background-image" <|
+                                Assets.backgroundImage <|
+                                    Just Assets.CloseIcon
                             , style "background-position" "10px 10px"
                             , style "background-repeat" "no-repeat"
                             ]
@@ -754,8 +745,9 @@ all =
                     queryView
                         >> Query.find [ id "show-search-button" ]
                         >> Query.has
-                            [ style "background-image"
-                                "url('public/images/ic-search-white-24px.svg')"
+                            [ style "background-image" <|
+                                Assets.backgroundImage <|
+                                    Just Assets.SearchIcon
                             , style "background-position" "12px 8px"
                             , style "background-repeat" "no-repeat"
                             ]
@@ -807,8 +799,9 @@ all =
                         , it "has the appropriate background image for clear search and is in correct position" <|
                             Query.find [ id "search-clear" ]
                                 >> Query.has
-                                    [ style "background-image"
-                                        "url('public/images/ic-close-white-24px.svg')"
+                                    [ style "background-image" <|
+                                        Assets.backgroundImage <|
+                                            Just Assets.CloseIcon
                                     , style "background-position" "10px 10px"
                                     , style "background-repeat" "no-repeat"
                                     ]
@@ -856,8 +849,9 @@ all =
                             , it "should have a magnifying glass icon" <|
                                 Query.find [ id "show-search-button" ]
                                     >> Query.has
-                                        [ style "background-image"
-                                            "url('public/images/ic-search-white-24px.svg')"
+                                        [ style "background-image" <|
+                                            Assets.backgroundImage <|
+                                                Just Assets.SearchIcon
                                         , style "background-position" "12px 8px"
                                         , style "background-repeat" "no-repeat"
                                         ]
@@ -901,14 +895,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ { id = 0
-                              , name = "pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team1"
-                              , groups = []
-                              }
-                            ]
+                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -978,14 +965,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ { id = 0
-                              , name = "pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team1"
-                              , groups = []
-                              }
-                            ]
+                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -1029,14 +1009,7 @@ all =
                     >> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team1"
-                                  , groups = []
-                                  }
-                                ]
+                                [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
                         )
                     >> Tuple.first
                     >> Application.update
@@ -1071,14 +1044,7 @@ all =
                     >> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ { id = 0
-                                  , name = "pipeline"
-                                  , paused = False
-                                  , public = True
-                                  , teamName = "team1"
-                                  , groups = []
-                                  }
-                                ]
+                                [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
                         )
                     >> Tuple.first
                     >> Application.update
@@ -1100,14 +1066,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ { id = 0
-                              , name = "pipeline"
-                              , paused = False
-                              , public = True
-                              , teamName = "team"
-                              , groups = []
-                              }
-                            ]
+                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -1331,13 +1290,10 @@ all =
                         |> Application.handleCallback
                             (Callback.PipelineFetched <|
                                 Ok
-                                    { id = 0
-                                    , name = "p"
-                                    , paused = True
-                                    , public = True
-                                    , teamName = "t"
-                                    , groups = []
-                                    }
+                                    (Data.pipeline "t" 0
+                                        |> Data.withName "p"
+                                        |> Data.withPaused True
+                                    )
                             )
                         |> Tuple.first
 
@@ -1401,7 +1357,7 @@ all =
                         ]
                             ++ iconSelector
                                 { size = "20px"
-                                , image = "ic-play-white.svg"
+                                , image = Assets.PlayIcon
                                 }
                     }
                 , hoveredSelector =
@@ -1413,7 +1369,7 @@ all =
                         ]
                             ++ iconSelector
                                 { size = "20px"
-                                , image = "ic-play-white.svg"
+                                , image = Assets.PlayIcon
                                 }
                     }
                 , hoverable =
@@ -1436,7 +1392,7 @@ all =
                         ]
                             ++ iconSelector
                                 { size = "20px"
-                                , image = "ic-play-white.svg"
+                                , image = Assets.PlayIcon
                                 }
                     }
                 , hoveredSelector =
@@ -1448,7 +1404,7 @@ all =
                         ]
                             ++ iconSelector
                                 { size = "20px"
-                                , image = "ic-play-white.svg"
+                                , image = Assets.PlayIcon
                                 }
                     }
                 , hoverable =
@@ -1471,7 +1427,7 @@ all =
                         ]
                             ++ iconSelector
                                 { size = "20px"
-                                , image = "ic-play-white.svg"
+                                , image = Assets.PlayIcon
                                 }
                     }
                 , hoveredSelector =
@@ -1483,7 +1439,7 @@ all =
                              ]
                                 ++ iconSelector
                                     { size = "20px"
-                                    , image = "ic-play-white.svg"
+                                    , image = Assets.PlayIcon
                                     }
                             )
                         , containing
@@ -1569,7 +1525,7 @@ all =
                         |> Query.has
                             (iconSelector
                                 { size = "20px"
-                                , image = "ic-pause-white.svg"
+                                , image = Assets.PauseIcon
                                 }
                             )
             , test "Unauthorized PipelineToggled callback redirects to login" <|
@@ -1628,34 +1584,29 @@ sampleUser =
 
 pipelineBreadcrumbSelector : List Selector.Selector
 pipelineBreadcrumbSelector =
-    [ style "background-image" "url(/public/images/ic-breadcrumb-pipeline.svg)"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
     , style "background-repeat" "no-repeat"
     ]
 
 
 jobBreadcrumbSelector : List Selector.Selector
 jobBreadcrumbSelector =
-    [ style "background-image" "url(/public/images/ic-breadcrumb-job.svg)"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.BreadcrumbIcon Assets.JobComponent)
     , style "background-repeat" "no-repeat"
     ]
 
 
 resourceBreadcrumbSelector : List Selector.Selector
 resourceBreadcrumbSelector =
-    [ style "background-image" "url(/public/images/ic-breadcrumb-resource.svg)"
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.BreadcrumbIcon Assets.ResourceComponent)
     , style "background-repeat" "no-repeat"
     ]
-
-
-onePipeline : String -> Concourse.Pipeline
-onePipeline teamName =
-    { id = 0
-    , name = "pipeline"
-    , paused = False
-    , public = True
-    , teamName = teamName
-    , groups = []
-    }
 
 
 viewNormally :
