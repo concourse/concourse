@@ -40,7 +40,6 @@ import Html.Attributes
         , class
         , href
         , id
-        , placeholder
         , readonly
         , style
         , title
@@ -496,6 +495,12 @@ handleCallback callback session ( model, effects ) =
 
                         ( _, pv ) ->
                             pv
+                , isEditing =
+                    if result == Ok () then
+                        False
+
+                    else
+                        True
               }
             , effects
                 ++ [ FetchResource model.resourceIdentifier
@@ -726,13 +731,21 @@ update msg ( model, effects ) =
         Click SaveCommentButton ->
             case model.pinnedVersion of
                 PinnedDynamicallyTo commentState _ ->
-                    ( { model | pinCommentLoading = True }
-                    , effects
-                        ++ [ SetPinComment
-                                model.resourceIdentifier
-                                commentState.comment
-                           ]
-                    )
+                    let
+                        commentChanged =
+                            commentState.comment /= commentState.pristineComment
+                    in
+                    if commentChanged then
+                        ( { model | pinCommentLoading = True }
+                        , effects
+                            ++ [ SetPinComment
+                                    model.resourceIdentifier
+                                    commentState.comment
+                               ]
+                        )
+
+                    else
+                        ( model, effects )
 
                 _ ->
                     ( model, effects )
@@ -1202,23 +1215,9 @@ commentBar :
     -> Html Message
 commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEditing } =
     case pinnedVersion of
-        PinnedDynamicallyTo commentState v ->
-            let
-                version =
-                    viewVersion
-                        [ Html.Attributes.style "align-self" "center" ]
-                        v
-
-                isPinned =
-                    case pinnedVersion of
-                        NotPinned ->
-                            False
-
-                        _ ->
-                            True
-            in
+        PinnedDynamicallyTo commentState _ ->
             Html.div
-                (id "comment-bar" :: Resource.Styles.commentBar isPinned)
+                (id "comment-bar" :: Resource.Styles.commentBar True)
                 [ Html.div
                     (id "icon-container" :: Resource.Styles.commentBarIconContainer isEditing)
                     (Icon.icon
@@ -1243,13 +1242,14 @@ commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEdi
                                         ++ Resource.Styles.commentTextArea
                                     )
                                     []
-                                ]
-                                    ++ (if isEditing == False then
-                                            [ editButton session ]
+                                , Html.div (id "edit-save-wrapper" :: Resource.Styles.editSaveWrapper)
+                                    (if isEditing == False then
+                                        [ editButton session ]
 
-                                        else
-                                            [ saveButton commentState pinCommentLoading session.hovered ]
-                                       )
+                                     else
+                                        [ saveButton commentState pinCommentLoading session.hovered ]
+                                    )
+                                ]
 
                             else
                                 [ Html.pre
@@ -1291,16 +1291,15 @@ saveButton commentState pinCommentLoading hovered =
                 commentState.comment
                     /= commentState.pristineComment
          in
-         [ onMouseEnter <| Hover <| Just SaveCommentButton
+         [ id "save-button"
+         , onMouseEnter <| Hover <| Just SaveCommentButton
          , onMouseLeave <| Hover Nothing
          , onClick <| Click SaveCommentButton
          ]
             ++ Resource.Styles.commentSaveButton
-                { isHovered =
-                    not pinCommentLoading
-                        && commentChanged
-                        && HoverState.isHovered SaveCommentButton hovered
+                { isHovered = HoverState.isHovered SaveCommentButton hovered
                 , commentChanged = commentChanged
+                , pinCommentLoading = pinCommentLoading
                 }
         )
         (if pinCommentLoading then
