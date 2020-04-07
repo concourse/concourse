@@ -6,14 +6,40 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/tracing"
 	"github.com/lib/pq"
 )
+
+type InputConfigs []InputConfig
+
+type InputConfig struct {
+	Name            string
+	Passed          JobSet
+	UseEveryVersion bool
+	PinnedVersion   atc.Version
+	ResourceID      int
+	JobID           int
+}
+
+func (cfgs InputConfigs) String() string {
+	if !tracing.Configured {
+		return ""
+	}
+
+	names := make([]string, len(cfgs))
+	for i, cfg := range cfgs {
+		names[i] = cfg.Name
+	}
+
+	return strings.Join(names, ",")
+}
 
 type InputVersionEmptyError struct {
 	InputName string
@@ -43,6 +69,7 @@ type Job interface {
 	Config() (atc.JobConfig, error)
 	Inputs() ([]atc.JobInput, error)
 	Outputs() ([]atc.JobOutput, error)
+	AlgorithmInputs() (InputConfigs, error)
 
 	Reload() (bool, error)
 
@@ -188,6 +215,77 @@ func (j *job) Config() (atc.JobConfig, error) {
 
 	j.config = &config
 	return config, nil
+}
+
+func (j *job) AlgorithmInputs() (InputConfigs, error) {
+	rows, err := psql.Select("ji.name", "ji.resource_id", "array_agg(ji.passed_job_id)", "ji.version", "rp.version").
+		From("job_inputs ji").
+		LeftJoin("resource_pins rp ON rp.resource_id = ji.resource_id").
+		Where(sq.Eq{
+			"ji.job_id": j.id,
+		}).
+		GroupBy("ji.name, ji.job_id, ji.resource_id, ji.version, rp.version").
+		RunWith(j.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	var inputs InputConfigs
+	for rows.Next() {
+		var passedJobs []sql.NullInt64
+		var configVersionString, apiVersionString sql.NullString
+		var inputName string
+		var resourceID int
+
+		err = rows.Scan(&inputName, &resourceID, pq.Array(&passedJobs), &configVersionString, &apiVersionString)
+		if err != nil {
+			return nil, err
+		}
+
+		inputConfig := InputConfig{
+			Name:       inputName,
+			ResourceID: resourceID,
+			JobID:      j.id,
+		}
+
+		if apiVersionString.Valid {
+			err = json.Unmarshal([]byte(apiVersionString.String), &inputConfig.PinnedVersion)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		var version *atc.VersionConfig
+		if configVersionString.Valid {
+			version = &atc.VersionConfig{}
+			err = version.UnmarshalJSON([]byte(configVersionString.String))
+			if err != nil {
+				return nil, err
+			}
+
+			inputConfig.UseEveryVersion = version.Every
+
+			if version.Pinned != nil {
+				inputConfig.PinnedVersion = version.Pinned
+			}
+		}
+
+		passed := make(JobSet)
+		for _, s := range passedJobs {
+			if s.Valid {
+				passed[int(s.Int64)] = true
+			}
+		}
+
+		if len(passed) > 0 {
+			inputConfig.Passed = passed
+		}
+
+		inputs = append(inputs, inputConfig)
+	}
+
+	return inputs, nil
 }
 
 func (j *job) Inputs() ([]atc.JobInput, error) {

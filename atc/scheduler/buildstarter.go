@@ -33,7 +33,7 @@ type BuildFactory interface {
 type Build interface {
 	db.Build
 
-	IsReadyToDetermineInputs(lager.Logger) bool
+	IsReadyToDetermineInputs(lager.Logger) (bool, error)
 	BuildInputs(context.Context) ([]db.BuildInput, bool, error)
 }
 
@@ -190,7 +190,11 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}, nil
 	}
 
-	readyToDetermineInputs := nextPendingBuild.IsReadyToDetermineInputs(logger)
+	readyToDetermineInputs, err := nextPendingBuild.IsReadyToDetermineInputs(logger)
+	if err != nil {
+		return startResults{}, fmt.Errorf("ready to determine inputs: %w", err)
+	}
+
 	if !readyToDetermineInputs {
 		return startResults{
 			scheduled:              scheduled,

@@ -209,15 +209,14 @@ var _ = Describe("BuildStarter", func() {
 						job.ScheduleBuildReturns(true, nil)
 					})
 
-					Context("when looking up resource is not found", func() {
+					Context("when resources have not been checked", func() {
 						BeforeEach(func() {
-							resource.NameReturns("not-found")
-							resources = db.Resources{resource}
+							createdBuild.ResourcesCheckedReturns(false, disaster)
 						})
 
-						It("does not return error and retries to schedule", func() {
-							Expect(tryStartErr).ToNot(HaveOccurred())
-							Expect(needsReschedule).To(BeTrue())
+						It("returns the error", func() {
+							Expect(tryStartErr).To(Equal(fmt.Errorf("ready to determine inputs: %w", disaster)))
+							Expect(needsReschedule).To(BeFalse())
 						})
 					})
 

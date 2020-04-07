@@ -5,46 +5,29 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 type manualTriggerBuild struct {
 	db.Build
 
-	job           db.Job
-	jobInputs     []atc.JobInput
-	resources     db.Resources
-	relatedJobIDs algorithm.NameToIDMap
+	job       db.Job
+	jobInputs db.InputConfigs
 
 	algorithm Algorithm
 }
 
-func (m *manualTriggerBuild) IsReadyToDetermineInputs(logger lager.Logger) bool {
-	for _, input := range m.jobInputs {
-		resource, found := m.resources.Lookup(input.Resource)
-
-		if !found {
-			logger.Debug("failed-to-find-resource")
-			return false
-		}
-
-		if resource.CurrentPinnedVersion() != nil {
-			continue
-		}
-
-		if m.IsNewerThanLastCheckOf(resource) {
-			logger.Debug("resource-not-checked-yet")
-			return false
-		}
+func (m *manualTriggerBuild) IsReadyToDetermineInputs(logger lager.Logger) (bool, error) {
+	checked, err := m.ResourcesChecked()
+	if err != nil {
+		return false, err
 	}
 
-	return true
+	return checked, nil
 }
 
 func (m *manualTriggerBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool, error) {
-	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(ctx, m.job, m.jobInputs, m.resources, m.relatedJobIDs)
+	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(ctx, m.job, m.jobInputs)
 	if err != nil {
 		return nil, false, fmt.Errorf("compute inputs: %w", err)
 	}
@@ -77,8 +60,8 @@ type schedulerBuild struct {
 	db.Build
 }
 
-func (s *schedulerBuild) IsReadyToDetermineInputs(logger lager.Logger) bool {
-	return true
+func (s *schedulerBuild) IsReadyToDetermineInputs(logger lager.Logger) (bool, error) {
+	return true, nil
 }
 
 func (s *schedulerBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool, error) {
@@ -98,8 +81,8 @@ type rerunBuild struct {
 	db.Build
 }
 
-func (r *rerunBuild) IsReadyToDetermineInputs(logger lager.Logger) bool {
-	return true
+func (r *rerunBuild) IsReadyToDetermineInputs(logger lager.Logger) (bool, error) {
+	return true, nil
 }
 
 func (r *rerunBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool, error) {

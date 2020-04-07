@@ -2074,6 +2074,192 @@ var _ = Describe("Job", func() {
 		})
 	})
 
+	Describe("AlgorithmInputs", func() {
+		var inputsJob db.Job
+		var inputsPipeline db.Pipeline
+
+		BeforeEach(func() {
+			var err error
+			inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						Plan: atc.PlanSequence{
+							{
+								Put: "some-resource",
+							},
+							{
+								Get:      "some-input",
+								Resource: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+								Passed:  []string{"job-1", "job-2"},
+								Trigger: true,
+								Version: &atc.VersionConfig{Every: true},
+							},
+							{
+								Task:       "some-task",
+								Privileged: true,
+								File:       "some/config/path.yml",
+								TaskConfig: &atc.TaskConfig{
+									RootfsURI: "some-image",
+								},
+							},
+							{
+								Get: "some-resource",
+							},
+							{
+								Get:      "some-other-input",
+								Resource: "some-resource",
+								Version:  &atc.VersionConfig{Latest: true},
+							},
+							{
+								Get:     "some-other-resource",
+								Trigger: true,
+								Version: &atc.VersionConfig{Pinned: atc.Version{"pinned": "version"}},
+							},
+							{
+								Get:     "some-pinned-input",
+								Version: &atc.VersionConfig{Every: true},
+							},
+						},
+					},
+					{
+						Name: "some-other-job",
+						Plan: atc.PlanSequence{
+							{
+								Get:      "other-job-resource",
+								Resource: "some-resource",
+							},
+						},
+					},
+					{
+						Name: "job-1",
+					},
+					{
+						Name: "job-2",
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-type",
+					},
+					{
+						Name: "some-other-resource",
+						Type: "some-type",
+					},
+					{
+						Name: "some-pinned-input",
+						Type: "some-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+				},
+			}, db.ConfigVersion(0), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			var found bool
+			inputsJob, found, err = inputsPipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			pinnedResource, found, err := inputsPipeline.Resource("some-pinned-input")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			brt := db.BaseResourceType{
+				Name: "some-type",
+			}
+
+			_, err = brt.FindOrCreate(setupTx, false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceConfigScope, err := pinnedResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			err = resourceConfigScope.SaveVersions([]atc.Version{
+				{"version": "v1"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			versionID, found, err := pinnedResource.ResourceConfigVersionID(atc.Version{"version": "v1"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			pinned, err := pinnedResource.PinVersion(versionID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pinned).To(BeTrue())
+		})
+
+		It("returns inputs for the job", func() {
+			inputs, err := inputsJob.AlgorithmInputs()
+			Expect(err).ToNot(HaveOccurred())
+
+			job1, found, err := inputsPipeline.Job("job-1")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			job2, found, err := inputsPipeline.Job("job-2")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			someResource, found, err := inputsPipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			someOtherResource, found, err := inputsPipeline.Resource("some-other-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			somePinnedInput, found, err := inputsPipeline.Resource("some-pinned-input")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(inputs).To(Equal(db.InputConfigs{
+				{
+					Name:       "some-input",
+					JobID:      inputsJob.ID(),
+					ResourceID: someResource.ID(),
+					Passed: db.JobSet{
+						job1.ID(): true,
+						job2.ID(): true,
+					},
+					UseEveryVersion: true,
+				},
+				{
+					Name:       "some-other-input",
+					JobID:      inputsJob.ID(),
+					ResourceID: someResource.ID(),
+				},
+				{
+					Name:          "some-other-resource",
+					JobID:         inputsJob.ID(),
+					ResourceID:    someOtherResource.ID(),
+					PinnedVersion: atc.Version{"pinned": "version"},
+				},
+				{
+					Name:            "some-pinned-input",
+					JobID:           inputsJob.ID(),
+					ResourceID:      somePinnedInput.ID(),
+					PinnedVersion:   atc.Version{"version": "v1"},
+					UseEveryVersion: true,
+				},
+				{
+					Name:       "some-resource",
+					JobID:      inputsJob.ID(),
+					ResourceID: someResource.ID(),
+				},
+			}))
+		})
+	})
+
 	Describe("Inputs", func() {
 		var inputsJob db.Job
 

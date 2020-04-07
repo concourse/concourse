@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/tracing"
 )
 
 type Resolver interface {
 	Resolve(context.Context) (map[string]*versionCandidate, db.ResolutionFailure, error)
-	InputConfigs() InputConfigs
+	InputConfigs() db.InputConfigs
 }
 
 func New(versionsDB db.VersionsDB) *Algorithm {
@@ -27,9 +26,7 @@ type Algorithm struct {
 func (a *Algorithm) Compute(
 	ctx context.Context,
 	job db.Job,
-	inputs []atc.JobInput,
-	resources db.Resources,
-	relatedJobs NameToIDMap,
+	inputs db.InputConfigs,
 ) (db.InputMapping, bool, bool, error) {
 	ctx, span := tracing.StartSpan(ctx, "Algorithm.Compute", tracing.Attrs{
 		"pipeline": job.PipelineName(),
@@ -37,7 +34,7 @@ func (a *Algorithm) Compute(
 	})
 	defer span.End()
 
-	resolvers, err := constructResolvers(a.versionsDB, job, inputs, resources, relatedJobs)
+	resolvers, err := constructResolvers(a.versionsDB, inputs)
 	if err != nil {
 		return nil, false, false, fmt.Errorf("construct resolvers: %w", err)
 	}
@@ -89,7 +86,7 @@ func (a *Algorithm) finalizeHasNext(versionCandidates map[string]*versionCandida
 	return hasNextCombined
 }
 
-func (a *Algorithm) candidatesToInputMapping(ctx context.Context, mapping db.InputMapping, inputConfigs InputConfigs, candidates map[string]*versionCandidate, resolveErr db.ResolutionFailure) (db.InputMapping, error) {
+func (a *Algorithm) candidatesToInputMapping(ctx context.Context, mapping db.InputMapping, inputConfigs db.InputConfigs, candidates map[string]*versionCandidate, resolveErr db.ResolutionFailure) (db.InputMapping, error) {
 	for _, input := range inputConfigs {
 		if resolveErr != "" {
 			mapping[input.Name] = db.InputResult{

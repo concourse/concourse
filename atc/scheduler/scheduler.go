@@ -16,9 +16,7 @@ type Algorithm interface {
 	Compute(
 		context.Context,
 		db.Job,
-		[]atc.JobInput,
-		db.Resources,
-		algorithm.NameToIDMap,
+		db.InputConfigs,
 	) (db.InputMapping, bool, bool, error)
 }
 
@@ -35,12 +33,12 @@ func (s *Scheduler) Schedule(
 	resources db.Resources,
 	relatedJobs algorithm.NameToIDMap,
 ) (bool, error) {
-	jobInputs, err := job.Inputs()
+	jobInputs, err := job.AlgorithmInputs()
 	if err != nil {
 		return false, fmt.Errorf("inputs: %w", err)
 	}
 
-	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(ctx, job, jobInputs, resources, relatedJobs)
+	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(ctx, job, jobInputs)
 	if err != nil {
 		return false, fmt.Errorf("compute inputs: %w", err)
 	}

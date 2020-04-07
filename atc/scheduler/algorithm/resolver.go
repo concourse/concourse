@@ -1,96 +1,31 @@
 package algorithm
 
 import (
-	"errors"
-	"strings"
-
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/tracing"
 )
 
 type NameToIDMap map[string]int
 
-type InputConfigs []InputConfig
-
-func (cfgs InputConfigs) String() string {
-	if !tracing.Configured {
-		return ""
-	}
-
-	names := make([]string, len(cfgs))
-	for i, cfg := range cfgs {
-		names[i] = cfg.Name
-	}
-
-	return strings.Join(names, ",")
-}
-
-type InputConfig struct {
-	Name            string
-	Passed          db.JobSet
-	UseEveryVersion bool
-	PinnedVersion   atc.Version
-	ResourceID      int
-	JobID           int
-}
-
 type relatedInputConfigs struct {
 	passedJobs   map[int]bool
-	inputConfigs InputConfigs
+	inputConfigs db.InputConfigs
 }
 
 func constructResolvers(
 	versions db.VersionsDB,
-	job db.Job,
-	inputs []atc.JobInput,
-	resources db.Resources,
-	relatedJobs NameToIDMap,
+	inputs db.InputConfigs,
 ) ([]Resolver, error) {
 	resolvers := []Resolver{}
-	inputConfigsWithPassed := InputConfigs{}
+	inputConfigsWithPassed := db.InputConfigs{}
 	for _, input := range inputs {
-		resource, found := resources.Lookup(input.Resource)
-		if !found {
-			return nil, errors.New("input resource not found")
-		}
-
-		inputConfig := InputConfig{
-			Name:       input.Name,
-			ResourceID: resource.ID(),
-			JobID:      job.ID(),
-		}
-
-		var pinnedVersion atc.Version
-		if resource.CurrentPinnedVersion() != nil {
-			pinnedVersion = resource.CurrentPinnedVersion()
-		}
-
-		if input.Version != nil {
-			inputConfig.UseEveryVersion = input.Version.Every
-
-			if input.Version.Pinned != nil {
-				pinnedVersion = input.Version.Pinned
-			}
-		}
-
-		inputConfig.PinnedVersion = pinnedVersion
-
 		if len(input.Passed) == 0 {
-			if inputConfig.PinnedVersion != nil {
-				resolvers = append(resolvers, NewPinnedResolver(versions, inputConfig))
+			if input.PinnedVersion != nil {
+				resolvers = append(resolvers, NewPinnedResolver(versions, input))
 			} else {
-				resolvers = append(resolvers, NewIndividualResolver(versions, inputConfig))
+				resolvers = append(resolvers, NewIndividualResolver(versions, input))
 			}
 		} else {
-			jobs := db.JobSet{}
-			for _, passedJobName := range input.Passed {
-				jobID := relatedJobs[passedJobName]
-				jobs[jobID] = true
-			}
-
-			inputConfig.Passed = jobs
-			inputConfigsWithPassed = append(inputConfigsWithPassed, inputConfig)
+			inputConfigsWithPassed = append(inputConfigsWithPassed, input)
 		}
 	}
 
@@ -103,7 +38,7 @@ func constructResolvers(
 	return resolvers, nil
 }
 
-func groupInputsConfigsByPassedJobs(passedInputConfigs InputConfigs) []relatedInputConfigs {
+func groupInputsConfigsByPassedJobs(passedInputConfigs db.InputConfigs) []relatedInputConfigs {
 	groupedPassedInputConfigs := []relatedInputConfigs{}
 	for _, inputConfig := range passedInputConfigs {
 		var index int
@@ -134,7 +69,7 @@ func groupInputsConfigsByPassedJobs(passedInputConfigs InputConfigs) []relatedIn
 
 			groupedPassedInputConfigs = append(groupedPassedInputConfigs, relatedInputConfigs{
 				passedJobs:   passedJobs,
-				inputConfigs: InputConfigs{inputConfig},
+				inputConfigs: db.InputConfigs{inputConfig},
 			})
 		}
 	}

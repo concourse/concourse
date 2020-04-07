@@ -119,6 +119,8 @@ type Build interface {
 
 	Reload() (bool, error)
 
+	ResourcesChecked() (bool, error)
+
 	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
 
 	Interceptible() (bool, error)
@@ -287,6 +289,24 @@ func (b *build) SetInterceptible(i bool) error {
 	}
 
 	return nil
+}
+
+func (b *build) ResourcesChecked() (bool, error) {
+	var notChecked bool
+	err := b.conn.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM resources r
+			JOIN job_inputs ji ON ji.resource_id = r.id
+			JOIN resource_config_scopes rs ON r.resource_config_scope_id = rs.id
+			WHERE ji.job_id = $1
+			AND rs.last_check_end_time < $2
+		)`, b.jobID, b.createTime).Scan(&notChecked)
+	if err != nil {
+		return false, err
+	}
+
+	return !notChecked, nil
 }
 
 func (b *build) Start(plan atc.Plan) (bool, error) {
