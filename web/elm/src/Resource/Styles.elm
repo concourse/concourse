@@ -20,6 +20,7 @@ module Resource.Styles exposing
     , pagination
     , pinBar
     , pinBarTooltip
+    , pinBarViewVersion
     , pinButton
     , pinButtonTooltip
     , pinIcon
@@ -51,7 +52,7 @@ pinBar isPinned =
                 Colors.background
     in
     [ style "display" "flex"
-    , style "align-items" "center"
+    , style "align-items" "flex-start"
     , style "position" "relative"
     , style "background-color" Colors.pinTools
     , style "border" <| "1px solid" ++ pinBarBorderColor
@@ -80,9 +81,10 @@ pinIcon { isPinnedDynamically, hover } =
             else
                 "transparent"
     in
-    [ style "margin-right" "10px"
+    [ style "margin" "5px 5px 0 5px"
     , style "cursor" cursorType
     , style "background-color" backgroundColor
+    , style "padding" "5px"
     ]
 
 
@@ -212,6 +214,11 @@ versionHeader pinnedState =
     , style "display" "flex"
     , style "align-items" "center"
     ]
+
+
+pinBarViewVersion : List (Html.Attribute msg)
+pinBarViewVersion =
+    [ style "margin-top" "12px" ]
 
 
 borderColor : Pinned.VersionPinState -> String

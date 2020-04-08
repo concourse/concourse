@@ -1268,7 +1268,7 @@ editButton : { a | hovered : HoverState.HoverState } -> Html Message
 editButton session =
     Icon.icon
         { sizePx = 25
-        , image = "pencil-24px.svg"
+        , image = Assets.PencilIcon
         }
         ([ id "edit-button"
          , onMouseEnter <| Hover <| Just EditButton
@@ -1399,7 +1399,7 @@ pinBar { hovered } { pinnedVersion } =
             )
             :: (case pinBarVersion of
                     Just v ->
-                        [ viewVersion [] v ]
+                        [ viewVersion Resource.Styles.pinBarViewVersion v ]
 
                     _ ->
                         []
