@@ -1,16 +1,10 @@
 package integration_test
 
 import (
-	"fmt"
-	"net/http"
-	"os"
-	"time"
-
 	"github.com/concourse/concourse/atc"
 	concourse "github.com/concourse/concourse/go-concourse/concourse"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/tedsuo/ifrit"
 )
 
 var basicPipelineConfig = []byte(`
@@ -21,9 +15,7 @@ jobs:
 
 var _ = Describe("ATC Integration Test", func() {
 	var (
-		atcProcess ifrit.Process
-		atcURL     string
-		client     concourse.Client
+		client concourse.Client
 	)
 
 	BeforeEach(func() {
@@ -31,23 +23,7 @@ var _ = Describe("ATC Integration Test", func() {
 	})
 
 	JustBeforeEach(func() {
-		atcURL = fmt.Sprintf("http://localhost:%v", cmd.BindPort)
-		runner, err := cmd.Runner([]string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		atcProcess = ifrit.Invoke(runner)
-
-		Eventually(func() error {
-			_, err := http.Get(atcURL + "/api/v1/info")
-			return err
-		}, 20*time.Second).ShouldNot(HaveOccurred())
-
 		client = login(atcURL, "test", "test")
-	})
-
-	AfterEach(func() {
-		atcProcess.Signal(os.Interrupt)
-		<-atcProcess.Wait()
 	})
 
 	It("can archive pipelines", func() {
