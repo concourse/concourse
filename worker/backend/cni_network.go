@@ -31,15 +31,6 @@ type CNINetworkConfig struct {
 	Subnet string
 }
 
-// defaultCNINetworkConfig is the default configuration for the CNI network
-// created to put concourse containers into.
-//
-var defaultCNINetworkConfig = CNINetworkConfig{
-	BridgeName:  "concourse0",
-	NetworkName: "concourse",
-	Subnet:      "10.80.0.0/16",
-}
-
 const (
 	// fileStoreWorkDir is a default directory used for storing
 	// container-related files
@@ -50,6 +41,21 @@ const (
 	// binaries in.
 	//
 	binariesDir = "/usr/local/concourse/bin"
+)
+
+var (
+	// nameServers is the default set of nameservers used.
+	//
+	nameServers = []string{"8.8.8.8"}
+
+	// defaultCNINetworkConfig is the default configuration for the CNI network
+	// created to put concourse containers into.
+	//
+	defaultCNINetworkConfig = CNINetworkConfig{
+		BridgeName:  "concourse0",
+		NetworkName: "concourse",
+		Subnet:      "10.80.0.0/16",
+	}
 )
 
 func (c CNINetworkConfig) ToJSON() string {
@@ -97,6 +103,15 @@ func WithCNIBinariesDir(dir string) CNINetworkOpt {
 	}
 }
 
+// WithNameServers sets the set of nameservers to be configured for the
+// /etc/resolv.conf inside the containers.
+//
+func WithNameServers(nameservers []string) CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.nameServers = nameservers
+	}
+}
+
 // WithCNIClient is an implementor of the CNI interface for reaching out to CNI
 // plugins.
 //
@@ -128,6 +143,7 @@ type cniNetwork struct {
 	client      cni.CNI
 	store       FileStore
 	config      CNINetworkConfig
+	nameServers []string
 	binariesDir string
 }
 
@@ -139,6 +155,7 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 	n := &cniNetwork{
 		binariesDir: binariesDir,
 		config:      defaultCNINetworkConfig,
+		nameServers: nameServers,
 	}
 
 	for _, opt := range opts {
@@ -182,7 +199,7 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 
 	resolvConf, err := n.store.Create(
 		filepath.Join(handle, "/resolv.conf"),
-		[]byte("nameserver 8.8.8.8"),
+		n.generateResolvConfContents(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating /etc/resolv.conf: %w", err)
@@ -201,6 +218,15 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 			Options:     []string{"bind", "rw"},
 		},
 	}, nil
+}
+
+func (n cniNetwork) generateResolvConfContents() []byte {
+	contents := ""
+	for _, n := range n.nameServers {
+		contents = contents + fmt.Sprintf("nameserver %s\n", n)
+	}
+
+	return []byte(contents)
 }
 
 func (n cniNetwork) Add(ctx context.Context, task containerd.Task) error {

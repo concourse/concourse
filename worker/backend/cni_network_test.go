@@ -78,7 +78,7 @@ func (s *CNINetworkSuite) TestSetupMountsReturnsMountpoints() {
 	s.store.CreateReturnsOnCall(0, "/tmp/handle/etc/hosts", nil)
 	s.store.CreateReturnsOnCall(1, "/tmp/handle/etc/resolv.conf", nil)
 
-	mounts, err := s.network.SetupMounts("handle")
+	mounts, err := s.network.SetupMounts("some-handle")
 	s.NoError(err)
 
 	s.Len(mounts, 2)
@@ -96,6 +96,33 @@ func (s *CNINetworkSuite) TestSetupMountsReturnsMountpoints() {
 			Options:     []string{"bind", "rw"},
 		},
 	})
+}
+
+func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithNoNameServer() {
+	network, err := backend.NewCNINetwork(
+		backend.WithCNIFileStore(s.store),
+	)
+	s.NoError(err)
+
+	_, err = network.SetupMounts("some-handle")
+	s.NoError(err)
+
+	_, resolvConfContents := s.store.CreateArgsForCall(1)
+	s.Equal(resolvConfContents, []byte("nameserver 8.8.8.8\n"))
+}
+
+func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithOneNameServer() {
+	network, err := backend.NewCNINetwork(
+		backend.WithCNIFileStore(s.store),
+		backend.WithNameServers([]string{"6.6.7.7", "1.2.3.4"}),
+	)
+	s.NoError(err)
+
+	_, err = network.SetupMounts("some-handle")
+	s.NoError(err)
+
+	_, resolvConfContents := s.store.CreateArgsForCall(1)
+	s.Equal(resolvConfContents, []byte("nameserver 6.6.7.7\nnameserver 1.2.3.4\n"))
 }
 
 func (s *CNINetworkSuite) TestAddNilTask() {

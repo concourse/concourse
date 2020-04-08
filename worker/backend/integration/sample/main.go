@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +17,7 @@ var (
 	flagWaitForSignal = flag.String("wait-for-signal", "", "wait for a sigal (sigterm|sighup)")
 	flagHttpGet       = flag.String("http-get", "", "website to perform an HTTP GET request against")
 	flagWriteTenTimes = flag.String("write-many-times", "", "writes a string to stdout many times")
+	flagCatFile = flag.String("cat", "", "writes contents of file to stdout")
 
 	signals = map[string]os.Signal{
 		"sighup":  syscall.SIGHUP,
@@ -67,6 +69,14 @@ func writeTenTimes(content string) {
 	}
 }
 
+func catFile(pathToFile string){
+	bytes, err	:= ioutil.ReadFile(pathToFile)
+	if err != nil {
+		log.Fatal("failed to read file ", err)
+	}
+	fmt.Print(string(bytes))
+}
+
 func main() {
 	flag.Parse()
 
@@ -77,6 +87,8 @@ func main() {
 		httpGet(*flagHttpGet)
 	case *flagWriteTenTimes != "":
 		writeTenTimes(*flagWriteTenTimes)
+	case *flagCatFile != "":
+		catFile(*flagCatFile)
 	default:
 		fmt.Println(defaultMessage)
 	}
