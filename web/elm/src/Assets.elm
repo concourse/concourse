@@ -48,6 +48,7 @@ type Asset
     | KeyboardArrowRight
     | PlayIcon
     | PauseIcon
+    | PencilIcon
     | SearchIcon
     | CloseIcon
 
@@ -149,6 +150,9 @@ toPath asset =
 
         PinIconGrey ->
             basePath ++ [ "pin-ic-grey.svg" ]
+
+        PencilIcon ->
+            basePath ++ [ "pencil-white.svg" ]
 
         CheckmarkIcon ->
             basePath ++ [ "checkmark-ic.svg" ]

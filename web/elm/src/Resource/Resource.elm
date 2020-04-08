@@ -1251,50 +1251,13 @@ commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEdi
                                     )
                                 ]
 
-                          else
-                            Html.div [] []
-                        ]
-                    ]
-                        [ Html.div
-                            (id "icon-container" :: Resource.Styles.commentBarIconContainer isEditing)
-                            (Icon.icon
-                                { sizePx = 25
-                                , image = Assets.MessageIcon
-                                }
-                                Resource.Styles.commentBarMessageIcon
-                                :: (if
-                                        UserState.isMember
-                                            { teamName = resourceIdentifier.teamName
-                                            , userState = session.userState
-                                            }
-                                    then
-                                        [ Html.textarea
-                                            ([ id (toHtmlID ResourceCommentTextarea)
-                                             , value commentState.comment
-                                             , onInput EditComment
-                                             , onFocus FocusTextArea
-                                             , onBlur BlurTextArea
-                                             , readonly (not isEditing)
-                                             ]
-                                                ++ Resource.Styles.commentTextArea
-                                            )
-                                            []
-                                        ]
-                                            ++ (if isEditing == False then
-                                                    [ editButton session ]
-
-                                                else
-                                                    [ saveButton commentState pinCommentLoading session.hovered ]
-                                               )
-
-                                    else
-                                        [ Html.pre
-                                            Resource.Styles.commentText
-                                            [ Html.text commentState.pristineComment ]
-                                        ]
-                                   )
-                            )
-                        ]
+                            else
+                                [ Html.pre
+                                    Resource.Styles.commentText
+                                    [ Html.text commentState.pristineComment ]
+                                ]
+                           )
+                    )
                 ]
 
         _ ->
@@ -1305,7 +1268,7 @@ editButton : { a | hovered : HoverState.HoverState } -> Html Message
 editButton session =
     Icon.icon
         { sizePx = 25
-        , image = "pencil-24px.svg"
+        , image = Assets.PencilIcon
         }
         ([ id "edit-button"
          , onMouseEnter <| Hover <| Just EditButton
@@ -1436,7 +1399,7 @@ pinBar { hovered } { pinnedVersion } =
             )
             :: (case pinBarVersion of
                     Just v ->
-                        [ viewVersion [] v ]
+                        [ viewVersion Resource.Styles.pinBarViewVersion v ]
 
                     _ ->
                         []

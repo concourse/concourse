@@ -844,14 +844,14 @@ all =
                             |> Event.simulate Event.click
                             |> Event.toResult
                             |> Expect.err
-                , test "there is a bit of space betwen the pin icon and the version in the pin bar" <|
+                , test "there is a bit of space around the pin icon" <|
                     \_ ->
                         init
                             |> givenResourcePinnedStatically
                             |> queryView
                             |> Query.find [ id "pin-icon" ]
                             |> Query.has
-                                [ style "margin-right" "10px" ]
+                                [ style "margin" "5px 5px 0 5px" ]
                 , test "mousing over pin icon does nothing" <|
                     \_ ->
                         init
@@ -1099,48 +1099,54 @@ all =
                 ]
             ]
         , describe "given resource is pinned dynamically"
-            [ describe "pin bar"
-                [ test "when mousing over pin bar, tooltip does not appear" <|
-                    \_ ->
+            [ describe "pin bar" <|
+                let
+                    pinIcon =
+                        init
+                            |> givenResourcePinnedDynamically
+                            |> queryView
+                            |> Query.find [ id "pin-icon" ]
+
+                    pinBar =
                         init
                             |> givenResourcePinnedDynamically
                             |> queryView
                             |> Query.find [ id "pin-bar" ]
+                in
+                [ test "when mousing over pin bar, tooltip does not appear" <|
+                    \_ ->
+                        pinBar
                             |> Event.simulate Event.mouseEnter
                             |> Event.toResult
                             |> Expect.err
-                , test "pin bar has a white pin icon of size 25 px" <|
+                , test "aligns its children on top left" <|
                     \_ ->
-                        init
-                            |> givenResourcePinnedDynamically
-                            |> queryView
-                            |> Query.find [ id "pin-bar" ]
+                        pinBar
+                            |> Query.has [ style "align-items" "flex-start" ]
+                , test "has a white pin icon of size 25 px" <|
+                    \_ ->
+                        pinBar
                             |> Query.has
                                 (iconSelector
                                     { size = "25px"
                                     , image = Assets.PinIconWhite
                                     }
                                 )
-                , test "pin icon on pin bar has a margin right of 10 px" <|
+                , test "pin icon on pin bar has a margin" <|
                     \_ ->
-                        init
-                            |> givenResourcePinnedDynamically
-                            |> queryView
-                            |> Query.find [ id "pin-icon" ]
-                            |> Query.has [ style "margin-right" "10px" ]
+                        pinIcon
+                            |> Query.has [ style "margin" "5px 5px 0 5px" ]
+                , test "pin icon on pin bar has a padding of 5 px" <|
+                    \_ ->
+                        pinIcon
+                            |> Query.has [ style "padding" "5px" ]
                 , test "pin icon on pin bar has pointer cursor" <|
                     \_ ->
-                        init
-                            |> givenResourcePinnedDynamically
-                            |> queryView
-                            |> Query.find [ id "pin-icon" ]
+                        pinIcon
                             |> Query.has pointerCursor
                 , test "clicking pin icon on bar triggers UnpinVersion msg" <|
                     \_ ->
-                        init
-                            |> givenResourcePinnedDynamically
-                            |> queryView
-                            |> Query.find [ id "pin-icon" ]
+                        pinIcon
                             |> Event.simulate Event.click
                             |> Event.expect
                                 (Msgs.Update <|
@@ -1148,10 +1154,7 @@ all =
                                 )
                 , test "mousing over pin icon triggers PinIconHover msg" <|
                     \_ ->
-                        init
-                            |> givenResourcePinnedDynamically
-                            |> queryView
-                            |> Query.find [ id "pin-icon" ]
+                        pinIcon
                             |> Event.simulate Event.mouseEnter
                             |> Event.expect
                                 (Msgs.Update <|
@@ -1198,6 +1201,11 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-icon" ]
                             |> Query.has [ style "background-color" "transparent" ]
+                , test "has a table of versions with 12 px margin top" <|
+                    \_ ->
+                        pinBar
+                            |> Query.find [ tag "table" ]
+                            |> Query.has [ style "margin-top" "12px" ]
                 , test "pin bar is not visible when upon successful VersionUnpinned msg" <|
                     \_ ->
                         init
@@ -1221,10 +1229,7 @@ all =
                             |> pinBarHasPinnedState version
                 , test "pin icon on pin bar is white" <|
                     \_ ->
-                        init
-                            |> givenResourcePinnedDynamically
-                            |> queryView
-                            |> Query.find [ id "pin-icon" ]
+                        pinIcon
                             |> Query.has
                                 [ style "background-image" <|
                                     Assets.backgroundImage <|
@@ -1750,7 +1755,7 @@ all =
                         , test "has the pencil icon" <|
                             \_ ->
                                 editButton
-                                    |> Query.has (iconSelector { size = "25px", image = "pencil-24px.svg" })
+                                    |> Query.has (iconSelector { size = "25px", image = Assets.PencilIcon })
                         , test "has padding of 5 px" <|
                             \_ ->
                                 editButton
@@ -2629,7 +2634,7 @@ all =
             , test "version text vertically centers" <|
                 \_ ->
                     pinTools
-                        |> Query.has [ style "display" "flex", style "align-items" "center" ]
+                        |> Query.has [ style "display" "flex", style "align-items" "stretch" ]
             , test "after pinning it has a purple border" <|
                 \_ ->
                     pinTools
