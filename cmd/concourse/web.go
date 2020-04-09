@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/url"
 	"os"
 
@@ -26,6 +28,8 @@ func (WebCommand) LessenRequirements(command *flags.Command) {
 	// defaults to atc external URL
 	command.FindOptionByLongName("tsa-atc-url").Required = false
 	command.FindOptionByLongName("tsa-token-url").Required = false
+	command.FindOptionByLongName("client-secret").Required = false
+	command.FindOptionByLongName("tsa-client-secret").Required = false
 }
 
 func (cmd *WebCommand) Execute(args []string) error {
@@ -42,7 +46,10 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 		cmd.RunCommand.CLIArtifactsDir = flag.Dir(concourseCmd.DiscoverAsset("fly-assets"))
 	}
 
-	cmd.populateTSAFlagsFromATCFlags()
+	err := cmd.populateSharedFlags()
+	if err != nil {
+		return nil, err
+	}
 
 	atcRunner, err := cmd.RunCommand.Runner(args)
 	if err != nil {
@@ -67,7 +74,7 @@ func (cmd *WebCommand) Runner(args []string) (ifrit.Runner, error) {
 	}), nil
 }
 
-func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
+func (cmd *WebCommand) populateSharedFlags() error {
 	cmd.TSACommand.PeerAddress = cmd.PeerAddress
 
 	if len(cmd.TSACommand.ATCURLs) == 0 {
@@ -79,6 +86,14 @@ func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 		cmd.TSACommand.TokenURL.URL = cmd.RunCommand.DefaultURL().URL.ResolveReference(tokenPath)
 	}
 
+	if cmd.TSACommand.ClientSecret == "" {
+		cmd.TSACommand.ClientSecret = randomString()
+	}
+
+	if cmd.RunCommand.Server.ClientSecret == "" {
+		cmd.RunCommand.Server.ClientSecret = randomString()
+	}
+
 	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.TSACommand.ClientID] = cmd.TSACommand.ClientSecret
 	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.RunCommand.Server.ClientID] = cmd.RunCommand.Server.ClientSecret
 
@@ -86,4 +101,10 @@ func (cmd *WebCommand) populateTSAFlagsFromATCFlags() error {
 	cmd.TSACommand.LogClusterName = cmd.RunCommand.LogClusterName
 
 	return nil
+}
+
+func randomString() string {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
 }
