@@ -109,7 +109,7 @@ func (client *Client) Register(ctx context.Context, opts RegisterOptions) error 
 	defer sshClient.Close()
 
 	keepAliveInterval := time.Second * 5
-	keepAliveTimeout := time.Second * 5
+	keepAliveTimeout := time.Minute * 5
 	go KeepAlive(ctx, sshClient, tcpConn, keepAliveInterval, keepAliveTimeout)
 
 	gardenListener, err := sshClient.Listen("tcp", gardenForwardAddr)
