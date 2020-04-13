@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 //go:generate counterfeiter . Algorithm
@@ -28,10 +26,7 @@ type Scheduler struct {
 func (s *Scheduler) Schedule(
 	ctx context.Context,
 	logger lager.Logger,
-	pipeline db.Pipeline,
-	job db.Job,
-	resources db.Resources,
-	relatedJobs algorithm.NameToIDMap,
+	job db.SchedulerJob,
 ) (bool, error) {
 	jobInputs, err := job.AlgorithmInputs()
 	if err != nil {
@@ -55,19 +50,18 @@ func (s *Scheduler) Schedule(
 		return false, fmt.Errorf("save next input mapping: %w", err)
 	}
 
-	err = s.ensurePendingBuildExists(logger, job, jobInputs, resources)
+	err = s.ensurePendingBuildExists(logger, job, jobInputs)
 	if err != nil {
 		return false, err
 	}
 
-	return s.BuildStarter.TryStartPendingBuildsForJob(logger, pipeline, job, jobInputs, resources, relatedJobs)
+	return s.BuildStarter.TryStartPendingBuildsForJob(logger, job, jobInputs)
 }
 
 func (s *Scheduler) ensurePendingBuildExists(
 	logger lager.Logger,
-	job db.Job,
-	jobInputs []atc.JobInput,
-	resources db.Resources,
+	job db.SchedulerJob,
+	jobInputs db.InputConfigs,
 ) error {
 	buildInputs, satisfiableInputs, err := job.GetFullNextBuildInputs()
 	if err != nil {

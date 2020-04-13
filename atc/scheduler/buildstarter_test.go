@@ -3,7 +3,6 @@ package scheduler_test
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
@@ -209,7 +208,7 @@ var _ = Describe("BuildStarter", func() {
 						job.ScheduleBuildReturns(true, nil)
 					})
 
-					Context("when resources have not been checked", func() {
+					Context("when checking if resources have been checked fails", func() {
 						BeforeEach(func() {
 							createdBuild.ResourcesCheckedReturns(false, disaster)
 						})
@@ -222,7 +221,7 @@ var _ = Describe("BuildStarter", func() {
 
 					Context("when some of the resources are checked before build create time", func() {
 						BeforeEach(func() {
-							createdBuild.IsNewerThanLastCheckOfReturns(true)
+							createdBuild.ResourcesCheckedReturns(false, nil)
 						})
 
 						It("does not save the next input mapping", func() {
@@ -244,26 +243,7 @@ var _ = Describe("BuildStarter", func() {
 
 					Context("when all resources are checked after build create time or pinned", func() {
 						BeforeEach(func() {
-							fakeDBResourceType := new(dbfakes.FakeResourceType)
-							fakeDBResourceType.NameReturns("fake-resource-type")
-							fakeDBResourceType.TypeReturns("fake")
-							fakeDBResourceType.SourceReturns(atc.Source{"im": "fake"})
-							fakeDBResourceType.PrivilegedReturns(true)
-							fakeDBResourceType.VersionReturns(atc.Version{"version": "1.2.3"})
-
-							fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeDBResourceType}, nil)
-
-							job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "other-resource"}}}, nil)
-
-							createdBuild.IsNewerThanLastCheckOfReturns(false)
-
-							otherResource := new(dbfakes.FakeResource)
-							otherResource.IDReturns(25)
-							otherResource.NameReturns("other-resource")
-							otherResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
-							otherResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute))
-
-							resources = db.Resources{resource, otherResource}
+							createdBuild.ResourcesCheckedReturns(true, nil)
 						})
 
 						It("computes a new set of versions for inputs to the build", func() {

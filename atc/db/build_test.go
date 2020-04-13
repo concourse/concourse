@@ -2447,7 +2447,7 @@ var _ = Describe("Build", func() {
 			})
 		})
 
-		FContext("when a pinned resource in the build has not been checked", func() {
+		Context("when a pinned resource in the build has not been checked", func() {
 			BeforeEach(func() {
 				updated, err := resourceConfigScope1.UpdateLastCheckEndTime()
 				Expect(err).ToNot(HaveOccurred())

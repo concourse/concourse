@@ -301,6 +301,11 @@ func (b *build) ResourcesChecked() (bool, error) {
 			JOIN resource_config_scopes rs ON r.resource_config_scope_id = rs.id
 			WHERE ji.job_id = $1
 			AND rs.last_check_end_time < $2
+			AND NOT EXISTS (
+				SELECT
+				FROM resource_pins
+				WHERE resource_id = r.id
+			)
 		)`, b.jobID, b.createTime).Scan(&notChecked)
 	if err != nil {
 		return false, err

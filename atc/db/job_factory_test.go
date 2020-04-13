@@ -553,5 +553,250 @@ var _ = Describe("Job Factory", func() {
 				Expect(len(jobs)).To(Equal(0))
 			})
 		})
+
+		Describe("scheduler jobs resources", func() {
+			Context("when the job needed to be schedule has no resources", func() {
+				BeforeEach(func() {
+					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{Name: "job-name"},
+						},
+					}, db.ConfigVersion(1), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					var found bool
+					job1, found, err = pipeline1.Job("job-name")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = job1.RequestSchedule()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("fetches that job and no resources", func() {
+					jobs, err := jobFactory.JobsToSchedule()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(jobs)).To(Equal(1))
+					Expect(jobs[0].Name()).To(Equal(job1.Name()))
+					Expect(jobs[0].Resources).To(BeNil())
+				})
+			})
+
+			Context("when the job needed to be schedule uses resources", func() {
+				BeforeEach(func() {
+					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "job-name",
+								Plan: []atc.PlanConfig{
+									{
+										Get: "some-resource",
+									},
+								},
+							},
+						},
+
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+								Source: atc.Source{
+									"some": "source",
+								},
+								Tags: atc.Tags{"tag"},
+							},
+							{
+								Name: "unused-resource",
+							},
+						},
+					}, db.ConfigVersion(1), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					var found bool
+					job1, found, err = pipeline1.Job("job-name")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = job1.RequestSchedule()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("fetches that job and the used resource", func() {
+					jobs, err := jobFactory.JobsToSchedule()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(jobs)).To(Equal(1))
+					Expect(jobs[0].Name()).To(Equal(job1.Name()))
+					Expect(jobs[0].Resources).To(HaveLen(1))
+					Expect(jobs[0].Resources[0].Name).To(Equal("some-resource"))
+					Expect(jobs[0].Resources[0].Type).To(Equal("some-type"))
+					Expect(jobs[0].Resources[0].Source).To(Equal(atc.Source{"some": "source"}))
+					Expect(jobs[0].Resources[0].Tags).To(Equal(atc.Tags{"tag"}))
+				})
+			})
+
+			Context("when multiple jobs needed to be schedule uses resources", func() {
+				BeforeEach(func() {
+					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "job-1",
+								Plan: []atc.PlanConfig{
+									{
+										Get: "some-resource",
+									},
+								},
+							},
+							{
+								Name: "job-2",
+								Plan: []atc.PlanConfig{
+									{
+										Get: "some-resource",
+									},
+									{
+										Get: "other-resource",
+									},
+								},
+							},
+						},
+
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+							},
+							{
+								Name: "other-resource",
+								Type: "some-type",
+							},
+							{
+								Name: "unused-resource",
+								Type: "some-type",
+							},
+						},
+					}, db.ConfigVersion(1), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					pipeline2, _, err := defaultTeam.SavePipeline("fake-pipeline-2", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "job-3",
+								Plan: []atc.PlanConfig{
+									{
+										Get: "some-resource",
+									},
+									{
+										Get: "some-resource-2",
+									},
+								},
+							},
+						},
+
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "other-type",
+							},
+							{
+								Name: "some-resource-2",
+								Type: "other-type",
+							},
+						},
+					}, db.ConfigVersion(1), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					var found bool
+					job1, found, err = pipeline1.Job("job-1")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					job2, found, err = pipeline1.Job("job-2")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					job3, found, err = pipeline2.Job("job-3")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = job1.RequestSchedule()
+					Expect(err).ToNot(HaveOccurred())
+
+					err = job2.RequestSchedule()
+					Expect(err).ToNot(HaveOccurred())
+
+					err = job3.RequestSchedule()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("fetches that job and the used resource", func() {
+					jobs, err := jobFactory.JobsToSchedule()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(jobs)).To(Equal(3))
+
+					Expect(jobs[0].Name()).To(Equal(job1.Name()))
+					Expect(jobs[0].Resources).To(HaveLen(1))
+					Expect(jobs[0].Resources[0].Name).To(Equal("some-resource"))
+					Expect(jobs[0].Resources[0].Type).To(Equal("some-type"))
+
+					Expect(jobs[1].Name()).To(Equal(job2.Name()))
+					Expect(jobs[1].Resources).To(HaveLen(2))
+					Expect(jobs[1].Resources).To(ConsistOf(
+						db.SchedulerResource{
+							Name: "some-resource",
+							Type: "some-type",
+						},
+						db.SchedulerResource{
+							Name: "other-resource",
+							Type: "some-type",
+						},
+					))
+
+					Expect(jobs[2].Name()).To(Equal(job3.Name()))
+					Expect(jobs[2].Resources).To(HaveLen(2))
+					Expect(jobs[2].Resources).To(ConsistOf(
+						db.SchedulerResource{
+							Name: "some-resource",
+							Type: "other-type",
+						},
+						db.SchedulerResource{
+							Name: "some-resource-2",
+							Type: "other-type",
+						},
+					))
+				})
+			})
+		})
+
+		Describe("schedule jobs resource types", func() {
+			Context("when the pipeline for the job needed to be scheduled uses custom resource types", func() {
+				BeforeEach(func() {
+					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{Name: "job-1"},
+							{Name: "job-2"},
+						},
+					}, db.ConfigVersion(1), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					var found bool
+					job1, found, err = pipeline1.Job("job-name")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = job1.RequestSchedule()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("fetches that job and no resources", func() {
+					jobs, err := jobFactory.JobsToSchedule()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(jobs)).To(Equal(1))
+					Expect(jobs[0].Name()).To(Equal(job1.Name()))
+					Expect(jobs[0].Resources).To(BeNil())
+				})
+			})
+
+			Context("when multiple job from different pipelines uses custom resource types", func() {
+			})
+		})
 	})
 })

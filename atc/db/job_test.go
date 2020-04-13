@@ -817,7 +817,9 @@ var _ = Describe("Job", func() {
 
 			Context("when the job config doesn't specify max in flight", func() {
 				BeforeEach(func() {
-					pipeline, created, err := team.SavePipeline("other-pipeline", atc.Config{
+					var created bool
+					var err error
+					pipeline, created, err = team.SavePipeline("other-pipeline", atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "some-job",
@@ -839,11 +841,41 @@ var _ = Describe("Job", func() {
 				})
 
 				Context("when build exists", func() {
-					It("sets the build to scheduled", func() {
-						Expect(schedulingErr).ToNot(HaveOccurred())
-						Expect(scheduleFound).To(BeTrue())
-						Expect(reloadFound).To(BeTrue())
-						Expect(schedulingBuild.IsScheduled()).To(BeTrue())
+					Context("when the pipeline is paused", func() {
+						BeforeEach(func() {
+							err := pipeline.Pause()
+							Expect(err).ToNot(HaveOccurred())
+						})
+
+						It("returns false", func() {
+							Expect(schedulingErr).ToNot(HaveOccurred())
+							Expect(scheduleFound).To(BeFalse())
+							Expect(reloadFound).To(BeTrue())
+							Expect(schedulingBuild.IsScheduled()).To(BeFalse())
+						})
+					})
+
+					Context("when the job is paused", func() {
+						BeforeEach(func() {
+							err := job.Pause()
+							Expect(err).ToNot(HaveOccurred())
+						})
+
+						It("returns false", func() {
+							Expect(schedulingErr).ToNot(HaveOccurred())
+							Expect(scheduleFound).To(BeFalse())
+							Expect(reloadFound).To(BeTrue())
+							Expect(schedulingBuild.IsScheduled()).To(BeFalse())
+						})
+					})
+
+					Context("when the pipeline and job is not paused", func() {
+						It("sets the build to scheduled", func() {
+							Expect(schedulingErr).ToNot(HaveOccurred())
+							Expect(scheduleFound).To(BeTrue())
+							Expect(reloadFound).To(BeTrue())
+							Expect(schedulingBuild.IsScheduled()).To(BeTrue())
+						})
 					})
 				})
 

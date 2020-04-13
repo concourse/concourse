@@ -21,7 +21,7 @@ func (e VersionNotFoundError) Error() string {
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+	Create(atc.JobConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type buildFactory struct {
@@ -36,7 +36,7 @@ func NewBuildFactory(planFactory atc.PlanFactory) BuildFactory {
 
 func (factory *buildFactory) Create(
 	job atc.JobConfig,
-	resources atc.ResourceConfigs,
+	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
@@ -56,7 +56,7 @@ func (factory *buildFactory) Create(
 
 func (factory *buildFactory) constructPlanFromJob(
 	job atc.JobConfig,
-	resources atc.ResourceConfigs,
+	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
@@ -78,7 +78,7 @@ func (factory *buildFactory) constructPlanFromJob(
 func (factory *buildFactory) do(
 	job atc.JobConfig,
 	planSequence atc.PlanSequence,
-	resources atc.ResourceConfigs,
+	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
@@ -106,7 +106,7 @@ func (factory *buildFactory) do(
 func (factory *buildFactory) constructPlanFromConfig(
 	job atc.JobConfig,
 	planConfig atc.PlanConfig,
-	resources atc.ResourceConfigs,
+	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
@@ -145,7 +145,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 func (factory *buildFactory) constructUnhookedPlan(
 	job atc.JobConfig,
 	planConfig atc.PlanConfig,
-	resources atc.ResourceConfigs,
+	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
@@ -354,7 +354,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 type constructionParams struct {
 	plan          atc.Plan
 	hooks         atc.Hooks
-	resources     atc.ResourceConfigs
+	resources     db.SchedulerResources
 	resourceTypes atc.VersionedResourceTypes
 	inputs        []db.BuildInput
 }

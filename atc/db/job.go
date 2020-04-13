@@ -21,6 +21,7 @@ type InputConfigs []InputConfig
 
 type InputConfig struct {
 	Name            string
+	Trigger         bool
 	Passed          JobSet
 	UseEveryVersion bool
 	PinnedVersion   atc.Version
@@ -218,7 +219,7 @@ func (j *job) Config() (atc.JobConfig, error) {
 }
 
 func (j *job) AlgorithmInputs() (InputConfigs, error) {
-	rows, err := psql.Select("ji.name", "ji.resource_id", "array_agg(ji.passed_job_id)", "ji.version", "rp.version").
+	rows, err := psql.Select("ji.name", "ji.resource_id", "array_agg(ji.passed_job_id)", "ji.version", "rp.version", "ji.trigger").
 		From("job_inputs ji").
 		LeftJoin("resource_pins rp ON rp.resource_id = ji.resource_id").
 		Where(sq.Eq{
@@ -237,8 +238,9 @@ func (j *job) AlgorithmInputs() (InputConfigs, error) {
 		var configVersionString, apiVersionString sql.NullString
 		var inputName string
 		var resourceID int
+		var trigger bool
 
-		err = rows.Scan(&inputName, &resourceID, pq.Array(&passedJobs), &configVersionString, &apiVersionString)
+		err = rows.Scan(&inputName, &resourceID, pq.Array(&passedJobs), &configVersionString, &apiVersionString, &trigger)
 		if err != nil {
 			return nil, err
 		}
@@ -247,6 +249,7 @@ func (j *job) AlgorithmInputs() (InputConfigs, error) {
 			Name:       inputName,
 			ResourceID: resourceID,
 			JobID:      j.id,
+			Trigger:    trigger,
 		}
 
 		if apiVersionString.Valid {
@@ -532,6 +535,15 @@ func (j *job) ScheduleBuild(build Build) (bool, error) {
 	}
 
 	defer tx.Rollback()
+
+	paused, err := j.isPipelineOrJobPaused(tx)
+	if err != nil {
+		return false, err
+	}
+
+	if paused {
+		return false, nil
+	}
 
 	reached, err := j.isMaxInFlightReached(tx, build.ID())
 	if err != nil {
@@ -1311,6 +1323,25 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 	}
 
 	return buildInputs, err
+}
+
+func (j *job) isPipelineOrJobPaused(tx Tx) (bool, error) {
+	if j.paused {
+		return true, nil
+	}
+
+	var paused bool
+	err := psql.Select("paused").
+		From("pipelines").
+		Where(sq.Eq{"id": j.pipelineID}).
+		RunWith(tx).
+		QueryRow().
+		Scan(&paused)
+	if err != nil {
+		return false, err
+	}
+
+	return paused, nil
 }
 
 func scanJob(j *job, row scannable) error {

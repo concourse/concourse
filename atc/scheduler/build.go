@@ -18,12 +18,7 @@ type manualTriggerBuild struct {
 }
 
 func (m *manualTriggerBuild) IsReadyToDetermineInputs(logger lager.Logger) (bool, error) {
-	checked, err := m.ResourcesChecked()
-	if err != nil {
-		return false, err
-	}
-
-	return checked, nil
+	return m.ResourcesChecked()
 }
 
 func (m *manualTriggerBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool, error) {

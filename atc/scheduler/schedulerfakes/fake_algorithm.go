@@ -5,21 +5,17 @@ import (
 	"context"
 	"sync"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 type FakeAlgorithm struct {
-	ComputeStub        func(context.Context, db.Job, []atc.JobInput, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, bool, error)
+	ComputeStub        func(context.Context, db.Job, db.InputConfigs) (db.InputMapping, bool, bool, error)
 	computeMutex       sync.RWMutex
 	computeArgsForCall []struct {
 		arg1 context.Context
 		arg2 db.Job
-		arg3 []atc.JobInput
-		arg4 db.Resources
-		arg5 algorithm.NameToIDMap
+		arg3 db.InputConfigs
 	}
 	computeReturns struct {
 		result1 db.InputMapping
@@ -37,25 +33,18 @@ type FakeAlgorithm struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAlgorithm) Compute(arg1 context.Context, arg2 db.Job, arg3 []atc.JobInput, arg4 db.Resources, arg5 algorithm.NameToIDMap) (db.InputMapping, bool, bool, error) {
-	var arg3Copy []atc.JobInput
-	if arg3 != nil {
-		arg3Copy = make([]atc.JobInput, len(arg3))
-		copy(arg3Copy, arg3)
-	}
+func (fake *FakeAlgorithm) Compute(arg1 context.Context, arg2 db.Job, arg3 db.InputConfigs) (db.InputMapping, bool, bool, error) {
 	fake.computeMutex.Lock()
 	ret, specificReturn := fake.computeReturnsOnCall[len(fake.computeArgsForCall)]
 	fake.computeArgsForCall = append(fake.computeArgsForCall, struct {
 		arg1 context.Context
 		arg2 db.Job
-		arg3 []atc.JobInput
-		arg4 db.Resources
-		arg5 algorithm.NameToIDMap
-	}{arg1, arg2, arg3Copy, arg4, arg5})
-	fake.recordInvocation("Compute", []interface{}{arg1, arg2, arg3Copy, arg4, arg5})
+		arg3 db.InputConfigs
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Compute", []interface{}{arg1, arg2, arg3})
 	fake.computeMutex.Unlock()
 	if fake.ComputeStub != nil {
-		return fake.ComputeStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.ComputeStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
@@ -70,17 +59,17 @@ func (fake *FakeAlgorithm) ComputeCallCount() int {
 	return len(fake.computeArgsForCall)
 }
 
-func (fake *FakeAlgorithm) ComputeCalls(stub func(context.Context, db.Job, []atc.JobInput, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, bool, error)) {
+func (fake *FakeAlgorithm) ComputeCalls(stub func(context.Context, db.Job, db.InputConfigs) (db.InputMapping, bool, bool, error)) {
 	fake.computeMutex.Lock()
 	defer fake.computeMutex.Unlock()
 	fake.ComputeStub = stub
 }
 
-func (fake *FakeAlgorithm) ComputeArgsForCall(i int) (context.Context, db.Job, []atc.JobInput, db.Resources, algorithm.NameToIDMap) {
+func (fake *FakeAlgorithm) ComputeArgsForCall(i int) (context.Context, db.Job, db.InputConfigs) {
 	fake.computeMutex.RLock()
 	defer fake.computeMutex.RUnlock()
 	argsForCall := fake.computeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeAlgorithm) ComputeReturns(result1 db.InputMapping, result2 bool, result3 bool, result4 error) {

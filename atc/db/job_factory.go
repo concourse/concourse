@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"sort"
 
 	sq "github.com/Masterminds/squirrel"
@@ -12,10 +13,14 @@ import (
 
 //go:generate counterfeiter . JobFactory
 
+// XXX: This job factory object is not really a job factory anymore. It is
+// holding the responsibility for two very different things: constructing a
+// dashboard object and also a scheduler job object. Figure out what this is
+// trying to encapsulate or considering splitting this out!
 type JobFactory interface {
 	VisibleJobs([]string) (atc.Dashboard, error)
 	AllActiveJobs() (atc.Dashboard, error)
-	JobsToSchedule() (Jobs, error)
+	JobsToSchedule() (SchedulerJobs, error)
 }
 
 type jobFactory struct {
@@ -28,6 +33,148 @@ func NewJobFactory(conn Conn, lockFactory lock.LockFactory) JobFactory {
 		conn:        conn,
 		lockFactory: lockFactory,
 	}
+}
+
+type SchedulerJobs []SchedulerJob
+
+type SchedulerJob struct {
+	Job
+	Resources     SchedulerResources
+	ResourceTypes atc.VersionedResourceTypes
+}
+
+type SchedulerResources []SchedulerResource
+
+type SchedulerResource struct {
+	Name   string
+	Type   string
+	Source atc.Source
+	Tags   atc.Tags
+}
+
+func (resources SchedulerResources) Lookup(name string) (SchedulerResource, bool) {
+	for _, resource := range resources {
+		if resource.Name == name {
+			return resource, true
+		}
+	}
+
+	return SchedulerResource{}, false
+}
+
+func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
+	tx, err := j.conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	rows, err := jobsQuery.
+		Where(sq.Expr("j.schedule_requested > j.last_scheduled")).
+		Where(sq.Eq{
+			"j.active": true,
+			"j.paused": false,
+			"p.paused": false,
+		}).
+		RunWith(tx).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+
+	jobs, err := scanJobs(j.conn, j.lockFactory, rows)
+	if err != nil {
+		return nil, err
+	}
+
+	var schedulerJobs SchedulerJobs
+	pipelineResourceTypes := make(map[int]ResourceTypes)
+	for _, job := range jobs {
+		rows, err := psql.Select("r.name", "r.type", "r.config", "r.nonce").
+			From("resources r").
+			Join("job_inputs ji ON ji.resource_id = r.id").
+			Where(sq.Eq{
+				"ji.job_id": job.ID(),
+			}).
+			RunWith(tx).
+			Query()
+		if err != nil {
+			return nil, err
+		}
+
+		var schedulerResources SchedulerResources
+		for rows.Next() {
+			var name, type_ string
+			var configBlob []byte
+			var nonce sql.NullString
+
+			err = rows.Scan(&name, &type_, &configBlob, &nonce)
+			if err != nil {
+				return nil, err
+			}
+
+			es := j.conn.EncryptionStrategy()
+
+			var noncense *string
+			if nonce.Valid {
+				noncense = &nonce.String
+			}
+
+			decryptedConfig, err := es.Decrypt(string(configBlob), noncense)
+			if err != nil {
+				return nil, err
+			}
+
+			var config atc.ResourceConfig
+			err = json.Unmarshal(decryptedConfig, &config)
+			if err != nil {
+				return nil, err
+			}
+
+			schedulerResources = append(schedulerResources, SchedulerResource{
+				Name:   name,
+				Type:   type_,
+				Source: config.Source,
+				Tags:   config.Tags,
+			})
+		}
+
+		var resourceTypes ResourceTypes
+		var found bool
+		resourceTypes, found = pipelineResourceTypes[job.PipelineID()]
+		if !found {
+			rows, err := resourceTypesQuery.
+				Where(sq.Eq{"r.pipeline_id": job.PipelineID()}).
+				OrderBy("r.name").
+				RunWith(j.conn).
+				Query()
+			if err != nil {
+				return nil, err
+			}
+			defer Close(rows)
+
+			for rows.Next() {
+				resourceType := newEmptyResourceType(j.conn, j.lockFactory)
+				err := scanResourceType(resourceType, rows)
+				if err != nil {
+					return nil, err
+				}
+
+				resourceTypes = append(resourceTypes, resourceType)
+			}
+
+			pipelineResourceTypes[job.PipelineID()] = resourceTypes
+		}
+
+		schedulerJobs = append(schedulerJobs, SchedulerJob{
+			Job:           job,
+			Resources:     schedulerResources,
+			ResourceTypes: resourceTypes.Deserialize(),
+		})
+	}
+
+	return schedulerJobs, nil
 }
 
 func (j *jobFactory) VisibleJobs(teamNames []string) (atc.Dashboard, error) {
@@ -76,23 +223,6 @@ func (j *jobFactory) AllActiveJobs() (atc.Dashboard, error) {
 	}
 
 	return dashboard, nil
-}
-
-func (j *jobFactory) JobsToSchedule() (Jobs, error) {
-	rows, err := jobsQuery.
-		Where(sq.Expr("j.schedule_requested > j.last_scheduled")).
-		Where(sq.Eq{
-			"j.active": true,
-			"j.paused": false,
-			"p.paused": false,
-		}).
-		RunWith(j.conn).
-		Query()
-	if err != nil {
-		return nil, err
-	}
-
-	return scanJobs(j.conn, j.lockFactory, rows)
 }
 
 type dashboardFactory struct {
