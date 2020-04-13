@@ -495,12 +495,7 @@ handleCallback callback session ( model, effects ) =
 
                         ( _, pv ) ->
                             pv
-                , isEditing =
-                    if result == Ok () then
-                        False
-
-                    else
-                        True
+                , isEditing = result /= Ok ()
               }
             , effects
                 ++ [ FetchResource model.resourceIdentifier
@@ -1223,7 +1218,7 @@ commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEdi
                 [ Html.div
                     (id "icon-container" :: Resource.Styles.commentBarIconContainer isEditing)
                     (Icon.icon
-                        { sizePx = 25
+                        { sizePx = 16
                         , image = Assets.MessageIcon
                         }
                         Resource.Styles.commentBarMessageIcon
@@ -1269,7 +1264,7 @@ commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEdi
 editButton : { a | hovered : HoverState.HoverState } -> Html Message
 editButton session =
     Icon.icon
-        { sizePx = 25
+        { sizePx = 16
         , image = Assets.PencilIcon
         }
         ([ id "edit-button"
@@ -1376,7 +1371,7 @@ pinBar { hovered } { pinnedVersion } =
             ++ Resource.Styles.pinBar (ME.isJust pinBarVersion)
         )
         (Icon.icon
-            { sizePx = 25
+            { sizePx = 14
             , image =
                 if ME.isJust pinBarVersion then
                     Assets.PinIconWhite

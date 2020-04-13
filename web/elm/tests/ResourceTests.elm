@@ -851,7 +851,7 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-icon" ]
                             |> Query.has
-                                [ style "margin" "5px 5px 0 5px" ]
+                                [ style "margin" "4px 5px 5px 5px" ]
                 , test "mousing over pin icon does nothing" <|
                     \_ ->
                         init
@@ -1123,23 +1123,37 @@ all =
                     \_ ->
                         pinBar
                             |> Query.has [ style "align-items" "flex-start" ]
-                , test "has a white pin icon of size 25 px" <|
+                , test "has a white pin icon of size 14 px" <|
                     \_ ->
                         pinBar
                             |> Query.has
                                 (iconSelector
-                                    { size = "25px"
+                                    { size = "14px"
                                     , image = Assets.PinIconWhite
                                     }
                                 )
                 , test "pin icon on pin bar has a margin" <|
                     \_ ->
                         pinIcon
-                            |> Query.has [ style "margin" "5px 5px 0 5px" ]
-                , test "pin icon on pin bar has a padding of 5 px" <|
+                            |> Query.has [ style "margin" "4px 5px 5px 5px" ]
+                , test "pin icon on pin bar has a padding" <|
                     \_ ->
                         pinIcon
-                            |> Query.has [ style "padding" "5px" ]
+                            |> Query.has [ style "padding" "6px" ]
+                , test "pin icon on pin bar has background that fills size" <|
+                    \_ ->
+                        pinIcon
+                            |> Query.has
+                                [ style "background-size" "contain"
+                                , style "background-origin" "content-box"
+                                ]
+                , test "pin icon on pin bar has a minimum size" <|
+                    \_ ->
+                        pinIcon
+                            |> Query.has
+                                [ style "min-width" "14px"
+                                , style "min-height" "14px"
+                                ]
                 , test "pin icon on pin bar has pointer cursor" <|
                     \_ ->
                         pinIcon
@@ -1201,11 +1215,11 @@ all =
                             |> queryView
                             |> Query.find [ id "pin-icon" ]
                             |> Query.has [ style "background-color" "transparent" ]
-                , test "has a table of versions with 12 px margin top" <|
+                , test "has a table of versions with top, right, and bottom margin" <|
                     \_ ->
                         pinBar
                             |> Query.find [ tag "table" ]
-                            |> Query.has [ style "margin-top" "12px" ]
+                            |> Query.has [ style "margin" "8px 8px 8px 0" ]
                 , test "pin bar is not visible when upon successful VersionUnpinned msg" <|
                     \_ ->
                         init
@@ -1687,9 +1701,6 @@ all =
                             iconDiv : Application.Model -> Query.Single Msgs.TopLevelMessage
                             iconDiv =
                                 iconContainer >> Query.children [] >> Query.first
-
-                            messageIcon =
-                                "baseline-message.svg"
                         in
                         \_ ->
                             init
@@ -1697,14 +1708,14 @@ all =
                                 |> iconDiv
                                 |> Query.has
                                     [ style "background-image" <|
-                                        "url(/public/images/"
-                                            ++ messageIcon
-                                            ++ ")"
+                                        Assets.backgroundImage <|
+                                            Just Assets.MessageIcon
                                     , style "background-size" "contain"
                                     , style "background-position" "50% 50%"
                                     , style "background-repeat" "no-repeat"
-                                    , style "width" "25px"
-                                    , style "height" "25px"
+                                    , style "background-origin" "content-box"
+                                    , style "width" "16px"
+                                    , style "height" "16px"
                                     , style "margin" "10px"
                                     ]
                     , describe "comment pre" <|
@@ -1719,7 +1730,7 @@ all =
                                 commentPre |> Query.has [ style "outline" "0" ]
                         , test "has vertical padding" <|
                             \_ ->
-                                commentPre |> Query.has [ style "padding" "10px 0" ]
+                                commentPre |> Query.has [ style "padding" "8px 0" ]
                         , test "has a maximum height of 150px" <|
                             \_ ->
                                 commentPre |> Query.has [ style "max-height" "150px" ]
@@ -1755,7 +1766,7 @@ all =
                         , test "has the pencil icon" <|
                             \_ ->
                                 editButton
-                                    |> Query.has (iconSelector { size = "25px", image = Assets.PencilIcon })
+                                    |> Query.has (iconSelector { size = "16px", image = Assets.PencilIcon })
                         , test "has padding of 5 px" <|
                             \_ ->
                                 editButton
@@ -1764,6 +1775,13 @@ all =
                             \_ ->
                                 editButton
                                     |> Query.has [ style "margin" "5px" ]
+                        , test "has background that fills size" <|
+                            \_ ->
+                                editButton
+                                    |> Query.has
+                                        [ style "background-size" "contain"
+                                        , style "background-origin" "content-box"
+                                        ]
                         , test "has a pointer cursor" <|
                             \_ ->
                                 editButton
@@ -1880,6 +1898,10 @@ all =
                             \_ ->
                                 textarea
                                     |> Query.has [ style "box-sizing" "border-box" ]
+                        , test "has 1 row by default" <|
+                            \_ ->
+                                textarea
+                                    |> Query.has [ attribute <| Attr.rows 1 ]
                         , test "matches app font" <|
                             \_ ->
                                 textarea
@@ -1896,10 +1918,10 @@ all =
                             \_ ->
                                 textarea
                                     |> Query.has [ style "flex-grow" "1" ]
-                        , test "has a top and bottom margin of 10px" <|
+                        , test "has a top and bottom margin" <|
                             \_ ->
                                 textarea
-                                    |> Query.has [ style "margin" "10px 0" ]
+                                    |> Query.has [ style "margin" "8px 0" ]
                         , test "is readonly when not editing" <|
                             \_ ->
                                 textarea
@@ -2063,7 +2085,7 @@ all =
                             \_ ->
                                 editSaveWrapper
                                     |> Query.has
-                                        [ style "width" "80px"
+                                        [ style "width" "50px"
                                         ]
                         , test "buttons are right aligned in the div" <|
                             \_ ->
@@ -2122,7 +2144,7 @@ all =
                         , test "has a margin of 10 px" <|
                             \_ ->
                                 saveButton
-                                    |> Query.has [ style "margin" "10px" ]
+                                    |> Query.has [ style "margin" "5px 5px 7px 7px" ]
                         , defineHoverBehaviour
                             { name = "save button"
                             , setup =

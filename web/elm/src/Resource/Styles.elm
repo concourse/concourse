@@ -31,7 +31,7 @@ module Resource.Styles exposing
 import Assets
 import Colors
 import Html
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (rows, style)
 import Pinned
 import Resource.Models as Models
 
@@ -81,10 +81,14 @@ pinIcon { isPinnedDynamically, hover } =
             else
                 "transparent"
     in
-    [ style "margin" "5px 5px 0 5px"
+    [ style "margin" "4px 5px 5px 5px"
     , style "cursor" cursorType
     , style "background-color" backgroundColor
-    , style "padding" "5px"
+    , style "padding" "6px"
+    , style "background-size" "contain"
+    , style "background-origin" "content-box"
+    , style "min-width" "14px"
+    , style "min-height" "14px"
     ]
 
 
@@ -218,7 +222,7 @@ versionHeader pinnedState =
 
 pinBarViewVersion : List (Html.Attribute msg)
 pinBarViewVersion =
-    [ style "margin-top" "12px" ]
+    [ style "margin" "8px 8px 8px 0" ]
 
 
 borderColor : Pinned.VersionPinState -> String
@@ -257,6 +261,7 @@ commentBarMessageIcon =
     [ style "background-size" "contain"
     , style "margin" "10px"
     , style "flex-shrink" "0"
+    , style "background-origin" "content-box"
     ]
 
 
@@ -273,7 +278,8 @@ commentTextArea =
     , style "color" Colors.text
     , style "background-color" "transparent"
     , style "max-height" "150px"
-    , style "margin" "10px 0"
+    , style "margin" "8px 0"
+    , rows 1
     ]
 
 
@@ -282,7 +288,7 @@ commentText =
     [ style "flex-grow" "1"
     , style "margin" "0"
     , style "outline" "0"
-    , style "padding" "10px 0"
+    , style "padding" "8px 0"
     , style "max-height" "150px"
     , style "overflow-y" "scroll"
     ]
@@ -316,7 +322,7 @@ commentSaveButton { commentChanged, isHovered, pinCommentLoading } =
         else
             Colors.buttonDisabledGrey
     , style "padding" "5px 10px"
-    , style "margin" "10px"
+    , style "margin" "5px 5px 7px 7px"
     , style "outline" "none"
     , style "transition" "border 200ms ease, color 200ms ease"
     , style "cursor" <|
@@ -353,12 +359,14 @@ editButton isHovered =
 
         else
             Colors.pinTools
+    , style "background-origin" "content-box"
+    , style "background-size" "contain"
     ]
 
 
 editSaveWrapper : List (Html.Attribute msg)
 editSaveWrapper =
-    [ style "width" "80px"
+    [ style "width" "50px"
     , style "display" "flex"
     , style "justify-content" "flex-end"
     ]
