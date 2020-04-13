@@ -1942,6 +1942,20 @@ all =
                                         |> whenResourceLoadsWithPinnedComment
                                         |> Tuple.second
                                         |> Common.contains (Effects.SyncTextareaHeight ResourceCommentTextarea)
+                            , test "subscribes to window resize" <|
+                                \_ ->
+                                    init
+                                        |> Application.subscriptions
+                                        |> Common.contains Subscription.OnWindowResize
+                            , test "sync when window is resized" <|
+                                \_ ->
+                                    init
+                                        |> givenUserIsAuthorized
+                                        |> givenResourcePinnedWithComment
+                                        |> Application.handleDelivery
+                                            (Subscription.WindowResized 0 0)
+                                        |> Tuple.second
+                                        |> Common.contains (Effects.SyncTextareaHeight ResourceCommentTextarea)
                             ]
                         , describe "when editing the textarea" <|
                             [ test "is not readonly" <|

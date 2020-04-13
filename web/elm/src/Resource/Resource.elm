@@ -222,6 +222,7 @@ subscriptions =
     , OnClockTick Subscription.OneSecond
     , OnKeyDown
     , OnKeyUp
+    , OnWindowResize
     ]
 
 
@@ -546,6 +547,11 @@ handleDelivery delivery ( model, effects ) =
                    , FetchAllPipelines
                    ]
                 ++ fetchDataForExpandedVersions model
+            )
+
+        WindowResized _ _ ->
+            ( model
+            , effects ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
 
         _ ->
