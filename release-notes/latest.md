@@ -20,3 +20,7 @@
 * @pnsantos updated the Material Design icon library version to `5.0.45`.
 
   **note:** some icons changed names (e.g. `mdi-github-circle` was changed to `mdi-github`) so after this update you might have to update some `icon:` references
+
+#### <sub><sup><a name="5410" href="#5410">:link:</a></sup></sub> feature
+
+* We've moved the "pin comment" field in the Resource view to the top of the page (next to the currently pinned version). The comment can be edited inline.
