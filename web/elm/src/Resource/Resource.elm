@@ -708,7 +708,9 @@ update msg ( model, effects ) =
                 ( model, effects ++ [ RedirectToLogin ] )
 
         Click EditButton ->
-            ( { model | isEditing = True }, effects )
+            ( { model | isEditing = True }
+            , effects ++ [ Focus (toHtmlID ResourceCommentTextarea) ]
+            )
 
         EditComment input ->
             let

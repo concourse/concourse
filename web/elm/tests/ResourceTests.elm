@@ -1815,6 +1815,16 @@ all =
                                     |> Tuple.first
                                     |> iconContainer
                                     |> Query.hasNot [ id "edit-button" ]
+                        , test "after clicking on edit button, the textarea is focused" <|
+                            \_ ->
+                                init
+                                    |> givenResourcePinnedWithComment
+                                    |> update
+                                        (Message.Message.Click <|
+                                            Message.Message.EditButton
+                                        )
+                                    |> Tuple.second
+                                    |> Common.contains (Effects.Focus <| Effects.toHtmlID ResourceCommentTextarea)
                         , test "after clicking on edit button, there's a save button" <|
                             \_ ->
                                 init
