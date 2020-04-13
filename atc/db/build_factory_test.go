@@ -68,7 +68,7 @@ var _ = Describe("BuildFactory", func() {
 			DescribeTable("completed and past the grace period",
 				func(status db.BuildStatus, matcher types.GomegaMatcher) {
 					//set grace period to 0 for this test
-					buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0)
+					buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, 0)
 					b, err := defaultTeam.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
 
