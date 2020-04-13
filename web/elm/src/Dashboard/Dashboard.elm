@@ -562,7 +562,7 @@ dashboardView session model =
 loadingView : Html Message
 loadingView =
     Html.div
-        ([ class "loading" ] ++ Styles.loadingView)
+        (class "loading" :: Styles.loadingView)
         [ Spinner.spinner { sizePx = 24, margin = "0" }
         , Html.span Styles.loadingText [ Html.text "loading, please wait..." ]
         ]
