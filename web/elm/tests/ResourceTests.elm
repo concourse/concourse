@@ -2085,7 +2085,7 @@ all =
                             \_ ->
                                 editSaveWrapper
                                     |> Query.has
-                                        [ style "width" "50px"
+                                        [ style "width" "60px"
                                         ]
                         , test "buttons are right aligned in the div" <|
                             \_ ->

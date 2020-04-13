@@ -366,7 +366,7 @@ editButton isHovered =
 
 editSaveWrapper : List (Html.Attribute msg)
 editSaveWrapper =
-    [ style "width" "50px"
+    [ style "width" "60px"
     , style "display" "flex"
     , style "justify-content" "flex-end"
     ]
