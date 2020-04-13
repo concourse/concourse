@@ -1055,6 +1055,43 @@ func (cmd *RunCommand) constructGCMember(
 	return members, nil
 }
 
+func (cmd *RunCommand) validateCustomRoles() error {
+
+	path := cmd.ConfigRBAC.Path()
+	if path == "" {
+		return nil
+	}
+
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to open RBAC config file (%s): %w", cmd.ConfigRBAC, err)
+	}
+
+	var data map[string][]string
+	if err = yaml.Unmarshal(content, &data); err != nil {
+		return fmt.Errorf("failed to parse RBAC config file (%s): %w", cmd.ConfigRBAC, err)
+	}
+
+	allKnownRoles := map[string]bool{}
+	for _, roleName := range accessor.DefaultRoles {
+		allKnownRoles[roleName] = true
+	}
+
+	for role, actions := range data {
+		if _, ok := allKnownRoles[role]; !ok {
+			return fmt.Errorf("failed to customize roles: %w", fmt.Errorf("unknown role %s", role))
+		}
+
+		for _, action := range actions {
+			if _, ok := accessor.DefaultRoles[action]; !ok {
+				return fmt.Errorf("failed to customize roles: %w", fmt.Errorf("unknown action %s", action))
+			}
+		}
+	}
+
+	return nil
+}
+
 func (cmd *RunCommand) parseCustomRoles(logger lager.Logger) (map[string]string, error) {
 	mapping := map[string]string{}
 
@@ -1065,31 +1102,17 @@ func (cmd *RunCommand) parseCustomRoles(logger lager.Logger) (map[string]string,
 
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open RBAC config file (%s): %w", cmd.ConfigRBAC, err)
+		return nil, err
 	}
 
 	var data map[string][]string
 	if err = yaml.Unmarshal(content, &data); err != nil {
-		return nil, fmt.Errorf("failed to parse RBAC config file (%s): %w", cmd.ConfigRBAC, err)
-	}
-
-	allKnownRoles := map[string]bool{}
-	for _, roleName := range accessor.DefaultRoles {
-		allKnownRoles[roleName] = true
+		return nil, err
 	}
 
 	for role, actions := range data {
-		if _, ok := allKnownRoles[role]; !ok {
-			return nil, fmt.Errorf("failed to customize roles: %w", fmt.Errorf("unknown role %s", role))
-		}
-
 		for _, action := range actions {
-			if defaultRole, ok := accessor.DefaultRoles[action]; !ok {
-				return nil, fmt.Errorf("failed to customize roles: %w", fmt.Errorf("unknown action %s", action))
-			} else {
-				logger.Info("customize-role", lager.Data{"action": action, "oldRole": defaultRole, "newRole": role})
-				mapping[action] = role
-			}
+			mapping[action] = role
 		}
 	}
 
@@ -1332,6 +1355,10 @@ func (cmd *RunCommand) validate() error {
 			errs,
 			errors.New("must specify --tls-cert and --tls-key, or --enable-lets-encrypt to use TLS"),
 		)
+	}
+
+	if err := cmd.validateCustomRoles(); err != nil {
+		errs = multierror.Append(errs, err)
 	}
 
 	return errs.ErrorOrNil()
