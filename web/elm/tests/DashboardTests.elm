@@ -222,6 +222,52 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "top-bar-app" ]
                     |> Query.has [ style "height" "54px" ]
+        , describe "loading section" <|
+            [ test "has a loading section when awaiting API data" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.has [ class "loading" ]
+            , test "has top padding" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.has [ style "padding-top" "50px" ]
+            , test "centers text" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.has
+                            [ style "display" "flex"
+                            , style "justify-content" "center"
+                            , style "width" "100%"
+                            ]
+            , test "has 20px font size" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.has
+                            [ style "font-size" "20px" ]
+            , test "contains a spinner" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.find [ class "loading" ]
+                        |> Query.has
+                            [ style "animation" "container-rotate 1568ms linear infinite"
+                            , style "height" "24px"
+                            , style "width" "24px"
+                            ]
+            , test "contains a loading message" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.find [ class "loading" ]
+                        |> Query.has
+                            [ style "margin-left" "10px"
+                            , containing [ text "loading, please wait..." ]
+                            ]
+            ]
         , describe "welcome card" <|
             let
                 hasWelcomeCard : (() -> ( Application.Model, List Effects.Effect )) -> List Test

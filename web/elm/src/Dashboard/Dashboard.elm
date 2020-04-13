@@ -71,6 +71,7 @@ import Routes
 import ScreenSize exposing (ScreenSize(..))
 import SideBar.SideBar as SideBar
 import UserState
+import Views.Spinner as Spinner
 import Views.Styles
 
 
@@ -531,10 +532,10 @@ dashboardView :
 dashboardView session model =
     case model.state of
         RemoteData.NotAsked ->
-            Html.text ""
+            loadingView
 
         RemoteData.Loading ->
-            Html.text ""
+            loadingView
 
         RemoteData.Failure (Turbulence path) ->
             turbulenceView path
@@ -556,6 +557,15 @@ dashboardView session model =
                         , userState = model.userState
                         , highDensity = model.highDensity
                         }
+
+
+loadingView : Html Message
+loadingView =
+    Html.div
+        ([ class "loading" ] ++ Styles.loadingView)
+        [ Spinner.spinner { sizePx = 24, margin = "0" }
+        , Html.span Styles.loadingText [ Html.text "loading, please wait..." ]
+        ]
 
 
 welcomeCard :
