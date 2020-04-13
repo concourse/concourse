@@ -1,8 +1,6 @@
 package atccmd
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -1565,11 +1563,6 @@ func (cmd *RunCommand) constructAuthHandler(
 	issuerURL := cmd.ExternalURL.URL.ResolveReference(issuerPath)
 	redirectURL := cmd.ExternalURL.URL.ResolveReference(redirectPath)
 
-	signingKey, err := loadOrGenerateSigningKey(cmd.Auth.AuthFlags.SigningKey)
-	if err != nil {
-		return nil, err
-	}
-
 	// Add public fly client
 	cmd.Auth.AuthFlags.Clients[flyClientID] = flyClientSecret
 
@@ -1581,7 +1574,7 @@ func (cmd *RunCommand) constructAuthHandler(
 		IssuerURL:   issuerURL.String(),
 		RedirectURL: redirectURL.String(),
 		WebHostURL:  "/sky/issuer",
-		SigningKey:  signingKey,
+		SigningKey:  cmd.Auth.AuthFlags.SigningKey.PrivateKey,
 		Storage:     storage,
 	})
 	if err != nil {
@@ -1788,12 +1781,4 @@ func (cmd *RunCommand) appendStaticWorker(
 
 func (cmd *RunCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
-}
-
-func loadOrGenerateSigningKey(keyFlag *flag.PrivateKey) (*rsa.PrivateKey, error) {
-	if keyFlag != nil && keyFlag.PrivateKey != nil {
-		return keyFlag.PrivateKey, nil
-	}
-
-	return rsa.GenerateKey(rand.Reader, 2048)
 }
