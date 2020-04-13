@@ -40,3 +40,14 @@
 #### <sub><sup><a name="5410" href="#5410">:link:</a></sup></sub> feature
 
 * We've moved the "pin comment" field in the Resource view to the top of the page (next to the currently pinned version). The comment can be edited inline.
+
+#### <sub><sup><a name="5368" href="#5368">:link:</a></sup></sub> feature
+
+* Implented the core functionality for archiving pipelines [RFC #33]. 
+
+  **note**: archived pipelines are neither visible in the web UI (#5370) nor in `fly pipelines`.
+
+  **note:** archiving a pipeline will nullify the pipeline configuration. If for some reason you downgrade the version of Concourse, unpausing a pipeline that was previously archived will result in a broken pipeline. To fix that, set the pipeline again.
+
+[RFC #33]: https://github.com/concourse/rfcs/pull/33
+
