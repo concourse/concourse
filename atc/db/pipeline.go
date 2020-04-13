@@ -641,6 +641,7 @@ func (p *pipeline) Archive() error {
 
 	_, err = psql.Update("pipelines").
 		Set("archived", true).
+		Set("last_updated", sq.Expr("now()")).
 		Set("paused", true).
 		Where(sq.Eq{
 			"id": p.id,

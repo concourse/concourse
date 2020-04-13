@@ -218,6 +218,12 @@ var _ = Describe("Pipeline", func() {
 	})
 
 	Describe("Archive", func() {
+		var initialLastUpdated time.Time
+
+		BeforeEach(func() {
+			initialLastUpdated = pipeline.LastUpdated()
+		})
+
 		JustBeforeEach(func() {
 			pipeline.Archive()
 			pipeline.Reload()
@@ -225,6 +231,12 @@ var _ = Describe("Pipeline", func() {
 
 		It("archives the pipeline", func() {
 			Expect(pipeline.Archived()).To(BeTrue(), "pipeline was not archived")
+		})
+
+		It("updates last updated", func() {
+			lastUpdated := pipeline.LastUpdated()
+
+			Expect(lastUpdated).To(BeTemporally(">", initialLastUpdated))
 		})
 
 		It("removes the config of each job", func() {
