@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -206,6 +207,7 @@ var _ = Describe("Sky Server API", func() {
 				err      error
 				request  *http.Request
 				response *http.Response
+				body     []byte
 			)
 
 			BeforeEach(func() {
@@ -215,6 +217,9 @@ var _ = Describe("Sky Server API", func() {
 
 			JustBeforeEach(func() {
 				response, err = skyServer.Client().Do(request)
+				Expect(err).NotTo(HaveOccurred())
+
+				body, err = ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -226,6 +231,10 @@ var _ = Describe("Sky Server API", func() {
 				It("errors", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
+
+				It("shows the error message", func() {
+					Expect(string(body)).To(Equal("some-error\n"))
+				})
 			})
 
 			Context("when the state cookie doesn't exist", func() {
@@ -235,6 +244,10 @@ var _ = Describe("Sky Server API", func() {
 
 				It("errors", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("shows state cookie invalid message", func() {
+					Expect(string(body)).To(Equal("invalid state token\n"))
 				})
 			})
 
@@ -246,6 +259,10 @@ var _ = Describe("Sky Server API", func() {
 
 				It("errors", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("shows state cookie unexpected message", func() {
+					Expect(string(body)).To(Equal("unexpected state token\n"))
 				})
 			})
 
@@ -268,13 +285,39 @@ var _ = Describe("Sky Server API", func() {
 									ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
 									ghttp.VerifyFormKV("grant_type", "authorization_code"),
 									ghttp.VerifyFormKV("code", "some-code"),
-									ghttp.RespondWith(http.StatusInternalServerError, nil),
+									ghttp.RespondWith(http.StatusInternalServerError, "some-token-error"),
 								),
 							)
 						})
 
 						It("errors", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+
+						It("shows the oauth2 retrieve error response", func() {
+							Expect(string(body)).To(Equal("some-token-error\n"))
+						})
+					})
+
+					Context("when requesting a token from dex fails with oauth error (dex 200 with no access_token returned)", func() {
+						BeforeEach(func() {
+							dexServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("POST", "/token"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]string{
+										"token_type": "some-type",
+										"id_token":   "some-id-token",
+									}),
+								),
+							)
+						})
+
+						It("errors", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+
+						It("shows oauth error", func() {
+							Expect(string(body)).To(Equal("oauth2: server response missing access_token\n"))
 						})
 					})
 
@@ -297,6 +340,10 @@ var _ = Describe("Sky Server API", func() {
 
 						It("errors", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+
+						It("shows token exchange error", func() {
+							Expect(string(body)).To(Equal("invalid id_token\n"))
 						})
 					})
 
