@@ -2615,7 +2615,7 @@ var _ = Describe("Team", func() {
 				pipeline, _, _ := team.Pipeline(pipelineName)
 				pipeline.Archive()
 
-				team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), true)
+				team.SavePipeline(pipelineName, config, db.ConfigVersion(0), true)
 				pipeline.Reload()
 				Expect(pipeline.Archived()).To(BeFalse(), "the pipeline remained archived")
 			})

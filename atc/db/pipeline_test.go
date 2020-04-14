@@ -239,6 +239,12 @@ var _ = Describe("Pipeline", func() {
 			Expect(lastUpdated).To(BeTemporally(">", initialLastUpdated))
 		})
 
+		It("resets the pipeline version to zero", func() {
+			version := pipeline.ConfigVersion()
+
+			Expect(version).To(Equal(db.ConfigVersion(0)))
+		})
+
 		It("removes the config of each job", func() {
 			jobs, err := pipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())

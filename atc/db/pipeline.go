@@ -643,6 +643,7 @@ func (p *pipeline) Archive() error {
 		Set("archived", true).
 		Set("last_updated", sq.Expr("now()")).
 		Set("paused", true).
+		Set("version", 0).
 		Where(sq.Eq{
 			"id": p.id,
 		}).
