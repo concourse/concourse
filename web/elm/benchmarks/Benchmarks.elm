@@ -43,7 +43,7 @@ import Routes exposing (Highlight)
 import ScreenSize
 import Set
 import SideBar.SideBar as SideBar
-import StrictEvents exposing (onLeftClick, onMouseWheel, onScroll)
+import StrictEvents exposing (onLeftClick, onScroll, onWheel)
 import Time
 import UserState
 import Views.BuildDuration as BuildDuration
@@ -364,7 +364,7 @@ viewBuildHeader session model build =
                 [ abortButton, triggerButton ]
             ]
         , Html.div
-            [ onMouseWheel ScrollBuilds ]
+            [ onWheel ScrollBuilds ]
             [ lazyViewHistory build model.history ]
         ]
 

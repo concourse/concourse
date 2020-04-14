@@ -1,13 +1,14 @@
 module StrictEvents exposing
-    ( MouseWheelEvent
+    ( DeltaMode(..)
     , ScrollState
+    , WheelEvent
     , onLeftClick
     , onLeftClickNoPreventDefault
     , onLeftClickOrShiftLeftClick
     , onLeftMouseDown
     , onLeftMouseDownCapturing
-    , onMouseWheel
     , onScroll
+    , onWheel
     )
 
 import Html
@@ -15,9 +16,10 @@ import Html.Events
 import Json.Decode
 
 
-type alias MouseWheelEvent =
+type alias WheelEvent =
     { deltaX : Float
     , deltaY : Float
+    , deltaMode : DeltaMode
     }
 
 
@@ -26,6 +28,12 @@ type alias ScrollState =
     , scrollTop : Float
     , clientHeight : Float
     }
+
+
+type DeltaMode
+    = DeltaModePixel
+    | DeltaModeLine
+    | DeltaModePage
 
 
 onLeftClick : msg -> Html.Attribute msg
@@ -120,9 +128,9 @@ onLeftMouseDownCapturing captured msg =
         )
 
 
-onMouseWheel : (MouseWheelEvent -> msg) -> Html.Attribute msg
-onMouseWheel cons =
-    Html.Events.custom "mousewheel"
+onWheel : (WheelEvent -> msg) -> Html.Attribute msg
+onWheel cons =
+    Html.Events.custom "wheel"
         (Json.Decode.map
             (\x ->
                 { message = cons x
@@ -130,7 +138,7 @@ onMouseWheel cons =
                 , preventDefault = True
                 }
             )
-            decodeMouseWheelEvent
+            decodeWheelEvent
         )
 
 
@@ -190,11 +198,32 @@ assertLeftButton =
                 Err "not left button"
 
 
-decodeMouseWheelEvent : Json.Decode.Decoder MouseWheelEvent
-decodeMouseWheelEvent =
-    Json.Decode.map2 MouseWheelEvent
+decodeWheelEvent : Json.Decode.Decoder WheelEvent
+decodeWheelEvent =
+    Json.Decode.map3 WheelEvent
         (Json.Decode.field "deltaX" Json.Decode.float)
         (Json.Decode.field "deltaY" Json.Decode.float)
+        (Json.Decode.field "deltaMode" decodeDeltaMode)
+
+
+decodeDeltaMode : Json.Decode.Decoder DeltaMode
+decodeDeltaMode =
+    Json.Decode.int
+        |> Json.Decode.andThen
+            (\mode ->
+                case mode of
+                    0 ->
+                        Json.Decode.succeed DeltaModePixel
+
+                    1 ->
+                        Json.Decode.succeed DeltaModeLine
+
+                    2 ->
+                        Json.Decode.succeed DeltaModePage
+
+                    _ ->
+                        Json.Decode.fail <| "invalid deltaMode " ++ String.fromInt mode
+            )
 
 
 decodeScrollEvent : Json.Decode.Decoder ScrollState

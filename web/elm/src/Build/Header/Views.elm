@@ -29,7 +29,7 @@ import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
 import Message.Message as Message exposing (Message(..))
 import Routes
-import StrictEvents exposing (onLeftClick, onMouseWheel)
+import StrictEvents exposing (onLeftClick, onWheel)
 import Views.Icon as Icon
 
 
@@ -376,4 +376,4 @@ viewHistory : BuildStatus -> List BuildTab -> Html Message
 viewHistory backgroundColor =
     lazyViewHistory backgroundColor
         >> List.singleton
-        >> Html.div [ onMouseWheel ScrollBuilds ]
+        >> Html.div [ onWheel ScrollBuilds ]

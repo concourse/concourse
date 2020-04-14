@@ -11,7 +11,7 @@ import Api
 import Api.Endpoints as Endpoints
 import Assets
 import Base64
-import Browser.Dom exposing (Element, getElement, getViewport, getViewportOf, setViewportOf)
+import Browser.Dom exposing (Element, Viewport, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
 import Concourse exposing (encodeJob, encodePipeline, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
@@ -667,19 +667,19 @@ scroll : ScrollDirection -> String -> Cmd Callback
 scroll direction id =
     (case direction of
         ToTop ->
-            scrollCoords id id (always 0) (always 0)
+            scrollCoordsSimple id (always 0) (always 0)
 
         Down ->
-            scrollCoords id id (always 0) (.srcElem >> .viewport >> .y >> (+) 60)
+            scrollCoordsSimple id (always 0) (.viewport >> .y >> (+) 60)
 
         Up ->
-            scrollCoords id id (always 0) (.srcElem >> .viewport >> .y >> (+) -60)
+            scrollCoordsSimple id (always 0) (.viewport >> .y >> (+) -60)
 
         ToBottom ->
-            scrollCoords id id (always 0) (.parentElem >> .scene >> .height)
+            scrollCoordsSimple id (always 0) (.scene >> .height)
 
         Sideways delta ->
-            scrollCoords id id (.srcElem >> .viewport >> .x >> (+) -delta) (always 0)
+            scrollCoordsSimple id (.viewport >> .x >> (+) -delta) (always 0)
 
         ToId toId ->
             scrollCoords toId
@@ -692,6 +692,22 @@ scroll direction id =
                 )
     )
         |> Task.attempt (\_ -> ScrollCompleted direction id)
+
+
+scrollCoordsSimple :
+    String
+    -> (Viewport -> Float)
+    -> (Viewport -> Float)
+    -> Task.Task Browser.Dom.Error ()
+scrollCoordsSimple id getX getY =
+    getViewportOf id
+        |> Task.andThen
+            (\viewport ->
+                setViewportOf
+                    id
+                    (getX viewport)
+                    (getY viewport)
+            )
 
 
 scrollCoords :

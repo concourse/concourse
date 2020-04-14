@@ -15,6 +15,22 @@
 
   We are no longer relying on garden to clean up hijacked containers. Instead, we have implemented this functionality in concourse itself. This makes it much more portable to different container backends.
 
+#### <sub><sup><a name="5375" href="#5375">:link:</a></sup></sub> fix
+
+* Fix rendering pipeline previews on the dashboard on Safari. #5375
+
+#### <sub><sup><a name="5377" href="#5377">:link:</a></sup></sub> fix
+
+* Fix pipeline tooltips being hidden behind other cards. #5377
+
+#### <sub><sup><a name="5384" href="#5384">:link:</a></sup></sub> fix
+
+* Fix log highlighting on the one-off-build page. Previously, highlighting any log lines would cause the page to reload. #5384
+
+#### <sub><sup><a name="5392" href="#5392">:link:</a></sup></sub> fix
+
+* Fix regression which inhibited scrolling through the build history list. #5392
+
 #### <sub><sup><a name="5397" href="#5397">:link:</a></sup></sub> feature, breaking
 
 * @pnsantos updated the Material Design icon library version to `5.0.45`.

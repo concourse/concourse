@@ -32,7 +32,7 @@ type Message
     | FocusTextArea
     | BlurTextArea
       -- Build
-    | ScrollBuilds StrictEvents.MouseWheelEvent
+    | ScrollBuilds StrictEvents.WheelEvent
     | RevealCurrentBuildInHistory
     | SetHighlight String Int
     | ExtendHighlight String Int
