@@ -37,8 +37,45 @@ on.
 
   * *Optional: check out our [Go style guide][style-guide]!*
 
+* Putting this all together, here is a sample anatomy of an ideal commit:
+
+    ```
+     i       ii         iii
+     |       |           |
+    web: structure: add var declarations
+    
+    Since scripts are run in module mode, they follow the "strict mode"
+    semantics. Variables must be declared prior to being assigned (e.g. - iv
+    cannot have `x = 1` without declaring x (using var, let, or const)
+    
+    concourse/concourse#5131 -------------------------------------------- v
+    
+    Signed-off-by: Aidan Oldershaw <aoldershaw@pivotal.io> -------------- vi
+    ```
+
+    1. [component changed](#developing-concourse)
+    1. [structure vs behaviour](#structure-and-behaviour)
+    1. brief, imperative-tense description of the change
+    1. a message that [tells a story][fav-commit]
+    1. mention the issue this change contributes to solving
+    1. [sign-off line](#signing-your-work)
+
 * When you're ready, [submit a pull request][how-to-pr]!
 
+### Structure and Behaviour
+
+In an ideal world, every pull request is small, but the codebase is large and
+sometimes complex changes cannot be avoided. To ease PR reviews, there are a few
+practices we've found helpful:
+
+* Focus your commits so that they only change a single component at a time.
+* Isolate [structure changes from behaviour changes][sb-changes] and label the
+commits appropriately - even better, batch commits of the same type into
+contiguous blocks.
+* Give clear prose justifications for your changes in the commit messages - it's
+not unusual that you do some digging to uncover the motivation for a change,
+but if you don't mention it in the commit message the diff can feel pretty
+opaque.
 
 ## Development dependencies
 
@@ -625,3 +662,6 @@ pushed commits without the signature.
 [how-to-pr]: https://help.github.com/articles/creating-a-pull-request-from-a-fork/
 [concourse-helm-chart]: https://github.com/concourse/concourse-chart/blob/master/README.md
 [helm-charts]: https://github.com/helm/charts/blob/master/README.md
+[fav-commit]: https://dhwthompson.com/2019/my-favourite-git-commit
+[sb-changes]: https://medium.com/@kentbeck_7670/bs-changes-e574bc396aaa
+
