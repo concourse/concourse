@@ -4,12 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
@@ -35,7 +32,13 @@ var _ = Describe("AccessorFactory", func() {
 		fakeVerifier = new(accessorfakes.FakeVerifier)
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
 
-		accessorFactory = accessor.NewAccessFactory(fakeVerifier, fakeTeamFactory, "sub", []string{"some-sub"})
+		accessorFactory = accessor.NewAccessFactory(
+			fakeVerifier,
+			fakeTeamFactory,
+			"sub",
+			[]string{"some-sub"},
+			map[string]string{"some-role": "some-action"},
+		)
 	})
 
 	Describe("Create", func() {
@@ -120,31 +123,6 @@ var _ = Describe("AccessorFactory", func() {
 					Expect(access.IsAuthenticated()).To(BeTrue())
 				})
 			})
-		})
-	})
-
-	Describe("CustomizeRolesMapping", func() {
-		BeforeEach(func() {
-			customData := accessor.CustomActionRoleMap{
-				accessor.OperatorRole: []string{atc.HijackContainer, atc.CreatePipelineBuild},
-				accessor.ViewerRole:   []string{atc.GetPipeline},
-			}
-
-			logger := lager.NewLogger("test")
-			err := accessorFactory.CustomizeActionRoleMap(logger, customData)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("should correctly customized", func() {
-			Expect(accessorFactory.RoleOfAction(atc.HijackContainer)).To(Equal(accessor.OperatorRole))
-			Expect(accessorFactory.RoleOfAction(atc.CreatePipelineBuild)).To(Equal(accessor.OperatorRole))
-			Expect(accessorFactory.RoleOfAction(atc.GetPipeline)).To(Equal(accessor.ViewerRole))
-		})
-
-		It("should keep un-customized actions", func() {
-			Expect(accessorFactory.RoleOfAction(atc.SaveConfig)).To(Equal(accessor.MemberRole))
-			Expect(accessorFactory.RoleOfAction(atc.GetConfig)).To(Equal(accessor.ViewerRole))
-			Expect(accessorFactory.RoleOfAction(atc.GetCC)).To(Equal(accessor.ViewerRole))
 		})
 	})
 })

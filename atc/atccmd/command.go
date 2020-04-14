@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -68,6 +69,7 @@ import (
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
+	"gopkg.in/yaml.v2"
 
 	// dynamically registered metric emitters
 	_ "github.com/concourse/concourse/atc/metric/emitter"
@@ -229,7 +231,7 @@ type RunCommand struct {
 
 	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 
-	ConfigRBAC string `long:"config-rbac" description:"Customize RBAC role-action mapping."`
+	ConfigRBAC flag.File `long:"config-rbac" description:"Customize RBAC role-action mapping."`
 
 	SystemClaimKey    string   `long:"system-claim-key" default:"aud" description:"The token claim key to use when matching system-claim-values"`
 	SystemClaimValues []string `long:"system-claim-value" default:"concourse-worker" description:"Configure which token requests should be considered 'system' requests."`
@@ -649,22 +651,18 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
+	customRoles, err := cmd.parseCustomRoles(logger)
+	if err != nil {
+		return nil, err
+	}
+
 	accessFactory := accessor.NewAccessFactory(
 		cmd.constructTokenVerifier(httpClient),
 		teamFactory,
 		cmd.SystemClaimKey,
 		cmd.SystemClaimValues,
+		customRoles,
 	)
-
-	customActionRoleMap := accessor.CustomActionRoleMap{}
-	err = accessor.ParseCustomActionRoleMap(cmd.ConfigRBAC, &customActionRoleMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse RBAC config file (%s): %s", cmd.ConfigRBAC, err.Error())
-	}
-	err = accessFactory.CustomizeActionRoleMap(logger, customActionRoleMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to customize RBAC: %s", err.Error())
-	}
 
 	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
 
@@ -1057,6 +1055,70 @@ func (cmd *RunCommand) constructGCMember(
 	return members, nil
 }
 
+func (cmd *RunCommand) validateCustomRoles() error {
+
+	path := cmd.ConfigRBAC.Path()
+	if path == "" {
+		return nil
+	}
+
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to open RBAC config file (%s): %w", cmd.ConfigRBAC, err)
+	}
+
+	var data map[string][]string
+	if err = yaml.Unmarshal(content, &data); err != nil {
+		return fmt.Errorf("failed to parse RBAC config file (%s): %w", cmd.ConfigRBAC, err)
+	}
+
+	allKnownRoles := map[string]bool{}
+	for _, roleName := range accessor.DefaultRoles {
+		allKnownRoles[roleName] = true
+	}
+
+	for role, actions := range data {
+		if _, ok := allKnownRoles[role]; !ok {
+			return fmt.Errorf("failed to customize roles: %w", fmt.Errorf("unknown role %s", role))
+		}
+
+		for _, action := range actions {
+			if _, ok := accessor.DefaultRoles[action]; !ok {
+				return fmt.Errorf("failed to customize roles: %w", fmt.Errorf("unknown action %s", action))
+			}
+		}
+	}
+
+	return nil
+}
+
+func (cmd *RunCommand) parseCustomRoles(logger lager.Logger) (map[string]string, error) {
+	mapping := map[string]string{}
+
+	path := cmd.ConfigRBAC.Path()
+	if path == "" {
+		return mapping, nil
+	}
+
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var data map[string][]string
+	if err = yaml.Unmarshal(content, &data); err != nil {
+		return nil, err
+	}
+
+	for role, actions := range data {
+		for _, action := range actions {
+			mapping[action] = role
+		}
+	}
+
+	return mapping, nil
+}
+
 func workerVersion() (version.Version, error) {
 	return version.NewVersionFromString(concourse.WorkerVersion)
 }
@@ -1293,6 +1355,10 @@ func (cmd *RunCommand) validate() error {
 			errs,
 			errors.New("must specify --tls-cert and --tls-key, or --enable-lets-encrypt to use TLS"),
 		)
+	}
+
+	if err := cmd.validateCustomRoles(); err != nil {
+		errs = multierror.Append(errs, err)
 	}
 
 	return errs.ErrorOrNil()
