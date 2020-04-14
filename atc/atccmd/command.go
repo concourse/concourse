@@ -139,7 +139,7 @@ type RunCommand struct {
 	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
 	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
-	ComponentRunnerInterval time.Duration `long:"runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
+	ComponentRunnerInterval time.Duration `long:"component-runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
 
 	GlobalResourceCheckTimeout time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval   time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
