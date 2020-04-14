@@ -42,6 +42,7 @@ type alias Model =
         , pinCommentLoading : Bool
         , textAreaFocused : Bool
         , icon : Maybe String
+        , isEditing : Bool
         }
 
 

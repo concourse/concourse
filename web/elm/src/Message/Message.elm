@@ -51,7 +51,9 @@ type DomID
     | PreviousPageButton
     | NextPageButton
     | CheckButton Bool
+    | EditButton
     | SaveCommentButton
+    | ResourceCommentTextarea
     | FirstOccurrenceGetStepLabel StepID
     | StepState StepID
     | PinIcon

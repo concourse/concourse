@@ -6,9 +6,9 @@ module Colors exposing
     , bottomBarText
     , buildStatusColor
     , buildTooltipText
+    , buttonDisabledGrey
     , card
     , cliIconHover
-    , comment
     , dashboardText
     , dropdownFaded
     , dropdownUnselectedText
@@ -232,11 +232,6 @@ inputOutline =
     "#504b4b"
 
 
-comment : String
-comment =
-    "#196ac8"
-
-
 groupsBarBackground : String
 groupsBarBackground =
     "#2b2a2a"
@@ -373,3 +368,8 @@ buildStatusColor isBright status =
 
             BuildStatusAborted ->
                 abortedFaded
+
+
+buttonDisabledGrey : String
+buttonDisabledGrey =
+    "#979797"

@@ -40,7 +40,7 @@ import Html.Attributes
         , class
         , href
         , id
-        , placeholder
+        , readonly
         , style
         , title
         , value
@@ -62,7 +62,7 @@ import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message
     exposing
         ( DomID(..)
@@ -120,6 +120,7 @@ init flags =
             , textAreaFocused = False
             , isUserMenuExpanded = False
             , icon = Nothing
+            , isEditing = False
             }
     in
     ( model
@@ -127,6 +128,7 @@ init flags =
       , FetchVersionedResources flags.resourceId flags.paging
       , GetCurrentTimeZone
       , FetchAllPipelines
+      , SyncTextareaHeight ResourceCommentTextarea
       ]
     )
 
@@ -140,7 +142,10 @@ changeToResource flags ( model, effects ) =
             , pagination = { previousPage = Nothing, nextPage = Nothing }
             }
       }
-    , effects ++ [ FetchVersionedResources model.resourceIdentifier flags.paging ]
+    , effects
+        ++ [ FetchVersionedResources model.resourceIdentifier flags.paging
+           , SyncTextareaHeight ResourceCommentTextarea
+           ]
     )
 
 
@@ -217,6 +222,7 @@ subscriptions =
     , OnClockTick Subscription.OneSecond
     , OnKeyDown
     , OnKeyUp
+    , OnWindowResize
     ]
 
 
@@ -251,6 +257,7 @@ handleCallback callback session ( model, effects ) =
                         Nothing ->
                             []
                    )
+                ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
 
         ResourceFetched (Err err) ->
@@ -489,8 +496,12 @@ handleCallback callback session ( model, effects ) =
 
                         ( _, pv ) ->
                             pv
+                , isEditing = result /= Ok ()
               }
-            , effects ++ [ FetchResource model.resourceIdentifier ]
+            , effects
+                ++ [ FetchResource model.resourceIdentifier
+                   , SyncTextareaHeight ResourceCommentTextarea
+                   ]
             )
 
         _ ->
@@ -536,6 +547,11 @@ handleDelivery delivery ( model, effects ) =
                    , FetchAllPipelines
                    ]
                 ++ fetchDataForExpandedVersions model
+            )
+
+        WindowResized _ _ ->
+            ( model
+            , effects ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
 
         _ ->
@@ -692,6 +708,11 @@ update msg ( model, effects ) =
             else
                 ( model, effects ++ [ RedirectToLogin ] )
 
+        Click EditButton ->
+            ( { model | isEditing = True }
+            , effects ++ [ Focus (toHtmlID ResourceCommentTextarea) ]
+            )
+
         EditComment input ->
             let
                 newPinnedVersion =
@@ -706,18 +727,28 @@ update msg ( model, effects ) =
                         x ->
                             x
             in
-            ( { model | pinnedVersion = newPinnedVersion }, effects )
+            ( { model | pinnedVersion = newPinnedVersion }
+            , effects ++ [ SyncTextareaHeight ResourceCommentTextarea ]
+            )
 
         Click SaveCommentButton ->
             case model.pinnedVersion of
                 PinnedDynamicallyTo commentState _ ->
-                    ( { model | pinCommentLoading = True }
-                    , effects
-                        ++ [ SetPinComment
-                                model.resourceIdentifier
-                                commentState.comment
-                           ]
-                    )
+                    let
+                        commentChanged =
+                            commentState.comment /= commentState.pristineComment
+                    in
+                    if commentChanged then
+                        ( { model | pinCommentLoading = True }
+                        , effects
+                            ++ [ SetPinComment
+                                    model.resourceIdentifier
+                                    commentState.comment
+                               ]
+                        )
+
+                    else
+                        ( model, effects )
 
                 _ ->
                     ( model, effects )
@@ -847,7 +878,6 @@ view session model =
                     ]
                     [ header session model
                     , body session model
-                    , commentBar session model
                     ]
             ]
         ]
@@ -1183,98 +1213,108 @@ commentBar :
             | pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
             , pinCommentLoading : Bool
+            , isEditing : Bool
         }
     -> Html Message
-commentBar { userState, hovered } { resourceIdentifier, pinnedVersion, pinCommentLoading } =
+commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEditing } =
     case pinnedVersion of
-        PinnedDynamicallyTo commentState v ->
-            let
-                version =
-                    viewVersion
-                        [ Html.Attributes.style "align-self" "center" ]
-                        v
-            in
+        PinnedDynamicallyTo commentState _ ->
             Html.div
-                (id "comment-bar" :: Resource.Styles.commentBar)
-                [ Html.div Resource.Styles.commentBarContent <|
-                    let
-                        commentBarHeader =
-                            Html.div
-                                Resource.Styles.commentBarHeader
-                                [ Html.div
-                                    Resource.Styles.commentBarIconContainer
-                                    [ Icon.icon
-                                        { sizePx = 24
-                                        , image = Assets.MessageIcon
-                                        }
-                                        Resource.Styles.commentBarMessageIcon
-                                    , Icon.icon
-                                        { sizePx = 20
-                                        , image = Assets.PinIconWhite
-                                        }
-                                        Resource.Styles.commentBarPinIcon
-                                    ]
-                                , version
-                                ]
-                    in
-                    if
-                        UserState.isMember
-                            { teamName = resourceIdentifier.teamName
-                            , userState = userState
-                            }
-                    then
-                        [ commentBarHeader
-                        , Html.textarea
-                            ([ onInput EditComment
-                             , value commentState.comment
-                             , placeholder "enter a comment"
-                             , onFocus FocusTextArea
-                             , onBlur BlurTextArea
-                             ]
-                                ++ Resource.Styles.commentTextArea
-                            )
-                            []
-                        , Html.button
-                            (let
-                                commentChanged =
-                                    commentState.comment
-                                        /= commentState.pristineComment
-                             in
-                             [ onMouseEnter <| Hover <| Just SaveCommentButton
-                             , onMouseLeave <| Hover Nothing
-                             , onClick <| Click SaveCommentButton
-                             ]
-                                ++ Resource.Styles.commentSaveButton
-                                    { isHovered =
-                                        not pinCommentLoading
-                                            && commentChanged
-                                            && HoverState.isHovered SaveCommentButton hovered
-                                    , commentChanged = commentChanged
+                (id "comment-bar" :: Resource.Styles.commentBar True)
+                [ Html.div
+                    (id "icon-container" :: Resource.Styles.commentBarIconContainer isEditing)
+                    (Icon.icon
+                        { sizePx = 16
+                        , image = Assets.MessageIcon
+                        }
+                        Resource.Styles.commentBarMessageIcon
+                        :: (if
+                                UserState.isMember
+                                    { teamName = resourceIdentifier.teamName
+                                    , userState = session.userState
                                     }
-                            )
-                            (if pinCommentLoading then
-                                [ Spinner.spinner
-                                    { sizePx = 12
-                                    , margin = "0"
-                                    }
+                            then
+                                [ Html.textarea
+                                    ([ id (toHtmlID ResourceCommentTextarea)
+                                     , value commentState.comment
+                                     , onInput EditComment
+                                     , onFocus FocusTextArea
+                                     , onBlur BlurTextArea
+                                     , readonly (not isEditing)
+                                     ]
+                                        ++ Resource.Styles.commentTextArea
+                                    )
+                                    []
+                                , Html.div (id "edit-save-wrapper" :: Resource.Styles.editSaveWrapper)
+                                    (if isEditing == False then
+                                        [ editButton session ]
+
+                                     else
+                                        [ saveButton commentState pinCommentLoading session.hovered ]
+                                    )
                                 ]
 
-                             else
-                                [ Html.text "save" ]
-                            )
-                        ]
-
-                    else
-                        [ commentBarHeader
-                        , Html.pre
-                            Resource.Styles.commentText
-                            [ Html.text commentState.pristineComment ]
-                        , Html.div [ style "height" "24px" ] []
-                        ]
+                            else
+                                [ Html.pre
+                                    Resource.Styles.commentText
+                                    [ Html.text commentState.pristineComment ]
+                                ]
+                           )
+                    )
                 ]
 
         _ ->
             Html.text ""
+
+
+editButton : { a | hovered : HoverState.HoverState } -> Html Message
+editButton session =
+    Icon.icon
+        { sizePx = 16
+        , image = Assets.PencilIcon
+        }
+        ([ id "edit-button"
+         , onMouseEnter <| Hover <| Just EditButton
+         , onMouseLeave <| Hover Nothing
+         , onClick <| Click EditButton
+         ]
+            ++ Resource.Styles.editButton (HoverState.isHovered EditButton session.hovered)
+        )
+
+
+saveButton :
+    { s | comment : String, pristineComment : String }
+    -> Bool
+    -> HoverState.HoverState
+    -> Html Message
+saveButton commentState pinCommentLoading hovered =
+    Html.button
+        (let
+            commentChanged =
+                commentState.comment
+                    /= commentState.pristineComment
+         in
+         [ id "save-button"
+         , onMouseEnter <| Hover <| Just SaveCommentButton
+         , onMouseLeave <| Hover Nothing
+         , onClick <| Click SaveCommentButton
+         ]
+            ++ Resource.Styles.commentSaveButton
+                { isHovered = HoverState.isHovered SaveCommentButton hovered
+                , commentChanged = commentChanged
+                , pinCommentLoading = pinCommentLoading
+                }
+        )
+        (if pinCommentLoading then
+            [ Spinner.spinner
+                { sizePx = 12
+                , margin = "0"
+                }
+            ]
+
+         else
+            [ Html.text "save" ]
+        )
 
 
 pinTools :
@@ -1284,6 +1324,7 @@ pinTools :
             | pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
             , pinCommentLoading : Bool
+            , isEditing : Bool
         }
     -> Html Message
 pinTools session model =
@@ -1293,7 +1334,9 @@ pinTools session model =
     in
     Html.div
         (id "pin-tools" :: Resource.Styles.pinTools (ME.isJust pinBarVersion))
-        [ pinBar session model ]
+        [ pinBar session model
+        , commentBar session model
+        ]
 
 
 pinBar :
@@ -1331,10 +1374,10 @@ pinBar { hovered } { pinnedVersion } =
             , ( onMouseEnter <| Hover <| Just PinBar, isPinnedStatically )
             , ( onMouseLeave <| Hover Nothing, isPinnedStatically )
             ]
-            ++ Resource.Styles.pinBar
+            ++ Resource.Styles.pinBar (ME.isJust pinBarVersion)
         )
         (Icon.icon
-            { sizePx = 25
+            { sizePx = 14
             , image =
                 if ME.isJust pinBarVersion then
                     Assets.PinIconWhite
@@ -1359,7 +1402,7 @@ pinBar { hovered } { pinnedVersion } =
             )
             :: (case pinBarVersion of
                     Just v ->
-                        [ viewVersion [] v ]
+                        [ viewVersion Resource.Styles.pinBarViewVersion v ]
 
                     _ ->
                         []
