@@ -42,19 +42,23 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 		fakeaccess = new(accessorfakes.FakeAccess)
 
 		delegate = &pipelineDelegateHandler{}
-		checkPipelineAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+		innerHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+
 		handler = accessor.NewHandler(
 			logger,
-			checkPipelineAccessHandler,
-			fakeAccessor,
 			"some-action",
+			innerHandler,
+			fakeAccessor,
+			new(accessorfakes.FakeTokenVerifier),
+			new(accessorfakes.FakeTeamFetcher),
+			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
-			new(dbfakes.FakeUserFactory),
+			map[string]string{},
 		)
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess, nil)
+		fakeAccessor.CreateReturns(fakeaccess)
 		server = httptest.NewServer(handler)
 
 		request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:pipeline_name=some-pipeline", nil)

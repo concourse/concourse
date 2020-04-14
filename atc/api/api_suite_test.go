@@ -112,7 +112,7 @@ var _ = BeforeEach(func() {
 
 	fakeAccess = new(accessorfakes.FakeAccess)
 	fakeAccessor = new(accessorfakes.FakeAccessFactory)
-	fakeAccessor.CreateReturns(fakeAccess, nil)
+	fakeAccessor.CreateReturns(fakeAccess)
 
 	fakePipeline = new(dbfakes.FakePipeline)
 	dbTeam.PipelineReturns(fakePipeline, true, nil)
@@ -204,11 +204,14 @@ var _ = BeforeEach(func() {
 
 	accessorHandler := accessor.NewHandler(
 		logger,
+		"some-action",
 		handler,
 		fakeAccessor,
-		"some-action",
+		new(accessorfakes.FakeTokenVerifier),
+		new(accessorfakes.FakeTeamFetcher),
+		new(accessorfakes.FakeUserTracker),
 		new(auditorfakes.FakeAuditor),
-		new(dbfakes.FakeUserFactory),
+		map[string]string{},
 	)
 
 	handler = wrappa.LoggerHandler{

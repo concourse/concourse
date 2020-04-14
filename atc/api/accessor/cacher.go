@@ -27,10 +27,12 @@ func NewCacher(
 	logger lager.Logger,
 	notifications Notifications,
 	teamFactory db.TeamFactory,
+	expiration time.Duration,
+	cleanupInterval time.Duration,
 ) *cacher {
 	c := &cacher{
 		logger:        logger,
-		cache:         cache.New(time.Minute, time.Minute),
+		cache:         cache.New(expiration, cleanupInterval),
 		notifications: notifications,
 		teamFactory:   teamFactory,
 	}

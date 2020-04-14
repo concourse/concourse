@@ -2,48 +2,53 @@
 package accessorfakes
 
 import (
-	"net/http"
 	"sync"
 
 	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeAccessFactory struct {
-	CreateStub        func(*http.Request, string) (accessor.Access, error)
+	CreateStub        func(string, accessor.Verification, []db.Team) accessor.Access
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
-		arg1 *http.Request
-		arg2 string
+		arg1 string
+		arg2 accessor.Verification
+		arg3 []db.Team
 	}
 	createReturns struct {
 		result1 accessor.Access
-		result2 error
 	}
 	createReturnsOnCall map[int]struct {
 		result1 accessor.Access
-		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAccessFactory) Create(arg1 *http.Request, arg2 string) (accessor.Access, error) {
+func (fake *FakeAccessFactory) Create(arg1 string, arg2 accessor.Verification, arg3 []db.Team) accessor.Access {
+	var arg3Copy []db.Team
+	if arg3 != nil {
+		arg3Copy = make([]db.Team, len(arg3))
+		copy(arg3Copy, arg3)
+	}
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		arg1 *http.Request
-		arg2 string
-	}{arg1, arg2})
-	fake.recordInvocation("Create", []interface{}{arg1, arg2})
+		arg1 string
+		arg2 accessor.Verification
+		arg3 []db.Team
+	}{arg1, arg2, arg3Copy})
+	fake.recordInvocation("Create", []interface{}{arg1, arg2, arg3Copy})
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1, arg2)
+		return fake.CreateStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
 	fakeReturns := fake.createReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
 func (fake *FakeAccessFactory) CreateCallCount() int {
@@ -52,43 +57,40 @@ func (fake *FakeAccessFactory) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeAccessFactory) CreateCalls(stub func(*http.Request, string) (accessor.Access, error)) {
+func (fake *FakeAccessFactory) CreateCalls(stub func(string, accessor.Verification, []db.Team) accessor.Access) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
 }
 
-func (fake *FakeAccessFactory) CreateArgsForCall(i int) (*http.Request, string) {
+func (fake *FakeAccessFactory) CreateArgsForCall(i int) (string, accessor.Verification, []db.Team) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	argsForCall := fake.createArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeAccessFactory) CreateReturns(result1 accessor.Access, result2 error) {
+func (fake *FakeAccessFactory) CreateReturns(result1 accessor.Access) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
 		result1 accessor.Access
-		result2 error
-	}{result1, result2}
+	}{result1}
 }
 
-func (fake *FakeAccessFactory) CreateReturnsOnCall(i int, result1 accessor.Access, result2 error) {
+func (fake *FakeAccessFactory) CreateReturnsOnCall(i int, result1 accessor.Access) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {
 			result1 accessor.Access
-			result2 error
 		})
 	}
 	fake.createReturnsOnCall[i] = struct {
 		result1 accessor.Access
-		result2 error
-	}{result1, result2}
+	}{result1}
 }
 
 func (fake *FakeAccessFactory) Invocations() map[string][][]interface{} {

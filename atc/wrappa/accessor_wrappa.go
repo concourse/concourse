@@ -9,18 +9,32 @@ import (
 
 func NewAccessorWrappa(
 	logger lager.Logger,
-	accessorFactory accessor.AccessFactory,
-	aud auditor.Auditor,
+	accessFactory accessor.AccessFactory,
+	tokenVerifier accessor.TokenVerifier,
+	teamFetcher accessor.TeamFetcher,
 	userTracker accessor.UserTracker,
+	auditor auditor.Auditor,
+	customRoles map[string]string,
 ) *AccessorWrappa {
-	return &AccessorWrappa{logger, accessorFactory, aud, userTracker}
+	return &AccessorWrappa{
+		logger:        logger,
+		accessFactory: accessFactory,
+		tokenVerifier: tokenVerifier,
+		teamFetcher:   teamFetcher,
+		userTracker:   userTracker,
+		auditor:       auditor,
+		customRoles:   customRoles,
+	}
 }
 
 type AccessorWrappa struct {
-	logger          lager.Logger
-	accessorFactory accessor.AccessFactory
-	auditor         auditor.Auditor
-	userTracker     accessor.UserTracker
+	logger        lager.Logger
+	accessFactory accessor.AccessFactory
+	tokenVerifier accessor.TokenVerifier
+	teamFetcher   accessor.TeamFetcher
+	userTracker   accessor.UserTracker
+	auditor       auditor.Auditor
+	customRoles   map[string]string
 }
 
 func (w *AccessorWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
@@ -29,11 +43,14 @@ func (w *AccessorWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 	for name, handler := range handlers {
 		wrapped[name] = accessor.NewHandler(
 			w.logger,
-			handler,
-			w.accessorFactory,
 			name,
-			w.auditor,
+			handler,
+			w.accessFactory,
+			w.tokenVerifier,
+			w.teamFetcher,
 			w.userTracker,
+			w.auditor,
+			w.customRoles,
 		)
 	}
 

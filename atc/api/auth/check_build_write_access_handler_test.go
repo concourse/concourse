@@ -43,19 +43,23 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		build.TeamNameReturns("some-team")
 		build.JobNameReturns("some-job")
 
-		checkBuildWriteAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+		innerHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+
 		handler = accessor.NewHandler(
 			logger,
-			checkBuildWriteAccessHandler,
-			fakeAccessor,
 			"some-action",
+			innerHandler,
+			fakeAccessor,
+			new(accessorfakes.FakeTokenVerifier),
+			new(accessorfakes.FakeTeamFetcher),
+			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
-			new(dbfakes.FakeUserFactory),
+			map[string]string{},
 		)
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess, nil)
+		fakeAccessor.CreateReturns(fakeaccess)
 		server = httptest.NewServer(handler)
 
 		request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:build_id=55", nil)

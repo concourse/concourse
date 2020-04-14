@@ -38,7 +38,7 @@ var _ = Describe("Cacher", func() {
 	})
 
 	JustBeforeEach(func() {
-		teamFetcher = accessor.NewCacher(lager.NewLogger("test"), fakeNotifications, fakeTeamFactory)
+		teamFetcher = accessor.NewCacher(lager.NewLogger("test"), fakeNotifications, fakeTeamFactory, time.Minute, time.Minute)
 		fetchedTeams, err = teamFetcher.GetTeams()
 		Expect(err).NotTo(HaveOccurred())
 	})
