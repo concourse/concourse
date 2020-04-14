@@ -15,4 +15,5 @@ type alias Pipeline =
     , isToggleLoading : Bool
     , isVisibilityLoading : Bool
     , paused : Bool
+    , archived : Bool
     }

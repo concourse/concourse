@@ -11,6 +11,7 @@ module Data exposing
     , teamName
     , version
     , versionedResource
+    , withArchived
     , withGroups
     , withName
     , withPaused
@@ -75,6 +76,7 @@ pipeline team id =
     { id = id
     , name = "pipeline-" ++ String.fromInt id
     , paused = False
+    , archived = False
     , public = True
     , teamName = team
     , groups = []
@@ -84,6 +86,11 @@ pipeline team id =
 withPaused : Bool -> { r | paused : Bool } -> { r | paused : Bool }
 withPaused paused p =
     { p | paused = paused }
+
+
+withArchived : Bool -> { r | archived : Bool } -> { r | archived : Bool }
+withArchived archived p =
+    { p | archived = archived }
 
 
 withPublic : Bool -> { r | public : Bool } -> { r | public : Bool }

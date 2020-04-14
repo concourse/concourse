@@ -463,6 +463,7 @@ toDashboardPipeline p =
     , isToggleLoading = False
     , isVisibilityLoading = False
     , paused = p.paused
+    , archived = p.archived
     }
 
 
@@ -473,6 +474,7 @@ toConcoursePipeline p =
     , teamName = p.teamName
     , public = p.public
     , paused = p.paused
+    , archived = p.archived
     , groups = []
     }
 
@@ -913,6 +915,7 @@ pipelinesView session params =
         pipelines =
             params.pipelines
                 |> FetchResult.withDefault []
+                |> List.filter (not << .archived)
 
         jobs =
             params.jobs
