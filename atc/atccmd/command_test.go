@@ -27,6 +27,20 @@ func (s *CommandSuite) TestLetsEncryptDefaultIsUpToDate() {
 	s.Equal(opt.Default, []string{autocert.DefaultACMEDirectory})
 }
 
+func (s *CommandSuite) TestInvalidConcurrencyLimit() {
+	cmd := &atccmd.RunCommand{}
+	flags.ParseArgs(cmd, []string{
+		"--client-secret",
+		"client-secret",
+		"--concurrent-request-limit",
+		"InvalidAction=2",
+	})
+
+	_, err := cmd.Runner([]string{})
+
+	s.Errorf(err, "invalid concurrent request limit 'InvalidAction=2': 'InvalidAction' is not a valid action")
+}
+
 func TestSuite(t *testing.T) {
 	suite.Run(t, &CommandSuite{
 		Assertions: require.New(t),

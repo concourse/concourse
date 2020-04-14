@@ -407,6 +407,16 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	concurrentRequestPolicy := wrappa.NewConcurrentRequestPolicy(
+		cmd.ConcurrentRequestLimits,
+		[]string{atc.ListAllJobs},
+	)
+	err = concurrentRequestPolicy.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+
 	logger, reconfigurableSink := cmd.Logger.Logger("atc")
 	if cmd.LogClusterName {
 		logger = logger.WithData(lager.Data{
@@ -500,7 +510,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	cmd.varSourcePool = creds.NewVarSourcePool(5*time.Minute, clock.NewClock())
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager, concurrentRequestPolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -544,6 +554,7 @@ func (cmd *RunCommand) constructMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
+	concurrentRequestPolicy wrappa.ConcurrentRequestPolicy,
 ) ([]grouper.Member, error) {
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
@@ -555,7 +566,7 @@ func (cmd *RunCommand) constructMembers(
 		}()
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager, concurrentRequestPolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -580,6 +591,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
+	concurrentRequestPolicy wrappa.ConcurrentRequestPolicy,
 ) ([]grouper.Member, error) {
 
 	httpClient, err := cmd.skyHttpClient()
@@ -684,6 +696,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		secretManager,
 		credsManagers,
 		accessFactory,
+		concurrentRequestPolicy,
 		dbWall,
 		tokenVerifier,
 		dbConn.Bus(),
@@ -1747,6 +1760,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
+	concurrentRequestPolicy wrappa.ConcurrentRequestPolicy,
 	dbWall db.Wall,
 	tokenVerifier accessor.TokenVerifier,
 	notifications db.NotificationsBus,
@@ -1791,7 +1805,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	}
 
 	apiWrapper := wrappa.MultiWrappa{
-		wrappa.NewConcurrencyLimitsWrappa(logger, cmd.ConcurrentRequestLimits),
+		wrappa.NewConcurrencyLimitsWrappa(logger, concurrentRequestPolicy),
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
 			checkPipelineAccessHandlerFactory,
