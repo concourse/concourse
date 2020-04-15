@@ -27,7 +27,9 @@ var _ = Describe("Concurrent request limits", func() {
 			client.URL()+"/api/v1/jobs",
 			nil,
 		)
+
 		response, _ := httpClient.Do(request)
-		Expect(response.StatusCode).To(Equal(http.StatusTooManyRequests))
+
+		Expect(response.StatusCode).To(Equal(http.StatusServiceUnavailable))
 	})
 })

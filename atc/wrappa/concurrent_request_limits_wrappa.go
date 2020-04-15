@@ -47,7 +47,7 @@ func (wrappa ConcurrencyLimitsWrappa) wrap(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !pool.TryAcquire() {
 			wrappa.logger.Info("concurrent-request-limit-reached")
-			w.WriteHeader(http.StatusTooManyRequests)
+			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
 		defer pool.Release()
