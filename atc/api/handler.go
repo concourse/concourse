@@ -83,7 +83,7 @@ func NewHandler(
 		return nil, err
 	}
 
-	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(dbTeamFactory)
+	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(logger, dbTeamFactory)
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
@@ -125,18 +125,22 @@ func NewHandler(
 
 		atc.GetCheck: http.HandlerFunc(checkServer.GetCheck),
 
-		atc.ListAllJobs:    http.HandlerFunc(jobServer.ListAllJobs),
-		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
-		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
-		atc.ListJobBuilds:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds),
-		atc.ListJobInputs:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs),
-		atc.GetJobBuild:    pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
-		atc.CreateJobBuild: pipelineHandlerFactory.HandlerFor(jobServer.CreateJobBuild),
-		atc.RerunJobBuild:  pipelineHandlerFactory.HandlerFor(jobServer.RerunJobBuild),
-		atc.PauseJob:       pipelineHandlerFactory.HandlerFor(jobServer.PauseJob),
-		atc.UnpauseJob:     pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
-		atc.ScheduleJob:    pipelineHandlerFactory.HandlerFor(jobServer.ScheduleJob),
-		atc.JobBadge:       pipelineHandlerFactory.HandlerFor(jobServer.JobBadge),
+		atc.ListAllJobs:   http.HandlerFunc(jobServer.ListAllJobs),
+		atc.ListJobs:      pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
+		atc.GetJob:        pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
+		atc.ListJobBuilds: pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds),
+		atc.ListJobInputs: pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs),
+		atc.GetJobBuild:   pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
+		atc.CreateJobBuild: pipelineHandlerFactory.HandlerFor(
+			pipelineHandlerFactory.RejectArchived(jobServer.CreateJobBuild),
+		),
+		atc.RerunJobBuild: pipelineHandlerFactory.HandlerFor(jobServer.RerunJobBuild),
+		atc.PauseJob:      pipelineHandlerFactory.HandlerFor(jobServer.PauseJob),
+		atc.UnpauseJob:    pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
+		atc.ScheduleJob: pipelineHandlerFactory.HandlerFor(
+			pipelineHandlerFactory.RejectArchived(jobServer.ScheduleJob),
+		),
+		atc.JobBadge: pipelineHandlerFactory.HandlerFor(jobServer.JobBadge),
 		atc.MainJobBadge: mainredirect.Handler{
 			Routes: atc.Routes,
 			Route:  atc.JobBadge,
