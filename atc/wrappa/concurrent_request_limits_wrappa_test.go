@@ -60,4 +60,19 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 
 		Expect(fakeHandler.ServeHTTPCallCount()).To(Equal(1), "wrapped handler not invoked")
 	})
+
+	It("permits serial requests", func() {
+		wrappa := givenConcurrencyLimit(1)
+
+		req, _ := http.NewRequest("GET", "localhost:8080", nil)
+		handler := wrappa.Wrap(map[string]http.Handler{
+			atc.ListAllJobs: fakeHandler,
+		})[atc.ListAllJobs]
+
+		handler.ServeHTTP(httptest.NewRecorder(), req)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		Expect(rec.Result().StatusCode).To(Equal(http.StatusOK))
+	})
 })

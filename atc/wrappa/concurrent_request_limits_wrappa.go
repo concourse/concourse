@@ -31,18 +31,26 @@ func (wrappa ConcurrencyLimitsWrappa) Wrap(handlers rata.Handlers) rata.Handlers
 	for action, handler := range handlers {
 		if wrappa.concurrentRequestPolicy.IsLimited(action) {
 			pool := wrappa.concurrentRequestPolicy.HandlerPool(action)
-			wrapped[action] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if !pool.TryAcquire() {
-					wrappa.logger.Info("concurrent-request-limit-reached")
-					w.WriteHeader(http.StatusTooManyRequests)
-					return
-				}
-				handler.ServeHTTP(w,r)
-			})
+			wrapped[action] = wrappa.wrap(pool, handler)
 		} else {
 			wrapped[action] = handler
 		}
 	}
 
 	return wrapped
+}
+
+func (wrappa ConcurrencyLimitsWrappa) wrap(
+	pool Pool,
+	handler http.Handler,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !pool.TryAcquire() {
+			wrappa.logger.Info("concurrent-request-limit-reached")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		defer pool.Release()
+		handler.ServeHTTP(w, r)
+	})
 }

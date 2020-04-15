@@ -540,7 +540,6 @@ func (cmd *RunCommand) concurrentRequestPolicy() wrappa.ConcurrentRequestPolicy 
 		cmd.ConcurrentRequestLimits,
 		[]string{atc.ListAllJobs},
 	)
-
 }
 
 func (cmd *RunCommand) constructMembers(
