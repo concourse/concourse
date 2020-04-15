@@ -33,12 +33,14 @@ func (s *CommandSuite) TestInvalidConcurrencyLimit() {
 		"--client-secret",
 		"client-secret",
 		"--concurrent-request-limit",
-		"InvalidAction=2",
+		"ListAllJobs=2",
+		"--concurrent-request-limit",
+		"ListAllJobs=2",
 	})
 
 	_, err := cmd.Runner([]string{})
 
-	s.Errorf(err, "invalid concurrent request limit 'InvalidAction=2': 'InvalidAction' is not a valid action")
+	s.Errorf(err, "invalid concurrent request limits: multiple limits for 'ListAllJobs'")
 }
 
 func TestSuite(t *testing.T) {
