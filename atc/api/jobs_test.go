@@ -1455,6 +1455,20 @@ var _ = Describe("Jobs API", func() {
 				})
 			})
 
+			Context("when the job is part of an archived pipeline", func() {
+				BeforeEach(func() {
+					fakePipeline.ArchivedReturns(true)
+				})
+
+				It("returns a 409", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusConflict))
+				})
+				It("returns an error message in the body", func() {
+					body, _ := ioutil.ReadAll(response.Body)
+					Expect(body).To(Equal([]byte("action not allowed for archived pipeline\n")))
+				})
+			})
+
 			Context("when getting the job succeeds", func() {
 				BeforeEach(func() {
 					fakeJob.NameReturns("some-job")
@@ -2517,6 +2531,20 @@ var _ = Describe("Jobs API", func() {
 					Expect(fakeJob.RequestScheduleCallCount()).To(Equal(1))
 
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				Context("when the job is part of an archived pipeline", func() {
+					BeforeEach(func() {
+						fakePipeline.ArchivedReturns(true)
+					})
+
+					It("returns a 409", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusConflict))
+					})
+					It("returns an error message in the body", func() {
+						body, _ := ioutil.ReadAll(response.Body)
+						Expect(body).To(Equal([]byte("action not allowed for archived pipeline\n")))
+					})
 				})
 
 				Context("when the job is not found", func() {

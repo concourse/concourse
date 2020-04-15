@@ -9,9 +9,12 @@ import (
 )
 
 func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
+	logger := s.logger.Session("create-job-build")
+	if pipeline.Archived() {
+		return conflictArchivedHandler(logger)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		logger := s.logger.Session("create-job-build")
 
 		jobName := r.FormValue(":job_name")
 

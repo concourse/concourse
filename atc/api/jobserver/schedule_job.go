@@ -8,8 +8,11 @@ import (
 )
 
 func (s *Server) ScheduleJob(pipeline db.Pipeline) http.Handler {
+	logger := s.logger.Session("schedule-job")
+	if pipeline.Archived() {
+		return conflictArchivedHandler(logger)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := s.logger.Session("schedule-job")
 		jobName := rata.Param(r, "job_name")
 
 		job, found, err := pipeline.Job(jobName)

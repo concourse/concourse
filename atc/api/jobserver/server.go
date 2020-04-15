@@ -1,6 +1,8 @@
 package jobserver
 
 import (
+	"net/http"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/creds"
@@ -32,4 +34,11 @@ func NewServer(
 		jobFactory:    jobFactory,
 		checkFactory:  checkFactory,
 	}
+}
+
+func conflictArchivedHandler(logger lager.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Debug("pipeline-is-archived")
+		http.Error(w, "action not allowed for archived pipeline", http.StatusConflict)
+	})
 }
