@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/hashicorp/go-multierror"
@@ -510,7 +511,14 @@ func (client *client) chooseTaskWorker(
 					return nil, err
 				}
 
+				if elapsed == 0 {
+					// first round waiting...
+					metric.TasksWaiting.Inc()
+					defer metric.TasksWaiting.Dec()
+				}
+
 				if elapsed%time.Duration(time.Minute) == 0 { // Every minute report that it is still waiting
+
 					_, err := outputWriter.Write([]byte("All workers are busy at the moment, please stand-by.\n"))
 					if err != nil {
 						logger.Error("failed-to-report-status", err)

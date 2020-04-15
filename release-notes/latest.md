@@ -15,3 +15,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="strict-env-vars" href="#strict-env-vars">:link:</a></sup></sub> breaking
 
 * It has long been possible to configure concourse either by passing flags to the binary, or by passing their equivalent `CONCOURSE_*` environment variables. Until now we had noticed that when an environment variable is passed, the flags library we use would treat it as a "default" value -- this is a [bug](https://github.com/jessevdk/go-flags/issues/329). We issued a PR to that library adding stricter validation for flags passed via environment variables. What this means is that operators may have been passing invalid configuration via environment variables and concourse wasn't complaining -- after this upgrade, that invalid configuration will cause the binary to fail. Hopefully it's a good prompt to fix up your manifests! #5429
+
+#### <sub><sup><a name="5057" href="#5057">:link:</a></sup></sub> feature
+ 
+* @HannesHasselbring and @tenjaa added a prometheus metric of the amount of tasks that are currently waiting to be scheduled when using the `limit-active-tasks` placement strategy
