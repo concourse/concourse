@@ -1,6 +1,8 @@
 package wrappa_test
 
 import (
+	"sync"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/wrappa"
 	. "github.com/onsi/ginkgo"
@@ -104,4 +106,121 @@ var _ = Describe("Concurrent Request Policy", func() {
 			))
 		})
 	})
+
+	Describe("ConcurrentRequestPolicy#IsLimited", func() {
+		It("tells when an action is limited", func() {
+			policy := wrappa.NewConcurrentRequestPolicy(
+				[]wrappa.ConcurrentRequestLimitFlag{
+					wrappa.ConcurrentRequestLimitFlag{
+						Action: atc.CreateJobBuild,
+						Limit:  0,
+					},
+				},
+				[]string{atc.CreateJobBuild},
+			)
+
+			Expect(policy.IsLimited(atc.CreateJobBuild)).To(BeTrue())
+		})
+
+		It("tells when an action is not limited", func() {
+			policy := wrappa.NewConcurrentRequestPolicy(
+				[]wrappa.ConcurrentRequestLimitFlag{
+					wrappa.ConcurrentRequestLimitFlag{
+						Action: atc.CreateJobBuild,
+						Limit:  0,
+					},
+				},
+				[]string{atc.CreateJobBuild},
+			)
+
+			Expect(policy.IsLimited(atc.ListAllPipelines)).To(BeFalse())
+		})
+	})
+
+	Describe("ConcurrentRequestPolicy#HandlerPool", func() {
+		It("can acquire a handler", func() {
+			pool := pool(1)
+
+			Expect(pool.TryAcquire()).To(BeTrue())
+		})
+
+		It("fails to acquire a handler when the limit is reached", func() {
+			pool := pool(1)
+
+			pool.TryAcquire()
+			Expect(pool.TryAcquire()).To(BeFalse())
+		})
+
+		It("can acquire a handler after releasing", func() {
+			pool := pool(1)
+
+			pool.TryAcquire()
+			pool.Release()
+			Expect(pool.TryAcquire()).To(BeTrue())
+		})
+
+		It("can acquire multiple handlers", func() {
+			pool := pool(2)
+
+			pool.TryAcquire()
+			Expect(pool.TryAcquire()).To(BeTrue())
+		})
+
+		It("cannot release more handlers than are held", func() {
+			pool := pool(1)
+
+			Expect(pool.Release()).NotTo(Succeed())
+		})
+
+		It("cannot acquire multiple handlers simultaneously", func() {
+			pool := pool(100)
+			failed := false
+
+			doInParallel(101, func() {
+				if !pool.TryAcquire() {
+					failed = true
+				}
+			})
+
+			Expect(failed).To(BeTrue())
+		})
+
+		It("cannot release multiple handlers simultaneously", func() {
+			pool := pool(1000)
+			doInParallel(1000, func() { pool.TryAcquire() })
+			failed := false
+
+			doInParallel(1001, func() {
+				if pool.Release() != nil {
+					failed = true
+				}
+			})
+
+			Expect(failed).To(BeTrue())
+		})
+	})
 })
+
+func doInParallel(numGoroutines int, thingToDo func()) {
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			thingToDo()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func pool(size int) wrappa.Pool {
+	return wrappa.NewConcurrentRequestPolicy(
+		[]wrappa.ConcurrentRequestLimitFlag{
+			wrappa.ConcurrentRequestLimitFlag{
+				Action: atc.CreateJobBuild,
+				Limit:  size,
+			},
+		},
+		[]string{atc.CreateJobBuild},
+	).HandlerPool(atc.CreateJobBuild)
+}

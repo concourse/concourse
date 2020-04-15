@@ -8,6 +8,8 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+//go:generate counterfeiter code.cloudfoundry.org/lager.Logger
+
 type ConcurrencyLimitsWrappa struct {
 	logger                  lager.Logger
 	concurrentRequestPolicy ConcurrentRequestPolicy
@@ -26,23 +28,21 @@ func NewConcurrencyLimitsWrappa(
 func (wrappa ConcurrencyLimitsWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 	wrapped := rata.Handlers{}
 
-	for name, handler := range handlers {
-		if wrappa.concurrentRequestPolicy.IsLimited(name) {
-			wrapped[name] = wrapHandler(
-				wrappa.logger,
-				wrappa.concurrentRequestPolicy.MaxConcurrentRequests(name),
-				handler,
-			)
+	for action, handler := range handlers {
+		if wrappa.concurrentRequestPolicy.IsLimited(action) {
+			pool := wrappa.concurrentRequestPolicy.HandlerPool(action)
+			wrapped[action] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if !pool.TryAcquire() {
+					wrappa.logger.Info("concurrent-request-limit-reached")
+					w.WriteHeader(http.StatusTooManyRequests)
+					return
+				}
+				handler.ServeHTTP(w,r)
+			})
 		} else {
-			wrapped[name] = handler
+			wrapped[action] = handler
 		}
 	}
 
 	return wrapped
-}
-
-func wrapHandler(logger lager.Logger, limit int, handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusTooManyRequests)
-	})
 }

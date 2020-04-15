@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("Concurrent request limits", func() {
+var _ = Describe("Concurrent request limits", func() {
 	BeforeEach(func() {
 		cmd.ConcurrentRequestLimits = []wrappa.ConcurrentRequestLimitFlag{
 			wrappa.ConcurrentRequestLimitFlag{

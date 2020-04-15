@@ -55,7 +55,7 @@ func isValidAction(action string) bool {
 }
 
 type ConcurrentRequestPolicy interface {
-	MaxConcurrentRequests(action string) int
+	HandlerPool(action string) Pool
 	IsLimited(action string) bool
 	Validate() error
 }
@@ -75,11 +75,25 @@ func NewConcurrentRequestPolicy(
 	}
 }
 
-func (crp *concurrentRequestPolicy) MaxConcurrentRequests(action string) int {
+func (crp *concurrentRequestPolicy) HandlerPool(action string) Pool {
+	return &pool{size: crp.maxConcurrentRequests(action)}
+}
+
+func (crp *concurrentRequestPolicy) maxConcurrentRequests(action string) int {
+	for _, limit := range crp.limits {
+		if limit.Action == action {
+			return limit.Limit
+		}
+	}
 	return 0
 }
 
 func (crp *concurrentRequestPolicy) IsLimited(action string) bool {
+	for _, limit := range crp.limits {
+		if limit.Action == action {
+			return true
+		}
+	}
 	return false
 }
 
@@ -129,4 +143,3 @@ func (crp *concurrentRequestPolicy) supports(action string) bool {
 	}
 	return false
 }
-
