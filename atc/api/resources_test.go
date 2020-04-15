@@ -380,6 +380,19 @@ var _ = Describe("Resources API", func() {
 					Expect(resourceName).To(Equal("resource-name"))
 				})
 
+				Context("when the pipeline is archived", func() {
+					BeforeEach(func() {
+						fakePipeline.ArchivedReturns(true)
+					})
+					It("returns 409", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusConflict))
+					})
+					It("returns an error message in the body", func() {
+						body, _ := ioutil.ReadAll(response.Body)
+						Expect(body).To(Equal([]byte("action not allowed for archived pipeline\n")))
+					})
+				})
+
 				Context("when finding the resource succeeds", func() {
 					BeforeEach(func() {
 						fakeResource = new(dbfakes.FakeResource)
@@ -529,6 +542,19 @@ var _ = Describe("Resources API", func() {
 					})
 				})
 
+				Context("when the pipeline is archived", func() {
+					BeforeEach(func() {
+						fakePipeline.ArchivedReturns(true)
+					})
+					It("returns 409", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusConflict))
+					})
+					It("returns an error message in the body", func() {
+						body, _ := ioutil.ReadAll(response.Body)
+						Expect(body).To(Equal([]byte("action not allowed for archived pipeline\n")))
+					})
+				})
+
 				Context("when it fails to find the resource", func() {
 					BeforeEach(func() {
 						fakePipeline.ResourceReturns(nil, false, errors.New("welp"))
@@ -602,6 +628,19 @@ var _ = Describe("Resources API", func() {
 				})
 				It("returns 404", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when the pipeline is archived", func() {
+				BeforeEach(func() {
+					fakePipeline.ArchivedReturns(true)
+				})
+				It("returns 409", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusConflict))
+				})
+				It("returns an error message in the body", func() {
+					body, _ := ioutil.ReadAll(response.Body)
+					Expect(body).To(Equal([]byte("action not allowed for archived pipeline\n")))
 				})
 			})
 
@@ -1257,6 +1296,19 @@ var _ = Describe("Resources API", func() {
 				})
 				It("returns 500", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the pipeline is archived", func() {
+				BeforeEach(func() {
+					fakePipeline.ArchivedReturns(true)
+				})
+				It("returns 409", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusConflict))
+				})
+				It("returns an error message in the body", func() {
+					body, _ := ioutil.ReadAll(response.Body)
+					Expect(body).To(Equal([]byte("action not allowed for archived pipeline\n")))
 				})
 			})
 

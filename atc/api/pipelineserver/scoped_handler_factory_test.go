@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/pipelineserver"
 	"github.com/concourse/concourse/atc/db"
@@ -35,7 +36,7 @@ var _ = Describe("Handler", func() {
 		fakeTeam = new(dbfakes.FakeTeam)
 		fakePipeline = new(dbfakes.FakePipeline)
 
-		handlerFactory := pipelineserver.NewScopedHandlerFactory(dbTeamFactory)
+		handlerFactory := pipelineserver.NewScopedHandlerFactory(lager.NewLogger("test"), dbTeamFactory)
 		handler = handlerFactory.HandlerFor(delegate.GetHandler)
 	})
 

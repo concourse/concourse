@@ -164,21 +164,34 @@ func NewHandler(
 		atc.CreatePipelineBuild: pipelineHandlerFactory.HandlerFor(pipelineServer.CreateBuild),
 		atc.PipelineBadge:       pipelineHandlerFactory.HandlerFor(pipelineServer.PipelineBadge),
 
-		atc.ListAllResources:        http.HandlerFunc(resourceServer.ListAllResources),
-		atc.ListResources:           pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
-		atc.ListResourceTypes:       pipelineHandlerFactory.HandlerFor(resourceServer.ListVersionedResourceTypes),
-		atc.GetResource:             pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
-		atc.UnpinResource:           pipelineHandlerFactory.HandlerFor(resourceServer.UnpinResource),
-		atc.SetPinCommentOnResource: pipelineHandlerFactory.HandlerFor(resourceServer.SetPinCommentOnResource),
-		atc.CheckResource:           pipelineHandlerFactory.HandlerFor(resourceServer.CheckResource),
-		atc.CheckResourceWebHook:    pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceWebHook),
-		atc.CheckResourceType:       pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceType),
-
-		atc.ListResourceVersions:          pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
-		atc.GetResourceVersion:            pipelineHandlerFactory.HandlerFor(versionServer.GetResourceVersion),
-		atc.EnableResourceVersion:         pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion),
-		atc.DisableResourceVersion:        pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion),
-		atc.PinResourceVersion:            pipelineHandlerFactory.HandlerFor(versionServer.PinResourceVersion),
+		atc.ListAllResources:  http.HandlerFunc(resourceServer.ListAllResources),
+		atc.ListResources:     pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
+		atc.ListResourceTypes: pipelineHandlerFactory.HandlerFor(resourceServer.ListVersionedResourceTypes),
+		atc.GetResource:       pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
+		atc.UnpinResource: pipelineHandlerFactory.HandlerFor(
+			pipelineHandlerFactory.RejectArchived(resourceServer.UnpinResource),
+		),
+		atc.SetPinCommentOnResource: pipelineHandlerFactory.HandlerFor(
+			pipelineHandlerFactory.RejectArchived(resourceServer.SetPinCommentOnResource),
+		),
+		atc.CheckResource: pipelineHandlerFactory.HandlerFor(
+			pipelineHandlerFactory.RejectArchived(resourceServer.CheckResource),
+		),
+		atc.CheckResourceWebHook: pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceWebHook),
+		atc.CheckResourceType: pipelineHandlerFactory.HandlerFor(
+			pipelineHandlerFactory.RejectArchived(resourceServer.CheckResourceType),
+		),
+		atc.ListResourceVersions: pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
+		atc.GetResourceVersion:   pipelineHandlerFactory.HandlerFor(versionServer.GetResourceVersion),
+		atc.EnableResourceVersion: pipelineHandlerFactory.HandlerFor(
+			pipelineHandlerFactory.RejectArchived(versionServer.EnableResourceVersion),
+		),
+		atc.DisableResourceVersion: pipelineHandlerFactory.HandlerFor(
+			pipelineHandlerFactory.RejectArchived(versionServer.DisableResourceVersion),
+		),
+		atc.PinResourceVersion: pipelineHandlerFactory.HandlerFor(
+			pipelineHandlerFactory.RejectArchived(versionServer.PinResourceVersion),
+		),
 		atc.ListBuildsWithVersionAsInput:  pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsInput),
 		atc.ListBuildsWithVersionAsOutput: pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsOutput),
 		atc.GetResourceCausality:          pipelineHandlerFactory.HandlerFor(versionServer.GetCausality),
