@@ -98,14 +98,22 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 			sq.NotEq{"job_id": nil},
 			sq.Expr(fmt.Sprintf("now() - end_time > '%d seconds'::interval", int(f.oneOffGracePeriod.Seconds()))),
 		}).
-		Where(sq.Or{
-			sq.Expr("NOT EXISTS (SELECT 1 FROM jobs j WHERE j.latest_completed_build_id = b.id)"),
-			sq.Eq{"status": string(BuildStatusSucceeded)},
-			sq.Expr(fmt.Sprintf("now() - end_time > '%d seconds'::interval", int(f.maximumFailedGracePeriod.Seconds()))),
-		}).
+		Where(f.constructBuildFilter()).
 		RunWith(f.conn).
 		Exec()
 	return err
+}
+
+func (f *buildFactory) constructBuildFilter() sq.Or {
+	buildFilter := sq.Or{
+		sq.Expr("NOT EXISTS (SELECT 1 FROM jobs j WHERE j.latest_completed_build_id = b.id)"),
+		sq.Eq{"status": string(BuildStatusSucceeded)},
+	}
+	if f.maximumFailedGracePeriod > 0 { // if zero, grace period is disabled
+		buildFilter = append(buildFilter,
+			sq.Expr(fmt.Sprintf("now() - end_time > '%d seconds'::interval", int(f.maximumFailedGracePeriod.Seconds()))))
+	}
+	return buildFilter
 }
 
 func (f *buildFactory) GetDrainableBuilds() ([]Build, error) {
