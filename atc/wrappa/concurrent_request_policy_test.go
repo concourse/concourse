@@ -23,56 +23,44 @@ var _ = Describe("Concurrent Request Policy", func() {
 
 		It("returns an error when the flag has no equals sign", func() {
 			err := crl.UnmarshalFlag("banana")
-			Expect(err).To(
-				MatchError(
-					"invalid concurrent request limit " +
-						"'banana': value must be an assignment",
-				),
-			)
+			expected := "invalid concurrent request limit " +
+				"'banana': value must be an assignment"
+			Expect(err).To(MatchError(expected))
 		})
 
 		It("returns an error when the flag has multiple equals signs", func() {
 			err := crl.UnmarshalFlag("foo=bar=baz")
-			Expect(err).To(
-				MatchError(
-					"invalid concurrent request limit " +
-						"'foo=bar=baz': value must be an assignment",
-				),
-			)
+			expected := "invalid concurrent request limit " +
+				"'foo=bar=baz': value must be an assignment"
+			Expect(err).To(MatchError(expected))
+		})
+
+		It("returns an error when the action is invalid", func() {
+			err := crl.UnmarshalFlag("InvalidAction=0")
+			expected := "invalid concurrent request limit " +
+				"'InvalidAction=0': " +
+				"'InvalidAction' is not a valid action"
+			Expect(err).To(MatchError(expected))
 		})
 
 		It("returns an error when the limit is not an integer", func() {
 			err := crl.UnmarshalFlag("ListAllJobs=foo")
-			Expect(err).To(
-				MatchError(
-					"invalid concurrent request limit " +
-						"'ListAllJobs=foo': limit must be an integer",
-				),
-			)
+			expected := "invalid concurrent request limit " +
+				"'ListAllJobs=foo': limit must be " +
+				"a non-negative integer"
+			Expect(err).To(MatchError(expected))
+		})
+
+		It("returns an error when the limit is negative", func() {
+			err := crl.UnmarshalFlag("ListAllJobs=-1")
+			expected := "invalid concurrent request limit " +
+				"'ListAllJobs=-1': limit must be " +
+				"a non-negative integer"
+			Expect(err).To(MatchError(expected))
 		})
 	})
 
 	Describe("ConcurrentRequestPolicy#Validate", func() {
-		It("raises an error when an invalid action is specified", func() {
-			policy := wrappa.NewConcurrentRequestPolicy(
-				[]wrappa.ConcurrentRequestLimitFlag{
-					wrappa.ConcurrentRequestLimitFlag{
-						Action: "InvalidAction",
-						Limit:  0,
-					},
-				},
-				[]string{atc.CreateJobBuild},
-			)
-
-			err := policy.Validate()
-
-			Expect(err).To(MatchError(
-				"invalid concurrent request limit " +
-					"'InvalidAction=0': " +
-					"'InvalidAction' is not a valid action",
-			))
-		})
-
 		It("raises an error when the action is not supported", func() {
 			policy := wrappa.NewConcurrentRequestPolicy(
 				[]wrappa.ConcurrentRequestLimitFlag{

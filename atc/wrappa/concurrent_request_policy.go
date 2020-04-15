@@ -19,8 +19,14 @@ func (crl *ConcurrentRequestLimitFlag) UnmarshalFlag(value string) error {
 		return err
 	}
 	limit, err := strconv.Atoi(expression)
-	if err != nil {
-		return formatError(value, "limit must be an integer")
+	if err != nil || limit < 0 {
+		return formatError(value, "limit must be a non-negative integer")
+	}
+	if !isValidAction(variable) {
+		return formatError(
+			value,
+			fmt.Sprintf("'%s' is not a valid action", variable),
+		)
 	}
 	crl.Action = variable
 	crl.Limit = limit
@@ -37,6 +43,15 @@ func parseAssignment(value string) (string, string, error) {
 
 func formatError(value string, reason string) error {
 	return fmt.Errorf("invalid concurrent request limit '%s': %s", value, reason)
+}
+
+func isValidAction(action string) bool {
+	for _, route := range atc.Routes {
+		if route.Name == action {
+			return true
+		}
+	}
+	return false
 }
 
 type ConcurrentRequestPolicy interface {
@@ -69,27 +84,13 @@ func (crp *concurrentRequestPolicy) IsLimited(action string) bool {
 }
 
 func (crp *concurrentRequestPolicy) Validate() error {
-	err := crp.checkValidActions()
-	if err != nil {
-		return err
-	}
-	err = crp.checkSupportedActions()
+	err := crp.checkSupportedActions()
 	if err != nil {
 		return err
 	}
 	err = crp.checkDuplicateActions()
 	if err != nil {
 		return err
-	}
-	return nil
-}
-
-func (crp *concurrentRequestPolicy) checkValidActions() error {
-	for _, limit := range crp.limits {
-		err := validateAction(limit)
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -129,14 +130,3 @@ func (crp *concurrentRequestPolicy) supports(action string) bool {
 	return false
 }
 
-func validateAction(flag ConcurrentRequestLimitFlag) error {
-	for _, route := range atc.Routes {
-		if route.Name == flag.Action {
-			return nil
-		}
-	}
-	return formatError(
-		fmt.Sprintf("%s=%d", flag.Action, flag.Limit),
-		fmt.Sprintf("'%s' is not a valid action", flag.Action),
-	)
-}
