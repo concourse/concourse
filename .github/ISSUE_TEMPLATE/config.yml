@@ -1,6 +1,10 @@
 blank_issues_enabled: false
 
 contact_links:
-  - name: Support
-    url: https://github.com/concourse/concourse/discussions/new
-    about: Please open support requests as Discussions, not Issues
+- name: ❔ Question or technical support
+  url: https://github.com/concourse/concourse/discussions/new
+  about: Ask a question or troubleshoot a problem with Concourse.
+
+- name: 💡 Idea
+  url: https://github.com/concourse/rfcs/discussions/new
+  about: Discuss a workflow that Concourse could better support.

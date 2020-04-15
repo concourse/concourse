@@ -14,6 +14,55 @@ channel where you can ask for help or get feedback on something you're working
 on.
 
 
+## From ideas to implementation
+
+The Concourse project uses Issues for project backlog and bug reports,
+Discussions for support and ideation, and Pull Requests for accepting
+contributions.
+
+Bugs can be reported directly as [Issues on the `concourse`
+repo][concourse-issues], and questions and technical support can be requested as
+[Discussions on the `concourse` repo][concourse-discussions]. The project
+backlog is maintained by the core Concourse team at VMware, so please don't
+directly create those - they will have to be moved.
+
+Instead of requesting features, we strongly encourage the use of [Discussions on
+the `rfcs` repo][rfcs-discussions] for incubating ideas, with a larger focus on
+forming a shared understanding the problem at hand; the context is more
+important than the solution itself.
+
+Our collective responsibility as the stewards of the Concourse project is to
+uphold its promise of being "automation that scales with your project." This
+promise is upheld by keeping the mental overhead small as the automation needs
+of your project expand. Thus, requests for core features fall under heavy
+scrutiny. Rather than addressing each individual request, we need to think of
+the product holistically, steering it slowly and refining or replacing existing
+concepts rather than introducing new ones all the time.
+
+This may feel overkill for requests which seem small in scope, but you would be
+surprised the connections that can be drawn between features which seem
+unrelated at the surface.
+
+Once consensus is reached on a direction to take, a proposal can be submitted as
+a [Pull Request to the `rfcs` repo][rfcs-prs], following the [RFC
+process][rfcs-process], and others in the community can collaborate through PR
+review. A full blown RFC may not be necessary for smaller changes, but going
+through with it can save feedback cycles for larger code changes.
+
+[Pull Requests to the `concourse` repo][concourse-prs] may be submitted at any
+time. The rest of this document provides guidance on how to do just that. In the
+end, we are really grateful for any contribution made to the project - whether
+that's just chiming in on a discussion, helping others out in the community, or
+indeed submitting a code change. Cheers! 🍻
+
+[concourse-issues]: https://github.com/concourse/concourse/issues
+[concourse-prs]: https://github.com/concourse/concourse/pulls
+[concourse-discussions]: https://github.com/concourse/concourse/discussions
+[rfcs-prs]: https://github.com/concourse/rfcs/pulls
+[rfcs-discussions]: https://github.com/concourse/rfcs/discussions
+[rfcs-process]: https://github.com/concourse/rfcs/blob/master/README.md
+
+
 ## Contribution process
 
 * [Fork this repo][how-to-fork] into your GitHub account.
