@@ -120,8 +120,8 @@ type RunCommand struct {
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
 	ConcurrentRequestLimits   []wrappa.ConcurrentRequestLimitFlag `long:"concurrent-request-limit" description:"Limit the number of concurrent requests to an API endpoint (Example: ListAllJobs=5)"`
-	APIMaxOpenConnections     int                          `long:"api-max-conns" description:"The maximum number of open connections for the api connection pool." default:"10"`
-	BackendMaxOpenConnections int                          `long:"backend-max-conns" description:"The maximum number of open connections for the backend connection pool." default:"50"`
+	APIMaxOpenConnections     int                                 `long:"api-max-conns" description:"The maximum number of open connections for the api connection pool." default:"10"`
+	BackendMaxOpenConnections int                                 `long:"backend-max-conns" description:"The maximum number of open connections for the backend connection pool." default:"50"`
 
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
@@ -407,16 +407,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	concurrentRequestPolicy := wrappa.NewConcurrentRequestPolicy(
-		cmd.ConcurrentRequestLimits,
-		[]string{atc.ListAllJobs},
-	)
-	err = concurrentRequestPolicy.Validate()
-	if err != nil {
-		return nil, err
-	}
-
-
 	logger, reconfigurableSink := cmd.Logger.Logger("atc")
 	if cmd.LogClusterName {
 		logger = logger.WithData(lager.Data{
@@ -510,7 +500,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	cmd.varSourcePool = creds.NewVarSourcePool(5*time.Minute, clock.NewClock())
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager, concurrentRequestPolicy)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -545,6 +535,14 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	return run(grouper.NewParallel(os.Interrupt, members), onReady, onExit), nil
 }
 
+func (cmd *RunCommand) concurrentRequestPolicy() wrappa.ConcurrentRequestPolicy {
+	return wrappa.NewConcurrentRequestPolicy(
+		cmd.ConcurrentRequestLimits,
+		[]string{atc.ListAllJobs},
+	)
+
+}
+
 func (cmd *RunCommand) constructMembers(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
@@ -554,7 +552,6 @@ func (cmd *RunCommand) constructMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
-	concurrentRequestPolicy wrappa.ConcurrentRequestPolicy,
 ) ([]grouper.Member, error) {
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
@@ -566,7 +563,7 @@ func (cmd *RunCommand) constructMembers(
 		}()
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager, concurrentRequestPolicy)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -591,7 +588,6 @@ func (cmd *RunCommand) constructAPIMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
-	concurrentRequestPolicy wrappa.ConcurrentRequestPolicy,
 ) ([]grouper.Member, error) {
 
 	httpClient, err := cmd.skyHttpClient()
@@ -696,7 +692,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		secretManager,
 		credsManagers,
 		accessFactory,
-		concurrentRequestPolicy,
 		dbWall,
 		tokenVerifier,
 		dbConn.Bus(),
@@ -1362,6 +1357,10 @@ func run(runner ifrit.Runner, onReady func(), onExit func()) ifrit.Runner {
 
 func (cmd *RunCommand) validate() error {
 	var errs *multierror.Error
+	err := cmd.concurrentRequestPolicy().Validate()
+	if err != nil {
+		errs = multierror.Append(errs, err)
+	}
 
 	switch {
 	case cmd.TLSBindPort == 0:
@@ -1760,7 +1759,6 @@ func (cmd *RunCommand) constructAPIHandler(
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
-	concurrentRequestPolicy wrappa.ConcurrentRequestPolicy,
 	dbWall db.Wall,
 	tokenVerifier accessor.TokenVerifier,
 	notifications db.NotificationsBus,
@@ -1805,7 +1803,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	}
 
 	apiWrapper := wrappa.MultiWrappa{
-		wrappa.NewConcurrencyLimitsWrappa(logger, concurrentRequestPolicy),
+		wrappa.NewConcurrencyLimitsWrappa(logger, cmd.concurrentRequestPolicy()),
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
 			checkPipelineAccessHandlerFactory,
