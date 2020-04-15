@@ -3,7 +3,6 @@ package backend_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 	"syscall"
 	"time"
@@ -68,7 +67,6 @@ func (s *ProcessKillerSuite) TestKillKillError() {
 
 func (s *ProcessKillerSuite) TestKillWaitContextDeadlineReached() {
 	err := s.killer.Kill(context.Background(), s.proc, s.signal, s.notEnoughTimeout)
-	fmt.Println(err)
 	s.True(errors.Is(err, backend.ErrGracePeriodTimeout))
 }
 
