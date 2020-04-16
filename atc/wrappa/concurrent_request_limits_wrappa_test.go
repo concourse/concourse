@@ -26,7 +26,7 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 		request, _ = http.NewRequest("GET", "localhost:8080", nil)
 	})
 
-	givenConcurrencyLimit := func(limit int) {
+	givenConcurrentRequestLimit := func(limit int) {
 		policy = wrappa.NewConcurrentRequestPolicy(
 			[]wrappa.ConcurrentRequestLimitFlag{
 				wrappa.ConcurrentRequestLimitFlag{
@@ -36,14 +36,14 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 			},
 			[]string{atc.ListAllJobs},
 		)
-		handler = wrappa.NewConcurrencyLimitsWrappa(fakeLogger, policy).
+		handler = wrappa.NewConcurrentRequestLimitsWrappa(fakeLogger, policy).
 			Wrap(map[string]http.Handler{
 				atc.ListAllJobs: fakeHandler,
 			})[atc.ListAllJobs]
 	}
 
 	It("logs when the concurrent request limit is hit", func() {
-		givenConcurrencyLimit(0)
+		givenConcurrentRequestLimit(0)
 
 		handler.ServeHTTP(httptest.NewRecorder(), request)
 
@@ -53,7 +53,7 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	})
 
 	It("invokes the wrapped handler when the limit is not reached", func() {
-		givenConcurrencyLimit(1)
+		givenConcurrentRequestLimit(1)
 
 		handler.ServeHTTP(httptest.NewRecorder(), request)
 
@@ -61,7 +61,7 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	})
 
 	It("permits serial requests", func() {
-		givenConcurrencyLimit(1)
+		givenConcurrentRequestLimit(1)
 		rec := httptest.NewRecorder()
 
 		handler.ServeHTTP(httptest.NewRecorder(), request)
@@ -71,7 +71,7 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	})
 
 	It("logs error when the pool fails to release", func() {
-		givenConcurrencyLimit(1)
+		givenConcurrentRequestLimit(1)
 		fakeHandler.ServeHTTPStub = func(http.ResponseWriter, *http.Request) {
 			policy.HandlerPool(atc.ListAllJobs).Release()
 		}
@@ -84,7 +84,7 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	})
 
 	It("does not log error when releasing succeeds", func() {
-		givenConcurrencyLimit(1)
+		givenConcurrentRequestLimit(1)
 
 		handler.ServeHTTP(httptest.NewRecorder(), request)
 

@@ -10,22 +10,22 @@ import (
 
 //go:generate counterfeiter code.cloudfoundry.org/lager.Logger
 
-type ConcurrencyLimitsWrappa struct {
+type ConcurrentRequestLimitsWrappa struct {
 	logger                  lager.Logger
 	concurrentRequestPolicy ConcurrentRequestPolicy
 }
 
-func NewConcurrencyLimitsWrappa(
+func NewConcurrentRequestLimitsWrappa(
 	logger lager.Logger,
 	concurrentRequestPolicy ConcurrentRequestPolicy,
 ) Wrappa {
-	return ConcurrencyLimitsWrappa{
+	return ConcurrentRequestLimitsWrappa{
 		logger:                  logger,
 		concurrentRequestPolicy: concurrentRequestPolicy,
 	}
 }
 
-func (wrappa ConcurrencyLimitsWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
+func (wrappa ConcurrentRequestLimitsWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 	wrapped := rata.Handlers{}
 
 	for action, handler := range handlers {
@@ -40,7 +40,7 @@ func (wrappa ConcurrencyLimitsWrappa) Wrap(handlers rata.Handlers) rata.Handlers
 	return wrapped
 }
 
-func (wrappa ConcurrencyLimitsWrappa) wrap(
+func (wrappa ConcurrentRequestLimitsWrappa) wrap(
 	pool Pool,
 	handler http.Handler,
 ) http.Handler {

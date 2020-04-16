@@ -1802,7 +1802,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	}
 
 	apiWrapper := wrappa.MultiWrappa{
-		wrappa.NewConcurrencyLimitsWrappa(logger, cmd.concurrentRequestPolicy()),
+		wrappa.NewConcurrentRequestLimitsWrappa(logger, cmd.concurrentRequestPolicy()),
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
 			checkPipelineAccessHandlerFactory,

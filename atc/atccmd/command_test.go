@@ -27,7 +27,7 @@ func (s *CommandSuite) TestLetsEncryptDefaultIsUpToDate() {
 	s.Equal(opt.Default, []string{autocert.DefaultACMEDirectory})
 }
 
-func (s *CommandSuite) TestInvalidConcurrencyLimit() {
+func (s *CommandSuite) TestInvalidConcurrentRequestLimit() {
 	cmd := &atccmd.RunCommand{}
 	flags.ParseArgs(cmd, []string{
 		"--client-secret",
