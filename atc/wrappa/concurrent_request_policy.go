@@ -63,38 +63,31 @@ type ConcurrentRequestPolicy interface {
 type concurrentRequestPolicy struct {
 	limits           []ConcurrentRequestLimitFlag
 	supportedActions []string
+	handlerPools     map[string]Pool
 }
 
 func NewConcurrentRequestPolicy(
 	limits []ConcurrentRequestLimitFlag,
 	supportedActions []string,
 ) ConcurrentRequestPolicy {
+	pools := map[string]Pool{}
+	for _, limit := range limits {
+		pools[limit.Action] = &pool{size: limit.Limit}
+	}
 	return &concurrentRequestPolicy{
 		limits:           limits,
 		supportedActions: supportedActions,
+		handlerPools:     pools,
 	}
 }
 
 func (crp *concurrentRequestPolicy) HandlerPool(action string) Pool {
-	return &pool{size: crp.maxConcurrentRequests(action)}
-}
-
-func (crp *concurrentRequestPolicy) maxConcurrentRequests(action string) int {
-	for _, limit := range crp.limits {
-		if limit.Action == action {
-			return limit.Limit
-		}
-	}
-	return 0
+	return crp.handlerPools[action]
 }
 
 func (crp *concurrentRequestPolicy) IsLimited(action string) bool {
-	for _, limit := range crp.limits {
-		if limit.Action == action {
-			return true
-		}
-	}
-	return false
+	_, ok := crp.handlerPools[action]
+	return ok
 }
 
 func (crp *concurrentRequestPolicy) Validate() error {

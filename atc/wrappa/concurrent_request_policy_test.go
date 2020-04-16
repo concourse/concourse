@@ -215,20 +215,23 @@ var _ = Describe("Concurrent Request Policy", func() {
 
 			Expect(failed).To(BeTrue())
 		})
+
+		It("holds a reference to its pool", func() {
+			policy := wrappa.NewConcurrentRequestPolicy(
+				[]wrappa.ConcurrentRequestLimitFlag{
+					wrappa.ConcurrentRequestLimitFlag{
+						Action: atc.CreateJobBuild,
+						Limit:  1,
+					},
+				},
+				[]string{atc.CreateJobBuild},
+			)
+			policy.HandlerPool(atc.CreateJobBuild).TryAcquire()
+			pool := policy.HandlerPool(atc.CreateJobBuild)
+			Expect(pool.TryAcquire()).To(BeFalse())
+		})
 	})
 })
-
-func doInParallel(numGoroutines int, thingToDo func()) {
-	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
-		go func() {
-			thingToDo()
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-}
 
 func pool(size int) wrappa.Pool {
 	return wrappa.NewConcurrentRequestPolicy(
@@ -240,4 +243,16 @@ func pool(size int) wrappa.Pool {
 		},
 		[]string{atc.CreateJobBuild},
 	).HandlerPool(atc.CreateJobBuild)
+}
+
+func doInParallel(numGoroutines int, thingToDo func()) {
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			thingToDo()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }
