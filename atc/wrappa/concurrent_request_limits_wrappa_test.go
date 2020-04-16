@@ -15,35 +15,37 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	var (
 		fakeHandler *wrappafakes.FakeHandler
 		fakeLogger  *wrappafakes.FakeLogger
+		handler     http.Handler
+		request     *http.Request
+		policy      wrappa.ConcurrentRequestPolicy
 	)
 
 	BeforeEach(func() {
 		fakeHandler = new(wrappafakes.FakeHandler)
 		fakeLogger = new(wrappafakes.FakeLogger)
+		request, _ = http.NewRequest("GET", "localhost:8080", nil)
 	})
 
-	givenConcurrencyLimit := func(limit int) wrappa.Wrappa {
-		return wrappa.NewConcurrencyLimitsWrappa(
-			fakeLogger,
-			wrappa.NewConcurrentRequestPolicy(
-				[]wrappa.ConcurrentRequestLimitFlag{
-					wrappa.ConcurrentRequestLimitFlag{
-						Action: atc.ListAllJobs,
-						Limit:  limit,
-					},
+	givenConcurrencyLimit := func(limit int) {
+		policy = wrappa.NewConcurrentRequestPolicy(
+			[]wrappa.ConcurrentRequestLimitFlag{
+				wrappa.ConcurrentRequestLimitFlag{
+					Action: atc.ListAllJobs,
+					Limit:  limit,
 				},
-				[]string{atc.ListAllJobs},
-			),
+			},
+			[]string{atc.ListAllJobs},
 		)
+		handler = wrappa.NewConcurrencyLimitsWrappa(fakeLogger, policy).
+			Wrap(map[string]http.Handler{
+				atc.ListAllJobs: fakeHandler,
+			})[atc.ListAllJobs]
 	}
 
 	It("logs when the concurrent request limit is hit", func() {
-		wrappa := givenConcurrencyLimit(0)
+		givenConcurrencyLimit(0)
 
-		req, _ := http.NewRequest("GET", "localhost:8080", nil)
-		wrappa.Wrap(map[string]http.Handler{
-			atc.ListAllJobs: fakeHandler,
-		})[atc.ListAllJobs].ServeHTTP(httptest.NewRecorder(), req)
+		handler.ServeHTTP(httptest.NewRecorder(), request)
 
 		Expect(fakeLogger.InfoCallCount()).To(Equal(1), "no log emitted")
 		logAction, _ := fakeLogger.InfoArgsForCall(0)
@@ -51,28 +53,41 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	})
 
 	It("invokes the wrapped handler when the limit is not reached", func() {
-		wrappa := givenConcurrencyLimit(1)
+		givenConcurrencyLimit(1)
 
-		req, _ := http.NewRequest("GET", "localhost:8080", nil)
-		wrappa.Wrap(map[string]http.Handler{
-			atc.ListAllJobs: fakeHandler,
-		})[atc.ListAllJobs].ServeHTTP(httptest.NewRecorder(), req)
+		handler.ServeHTTP(httptest.NewRecorder(), request)
 
 		Expect(fakeHandler.ServeHTTPCallCount()).To(Equal(1), "wrapped handler not invoked")
 	})
 
 	It("permits serial requests", func() {
-		wrappa := givenConcurrencyLimit(1)
-
-		req, _ := http.NewRequest("GET", "localhost:8080", nil)
-		handler := wrappa.Wrap(map[string]http.Handler{
-			atc.ListAllJobs: fakeHandler,
-		})[atc.ListAllJobs]
-
-		handler.ServeHTTP(httptest.NewRecorder(), req)
+		givenConcurrencyLimit(1)
 		rec := httptest.NewRecorder()
-		handler.ServeHTTP(rec, req)
+
+		handler.ServeHTTP(httptest.NewRecorder(), request)
+		handler.ServeHTTP(rec, request)
 
 		Expect(rec.Result().StatusCode).To(Equal(http.StatusOK))
+	})
+
+	It("logs error when the pool fails to release", func() {
+		givenConcurrencyLimit(1)
+		fakeHandler.ServeHTTPStub = func(http.ResponseWriter, *http.Request) {
+			policy.HandlerPool(atc.ListAllJobs).Release()
+		}
+
+		handler.ServeHTTP(httptest.NewRecorder(), request)
+
+		Expect(fakeLogger.ErrorCallCount()).To(Equal(1))
+		logAction, _, _ := fakeLogger.ErrorArgsForCall(0)
+		Expect(logAction).To(Equal("failed-to-release-handler-pool"))
+	})
+
+	It("does not log error when releasing succeeds", func() {
+		givenConcurrencyLimit(1)
+
+		handler.ServeHTTP(httptest.NewRecorder(), request)
+
+		Expect(fakeLogger.ErrorCallCount()).To(Equal(0))
 	})
 })

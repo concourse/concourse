@@ -50,7 +50,14 @@ func (wrappa ConcurrencyLimitsWrappa) wrap(
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
-		defer pool.Release()
+		defer release(wrappa.logger, pool)
 		handler.ServeHTTP(w, r)
 	})
+}
+
+func release(logger lager.Logger, pool Pool) {
+	err := pool.Release()
+	if err != nil {
+		logger.Error("failed-to-release-handler-pool", err)
+	}
 }
