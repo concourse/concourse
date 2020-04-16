@@ -1,37 +1,28 @@
 package wrappa
 
 import (
-	"errors"
-	"sync"
+	"golang.org/x/sync/semaphore"
 )
 
 type Pool interface {
 	TryAcquire() bool
-	Release() error
+	Release()
 }
 
 type pool struct {
-	size  int
-	state int
-	mu    sync.Mutex
+	*semaphore.Weighted
+}
+
+func NewPool(size int) Pool {
+	return &pool{
+		semaphore.NewWeighted(int64(size)),
+	}
 }
 
 func (p *pool) TryAcquire() bool {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.state == p.size {
-		return false
-	}
-	p.state += 1
-	return true
+	return p.Weighted.TryAcquire(1)
 }
 
-func (p *pool) Release() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.state == 0 {
-		return errors.New("released more than held")
-	}
-	p.state -= 1
-	return nil
+func (p *pool) Release() {
+	p.Weighted.Release(1)
 }

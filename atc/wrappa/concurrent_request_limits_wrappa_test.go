@@ -71,29 +71,4 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 
 		Expect(rec.Result().StatusCode).To(Equal(http.StatusOK))
 	})
-
-	It("logs error when the pool fails to release", func() {
-		givenConcurrentRequestLimit(1)
-		fakeHandler.ServeHTTPStub = func(http.ResponseWriter, *http.Request) {
-			pool, _ := policy.HandlerPool(atc.ListAllJobs)
-			pool.Release()
-		}
-
-		handler.ServeHTTP(httptest.NewRecorder(), request)
-
-		Expect(testLogger.Logs()).To(ConsistOf(
-			MatchFields(IgnoreExtras, Fields{
-				"Message":  Equal("test.failed-to-release-handler-pool"),
-				"LogLevel": Equal(lager.ERROR),
-			}),
-		))
-	})
-
-	It("does not log error when releasing succeeds", func() {
-		givenConcurrentRequestLimit(1)
-
-		handler.ServeHTTP(httptest.NewRecorder(), request)
-
-		Expect(testLogger.Logs()).To(BeEmpty())
-	})
 })

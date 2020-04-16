@@ -48,7 +48,7 @@ func NewConcurrentRequestPolicy(
 ) ConcurrentRequestPolicy {
 	pools := map[LimitedRoute]Pool{}
 	for action, limit := range limits {
-		pools[action] = &pool{size: limit}
+		pools[action] = NewPool(limit)
 	}
 	return &concurrentRequestPolicy{
 		handlerPools: pools,

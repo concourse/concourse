@@ -82,7 +82,7 @@ var _ = Describe("Concurrent Request Policy", func() {
 		It("cannot release more handlers than are held", func() {
 			pool := pool(1)
 
-			Expect(pool.Release()).NotTo(Succeed())
+			Expect(pool.Release).To(Panic())
 		})
 
 		It("cannot acquire multiple handlers simultaneously", func() {
@@ -91,20 +91,6 @@ var _ = Describe("Concurrent Request Policy", func() {
 
 			doInParallel(101, func() {
 				if !pool.TryAcquire() {
-					failed = true
-				}
-			})
-
-			Expect(failed).To(BeTrue())
-		})
-
-		It("cannot release multiple handlers simultaneously", func() {
-			pool := pool(1000)
-			doInParallel(1000, func() { pool.TryAcquire() })
-			failed := false
-
-			doInParallel(1001, func() {
-				if pool.Release() != nil {
 					failed = true
 				}
 			})
