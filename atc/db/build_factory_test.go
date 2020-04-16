@@ -42,7 +42,7 @@ var _ = Describe("BuildFactory", func() {
 		})
 	})
 
-	FDescribe("MarkNonInterceptibleBuilds", func() {
+	Describe("MarkNonInterceptibleBuilds", func() {
 		Context("one-off builds", func() {
 			DescribeTable("completed and within grace period",
 				func(status db.BuildStatus, matcher types.GomegaMatcher) {
