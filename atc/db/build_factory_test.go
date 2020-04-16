@@ -211,7 +211,7 @@ var _ = Describe("BuildFactory", func() {
 		})
 		Context("GC failed builds", func() {
 			It("marks failed builds non-interceptible after failed-grace-period", func() {
-				buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, 2*time.Second)
+				buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, 2*time.Second) // 1 second could create a flaky test
 				build, err := defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 
@@ -226,7 +226,7 @@ var _ = Describe("BuildFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(i).To(BeTrue())
 
-				time.Sleep(3 * time.Second) // Wait for second-granularity, better method?
+				time.Sleep(3 * time.Second) // Wait is too long, only second granularity, better method?
 
 				err = buildFactory.MarkNonInterceptibleBuilds()
 				Expect(err).NotTo(HaveOccurred())
