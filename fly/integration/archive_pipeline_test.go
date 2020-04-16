@@ -2,11 +2,12 @@ package integration_test
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/fly/ui"
-	"github.com/fatih/color"
 	"io"
 	"net/http"
 	"os/exec"
+
+	"github.com/concourse/concourse/fly/ui"
+	"github.com/fatih/color"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -59,6 +60,7 @@ var _ = Describe("Fly CLI", func() {
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 
+							Eventually(sess).Should(gbytes.Say("!!! archiving the pipeline will remove its configuration. Build history will be retained.\n\n"))
 							Eventually(sess).Should(gbytes.Say("archive pipeline 'awesome-pipeline'?"))
 							yes(stdin)
 
@@ -150,7 +152,7 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Err).Should(gbytes.Say(`Either a pipeline name or --all are required`))
+					Eventually(sess.Err).Should(gbytes.Say(`one of the flags '-p, --pipeline' or '-a, --all' is required`))
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
@@ -168,7 +170,7 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Err).Should(gbytes.Say(`A pipeline and --all can not both be specified`))
+					Eventually(sess.Err).Should(gbytes.Say(`only one of the flags '-p, --pipeline' or '-a, --all' is allowed`))
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))

@@ -2,13 +2,14 @@ package commands
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 	"github.com/vito/go-interact/interact"
-	"os"
 )
 
 type ArchivePipelineCommand struct {
@@ -23,11 +24,11 @@ func (command *ArchivePipelineCommand) Validate() error {
 
 func (command *ArchivePipelineCommand) Execute(args []string) error {
 	if string(command.Pipeline) == "" && !command.All {
-		displayhelpers.Failf("Either a pipeline name or --all are required")
+		displayhelpers.Failf("one of the flags '-p, --pipeline' or '-a, --all' is required")
 	}
 
 	if string(command.Pipeline) != "" && command.All {
-		displayhelpers.Failf("A pipeline and --all can not both be specified")
+		displayhelpers.Failf("only one of the flags '-p, --pipeline' or '-a, --all' is allowed")
 	}
 
 	err := command.Validate()
@@ -98,6 +99,8 @@ func (command ArchivePipelineCommand) confirmArchive(pipelines []string) bool {
 	if len(pipelines) > 1 {
 		command.printPipelinesTable(pipelines)
 	}
+
+	fmt.Printf("!!! archiving the pipeline will remove its configuration. Build history will be retained.\n\n")
 
 	var confirm bool
 	err := interact.NewInteraction(command.archivePrompt(pipelines)).Resolve(&confirm)
