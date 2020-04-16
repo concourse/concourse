@@ -80,12 +80,14 @@ func (h *accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requiredRole := h.customRoles[h.action]
-	if requiredRole == "" {
-		requiredRole = DefaultRoles[h.action]
+	role, found := h.requiredRole()
+	if !found {
+		h.logger.Error("action-has-no-role", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	acc := h.accessFactory.Create(requiredRole, h.verifyToken(r), teams)
+	acc := h.accessFactory.Create(role, h.verifyToken(r), teams)
 
 	claims := acc.Claims()
 
@@ -107,6 +109,21 @@ func (h *accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	h.auditor.Audit(h.action, claims.UserName, r)
 	h.handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+func (h *accessorHandler) requiredRole() (string, bool) {
+
+	role, found := h.customRoles[h.action]
+
+	if !found {
+		role, found = DefaultRoles[h.action]
+	}
+
+	if !found {
+		role, found = AdminRoles[h.action]
+	}
+
+	return role, found
 }
 
 func (h *accessorHandler) verifyToken(r *http.Request) Verification {

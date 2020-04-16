@@ -9,6 +9,7 @@ const (
 	OwnerRole    = "owner"
 	OperatorRole = "pipeline-operator"
 	ViewerRole   = "viewer"
+	AdminRole    = "admin"
 )
 
 var DefaultRoles = map[string]string{
@@ -99,11 +100,11 @@ var DefaultRoles = map[string]string{
 	atc.GetUser:                       ViewerRole,
 }
 
-var AdminRoles = []string{
-	atc.GetLogLevel,
-	atc.SetLogLevel,
-	atc.ListActiveUsersSince,
-	atc.GetInfoCreds,
-	atc.SetWall,
-	atc.ClearWall,
+var AdminRoles = map[string]string{
+	atc.GetLogLevel:          AdminRole,
+	atc.SetLogLevel:          AdminRole,
+	atc.ListActiveUsersSince: AdminRole,
+	atc.GetInfoCreds:         AdminRole,
+	atc.SetWall:              AdminRole,
+	atc.ClearWall:            AdminRole,
 }

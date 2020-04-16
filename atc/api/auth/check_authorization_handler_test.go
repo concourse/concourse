@@ -62,7 +62,7 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 			new(accessorfakes.FakeTeamFetcher),
 			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
-			map[string]string{},
+			map[string]string{"some-action": "some-role"},
 		))
 
 		client = &http.Client{

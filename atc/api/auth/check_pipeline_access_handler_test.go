@@ -53,7 +53,7 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 			new(accessorfakes.FakeTeamFetcher),
 			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
-			map[string]string{},
+			map[string]string{"some-action": "some-role"},
 		)
 	})
 

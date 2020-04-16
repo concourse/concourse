@@ -107,53 +107,51 @@ var _ = Describe("Handler", func() {
 				Expect(teams).To(Equal(fakeTeams))
 			})
 
-			Context("when there's a default role for the given action", func() {
+			Context("when the action has a custom role", func() {
+				BeforeEach(func() {
+					action = "some-action"
+					customRoles = map[string]string{"some-action": "some-role"}
+				})
+
+				It("finds the role", func() {
+					Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
+					role, _, _ := fakeAccessorFactory.CreateArgsForCall(0)
+					Expect(role).To(Equal("some-role"))
+				})
+			})
+
+			Context("when the action has a default role", func() {
 				BeforeEach(func() {
 					action = atc.SaveConfig
 				})
 
-				Context("when the role has not been customized", func() {
-					BeforeEach(func() {
-						customRoles = map[string]string{}
-					})
-
-					It("finds the role", func() {
-						Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
-						role, _, _ := fakeAccessorFactory.CreateArgsForCall(0)
-						Expect(role).To(Equal(accessor.MemberRole))
-					})
-				})
-
-				Context("when the role has been customized", func() {
-					BeforeEach(func() {
-						customRoles = map[string]string{
-							atc.SaveConfig: accessor.ViewerRole,
-						}
-					})
-
-					It("finds the role", func() {
-						Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
-						role, _, _ := fakeAccessorFactory.CreateArgsForCall(0)
-						Expect(role).To(Equal(accessor.ViewerRole))
-					})
+				It("finds the role", func() {
+					Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
+					role, _, _ := fakeAccessorFactory.CreateArgsForCall(0)
+					Expect(role).To(Equal(accessor.MemberRole))
 				})
 			})
 
-			Context("when there's no default role for the given action", func() {
+			Context("when the action has an admin role", func() {
 				BeforeEach(func() {
-					action = "some-admin-role"
+					action = atc.GetLogLevel
 				})
 
-				Context("when the role has not been customized", func() {
-					BeforeEach(func() {
-						customRoles = map[string]string{}
-					})
+				It("finds the role", func() {
+					Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
+					role, _, _ := fakeAccessorFactory.CreateArgsForCall(0)
+					Expect(role).To(Equal(accessor.AdminRole))
+				})
+			})
 
-					It("sends a blank role (admin roles don't have defaults)", func() {
-						Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
-						role, _, _ := fakeAccessorFactory.CreateArgsForCall(0)
-						Expect(role).To(BeEmpty())
-					})
+			Context("when there's no role for the given action", func() {
+				BeforeEach(func() {
+					action = "some-role"
+					customRoles = map[string]string{}
+				})
+
+				It("returns a server error", func() {
+					Expect(w.Result().StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 
