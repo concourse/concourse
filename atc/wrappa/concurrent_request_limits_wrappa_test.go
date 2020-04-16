@@ -28,13 +28,9 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 
 	givenConcurrentRequestLimit := func(limit int) {
 		policy = wrappa.NewConcurrentRequestPolicy(
-			[]wrappa.ConcurrentRequestLimitFlag{
-				wrappa.ConcurrentRequestLimitFlag{
-					Action: atc.ListAllJobs,
-					Limit:  limit,
-				},
+			map[wrappa.LimitedRoute]int{
+				wrappa.LimitedRoute(atc.ListAllJobs): limit,
 			},
-			[]string{atc.ListAllJobs},
 		)
 		handler = wrappa.NewConcurrentRequestLimitsWrappa(fakeLogger, policy).
 			Wrap(map[string]http.Handler{
@@ -73,7 +69,8 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	It("logs error when the pool fails to release", func() {
 		givenConcurrentRequestLimit(1)
 		fakeHandler.ServeHTTPStub = func(http.ResponseWriter, *http.Request) {
-			policy.HandlerPool(atc.ListAllJobs).Release()
+			pool, _ := policy.HandlerPool(atc.ListAllJobs)
+			pool.Release()
 		}
 
 		handler.ServeHTTP(httptest.NewRecorder(), request)

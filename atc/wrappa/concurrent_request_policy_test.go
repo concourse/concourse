@@ -10,151 +10,47 @@ import (
 )
 
 var _ = Describe("Concurrent Request Policy", func() {
-	Describe("ConcurrentRequestLimitFlag#UnmarshalFlag", func() {
-		var crl wrappa.ConcurrentRequestLimitFlag
-
-		BeforeEach(func() {
-			crl = wrappa.ConcurrentRequestLimitFlag{}
-		})
-
-		It("parses the API action and limit", func() {
-			crl.UnmarshalFlag("ListAllJobs=3")
-			Expect(crl.Action).To(Equal("ListAllJobs"), "wrong action")
-			Expect(crl.Limit).To(Equal(3), "wrong limit")
-		})
-
-		It("returns an error when the flag has no equals sign", func() {
-			err := crl.UnmarshalFlag("banana")
-			expected := "invalid concurrent request limit " +
-				"'banana': value must be an assignment"
-			Expect(err).To(MatchError(expected))
-		})
-
-		It("returns an error when the flag has multiple equals signs", func() {
-			err := crl.UnmarshalFlag("foo=bar=baz")
-			expected := "invalid concurrent request limit " +
-				"'foo=bar=baz': value must be an assignment"
-			Expect(err).To(MatchError(expected))
-		})
-
-		It("returns an error when the action is invalid", func() {
-			err := crl.UnmarshalFlag("InvalidAction=0")
-			expected := "invalid concurrent request limit " +
-				"'InvalidAction=0': " +
-				"'InvalidAction' is not a valid action"
-			Expect(err).To(MatchError(expected))
-		})
-
-		It("returns an error when the limit is not an integer", func() {
-			err := crl.UnmarshalFlag("ListAllJobs=foo")
-			expected := "invalid concurrent request limit " +
-				"'ListAllJobs=foo': limit must be " +
-				"a non-negative integer"
-			Expect(err).To(MatchError(expected))
-		})
-
-		It("returns an error when the limit is negative", func() {
-			err := crl.UnmarshalFlag("ListAllJobs=-1")
-			expected := "invalid concurrent request limit " +
-				"'ListAllJobs=-1': limit must be " +
-				"a non-negative integer"
-			Expect(err).To(MatchError(expected))
-		})
-	})
-
-	Describe("ConcurrentRequestPolicy#Validate", func() {
+	Describe("LimitedRoute#UnmarshalFlag", func() {
 		It("raises an error when the action is not supported", func() {
-			policy := wrappa.NewConcurrentRequestPolicy(
-				[]wrappa.ConcurrentRequestLimitFlag{
-					wrappa.ConcurrentRequestLimitFlag{
-						Action: atc.ListAllJobs,
-						Limit:  0,
-					},
-				},
-				[]string{atc.CreateJobBuild},
-			)
+			var flagValue wrappa.LimitedRoute
+			err := flagValue.UnmarshalFlag(atc.CreateJobBuild)
 
-			err := policy.Validate()
-
-			expected := "invalid concurrent request limit " +
-				"'ListAllJobs=0': " +
-				"action 'ListAllJobs' " +
-				"is not supported"
+			expected := "action 'CreateJobBuild' is not supported"
 			Expect(err.Error()).To(ContainSubstring(expected))
 		})
 
 		It("error message describes supported actions", func() {
-			policy := wrappa.NewConcurrentRequestPolicy(
-				[]wrappa.ConcurrentRequestLimitFlag{
-					wrappa.ConcurrentRequestLimitFlag{
-						Action: atc.ListAllJobs,
-						Limit:  0,
-					},
-				},
-				[]string{atc.CreateJobBuild, atc.SaveConfig},
-			)
+			var flagValue wrappa.LimitedRoute
+			err := flagValue.UnmarshalFlag(atc.CreateJobBuild)
 
-			err := policy.Validate()
-
-			expected := "Supported actions are: CreateJobBuild, SaveConfig"
+			expected := "Supported actions are: "
 			Expect(err.Error()).To(ContainSubstring(expected))
-		})
-
-		It("raises an error with multiple limits on the same action", func() {
-			policy := wrappa.NewConcurrentRequestPolicy(
-				[]wrappa.ConcurrentRequestLimitFlag{
-					wrappa.ConcurrentRequestLimitFlag{
-						Action: atc.CreateJobBuild,
-						Limit:  0,
-					},
-					wrappa.ConcurrentRequestLimitFlag{
-						Action: atc.CreateJobBuild,
-						Limit:  0,
-					},
-				},
-				[]string{atc.CreateJobBuild},
-			)
-
-			err := policy.Validate()
-
-			Expect(err).To(MatchError(
-				"invalid concurrent request limits: " +
-					"multiple limits on 'CreateJobBuild'",
-			))
-		})
-	})
-
-	Describe("ConcurrentRequestPolicy#IsLimited", func() {
-		It("tells when an action is limited", func() {
-			policy := wrappa.NewConcurrentRequestPolicy(
-				[]wrappa.ConcurrentRequestLimitFlag{
-					wrappa.ConcurrentRequestLimitFlag{
-						Action: atc.CreateJobBuild,
-						Limit:  0,
-					},
-				},
-				[]string{atc.CreateJobBuild},
-			)
-
-			Expect(policy.IsLimited(atc.CreateJobBuild)).To(BeTrue())
-		})
-
-		It("tells when an action is not limited", func() {
-			policy := wrappa.NewConcurrentRequestPolicy(
-				[]wrappa.ConcurrentRequestLimitFlag{
-					wrappa.ConcurrentRequestLimitFlag{
-						Action: atc.CreateJobBuild,
-						Limit:  0,
-					},
-				},
-				[]string{atc.CreateJobBuild},
-			)
-
-			Expect(policy.IsLimited(atc.ListAllPipelines)).To(BeFalse())
 		})
 	})
 
 	Describe("ConcurrentRequestPolicy#HandlerPool", func() {
+		It("returns true when an action is limited", func() {
+			policy := wrappa.NewConcurrentRequestPolicy(
+				map[wrappa.LimitedRoute]int{
+					wrappa.LimitedRoute(atc.CreateJobBuild): 0,
+				},
+			)
+
+			_, found := policy.HandlerPool(atc.CreateJobBuild)
+			Expect(found).To(BeTrue())
+		})
+
+		It("returns false when an action is not limited", func() {
+			policy := wrappa.NewConcurrentRequestPolicy(
+				map[wrappa.LimitedRoute]int{
+					wrappa.LimitedRoute(atc.CreateJobBuild): 0,
+				},
+			)
+
+			_, found := policy.HandlerPool(atc.ListAllPipelines)
+			Expect(found).To(BeFalse())
+		})
+
 		It("can acquire a handler", func() {
 			pool := pool(1)
 
@@ -218,31 +114,26 @@ var _ = Describe("Concurrent Request Policy", func() {
 
 		It("holds a reference to its pool", func() {
 			policy := wrappa.NewConcurrentRequestPolicy(
-				[]wrappa.ConcurrentRequestLimitFlag{
-					wrappa.ConcurrentRequestLimitFlag{
-						Action: atc.CreateJobBuild,
-						Limit:  1,
-					},
+				map[wrappa.LimitedRoute]int{
+					wrappa.LimitedRoute(atc.CreateJobBuild): 1,
 				},
-				[]string{atc.CreateJobBuild},
 			)
-			policy.HandlerPool(atc.CreateJobBuild).TryAcquire()
-			pool := policy.HandlerPool(atc.CreateJobBuild)
-			Expect(pool.TryAcquire()).To(BeFalse())
+			pool1, _ := policy.HandlerPool(atc.CreateJobBuild)
+			pool1.TryAcquire()
+			pool2, _ := policy.HandlerPool(atc.CreateJobBuild)
+			Expect(pool2.TryAcquire()).To(BeFalse())
 		})
 	})
 })
 
 func pool(size int) wrappa.Pool {
-	return wrappa.NewConcurrentRequestPolicy(
-		[]wrappa.ConcurrentRequestLimitFlag{
-			wrappa.ConcurrentRequestLimitFlag{
-				Action: atc.CreateJobBuild,
-				Limit:  size,
-			},
+	p, _ := wrappa.NewConcurrentRequestPolicy(
+		map[wrappa.LimitedRoute]int{
+			wrappa.LimitedRoute(atc.CreateJobBuild): size,
 		},
-		[]string{atc.CreateJobBuild},
 	).HandlerPool(atc.CreateJobBuild)
+
+	return p
 }
 
 func doInParallel(numGoroutines int, thingToDo func()) {

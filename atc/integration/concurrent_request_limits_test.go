@@ -11,11 +11,8 @@ import (
 
 var _ = Describe("Concurrent request limits", func() {
 	BeforeEach(func() {
-		cmd.ConcurrentRequestLimits = []wrappa.ConcurrentRequestLimitFlag{
-			wrappa.ConcurrentRequestLimitFlag{
-				Action: atc.ListAllJobs,
-				Limit:  0,
-			},
+		cmd.ConcurrentRequestLimits = map[wrappa.LimitedRoute]int{
+			wrappa.LimitedRoute(atc.ListAllJobs): 0,
 		}
 	})
 

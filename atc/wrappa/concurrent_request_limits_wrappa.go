@@ -29,8 +29,8 @@ func (wrappa ConcurrentRequestLimitsWrappa) Wrap(handlers rata.Handlers) rata.Ha
 	wrapped := rata.Handlers{}
 
 	for action, handler := range handlers {
-		if wrappa.concurrentRequestPolicy.IsLimited(action) {
-			pool := wrappa.concurrentRequestPolicy.HandlerPool(action)
+		pool, found := wrappa.concurrentRequestPolicy.HandlerPool(action)
+		if found {
 			wrapped[action] = wrappa.wrap(pool, handler)
 		} else {
 			wrapped[action] = handler
