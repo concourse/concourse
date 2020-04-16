@@ -22,32 +22,33 @@ contributions.
 
 Bugs can be reported directly as [Issues on the `concourse`
 repo][concourse-issues], and questions and technical support can be requested as
-[Discussions on the `concourse` repo][concourse-discussions]. The project
-backlog is maintained by the core Concourse team at VMware, so please don't
-directly create those - they will have to be moved.
+[Discussions on the `concourse` repo][concourse-discussions].
 
-Instead of requesting features, we strongly encourage the use of [Discussions on
-the `rfcs` repo][rfcs-discussions] for incubating ideas, with a larger focus on
-forming a shared understanding the problem at hand; the context is more
-important than the solution itself.
+The project backlog is maintained by the Concourse team at VMware. Instead of
+requesting features, we strongly encourage the use of [Discussions on the `rfcs`
+repo][rfcs-discussions] for incubating ideas, with a primary focus on forming a
+shared understanding the problem at hand; the context is more important than the
+solution itself.
 
-Our collective responsibility as the stewards of the Concourse project is to
+Our collective responsibility as the stewards of the Concourse product is to
 uphold its promise of being "automation that scales with your project." This
 promise is upheld by keeping the mental overhead small as the automation needs
 of your project expand. Thus, requests for core features fall under heavy
 scrutiny. Rather than addressing each individual request, we need to think of
-the product holistically, steering it slowly and refining or replacing existing
-concepts rather than introducing new ones all the time.
+the product holistically, steering it carefully and refining or replacing
+existing concepts rather than introducing new ones all the time.
 
-This may feel overkill for requests which seem small in scope, but you would be
-surprised the connections that can be drawn between features which seem
-unrelated at the surface.
+While this may feel overkill for requests which seem small in scope, connections
+can often be made between features which seem unrelated at the surface. Once
+those connections are identified, a higher impact change can often be planned
+which satisfies many underlying needs at once while minimizing the amount of
+"stuff" that users need to internalize in order to be effective with Concourse.
 
 Once consensus is reached on a direction to take, a proposal can be submitted as
 a [Pull Request to the `rfcs` repo][rfcs-prs], following the [RFC
-process][rfcs-process], and others in the community can collaborate through PR
+process][rfcs-process], allowing the contributors to collaborate through PR
 review. A full blown RFC may not be necessary for smaller changes, but going
-through with it can save feedback cycles for larger code changes.
+through this process can reduce painful feedback cycles for larger code changes.
 
 [Pull Requests to the `concourse` repo][concourse-prs] may be submitted at any
 time. The rest of this document provides guidance on how to do just that. In the
