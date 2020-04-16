@@ -223,7 +223,7 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 func (n cniNetwork) generateResolvConfContents() []byte {
 	contents := ""
 	for _, n := range n.nameServers {
-		contents = contents + fmt.Sprintf("nameserver %s\n", n)
+		contents = contents + "nameserver " + n + "\n"
 	}
 
 	return []byte(contents)
