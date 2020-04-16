@@ -44,9 +44,9 @@ const (
 )
 
 var (
-	// nameServers is the default set of nameservers used.
+	// defaultNameServers is the default set of nameservers used.
 	//
-	nameServers = []string{"8.8.8.8"}
+	defaultNameServers = []string{"8.8.8.8"}
 
 	// defaultCNINetworkConfig is the default configuration for the CNI network
 	// created to put concourse containers into.
@@ -155,7 +155,7 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 	n := &cniNetwork{
 		binariesDir: binariesDir,
 		config:      defaultCNINetworkConfig,
-		nameServers: nameServers,
+		nameServers: defaultNameServers,
 	}
 
 	for _, opt := range opts {
