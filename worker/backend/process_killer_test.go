@@ -6,7 +6,6 @@ import (
 	"math"
 	"syscall"
 	"time"
-	"fmt"
 
 	"github.com/concourse/concourse/worker/backend"
 	"github.com/concourse/concourse/worker/backend/libcontainerd/libcontainerdfakes"
