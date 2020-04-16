@@ -9,6 +9,14 @@
 
   NOTE: And yes, you will need to log out and log back in after upgrading.
 
+#### <sub><sup><a name="5429" href="#5429">:link:</a></sup></sub> feature
+
+* Operators can now limit the number of concurrent API requests that your web node will serve by passing a flag like `--concurrent-request-limit action:limit` where `action` is the API action name as they appear in the [action matrix in our docs](https://concourse-ci.org/user-roles.html#action-matrix).
+
+  If the web node is already concurrently serving the maximum number of requests allowed by the specified limit, any additional concurrent requests will be rejected with a 503 Service Unavailable status.
+
+  Currently the only API action that can be limited in this way is `ListAllJobs` -- we considered allowing this limit on arbitrary endpoints but didn't want to enable operators to shoot themselves in the foot by limiting important internal endpoints like worker registration. #5429
+
 #### <sub><sup><a name="5305" href="#5305">:link:</a></sup></sub> feature
 
 * We've updated the way that hijacked containers get garbage collected
