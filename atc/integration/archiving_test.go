@@ -87,6 +87,16 @@ var _ = Describe("ATC Integration Test", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("jobs part of an archived pipeline cannot be triggered"))
 		})
+
+		It("fails to schedule a job", func() {
+			givenAPipeline(client, "pipeline")
+			whenIArchiveIt(client, "pipeline")
+
+			_, err := client.Team("main").ScheduleJob("pipeline", "job-name")
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("jobs part of an archived pipeline cannot be scheduled"))
+		})
 	})
 
 	Context("when the archiving pipeline endpoint is not enabled", func() {

@@ -25,6 +25,11 @@ func (s *Server) ScheduleJob(pipeline db.Pipeline) http.Handler {
 		}
 
 		err = job.RequestSchedule()
+		if conflict, ok := err.(db.Conflict); ok {
+			logger.Error("failed-to-schedule-job", err)
+			http.Error(w, conflict.Conflict(), http.StatusConflict)
+			return
+		}
 		if err != nil {
 			logger.Error("failed-to-schedule-job", err)
 			w.WriteHeader(http.StatusInternalServerError)

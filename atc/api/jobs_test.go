@@ -2560,6 +2560,20 @@ var _ = Describe("Jobs API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
+
+				Context("when scheduling fails due to a db conflict", func() {
+					BeforeEach(func() {
+						conflict := new(dbfakes.FakeConflict)
+						conflict.ConflictReturns("some conflict")
+						fakeJob.RequestScheduleReturns(conflict)
+					})
+
+					It("returns a 409 and an error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusConflict))
+						body, _ := ioutil.ReadAll(response.Body)
+						Expect(body).To(Equal([]byte("some conflict\n")))
+					})
+				})
 			})
 		})
 

@@ -896,6 +896,17 @@ func (j *job) RequestSchedule() error {
 
 	defer tx.Rollback()
 
+	pipeline, ok, err := j.pipeline(tx)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrPipelineDisappeared
+	}
+	if pipeline.Archived() {
+		return conflict("jobs part of an archived pipeline cannot be scheduled")
+	}
+
 	err = requestSchedule(tx, j.id)
 	if err != nil {
 		return err
