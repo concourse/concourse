@@ -43,7 +43,7 @@
 
 #### <sub><sup><a name="5368" href="#5368">:link:</a></sup></sub> feature
 
-* Implented the core functionality for archiving pipelines [RFC #33]. 
+* Implemented the core functionality for archiving pipelines [RFC #33]. 
 
   **note**: archived pipelines are neither visible in the web UI (#5370) nor in `fly pipelines`.
 
