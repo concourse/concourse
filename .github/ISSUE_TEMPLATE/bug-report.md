@@ -1,6 +1,6 @@
 ---
-name: 🐛 Bug report
-about: Find something broken? Let us know! (If it's not reproducible, open a Discussion instead.)
+name: 🐛 Report a bug
+about: Find something broken? Let us know! (If it's not yet reproducible, please "ask for help" instead!)
 title: ''
 labels: bug
 assignees: ''

@@ -1,5 +1,5 @@
 ---
-name: 📥 Project backlog item
+name: 📥 Add to the backlog
 about: Create an issue for concrete work that the core team is going to do.
 title: ''
 assignees: ''
