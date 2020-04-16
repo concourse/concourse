@@ -27,15 +27,15 @@ type buildFactory struct {
 	conn                     Conn
 	lockFactory              lock.LockFactory
 	oneOffGracePeriod        time.Duration
-	maximumFailedGracePeriod time.Duration
+	failedGracePeriod        time.Duration
 }
 
-func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, oneOffGracePeriod time.Duration, maximumFailedGracePeriod time.Duration) BuildFactory {
+func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, oneOffGracePeriod time.Duration, failedGracePeriod time.Duration) BuildFactory {
 	return &buildFactory{
 		conn:                     conn,
 		lockFactory:              lockFactory,
 		oneOffGracePeriod:        oneOffGracePeriod,
-		maximumFailedGracePeriod: maximumFailedGracePeriod,
+		failedGracePeriod:        failedGracePeriod,
 	}
 }
 
@@ -109,9 +109,9 @@ func (f *buildFactory) constructBuildFilter() sq.Or {
 		sq.Expr("NOT EXISTS (SELECT 1 FROM jobs j WHERE j.latest_completed_build_id = b.id)"),
 		sq.Eq{"status": string(BuildStatusSucceeded)},
 	}
-	if f.maximumFailedGracePeriod > 0 { // if zero, grace period is disabled
+	if f.failedGracePeriod > 0 { // if zero, grace period is disabled
 		buildFilter = append(buildFilter,
-			sq.Expr(fmt.Sprintf("now() - end_time > '%d seconds'::interval", int(f.maximumFailedGracePeriod.Seconds()))))
+			sq.Expr(fmt.Sprintf("now() - end_time > '%d seconds'::interval", int(f.failedGracePeriod.Seconds()))))
 	}
 	return buildFilter
 }

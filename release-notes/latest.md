@@ -2,7 +2,7 @@
 
 * We've updated the way that containers associated with failed runs get garbage collected
 
-  Containers associated with failed runs used to sit around until a new run is executed.  They now have a max lifetime (default - 4 hours), configurable via 'failed-grace-period' flag.
+  Containers associated with failed runs used to sit around until a new run is executed.  They now have a max lifetime (default - 120 hours), configurable via 'failed-grace-period' flag.
 
 ### <sub><sup><a name="4950" href="#4950">:link:</a></sup></sub> feature, breaking
 

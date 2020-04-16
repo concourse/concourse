@@ -209,6 +209,64 @@ var _ = Describe("BuildFactory", func() {
 				Expect(i).To(BeTrue())
 			})
 		})
+		Context("failed builds gc'd", func() {
+			DescribeTable("completed and within grace period",
+				func(status db.BuildStatus, matcher types.GomegaMatcher) {
+					b, err := defaultJob.CreateBuild()
+					Expect(err).NotTo(HaveOccurred())
+
+					var i bool
+					err = b.Finish(status)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = buildFactory.MarkNonInterceptibleBuilds()
+					Expect(err).NotTo(HaveOccurred())
+
+					i, err = b.Interceptible()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(i).To(matcher)
+				},
+				Entry("succeeded is interceptible", db.BuildStatusSucceeded, BeTrue()),
+				Entry("aborted is interceptible", db.BuildStatusAborted, BeTrue()),
+				Entry("errored is interceptible", db.BuildStatusErrored, BeTrue()),
+				Entry("failed is interceptible", db.BuildStatusFailed, BeFalse()),
+			)
+			DescribeTable("completed and past the grace period",
+				func(status db.BuildStatus, matcher types.GomegaMatcher) {
+					//set grace period to 0 for this test
+					buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, 1)
+					b, err := defaultTeam.CreateOneOffBuild()
+					Expect(err).NotTo(HaveOccurred())
+
+					var i bool
+					err = b.Finish(status)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = buildFactory.MarkNonInterceptibleBuilds()
+					Expect(err).NotTo(HaveOccurred())
+
+					i, err = b.Interceptible()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(i).NotTo(matcher)
+				},
+				Entry("succeeded is non-interceptible", db.BuildStatusSucceeded, BeFalse()),
+				Entry("aborted is non-interceptible", db.BuildStatusAborted, BeFalse()),
+				Entry("errored is non-interceptible", db.BuildStatusErrored, BeFalse()),
+				Entry("failed is non-interceptible", db.BuildStatusFailed, BeFalse()),
+			)
+
+			It("non-completed is interceptible", func() {
+				b, err := defaultTeam.CreateOneOffBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				var i bool
+				err = buildFactory.MarkNonInterceptibleBuilds()
+				Expect(err).NotTo(HaveOccurred())
+				i, err = b.Interceptible()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(i).To(BeTrue())
+			})
+		})
 	})
 
 	Describe("VisibleBuilds", func() {
