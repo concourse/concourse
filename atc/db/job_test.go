@@ -2267,4 +2267,28 @@ var _ = Describe("Job", func() {
 			}))
 		})
 	})
+
+	Describe("CreateBuild", func() {
+		Context("when a pipeline is archived", func() {
+			It("fails to create a build", func() {
+				err := pipeline.Archive()
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = job.CreateBuild()
+				conflict, ok := err.(db.Conflict)
+				Expect(ok).To(BeTrue(), "error was not a db.Conflict")
+				Expect(conflict.Conflict()).To(Equal("jobs part of an archived pipeline cannot be triggered"))
+			})
+		})
+
+		Context("when a pipeline does not exist", func() {
+			It("returns an error", func() {
+				err := pipeline.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = job.CreateBuild()
+				Expect(err).To(MatchError("pipeline disappeared"))
+			})
+		})
+	})
 })

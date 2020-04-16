@@ -10,7 +10,7 @@ import (
 var basicPipelineConfig = []byte(`
 ---
 jobs:
-- name: simple
+- name: job-name
 `)
 
 var _ = Describe("ATC Integration Test", func() {
@@ -34,16 +34,6 @@ var _ = Describe("ATC Integration Test", func() {
 		pipeline := getPipeline(client, "pipeline")
 		Expect(pipeline.Archived).To(BeTrue(), "pipeline was not archived")
 		Expect(pipeline.Paused).To(BeTrue(), "pipeline was not paused")
-	})
-
-	It("fails when unpausing an archived pipeline", func() {
-		givenAPipeline(client, "pipeline")
-		whenIArchiveIt(client, "pipeline")
-
-		_, err := client.Team("main").UnpausePipeline("pipeline")
-
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("archived pipelines cannot be unpaused"))
 	})
 
 	It("archived pipelines can have their name re-used", func() {
@@ -75,6 +65,28 @@ var _ = Describe("ATC Integration Test", func() {
 
 		_, hasConfig := getPipelineConfig(client, "pipeline")
 		Expect(hasConfig).To(BeFalse())
+	})
+
+	Describe("disallowed endpoints for archived pipelines", func() {
+		It("fails when unpausing", func() {
+			givenAPipeline(client, "pipeline")
+			whenIArchiveIt(client, "pipeline")
+
+			_, err := client.Team("main").UnpausePipeline("pipeline")
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("archived pipelines cannot be unpaused"))
+		})
+
+		It("fails to trigger a job", func() {
+			givenAPipeline(client, "pipeline")
+			whenIArchiveIt(client, "pipeline")
+
+			_, err := client.Team("main").CreateJobBuild("pipeline", "job-name")
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("jobs part of an archived pipeline cannot be triggered"))
+		})
 	})
 
 	Context("when the archiving pipeline endpoint is not enabled", func() {

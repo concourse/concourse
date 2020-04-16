@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+
 	sq "github.com/Masterminds/squirrel"
 
 	"github.com/concourse/concourse/atc/db/lock"
@@ -42,13 +43,17 @@ func (r pipelineRef) PipelineName() string {
 }
 
 func (r pipelineRef) Pipeline() (Pipeline, bool, error) {
+	return r.pipeline(r.conn)
+}
+
+func (r pipelineRef) pipeline(runner sq.BaseRunner) (Pipeline, bool, error) {
 	if r.PipelineID() == 0 {
 		return nil, false, nil
 	}
 
 	row := pipelinesQuery.
 		Where(sq.Eq{"p.id": r.PipelineID()}).
-		RunWith(r.conn).
+		RunWith(runner).
 		QueryRow()
 
 	pipeline := newPipeline(r.conn, r.lockFactory)

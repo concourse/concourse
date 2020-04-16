@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -14,6 +15,8 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/lib/pq"
 )
+
+var ErrPipelineDisappeared = errors.New("pipeline disappeared")
 
 type InputVersionEmptyError struct {
 	InputName string
@@ -656,6 +659,17 @@ func (j *job) CreateBuild() (Build, error) {
 	}
 
 	defer Rollback(tx)
+
+	pipeline, ok, err := j.pipeline(tx)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrPipelineDisappeared
+	}
+	if pipeline.Archived() {
+		return nil, conflict("jobs part of an archived pipeline cannot be triggered")
+	}
 
 	buildName, err := j.getNewBuildName(tx)
 	if err != nil {

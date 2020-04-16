@@ -283,7 +283,9 @@ var _ = Describe("Pipeline", func() {
 		Context("when the pipeline is unpaused", func() {
 			It("pauses the pipeline", func() {
 				err := pipeline.Unpause()
-				Expect(err.Error()).To(ContainSubstring("conflict error: archived pipelines cannot be unpaused"))
+				conflict, ok := err.(db.Conflict)
+				Expect(ok).To(BeTrue(), "error was not a db.Conflict")
+				Expect(conflict.Conflict()).To(Equal("archived pipelines cannot be unpaused"))
 				Expect(pipeline.Paused()).To(BeTrue(), "pipeline was not paused")
 			})
 		})

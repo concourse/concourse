@@ -1480,7 +1480,19 @@ var _ = Describe("Jobs API", func() {
 						fakeJob.DisableManualTriggerReturns(false)
 					})
 
-					Context("when triggering the build fails", func() {
+					Context("when triggering the build fails due to a db conflict", func() {
+						BeforeEach(func() {
+							conflict := new(dbfakes.FakeConflict)
+							conflict.ConflictReturns("some conflict")
+							fakeJob.CreateBuildReturns(nil, conflict)
+						})
+						It("returns a 409", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusConflict))
+							body, _ := ioutil.ReadAll(response.Body)
+							Expect(body).To(Equal([]byte("some conflict\n")))
+						})
+					})
+					Context("when triggering the build fails with an unexpected error", func() {
 						BeforeEach(func() {
 							fakeJob.CreateBuildReturns(nil, errors.New("nopers"))
 						})

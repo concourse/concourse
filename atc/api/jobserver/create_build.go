@@ -33,6 +33,11 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		}
 
 		build, err := job.CreateBuild()
+		if conflict, ok := err.(db.Conflict); ok {
+			logger.Error("failed-to-create-job-build", err)
+			http.Error(w, conflict.Conflict(), http.StatusConflict)
+			return
+		}
 		if err != nil {
 			logger.Error("failed-to-create-job-build", err)
 			w.WriteHeader(http.StatusInternalServerError)
