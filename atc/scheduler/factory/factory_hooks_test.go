@@ -14,7 +14,7 @@ var _ = Describe("Factory Hooks", func() {
 	var (
 		buildFactory factory.BuildFactory
 
-		resources           atc.ResourceConfigs
+		resources           db.SchedulerResources
 		resourceTypes       atc.VersionedResourceTypes
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
@@ -26,7 +26,7 @@ var _ = Describe("Factory Hooks", func() {
 		expectedPlanFactory = atc.NewPlanFactory(123)
 		buildFactory = factory.NewBuildFactory(actualPlanFactory)
 
-		resources = atc.ResourceConfigs{
+		resources = db.SchedulerResources{
 			{
 				Name:   "some-resource",
 				Type:   "git",

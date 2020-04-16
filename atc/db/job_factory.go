@@ -114,6 +114,8 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 				return nil, err
 			}
 
+			defer Close(rows)
+
 			es := j.conn.EncryptionStrategy()
 
 			var noncense *string
@@ -147,11 +149,12 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			rows, err := resourceTypesQuery.
 				Where(sq.Eq{"r.pipeline_id": job.PipelineID()}).
 				OrderBy("r.name").
-				RunWith(j.conn).
+				RunWith(tx).
 				Query()
 			if err != nil {
 				return nil, err
 			}
+
 			defer Close(rows)
 
 			for rows.Next() {
@@ -172,6 +175,11 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			Resources:     schedulerResources,
 			ResourceTypes: resourceTypes.Deserialize(),
 		})
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
 	return schedulerJobs, nil

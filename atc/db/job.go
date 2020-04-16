@@ -225,7 +225,7 @@ func (j *job) AlgorithmInputs() (InputConfigs, error) {
 		Where(sq.Eq{
 			"ji.job_id": j.id,
 		}).
-		GroupBy("ji.name, ji.job_id, ji.resource_id, ji.version, rp.version").
+		GroupBy("ji.name, ji.job_id, ji.resource_id, ji.version, rp.version, ji.trigger").
 		RunWith(j.conn).
 		Query()
 	if err != nil {
@@ -235,12 +235,12 @@ func (j *job) AlgorithmInputs() (InputConfigs, error) {
 	var inputs InputConfigs
 	for rows.Next() {
 		var passedJobs []sql.NullInt64
-		var configVersionString, apiVersionString sql.NullString
+		var configVersionString, pinnedVersionString sql.NullString
 		var inputName string
 		var resourceID int
 		var trigger bool
 
-		err = rows.Scan(&inputName, &resourceID, pq.Array(&passedJobs), &configVersionString, &apiVersionString, &trigger)
+		err = rows.Scan(&inputName, &resourceID, pq.Array(&passedJobs), &configVersionString, &pinnedVersionString, &trigger)
 		if err != nil {
 			return nil, err
 		}
@@ -252,8 +252,8 @@ func (j *job) AlgorithmInputs() (InputConfigs, error) {
 			Trigger:    trigger,
 		}
 
-		if apiVersionString.Valid {
-			err = json.Unmarshal([]byte(apiVersionString.String), &inputConfig.PinnedVersion)
+		if pinnedVersionString.Valid {
+			err = json.Unmarshal([]byte(pinnedVersionString.String), &inputConfig.PinnedVersion)
 			if err != nil {
 				return nil, err
 			}

@@ -13,7 +13,7 @@ var _ = Describe("Factory Get", func() {
 	var (
 		buildFactory factory.BuildFactory
 
-		resources           atc.ResourceConfigs
+		resources           db.SchedulerResources
 		resourceTypes       atc.VersionedResourceTypes
 		input               atc.JobConfig
 		actualPlanFactory   atc.PlanFactory
@@ -25,7 +25,7 @@ var _ = Describe("Factory Get", func() {
 		expectedPlanFactory = atc.NewPlanFactory(123)
 		buildFactory = factory.NewBuildFactory(actualPlanFactory)
 
-		resources = atc.ResourceConfigs{
+		resources = db.SchedulerResources{
 			{
 				Name:   "some-resource",
 				Type:   "git",
