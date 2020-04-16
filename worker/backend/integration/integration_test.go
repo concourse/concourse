@@ -352,13 +352,14 @@ func (s *IntegrationSuite) TestAttach() {
 // those NameServers should appear in the container's etc/resolv.conf
 //
 func (s *IntegrationSuite) TestCustomDNS() {
-	namespace      := "test-custom-dns"
+	namespace := "test-custom-dns"
 	requestTimeout := 3 * time.Second
 
-	cniNetworkConfig := backend.GetDefaultCNINetworkConfig()
-	cniNetworkConfig.NameServers = []string{"1.1.1.1", "1.2.3.4"}
-	networkConfigOpt := backend.WithCNINetworkConfig(cniNetworkConfig)
-	network, err := backend.NewCNINetwork(networkConfigOpt)
+	network, err := backend.NewCNINetwork(
+		backend.WithNameServers([]string{
+			"1.1.1.1", "1.2.3.4",
+		}),
+	)
 	s.NoError(err)
 
 	networkOpt := backend.WithNetwork(network)
@@ -377,7 +378,7 @@ func (s *IntegrationSuite) TestCustomDNS() {
 	handle := uuid()
 
 	container, err := customBackend.Create(garden.ContainerSpec{
-		Handle: handle,
+		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
 	})
@@ -412,7 +413,6 @@ func (s *IntegrationSuite) TestCustomDNS() {
 	expectedDNSServer := "nameserver 1.1.1.1\nnameserver 1.2.3.4\n"
 	s.Equal(expectedDNSServer, buf.String())
 }
-
 
 // TestUngracefulStop aims at validating that we're giving the process enough
 // opportunity to finish, but that at the same time, we don't wait forever.
