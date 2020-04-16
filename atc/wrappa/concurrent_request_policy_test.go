@@ -76,11 +76,28 @@ var _ = Describe("Concurrent Request Policy", func() {
 
 			err := policy.Validate()
 
-			Expect(err).To(MatchError(
-				"invalid concurrent request limit " +
-					"'ListAllJobs=0': " +
-					"'ListAllJobs' is not supported",
-			))
+			expected := "invalid concurrent request limit " +
+				"'ListAllJobs=0': " +
+				"action 'ListAllJobs' " +
+				"is not supported"
+			Expect(err.Error()).To(ContainSubstring(expected))
+		})
+
+		It("error message describes supported actions", func() {
+			policy := wrappa.NewConcurrentRequestPolicy(
+				[]wrappa.ConcurrentRequestLimitFlag{
+					wrappa.ConcurrentRequestLimitFlag{
+						Action: atc.ListAllJobs,
+						Limit:  0,
+					},
+				},
+				[]string{atc.CreateJobBuild, atc.SaveConfig},
+			)
+
+			err := policy.Validate()
+
+			expected := "Supported actions are: CreateJobBuild, SaveConfig"
+			Expect(err.Error()).To(ContainSubstring(expected))
 		})
 
 		It("raises an error with multiple limits on the same action", func() {

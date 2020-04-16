@@ -114,7 +114,12 @@ func (crp *concurrentRequestPolicy) checkSupportedActions() error {
 		if !crp.supports(limit.Action) {
 			return formatError(
 				fmt.Sprintf("%s=%d", limit.Action, limit.Limit),
-				fmt.Sprintf("'%s' is not supported", limit.Action),
+				fmt.Sprintf(
+					"action '%s' is not supported. "+
+						"Supported actions are: %s",
+					limit.Action,
+					strings.Join(crp.supportedActions, ", "),
+				),
 			)
 		}
 	}
