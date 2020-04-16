@@ -4,17 +4,20 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/concourse/concourse/atc/wrappa/wrappafakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 )
 
 var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	var (
 		fakeHandler *wrappafakes.FakeHandler
-		fakeLogger  *wrappafakes.FakeLogger
+		testLogger  *lagertest.TestLogger
 		handler     http.Handler
 		request     *http.Request
 		policy      wrappa.ConcurrentRequestPolicy
@@ -22,7 +25,7 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 
 	BeforeEach(func() {
 		fakeHandler = new(wrappafakes.FakeHandler)
-		fakeLogger = new(wrappafakes.FakeLogger)
+		testLogger = lagertest.NewTestLogger("test")
 		request, _ = http.NewRequest("GET", "localhost:8080", nil)
 	})
 
@@ -32,7 +35,7 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 				wrappa.LimitedRoute(atc.ListAllJobs): limit,
 			},
 		)
-		handler = wrappa.NewConcurrentRequestLimitsWrappa(fakeLogger, policy).
+		handler = wrappa.NewConcurrentRequestLimitsWrappa(testLogger, policy).
 			Wrap(map[string]http.Handler{
 				atc.ListAllJobs: fakeHandler,
 			})[atc.ListAllJobs]
@@ -43,9 +46,12 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 
 		handler.ServeHTTP(httptest.NewRecorder(), request)
 
-		Expect(fakeLogger.InfoCallCount()).To(Equal(1), "no log emitted")
-		logAction, _ := fakeLogger.InfoArgsForCall(0)
-		Expect(logAction).To(Equal("concurrent-request-limit-reached"))
+		Expect(testLogger.Logs()).To(ConsistOf(
+			MatchFields(IgnoreExtras, Fields{
+				"Message":  Equal("test.concurrent-request-limit-reached"),
+				"LogLevel": Equal(lager.INFO),
+			}),
+		))
 	})
 
 	It("invokes the wrapped handler when the limit is not reached", func() {
@@ -75,9 +81,12 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 
 		handler.ServeHTTP(httptest.NewRecorder(), request)
 
-		Expect(fakeLogger.ErrorCallCount()).To(Equal(1))
-		logAction, _, _ := fakeLogger.ErrorArgsForCall(0)
-		Expect(logAction).To(Equal("failed-to-release-handler-pool"))
+		Expect(testLogger.Logs()).To(ConsistOf(
+			MatchFields(IgnoreExtras, Fields{
+				"Message":  Equal("test.failed-to-release-handler-pool"),
+				"LogLevel": Equal(lager.ERROR),
+			}),
+		))
 	})
 
 	It("does not log error when releasing succeeds", func() {
@@ -85,6 +94,6 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 
 		handler.ServeHTTP(httptest.NewRecorder(), request)
 
-		Expect(fakeLogger.ErrorCallCount()).To(Equal(0))
+		Expect(testLogger.Logs()).To(BeEmpty())
 	})
 })

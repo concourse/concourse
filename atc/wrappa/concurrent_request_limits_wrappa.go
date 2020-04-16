@@ -8,8 +8,6 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-//go:generate counterfeiter code.cloudfoundry.org/lager.Logger
-
 type ConcurrentRequestLimitsWrappa struct {
 	logger                  lager.Logger
 	concurrentRequestPolicy ConcurrentRequestPolicy
