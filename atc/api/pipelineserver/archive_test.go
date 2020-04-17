@@ -6,18 +6,20 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/api/pipelineserver"
-	"github.com/concourse/concourse/atc/api/pipelineserver/pipelineserverfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gstruct"
 )
 
 //go:generate counterfeiter code.cloudfoundry.org/lager.Logger
 
 var _ = Describe("Archive Handler", func() {
 	var (
-		fakeLogger *pipelineserverfakes.FakeLogger
+		fakeLogger *lagertest.TestLogger
 		server     *pipelineserver.Server
 		dbPipeline *dbfakes.FakePipeline
 		handler    http.Handler
@@ -26,7 +28,7 @@ var _ = Describe("Archive Handler", func() {
 	)
 
 	BeforeEach(func() {
-		fakeLogger = new(pipelineserverfakes.FakeLogger)
+		fakeLogger = lagertest.NewTestLogger("test")
 		server = pipelineserver.NewServer(
 			fakeLogger,
 			new(dbfakes.FakeTeamFactory),
@@ -46,18 +48,18 @@ var _ = Describe("Archive Handler", func() {
 
 		handler.ServeHTTP(recorder, request)
 
-		Expect(fakeLogger.ErrorCallCount()).To(Equal(1))
-		action, actualError, _ := fakeLogger.ErrorArgsForCall(0)
-		Expect(action).To(Equal("archive-pipeline"), "wrong action name")
-		Expect(actualError).To(Equal(expectedError))
+		Expect(fakeLogger.Logs()).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+			"Message":  Equal("test.archive-pipeline"),
+			"LogLevel": Equal(lager.ERROR),
+		})))
 	})
-
 	It("write a debug log on every request", func() {
 		handler.ServeHTTP(recorder, request)
 
-		Expect(fakeLogger.DebugCallCount()).To(Equal(1))
-		action, _ := fakeLogger.DebugArgsForCall(0)
-		Expect(action).To(Equal("archive-pipeline"), "wrong action name")
+		Expect(fakeLogger.Logs()).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+			"Message":  Equal("test.archive-pipeline"),
+			"LogLevel": Equal(lager.DEBUG),
+		})))
 	})
 
 	It("logs no errors if everything works", func() {
@@ -65,9 +67,11 @@ var _ = Describe("Archive Handler", func() {
 
 		handler.ServeHTTP(recorder, request)
 
-		Expect(fakeLogger.ErrorCallCount()).To(Equal(0))
+		Expect(fakeLogger.Logs()).ToNot(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+			"Message":  Equal("test.archive-pipeline"),
+			"LogLevel": Equal(lager.ERROR),
+		})))
 	})
-
 	Context("when the endpoint is not enabled", func() {
 		BeforeEach(func() {
 			server = pipelineserver.NewServer(
