@@ -49,6 +49,44 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		})
 	})
 
+	Describe("ArchivePipeline", func() {
+		Context("when the pipeline exists", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/archive"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, ""),
+					),
+				)
+			})
+
+			It("return true and no error", func() {
+				found, err := team.ArchivePipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+		})
+
+		Context("when the pipeline doesn't exist", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/archive"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
+					),
+				)
+			})
+
+			It("returns false and no error", func() {
+				found, err := team.ArchivePipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("UnpausePipeline", func() {
 		Context("when the pipeline exists", func() {
 			BeforeEach(func() {

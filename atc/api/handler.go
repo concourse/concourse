@@ -74,6 +74,8 @@ func NewHandler(
 	interceptUpdateInterval time.Duration,
 	dbWall db.Wall,
 	clock clock.Clock,
+
+	enableArchivePipeline bool,
 ) (http.Handler, error) {
 
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
@@ -91,7 +93,7 @@ func NewHandler(
 	resourceServer := resourceserver.NewServer(logger, secretManager, varSourcePool, dbCheckFactory, dbResourceFactory, dbResourceConfigFactory)
 
 	versionServer := versionserver.NewServer(logger, externalURL)
-	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL)
+	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, enableArchivePipeline)
 	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager)
 	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
@@ -148,6 +150,7 @@ func NewHandler(
 		atc.DeletePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline),
 		atc.OrderPipelines:      http.HandlerFunc(pipelineServer.OrderPipelines),
 		atc.PausePipeline:       pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline),
+		atc.ArchivePipeline:     pipelineHandlerFactory.HandlerFor(pipelineServer.ArchivePipeline),
 		atc.UnpausePipeline:     pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline),
 		atc.ExposePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.ExposePipeline),
 		atc.HidePipeline:        pipelineHandlerFactory.HandlerFor(pipelineServer.HidePipeline),

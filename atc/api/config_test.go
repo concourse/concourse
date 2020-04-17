@@ -196,6 +196,15 @@ var _ = Describe("Config API", func() {
 							})
 						})
 					})
+
+					Context("when the pipeline is archived", func() {
+						BeforeEach(func() {
+							fakePipeline.ArchivedReturns(true)
+						})
+						It("returns 404", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						})
+					})
 				})
 
 				Context("when the pipeline is not found", func() {
