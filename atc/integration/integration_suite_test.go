@@ -2,6 +2,8 @@ package integration_test
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/concourse/flag"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"golang.org/x/oauth2"
@@ -32,10 +35,12 @@ var (
 var _ = BeforeEach(func() {
 	cmd = &atccmd.RunCommand{}
 
-	// call parseArgs to populate flag defaults
-	// but ignore errors so that we can use
-	// the required:"true" field annotation
-	flags.ParseArgs(cmd, []string{})
+	// call parseArgs to populate flag defaults but ignore errors so that we can
+	// use the required:"true" field annotation
+	//
+	// use flags.None so that we don't print errors
+	parser := flags.NewParser(cmd, flags.None)
+	_, _ = parser.ParseArgs([]string{})
 
 	cmd.Postgres.User = "postgres"
 	cmd.Postgres.Database = "testdb"
@@ -58,6 +63,11 @@ var _ = BeforeEach(func() {
 	cmd.Logger.SetWriterSink(GinkgoWriter)
 	cmd.BindPort = 9090 + uint16(GinkgoParallelNode())
 	cmd.DebugBindPort = 0
+
+	signingKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	Expect(err).ToNot(HaveOccurred())
+
+	cmd.Auth.AuthFlags.SigningKey = &flag.PrivateKey{PrivateKey: signingKey}
 
 	postgresRunner = postgresrunner.Runner{
 		Port: 5433 + GinkgoParallelNode(),
