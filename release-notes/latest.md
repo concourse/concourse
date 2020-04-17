@@ -40,3 +40,8 @@
 #### <sub><sup><a name="5410" href="#5410">:link:</a></sup></sub> feature
 
 * We've moved the "pin comment" field in the Resource view to the top of the page (next to the currently pinned version). The comment can be edited inline.
+
+#### <sub><sup><a name="5458" href="#5458">:link:</a></sup></sub> feature
+
+* Add loading indicator on dashboard while awaiting initial API/cache response. #5458
+
