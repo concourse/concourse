@@ -24,6 +24,9 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 * Close Worker's registration connection to the TSA on application level keepalive failure
 * Add 5 second timeout for keepalive operation
+#### <sub><sup><a name="5457" href="#5457">:link:</a></sup></sub> fix
+
+* Improve consistency of auto-scrolling to highlighted logs. #5457
 
 #### <sub><sup><a name="5452" href="#4081">:link:</a></sup></sub> fix
 
