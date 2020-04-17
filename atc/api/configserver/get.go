@@ -42,8 +42,14 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if pipeline.Archived() {
+		logger.Debug("pipeline-is-archived", lager.Data{"pipeline": pipelineName})
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	config, err := pipeline.Config()
-	if err !=  nil {
+	if err != nil {
 		logger.Error("failed-to-get-pipeline-config", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return

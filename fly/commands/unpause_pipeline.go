@@ -19,11 +19,11 @@ func (command *UnpausePipelineCommand) Validate() error {
 
 func (command *UnpausePipelineCommand) Execute(args []string) error {
 	if string(command.Pipeline) == "" && !command.All {
-		displayhelpers.Failf("Either a pipeline name or --all are required")
+		displayhelpers.Failf("one of the flags '-p, --pipeline' or '-a, --all' is required")
 	}
 
 	if string(command.Pipeline) != "" && command.All {
-		displayhelpers.Failf("A pipeline and --all can not both be specified")
+		displayhelpers.Failf("only one of the flags '-p, --pipeline' or '-a, --all' is allowed")
 	}
 
 	err := command.Validate()

@@ -41,7 +41,18 @@
 
 * We've moved the "pin comment" field in the Resource view to the top of the page (next to the currently pinned version). The comment can be edited inline.
 
+#### <sub><sup><a name="5368" href="#5368">:link:</a></sup></sub> feature
+
+* Implemented the core functionality for archiving pipelines [RFC #33]. 
+
+  **note**: archived pipelines are neither visible in the web UI (#5370) nor in `fly pipelines`.
+
+  **note:** archiving a pipeline will nullify the pipeline configuration. If for some reason you downgrade the version of Concourse, unpausing a pipeline that was previously archived will result in a broken pipeline. To fix that, set the pipeline again.
+
+[RFC #33]: https://github.com/concourse/rfcs/pull/33
+
 #### <sub><sup><a name="5458" href="#5458">:link:</a></sup></sub> feature
 
 * Add loading indicator on dashboard while awaiting initial API/cache response. #5458
+
 

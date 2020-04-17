@@ -46,6 +46,7 @@ type Pipeline interface {
 	Config() (atc.Config, error)
 	Public() bool
 	Paused() bool
+	Archived() bool
 	LastUpdated() time.Time
 
 	CheckPaused() (bool, error)
@@ -85,6 +86,8 @@ type Pipeline interface {
 	Pause() error
 	Unpause() error
 
+	Archive() error
+
 	Destroy() error
 	Rename(string) error
 
@@ -101,6 +104,7 @@ type pipeline struct {
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
+	archived      bool
 	lastUpdated   time.Time
 
 	conn        Conn
@@ -121,6 +125,7 @@ var pipelinesQuery = psql.Select(`
 		t.name,
 		p.paused,
 		p.public,
+		p.archived,
 		p.last_updated
 	`).
 	From("pipelines p").
@@ -143,6 +148,7 @@ func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
+func (p *pipeline) Archived() bool                   { return p.archived }
 func (p *pipeline) LastUpdated() time.Time           { return p.lastUpdated }
 
 // IMPORTANT: This method is broken with the new resource config versions changes
@@ -594,6 +600,10 @@ func (p *pipeline) Pause() error {
 }
 
 func (p *pipeline) Unpause() error {
+	if p.Archived() {
+		return conflict("archived pipelines cannot be unpaused")
+	}
+
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return err
@@ -614,6 +624,47 @@ func (p *pipeline) Unpause() error {
 	}
 
 	err = requestScheduleForJobsInPipeline(tx, p.id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (p *pipeline) Archive() error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	_, err = psql.Update("pipelines").
+		Set("archived", true).
+		Set("last_updated", sq.Expr("now()")).
+		Set("paused", true).
+		Set("version", 0).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	err = p.clearConfigForJobsInPipeline(tx)
+	if err != nil {
+		return err
+	}
+
+	err = p.clearConfigForResourcesInPipeline(tx)
+	if err != nil {
+		return err
+	}
+
+	err = p.clearConfigForResourceTypesInPipeline(tx)
 	if err != nil {
 		return err
 	}
@@ -1162,6 +1213,87 @@ func requestScheduleForJobsInPipeline(tx Tx, pipelineID int) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (p *pipeline) clearConfigForJobsInPipeline(tx Tx) error {
+	var emptyConfig atc.JobConfig
+
+	es := p.conn.EncryptionStrategy()
+
+	configPayload, err := json.Marshal(emptyConfig)
+	if err != nil {
+		return err
+	}
+	encryptedPayload, nonce, err := es.Encrypt(configPayload)
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("jobs").
+		Set("config", encryptedPayload).
+		Set("nonce", nonce).
+		Where(sq.Eq{"pipeline_id": p.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *pipeline) clearConfigForResourcesInPipeline(tx Tx) error {
+	var emptyConfig atc.ResourceConfig
+
+	es := p.conn.EncryptionStrategy()
+
+	configPayload, err := json.Marshal(emptyConfig)
+	if err != nil {
+		return err
+	}
+	encryptedPayload, nonce, err := es.Encrypt(configPayload)
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("resources").
+		Set("config", encryptedPayload).
+		Set("nonce", nonce).
+		Where(sq.Eq{"pipeline_id": p.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *pipeline) clearConfigForResourceTypesInPipeline(tx Tx) error {
+	var emptyResourceType atc.ResourceType
+
+	es := p.conn.EncryptionStrategy()
+
+	configPayload, err := json.Marshal(emptyResourceType)
+	if err != nil {
+		return err
+	}
+
+	encryptedPayload, nonce, err := es.Encrypt(configPayload)
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Update("resource_types").
+		Set("config", encryptedPayload).
+		Set("nonce", nonce).
+		Where(sq.Eq{"pipeline_id": p.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
 	}
 
 	return nil

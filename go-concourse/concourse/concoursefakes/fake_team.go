@@ -10,6 +10,19 @@ import (
 )
 
 type FakeTeam struct {
+	ArchivePipelineStub        func(string) (bool, error)
+	archivePipelineMutex       sync.RWMutex
+	archivePipelineArgsForCall []struct {
+		arg1 string
+	}
+	archivePipelineReturns struct {
+		result1 bool
+		result2 error
+	}
+	archivePipelineReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	AuthStub        func() atc.TeamAuth
 	authMutex       sync.RWMutex
 	authArgsForCall []struct {
@@ -727,6 +740,69 @@ type FakeTeam struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeTeam) ArchivePipeline(arg1 string) (bool, error) {
+	fake.archivePipelineMutex.Lock()
+	ret, specificReturn := fake.archivePipelineReturnsOnCall[len(fake.archivePipelineArgsForCall)]
+	fake.archivePipelineArgsForCall = append(fake.archivePipelineArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("ArchivePipeline", []interface{}{arg1})
+	fake.archivePipelineMutex.Unlock()
+	if fake.ArchivePipelineStub != nil {
+		return fake.ArchivePipelineStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.archivePipelineReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTeam) ArchivePipelineCallCount() int {
+	fake.archivePipelineMutex.RLock()
+	defer fake.archivePipelineMutex.RUnlock()
+	return len(fake.archivePipelineArgsForCall)
+}
+
+func (fake *FakeTeam) ArchivePipelineCalls(stub func(string) (bool, error)) {
+	fake.archivePipelineMutex.Lock()
+	defer fake.archivePipelineMutex.Unlock()
+	fake.ArchivePipelineStub = stub
+}
+
+func (fake *FakeTeam) ArchivePipelineArgsForCall(i int) string {
+	fake.archivePipelineMutex.RLock()
+	defer fake.archivePipelineMutex.RUnlock()
+	argsForCall := fake.archivePipelineArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTeam) ArchivePipelineReturns(result1 bool, result2 error) {
+	fake.archivePipelineMutex.Lock()
+	defer fake.archivePipelineMutex.Unlock()
+	fake.ArchivePipelineStub = nil
+	fake.archivePipelineReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeam) ArchivePipelineReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.archivePipelineMutex.Lock()
+	defer fake.archivePipelineMutex.Unlock()
+	fake.ArchivePipelineStub = nil
+	if fake.archivePipelineReturnsOnCall == nil {
+		fake.archivePipelineReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.archivePipelineReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTeam) Auth() atc.TeamAuth {
@@ -3898,6 +3974,8 @@ func (fake *FakeTeam) VersionedResourceTypesReturnsOnCall(i int, result1 atc.Ver
 func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.archivePipelineMutex.RLock()
+	defer fake.archivePipelineMutex.RUnlock()
 	fake.authMutex.RLock()
 	defer fake.authMutex.RUnlock()
 	fake.buildInputsForJobMutex.RLock()
