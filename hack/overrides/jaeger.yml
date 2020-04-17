@@ -20,6 +20,7 @@ services:
     command:
       - --sampling.strategies-file=/etc/jaeger/sampling_strategies.json
       - --log-level=debug
+    restart: on-failure
     environment:
       COLLECTOR_ZIPKIN_HTTP_PORT: 9411
       SPAN_STORAGE_TYPE: elasticsearch
