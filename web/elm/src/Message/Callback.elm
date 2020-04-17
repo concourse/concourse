@@ -15,7 +15,6 @@ import Message.Message
         , VersionToggleAction
         , VisibilityAction
         )
-import Message.ScrollDirection exposing (ScrollDirection)
 import Time
 
 

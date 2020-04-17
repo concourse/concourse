@@ -11,7 +11,7 @@ import Api
 import Api.Endpoints as Endpoints
 import Assets
 import Base64
-import Browser.Dom exposing (Element, Viewport, getElement, getViewport, getViewportOf, setViewportOf)
+import Browser.Dom exposing (Viewport, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
 import Concourse exposing (encodeJob, encodePipeline, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
@@ -659,11 +659,6 @@ toHtmlID domId =
 
         _ ->
             ""
-
-
-scrollToIdPadding : Float
-scrollToIdPadding =
-    60
 
 
 scroll : ScrollDirection -> String -> Cmd Callback
