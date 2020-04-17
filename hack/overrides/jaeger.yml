@@ -26,6 +26,7 @@ services:
       SPAN_STORAGE_TYPE: elasticsearch
       ES_SERVER_URLS: http://elasticsearch:9200
       ES_TAGS_AS_FIELDS_ALL: "true"
+      ES_NUM_REPLICAS: 0
     ports:
       - '14268:14268'
       - '25000:16686'
