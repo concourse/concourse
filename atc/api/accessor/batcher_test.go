@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/MasterOfBinary/gobatch/batch"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
@@ -29,9 +28,7 @@ var _ = Describe("Batcher", func() {
 		user.SubReturns(base64.StdEncoding.EncodeToString([]byte("some-user" + "connector")))
 
 		fakeUserFactory = new(dbfakes.FakeUserFactory)
-		userTracker = accessor.NewBatcher(logger, fakeUserFactory, &batch.ConfigValues{
-			MaxItems: 1,
-		})
+		userTracker = accessor.NewBatcher(logger, fakeUserFactory, 0, 1)
 	})
 
 	JustBeforeEach(func() {
@@ -41,9 +38,7 @@ var _ = Describe("Batcher", func() {
 
 	Context("when batcher is config to flush immediately", func() {
 		BeforeEach(func() {
-			userTracker = accessor.NewBatcher(logger, fakeUserFactory, &batch.ConfigValues{
-				MaxItems: 1,
-			})
+			userTracker = accessor.NewBatcher(logger, fakeUserFactory, 0, 1)
 		})
 
 		It("upsert the user", func() {

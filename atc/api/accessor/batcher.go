@@ -29,13 +29,16 @@ func (u user) Name() string         { return u.name }
 func (u user) Connector() string    { return u.connector }
 func (u user) LastLogin() time.Time { return time.Now() }
 
-func NewBatcher(logger lager.Logger, userFactory db.UserFactory, batchConfig *batch.ConfigValues) *batcher {
+func NewBatcher(logger lager.Logger, userFactory db.UserFactory, interval time.Duration, maxItems uint64) *batcher {
 	ch := make(chan interface{})
 	s := source.Channel{
 		Input: ch,
 	}
 
-	userBatch := batch.New(batch.NewConstantConfig(batchConfig))
+	userBatch := batch.New(batch.NewConstantConfig(&batch.ConfigValues{
+		MaxItems: maxItems,
+		MinTime:  interval,
+	}))
 
 	b := &batcher{
 		batch:       userBatch,

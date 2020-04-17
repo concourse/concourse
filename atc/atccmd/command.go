@@ -17,7 +17,6 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/MasterOfBinary/gobatch/batch"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api"
@@ -1748,10 +1747,8 @@ func (cmd *RunCommand) constructAPIHandler(
 	batcher := accessor.NewBatcher(
 		logger,
 		dbUserFactory,
-		&batch.ConfigValues{
-			MaxItems: 100,
-			MinTime:  15 * time.Second,
-		},
+		15*time.Second,
+		100,
 	)
 
 	cacher := accessor.NewCacher(
