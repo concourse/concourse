@@ -187,8 +187,27 @@ app.ports.syncTextareaHeight.subscribe(function(id) {
 	  setTimeout(attemptToSyncHeight, 50);
 	}
   }, 0);
-})
+});
 
+app.ports.scrollToId.subscribe(function(params) {
+  if (!params || params.length !== 2) {
+    return;
+  }
+  const [parentId, toId] = params;
+  const padding = 10;
+  const interval = setInterval(function() {
+    const parentElem = document.getElementById(parentId);
+    if (parentElem == null) {
+      return;
+    }
+    const elem = document.getElementById(toId);
+    if (elem == null) {
+      return;
+    }
+    parentElem.scrollTop = elem.offsetTop - padding;
+    clearInterval(interval);
+  }, 20);
+});
 
 app.ports.openEventStream.subscribe(function(config) {
   var buffer = [];

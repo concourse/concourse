@@ -298,9 +298,6 @@ handleCallback action ( model, effects ) =
             -- https://github.com/concourse/concourse/issues/3201
             ( model, effects )
 
-        ScrollCompleted (ScrollDirection.ToId _) _ ->
-            ( { model | highlight = Routes.HighlightNothing }, effects )
-
         _ ->
             ( model, effects )
     )
@@ -355,28 +352,31 @@ handleDelivery session delivery ( model, effects ) =
                 ( newModel, newEffects ) =
                     updateOutput
                         (Build.Output.Output.handleEnvelopes envelopes)
-                        ( if eventSourceClosed && (envelopes |> List.map .data |> List.member STModels.NetworkError) then
-                            { model | authorized = False }
+                        (if eventSourceClosed && (envelopes |> List.map .data |> List.member STModels.NetworkError) then
+                            ( { model | authorized = False }, effects )
 
-                          else
-                            model
-                        , case getScrollBehavior model of
-                            ScrollWindow ->
-                                effects
-                                    ++ [ Effects.Scroll
-                                            ScrollDirection.ToBottom
-                                            bodyId
-                                       ]
+                         else
+                            case getScrollBehavior model of
+                                ScrollWindow ->
+                                    ( model
+                                    , effects
+                                        ++ [ Effects.Scroll
+                                                ScrollDirection.ToBottom
+                                                bodyId
+                                           ]
+                                    )
 
-                            ScrollToID id ->
-                                effects
-                                    ++ [ Effects.Scroll
-                                            (ScrollDirection.ToId id)
-                                            bodyId
-                                       ]
+                                ScrollToID id ->
+                                    ( { model | highlight = Routes.HighlightNothing }
+                                    , effects
+                                        ++ [ Effects.Scroll
+                                                (ScrollDirection.ToId id)
+                                                bodyId
+                                           ]
+                                    )
 
-                            NoScroll ->
-                                effects
+                                NoScroll ->
+                                    ( model, effects )
                         )
             in
             case ( model.hasLoadedYet, buildStatus ) of

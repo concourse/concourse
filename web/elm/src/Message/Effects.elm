@@ -86,6 +86,9 @@ port renderSvgIcon : String -> Cmd msg
 port syncTextareaHeight : String -> Cmd msg
 
 
+port scrollToId : ( String, String ) -> Cmd msg
+
+
 type alias StickyHeaderConfig =
     { pageHeaderHeight : Float
     , pageBodyClass : String
@@ -665,41 +668,37 @@ scrollToIdPadding =
 
 scroll : ScrollDirection -> String -> Cmd Callback
 scroll direction id =
-    (case direction of
+    case direction of
         ToTop ->
-            scrollCoordsSimple id (always 0) (always 0)
+            scrollCoords id (always 0) (always 0)
+                |> Task.attempt (\_ -> EmptyCallback)
 
         Down ->
-            scrollCoordsSimple id (always 0) (.viewport >> .y >> (+) 60)
+            scrollCoords id (always 0) (.viewport >> .y >> (+) 60)
+                |> Task.attempt (\_ -> EmptyCallback)
 
         Up ->
-            scrollCoordsSimple id (always 0) (.viewport >> .y >> (+) -60)
+            scrollCoords id (always 0) (.viewport >> .y >> (+) -60)
+                |> Task.attempt (\_ -> EmptyCallback)
 
         ToBottom ->
-            scrollCoordsSimple id (always 0) (.scene >> .height)
+            scrollCoords id (always 0) (.scene >> .height)
+                |> Task.attempt (\_ -> EmptyCallback)
 
         Sideways delta ->
-            scrollCoordsSimple id (.viewport >> .x >> (+) -delta) (always 0)
+            scrollCoords id (.viewport >> .x >> (+) -delta) (always 0)
+                |> Task.attempt (\_ -> EmptyCallback)
 
         ToId toId ->
-            scrollCoords toId
-                id
-                (\{ srcElem, parentElem } ->
-                    parentElem.viewport.x + srcElem.element.x - parentElem.element.x - scrollToIdPadding
-                )
-                (\{ srcElem, parentElem } ->
-                    parentElem.viewport.y + srcElem.element.y - parentElem.element.y - scrollToIdPadding
-                )
-    )
-        |> Task.attempt (\_ -> ScrollCompleted direction id)
+            scrollToId ( id, toId )
 
 
-scrollCoordsSimple :
+scrollCoords :
     String
     -> (Viewport -> Float)
     -> (Viewport -> Float)
     -> Task.Task Browser.Dom.Error ()
-scrollCoordsSimple id getX getY =
+scrollCoords id getX getY =
     getViewportOf id
         |> Task.andThen
             (\viewport ->
@@ -707,50 +706,4 @@ scrollCoordsSimple id getX getY =
                     id
                     (getX viewport)
                     (getY viewport)
-            )
-
-
-scrollCoords :
-    String
-    -> String
-    -> ({ srcElem : Element, parentElem : Element } -> Float)
-    -> ({ srcElem : Element, parentElem : Element } -> Float)
-    -> Task.Task Browser.Dom.Error ()
-scrollCoords srcId idOfThingToScroll getX getY =
-    Task.sequence [ getElement srcId, getElement idOfThingToScroll ]
-        |> Task.andThen
-            (\elems ->
-                getViewportOf idOfThingToScroll
-                    |> Task.andThen
-                        (\parentViewport ->
-                            Task.succeed
-                                { elems = elems
-                                , parentViewport = parentViewport
-                                }
-                        )
-            )
-        |> Task.andThen
-            (\{ elems, parentViewport } ->
-                case elems of
-                    [ srcInfo, parentInfo ] ->
-                        let
-                            info =
-                                { srcElem = srcInfo
-
-                                -- https://github.com/elm/browser/issues/86
-                                , parentElem =
-                                    { parentInfo
-                                        | viewport = parentViewport.viewport
-                                        , scene = parentViewport.scene
-                                    }
-                                }
-                        in
-                        setViewportOf
-                            idOfThingToScroll
-                            (getX info)
-                            (getY info)
-
-                    _ ->
-                        Task.fail <|
-                            Browser.Dom.NotFound "unexpected number of elements"
             )

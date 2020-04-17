@@ -425,9 +425,6 @@ all =
                                 ]
                         )
                     |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.ScrollCompleted (ScrollDirection.ToId "stepid:1") "build-body")
-                    |> Tuple.first
                     |> Application.handleDelivery
                         (EventsReceived <| Ok [])
                     |> Tuple.second
