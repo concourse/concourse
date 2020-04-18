@@ -1,3 +1,1 @@
-# Need help with using Concourse?
-
 Please ask in [Discussions](https://github.com/concourse/concourse/discussions) or in [Discord](https://discord.gg/MeRxXKW) instead of opening GitHub issues for questions or technical support. Thank you!
