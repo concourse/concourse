@@ -184,6 +184,7 @@ type RunCommand struct {
 		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Period after which one-off build containers will be garbage-collected."`
 		MissingGracePeriod     time.Duration `long:"missing-grace-period" default:"5m" description:"Period after which to reap containers and volumes that were created but went missing from the worker."`
 		HijackGracePeriod      time.Duration `long:"hijack-grace-period" default:"10m" description:"Period after which hijacked containers will be garbage collected"`
+		FailedGracePeriod      time.Duration `long:"failed-grace-period" default:"120h" description:"Period after which failed containers will be garbage collected"`
 		CheckRecyclePeriod     time.Duration `long:"check-recycle-period" default:"1m" description:"Period after which to reap checks that are completed."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
@@ -645,7 +646,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbResourceFactory := db.NewResourceFactory(dbConn, lockFactory)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
-	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
@@ -888,7 +889,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		lockFactory,
 	)
 
-	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
@@ -1018,7 +1019,7 @@ func (cmd *RunCommand) constructGCMember(
 	dbArtifactLifecycle := db.NewArtifactLifecycle(gcConn)
 	dbCheckLifecycle := db.NewCheckLifecycle(gcConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
-	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
 
 	dbVolumeRepository := db.NewVolumeRepository(gcConn)
