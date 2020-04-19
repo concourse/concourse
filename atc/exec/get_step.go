@@ -144,6 +144,7 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		TeamID: step.metadata.TeamID,
 		Env:    step.metadata.Env(),
 	}
+	tracing.Inject(ctx, &containerSpec)
 
 	workerSpec := worker.WorkerSpec{
 		ResourceType:  step.plan.Type,

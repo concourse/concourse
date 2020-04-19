@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/api/propagators"
 	"go.opentelemetry.io/otel/api/key"
 	"go.opentelemetry.io/otel/api/trace"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
@@ -76,6 +77,10 @@ func StartSpan(
 	}
 
 	return ctx, span
+}
+
+func Inject(ctx context.Context, supplier propagators.Supplier) {
+	propagators.TraceContext{}.Inject(ctx, supplier)
 }
 
 func End(span trace.Span, err error) {
