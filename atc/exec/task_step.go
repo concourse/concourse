@@ -218,6 +218,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	if err != nil {
 		return err
 	}
+	tracing.Inject(ctx, &containerSpec)
 
 	processSpec := runtime.ProcessSpec{
 		Path:         config.Run.Path,
