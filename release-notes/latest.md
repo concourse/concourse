@@ -57,3 +57,8 @@
 
 [RFC #33]: https://github.com/concourse/rfcs/pull/33
 
+#### <sub><sup><a name="5458" href="#5458">:link:</a></sup></sub> feature
+
+* Add loading indicator on dashboard while awaiting initial API/cache response. #5458
+
+

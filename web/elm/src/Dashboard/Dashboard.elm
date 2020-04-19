@@ -66,6 +66,7 @@ import SideBar.SideBar as SideBar
 import StrictEvents exposing (onScroll)
 import Time
 import UserState
+import Views.Spinner as Spinner
 import Views.Styles
 
 
@@ -766,7 +767,19 @@ dashboardView session model =
                 :: onScroll Scrolled
                 :: Styles.content model.highDensity
             )
-            (welcomeCard session model :: pipelinesView session model)
+            (if model.pipelines == None then
+                [ loadingView ]
+
+             else
+                welcomeCard session model :: pipelinesView session model
+            )
+
+
+loadingView : Html Message
+loadingView =
+    Html.div
+        (class "loading" :: Styles.loadingView)
+        [ Spinner.spinner { sizePx = 36, margin = "0" } ]
 
 
 welcomeCard :

@@ -116,17 +116,6 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "pipeline-wrapper" ]
                     |> Query.has [ class "parallel-grid" ]
-        , test "renders team sections when receive cached teams delivery" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleDelivery
-                        (CachedTeamsReceived <|
-                            Ok <|
-                                [ { id = 0, name = "team-0" } ]
-                        )
-                    |> Tuple.first
-                    |> Common.queryView
-                    |> Query.has [ class "dashboard-team-group", containing [ text "team-0" ] ]
         , test "ignores the job cache after fetching successfully" <|
             \_ ->
                 Common.init "/"

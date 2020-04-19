@@ -17,6 +17,7 @@ module Dashboard.Styles exposing
     , legend
     , legendItem
     , legendSeparator
+    , loadingView
     , noPipelineCard
     , noPipelineCardHd
     , noPipelineCardHeader
@@ -795,4 +796,14 @@ clusterName =
     , style "color" "#ffffff"
     , style "letter-spacing" "0.1em"
     , style "margin-left" "10px"
+    ]
+
+
+loadingView : List (Html.Attribute msg)
+loadingView =
+    [ style "display" "flex"
+    , style "justify-content" "center"
+    , style "align-items" "center"
+    , style "width" "100%"
+    , style "height" "100%"
     ]
