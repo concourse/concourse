@@ -48,26 +48,11 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 			})[atc.ListAllJobs]
 	}
 
-	It("records the number of requests in-flight", func() {
-		givenConcurrentRequestLimit(1)
-
-		handler.ServeHTTP(httptest.NewRecorder(), request)
-		handler.ServeHTTP(httptest.NewRecorder(), request)
-
-		Expect(metric.ConcurrentRequests[atc.ListAllJobs].Max()).To(Equal(float64(1)))
-	})
-
-	It("records when the concurrent request limit is hit", func() {
-		givenConcurrentRequestLimit(0)
-
-		handler.ServeHTTP(httptest.NewRecorder(), request)
-		handler.ServeHTTP(httptest.NewRecorder(), request)
-
-		Expect(metric.ConcurrentRequestsLimitHit[atc.ListAllJobs].Delta()).To(Equal(float64(2)))
-	})
-
-	It("logs when the concurrent request limit is hit", func() {
-		givenConcurrentRequestLimit(0)
+	Context("when the limit is reached", func() {
+		BeforeEach(func() {
+			givenConcurrentRequestLimit(1)
+			fakePool.TryAcquireReturns(false)
+		})
 
 		It("responds with a 503", func() {
 			recorder := httptest.NewRecorder()
