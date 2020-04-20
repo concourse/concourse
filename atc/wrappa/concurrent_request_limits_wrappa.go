@@ -55,6 +55,12 @@ func (wrappa ConcurrentRequestLimitsWrappa) wrap(
 	handler http.Handler,
 	inflight *metric.Gauge, limitHit *metric.Counter,
 ) http.Handler {
+	if pool.Size() == 0 {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			wrappa.logger.Debug("endpoint-disabled")
+			w.WriteHeader(http.StatusNotImplemented)
+		})
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !pool.TryAcquire() {
 			wrappa.logger.Info("concurrent-request-limit-reached")

@@ -19,10 +19,11 @@ import (
 var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	var (
 		fakeHandler *wrappafakes.FakeHandler
+		fakePolicy  *wrappafakes.FakeConcurrentRequestPolicy
+		fakePool    *wrappafakes.FakePool
 		testLogger  *lagertest.TestLogger
 		handler     http.Handler
 		request     *http.Request
-		policy      wrappa.ConcurrentRequestPolicy
 	)
 
 	BeforeEach(func() {
@@ -36,12 +37,12 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	})
 
 	givenConcurrentRequestLimit := func(limit int) {
-		policy = wrappa.NewConcurrentRequestPolicy(
-			map[wrappa.LimitedRoute]int{
-				wrappa.LimitedRoute(atc.ListAllJobs): limit,
-			},
-		)
-		handler = wrappa.NewConcurrentRequestLimitsWrappa(testLogger, policy).
+		fakePolicy = new(wrappafakes.FakeConcurrentRequestPolicy)
+		fakePool = new(wrappafakes.FakePool)
+		fakePolicy.HandlerPoolReturns(fakePool, true)
+		fakePool.SizeReturns(limit)
+
+		handler = wrappa.NewConcurrentRequestLimitsWrappa(testLogger, fakePolicy).
 			Wrap(map[string]http.Handler{
 				atc.ListAllJobs: fakeHandler,
 			})[atc.ListAllJobs]
@@ -72,27 +73,42 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 
 		Expect(testLogger.Logs()).To(ConsistOf(
 			MatchFields(IgnoreExtras, Fields{
+				"Message":  Equal("test.endpoint-disabled"),
+				"LogLevel": Equal(lager.DEBUG),
+			}),
+		))
+	})
+
+	It("logs when the concurrent request limit is hit", func() {
+		givenConcurrentRequestLimit(1)
+		fakePool.TryAcquireReturns(false)
+
+		handler.ServeHTTP(httptest.NewRecorder(), request)
+
+		Expect(testLogger.Logs()).To(ConsistOf(
+			MatchFields(IgnoreExtras, Fields{
 				"Message":  Equal("test.concurrent-request-limit-reached"),
 				"LogLevel": Equal(lager.INFO),
 			}),
 		))
 	})
 
-	It("invokes the wrapped handler when the limit is not reached", func() {
-		givenConcurrentRequestLimit(1)
+	Context("when the limit is not reached", func() {
+		BeforeEach(func() {
+			givenConcurrentRequestLimit(1)
+			fakePool.TryAcquireReturns(true)
+		})
 
-		handler.ServeHTTP(httptest.NewRecorder(), request)
+		It("invokes the wrapped handler", func() {
+			handler.ServeHTTP(httptest.NewRecorder(), request)
 
-		Expect(fakeHandler.ServeHTTPCallCount()).To(Equal(1), "wrapped handler not invoked")
-	})
+			Expect(fakeHandler.ServeHTTPCallCount()).To(Equal(1), "wrapped handler not invoked")
+		})
 
-	It("permits serial requests", func() {
-		givenConcurrentRequestLimit(1)
-		rec := httptest.NewRecorder()
+		It("releases the pool", func() {
+			handler.ServeHTTP(httptest.NewRecorder(), request)
 
-		handler.ServeHTTP(httptest.NewRecorder(), request)
-		handler.ServeHTTP(rec, request)
-
-		Expect(rec.Result().StatusCode).To(Equal(http.StatusOK))
+			Expect(fakePool.ReleaseCallCount()).To(Equal(1))
+		})
 	})
 })

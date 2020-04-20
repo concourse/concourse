@@ -36,6 +36,8 @@ func isValidAction(action string) bool {
 	return false
 }
 
+//go:generate counterfeiter . ConcurrentRequestPolicy
+
 type ConcurrentRequestPolicy interface {
 	HandlerPool(action string) (Pool, bool)
 }
