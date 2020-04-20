@@ -58,6 +58,8 @@ func (wrappa ConcurrentRequestLimitsWrappa) wrap(
 	if pool.Size() == 0 {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			wrappa.logger.Debug("endpoint-disabled")
+			limitHit.Inc()
+
 			w.WriteHeader(http.StatusNotImplemented)
 		})
 	}

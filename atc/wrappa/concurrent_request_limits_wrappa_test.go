@@ -69,28 +69,30 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 	It("logs when the concurrent request limit is hit", func() {
 		givenConcurrentRequestLimit(0)
 
-		handler.ServeHTTP(httptest.NewRecorder(), request)
+		It("responds with a 503", func() {
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, request)
 
-		Expect(testLogger.Logs()).To(ConsistOf(
-			MatchFields(IgnoreExtras, Fields{
-				"Message":  Equal("test.endpoint-disabled"),
-				"LogLevel": Equal(lager.DEBUG),
-			}),
-		))
-	})
+			Expect(recorder.Code).To(Equal(http.StatusServiceUnavailable))
+		})
 
-	It("logs when the concurrent request limit is hit", func() {
-		givenConcurrentRequestLimit(1)
-		fakePool.TryAcquireReturns(false)
+		It("logs an INFO message", func() {
+			handler.ServeHTTP(httptest.NewRecorder(), request)
 
-		handler.ServeHTTP(httptest.NewRecorder(), request)
+			Expect(testLogger.Logs()).To(ConsistOf(
+				MatchFields(IgnoreExtras, Fields{
+					"Message":  Equal("test.concurrent-request-limit-reached"),
+					"LogLevel": Equal(lager.INFO),
+				}),
+			))
+		})
 
-		Expect(testLogger.Logs()).To(ConsistOf(
-			MatchFields(IgnoreExtras, Fields{
-				"Message":  Equal("test.concurrent-request-limit-reached"),
-				"LogLevel": Equal(lager.INFO),
-			}),
-		))
+		It("increments the 'limitHit' counter", func() {
+			handler.ServeHTTP(httptest.NewRecorder(), request)
+			handler.ServeHTTP(httptest.NewRecorder(), request)
+
+			Expect(metric.ConcurrentRequestsLimitHit[atc.ListAllJobs].Delta()).To(Equal(float64(2)))
+		})
 	})
 
 	Context("when the limit is not reached", func() {
@@ -109,6 +111,44 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 			handler.ServeHTTP(httptest.NewRecorder(), request)
 
 			Expect(fakePool.ReleaseCallCount()).To(Equal(1))
+		})
+
+		It("records the number of requests in-flight", func() {
+			handler.ServeHTTP(httptest.NewRecorder(), request)
+			handler.ServeHTTP(httptest.NewRecorder(), request)
+
+			Expect(metric.ConcurrentRequests[atc.ListAllJobs].Max()).To(Equal(float64(1)))
+		})
+	})
+
+	Context("when the endpoint is disabled", func() {
+		BeforeEach(func() {
+			givenConcurrentRequestLimit(0)
+		})
+
+		It("responds with a 501", func() {
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, request)
+
+			Expect(recorder.Code).To(Equal(http.StatusNotImplemented))
+		})
+
+		It("logs a DEBUG message", func() {
+			handler.ServeHTTP(httptest.NewRecorder(), request)
+
+			Expect(testLogger.Logs()).To(ConsistOf(
+				MatchFields(IgnoreExtras, Fields{
+					"Message":  Equal("test.endpoint-disabled"),
+					"LogLevel": Equal(lager.DEBUG),
+				}),
+			))
+		})
+
+		It("increments the 'limitHit' counter", func() {
+			handler.ServeHTTP(httptest.NewRecorder(), request)
+			handler.ServeHTTP(httptest.NewRecorder(), request)
+
+			Expect(metric.ConcurrentRequestsLimitHit[atc.ListAllJobs].Delta()).To(Equal(float64(2)))
 		})
 	})
 })
