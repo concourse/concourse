@@ -158,14 +158,14 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Namespace: "concourse",
 		Subsystem: "concurrent_requests",
 		Name:      "limit_hit_total",
-		Help:      "Total number of Concourse builds started.",
+		Help:      "Total number of requests that failed to acquire the lock to be served.",
 	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequestsLimitHit)
 
 	concurrentRequests := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "concourse",
 		Name:      "concurrent_requests",
-		Help:      "Number of Concourse builds currently running.",
+		Help:      "Number of concurrent requests being served by endpoints that have a specified limit of concurrent requests.",
 	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequests)
 
