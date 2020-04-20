@@ -11,6 +11,13 @@ import (
 
 var _ = Describe("Concurrent Request Policy", func() {
 	Describe("LimitedRoute#UnmarshalFlag", func() {
+		It("unmarshals ListAllJobs", func() {
+			var flagValue wrappa.LimitedRoute
+			flagValue.UnmarshalFlag(atc.ListAllJobs)
+			expected := wrappa.LimitedRoute(atc.ListAllJobs)
+			Expect(flagValue).To(Equal(expected))
+		})
+
 		It("raises an error when the action is not supported", func() {
 			var flagValue wrappa.LimitedRoute
 			err := flagValue.UnmarshalFlag(atc.CreateJobBuild)

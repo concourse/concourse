@@ -10,12 +10,13 @@ type LimitedRoute string
 
 var supportedActions = []LimitedRoute{LimitedRoute(atc.ListAllJobs)}
 
-func (lr LimitedRoute) UnmarshalFlag(value string) error {
+func (lr *LimitedRoute) UnmarshalFlag(value string) error {
 	if !isValidAction(value) {
 		return fmt.Errorf("'%s' is not a valid action", value)
 	}
 	for _, supportedAction := range supportedActions {
 		if value == string(supportedAction) {
+			*lr = supportedAction
 			return nil
 		}
 	}
