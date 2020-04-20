@@ -13,7 +13,7 @@ import (
 
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/worker/backend"
+	containerd "github.com/concourse/concourse/worker/backend"
 	"github.com/concourse/concourse/worker/backend/libcontainerd"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -25,18 +25,32 @@ func containerdGardenServerRunner(
 	bindAddr,
 	containerdAddr string,
 	requestTimeout time.Duration,
-) ifrit.Runner {
-
+	dnsServers []string,
+) (ifrit.Runner, error) {
 	const (
 		graceTime = 0
 		namespace = "concourse"
 	)
 
-	backend, err := backend.New(
+	opts := []containerd.BackendOpt{}
+
+	if len(dnsServers) > 0 {
+		network, err := containerd.NewCNINetwork(
+			containerd.WithNameServers(dnsServers),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("new cni network: %w", err)
+		}
+
+		opts = append(opts, containerd.WithNetwork(network))
+	}
+
+	backend, err := containerd.New(
 		libcontainerd.New(containerdAddr, namespace, requestTimeout),
+		opts...,
 	)
 	if err != nil {
-		panic(fmt.Errorf("containerd backend init: %w", err))
+		return nil, fmt.Errorf("containerd containerd init: %w", err)
 	}
 
 	server := server.New("tcp", bindAddr,
@@ -52,7 +66,7 @@ func containerdGardenServerRunner(
 		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
 			return runner
 		},
-	}
+	}, nil
 }
 
 // writeDefaultContainerdConfig writes a default containerd configuration file
@@ -118,16 +132,25 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		Pdeathsig: syscall.SIGKILL,
 	}
 
+	backendRunner, err := containerdGardenServerRunner(
+		logger,
+		cmd.bindAddr(),
+		sock,
+		cmd.Garden.RequestTimeout,
+		cmd.Garden.DNSServers,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("containerd garden server runner: %w", err)
+	}
+
 	return grouper.NewParallel(os.Interrupt, grouper.Members{
 		{
 			Name:   "containerd",
 			Runner: CmdRunner{command},
 		},
 		{
-			Name: "containerd-backend",
-			Runner: containerdGardenServerRunner(
-				logger, cmd.bindAddr(), sock, cmd.Garden.RequestTimeout,
-			),
+			Name:   "containerd-backend",
+			Runner: backendRunner,
 		},
 	}), nil
 }
