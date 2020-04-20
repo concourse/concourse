@@ -13,7 +13,7 @@
 
 * Operators can now limit the number of concurrent API requests that your web node will serve by passing a flag like `--concurrent-request-limit action:limit` where `action` is the API action name as they appear in the [action matrix in our docs](https://concourse-ci.org/user-roles.html#action-matrix).
 
-  If the web node is already concurrently serving the maximum number of requests allowed by the specified limit, any additional concurrent requests will be rejected with a 503 Service Unavailable status.
+  If the web node is already concurrently serving the maximum number of requests allowed by the specified limit, any additional concurrent requests will be rejected with a `503 Service Unavailable` status. If the limit is set to `0`, the endpoint is effectively disabled, and all requests will be rejected with a `501 Not Implemented` status.
 
   Currently the only API action that can be limited in this way is `ListAllJobs` -- we considered allowing this limit on arbitrary endpoints but didn't want to enable operators to shoot themselves in the foot by limiting important internal endpoints like worker registration. #5429
 
