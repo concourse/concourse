@@ -1,5 +1,6 @@
 FROM concourse/concourse:local
 
+ENV GO111MODULE=off
 ENV EDITOR=vim
 
 RUN apt install -y vim
