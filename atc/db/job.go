@@ -934,7 +934,7 @@ func (j *job) getRunningBuildsBySerialGroup(tx Tx, serialGroups []string) ([]Bui
 }
 
 func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Build, bool, error) {
-	row := buildsQuery.Options(`DISTINCT ON (b.id)`).
+	row := buildsQuery.
 		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
 		Where(sq.Eq{
 			"jsg.serial_group":    serialGroups,
@@ -942,7 +942,7 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Bu
 			"j.paused":            false,
 			"j.inputs_determined": true,
 			"j.pipeline_id":       j.pipelineID}).
-		OrderBy("b.id ASC").
+		OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC").
 		Limit(1).
 		RunWith(tx).
 		QueryRow()
