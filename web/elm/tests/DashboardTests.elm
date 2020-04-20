@@ -3535,6 +3535,9 @@ all =
         , test "auto refreshes data every five seconds" <|
             \_ ->
                 Common.init "/"
+                    |> givenDataUnauthenticated
+                        (oneTeamOnePipeline "team")
+                    |> Tuple.first
                     |> Application.update
                         (ApplicationMsgs.DeliveryReceived <|
                             ClockTicked FiveSeconds <|
@@ -3543,6 +3546,37 @@ all =
                     |> Tuple.second
                     |> List.member Effects.FetchData
                     |> Expect.true "should refresh data"
+        , test "does not pile on API requests" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.update
+                        (ApplicationMsgs.DeliveryReceived <|
+                            ClockTicked FiveSeconds <|
+                                Time.millisToPosix 0
+                        )
+                    |> Tuple.second
+                    |> List.member Effects.FetchData
+                    |> Expect.false "should not pile on requests"
+        , test "does not pile on API requests after the first" <|
+            \_ ->
+                Common.init "/"
+                    |> givenDataUnauthenticated
+                        (oneTeamOnePipeline "team")
+                    |> Tuple.first
+                    |> Application.update
+                        (ApplicationMsgs.DeliveryReceived <|
+                            ClockTicked FiveSeconds <|
+                                Time.millisToPosix 0
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (ApplicationMsgs.DeliveryReceived <|
+                            ClockTicked FiveSeconds <|
+                                Time.millisToPosix 0
+                        )
+                    |> Tuple.second
+                    |> List.member Effects.FetchData
+                    |> Expect.false "should not pile on requests"
         ]
 
 
