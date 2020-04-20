@@ -36,6 +36,9 @@ var ChecksQueueSize = &Gauge{}
 var ChecksStarted = &Counter{}
 var ChecksEnqueued = &Counter{}
 
+var ConcurrentRequests = map[string]*Gauge{}
+var ConcurrentRequestsLimitHit = map[string]*Counter{}
+
 type BuildCollectorDuration struct {
 	Duration time.Duration
 }

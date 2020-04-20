@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/tedsuo/rata"
 )
 
@@ -23,13 +23,25 @@ func NewConcurrentRequestLimitsWrappa(
 	}
 }
 
-func (wrappa ConcurrentRequestLimitsWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
+func (wrappa ConcurrentRequestLimitsWrappa) Wrap(
+	handlers rata.Handlers,
+) rata.Handlers {
 	wrapped := rata.Handlers{}
 
 	for action, handler := range handlers {
 		pool, found := wrappa.concurrentRequestPolicy.HandlerPool(action)
 		if found {
-			wrapped[action] = wrappa.wrap(pool, handler)
+			inflight := &metric.Gauge{}
+			limitHit := &metric.Counter{}
+
+			metric.ConcurrentRequests[action] = inflight
+			metric.ConcurrentRequestsLimitHit[action] = limitHit
+
+			wrapped[action] = wrappa.wrap(
+				pool,
+				handler,
+				inflight, limitHit,
+			)
 		} else {
 			wrapped[action] = handler
 		}
@@ -41,14 +53,21 @@ func (wrappa ConcurrentRequestLimitsWrappa) Wrap(handlers rata.Handlers) rata.Ha
 func (wrappa ConcurrentRequestLimitsWrappa) wrap(
 	pool Pool,
 	handler http.Handler,
+	inflight *metric.Gauge, limitHit *metric.Counter,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !pool.TryAcquire() {
 			wrappa.logger.Info("concurrent-request-limit-reached")
+			limitHit.Inc()
+
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
+
+		defer inflight.Dec()
 		defer pool.Release()
+
+		inflight.Inc()
 		handler.ServeHTTP(w, r)
 	})
 }

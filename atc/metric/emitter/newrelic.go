@@ -92,6 +92,8 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 		"checks queue size",
 		"worker containers",
 		"worker volumes",
+		"concurrent requests",
+		"concurrent requests limit hit",
 		"http response time",
 		"database queries",
 		"database connections",

@@ -7,8 +7,10 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/concourse/concourse/atc/wrappa/wrappafakes"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -29,6 +31,10 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 		request, _ = http.NewRequest("GET", "localhost:8080", nil)
 	})
 
+	AfterEach(func() {
+		metric.ConcurrentRequests = map[string]*metric.Gauge{}
+	})
+
 	givenConcurrentRequestLimit := func(limit int) {
 		policy = wrappa.NewConcurrentRequestPolicy(
 			map[wrappa.LimitedRoute]int{
@@ -40,6 +46,24 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 				atc.ListAllJobs: fakeHandler,
 			})[atc.ListAllJobs]
 	}
+
+	It("records the number of requests in-flight", func() {
+		givenConcurrentRequestLimit(1)
+
+		handler.ServeHTTP(httptest.NewRecorder(), request)
+		handler.ServeHTTP(httptest.NewRecorder(), request)
+
+		Expect(metric.ConcurrentRequests[atc.ListAllJobs].Max()).To(Equal(float64(1)))
+	})
+
+	It("records when the concurrent request limit is hit", func() {
+		givenConcurrentRequestLimit(0)
+
+		handler.ServeHTTP(httptest.NewRecorder(), request)
+		handler.ServeHTTP(httptest.NewRecorder(), request)
+
+		Expect(metric.ConcurrentRequestsLimitHit[atc.ListAllJobs].Delta()).To(Equal(float64(2)))
+	})
 
 	It("logs when the concurrent request limit is hit", func() {
 		givenConcurrentRequestLimit(0)
