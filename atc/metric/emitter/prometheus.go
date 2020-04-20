@@ -24,8 +24,8 @@ type PrometheusEmitter struct {
 	buildsStarted prometheus.Counter
 	buildsRunning prometheus.Gauge
 
-	concurrentRequestsLimitHit prometheus.Counter
-	concurrentRequests         prometheus.Gauge
+	concurrentRequestsLimitHit *prometheus.CounterVec
+	concurrentRequests         *prometheus.GaugeVec
 
 	buildDurationsVec *prometheus.HistogramVec
 	buildsAborted     prometheus.Counter
@@ -154,20 +154,19 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	})
 	prometheus.MustRegister(buildsRunning)
 
-	concurrentRequestsLimitHit := prometheus.NewCounter(prometheus.CounterOpts{
+	concurrentRequestsLimitHit := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "started_total",
+		Subsystem: "concurrent_requests",
+		Name:      "limit_hit_total",
 		Help:      "Total number of Concourse builds started.",
-	})
+	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequestsLimitHit)
 
-	concurrentRequests := prometheus.NewGauge(prometheus.GaugeOpts{
+	concurrentRequests := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "concourse",
-		Subsystem: "builds",
-		Name:      "running",
+		Name:      "concurrent_requests",
 		Help:      "Number of Concourse builds currently running.",
-	})
+	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequests)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
@@ -450,9 +449,9 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "builds running":
 		emitter.buildsRunning.Set(event.Value)
 	case "concurrent requests limit hit":
-		emitter.concurrentRequestsLimitHit.Add(event.Value)
+		emitter.concurrentRequestsLimitHit.WithLabelValues(event.Attributes["action"]).Add(event.Value)
 	case "concurrent requests":
-		emitter.concurrentRequests.Set(event.Value)
+		emitter.concurrentRequests.WithLabelValues(event.Attributes["action"]).Set(event.Value)
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
 	case "worker containers":
