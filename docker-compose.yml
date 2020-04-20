@@ -2,7 +2,7 @@ version: '3'
 
 services:
   db:
-    image: postgres
+    image: postgres:${POSTGRES_TAG:-latest}
     shm_size: 1gb
     ports:
     - 6543:5432
