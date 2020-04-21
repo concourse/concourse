@@ -25,14 +25,16 @@ import (
 var _ = Describe("Web Command", func() {
 
 	var (
-		args           []string
 		hostKeyFile    string
 		hostPubKeyFile string
 
+		concourseCommand *exec.Cmd
 		concourseProcess ifrit.Process
 		concourseRunner  *ginkgomon.Runner
 		postgresRunner   postgresrunner.Runner
 		dbProcess        ifrit.Process
+
+		// startErr error
 	)
 
 	BeforeEach(func() {
@@ -43,7 +45,9 @@ var _ = Describe("Web Command", func() {
 		dbProcess = ifrit.Invoke(postgresRunner)
 		postgresRunner.CreateTestDB()
 
-		args = []string{"web",
+		concourseCommand = exec.Command(
+			concoursePath,
+			"web",
 			"--tsa-host-key", hostKeyFile,
 			"--postgres-user", "postgres",
 			"--postgres-database", "testdb",
@@ -58,23 +62,23 @@ var _ = Describe("Web Command", func() {
 			"--tsa-client-id", "tsa-client-id",
 			"--tsa-client-secret", "tsa-client-secret",
 			"--tsa-token-url", "http://localhost/token",
-		}
+		)
 	})
 
 	JustBeforeEach(func() {
-		concourseCommand := exec.Command(
-			concoursePath,
-			args...,
-		)
-
 		concourseRunner = ginkgomon.New(ginkgomon.Config{
 			Command:       concourseCommand,
-			Name:          "tsa",
-			StartCheck:    "atc.cmd.start",
+			Name:          "web",
 			AnsiColorCode: "32m",
 		})
 
-		concourseProcess = ginkgomon.Invoke(concourseRunner)
+		concourseProcess = ifrit.Background(concourseRunner)
+
+		select {
+		case <-concourseProcess.Ready():
+			// case err := <-concourseProcess.Wait():
+			// 	startErr = err
+		}
 
 		// workaround to avoid panic due to registering http handlers multiple times
 		http.DefaultServeMux = new(http.ServeMux)
@@ -99,6 +103,16 @@ var _ = Describe("Web Command", func() {
 
 	It("TSA should start up", func() {
 		Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
+	})
+
+	Context("when CONCOURSE_CONCURRENT_REQUEST_LIMIT is invalid", func() {
+		BeforeEach(func() {
+			concourseCommand.Env = append(concourseCommand.Env, "CONCOURSE_CONCURRENT_REQUEST_LIMIT=InvalidAction:0")
+		})
+
+		It("prints an error and exits", func() {
+			Eventually(concourseRunner.Err()).Should(gbytes.Say("'InvalidAction' is not a valid action"))
+		})
 	})
 })
 
