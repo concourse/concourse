@@ -45,6 +45,7 @@ import Html.Events
         ( onMouseEnter
         , onMouseLeave
         )
+import Http
 import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
@@ -115,15 +116,6 @@ init flags =
 handleCallback : Callback -> ET Model
 handleCallback msg ( model, effects ) =
     case msg of
-        APIDataFetched (Err _) ->
-            ( { model
-                | state =
-                    RemoteData.Failure (Turbulence model.turbulencePath)
-                , isDataLoading = False
-              }
-            , effects
-            )
-
         APIDataFetched (Ok ( now, apiData )) ->
             let
                 groups =
@@ -179,6 +171,27 @@ handleCallback msg ( model, effects ) =
                   }
                 , effects
                 )
+
+        APIDataFetched (Err (Http.BadStatus response)) ->
+            case response.status.code of
+                503 ->
+                    ( model, effects )
+
+                _ ->
+                    ( { model
+                        | state =
+                            RemoteData.Failure (Turbulence model.turbulencePath)
+                      }
+                    , effects
+                    )
+
+        APIDataFetched (Err _) ->
+            ( { model
+                | state =
+                    RemoteData.Failure (Turbulence model.turbulencePath)
+              }
+            , effects
+            )
 
         LoggedOut (Ok ()) ->
             ( { model | userState = UserState.UserStateLoggedOut }

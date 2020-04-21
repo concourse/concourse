@@ -50,6 +50,7 @@ type alias Model =
     { subModel : SubPage.Model
     , route : Routes.Route
     , session : Session
+    , effectsToRetry : List Effect
     }
 
 
@@ -83,6 +84,7 @@ init flags url =
             { subModel = subModel
             , session = session
             , route = route
+            , effectsToRetry = []
             }
 
         handleTokenEffect =
@@ -173,10 +175,15 @@ handleCallback callback model =
                     model.session
 
                 newSession =
-                    { session | userState = UserStateLoggedOut }
+                    if isStatusCode 503 err then
+                        session
+
+                    else
+                        { session | userState = UserStateLoggedOut }
             in
             subpageHandleCallback callback ( { model | session = newSession }, [] )
                 |> redirectToLoginIfNecessary err
+                |> retryIfNecessary FetchData err
 
         UserFetched (Ok user) ->
             let
@@ -402,22 +409,46 @@ handleDeliveryForApplication delivery model =
                 Browser.External url ->
                     ( model, [ LoadExternal url ] )
 
+        ClockTicked OneSecond _ ->
+            ( { model | effectsToRetry = [] }, model.effectsToRetry )
+
         _ ->
             ( model, [] )
 
 
-redirectToLoginIfNecessary : Http.Error -> ET Model
-redirectToLoginIfNecessary err ( model, effects ) =
+isStatusCode : Int -> Http.Error -> Bool
+isStatusCode code err =
     case err of
         Http.BadStatus { status } ->
-            if status.code == 401 then
-                ( model, effects ++ [ RedirectToLogin ] )
-
-            else
-                ( model, effects )
+            status.code == code
 
         _ ->
-            ( model, effects )
+            False
+
+
+handleStatusCode : Int -> ET Model -> Http.Error -> ET Model
+handleStatusCode code et err =
+    if isStatusCode code err then
+        et
+
+    else
+        identity
+
+
+redirectToLoginIfNecessary : Http.Error -> ET Model
+redirectToLoginIfNecessary =
+    handleStatusCode 401
+        (\( model, effects ) -> ( model, effects ++ [ RedirectToLogin ] ))
+
+
+retryIfNecessary : Effect -> Http.Error -> ET Model
+retryIfNecessary effect =
+    handleStatusCode 503
+        (\( model, effects ) ->
+            ( { model | effectsToRetry = model.effectsToRetry ++ [ effect ] }
+            , effects
+            )
+        )
 
 
 urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
@@ -449,6 +480,7 @@ subscriptions model =
     , OnTokenReceived
     , OnSideBarStateReceived
     , OnWindowResize
+    , OnClockTick OneSecond
     ]
         ++ SubPage.subscriptions model.subModel
 
