@@ -1,4 +1,4 @@
 BEGIN;
   ALTER TABLE pipelines
-    ADD COLUMN IF NOT EXISTS "archived" boolean NOT NULL DEFAULT FALSE;
+    ADD COLUMN "archived" boolean NOT NULL DEFAULT FALSE;
 COMMIT;
