@@ -1,10 +1,11 @@
 package db_test
 
 import (
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
 	"time"
+
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -313,6 +314,27 @@ var _ = Describe("CheckFactory", func() {
 				})
 			})
 		})
+
+		Context("when a pipeline is archived", func() {
+			BeforeEach(func() {
+				fakeResource.TypeReturns("custom-type")
+				fakeResource.PipelineIDReturns(defaultPipeline.ID())
+				fakeResourceType.NameReturns("custom-type")
+				fakeResourceType.PipelineIDReturns(defaultPipeline.ID())
+				fakeResourceType.VersionReturns(atc.Version{"some": "version"})
+
+				err := defaultPipeline.Archive()
+				Expect(err).ToNot(HaveOccurred())
+				_, err = defaultPipeline.Reload()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns a db.conflict", func() {
+				conflict, ok := err.(db.Conflict)
+				Expect(ok).To(BeTrue(), "error type is not db.conflict")
+				Expect(conflict.Conflict()).To(Equal("resources part of an archived pipeline cannot be checked"))
+			})
+		})
 	})
 
 	Describe("CreateCheck", func() {
@@ -444,7 +466,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when the resources are used", func() {
 
-			BeforeEach(func(){
+			BeforeEach(func() {
 				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
 					Jobs: atc.JobConfigs{
 						{

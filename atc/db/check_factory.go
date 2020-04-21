@@ -160,6 +160,9 @@ func (c *checkFactory) TryCreateCheck(logger lager.Logger, checkable Checkable, 
 	if !found {
 		return nil, false, fmt.Errorf("pipeline not found")
 	}
+	if pp.Archived() {
+		return nil, false, conflict("resources part of an archived pipeline cannot be checked")
+	}
 
 	varss, err := pp.Variables(logger, c.secrets, c.varSourcePool)
 	if err != nil {

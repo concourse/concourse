@@ -9,8 +9,15 @@ import (
 
 var basicPipelineConfig = []byte(`
 ---
+resources:
+- name: test
+  type: registry-image
+  source:
+    repository: concourse/mock
 jobs:
 - name: job-name
+  plan:
+  - get: test
 `)
 
 var _ = Describe("ATC Integration Test", func() {
@@ -97,6 +104,18 @@ var _ = Describe("ATC Integration Test", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("jobs part of an archived pipeline cannot be scheduled"))
 		})
+
+		It("fails to create a check", func() {
+			givenAPipeline(client, "pipeline")
+			whenIArchiveIt(client, "pipeline")
+
+			var version atc.Version
+			_, _, err := client.Team("main").CheckResource("pipeline", "test", version)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("resources part of an archived pipeline cannot be checked"))
+		})
+
 	})
 
 	Context("when the archiving pipeline endpoint is not enabled", func() {
@@ -128,7 +147,6 @@ func whenIUnpauseIt(client concourse.Client, pipelineName string) {
 func whenIArchiveIt(client concourse.Client, pipelineName string) {
 	_, err := client.Team("main").ArchivePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
-	return response
 }
 
 func getPipeline(client concourse.Client, pipelineName string) atc.Pipeline {

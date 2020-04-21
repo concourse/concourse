@@ -596,6 +596,25 @@ var _ = Describe("Resources API", func() {
 				})
 			})
 
+			Context("when the pipeline is archived", func() {
+				BeforeEach(func() {
+					fakeResource := new(dbfakes.FakeResource)
+					fakePipeline.ResourceReturns(fakeResource, true, nil)
+					fakeResourceTypes := db.ResourceTypes{}
+					fakePipeline.ResourceTypesReturns(fakeResourceTypes, nil)
+
+					conflict := new(dbfakes.FakeConflict)
+					conflict.ConflictReturns("archived pipeline error")
+					dbCheckFactory.TryCreateCheckReturns(nil, false, conflict)
+				})
+
+				It("returns 409 and an error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusConflict))
+					body, _ := ioutil.ReadAll(response.Body)
+					Expect(body).To(Equal([]byte("archived pipeline error\n")))
+				})
+			})
+
 			Context("when the resource is not found", func() {
 				BeforeEach(func() {
 					fakePipeline.ResourceReturns(nil, false, nil)
