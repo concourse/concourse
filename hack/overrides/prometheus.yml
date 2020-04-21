@@ -1,0 +1,40 @@
+# prometheus.yml - a docker-compose override that adds 'prometheus' to the stack
+#
+# once running, head to `localhost:9090` to get access to the Prometheus console.
+#
+# ref: https://prometheus.io/
+# ref: https://docs.docker.com/compose/extends/
+#
+version: '3'
+
+services:
+  web:
+    environment:
+      CONCOURSE_PROMETHEUS_BIND_IP: "0.0.0.0"
+      CONCOURSE_PROMETHEUS_BIND_PORT: "9100"
+    ports:
+      - '9100:9100'
+
+  prometheus:
+    image: prom/prometheus
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo "
+        global:
+          scrape_interval: '5s'
+          evaluation_interval: '5s'
+
+        scrape_configs:
+          - job_name: 'concourse'
+            static_configs:
+              - targets:
+                - 'web:9100'
+        " > config.yml
+
+          exec prometheus \
+            --config.file=config.yml \
+            --storage.tsdb.path=/prometheus
+    ports:
+      - '9090:9090'
