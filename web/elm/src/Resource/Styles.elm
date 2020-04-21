@@ -5,14 +5,13 @@ module Resource.Styles exposing
     , checkButtonIcon
     , checkStatusIcon
     , commentBar
-    , commentBarContent
-    , commentBarHeader
     , commentBarIconContainer
     , commentBarMessageIcon
-    , commentBarPinIcon
     , commentSaveButton
     , commentText
     , commentTextArea
+    , editButton
+    , editSaveWrapper
     , enabledCheckbox
     , headerBar
     , headerHeight
@@ -21,6 +20,7 @@ module Resource.Styles exposing
     , pagination
     , pinBar
     , pinBarTooltip
+    , pinBarViewVersion
     , pinButton
     , pinButtonTooltip
     , pinIcon
@@ -31,7 +31,7 @@ module Resource.Styles exposing
 import Assets
 import Colors
 import Html
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (rows, style)
 import Pinned
 import Resource.Models as Models
 
@@ -41,12 +41,22 @@ headerHeight =
     60
 
 
-pinBar : List (Html.Attribute msg)
-pinBar =
+pinBar : Bool -> List (Html.Attribute msg)
+pinBar isPinned =
+    let
+        pinBarBorderColor =
+            if isPinned then
+                Colors.pinned
+
+            else
+                Colors.background
+    in
     [ style "display" "flex"
-    , style "align-items" "center"
+    , style "align-items" "flex-start"
     , style "position" "relative"
     , style "background-color" Colors.pinTools
+    , style "border" <| "1px solid" ++ pinBarBorderColor
+    , style "flex" "1"
     ]
 
 
@@ -71,9 +81,14 @@ pinIcon { isPinnedDynamically, hover } =
             else
                 "transparent"
     in
-    [ style "margin-right" "10px"
+    [ style "margin" "4px 5px 5px 5px"
     , style "cursor" cursorType
     , style "background-color" backgroundColor
+    , style "padding" "6px"
+    , style "background-size" "contain"
+    , style "background-origin" "content-box"
+    , style "min-width" "14px"
+    , style "min-height" "14px"
     ]
 
 
@@ -99,10 +114,10 @@ pinTools isPinned =
                 Colors.background
     in
     [ style "background-color" Colors.pinTools
-    , style "height" "28px"
+    , style "min-height" "28px"
     , style "margin-bottom" "24px"
     , style "display" "flex"
-    , style "align-items" "center"
+    , style "align-items" "stretch"
     , style "border" <| "1px solid " ++ pinToolsBorderColor
     , style "box-sizing" "border-box"
     ]
@@ -205,6 +220,11 @@ versionHeader pinnedState =
     ]
 
 
+pinBarViewVersion : List (Html.Attribute msg)
+pinBarViewVersion =
+    [ style "margin" "8px 8px 8px 0" ]
+
+
 borderColor : Pinned.VersionPinState -> String
 borderColor pinnedState =
     case pinnedState of
@@ -218,97 +238,95 @@ borderColor pinnedState =
             Colors.sectionHeader
 
 
-commentBar : List (Html.Attribute msg)
-commentBar =
-    [ style "background-color" Colors.frame
-    , style "height" "300px"
+commentBar : Bool -> List (Html.Attribute msg)
+commentBar isPinned =
+    let
+        commentBarBorderColor =
+            if isPinned then
+                Colors.pinned
+
+            else
+                Colors.background
+    in
+    [ style "background-color" Colors.pinTools
+    , style "min-height" "25px"
     , style "display" "flex"
-    , style "justify-content" "center"
-    , style "flex-shrink" "0"
-    ]
-
-
-commentBarContent : List (Html.Attribute msg)
-commentBarContent =
-    [ style "width" "700px"
-    , style "padding" "20px 0"
-    , style "display" "flex"
-    , style "flex-direction" "column"
-    ]
-
-
-commentBarHeader : List (Html.Attribute msg)
-commentBarHeader =
-    [ style "display" "flex"
-    , style "flex-shrink" "0"
-    , style "align-items" "flex-start"
+    , style "flex" "1"
+    , style "border" <| "1px solid" ++ commentBarBorderColor
     ]
 
 
 commentBarMessageIcon : List (Html.Attribute msg)
 commentBarMessageIcon =
     [ style "background-size" "contain"
-    , style "margin-right" "10px"
+    , style "margin" "10px"
+    , style "flex-shrink" "0"
+    , style "background-origin" "content-box"
     ]
-
-
-commentBarPinIcon : List (Html.Attribute msg)
-commentBarPinIcon =
-    [ style "margin-right" "10px" ]
 
 
 commentTextArea : List (Html.Attribute msg)
 commentTextArea =
-    [ style "background-color" "transparent"
-    , style "color" Colors.text
-    , style "outline" "none"
-    , style "border" <| "1px solid " ++ Colors.background
-    , style "font-size" "12px"
+    [ style "font-size" "12px"
     , style "font-family" "Inconsolata, monospace"
     , style "font-weight" "700"
-    , style "resize" "none"
-    , style "margin" "10px 0"
+    , style "box-sizing" "border-box"
     , style "flex-grow" "1"
-    , style "padding" "10px"
+    , style "resize" "none"
+    , style "outline" "none"
+    , style "border" "none"
+    , style "color" Colors.text
+    , style "background-color" "transparent"
+    , style "max-height" "150px"
+    , style "margin" "8px 0"
+    , rows 1
     ]
 
 
 commentText : List (Html.Attribute msg)
 commentText =
-    [ style "margin" "10px 0"
-    , style "flex-grow" "1"
-    , style "overflow-y" "auto"
-    , style "padding" "10px"
+    [ style "flex-grow" "1"
+    , style "margin" "0"
+    , style "outline" "0"
+    , style "padding" "8px 0"
+    , style "max-height" "150px"
+    , style "overflow-y" "scroll"
     ]
 
 
 commentSaveButton :
-    { commentChanged : Bool, isHovered : Bool }
+    { isHovered : Bool, commentChanged : Bool, pinCommentLoading : Bool }
     -> List (Html.Attribute msg)
-commentSaveButton { commentChanged, isHovered } =
+commentSaveButton { commentChanged, isHovered, pinCommentLoading } =
     [ style "font-size" "12px"
     , style "font-family" "Inconsolata, monospace"
     , style "font-weight" "700"
     , style "border" <|
         "1px solid "
-            ++ (if commentChanged then
-                    Colors.comment
+            ++ (if commentChanged && not pinCommentLoading then
+                    Colors.white
 
                 else
-                    Colors.background
+                    Colors.buttonDisabledGrey
                )
     , style "background-color" <|
-        if isHovered then
-            Colors.comment
+        if isHovered && commentChanged && not pinCommentLoading then
+            Colors.frame
 
         else
             "transparent"
-    , style "color" Colors.text
+    , style "color" <|
+        if commentChanged && not pinCommentLoading then
+            Colors.text
+
+        else
+            Colors.buttonDisabledGrey
     , style "padding" "5px 10px"
-    , style "align-self" "flex-end"
+    , style "margin" "5px 5px 7px 7px"
     , style "outline" "none"
+    , style "transition" "border 200ms ease, color 200ms ease"
     , style "cursor" <|
-        if isHovered then
+        if commentChanged && not pinCommentLoading then
             "pointer"
 
         else
@@ -316,10 +334,41 @@ commentSaveButton { commentChanged, isHovered } =
     ]
 
 
-commentBarIconContainer : List (Html.Attribute msg)
-commentBarIconContainer =
+commentBarIconContainer : Bool -> List (Html.Attribute msg)
+commentBarIconContainer isEditing =
     [ style "display" "flex"
-    , style "align-items" "center"
+    , style "align-items" "flex-start"
+    , style "flex-grow" "1"
+    , style "background-color" <|
+        if isEditing then
+            Colors.pinned
+
+        else
+            Colors.pinTools
+    ]
+
+
+editButton : Bool -> List (Html.Attribute msg)
+editButton isHovered =
+    [ style "padding" "5px"
+    , style "margin" "5px"
+    , style "cursor" "pointer"
+    , style "background-color" <|
+        if isHovered then
+            Colors.sectionHeader
+
+        else
+            Colors.pinTools
+    , style "background-origin" "content-box"
+    , style "background-size" "contain"
+    ]
+
+
+editSaveWrapper : List (Html.Attribute msg)
+editSaveWrapper =
+    [ style "width" "60px"
+    , style "display" "flex"
+    , style "justify-content" "flex-end"
     ]
 
 

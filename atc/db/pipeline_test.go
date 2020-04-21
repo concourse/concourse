@@ -217,6 +217,78 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
+	Describe("Archive", func() {
+		var initialLastUpdated time.Time
+
+		BeforeEach(func() {
+			initialLastUpdated = pipeline.LastUpdated()
+		})
+
+		JustBeforeEach(func() {
+			pipeline.Archive()
+			pipeline.Reload()
+		})
+
+		It("archives the pipeline", func() {
+			Expect(pipeline.Archived()).To(BeTrue(), "pipeline was not archived")
+		})
+
+		It("updates last updated", func() {
+			lastUpdated := pipeline.LastUpdated()
+
+			Expect(lastUpdated).To(BeTemporally(">", initialLastUpdated))
+		})
+
+		It("resets the pipeline version to zero", func() {
+			version := pipeline.ConfigVersion()
+
+			Expect(version).To(Equal(db.ConfigVersion(0)))
+		})
+
+		It("removes the config of each job", func() {
+			jobs, err := pipeline.Jobs()
+			Expect(err).ToNot(HaveOccurred())
+
+			jobConfigs, err := jobs.Configs()
+			emptyJobConfigs := make(atc.JobConfigs, len(pipelineConfig.Jobs))
+			Expect(jobConfigs).To(Equal(emptyJobConfigs))
+		})
+
+		It("removes the config of each resource", func() {
+			resources, err := pipeline.Resources()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceConfigs := resources.Configs()
+
+			emptyResourceConfigs := atc.ResourceConfigs{
+				{Name: "some-other-resource", Type: "some-type"},
+				{Name: "some-resource", Type: "some-type"},
+			}
+			Expect(resourceConfigs).To(Equal(emptyResourceConfigs))
+		})
+
+		It("removes the config of each resource_type", func() {
+			resourceTypes, err := pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceTypeConfigs := resourceTypes.Configs()
+
+			emptyResourceTypeConfigs := atc.ResourceTypes{
+				{Name: "some-other-resource-type", Type: "base-type"},
+				{Name: "some-resource-type", Type: "base-type"},
+			}
+			Expect(resourceTypeConfigs).To(Equal(emptyResourceTypeConfigs))
+		})
+
+		Context("when the pipeline is unpaused", func() {
+			It("pauses the pipeline", func() {
+				err := pipeline.Unpause()
+				Expect(err.Error()).To(ContainSubstring("conflict error: archived pipelines cannot be unpaused"))
+				Expect(pipeline.Paused()).To(BeTrue(), "pipeline was not paused")
+			})
+		})
+	})
+
 	Describe("Unpause", func() {
 		JustBeforeEach(func() {
 			Expect(pipeline.Unpause()).To(Succeed())
@@ -233,6 +305,20 @@ var _ = Describe("Pipeline", func() {
 
 			It("unpauses the pipeline", func() {
 				Expect(pipeline.Paused()).To(BeFalse())
+			})
+		})
+
+		Context("when the pipeline is archived", func() {
+			BeforeEach(func() {
+				pipeline.Archive()
+			})
+
+			It("fails with an archive error", func() {
+				err := pipeline.Unpause()
+				Expect(err).To(HaveOccurred())
+				conflict, isConflict := err.(db.Conflict)
+				Expect(isConflict).To(BeTrue())
+				Expect(conflict.Conflict()).To(Equal("archived pipelines cannot be unpaused"))
 			})
 		})
 

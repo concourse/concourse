@@ -14,6 +14,56 @@ channel where you can ask for help or get feedback on something you're working
 on.
 
 
+## From ideas to implementation
+
+The Concourse project uses Issues for project backlog and bug reports,
+Discussions for support and ideation, and Pull Requests for accepting
+contributions.
+
+Bugs can be reported directly as [Issues on the `concourse`
+repo][concourse-issues], and questions and technical support can be requested as
+[Discussions on the `concourse` repo][concourse-discussions].
+
+The project backlog is maintained by the Concourse team at VMware. Instead of
+requesting features, we strongly encourage the use of [Discussions on the `rfcs`
+repo][rfcs-discussions] for incubating ideas, with a primary focus on forming a
+shared understanding the problem at hand; the context is more important than the
+solution itself.
+
+Our collective responsibility as the stewards of the Concourse product is to
+uphold its promise of being "automation that scales with your project." This
+promise is upheld by keeping the mental overhead small as the automation needs
+of your project expand. Thus, requests for core features fall under heavy
+scrutiny. Rather than addressing each individual request, we need to think of
+the product holistically, steering it carefully and refining or replacing
+existing concepts rather than introducing new ones all the time.
+
+While this may feel overkill for requests which seem small in scope, connections
+can often be made between features which seem unrelated at the surface. Once
+those connections are identified, a higher impact change can often be planned
+which satisfies many underlying needs at once while minimizing the amount of
+"stuff" that users need to internalize in order to be effective with Concourse.
+
+Once consensus is reached on a direction to take, a proposal can be submitted as
+a [Pull Request to the `rfcs` repo][rfcs-prs], following the [RFC
+process][rfcs-process], allowing the contributors to collaborate through PR
+review. A full blown RFC may not be necessary for smaller changes, but going
+through this process can reduce painful feedback cycles for larger code changes.
+
+[Pull Requests to the `concourse` repo][concourse-prs] may be submitted at any
+time. The rest of this document provides guidance on how to do just that. In the
+end, we are really grateful for any contribution made to the project - whether
+that's just chiming in on a discussion, helping others out in the community, or
+indeed submitting a code change. Cheers! 🍻
+
+[concourse-issues]: https://github.com/concourse/concourse/issues
+[concourse-prs]: https://github.com/concourse/concourse/pulls
+[concourse-discussions]: https://github.com/concourse/concourse/discussions
+[rfcs-prs]: https://github.com/concourse/rfcs/pulls
+[rfcs-discussions]: https://github.com/concourse/rfcs/discussions
+[rfcs-process]: https://github.com/concourse/rfcs/blob/master/README.md
+
+
 ## Contribution process
 
 * [Fork this repo][how-to-fork] into your GitHub account.
@@ -37,8 +87,45 @@ on.
 
   * *Optional: check out our [Go style guide][style-guide]!*
 
+* Putting this all together, here is a sample anatomy of an ideal commit:
+
+    ```
+     i       ii         iii
+     |       |           |
+    web: structure: add var declarations
+    
+    Since scripts are run in module mode, they follow the "strict mode"
+    semantics. Variables must be declared prior to being assigned (e.g. - iv
+    cannot have `x = 1` without declaring x (using var, let, or const)
+    
+    concourse/concourse#5131 -------------------------------------------- v
+    
+    Signed-off-by: Aidan Oldershaw <aoldershaw@pivotal.io> -------------- vi
+    ```
+
+    1. [component changed](#developing-concourse)
+    1. [structure vs behaviour](#structure-and-behaviour)
+    1. brief, imperative-tense description of the change
+    1. a message that [tells a story][fav-commit]
+    1. mention the issue this change contributes to solving
+    1. [sign-off line](#signing-your-work)
+
 * When you're ready, [submit a pull request][how-to-pr]!
 
+### Structure and Behaviour
+
+In an ideal world, every pull request is small, but the codebase is large and
+sometimes complex changes cannot be avoided. To ease PR reviews, there are a few
+practices we've found helpful:
+
+* Focus your commits so that they only change a single component at a time.
+* Isolate [structure changes from behaviour changes][sb-changes] and label the
+commits appropriately - even better, batch commits of the same type into
+contiguous blocks.
+* Give clear prose justifications for your changes in the commit messages - it's
+not unusual that you do some digging to uncover the motivation for a change,
+but if you don't mention it in the commit message the diff can feel pretty
+opaque.
 
 ## Development dependencies
 
@@ -625,3 +712,6 @@ pushed commits without the signature.
 [how-to-pr]: https://help.github.com/articles/creating-a-pull-request-from-a-fork/
 [concourse-helm-chart]: https://github.com/concourse/concourse-chart/blob/master/README.md
 [helm-charts]: https://github.com/helm/charts/blob/master/README.md
+[fav-commit]: https://dhwthompson.com/2019/my-favourite-git-commit
+[sb-changes]: https://medium.com/@kentbeck_7670/bs-changes-e574bc396aaa
+

@@ -8,21 +8,20 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/tsa/tsafakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/rata"
+	"golang.org/x/oauth2"
 )
 
 var _ = Describe("Deleter", func() {
 	var (
 		deleter *tsa.Deleter
 
-		ctx                context.Context
-		worker             atc.Worker
-		fakeTokenGenerator *tsafakes.FakeTokenGenerator
-		fakeATC            *ghttp.Server
+		ctx     context.Context
+		worker  atc.Worker
+		fakeATC *ghttp.Server
 	)
 
 	BeforeEach(func() {
@@ -31,16 +30,17 @@ var _ = Describe("Deleter", func() {
 		worker = atc.Worker{
 			Name: "some-worker",
 		}
-		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
-		fakeTokenGenerator.GenerateSystemTokenReturns("yo", nil)
 
 		fakeATC = ghttp.NewServer()
 
 		atcEndpoint := rata.NewRequestGenerator(fakeATC.URL(), atc.Routes)
 
+		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
+		httpClient := oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))
+
 		deleter = &tsa.Deleter{
-			ATCEndpoint:    atcEndpoint,
-			TokenGenerator: fakeTokenGenerator,
+			ATCEndpoint: atcEndpoint,
+			HTTPClient:  httpClient,
 		}
 	})
 

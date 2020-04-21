@@ -66,6 +66,7 @@ import SideBar.SideBar as SideBar
 import StrictEvents exposing (onScroll)
 import Time
 import UserState
+import Views.Spinner as Spinner
 import Views.Styles
 
 
@@ -463,6 +464,7 @@ toDashboardPipeline p =
     , isToggleLoading = False
     , isVisibilityLoading = False
     , paused = p.paused
+    , archived = p.archived
     }
 
 
@@ -473,6 +475,7 @@ toConcoursePipeline p =
     , teamName = p.teamName
     , public = p.public
     , paused = p.paused
+    , archived = p.archived
     , groups = []
     }
 
@@ -764,7 +767,19 @@ dashboardView session model =
                 :: onScroll Scrolled
                 :: Styles.content model.highDensity
             )
-            (welcomeCard session model :: pipelinesView session model)
+            (if model.pipelines == None then
+                [ loadingView ]
+
+             else
+                welcomeCard session model :: pipelinesView session model
+            )
+
+
+loadingView : Html Message
+loadingView =
+    Html.div
+        (class "loading" :: Styles.loadingView)
+        [ Spinner.spinner { sizePx = 36, margin = "0" } ]
 
 
 welcomeCard :
@@ -913,6 +928,7 @@ pipelinesView session params =
         pipelines =
             params.pipelines
                 |> FetchResult.withDefault []
+                |> List.filter (not << .archived)
 
         jobs =
             params.jobs

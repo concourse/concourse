@@ -689,6 +689,7 @@ type alias Pipeline =
     { id : Int
     , name : PipelineName
     , paused : Bool
+    , archived : Bool
     , public : Bool
     , teamName : TeamName
     , groups : List PipelineGroup
@@ -708,6 +709,7 @@ encodePipeline pipeline =
         [ ( "id", pipeline.id |> Json.Encode.int )
         , ( "name", pipeline.name |> Json.Encode.string )
         , ( "paused", pipeline.paused |> Json.Encode.bool )
+        , ( "archived", pipeline.archived |> Json.Encode.bool )
         , ( "public", pipeline.public |> Json.Encode.bool )
         , ( "team_name", pipeline.teamName |> Json.Encode.string )
         , ( "groups", pipeline.groups |> Json.Encode.list encodePipelineGroup )
@@ -720,6 +722,7 @@ decodePipeline =
         |> andMap (Json.Decode.field "id" Json.Decode.int)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.field "paused" Json.Decode.bool)
+        |> andMap (Json.Decode.field "archived" Json.Decode.bool)
         |> andMap (Json.Decode.field "public" Json.Decode.bool)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "groups" (Json.Decode.list decodePipelineGroup))

@@ -27,6 +27,7 @@ import Message.ScrollDirection as ScrollDirection
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as Msgs
 import Routes
+import StrictEvents exposing (DeltaMode(..))
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -1264,6 +1265,31 @@ all =
                     |> Tuple.second
                     |> Common.notContains
                         (Effects.FetchJobBuild <| buildParams.id)
+        , test "does not reload one off build page when highlight is modified" <|
+            \_ ->
+                let
+                    buildParams =
+                        { id = 1
+                        , highlight = Routes.HighlightNothing
+                        }
+                in
+                Common.init "/"
+                    |> Application.handleDelivery
+                        (RouteChanged <|
+                            Routes.OneOffBuild
+                                buildParams
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (RouteChanged <|
+                            Routes.OneOffBuild
+                                { buildParams
+                                    | highlight = Routes.HighlightLine "step" 1
+                                }
+                        )
+                    |> Tuple.second
+                    |> Common.notContains
+                        (Effects.FetchBuild 0 buildParams.id)
         , test "gets current timezone on page load" <|
             \_ ->
                 Application.init
@@ -1875,32 +1901,84 @@ all =
                             )
                         >> Tuple.second
                         >> Expect.equal []
-                , test "scrolling builds checks if last build is visible" <|
-                    givenBuildFetched
-                        >> Tuple.first
-                        >> Application.handleCallback
-                            (Callback.BuildHistoryFetched
-                                (Ok
-                                    { pagination =
-                                        { previousPage = Nothing
-                                        , nextPage =
-                                            Just
-                                                { direction = Until 1
-                                                , limit = 100
-                                                }
+                , describe "scrolling builds"
+                    [ test "checks if last build is visible" <|
+                        givenBuildFetched
+                            >> Tuple.first
+                            >> Application.handleCallback
+                                (Callback.BuildHistoryFetched
+                                    (Ok
+                                        { pagination =
+                                            { previousPage = Nothing
+                                            , nextPage =
+                                                Just
+                                                    { direction = Until 1
+                                                    , limit = 100
+                                                    }
+                                            }
+                                        , content = [ Data.jobBuild BuildStatusSucceeded ]
                                         }
-                                    , content = [ Data.jobBuild BuildStatusSucceeded ]
-                                    }
+                                    )
                                 )
-                            )
-                        >> Tuple.first
-                        >> Application.update
-                            (Msgs.Update <|
-                                Message.Message.ScrollBuilds
-                                    { deltaX = 0, deltaY = 0 }
-                            )
-                        >> Tuple.second
-                        >> Common.contains (Effects.CheckIsVisible "1")
+                            >> Tuple.first
+                            >> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.ScrollBuilds
+                                        { deltaX = 0, deltaY = 0, deltaMode = DeltaModePixel }
+                                )
+                            >> Tuple.second
+                            >> Common.contains (Effects.CheckIsVisible "1")
+                    , test "deltaX is negated" <|
+                        givenBuildFetched
+                            >> Tuple.first
+                            >> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.ScrollBuilds
+                                        { deltaX = 5, deltaY = 0, deltaMode = DeltaModePixel }
+                                )
+                            >> Tuple.second
+                            >> Common.contains (Effects.Scroll (ScrollDirection.Sideways -5) "builds")
+                    , test "deltaY is not negated" <|
+                        givenBuildFetched
+                            >> Tuple.first
+                            >> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.ScrollBuilds
+                                        { deltaX = 0, deltaY = 5, deltaMode = DeltaModePixel }
+                                )
+                            >> Tuple.second
+                            >> Common.contains (Effects.Scroll (ScrollDirection.Sideways 5) "builds")
+                    , test "deltaX is preferred" <|
+                        givenBuildFetched
+                            >> Tuple.first
+                            >> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.ScrollBuilds
+                                        { deltaX = 5, deltaY = 4, deltaMode = DeltaModePixel }
+                                )
+                            >> Tuple.second
+                            >> Common.contains (Effects.Scroll (ScrollDirection.Sideways -5) "builds")
+                    , test "DeltaModeLine" <|
+                        givenBuildFetched
+                            >> Tuple.first
+                            >> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.ScrollBuilds
+                                        { deltaX = 5, deltaY = 0, deltaMode = DeltaModeLine }
+                                )
+                            >> Tuple.second
+                            >> Common.contains (Effects.Scroll (ScrollDirection.Sideways -100) "builds")
+                    , test "DeltaModePage" <|
+                        givenBuildFetched
+                            >> Tuple.first
+                            >> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.ScrollBuilds
+                                        { deltaX = 5, deltaY = 0, deltaMode = DeltaModePage }
+                                )
+                            >> Tuple.second
+                            >> Common.contains (Effects.Scroll (ScrollDirection.Sideways -4000) "builds")
+                    ]
                 , test "subscribes to element visibility" <|
                     givenBuildFetched
                         >> Tuple.first

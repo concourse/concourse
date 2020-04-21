@@ -89,7 +89,7 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Err).Should(gbytes.Say(`Either a pipeline name or --all are required`))
+					Eventually(sess.Err).Should(gbytes.Say(`one of the flags '-p, --pipeline' or '-a, --all' is required`))
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
@@ -107,7 +107,7 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Err).Should(gbytes.Say(`A pipeline and --all can not both be specified`))
+					Eventually(sess.Err).Should(gbytes.Say(`only one of the flags '-p, --pipeline' or '-a, --all' is allowed`))
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))

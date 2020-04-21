@@ -158,6 +158,7 @@ app.ports.deleteFromLocalStorage.subscribe(function(key) {
   localStorage.removeItem(key);
 });
 
+
 const csrfTokenKey = "csrf_token";
 window.addEventListener('storage', function(event) {
   if (event.key === csrfTokenKey) {
@@ -167,6 +168,27 @@ window.addEventListener('storage', function(event) {
     }, 0);
   }
 }, false);
+
+app.ports.syncTextareaHeight.subscribe(function(id) {
+  const attemptToSyncHeight = () => {
+    const elem = document.getElementById(id);
+    if (elem == null) {
+      return false;
+    }
+    elem.style.height = "auto";
+    elem.style.height = elem.scrollHeight + "px";
+	return true;
+  };
+  setTimeout(() => {
+    const success = attemptToSyncHeight();
+    if (!success) {
+	  // The element does not always exist by the time we attempt to sync
+	  // Try one more time after a small delay
+	  setTimeout(attemptToSyncHeight, 50);
+	}
+  }, 0);
+})
+
 
 app.ports.openEventStream.subscribe(function(config) {
   var buffer = [];

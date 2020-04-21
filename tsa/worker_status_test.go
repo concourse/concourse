@@ -3,14 +3,13 @@ package tsa_test
 import (
 	"context"
 	"encoding/json"
-	"errors"
 
 	"github.com/concourse/concourse/tsa"
+	"golang.org/x/oauth2"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/tsa/tsafakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -21,11 +20,10 @@ var _ = Describe("Worker Status Test", func() {
 	var (
 		workerStatus *tsa.WorkerStatus
 
-		ctx                context.Context
-		worker             atc.Worker
-		fakeTokenGenerator *tsafakes.FakeTokenGenerator
-		fakeATC            *ghttp.Server
-		data               []byte
+		ctx     context.Context
+		worker  atc.Worker
+		fakeATC *ghttp.Server
+		data    []byte
 	)
 
 	BeforeEach(func() {
@@ -36,16 +34,16 @@ var _ = Describe("Worker Status Test", func() {
 			Team: "some-team",
 		}
 
-		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
-		fakeTokenGenerator.GenerateSystemTokenReturns("yo-team", nil)
-
 		fakeATC = ghttp.NewServer()
 
 		atcEndpoint := rata.NewRequestGenerator(fakeATC.URL(), atc.Routes)
 
+		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
+		httpClient := oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))
+
 		workerStatus = &tsa.WorkerStatus{
 			ATCEndpoint:      atcEndpoint,
-			TokenGenerator:   fakeTokenGenerator,
+			HTTPClient:       httpClient,
 			ContainerHandles: []string{"handle1", "handle2"},
 			VolumeHandles:    []string{"handle1", "handle2"},
 		}
@@ -73,7 +71,7 @@ var _ = Describe("Worker Status Test", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("PUT", "/api/v1/containers/report"),
-				ghttp.VerifyHeaderKV("Authorization", "Bearer yo-team"),
+				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
 				ghttp.VerifyJSON(`["handle1","handle2"]`),
 				ghttp.RespondWith(204, data, nil),
 			))
@@ -112,20 +110,6 @@ var _ = Describe("Worker Status Test", func() {
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("empty-worker-name")))
-				Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
-			})
-		})
-
-		Context("when the system token generator returns an error", func() {
-			BeforeEach(func() {
-				fakeTokenGenerator.GenerateSystemTokenReturns("", errors.New("bblah"))
-			})
-
-			It("errors", func() {
-				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportContainers)
-				Expect(err).To(HaveOccurred())
-
-				Expect(err).To(MatchError(ContainSubstring("bblah")))
 				Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
 			})
 		})
@@ -184,7 +168,7 @@ var _ = Describe("Worker Status Test", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("PUT", "/api/v1/volumes/report"),
-				ghttp.VerifyHeaderKV("Authorization", "Bearer yo-team"),
+				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
 				ghttp.VerifyJSON(`["handle1","handle2"]`),
 				ghttp.RespondWith(204, data, nil),
 			))
@@ -223,20 +207,6 @@ var _ = Describe("Worker Status Test", func() {
 				Expect(err).To(HaveOccurred())
 
 				Expect(err).To(MatchError(ContainSubstring("empty-worker-name")))
-				Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
-			})
-		})
-
-		Context("when the system token generator returns an error", func() {
-			BeforeEach(func() {
-				fakeTokenGenerator.GenerateSystemTokenReturns("", errors.New("bblah"))
-			})
-
-			It("errors", func() {
-				err := workerStatus.WorkerStatus(ctx, worker, tsa.ReportVolumes)
-				Expect(err).To(HaveOccurred())
-
-				Expect(err).To(MatchError(ContainSubstring("bblah")))
 				Expect(fakeATC.ReceivedRequests()).To(HaveLen(0))
 			})
 		})

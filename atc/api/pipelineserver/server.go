@@ -7,11 +7,12 @@ import (
 )
 
 type Server struct {
-	logger          lager.Logger
-	teamFactory     db.TeamFactory
-	rejector        auth.Rejector
-	pipelineFactory db.PipelineFactory
-	externalURL     string
+	logger                lager.Logger
+	teamFactory           db.TeamFactory
+	rejector              auth.Rejector
+	pipelineFactory       db.PipelineFactory
+	externalURL           string
+	enableArchivePipeline bool
 }
 
 func NewServer(
@@ -19,12 +20,14 @@ func NewServer(
 	teamFactory db.TeamFactory,
 	pipelineFactory db.PipelineFactory,
 	externalURL string,
+	enableArchivePipeline bool,
 ) *Server {
 	return &Server{
-		logger:          logger,
-		teamFactory:     teamFactory,
-		rejector:        auth.UnauthorizedRejector{},
-		pipelineFactory: pipelineFactory,
-		externalURL:     externalURL,
+		logger:                logger,
+		teamFactory:           teamFactory,
+		rejector:              auth.UnauthorizedRejector{},
+		pipelineFactory:       pipelineFactory,
+		externalURL:           externalURL,
+		enableArchivePipeline: enableArchivePipeline,
 	}
 }

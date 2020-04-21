@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+
+contact_links:
+- name: ❔ Ask for help
+  url: https://github.com/concourse/concourse/discussions/new
+  about: Ask a question or troubleshoot a problem with Concourse.
+
+- name: 💡 Discuss an idea
+  url: https://github.com/concourse/rfcs/discussions/new
+  about: Discuss a workflow that Concourse could better support.

@@ -68,7 +68,7 @@ var _ = Describe("BuildFactory", func() {
 			DescribeTable("completed and past the grace period",
 				func(status db.BuildStatus, matcher types.GomegaMatcher) {
 					//set grace period to 0 for this test
-					buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0)
+					buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, 0)
 					b, err := defaultTeam.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
 
@@ -207,6 +207,33 @@ var _ = Describe("BuildFactory", func() {
 				i, err = b.Interceptible()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(i).To(BeTrue())
+			})
+		})
+		Context("GC failed builds", func() {
+			It("marks failed builds non-interceptible after failed-grace-period", func() {
+				buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, 2*time.Second) // 1 second could create a flaky test
+				build, err := defaultJob.CreateBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = build.Finish(db.BuildStatusFailed)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = buildFactory.MarkNonInterceptibleBuilds()
+				Expect(err).NotTo(HaveOccurred())
+
+				var i bool
+				i, err = build.Interceptible()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(i).To(BeTrue())
+
+				time.Sleep(3 * time.Second) // Wait is too long, only second granularity, better method?
+
+				err = buildFactory.MarkNonInterceptibleBuilds()
+				Expect(err).NotTo(HaveOccurred())
+
+				i, err = build.Interceptible()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(i).To(BeFalse())
 			})
 		})
 	})

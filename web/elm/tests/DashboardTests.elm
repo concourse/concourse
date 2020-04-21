@@ -347,6 +347,34 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "top-bar-app" ]
                     |> Query.has [ style "height" "54px" ]
+        , describe "loading section" <|
+            [ test "has a loading section when awaiting API data" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.has [ class "loading" ]
+            , test "centers spinner" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.has
+                            [ style "display" "flex"
+                            , style "justify-content" "center"
+                            , style "align-items" "center"
+                            , style "width" "100%"
+                            , style "height" "100%"
+                            ]
+            , test "contains a spinner" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.find [ class "loading" ]
+                        |> Query.has
+                            [ style "animation" "container-rotate 1568ms linear infinite"
+                            , style "height" "36px"
+                            , style "width" "36px"
+                            ]
+            ]
         , test "high density view has no vertical scroll" <|
             \_ ->
                 whenOnDashboard { highDensity = True }

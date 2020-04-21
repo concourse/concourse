@@ -151,7 +151,7 @@ toPath endpoint =
             basePath ++ [ "cli" ]
 
         UserInfo ->
-            baseSkyPath ++ [ "userinfo" ]
+            basePath ++ [ "user" ]
 
         Logout ->
             baseSkyPath ++ [ "logout" ]

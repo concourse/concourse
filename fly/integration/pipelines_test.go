@@ -32,6 +32,7 @@ var _ = Describe("Fly CLI", func() {
 								{Name: "pipeline-1-longer", Paused: false, Public: false, LastUpdated: 1},
 								{Name: "pipeline-2", Paused: true, Public: false, LastUpdated: 1},
 								{Name: "pipeline-3", Paused: false, Public: true, LastUpdated: 1},
+								{Name: "archived-pipeline", Paused: false, Archived: true, Public: true, LastUpdated: 1},
 							}),
 						),
 					)
@@ -42,7 +43,7 @@ var _ = Describe("Fly CLI", func() {
 						flyCmd.Args = append(flyCmd.Args, "--json")
 					})
 
-					It("prints response in json as stdout", func() {
+					It("prints non-archived pipelines in json to stdout", func() {
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
@@ -53,6 +54,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-1-longer",
                   "paused": false,
                   "public": false,
+                  "archived": false,
                   "team_name": "",
                   "last_updated": 1
                 },
@@ -61,6 +63,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-2",
                   "paused": true,
                   "public": false,
+                  "archived": false,
                   "team_name": "",
                   "last_updated": 1
                 },
@@ -69,6 +72,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-3",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "",
                   "last_updated": 1
                 }
@@ -95,6 +99,14 @@ var _ = Describe("Fly CLI", func() {
 						},
 					}))
 				})
+
+				It("does not print archived pipelines", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gexec.Exit(0))
+
+					Expect(sess.Out).ToNot(gbytes.Say("archived-pipeline"))
+				})
 			})
 
 			Context("when --all is specified", func() {
@@ -107,8 +119,10 @@ var _ = Describe("Fly CLI", func() {
 								{Name: "pipeline-1-longer", Paused: false, Public: false, TeamName: "main", LastUpdated: 1},
 								{Name: "pipeline-2", Paused: true, Public: false, TeamName: "main", LastUpdated: 1},
 								{Name: "pipeline-3", Paused: false, Public: true, TeamName: "main", LastUpdated: 1},
+								{Name: "archived-pipeline", Paused: false, Archived: true, Public: true, TeamName: "main", LastUpdated: 1},
 								{Name: "foreign-pipeline-1", Paused: false, Public: true, TeamName: "other", LastUpdated: 1},
 								{Name: "foreign-pipeline-2", Paused: false, Public: true, TeamName: "other", LastUpdated: 1},
+								{Name: "foreign-archived-pipeline", Paused: false, Archived: true, Public: true, TeamName: "other", LastUpdated: 1},
 							}),
 						),
 					)
@@ -119,7 +133,7 @@ var _ = Describe("Fly CLI", func() {
 						flyCmd.Args = append(flyCmd.Args, "--json")
 					})
 
-					It("prints response in json as stdout", func() {
+					It("prints non-archived pipelines in json to stdout", func() {
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
@@ -130,6 +144,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-1-longer",
                   "paused": false,
                   "public": false,
+                  "archived": false,
                   "team_name": "main",
                   "last_updated": 1
                 },
@@ -138,6 +153,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-2",
                   "paused": true,
                   "public": false,
+                  "archived": false,
                   "team_name": "main",
                   "last_updated": 1
                 },
@@ -146,6 +162,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "pipeline-3",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "main",
                   "last_updated": 1
                 },
@@ -154,6 +171,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "foreign-pipeline-1",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "other",
                   "last_updated": 1
                 },
@@ -162,6 +180,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "foreign-pipeline-2",
                   "paused": false,
                   "public": true,
+                  "archived": false,
                   "team_name": "other",
                   "last_updated": 1
                 }
@@ -169,7 +188,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 				})
 
-				It("includes team and shared pipelines, with a team name column", func() {
+				It("outputs pipelines across all teams", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess).Should(gexec.Exit(0))
@@ -190,6 +209,14 @@ var _ = Describe("Fly CLI", func() {
 							{{Contents: "foreign-pipeline-2"}, {Contents: "other"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: time.Unix(1, 0).String()}},
 						},
 					}))
+				})
+
+				It("does not print archived pipelines", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gexec.Exit(0))
+
+					Expect(sess.Out).ToNot(gbytes.Say("archived-pipeline"))
 				})
 			})
 
@@ -216,6 +243,32 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("some-pipeline-1"))
 					Eventually(sess.Out).Should(gbytes.Say("some-pipeline-2"))
 					Eventually(sess.Out).ShouldNot(gbytes.Say("another-pipeline"))
+				})
+			})
+		})
+
+		Context("when there are no pipelines", func() {
+			BeforeEach(func() {
+				flyCmd = exec.Command(flyPath, "-t", targetName, "pipelines")
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{}),
+					),
+				)
+			})
+
+			Context("when --json is given", func() {
+				BeforeEach(func() {
+					flyCmd.Args = append(flyCmd.Args, "--json")
+				})
+
+				It("prints an empty list", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gexec.Exit(0))
+
+					Expect(sess.Out.Contents()).To(MatchJSON(`[]`))
 				})
 			})
 		})

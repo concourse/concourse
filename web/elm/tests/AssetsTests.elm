@@ -329,6 +329,11 @@ toStringTests =
                 CloseIcon
                     |> toString
                     |> Expect.equal "/public/images/ic-close-white.svg"
+        , test "PencilIcon" <|
+            \_ ->
+                PencilIcon
+                    |> toString
+                    |> Expect.equal "/public/images/pencil-white.svg"
         ]
 
 

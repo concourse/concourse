@@ -24,16 +24,18 @@ type BuildFactory interface {
 }
 
 type buildFactory struct {
-	conn              Conn
-	lockFactory       lock.LockFactory
-	oneOffGracePeriod time.Duration
+	conn                     Conn
+	lockFactory              lock.LockFactory
+	oneOffGracePeriod        time.Duration
+	failedGracePeriod        time.Duration
 }
 
-func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, oneOffGracePeriod time.Duration) BuildFactory {
+func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, oneOffGracePeriod time.Duration, failedGracePeriod time.Duration) BuildFactory {
 	return &buildFactory{
-		conn:              conn,
-		lockFactory:       lockFactory,
-		oneOffGracePeriod: oneOffGracePeriod,
+		conn:                     conn,
+		lockFactory:              lockFactory,
+		oneOffGracePeriod:        oneOffGracePeriod,
+		failedGracePeriod:        failedGracePeriod,
 	}
 }
 
@@ -96,13 +98,22 @@ func (f *buildFactory) MarkNonInterceptibleBuilds() error {
 			sq.NotEq{"job_id": nil},
 			sq.Expr(fmt.Sprintf("now() - end_time > '%d seconds'::interval", int(f.oneOffGracePeriod.Seconds()))),
 		}).
-		Where(sq.Or{
-			sq.Expr("NOT EXISTS (SELECT 1 FROM jobs j WHERE j.latest_completed_build_id = b.id)"),
-			sq.Eq{"status": string(BuildStatusSucceeded)},
-		}).
+		Where(f.constructBuildFilter()).
 		RunWith(f.conn).
 		Exec()
 	return err
+}
+
+func (f *buildFactory) constructBuildFilter() sq.Or {
+	buildFilter := sq.Or{
+		sq.Expr("NOT EXISTS (SELECT 1 FROM jobs j WHERE j.latest_completed_build_id = b.id)"),
+		sq.Eq{"status": string(BuildStatusSucceeded)},
+	}
+	if f.failedGracePeriod > 0 { // if zero, grace period is disabled
+		buildFilter = append(buildFilter,
+			sq.Expr(fmt.Sprintf("now() - end_time > '%d seconds'::interval", int(f.failedGracePeriod.Seconds()))))
+	}
+	return buildFilter
 }
 
 func (f *buildFactory) GetDrainableBuilds() ([]Build, error) {

@@ -1011,14 +1011,17 @@ all =
                 setup
                     >> findBody
                     >> Query.has [ style "flex-grow" "1" ]
-            , test "pipeline-grid fills available space" <|
+            , test "allows pipeline-grid to fill available height" <|
+                setup
+                    >> findBody
+                    >> Query.has [ style "display" "flex" ]
+            , test "pipeline-grid fills available width" <|
                 setup
                     >> findBody
                     >> Query.find [ class "pipeline-grid" ]
                     >> Query.has
                         [ style "box-sizing" "border-box"
                         , style "width" "100%"
-                        , style "height" "100%"
                         ]
             ]
         , describe "footer" <|

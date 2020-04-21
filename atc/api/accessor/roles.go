@@ -1,16 +1,9 @@
 package accessor
 
 import (
-	"io/ioutil"
-
-	"code.cloudfoundry.org/lager"
-	"gopkg.in/yaml.v2"
-
 	"github.com/concourse/concourse/atc"
 )
 
-// requiredRoles should be a const, never be updated.
-const System = "system"
 const (
 	MemberRole   = "member"
 	OwnerRole    = "owner"
@@ -18,7 +11,7 @@ const (
 	ViewerRole   = "viewer"
 )
 
-var requiredRoles = map[string]string{
+var DefaultRoles = map[string]string{
 	atc.SaveConfig:                    MemberRole,
 	atc.GetConfig:                     ViewerRole,
 	atc.GetCC:                         ViewerRole,
@@ -69,6 +62,7 @@ var requiredRoles = map[string]string{
 	atc.DeletePipeline:                MemberRole,
 	atc.OrderPipelines:                MemberRole,
 	atc.PausePipeline:                 OperatorRole,
+	atc.ArchivePipeline:               OwnerRole,
 	atc.UnpausePipeline:               OperatorRole,
 	atc.ExposePipeline:                MemberRole,
 	atc.HidePipeline:                  MemberRole,
@@ -106,36 +100,4 @@ var requiredRoles = map[string]string{
 	atc.GetArtifact:                   MemberRole,
 	atc.ListBuildArtifacts:            ViewerRole,
 	atc.GetWall:                       ViewerRole,
-}
-
-type CustomActionRoleMap map[string][]string
-
-//go:generate counterfeiter . ActionRoleMap
-
-type ActionRoleMap interface {
-	RoleOfAction(string) string
-}
-
-//go:generate counterfeiter . ActionRoleMapModifier
-
-type ActionRoleMapModifier interface {
-	CustomizeActionRoleMap(lager.Logger, CustomActionRoleMap) error
-}
-
-func ParseCustomActionRoleMap(filename string, mapping *CustomActionRoleMap) error {
-	if filename == "" {
-		return nil
-	}
-
-	content, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return err
-	}
-
-	err = yaml.Unmarshal(content, mapping)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

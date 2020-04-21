@@ -348,6 +348,72 @@ func (s *IntegrationSuite) TestAttach() {
 	s.NoError(err)
 }
 
+// TestCustomDNS verfies that when a network is setup with custom NameServers
+// those NameServers should appear in the container's etc/resolv.conf
+//
+func (s *IntegrationSuite) TestCustomDNS() {
+	namespace := "test-custom-dns"
+	requestTimeout := 3 * time.Second
+
+	network, err := backend.NewCNINetwork(
+		backend.WithNameServers([]string{
+			"1.1.1.1", "1.2.3.4",
+		}),
+	)
+	s.NoError(err)
+
+	networkOpt := backend.WithNetwork(network)
+	customBackend, err := backend.New(
+		libcontainerd.New(
+			s.containerdSocket(),
+			namespace,
+			requestTimeout,
+		),
+		networkOpt,
+	)
+	s.NoError(err)
+
+	s.NoError(customBackend.Start())
+
+	handle := uuid()
+
+	container, err := customBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(customBackend.Destroy(handle))
+		customBackend.Stop()
+	}()
+
+	buf := new(buffer)
+
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-cat",
+				"/etc/resolv.conf",
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+
+	s.Equal(exitCode, 0)
+	expectedDNSServer := "nameserver 1.1.1.1\nnameserver 1.2.3.4\n"
+	s.Equal(expectedDNSServer, buf.String())
+}
+
 // TestUngracefulStop aims at validating that we're giving the process enough
 // opportunity to finish, but that at the same time, we don't wait forever.
 //

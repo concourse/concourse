@@ -95,6 +95,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.DeletePipeline,
 		atc.OrderPipelines,
 		atc.PausePipeline,
+		atc.ArchivePipeline,
 		atc.UnpausePipeline,
 		atc.ExposePipeline,
 		atc.HidePipeline,
@@ -132,6 +133,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.GetInfo,
 		atc.GetInfoCreds,
 		atc.ListActiveUsersSince,
+		atc.GetUser,
 		atc.GetWall,
 		atc.SetWall,
 		atc.ClearWall:

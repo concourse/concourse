@@ -17,6 +17,7 @@ module Dashboard.Styles exposing
     , legend
     , legendItem
     , legendSeparator
+    , loadingView
     , noPipelineCard
     , noPipelineCardHd
     , noPipelineCardHeader
@@ -200,6 +201,7 @@ pipelineCardBody =
     [ style "background-color" Colors.card
     , style "margin" "2px 0"
     , style "flex-grow" "1"
+    , style "display" "flex"
     ]
 
 
@@ -207,7 +209,6 @@ pipelinePreviewGrid : List (Html.Attribute msg)
 pipelinePreviewGrid =
     [ style "box-sizing" "border-box"
     , style "width" "100%"
-    , style "height" "100%"
     ]
 
 
@@ -795,4 +796,14 @@ clusterName =
     , style "color" "#ffffff"
     , style "letter-spacing" "0.1em"
     , style "margin-left" "10px"
+    ]
+
+
+loadingView : List (Html.Attribute msg)
+loadingView =
+    [ style "display" "flex"
+    , style "justify-content" "center"
+    , style "align-items" "center"
+    , style "width" "100%"
+    , style "height" "100%"
     ]

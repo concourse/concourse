@@ -32,7 +32,7 @@ type Message
     | FocusTextArea
     | BlurTextArea
       -- Build
-    | ScrollBuilds StrictEvents.MouseWheelEvent
+    | ScrollBuilds StrictEvents.WheelEvent
     | RevealCurrentBuildInHistory
     | SetHighlight String Int
     | ExtendHighlight String Int
@@ -51,7 +51,9 @@ type DomID
     | PreviousPageButton
     | NextPageButton
     | CheckButton Bool
+    | EditButton
     | SaveCommentButton
+    | ResourceCommentTextarea
     | FirstOccurrenceGetStepLabel StepID
     | StepState StepID
     | PinIcon
@@ -76,6 +78,7 @@ type DomID
     | VersionHeader VersionId
     | VersionToggle VersionId
     | BuildTab Int String
+    | PipelineWrapper Concourse.PipelineIdentifier
     | JobPreview Concourse.JobIdentifier
     | HamburgerMenu
     | SideBarTeam String
