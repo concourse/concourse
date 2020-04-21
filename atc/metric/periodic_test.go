@@ -101,7 +101,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 
 		BeforeEach(func() {
 			gauge := &metric.Gauge{}
-			gauge.Set(123)
+			gauge.Inc()
 
 			counter := &metric.Counter{}
 			counter.IncDelta(10)
@@ -118,7 +118,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 					ContainElement(
 						MatchFields(IgnoreExtras, Fields{
 							"Name":  Equal("concurrent requests"),
-							"Value": Equal(float64(123)),
+							"Value": Equal(1),
 							"Attributes": Equal(map[string]string{
 								"action": action,
 							}),
@@ -132,7 +132,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 					ContainElement(
 						MatchFields(IgnoreExtras, Fields{
 							"Name":  Equal("concurrent requests limit hit"),
-							"Value": Equal(float64(10)),
+							"Value": Equal(10),
 							"Attributes": Equal(map[string]string{
 								"action": action,
 							}),

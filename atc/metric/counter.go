@@ -14,7 +14,7 @@ func (m *Counter) IncDelta(delta int) {
 	atomic.AddInt64((*int64)(&m.cur), int64(delta))
 }
 
-func (m *Counter) Delta() float64 {
+func (m *Counter) Delta() int {
 	cur := atomic.SwapInt64((*int64)(&m.cur), 0)
-	return float64(cur)
+	return int(cur)
 }

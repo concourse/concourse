@@ -40,7 +40,8 @@ func (wrappa ConcurrentRequestLimitsWrappa) Wrap(
 			wrapped[action] = wrappa.wrap(
 				pool,
 				handler,
-				inflight, limitHit,
+				inflight,
+				limitHit,
 			)
 		} else {
 			wrapped[action] = handler
