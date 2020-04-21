@@ -30,6 +30,7 @@ type alias Model =
             , userState : UserState.UserState
             , highDensity : Bool
             , query : String
+            , isDataLoading : Bool
             }
         )
 

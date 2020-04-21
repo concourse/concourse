@@ -102,6 +102,7 @@ init flags =
       , query = Routes.extractQuery flags.searchType
       , isUserMenuExpanded = False
       , dropdown = Hidden
+      , isDataLoading = True
       }
     , [ FetchData
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -118,6 +119,7 @@ handleCallback msg ( model, effects ) =
             ( { model
                 | state =
                     RemoteData.Failure (Turbulence model.turbulencePath)
+                , isDataLoading = False
               }
             , effects
             )
@@ -159,6 +161,7 @@ handleCallback msg ( model, effects ) =
                     , highDensity = False
                     , version = apiData.version
                     , userState = userState
+                    , isDataLoading = False
                   }
                 , effects
                     ++ [ ModifyUrl <|
@@ -172,6 +175,7 @@ handleCallback msg ( model, effects ) =
                     | groups = groups
                     , version = apiData.version
                     , userState = userState
+                    , isDataLoading = False
                   }
                 , effects
                 )
@@ -267,7 +271,16 @@ handleDeliveryBody delivery ( model, effects ) =
             )
 
         ClockTicked FiveSeconds _ ->
-            ( model, effects ++ [ FetchData, FetchPipelines ] )
+            ( { model | isDataLoading = True }
+            , effects
+                ++ FetchPipelines
+                :: (if model.isDataLoading then
+                        []
+
+                    else
+                        [ FetchData ]
+                   )
+            )
 
         _ ->
             ( model, effects )
