@@ -31,10 +31,34 @@ var _ = Describe("Web Command", func() {
 
 		concourseProcess ifrit.Process
 		concourseRunner  *ginkgomon.Runner
+		postgresRunner   postgresrunner.Runner
+		dbProcess        ifrit.Process
 	)
 
 	BeforeEach(func() {
-		args = []string{"web"}
+		hostKeyFile, hostPubKeyFile, _, _ = generateSSHKeypair()
+		postgresRunner = postgresrunner.Runner{
+			Port: 5433 + GinkgoParallelNode(),
+		}
+		dbProcess = ifrit.Invoke(postgresRunner)
+		postgresRunner.CreateTestDB()
+
+		args = []string{"web",
+			"--tsa-host-key", hostKeyFile,
+			"--postgres-user", "postgres",
+			"--postgres-database", "testdb",
+			"--postgres-port", strconv.Itoa(5433+GinkgoParallelNode()),
+			"--main-team-local-user", "test",
+			"--add-local-user", "test:test",
+			"--debug-bind-port", strconv.Itoa(8000+GinkgoParallelNode()),
+			"--bind-port", strconv.Itoa(8080+GinkgoParallelNode()),
+			"--tsa-bind-port", strconv.Itoa(2222+GinkgoParallelNode()),
+			"--client-id", "client-id",
+			"--client-secret", "client-secret",
+			"--tsa-client-id", "tsa-client-id",
+			"--tsa-client-secret", "tsa-client-secret",
+			"--tsa-token-url", "http://localhost/token",
+		}
 	})
 
 	JustBeforeEach(func() {
@@ -56,69 +80,25 @@ var _ = Describe("Web Command", func() {
 		http.DefaultServeMux = new(http.ServeMux)
 	})
 
-	JustAfterEach(func() {
+	AfterEach(func() {
 		ginkgomon.Interrupt(concourseProcess)
 		<-concourseProcess.Wait()
+		postgresRunner.DropTestDB()
+
+		dbProcess.Signal(os.Interrupt)
+		err := <-dbProcess.Wait()
+		Expect(err).NotTo(HaveOccurred())
+		os.Remove(hostKeyFile)
+		os.Remove(hostPubKeyFile)
+		os.Remove(filepath.Dir(hostPubKeyFile))
 	})
 
-	Context("when --tsa-host-key is specified", func() {
-		BeforeEach(func() {
-			hostKeyFile, hostPubKeyFile, _, _ = generateSSHKeypair()
-			args = append(args, "--tsa-host-key", hostKeyFile)
-		})
+	It("ATC should start up", func() {
+		Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
+	})
 
-		AfterEach(func() {
-			os.Remove(hostKeyFile)
-			os.Remove(hostPubKeyFile)
-			os.Remove(filepath.Dir(hostPubKeyFile))
-		})
-
-		Context("and all other required flags are provided", func() {
-			var (
-				postgresRunner postgresrunner.Runner
-				dbProcess      ifrit.Process
-			)
-
-			BeforeEach(func() {
-				postgresRunner = postgresrunner.Runner{
-					Port: 5433 + GinkgoParallelNode(),
-				}
-				dbProcess = ifrit.Invoke(postgresRunner)
-				postgresRunner.CreateTestDB()
-
-				args = append(args,
-					"--postgres-user", "postgres",
-					"--postgres-database", "testdb",
-					"--postgres-port", strconv.Itoa(5433+GinkgoParallelNode()),
-					"--main-team-local-user", "test",
-					"--add-local-user", "test:test",
-					"--debug-bind-port", strconv.Itoa(8000+GinkgoParallelNode()),
-					"--bind-port", strconv.Itoa(8080+GinkgoParallelNode()),
-					"--tsa-bind-port", strconv.Itoa(2222+GinkgoParallelNode()),
-					"--client-id", "client-id",
-					"--client-secret", "client-secret",
-					"--tsa-client-id", "tsa-client-id",
-					"--tsa-client-secret", "tsa-client-secret",
-					"--tsa-token-url", "http://localhost/token",
-				)
-			})
-
-			AfterEach(func() {
-				postgresRunner.DropTestDB()
-
-				dbProcess.Signal(os.Interrupt)
-				err := <-dbProcess.Wait()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("ATC should start up", func() {
-				Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
-			})
-
-			It("TSA should start up", func() {
-				Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
-			})
-		})
+	It("TSA should start up", func() {
+		Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
 	})
 })
 
