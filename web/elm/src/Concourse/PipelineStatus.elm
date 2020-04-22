@@ -25,6 +25,7 @@ type PipelineStatus
     | PipelineStatusFailed StatusDetails
     | PipelineStatusPending Bool
     | PipelineStatusSucceeded StatusDetails
+    | PipelineStatusUnknown
 
 
 equal : PipelineStatus -> PipelineStatus -> Bool
@@ -73,6 +74,9 @@ show status =
         PipelineStatusSucceeded _ ->
             "succeeded"
 
+        PipelineStatusUnknown ->
+            "unknown"
+
 
 isRunning : PipelineStatus -> Bool
 isRunning status =
@@ -95,29 +99,39 @@ isRunning status =
         PipelineStatusSucceeded details ->
             details == Running
 
+        PipelineStatusUnknown ->
+            False
 
-icon : PipelineStatus -> Html msg
+
+icon : PipelineStatus -> List (Html msg)
 icon status =
-    Icon.icon
-        { sizePx = 20
-        , image =
-            case status of
-                PipelineStatusPaused ->
-                    "ic-pause-blue.svg"
+    let
+        iconElement image =
+            [ Icon.icon
+                { sizePx = 20
+                , image = image
+                }
+                [ style "background-size" "contain" ]
+            ]
+    in
+    case status of
+        PipelineStatusPaused ->
+            iconElement "ic-pause-blue.svg"
 
-                PipelineStatusPending _ ->
-                    "ic-pending-grey.svg"
+        PipelineStatusPending _ ->
+            iconElement "ic-pending-grey.svg"
 
-                PipelineStatusSucceeded _ ->
-                    "ic-running-green.svg"
+        PipelineStatusSucceeded _ ->
+            iconElement "ic-running-green.svg"
 
-                PipelineStatusFailed _ ->
-                    "ic-failing-red.svg"
+        PipelineStatusFailed _ ->
+            iconElement "ic-failing-red.svg"
 
-                PipelineStatusAborted _ ->
-                    "ic-aborted-brown.svg"
+        PipelineStatusAborted _ ->
+            iconElement "ic-aborted-brown.svg"
 
-                PipelineStatusErrored _ ->
-                    "ic-error-orange.svg"
-        }
-        [ style "background-size" "contain" ]
+        PipelineStatusErrored _ ->
+            iconElement "ic-error-orange.svg"
+
+        PipelineStatusUnknown ->
+            []

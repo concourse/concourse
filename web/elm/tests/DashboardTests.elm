@@ -2261,6 +2261,42 @@ all =
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
+                    , describe "when the jobs endpoint is disabled" <|
+                        let
+                            pipelineWithJobsEndpointDisabled =
+                                givenDataUnauthenticated
+                                    (\u ->
+                                        { teams =
+                                            [ { id = 0, name = "team" } ]
+                                        , pipelines =
+                                            [ onePipeline "team" ]
+                                        , jobs = Nothing
+                                        , resources = []
+                                        , version = ""
+                                        , user = u
+                                        }
+                                    )
+                                    >> Tuple.first
+                                    >> Common.queryView
+                        in
+                        [ test "has no status icon" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> pipelineWithJobsEndpointDisabled
+                                    |> Query.find [ class "card-footer" ]
+                                    |> Query.hasNot
+                                        (iconSelector
+                                            { size = "20px"
+                                            , image = "ic-pending-grey.svg"
+                                            }
+                                        )
+                        , test "has no status text" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> pipelineWithJobsEndpointDisabled
+                                    |> Query.find [ class "card-footer" ]
+                                    |> Query.hasNot [ class "build-duration" ]
+                        ]
                     ]
                 , describe "right-hand section"
                     [ describe "visibility toggle" <|

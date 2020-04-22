@@ -202,10 +202,11 @@ legendItem : PipelineStatus -> Html Message
 legendItem status =
     Html.div
         Styles.legendItem
-        [ PipelineStatus.icon status
-        , Html.div [ style "width" "10px" ] []
-        , Html.text <| PipelineStatus.show status
-        ]
+        (PipelineStatus.icon status
+            ++ [ Html.div [ style "width" "10px" ] []
+               , Html.text <| PipelineStatus.show status
+               ]
+        )
 
 
 toggleView : Bool -> Html Message
