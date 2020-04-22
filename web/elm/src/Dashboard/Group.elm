@@ -157,6 +157,7 @@ allPipelines data =
                 let
                     jobs =
                         data.jobs
+                            |> Maybe.withDefault []
                             |> List.filter
                                 (\j ->
                                     (j.teamName == p.teamName)

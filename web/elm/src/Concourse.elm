@@ -839,7 +839,7 @@ decodeCause =
 type alias APIData =
     { teams : List Team
     , pipelines : List Pipeline
-    , jobs : List Job
+    , jobs : Maybe (List Job)
     , resources : List Resource
     , user : Maybe User
     , version : String

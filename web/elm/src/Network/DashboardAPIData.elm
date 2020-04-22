@@ -20,11 +20,11 @@ remoteData =
                     |> Task.andThen
                         (\pipelines ->
                             Network.Job.fetchAllJobs
-                                |> Task.map (Maybe.withDefault [])
+                                |> Task.map (Maybe.withDefault [] >> Just)
                                 |> Task.onError
                                     (\err ->
                                         if isStatusCode 501 err then
-                                            Task.succeed []
+                                            Task.succeed Nothing
 
                                         else
                                             Task.fail err

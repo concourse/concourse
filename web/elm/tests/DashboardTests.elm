@@ -1197,8 +1197,9 @@ all =
                             , pipelines =
                                 [ onePipeline "team" ]
                             , jobs =
-                                [ jobFunc status
-                                ]
+                                Just
+                                    [ jobFunc status
+                                    ]
                             , resources = []
                             , version = ""
                             , user = u
@@ -1397,7 +1398,7 @@ all =
                                             [ { id = 0, name = "team" } ]
                                         , pipelines =
                                             [ onePipelinePaused "team" ]
-                                        , jobs = []
+                                        , jobs = Just []
                                         , resources = []
                                         , version = ""
                                         , user = u
@@ -1503,9 +1504,10 @@ all =
                                             , pipelines =
                                                 [ onePipeline "team" ]
                                             , jobs =
-                                                [ job firstStatus
-                                                , otherJob secondStatus
-                                                ]
+                                                Just
+                                                    [ job firstStatus
+                                                    , otherJob secondStatus
+                                                    ]
                                             , resources = []
                                             , version = ""
                                             , user = u
@@ -1550,7 +1552,7 @@ all =
                                     (\u ->
                                         { teams = [ { id = 0, name = "team" } ]
                                         , pipelines = [ onePipeline "team" ]
-                                        , jobs = circularJobs
+                                        , jobs = Just circularJobs
                                         , resources = []
                                         , version = ""
                                         , user = u
@@ -1579,7 +1581,7 @@ all =
                                                 [ { id = 0, name = "team" } ]
                                             , pipelines =
                                                 [ onePipelinePaused "team" ]
-                                            , jobs = []
+                                            , jobs = Just []
                                             , resources = []
                                             , version = ""
                                             , user = u
@@ -1685,9 +1687,10 @@ all =
                                                 , pipelines =
                                                     [ onePipeline "team" ]
                                                 , jobs =
-                                                    [ job firstStatus
-                                                    , otherJob secondStatus
-                                                    ]
+                                                    Just
+                                                        [ job firstStatus
+                                                        , otherJob secondStatus
+                                                        ]
                                                 , resources = []
                                                 , version = ""
                                                 , user = u
@@ -1870,7 +1873,7 @@ all =
                                               , groups = []
                                               }
                                             ]
-                                        , jobs = []
+                                        , jobs = Just []
                                         , resources =
                                             [ { teamName = "team"
                                               , pipelineName = "pipeline"
@@ -2060,7 +2063,7 @@ all =
                                                 [ { id = 0, name = "team" } ]
                                             , pipelines =
                                                 [ onePipelinePaused "team" ]
-                                            , jobs = []
+                                            , jobs = Just []
                                             , resources = []
                                             , version = ""
                                             , user = u
@@ -2189,11 +2192,12 @@ all =
                                             , pipelines =
                                                 [ onePipeline "team" ]
                                             , jobs =
-                                                [ jobWithNameTransitionedAt
-                                                    "job"
-                                                    (Just <| Time.millisToPosix 0)
-                                                    Concourse.BuildStatusSucceeded
-                                                ]
+                                                Just
+                                                    [ jobWithNameTransitionedAt
+                                                        "job"
+                                                        (Just <| Time.millisToPosix 0)
+                                                        Concourse.BuildStatusSucceeded
+                                                    ]
                                             , resources = []
                                             , version = ""
                                             , user = u
@@ -3575,7 +3579,7 @@ all =
                                         [ { id = 0, name = "team" } ]
                                     , pipelines =
                                         [ onePipeline "team" ]
-                                    , jobs = []
+                                    , jobs = Just []
                                     , resources = []
                                     , version = "1.2.3"
                                     , user = u
@@ -3796,31 +3800,32 @@ givenPipelineWithJob user =
           }
         ]
     , jobs =
-        [ { pipeline =
-                { teamName = "team"
-                , pipelineName = "pipeline"
-                }
-          , name = "job"
-          , pipelineName = "pipeline"
-          , teamName = "team"
-          , nextBuild = Nothing
-          , finishedBuild =
-                Just
-                    { id = 0
-                    , name = "1"
-                    , job = Just { teamName = "team", pipelineName = "pipeline", jobName = "job" }
-                    , status = Concourse.BuildStatusSucceeded
-                    , duration = { startedAt = Nothing, finishedAt = Nothing }
-                    , reapTime = Nothing
+        Just
+            [ { pipeline =
+                    { teamName = "team"
+                    , pipelineName = "pipeline"
                     }
-          , transitionBuild = Nothing
-          , paused = False
-          , disableManualTrigger = False
-          , inputs = []
-          , outputs = []
-          , groups = []
-          }
-        ]
+              , name = "job"
+              , pipelineName = "pipeline"
+              , teamName = "team"
+              , nextBuild = Nothing
+              , finishedBuild =
+                    Just
+                        { id = 0
+                        , name = "1"
+                        , job = Just { teamName = "team", pipelineName = "pipeline", jobName = "job" }
+                        , status = Concourse.BuildStatusSucceeded
+                        , duration = { startedAt = Nothing, finishedAt = Nothing }
+                        , reapTime = Nothing
+                        }
+              , transitionBuild = Nothing
+              , paused = False
+              , disableManualTrigger = False
+              , inputs = []
+              , outputs = []
+              , groups = []
+              }
+            ]
     , resources = []
     , version = ""
     , user = user
@@ -3839,7 +3844,7 @@ oneTeamOnePipelinePaused teamName user =
           , groups = []
           }
         ]
-    , jobs = []
+    , jobs = Just []
     , resources = []
     , version = ""
     , user = user
@@ -3858,7 +3863,7 @@ oneTeamOnePipelineNonPublic teamName user =
           , groups = []
           }
         ]
-    , jobs = []
+    , jobs = Just []
     , resources = []
     , version = ""
     , user = user
@@ -3911,7 +3916,7 @@ apiData pipelines user =
                                 }
                             )
                 )
-    , jobs = []
+    , jobs = Just []
     , resources = []
     , version = ""
     , user = user
