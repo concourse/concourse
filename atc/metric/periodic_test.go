@@ -32,14 +32,17 @@ var _ = Describe("Periodic emission of metrics", func() {
 		metric.RegisterEmitter(emitterFactory)
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
-		a := &dbfakes.FakeConn{}
-		a.NameReturns("A")
-		b := &dbfakes.FakeConn{}
-		b.NameReturns("B")
-		metric.Databases = []db.Conn{a, b}
 		metric.Initialize(testLogger, "test", map[string]string{}, 1000)
 
-		process = ifrit.Invoke(metric.PeriodicallyEmit(lager.NewLogger("dont care"), 250*time.Millisecond))
+	})
+
+	JustBeforeEach(func() {
+		runner := metric.PeriodicallyEmit(
+			lager.NewLogger("dont care"),
+			250*time.Millisecond,
+		)
+
+		process = ifrit.Invoke(runner)
 	})
 
 	AfterEach(func() {
@@ -48,38 +51,95 @@ var _ = Describe("Periodic emission of metrics", func() {
 		metric.Deinitialize(nil)
 	})
 
-	It("emits database queries", func() {
-		Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
-		Expect(emitter.Invocations()["Emit"]).To(
-			ContainElement(
-				ContainElement(
-					MatchFields(IgnoreExtras, Fields{
-						"Name": Equal("database queries"),
-					}),
-				),
-			),
-		)
+	Context("database-related metrics", func() {
+		BeforeEach(func() {
+			a := &dbfakes.FakeConn{}
+			a.NameReturns("A")
+			b := &dbfakes.FakeConn{}
+			b.NameReturns("B")
+			metric.Databases = []db.Conn{a, b}
+		})
 
-		By("emits database connections for each pool")
-		Expect(emitter.Invocations()["Emit"]).To(
-			ContainElement(
+		It("emits database queries", func() {
+			Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
+			Expect(emitter.Invocations()["Emit"]).To(
 				ContainElement(
-					MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("database connections"),
-						"Attributes": Equal(map[string]string{"ConnectionName": "A"}),
-					}),
+					ContainElement(
+						MatchFields(IgnoreExtras, Fields{
+							"Name": Equal("database queries"),
+						}),
+					),
 				),
-			),
-		)
-		Expect(emitter.Invocations()["Emit"]).To(
-			ContainElement(
+			)
+
+			By("emits database connections for each pool")
+			Expect(emitter.Invocations()["Emit"]).To(
 				ContainElement(
-					MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("database connections"),
-						"Attributes": Equal(map[string]string{"ConnectionName": "B"}),
-					}),
+					ContainElement(
+						MatchFields(IgnoreExtras, Fields{
+							"Name":       Equal("database connections"),
+							"Attributes": Equal(map[string]string{"ConnectionName": "A"}),
+						}),
+					),
 				),
-			),
-		)
+			)
+			Expect(emitter.Invocations()["Emit"]).To(
+				ContainElement(
+					ContainElement(
+						MatchFields(IgnoreExtras, Fields{
+							"Name":       Equal("database connections"),
+							"Attributes": Equal(map[string]string{"ConnectionName": "B"}),
+						}),
+					),
+				),
+			)
+		})
+	})
+
+	Context("concurrent requests", func() {
+		const action = "ListAllSomething"
+
+		BeforeEach(func() {
+			gauge := &metric.Gauge{}
+			gauge.Inc()
+
+			counter := &metric.Counter{}
+			counter.IncDelta(10)
+
+			metric.ConcurrentRequests[action] = gauge
+			metric.ConcurrentRequestsLimitHit[action] = counter
+		})
+
+		It("emits", func() {
+			Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
+
+			Expect(emitter.Invocations()["Emit"]).To(
+				ContainElement(
+					ContainElement(
+						MatchFields(IgnoreExtras, Fields{
+							"Name":  Equal("concurrent requests"),
+							"Value": Equal(1),
+							"Attributes": Equal(map[string]string{
+								"action": action,
+							}),
+						}),
+					),
+				),
+			)
+
+			Expect(emitter.Invocations()["Emit"]).To(
+				ContainElement(
+					ContainElement(
+						MatchFields(IgnoreExtras, Fields{
+							"Name":  Equal("concurrent requests limit hit"),
+							"Value": Equal(10),
+							"Attributes": Equal(map[string]string{
+								"action": action,
+							}),
+						}),
+					),
+				),
+			)
+		})
 	})
 })

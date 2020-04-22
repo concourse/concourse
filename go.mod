@@ -218,3 +218,5 @@ require (
 )
 
 go 1.13
+
+replace github.com/jessevdk/go-flags => github.com/vito/go-flags v1.4.1-0.20200421142706-6149d40139cb
