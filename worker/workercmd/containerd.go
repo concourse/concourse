@@ -26,28 +26,39 @@ func containerdGardenServerRunner(
 	containerdAddr string,
 	requestTimeout time.Duration,
 	dnsServers []string,
+	networkPool string,
 ) (ifrit.Runner, error) {
 	const (
 		graceTime = 0
 		namespace = "concourse"
 	)
 
-	opts := []containerd.BackendOpt{}
+	backendOpts := []containerd.BackendOpt{}
+	networkOpts := []containerd.CNINetworkOpt{}
 
 	if len(dnsServers) > 0 {
-		network, err := containerd.NewCNINetwork(
-			containerd.WithNameServers(dnsServers),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("new cni network: %w", err)
-		}
-
-		opts = append(opts, containerd.WithNetwork(network))
+		networkOpts = append(networkOpts, containerd.WithNameServers(dnsServers))
 	}
+
+	if networkPool != "" {
+		networkOpts = append(networkOpts, containerd.WithCNINetworkConfig(
+			containerd.CNINetworkConfig{
+				BridgeName:  "concourse0",
+				NetworkName: "concourse",
+				Subnet:      networkPool,
+			}))
+	}
+
+	cniNetwork, err := containerd.NewCNINetwork(networkOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("new cni network: %w", err)
+	}
+
+	backendOpts = append(backendOpts, containerd.WithNetwork(cniNetwork))
 
 	backend, err := containerd.New(
 		libcontainerd.New(containerdAddr, namespace, requestTimeout),
-		opts...,
+		backendOpts...,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("containerd containerd init: %w", err)
@@ -138,6 +149,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		sock,
 		cmd.Garden.RequestTimeout,
 		cmd.Garden.DNSServers,
+		cmd.ContainerNetworkPool,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("containerd garden server runner: %w", err)

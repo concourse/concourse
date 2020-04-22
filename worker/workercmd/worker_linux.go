@@ -34,8 +34,7 @@ type GardenBackend struct {
 	Bin        string    `long:"bin"        description:"Path to a garden backend executable (non-absolute names get resolved from $PATH)."`
 	Config     flag.File `long:"config"     description:"Path to a config file to use for the Garden backend. Guardian flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
 	DNSServers []string  `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
-
-	DNS DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
+	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 }
@@ -135,6 +134,10 @@ func (cmd *WorkerCommand) gdnRunner(logger lager.Logger) (ifrit.Runner, error) {
 
 	for _, dnsServer := range cmd.Garden.DNSServers {
 		gdnServerFlags = append(gdnServerFlags, "--dns-server", dnsServer)
+	}
+
+	if cmd.ContainerNetworkPool != "" {
+		gdnServerFlags = append(gdnServerFlags, "--network-pool", cmd.ContainerNetworkPool)
 	}
 
 	gdnServerFlags = append(gdnServerFlags, detectGardenFlags(logger)...)
