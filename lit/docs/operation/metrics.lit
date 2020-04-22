@@ -65,6 +65,12 @@ metrics pipeline.
     # HELP concourse_builds_succeeded_total Total number of Concourse builds succeeded.
     # TYPE concourse_builds_succeeded_total counter
     concourse_builds_succeeded_total 0
+    # HELP concourse_concurrent_requests Number of concurrent requests being served by endpoints that have a specified limit of concurrent requests.
+    # TYPE concourse_concurrent_requests gauge
+    concourse_concurrent_requests{action="ListAllJobs"} 0
+    # HELP concourse_concurrent_requests_limit_hit_total Total number of requests that failed to acquire the lock to be served.
+    # TYPE concourse_concurrent_requests_limit_hit_total counter
+    concourse_concurrent_requests_limit_hit_total{action="ListAllJobs"} 8
     # HELP concourse_db_connections Current number of concourse database connections
     # TYPE concourse_db_connections gauge
     concourse_db_connections{dbname="api"} 1
