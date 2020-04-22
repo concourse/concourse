@@ -166,8 +166,8 @@ allPipelines data =
 
                     status =
                         case data.jobs of
-                            Just jobsList ->
-                                pipelineStatus p jobsList
+                            Just _ ->
+                                pipelineStatus p jobs
 
                             Nothing ->
                                 PipelineStatus.PipelineStatusUnknown

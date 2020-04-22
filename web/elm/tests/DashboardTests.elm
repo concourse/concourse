@@ -1189,16 +1189,31 @@ all =
 
                             else
                                 job
+
+                        failingJob =
+                            let
+                                j =
+                                    job Concourse.BuildStatusFailed
+                            in
+                            { j | pipelineName = "other" }
+
+                        otherPipeline =
+                            let
+                                p =
+                                    onePipeline "team"
+                            in
+                            { p | name = "other" }
                     in
                     givenDataUnauthenticated
                         (\u ->
                             { teams =
                                 [ { id = 0, name = "team" } ]
                             , pipelines =
-                                [ onePipeline "team" ]
+                                [ onePipeline "team", otherPipeline ]
                             , jobs =
                                 Just
                                     [ jobFunc status
+                                    , failingJob
                                     ]
                             , resources = []
                             , version = ""
@@ -2040,14 +2055,16 @@ all =
                 , describe "left-hand section" <|
                     let
                         findStatusIcon =
-                            Query.find [ class "card-footer" ]
+                            Query.find [ class "card", containing [ text "pipeline" ] ]
+                                >> Query.find [ class "card-footer" ]
                                 >> Query.children []
                                 >> Query.first
                                 >> Query.children []
                                 >> Query.first
 
                         findStatusText =
-                            Query.find [ class "card-footer" ]
+                            Query.find [ class "card", containing [ text "pipeline" ] ]
+                                >> Query.find [ class "card-footer" ]
                                 >> Query.children []
                                 >> Query.first
                                 >> Query.children []
