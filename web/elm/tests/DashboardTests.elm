@@ -190,6 +190,114 @@ all =
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.RedirectToLogin ]
+        , test "retries the request after 1 second if any data call gives a 503" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.APIDataFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 503
+                                        , message = "service unavailable"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked OneSecond <|
+                            Time.millisToPosix 1000
+                        )
+                    |> Tuple.second
+                    |> Expect.equal [ Effects.FetchData ]
+        , test "only retries the request once per 503 response" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.APIDataFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 503
+                                        , message = "service unavailable"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked OneSecond <|
+                            Time.millisToPosix 1000
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked OneSecond <|
+                            Time.millisToPosix 1000
+                        )
+                    |> Tuple.second
+                    |> Expect.equal []
+        , test "does not show turbulence screen on 503" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.APIDataFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 503
+                                        , message = "service unavailable"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
+        , test "doesn't render the page as if the user was logged out on 503" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.APIDataFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 503
+                                        , message = "service unavailable"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ tag "a", containing [ text "login" ] ]
+        , test "renders the page as if the user was logged out on other status codes" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.APIDataFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 401
+                                        , message = "unauthorized"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ tag "a", containing [ text "login" ] ]
         , test "title says 'Dashboard - Concourse'" <|
             \_ ->
                 Common.init "/"
@@ -1081,16 +1189,32 @@ all =
 
                             else
                                 job
+
+                        failingJob =
+                            let
+                                j =
+                                    job Concourse.BuildStatusFailed
+                            in
+                            { j | pipelineName = "other" }
+
+                        otherPipeline =
+                            let
+                                p =
+                                    onePipeline "team"
+                            in
+                            { p | name = "other" }
                     in
                     givenDataUnauthenticated
                         (\u ->
                             { teams =
                                 [ { id = 0, name = "team" } ]
                             , pipelines =
-                                [ onePipeline "team" ]
+                                [ onePipeline "team", otherPipeline ]
                             , jobs =
-                                [ jobFunc status
-                                ]
+                                Just
+                                    [ jobFunc status
+                                    , failingJob
+                                    ]
                             , resources = []
                             , version = ""
                             , user = u
@@ -1289,7 +1413,7 @@ all =
                                             [ { id = 0, name = "team" } ]
                                         , pipelines =
                                             [ onePipelinePaused "team" ]
-                                        , jobs = []
+                                        , jobs = Just []
                                         , resources = []
                                         , version = ""
                                         , user = u
@@ -1395,9 +1519,10 @@ all =
                                             , pipelines =
                                                 [ onePipeline "team" ]
                                             , jobs =
-                                                [ job firstStatus
-                                                , otherJob secondStatus
-                                                ]
+                                                Just
+                                                    [ job firstStatus
+                                                    , otherJob secondStatus
+                                                    ]
                                             , resources = []
                                             , version = ""
                                             , user = u
@@ -1442,7 +1567,7 @@ all =
                                     (\u ->
                                         { teams = [ { id = 0, name = "team" } ]
                                         , pipelines = [ onePipeline "team" ]
-                                        , jobs = circularJobs
+                                        , jobs = Just circularJobs
                                         , resources = []
                                         , version = ""
                                         , user = u
@@ -1471,7 +1596,7 @@ all =
                                                 [ { id = 0, name = "team" } ]
                                             , pipelines =
                                                 [ onePipelinePaused "team" ]
-                                            , jobs = []
+                                            , jobs = Just []
                                             , resources = []
                                             , version = ""
                                             , user = u
@@ -1577,9 +1702,10 @@ all =
                                                 , pipelines =
                                                     [ onePipeline "team" ]
                                                 , jobs =
-                                                    [ job firstStatus
-                                                    , otherJob secondStatus
-                                                    ]
+                                                    Just
+                                                        [ job firstStatus
+                                                        , otherJob secondStatus
+                                                        ]
                                                 , resources = []
                                                 , version = ""
                                                 , user = u
@@ -1762,7 +1888,7 @@ all =
                                               , groups = []
                                               }
                                             ]
-                                        , jobs = []
+                                        , jobs = Just []
                                         , resources =
                                             [ { teamName = "team"
                                               , pipelineName = "pipeline"
@@ -1929,14 +2055,16 @@ all =
                 , describe "left-hand section" <|
                     let
                         findStatusIcon =
-                            Query.find [ class "card-footer" ]
+                            Query.find [ class "card", containing [ text "pipeline" ] ]
+                                >> Query.find [ class "card-footer" ]
                                 >> Query.children []
                                 >> Query.first
                                 >> Query.children []
                                 >> Query.first
 
                         findStatusText =
-                            Query.find [ class "card-footer" ]
+                            Query.find [ class "card", containing [ text "pipeline" ] ]
+                                >> Query.find [ class "card-footer" ]
                                 >> Query.children []
                                 >> Query.first
                                 >> Query.children []
@@ -1952,7 +2080,7 @@ all =
                                                 [ { id = 0, name = "team" } ]
                                             , pipelines =
                                                 [ onePipelinePaused "team" ]
-                                            , jobs = []
+                                            , jobs = Just []
                                             , resources = []
                                             , version = ""
                                             , user = u
@@ -2081,11 +2209,12 @@ all =
                                             , pipelines =
                                                 [ onePipeline "team" ]
                                             , jobs =
-                                                [ jobWithNameTransitionedAt
-                                                    "job"
-                                                    (Just <| Time.millisToPosix 0)
-                                                    Concourse.BuildStatusSucceeded
-                                                ]
+                                                Just
+                                                    [ jobWithNameTransitionedAt
+                                                        "job"
+                                                        (Just <| Time.millisToPosix 0)
+                                                        Concourse.BuildStatusSucceeded
+                                                    ]
                                             , resources = []
                                             , version = ""
                                             , user = u
@@ -2149,6 +2278,42 @@ all =
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
+                    , describe "when the jobs endpoint is disabled" <|
+                        let
+                            pipelineWithJobsEndpointDisabled =
+                                givenDataUnauthenticated
+                                    (\u ->
+                                        { teams =
+                                            [ { id = 0, name = "team" } ]
+                                        , pipelines =
+                                            [ onePipeline "team" ]
+                                        , jobs = Nothing
+                                        , resources = []
+                                        , version = ""
+                                        , user = u
+                                        }
+                                    )
+                                    >> Tuple.first
+                                    >> Common.queryView
+                        in
+                        [ test "has no status icon" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> pipelineWithJobsEndpointDisabled
+                                    |> Query.find [ class "card-footer" ]
+                                    |> Query.hasNot
+                                        (iconSelector
+                                            { size = "20px"
+                                            , image = "ic-pending-grey.svg"
+                                            }
+                                        )
+                        , test "has no status text" <|
+                            \_ ->
+                                whenOnDashboard { highDensity = False }
+                                    |> pipelineWithJobsEndpointDisabled
+                                    |> Query.find [ class "card-footer" ]
+                                    |> Query.hasNot [ class "build-duration" ]
+                        ]
                     ]
                 , describe "right-hand section"
                     [ describe "visibility toggle" <|
@@ -3467,7 +3632,7 @@ all =
                                         [ { id = 0, name = "team" } ]
                                     , pipelines =
                                         [ onePipeline "team" ]
-                                    , jobs = []
+                                    , jobs = Just []
                                     , resources = []
                                     , version = "1.2.3"
                                     , user = u
@@ -3688,31 +3853,32 @@ givenPipelineWithJob user =
           }
         ]
     , jobs =
-        [ { pipeline =
-                { teamName = "team"
-                , pipelineName = "pipeline"
-                }
-          , name = "job"
-          , pipelineName = "pipeline"
-          , teamName = "team"
-          , nextBuild = Nothing
-          , finishedBuild =
-                Just
-                    { id = 0
-                    , name = "1"
-                    , job = Just { teamName = "team", pipelineName = "pipeline", jobName = "job" }
-                    , status = Concourse.BuildStatusSucceeded
-                    , duration = { startedAt = Nothing, finishedAt = Nothing }
-                    , reapTime = Nothing
+        Just
+            [ { pipeline =
+                    { teamName = "team"
+                    , pipelineName = "pipeline"
                     }
-          , transitionBuild = Nothing
-          , paused = False
-          , disableManualTrigger = False
-          , inputs = []
-          , outputs = []
-          , groups = []
-          }
-        ]
+              , name = "job"
+              , pipelineName = "pipeline"
+              , teamName = "team"
+              , nextBuild = Nothing
+              , finishedBuild =
+                    Just
+                        { id = 0
+                        , name = "1"
+                        , job = Just { teamName = "team", pipelineName = "pipeline", jobName = "job" }
+                        , status = Concourse.BuildStatusSucceeded
+                        , duration = { startedAt = Nothing, finishedAt = Nothing }
+                        , reapTime = Nothing
+                        }
+              , transitionBuild = Nothing
+              , paused = False
+              , disableManualTrigger = False
+              , inputs = []
+              , outputs = []
+              , groups = []
+              }
+            ]
     , resources = []
     , version = ""
     , user = user
@@ -3731,7 +3897,7 @@ oneTeamOnePipelinePaused teamName user =
           , groups = []
           }
         ]
-    , jobs = []
+    , jobs = Just []
     , resources = []
     , version = ""
     , user = user
@@ -3750,7 +3916,7 @@ oneTeamOnePipelineNonPublic teamName user =
           , groups = []
           }
         ]
-    , jobs = []
+    , jobs = Just []
     , resources = []
     , version = ""
     , user = user
@@ -3803,7 +3969,7 @@ apiData pipelines user =
                                 }
                             )
                 )
-    , jobs = []
+    , jobs = Just []
     , resources = []
     , version = ""
     , user = user

@@ -54,39 +54,40 @@ all =
                                   }
                                 ]
                           , jobs =
-                                [ { pipeline =
-                                        { teamName = "team1"
-                                        , pipelineName = "pipeline"
-                                        }
-                                  , name = "job"
-                                  , pipelineName = "pipeline"
-                                  , teamName = "team1"
-                                  , nextBuild =
-                                        Just
-                                            { id = 1
-                                            , name = "1"
-                                            , job =
-                                                Just
-                                                    { teamName = "team1"
-                                                    , pipelineName = "pipeline"
-                                                    , jobName = "job"
-                                                    }
-                                            , status = Concourse.BuildStatusStarted
-                                            , duration =
-                                                { startedAt = Nothing
-                                                , finishedAt = Nothing
-                                                }
-                                            , reapTime = Nothing
+                                Just
+                                    [ { pipeline =
+                                            { teamName = "team1"
+                                            , pipelineName = "pipeline"
                                             }
-                                  , finishedBuild = Nothing
-                                  , transitionBuild = Nothing
-                                  , paused = False
-                                  , disableManualTrigger = False
-                                  , inputs = []
-                                  , outputs = []
-                                  , groups = []
-                                  }
-                                ]
+                                      , name = "job"
+                                      , pipelineName = "pipeline"
+                                      , teamName = "team1"
+                                      , nextBuild =
+                                            Just
+                                                { id = 1
+                                                , name = "1"
+                                                , job =
+                                                    Just
+                                                        { teamName = "team1"
+                                                        , pipelineName = "pipeline"
+                                                        , jobName = "job"
+                                                        }
+                                                , status = Concourse.BuildStatusStarted
+                                                , duration =
+                                                    { startedAt = Nothing
+                                                    , finishedAt = Nothing
+                                                    }
+                                                , reapTime = Nothing
+                                                }
+                                      , finishedBuild = Nothing
+                                      , transitionBuild = Nothing
+                                      , paused = False
+                                      , disableManualTrigger = False
+                                      , inputs = []
+                                      , outputs = []
+                                      , groups = []
+                                      }
+                                    ]
                           , resources = []
                           , user = Nothing
                           , version = ""
@@ -187,7 +188,7 @@ all =
                                   , groups = []
                                   }
                                 ]
-                          , jobs = []
+                          , jobs = Just []
                           , resources = []
                           , user = Nothing
                           , version = "0.0.0-dev"

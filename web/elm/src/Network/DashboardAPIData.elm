@@ -20,7 +20,15 @@ remoteData =
                     |> Task.andThen
                         (\pipelines ->
                             Network.Job.fetchAllJobs
-                                |> Task.map (Maybe.withDefault [])
+                                |> Task.map (Maybe.withDefault [] >> Just)
+                                |> Task.onError
+                                    (\err ->
+                                        if isStatusCode 501 err then
+                                            Task.succeed Nothing
+
+                                        else
+                                            Task.fail err
+                                    )
                                 |> Task.andThen
                                     (\jobs ->
                                         Network.Resource.fetchAllResources
@@ -50,3 +58,13 @@ remoteData =
                                     )
                         )
             )
+
+
+isStatusCode : Int -> Http.Error -> Bool
+isStatusCode code err =
+    case err of
+        Http.BadStatus { status } ->
+            status.code == code
+
+        _ ->
+            False

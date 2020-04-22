@@ -771,7 +771,7 @@ apiDataLoads =
                               , groups = []
                               }
                             ]
-                      , jobs = []
+                      , jobs = Just []
                       , resources = []
                       , user = Nothing
                       , version = "0.0.0-dev"
@@ -812,7 +812,7 @@ thereAreNoPipelines =
                 ( Time.millisToPosix 0
                 , { teams = []
                   , pipelines = []
-                  , jobs = []
+                  , jobs = Just []
                   , resources = []
                   , user = Nothing
                   , version = "0.0.0-dev"

@@ -310,6 +310,9 @@ statusColor status =
         PipelineStatusAborted _ ->
             aborted
 
+        PipelineStatusUnknown ->
+            pending
+
 
 buildStatusColor : Bool -> BuildStatus -> String
 buildStatusColor isBright status =

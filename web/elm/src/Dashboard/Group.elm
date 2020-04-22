@@ -157,11 +157,20 @@ allPipelines data =
                 let
                     jobs =
                         data.jobs
+                            |> Maybe.withDefault []
                             |> List.filter
                                 (\j ->
                                     (j.teamName == p.teamName)
                                         && (j.pipelineName == p.name)
                                 )
+
+                    status =
+                        case data.jobs of
+                            Just _ ->
+                                pipelineStatus p jobs
+
+                            Nothing ->
+                                PipelineStatus.PipelineStatusUnknown
                 in
                 { id = p.id
                 , name = p.name
@@ -176,7 +185,7 @@ allPipelines data =
                                     && (r.pipelineName == p.name)
                                     && r.failingToCheck
                             )
-                , status = pipelineStatus p jobs
+                , status = status
                 , isToggleLoading = False
                 , isVisibilityLoading = False
                 }

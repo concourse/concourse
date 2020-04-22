@@ -149,9 +149,9 @@ footerView userState pipeline now hovered =
         (class "card-footer" :: Styles.pipelineCardFooter)
         [ Html.div
             [ style "display" "flex" ]
-            [ PipelineStatus.icon pipeline.status
-            , transitionView now pipeline
-            ]
+            (PipelineStatus.icon pipeline.status
+                ++ transitionView now pipeline
+            )
         , Html.div
             [ style "display" "flex" ]
           <|
@@ -244,35 +244,38 @@ sinceTransitionText details now =
             Duration.format <| Duration.between time now
 
 
-statusAgeText : Pipeline -> Time.Posix -> String
-statusAgeText pipeline now =
+transitionView : Time.Posix -> Pipeline -> List (Html Message)
+transitionView time pipeline =
+    let
+        display text =
+            [ Html.div
+                (class "build-duration"
+                    :: Styles.pipelineCardTransitionAge pipeline.status
+                )
+                [ Html.text <| text ]
+            ]
+    in
     case pipeline.status of
         PipelineStatus.PipelineStatusPaused ->
-            "paused"
+            display "paused"
 
         PipelineStatus.PipelineStatusPending False ->
-            "pending"
+            display "pending"
 
         PipelineStatus.PipelineStatusPending True ->
-            "running"
+            display "running"
 
         PipelineStatus.PipelineStatusAborted details ->
-            sinceTransitionText details now
+            display <| sinceTransitionText details time
 
         PipelineStatus.PipelineStatusErrored details ->
-            sinceTransitionText details now
+            display <| sinceTransitionText details time
 
         PipelineStatus.PipelineStatusFailed details ->
-            sinceTransitionText details now
+            display <| sinceTransitionText details time
 
         PipelineStatus.PipelineStatusSucceeded details ->
-            sinceTransitionText details now
+            display <| sinceTransitionText details time
 
-
-transitionView : Time.Posix -> Pipeline -> Html Message
-transitionView time pipeline =
-    Html.div
-        (class "build-duration"
-            :: Styles.pipelineCardTransitionAge pipeline.status
-        )
-        [ Html.text <| statusAgeText pipeline time ]
+        PipelineStatus.PipelineStatusUnknown ->
+            []

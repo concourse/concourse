@@ -187,7 +187,7 @@ dashboardWithJob j =
                               , groups = []
                               }
                             ]
-                      , jobs = [ j ]
+                      , jobs = Just [ j ]
                       , resources = []
                       , user = Nothing
                       , version = "0.0.0-dev"
