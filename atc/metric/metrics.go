@@ -23,6 +23,9 @@ var FailedVolumes = Meter(0)
 var ContainersDeleted = Meter(0)
 var VolumesDeleted = Meter(0)
 
+var ConcurrentRequests = map[string]*Gauge{}
+var ConcurrentRequestsLimitHit = map[string]*Counter{}
+
 type SchedulingFullDuration struct {
 	PipelineName string
 	Duration     time.Duration

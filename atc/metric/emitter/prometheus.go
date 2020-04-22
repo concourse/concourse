@@ -18,6 +18,9 @@ import (
 )
 
 type PrometheusEmitter struct {
+	concurrentRequestsLimitHit *prometheus.CounterVec
+	concurrentRequests         *prometheus.GaugeVec
+
 	buildDurationsVec *prometheus.HistogramVec
 	buildsAborted     prometheus.Counter
 	buildsErrored     prometheus.Counter
@@ -122,6 +125,21 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Help:      "Total number of Concourse builds started.",
 	})
 	prometheus.MustRegister(buildsStarted)
+
+	concurrentRequestsLimitHit := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "concurrent_requests",
+		Name:      "limit_hit_total",
+		Help:      "Total number of requests that failed to acquire the lock to be served.",
+	}, []string{"action"})
+	prometheus.MustRegister(concurrentRequestsLimitHit)
+
+	concurrentRequests := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "concourse",
+		Name:      "concurrent_requests",
+		Help:      "Number of concurrent requests being served by endpoints that have a specified limit of concurrent requests.",
+	}, []string{"action"})
+	prometheus.MustRegister(concurrentRequests)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
@@ -337,6 +355,9 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	go http.Serve(listener, promhttp.Handler())
 
 	emitter := &PrometheusEmitter{
+		concurrentRequestsLimitHit: concurrentRequestsLimitHit,
+		concurrentRequests:         concurrentRequests,
+
 		buildDurationsVec: buildDurationsVec,
 		buildsAborted:     buildsAborted,
 		buildsErrored:     buildsErrored,
@@ -394,6 +415,22 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.lock(logger, event)
 	case "build started":
 		emitter.buildsStarted.Inc()
+	case "concurrent requests limit hit":
+		value, ok := event.Value.(int)
+		if !ok {
+			logger.Error("invalid-concurrent-requests-limit-metric-value", fmt.Errorf("expected event.Value to be an int"))
+			return
+		}
+
+		emitter.concurrentRequestsLimitHit.WithLabelValues(event.Attributes["action"]).Add(float64(value))
+	case "concurrent requests":
+		value, ok := event.Value.(int)
+		if !ok {
+			logger.Error("invalid-concurrent-requests-metric-value", fmt.Errorf("expected event.Value to be an int"))
+			return
+		}
+
+		emitter.concurrentRequests.WithLabelValues(event.Attributes["action"]).Set(float64(value))
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
 	case "worker containers":
