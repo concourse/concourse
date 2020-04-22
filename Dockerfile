@@ -1,7 +1,7 @@
 # NOTE: this Dockerfile is purely for local development! it is *not* used for
 # the official 'concourse/concourse' image.
 
-FROM concourse/dev
+FROM concourse/dev:release-5.5
 
 # download go modules separately so this doesn't re-run on every change
 WORKDIR /src
