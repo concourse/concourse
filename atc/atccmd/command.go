@@ -1351,6 +1351,11 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.Auditor.EnableVolumeAuditLog,
 		logger,
 	)
+
+	if cmd.DisableListAllJobs {
+		cmd.ConcurrentRequestLimits[wrappa.LimitedRoute(atc.ListAllJobs)] = 0
+	}
+
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewConcurrentRequestLimitsWrappa(
 			logger,
@@ -1400,7 +1405,6 @@ func (cmd *RunCommand) constructAPIHandler(
 		secretManager,
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
-		cmd.DisableListAllJobs,
 	)
 }
 

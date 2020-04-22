@@ -33,8 +33,6 @@ func (s *CommandSuite) TestInvalidConcurrentRequestLimitAction() {
 	cmd := &atccmd.RunCommand{}
 	parser := flags.NewParser(cmd, flags.None)
 	_, err := parser.ParseArgs([]string{
-		"--client-secret",
-		"client-secret",
 		"--concurrent-request-limit",
 		fmt.Sprintf("%s:2", atc.GetInfo),
 	})

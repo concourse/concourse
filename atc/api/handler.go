@@ -68,7 +68,6 @@ func NewHandler(
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
-	disableListAllJobs bool,
 ) (http.Handler, error) {
 
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
@@ -81,7 +80,7 @@ func NewHandler(
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
 	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory)
-	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory, disableListAllJobs)
+	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory)
 	resourceServer := resourceserver.NewServer(logger, scannerFactory, secretManager, dbResourceFactory, dbResourceConfigFactory)
 
 	versionServer := versionserver.NewServer(logger, externalURL)

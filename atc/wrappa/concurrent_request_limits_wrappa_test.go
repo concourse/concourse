@@ -76,7 +76,7 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 			handler.ServeHTTP(httptest.NewRecorder(), request)
 			handler.ServeHTTP(httptest.NewRecorder(), request)
 
-			Expect(metric.ConcurrentRequestsLimitHit[atc.ListAllJobs].Delta()).To(Equal(float64(2)))
+			Expect(metric.ConcurrentRequestsLimitHit[atc.ListAllJobs].Delta()).To(Equal(2))
 		})
 	})
 
@@ -102,7 +102,7 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 			handler.ServeHTTP(httptest.NewRecorder(), request)
 			handler.ServeHTTP(httptest.NewRecorder(), request)
 
-			Expect(metric.ConcurrentRequests[atc.ListAllJobs].Max()).To(Equal(float64(1)))
+			Expect(metric.ConcurrentRequests[atc.ListAllJobs].Max()).To(Equal(1))
 		})
 	})
 
@@ -133,7 +133,7 @@ var _ = Describe("Concurrent Request Limits Wrappa", func() {
 			handler.ServeHTTP(httptest.NewRecorder(), request)
 			handler.ServeHTTP(httptest.NewRecorder(), request)
 
-			Expect(metric.ConcurrentRequestsLimitHit[atc.ListAllJobs].Delta()).To(Equal(float64(2)))
+			Expect(metric.ConcurrentRequestsLimitHit[atc.ListAllJobs].Delta()).To(Equal(2))
 		})
 	})
 })
