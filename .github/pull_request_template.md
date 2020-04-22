@@ -33,7 +33,7 @@ closes # .
 # How does it accomplish that?
 
 > What is the approach that you took to get to the end goal of this PR?
-> Succinctly, what are the changes included in this PR?
+> Briefly, what are the changes included in this PR?
 
 
 
