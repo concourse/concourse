@@ -40,39 +40,7 @@ func (factory *buildFactory) Create(
 	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
-	plan, err := factory.constructPlanFromJob(job, resources, resourceTypes, inputs)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	return factory.applyHooks(job, constructionParams{
-		plan:          plan,
-		hooks:         job.Hooks(),
-		resources:     resources,
-		resourceTypes: resourceTypes,
-		inputs:        inputs,
-	})
-}
-
-func (factory *buildFactory) constructPlanFromJob(
-	job atc.JobConfig,
-	resources db.SchedulerResources,
-	resourceTypes atc.VersionedResourceTypes,
-	inputs []db.BuildInput,
-) (atc.Plan, error) {
-	planSequence := job.Plan
-
-	if len(planSequence) == 1 {
-		return factory.constructPlanFromConfig(
-			job,
-			planSequence[0],
-			resources,
-			resourceTypes,
-			inputs,
-		)
-	}
-
-	return factory.do(job, planSequence, resources, resourceTypes, inputs)
+	return factory.constructPlanFromConfig(job, job.Plan(), resources, resourceTypes, inputs)
 }
 
 func (factory *buildFactory) do(
