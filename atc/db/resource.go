@@ -586,7 +586,7 @@ func (r *resource) PinVersion(rcvID int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
+	 defer Rollback(tx)
 	var pinnedThroughConfig bool
 	err = tx.QueryRow(`
 		SELECT EXISTS (
