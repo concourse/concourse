@@ -91,14 +91,14 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 	var schedulerJobs SchedulerJobs
 	pipelineResourceTypes := make(map[int]ResourceTypes)
 	for _, job := range jobs {
-		rows, err := psql.Select("r.name", "r.type", "r.config", "r.nonce").
-			From("resources r").
-			Join("job_inputs ji ON ji.resource_id = r.id").
-			Where(sq.Eq{
-				"ji.job_id": job.ID(),
-			}).
-			RunWith(tx).
-			Query()
+		rows, err := tx.Query(`WITH inputs AS (
+				SELECT ji.resource_id from job_inputs ji where ji.job_id = $1
+				UNION
+				SELECT jo.resource_id from job_outputs jo where jo.job_id = $1
+			)
+			SELECT r.name, r.type, r.config, r.nonce
+			From resources r
+			Join inputs i on i.resource_id = r.id`, job.ID())
 		if err != nil {
 			return nil, err
 		}

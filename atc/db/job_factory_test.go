@@ -778,6 +778,113 @@ var _ = Describe("Job Factory", func() {
 					))
 				})
 			})
+
+			Context("when the job needed to be schedule uses resources as puts", func() {
+				BeforeEach(func() {
+					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "job-name",
+								Plan: []atc.PlanConfig{
+									{
+										Put: "some-resource",
+									},
+								},
+							},
+						},
+
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+								Source: atc.Source{
+									"some": "source",
+								},
+								Tags: atc.Tags{"tag"},
+							},
+							{
+								Name: "unused-resource",
+							},
+						},
+					}, db.ConfigVersion(1), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					var found bool
+					job1, found, err = pipeline1.Job("job-name")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = job1.RequestSchedule()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("fetches that job and the used resource", func() {
+					jobs, err := jobFactory.JobsToSchedule()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(jobs)).To(Equal(1))
+					Expect(jobs[0].Name()).To(Equal(job1.Name()))
+					Expect(jobs[0].Resources).To(HaveLen(1))
+					Expect(jobs[0].Resources[0].Name).To(Equal("some-resource"))
+					Expect(jobs[0].Resources[0].Type).To(Equal("some-type"))
+					Expect(jobs[0].Resources[0].Source).To(Equal(atc.Source{"some": "source"}))
+					Expect(jobs[0].Resources[0].Tags).To(Equal(atc.Tags{"tag"}))
+				})
+			})
+
+			Context("when the job needed to be schedule uses the resource as a put and a get", func() {
+				BeforeEach(func() {
+					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "job-name",
+								Plan: []atc.PlanConfig{
+									{
+										Get: "some-resource",
+									},
+									{
+										Put: "some-resource",
+									},
+								},
+							},
+						},
+
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+								Source: atc.Source{
+									"some": "source",
+								},
+								Tags: atc.Tags{"tag"},
+							},
+							{
+								Name: "unused-resource",
+							},
+						},
+					}, db.ConfigVersion(1), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					var found bool
+					job1, found, err = pipeline1.Job("job-name")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = job1.RequestSchedule()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("fetches that job and the used resource", func() {
+					jobs, err := jobFactory.JobsToSchedule()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(jobs)).To(Equal(1))
+					Expect(jobs[0].Name()).To(Equal(job1.Name()))
+					Expect(jobs[0].Resources).To(HaveLen(1))
+					Expect(jobs[0].Resources[0].Name).To(Equal("some-resource"))
+					Expect(jobs[0].Resources[0].Type).To(Equal("some-type"))
+					Expect(jobs[0].Resources[0].Source).To(Equal(atc.Source{"some": "source"}))
+					Expect(jobs[0].Resources[0].Tags).To(Equal(atc.Tags{"tag"}))
+				})
+			})
 		})
 
 		Describe("schedule jobs resource types", func() {
