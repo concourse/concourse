@@ -1038,6 +1038,126 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a job success hook refers to a resource that does exist", func() {
+				BeforeEach(func() {
+					job.Success = &PlanConfig{
+						Get: "some-resource",
+					}
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Expect(errorMessages).To(HaveLen(0))
+				})
+			})
+
+			Context("when a job success hook refers to a resource that does not exist", func() {
+				BeforeEach(func() {
+					job.Success = &PlanConfig{
+						Get: "some-nonexistent-resource",
+					}
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_success.get.some-nonexistent-resource refers to a resource that does not exist"))
+				})
+			})
+
+			Context("when a job failure hook refers to a resource that does exist", func() {
+				BeforeEach(func() {
+					job.Failure = &PlanConfig{
+						Get: "some-resource",
+					}
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Expect(errorMessages).To(HaveLen(0))
+				})
+			})
+
+			Context("when a job failure hook refers to a resource that does not exist", func() {
+				BeforeEach(func() {
+					job.Failure = &PlanConfig{
+						Get: "some-nonexistent-resource",
+					}
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_failure.get.some-nonexistent-resource refers to a resource that does not exist"))
+				})
+			})
+
+			Context("when a job error hook refers to a resource that does exist", func() {
+				BeforeEach(func() {
+					job.Error = &PlanConfig{
+						Get: "some-resource",
+					}
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Expect(errorMessages).To(HaveLen(0))
+				})
+			})
+
+			Context("when a job ensure hook refers to a resource that does not exist", func() {
+				BeforeEach(func() {
+					job.Error = &PlanConfig{
+						Get: "some-nonexistent-resource",
+					}
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_error.get.some-nonexistent-resource refers to a resource that does not exist"))
+				})
+			})
+
+			Context("when a job abort hook refers to a resource that does exist", func() {
+				BeforeEach(func() {
+					job.Abort = &PlanConfig{
+						Get: "some-resource",
+					}
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Expect(errorMessages).To(HaveLen(0))
+				})
+			})
+
+			Context("when a job abort hook refers to a resource that does not exist", func() {
+				BeforeEach(func() {
+					job.Abort = &PlanConfig{
+						Get: "some-nonexistent-resource",
+					}
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_abort.get.some-nonexistent-resource refers to a resource that does not exist"))
+				})
+			})
+
 			Context("when a job ensure hook refers to a resource that does exist", func() {
 				BeforeEach(func() {
 					job.Ensure = &PlanConfig{
@@ -1064,7 +1184,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.ensure.get.some-nonexistent-resource refers to a resource that does not exist"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.ensure.get.some-nonexistent-resource refers to a resource that does not exist"))
 				})
 			})
 
@@ -1215,7 +1335,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.abort.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.on_abort.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
@@ -1234,7 +1354,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.error.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.on_error.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
@@ -1272,7 +1392,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.success.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.on_success.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
@@ -1291,7 +1411,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.failure.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.on_failure.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 

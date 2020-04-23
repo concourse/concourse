@@ -579,15 +579,29 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 	}
 
 	if plan.Abort != nil {
-		subIdentifier := fmt.Sprintf("%s.abort", identifier)
+		subIdentifier := fmt.Sprintf("%s.on_abort", identifier)
 		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Abort)
 		warnings = append(warnings, planWarnings...)
 		errorMessages = append(errorMessages, planErrMessages...)
 	}
 
 	if plan.Error != nil {
-		subIdentifier := fmt.Sprintf("%s.error", identifier)
+		subIdentifier := fmt.Sprintf("%s.on_error", identifier)
 		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Error)
+		warnings = append(warnings, planWarnings...)
+		errorMessages = append(errorMessages, planErrMessages...)
+	}
+
+	if plan.Success != nil {
+		subIdentifier := fmt.Sprintf("%s.on_success", identifier)
+		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Success)
+		warnings = append(warnings, planWarnings...)
+		errorMessages = append(errorMessages, planErrMessages...)
+	}
+
+	if plan.Failure != nil {
+		subIdentifier := fmt.Sprintf("%s.on_failure", identifier)
+		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Failure)
 		warnings = append(warnings, planWarnings...)
 		errorMessages = append(errorMessages, planErrMessages...)
 	}
@@ -595,20 +609,6 @@ func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning
 	if plan.Ensure != nil {
 		subIdentifier := fmt.Sprintf("%s.ensure", identifier)
 		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Ensure)
-		warnings = append(warnings, planWarnings...)
-		errorMessages = append(errorMessages, planErrMessages...)
-	}
-
-	if plan.Success != nil {
-		subIdentifier := fmt.Sprintf("%s.success", identifier)
-		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Success)
-		warnings = append(warnings, planWarnings...)
-		errorMessages = append(errorMessages, planErrMessages...)
-	}
-
-	if plan.Failure != nil {
-		subIdentifier := fmt.Sprintf("%s.failure", identifier)
-		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Failure)
 		warnings = append(warnings, planWarnings...)
 		errorMessages = append(errorMessages, planErrMessages...)
 	}
