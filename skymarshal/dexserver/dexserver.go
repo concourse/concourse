@@ -74,10 +74,10 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		}
 	}
 
-	for clientId, clientSecret := range config.Clients {
+	for clientId, clientSecret := range newLocalClients(config) {
 		clients = append(clients, storage.Client{
 			ID:           clientId,
-			Secret:       clientSecret,
+			Secret:       string(clientSecret),
 			RedirectURIs: []string{config.RedirectURL},
 		})
 	}
@@ -215,5 +215,34 @@ func newLocalUsers(config *DexConfig) map[string][]byte {
 	}
 
 	return users
+
+}
+
+func newLocalClients(config *DexConfig) map[string][]byte {
+	clients := map[string][]byte{}
+
+	for clientID, clientSecret := range config.Clients {
+		if clientID != "" && clientSecret != "" {
+
+			var hashed []byte
+
+			if _, err := bcrypt.Cost([]byte(clientSecret)); err != nil {
+				if hashed, err = bcrypt.GenerateFromPassword([]byte(clientSecret), 0); err != nil {
+
+					config.Logger.Error("bcrypt-client-secret", err, lager.Data{
+						"client_id": clientID,
+					})
+
+					continue
+				}
+			} else {
+				hashed = []byte(clientSecret)
+			}
+
+			clients[clientID] = hashed
+		}
+	}
+
+	return clients
 
 }
