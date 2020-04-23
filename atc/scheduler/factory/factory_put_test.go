@@ -49,7 +49,7 @@ var _ = Describe("Factory Put", func() {
 		Context("with a put at the top-level", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Put:      "some-put",
 							Resource: "some-resource",
@@ -92,7 +92,7 @@ var _ = Describe("Factory Put", func() {
 		Context("with a put for a non-existent resource", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Put:      "some-put",
 							Resource: "what-resource",
@@ -147,7 +147,7 @@ var _ = Describe("Factory Put", func() {
 		Context("when I have a put at the top-level", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Put:      "some-put",
 							Resource: "some-resource",
@@ -189,7 +189,7 @@ var _ = Describe("Factory Put", func() {
 		Context("when I have a put in a hook", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Task: "some-task",
 							Success: &atc.PlanConfig{
@@ -241,7 +241,7 @@ var _ = Describe("Factory Put", func() {
 		Context("when I have a put inside an aggregate", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Aggregate: &atc.PlanSequence{
 								{
@@ -296,7 +296,7 @@ var _ = Describe("Factory Put", func() {
 		Context("when I have a put inside a parallel", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							InParallel: &atc.InParallelConfig{
 								Steps: atc.PlanSequence{
@@ -359,7 +359,7 @@ var _ = Describe("Factory Put", func() {
 		Context("when a put plan follows a task plan", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Task: "some-task",
 						},
@@ -412,7 +412,7 @@ var _ = Describe("Factory Put", func() {
 		Context("when a put plan is between two task plans", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Task: "those who resist our will",
 						},
@@ -472,7 +472,7 @@ var _ = Describe("Factory Put", func() {
 		Context("when I have a put specifying inputs", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Put:      "some-put",
 							Resource: "some-resource",
@@ -516,7 +516,7 @@ var _ = Describe("Factory Put", func() {
 		Context("when I have a put specifying all inputs", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Put:      "some-put",
 							Resource: "some-resource",
@@ -560,7 +560,7 @@ var _ = Describe("Factory Put", func() {
 		Context("when I have a put specifying no inputs", func() {
 			BeforeEach(func() {
 				input = atc.JobConfig{
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Put:      "some-put",
 							Resource: "some-resource",

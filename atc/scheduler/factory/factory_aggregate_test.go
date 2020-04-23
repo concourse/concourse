@@ -47,7 +47,7 @@ var _ = Describe("Factory Aggregate", func() {
 	Context("when I have one aggregate", func() {
 		It("returns the correct plan", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				PlanSequence: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
 							{
@@ -79,7 +79,7 @@ var _ = Describe("Factory Aggregate", func() {
 	Context("when I have nested aggregates", func() {
 		It("returns the correct plan", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				PlanSequence: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
 							{
@@ -124,7 +124,7 @@ var _ = Describe("Factory Aggregate", func() {
 	Context("when I have an aggregate with hooks", func() {
 		It("returns the correct plan", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				PlanSequence: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
 							{
@@ -158,7 +158,7 @@ var _ = Describe("Factory Aggregate", func() {
 	Context("when I have a hook on an aggregate", func() {
 		It("returns the correct plan", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
-				Plan: atc.PlanSequence{
+				PlanSequence: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
 							{

@@ -26,7 +26,7 @@ var _ = Describe("Job Factory", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "public-pipeline-job-1",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get: "some-resource",
 							},
@@ -40,7 +40,7 @@ var _ = Describe("Job Factory", func() {
 					},
 					{
 						Name: "public-pipeline-job-2",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get:    "some-resource",
 								Passed: []string{"public-pipeline-job-1"},
@@ -64,7 +64,7 @@ var _ = Describe("Job Factory", func() {
 					},
 					{
 						Name: "public-pipeline-job-3",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get:    "some-resource",
 								Passed: []string{"public-pipeline-job-1", "public-pipeline-job-2"},
@@ -90,7 +90,7 @@ var _ = Describe("Job Factory", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "private-pipeline-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get: "some-resource",
 							},
@@ -589,7 +589,7 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
-								Plan: []atc.PlanConfig{
+								PlanSequence: atc.PlanSequence{
 									{
 										Get: "some-resource",
 									},
@@ -643,7 +643,7 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-1",
-								Plan: []atc.PlanConfig{
+								PlanSequence: atc.PlanSequence{
 									{
 										Get: "some-resource",
 									},
@@ -651,7 +651,7 @@ var _ = Describe("Job Factory", func() {
 							},
 							{
 								Name: "job-2",
-								Plan: []atc.PlanConfig{
+								PlanSequence: atc.PlanSequence{
 									{
 										Get: "some-resource",
 									},
@@ -683,7 +683,7 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-3",
-								Plan: []atc.PlanConfig{
+								PlanSequence: atc.PlanSequence{
 									{
 										Get: "some-resource",
 									},
@@ -774,7 +774,7 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
-								Plan: []atc.PlanConfig{
+								PlanSequence: atc.PlanSequence{
 									{
 										Put: "some-resource",
 									},
@@ -827,7 +827,7 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
-								Plan: []atc.PlanConfig{
+								PlanSequence: atc.PlanSequence{
 									{
 										Get: "some-resource",
 									},

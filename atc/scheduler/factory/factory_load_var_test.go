@@ -39,7 +39,7 @@ var _ = Describe("Factory LoadVar Step", func() {
 	Context("when load var", func() {
 		BeforeEach(func() {
 			input = atc.JobConfig{
-				Plan: atc.PlanSequence{
+				PlanSequence: atc.PlanSequence{
 					{
 						LoadVar: "some-var",
 						File:    "some-file",

@@ -76,7 +76,7 @@ var _ = Describe("Config API", func() {
 					Name:   "some-job",
 					Public: true,
 					Serial: true,
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Get:      "some-input",
 							Resource: "some-resource",
@@ -545,7 +545,7 @@ jobs:
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",
-											Plan: atc.PlanSequence{
+											PlanSequence: atc.PlanSequence{
 												{
 													Get: "some-resource",
 												},
@@ -758,7 +758,7 @@ jobs:
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",
-											Plan: atc.PlanSequence{
+											PlanSequence: atc.PlanSequence{
 												{
 													Get: "some-resource",
 												},
@@ -971,9 +971,9 @@ jobs:
 						Expect(savedConfig).To(Equal(atc.Config{
 							Jobs: atc.JobConfigs{
 								{
-									Name:   "some-job",
-									Public: true,
-									Plan:   atc.PlanSequence{},
+									Name:         "some-job",
+									Public:       true,
+									PlanSequence: atc.PlanSequence{},
 								},
 							},
 						}))
