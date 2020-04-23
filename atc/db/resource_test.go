@@ -1718,7 +1718,7 @@ var _ = Describe("Resource", func() {
 				Expect(found).To(BeTrue())
 			})
 
-			It("should return the config pinned version", func() {
+			It("should fail to update the pinned version", func() {
 				found, err := resource.PinVersion(resConf.ID())
 				Expect(found).To(BeFalse())
 				Expect(err).To(Equal(db.ErrPinnedThroughConfig))
