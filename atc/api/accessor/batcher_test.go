@@ -2,8 +2,9 @@ package accessor_test
 
 import (
 	"encoding/base64"
+	"errors"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
@@ -15,12 +16,12 @@ var _ = Describe("Batcher", func() {
 		user            *dbfakes.FakeUser
 		userTracker     accessor.UserTracker
 		fakeUserFactory *dbfakes.FakeUserFactory
-		logger          lager.Logger
+		logger          *lagertest.TestLogger
 		err             error
 	)
 
 	BeforeEach(func() {
-		logger = lager.NewLogger("test")
+		logger = lagertest.NewTestLogger("test")
 
 		user = new(dbfakes.FakeUser)
 		user.NameReturns("some-user")
@@ -36,23 +37,25 @@ var _ = Describe("Batcher", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	Context("when batcher is config to flush immediately", func() {
+	It("upserts the user", func() {
+		Eventually(fakeUserFactory.BatchUpsertUsersCallCount).Should(Equal(1))
+
+		users := fakeUserFactory.BatchUpsertUsersArgsForCall(0)
+
+		sub := base64.StdEncoding.EncodeToString([]byte("some-user" + "connector"))
+		Expect(len(users)).To(Equal(1))
+		Expect(users[sub].Name()).To(Equal("some-user"))
+		Expect(users[sub].Connector()).To(Equal("connector"))
+		Expect(users[sub].Sub()).To(Equal(sub))
+	})
+
+	Context("when batch upserting users fails", func() {
 		BeforeEach(func() {
-			userTracker = accessor.NewBatcher(logger, fakeUserFactory, 0, 1)
+			fakeUserFactory.BatchUpsertUsersReturns(errors.New("nope"))
 		})
 
-		It("upsert the user", func() {
-			Eventually(func() int {
-				return fakeUserFactory.BatchUpsertUsersCallCount()
-			}).Should(Equal(1))
-
-			users := fakeUserFactory.BatchUpsertUsersArgsForCall(0)
-
-			sub := base64.StdEncoding.EncodeToString([]byte("some-user" + "connector"))
-			Expect(len(users)).To(Equal(1))
-			Expect(users[sub].Name()).To(Equal("some-user"))
-			Expect(users[sub].Connector()).To(Equal("connector"))
-			Expect(users[sub].Sub()).To(Equal(base64.StdEncoding.EncodeToString([]byte("some-user" + "connector"))))
+		It("logs the error", func() {
+			Eventually(logger.LogMessages).Should(ContainElement("test.failed-to-upsert-user"))
 		})
 	})
 })
