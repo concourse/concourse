@@ -1347,18 +1347,20 @@ func (t *team) insertJobPipes(tx Tx, jobConfigs atc.JobConfigs, resourceNameToID
 	}
 
 	for _, jobConfig := range jobConfigs {
-		for _, plan := range jobConfig.Plans() {
+		var err error
+		jobConfig.PlanConfig().Each(func(plan atc.PlanConfig) {
+			if err != nil {
+				return
+			}
+
 			if plan.Get != "" {
 				err = insertJobInput(tx, plan, jobConfig.Name, resourceNameToID, jobNameToID)
-				if err != nil {
-					return err
-				}
 			} else if plan.Put != "" {
 				err = insertJobOutput(tx, plan, jobConfig.Name, resourceNameToID, jobNameToID)
-				if err != nil {
-					return err
-				}
 			}
+		})
+		if err != nil {
+			return err
 		}
 	}
 

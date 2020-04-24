@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 )
@@ -276,7 +277,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			}
 		}
 
-		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", job.Plan())
+		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", job.PlanConfig())
 		warnings = append(warnings, planWarnings...)
 		errorMessages = append(errorMessages, planErrMessages...)
 
@@ -294,7 +295,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 
 		// Within a job, each "load_var" step should have a unique name.
 		loadVarStepNames := map[string]interface{}{}
-		for _, plan := range job.Plans() {
+		job.PlanConfig().Each(func(plan atc.PlanConfig) {
 			if plan.LoadVar != "" {
 				if _, ok := loadVarStepNames[plan.LoadVar]; ok {
 					errorMessages = append(
@@ -304,7 +305,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 				}
 				loadVarStepNames[plan.LoadVar] = true
 			}
-		}
+		})
 	}
 
 	return warnings, compositeErr(errorMessages)

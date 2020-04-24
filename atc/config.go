@@ -221,14 +221,6 @@ func (types ResourceTypes) Without(name string) ResourceTypes {
 	return newTypes
 }
 
-type Hooks struct {
-	Abort   *PlanConfig
-	Error   *PlanConfig
-	Failure *PlanConfig
-	Ensure  *PlanConfig
-	Success *PlanConfig
-}
-
 // A PlanSequence corresponds to a chain of Compose plan, with an implicit
 // `on: [success]` after every Task plan.
 type PlanSequence []PlanConfig
@@ -536,8 +528,52 @@ func (config PlanConfig) ResourceName() string {
 	panic("no resource name!")
 }
 
-func (config PlanConfig) Hooks() Hooks {
-	return Hooks{Abort: config.Abort, Error: config.Error, Failure: config.Failure, Ensure: config.Ensure, Success: config.Success}
+// Each walks through the PlanConfig and invokes f with it and any nested
+// PlanConfigs contained therein.
+func (config PlanConfig) Each(f func(PlanConfig)) {
+	f(config)
+
+	if config.Abort != nil {
+		config.Abort.Each(f)
+	}
+
+	if config.Error != nil {
+		config.Error.Each(f)
+	}
+
+	if config.Success != nil {
+		config.Success.Each(f)
+	}
+
+	if config.Failure != nil {
+		config.Failure.Each(f)
+	}
+
+	if config.Ensure != nil {
+		config.Ensure.Each(f)
+	}
+
+	if config.Try != nil {
+		config.Try.Each(f)
+	}
+
+	if config.Do != nil {
+		for _, p := range *config.Do {
+			p.Each(f)
+		}
+	}
+
+	if config.Aggregate != nil {
+		for _, p := range *config.Aggregate {
+			p.Each(f)
+		}
+	}
+
+	if config.InParallel != nil {
+		for _, p := range config.InParallel.Steps {
+			p.Each(f)
+		}
+	}
 }
 
 type ResourceConfigs []ResourceConfig

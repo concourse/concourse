@@ -29,7 +29,7 @@ type BuildLogRetention struct {
 	Days                   int `json:"days,omitempty"`
 }
 
-func (config JobConfig) Plan() PlanConfig {
+func (config JobConfig) PlanConfig() PlanConfig {
 	return PlanConfig{
 		Do:      &config.PlanSequence,
 		Abort:   config.Abort,
@@ -38,10 +38,6 @@ func (config JobConfig) Plan() PlanConfig {
 		Ensure:  config.Ensure,
 		Success: config.Success,
 	}
-}
-
-func (config JobConfig) Plans() []PlanConfig {
-	return collectPlans(config.Plan())
 }
 
 func (config JobConfig) MaxInFlight() int {
@@ -56,62 +52,14 @@ func (config JobConfig) MaxInFlight() int {
 	return 0
 }
 
-func collectPlans(plan PlanConfig) []PlanConfig {
-	var plans []PlanConfig
-
-	if plan.Abort != nil {
-		plans = append(plans, collectPlans(*plan.Abort)...)
-	}
-
-	if plan.Error != nil {
-		plans = append(plans, collectPlans(*plan.Error)...)
-	}
-
-	if plan.Success != nil {
-		plans = append(plans, collectPlans(*plan.Success)...)
-	}
-
-	if plan.Failure != nil {
-		plans = append(plans, collectPlans(*plan.Failure)...)
-	}
-
-	if plan.Ensure != nil {
-		plans = append(plans, collectPlans(*plan.Ensure)...)
-	}
-
-	if plan.Try != nil {
-		plans = append(plans, collectPlans(*plan.Try)...)
-	}
-
-	if plan.Do != nil {
-		for _, p := range *plan.Do {
-			plans = append(plans, collectPlans(p)...)
-		}
-	}
-
-	if plan.Aggregate != nil {
-		for _, p := range *plan.Aggregate {
-			plans = append(plans, collectPlans(p)...)
-		}
-	}
-
-	if plan.InParallel != nil {
-		for _, p := range plan.InParallel.Steps {
-			plans = append(plans, collectPlans(p)...)
-		}
-	}
-
-	return append(plans, plan)
-}
-
 func (config JobConfig) InputPlans() []PlanConfig {
 	var inputs []PlanConfig
 
-	for _, plan := range config.Plans() {
+	config.PlanConfig().Each(func(plan PlanConfig) {
 		if plan.Get != "" {
 			inputs = append(inputs, plan)
 		}
-	}
+	})
 
 	return inputs
 }
@@ -119,11 +67,11 @@ func (config JobConfig) InputPlans() []PlanConfig {
 func (config JobConfig) OutputPlans() []PlanConfig {
 	var outputs []PlanConfig
 
-	for _, plan := range config.Plans() {
+	config.PlanConfig().Each(func(plan PlanConfig) {
 		if plan.Put != "" {
 			outputs = append(outputs, plan)
 		}
-	}
+	})
 
 	return outputs
 }
@@ -131,7 +79,7 @@ func (config JobConfig) OutputPlans() []PlanConfig {
 func (config JobConfig) Inputs() []JobInputParams {
 	var inputs []JobInputParams
 
-	for _, plan := range config.Plans() {
+	config.PlanConfig().Each(func(plan PlanConfig) {
 		if plan.Get != "" {
 			get := plan.Get
 
@@ -152,7 +100,7 @@ func (config JobConfig) Inputs() []JobInputParams {
 				Tags:   plan.Tags,
 			})
 		}
-	}
+	})
 
 	return inputs
 }
@@ -160,7 +108,7 @@ func (config JobConfig) Inputs() []JobInputParams {
 func (config JobConfig) Outputs() []JobOutput {
 	var outputs []JobOutput
 
-	for _, plan := range config.Plans() {
+	config.PlanConfig().Each(func(plan PlanConfig) {
 		if plan.Put != "" {
 			put := plan.Put
 
@@ -174,7 +122,7 @@ func (config JobConfig) Outputs() []JobOutput {
 				Resource: resource,
 			})
 		}
-	}
+	})
 
 	return outputs
 }

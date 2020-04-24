@@ -198,7 +198,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return startResults{}, fmt.Errorf("config: %w", err)
 	}
 
-	plan, err := s.planner.Create(config.Plan(), job.Resources, job.ResourceTypes, buildInputs)
+	plan, err := s.planner.Create(config.PlanConfig(), job.Resources, job.ResourceTypes, buildInputs)
 	if err != nil {
 		logger.Error("failed-to-create-build-plan", err)
 
