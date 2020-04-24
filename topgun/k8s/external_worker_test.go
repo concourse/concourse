@@ -76,15 +76,15 @@ var _ = Describe("external workers through separate deployments", func() {
 		cleanup(releaseName+"-worker", namespace+"-worker")
 	})
 
-	Context("main team worker", func() {
+	Context("main team worker, webs only allow team workers", func() {
+		invalidGenericKey := "ssh-rsa ABCD1234 OnlyTeamWorkers"
 		Context("web with correct public key", func() {
 			BeforeEach(func() {
 				workerKey = publicKey
 				webDeployArgs = []string{
 					"--set=secrets.teamAuthorizedKeys[0].team=main",
 					"--set=secrets.teamAuthorizedKeys[0].key=" + workerKey,
-					"--set=web.env[0].name=CONCOURSE_TSA_AUTHORIZED_KEYS",
-					"--set=web.env[0].value=",
+					"--set=secrets.workerKeyPub=" + invalidGenericKey,
 				}
 				workerDeployArgs = []string{
 					"--set=concourse.worker.team=main",
@@ -104,8 +104,7 @@ var _ = Describe("external workers through separate deployments", func() {
 				webDeployArgs = []string{
 					"--set=secrets.teamAuthorizedKeys[0].team=main",
 					"--set=secrets.teamAuthorizedKeys[0].key=" + workerKey,
-					"--set=web.env[0].name=CONCOURSE_TSA_AUTHORIZED_KEYS",
-					"--set=web.env[0].value=",
+					"--set=secrets.workerKeyPub=" + invalidGenericKey,
 				}
 				workerDeployArgs = []string{
 					"--set=concourse.worker.team=main",
