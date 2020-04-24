@@ -21,7 +21,7 @@ func (e VersionNotFoundError) Error() string {
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+	Create(atc.PlanConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type buildFactory struct {
@@ -35,41 +35,6 @@ func NewBuildFactory(planFactory atc.PlanFactory) BuildFactory {
 }
 
 func (factory *buildFactory) Create(
-	job atc.JobConfig,
-	resources db.SchedulerResources,
-	resourceTypes atc.VersionedResourceTypes,
-	inputs []db.BuildInput,
-) (atc.Plan, error) {
-	return factory.constructPlanFromConfig(job.Plan(), resources, resourceTypes, inputs)
-}
-
-func (factory *buildFactory) do(
-	planSequence atc.PlanSequence,
-	resources db.SchedulerResources,
-	resourceTypes atc.VersionedResourceTypes,
-	inputs []db.BuildInput,
-) (atc.Plan, error) {
-	do := atc.DoPlan{}
-
-	var err error
-	for _, planConfig := range planSequence {
-		nextStep, err := factory.constructPlanFromConfig(
-			planConfig,
-			resources,
-			resourceTypes,
-			inputs,
-		)
-		if err != nil {
-			return atc.Plan{}, err
-		}
-
-		do = append(do, nextStep)
-	}
-
-	return factory.planFactory.NewPlan(do), err
-}
-
-func (factory *buildFactory) constructPlanFromConfig(
 	planConfig atc.PlanConfig,
 	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
@@ -79,7 +44,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 	var err error
 
 	if planConfig.Attempts == 0 {
-		plan, err = factory.constructUnhookedPlan(planConfig, resources, resourceTypes, inputs)
+		plan, err = factory.basePlan(planConfig, resources, resourceTypes, inputs)
 		if err != nil {
 			return atc.Plan{}, err
 		}
@@ -87,7 +52,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 		retryStep := make(atc.RetryPlan, planConfig.Attempts)
 
 		for i := 0; i < planConfig.Attempts; i++ {
-			attempt, err := factory.constructUnhookedPlan(planConfig, resources, resourceTypes, inputs)
+			attempt, err := factory.basePlan(planConfig, resources, resourceTypes, inputs)
 			if err != nil {
 				return atc.Plan{}, err
 			}
@@ -98,28 +63,9 @@ func (factory *buildFactory) constructPlanFromConfig(
 		plan = factory.planFactory.NewPlan(retryStep)
 	}
 
-	return factory.applyHooks(constructionParams{
-		plan:          plan,
-		hooks:         planConfig.Hooks(),
-		resources:     resources,
-		resourceTypes: resourceTypes,
-		inputs:        inputs,
-	})
-}
-
-func (factory *buildFactory) constructUnhookedPlan(
-	planConfig atc.PlanConfig,
-	resources db.SchedulerResources,
-	resourceTypes atc.VersionedResourceTypes,
-	inputs []db.BuildInput,
-) (atc.Plan, error) {
-	var plan atc.Plan
-	var err error
-
-	switch {
-	case planConfig.Do != nil:
-		plan, err = factory.do(
-			*planConfig.Do,
+	if planConfig.Abort != nil {
+		hookPlan, err := factory.Create(
+			*planConfig.Abort,
 			resources,
 			resourceTypes,
 			inputs,
@@ -127,6 +73,111 @@ func (factory *buildFactory) constructUnhookedPlan(
 		if err != nil {
 			return atc.Plan{}, err
 		}
+
+		plan = factory.planFactory.NewPlan(atc.OnAbortPlan{
+			Step: plan,
+			Next: hookPlan,
+		})
+	}
+
+	if planConfig.Error != nil {
+		hookPlan, err := factory.Create(
+			*planConfig.Error,
+			resources,
+			resourceTypes,
+			inputs,
+		)
+		if err != nil {
+			return atc.Plan{}, err
+		}
+
+		plan = factory.planFactory.NewPlan(atc.OnErrorPlan{
+			Step: plan,
+			Next: hookPlan,
+		})
+	}
+
+	if planConfig.Failure != nil {
+		hookPlan, err := factory.Create(
+			*planConfig.Failure,
+			resources,
+			resourceTypes,
+			inputs,
+		)
+		if err != nil {
+			return atc.Plan{}, err
+		}
+
+		plan = factory.planFactory.NewPlan(atc.OnFailurePlan{
+			Step: plan,
+			Next: hookPlan,
+		})
+	}
+
+	if planConfig.Success != nil {
+		hookPlan, err := factory.Create(
+			*planConfig.Success,
+			resources,
+			resourceTypes,
+			inputs,
+		)
+		if err != nil {
+			return atc.Plan{}, err
+		}
+
+		plan = factory.planFactory.NewPlan(atc.OnSuccessPlan{
+			Step: plan,
+			Next: hookPlan,
+		})
+	}
+
+	if planConfig.Ensure != nil {
+		hookPlan, err := factory.Create(
+			*planConfig.Ensure,
+			resources,
+			resourceTypes,
+			inputs,
+		)
+		if err != nil {
+			return atc.Plan{}, err
+		}
+
+		plan = factory.planFactory.NewPlan(atc.EnsurePlan{
+			Step: plan,
+			Next: hookPlan,
+		})
+	}
+
+	return plan, nil
+}
+
+func (factory *buildFactory) basePlan(
+	planConfig atc.PlanConfig,
+	resources db.SchedulerResources,
+	resourceTypes atc.VersionedResourceTypes,
+	inputs []db.BuildInput,
+) (atc.Plan, error) {
+	var plan atc.Plan
+
+	switch {
+	case planConfig.Do != nil:
+		do := atc.DoPlan{}
+
+		for _, planConfig := range *planConfig.Do {
+			nextStep, err := factory.Create(
+				planConfig,
+				resources,
+				resourceTypes,
+				inputs,
+			)
+			if err != nil {
+				return atc.Plan{}, err
+			}
+
+			do = append(do, nextStep)
+		}
+
+		plan = factory.planFactory.NewPlan(do)
 
 	case planConfig.Put != "":
 		logicalName := planConfig.Put
@@ -244,7 +295,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 		})
 
 	case planConfig.Try != nil:
-		nextStep, err := factory.constructPlanFromConfig(
+		nextStep, err := factory.Create(
 			*planConfig.Try,
 			resources,
 			resourceTypes,
@@ -262,7 +313,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 		aggregate := atc.AggregatePlan{}
 
 		for _, planConfig := range *planConfig.Aggregate {
-			nextStep, err := factory.constructPlanFromConfig(
+			nextStep, err := factory.Create(
 				planConfig,
 				resources,
 				resourceTypes,
@@ -281,7 +332,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 		var steps []atc.Plan
 
 		for _, planConfig := range planConfig.InParallel.Steps {
-			step, err := factory.constructPlanFromConfig(
+			step, err := factory.Create(
 				planConfig,
 				resources,
 				resourceTypes,
@@ -309,147 +360,4 @@ func (factory *buildFactory) constructUnhookedPlan(
 	}
 
 	return plan, nil
-}
-
-type constructionParams struct {
-	plan          atc.Plan
-	hooks         atc.Hooks
-	resources     db.SchedulerResources
-	resourceTypes atc.VersionedResourceTypes
-	inputs        []db.BuildInput
-}
-
-func (factory *buildFactory) applyHooks(cp constructionParams) (atc.Plan, error) {
-	var err error
-
-	cp, err = factory.abortIfPresent(cp)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	cp, err = factory.errorIfPresent(cp)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	cp, err = factory.failureIfPresent(cp)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	cp, err = factory.successIfPresent(cp)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	cp, err = factory.ensureIfPresent(cp)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	return cp.plan, nil
-}
-
-func (factory *buildFactory) successIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.hooks.Success != nil {
-
-		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.hooks.Success,
-			cp.resources,
-			cp.resourceTypes,
-			cp.inputs,
-		)
-		if err != nil {
-			return constructionParams{}, err
-		}
-
-		cp.plan = factory.planFactory.NewPlan(atc.OnSuccessPlan{
-			Step: cp.plan,
-			Next: nextPlan,
-		})
-	}
-	return cp, nil
-}
-
-func (factory *buildFactory) failureIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.hooks.Failure != nil {
-		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.hooks.Failure,
-			cp.resources,
-			cp.resourceTypes,
-			cp.inputs,
-		)
-		if err != nil {
-			return constructionParams{}, err
-		}
-
-		cp.plan = factory.planFactory.NewPlan(atc.OnFailurePlan{
-			Step: cp.plan,
-			Next: nextPlan,
-		})
-	}
-
-	return cp, nil
-}
-
-func (factory *buildFactory) ensureIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.hooks.Ensure != nil {
-		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.hooks.Ensure,
-			cp.resources,
-			cp.resourceTypes,
-			cp.inputs,
-		)
-		if err != nil {
-			return constructionParams{}, err
-		}
-
-		cp.plan = factory.planFactory.NewPlan(atc.EnsurePlan{
-			Step: cp.plan,
-			Next: nextPlan,
-		})
-	}
-	return cp, nil
-}
-
-func (factory *buildFactory) abortIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.hooks.Abort != nil {
-		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.hooks.Abort,
-			cp.resources,
-			cp.resourceTypes,
-			cp.inputs,
-		)
-		if err != nil {
-			return constructionParams{}, err
-		}
-
-		cp.plan = factory.planFactory.NewPlan(atc.OnAbortPlan{
-			Step: cp.plan,
-			Next: nextPlan,
-		})
-	}
-
-	return cp, nil
-}
-
-func (factory *buildFactory) errorIfPresent(cp constructionParams) (constructionParams, error) {
-	if cp.hooks.Error != nil {
-		nextPlan, err := factory.constructPlanFromConfig(
-			*cp.hooks.Error,
-			cp.resources,
-			cp.resourceTypes,
-			cp.inputs,
-		)
-		if err != nil {
-			return constructionParams{}, err
-		}
-
-		cp.plan = factory.planFactory.NewPlan(atc.OnErrorPlan{
-			Step: cp.plan,
-			Next: nextPlan,
-		})
-	}
-
-	return cp, nil
 }

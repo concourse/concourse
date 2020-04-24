@@ -1,26 +1,29 @@
 package atc
 
 type Plan struct {
-	ID       PlanID `json:"id"`
+	ID       PlanID `json:"id,omitempty"` // not optional, but omitempty for tests
 	Attempts []int  `json:"attempts,omitempty"`
 
-	Aggregate   *AggregatePlan   `json:"aggregate,omitempty"`
-	InParallel  *InParallelPlan  `json:"in_parallel,omitempty"`
-	Do          *DoPlan          `json:"do,omitempty"`
 	Get         *GetPlan         `json:"get,omitempty"`
 	Put         *PutPlan         `json:"put,omitempty"`
 	Check       *CheckPlan       `json:"check,omitempty"`
 	Task        *TaskPlan        `json:"task,omitempty"`
 	SetPipeline *SetPipelinePlan `json:"set_pipeline,omitempty"`
 	LoadVar     *LoadVarPlan     `json:"load_var,omitempty"`
-	OnAbort     *OnAbortPlan     `json:"on_abort,omitempty"`
-	OnError     *OnErrorPlan     `json:"on_error,omitempty"`
-	Ensure      *EnsurePlan      `json:"ensure,omitempty"`
-	OnSuccess   *OnSuccessPlan   `json:"on_success,omitempty"`
-	OnFailure   *OnFailurePlan   `json:"on_failure,omitempty"`
-	Try         *TryPlan         `json:"try,omitempty"`
-	Timeout     *TimeoutPlan     `json:"timeout,omitempty"`
-	Retry       *RetryPlan       `json:"retry,omitempty"`
+
+	Do         *DoPlan         `json:"do,omitempty"`
+	InParallel *InParallelPlan `json:"in_parallel,omitempty"`
+	Aggregate  *AggregatePlan  `json:"aggregate,omitempty"`
+
+	OnSuccess *OnSuccessPlan `json:"on_success,omitempty"`
+	OnFailure *OnFailurePlan `json:"on_failure,omitempty"`
+	OnAbort   *OnAbortPlan   `json:"on_abort,omitempty"`
+	OnError   *OnErrorPlan   `json:"on_error,omitempty"`
+	Ensure    *EnsurePlan    `json:"ensure,omitempty"`
+
+	Try     *TryPlan     `json:"try,omitempty"`
+	Timeout *TimeoutPlan `json:"timeout,omitempty"`
+	Retry   *RetryPlan   `json:"retry,omitempty"`
 
 	// used for 'fly execute'
 	ArtifactInput  *ArtifactInputPlan  `json:"artifact_input,omitempty"`
@@ -28,6 +31,71 @@ type Plan struct {
 
 	// deprecated, kept for backwards compatibility to be able to show old builds
 	DependentGet *DependentGetPlan `json:"dependent_get,omitempty"`
+}
+
+func (plan *Plan) Each(f func(*Plan)) {
+	f(plan)
+
+	if plan.Do != nil {
+		for i, p := range *plan.Do {
+			p.Each(f)
+			(*plan.Do)[i] = p
+		}
+	}
+
+	if plan.InParallel != nil {
+		for i, p := range plan.InParallel.Steps {
+			p.Each(f)
+			plan.InParallel.Steps[i] = p
+		}
+	}
+
+	if plan.Aggregate != nil {
+		for i, p := range *plan.Aggregate {
+			p.Each(f)
+			(*plan.Aggregate)[i] = p
+		}
+	}
+
+	if plan.OnSuccess != nil {
+		plan.OnSuccess.Step.Each(f)
+		plan.OnSuccess.Next.Each(f)
+	}
+
+	if plan.OnFailure != nil {
+		plan.OnFailure.Step.Each(f)
+		plan.OnFailure.Next.Each(f)
+	}
+
+	if plan.OnAbort != nil {
+		plan.OnAbort.Step.Each(f)
+		plan.OnAbort.Next.Each(f)
+	}
+
+	if plan.OnError != nil {
+		plan.OnError.Step.Each(f)
+		plan.OnError.Next.Each(f)
+	}
+
+	if plan.Ensure != nil {
+		plan.Ensure.Step.Each(f)
+		plan.Ensure.Next.Each(f)
+	}
+
+	if plan.Try != nil {
+		plan.Try.Step.Each(f)
+	}
+
+	if plan.Timeout != nil {
+		plan.Timeout.Step.Each(f)
+	}
+
+	if plan.Retry != nil {
+		for i, p := range *plan.Retry {
+			p.Each(f)
+			(*plan.Retry)[i] = p
+		}
+	}
 }
 
 type PlanID string
@@ -86,8 +154,9 @@ type InParallelPlan struct {
 type DoPlan []Plan
 
 type GetPlan struct {
+	Name string `json:"name,omitempty"`
+
 	Type        string   `json:"type"`
-	Name        string   `json:"name,omitempty"`
 	Resource    string   `json:"resource"`
 	Source      Source   `json:"source"`
 	Params      Params   `json:"params,omitempty"`
