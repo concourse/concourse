@@ -72,8 +72,7 @@ import Views.Styles
 
 init : Routes.SearchType -> ( Model, List Effect )
 init searchType =
-    ( { showTurbulence = False
-      , now = Nothing
+    ( { now = Nothing
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
@@ -92,6 +91,10 @@ init searchType =
       , isTeamsRequestFinished = False
       , isResourcesRequestFinished = False
       , isPipelinesRequestFinished = False
+      , isJobsErroring = False
+      , isTeamsErroring = False
+      , isResourcesErroring = False
+      , isPipelinesErroring = False
       , viewportWidth = 0
       , viewportHeight = 0
       , scrollTop = 0
@@ -172,14 +175,19 @@ handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     (case callback of
         AllTeamsFetched (Err _) ->
-            ( { model | showTurbulence = True }, effects )
+            ( { model | isTeamsErroring = True }
+            , effects
+            )
 
         AllTeamsFetched (Ok teams) ->
             let
                 newTeams =
                     Fetched teams
             in
-            ( { model | teams = newTeams }
+            ( { model
+                | teams = newTeams
+                , isTeamsErroring = False
+              }
             , effects
                 ++ (if newTeams |> changedFrom model.teams then
                         [ SaveCachedTeams teams ]
@@ -220,7 +228,10 @@ handleCallback callback ( model, effects ) =
                         |> FetchResult.map (Dict.toList >> List.map Tuple.first)
 
                 newModel =
-                    { model | jobs = newJobs }
+                    { model
+                        | jobs = newJobs
+                        , isJobsErroring = False
+                    }
             in
             if mapToJobIds newJobs |> changedFrom (mapToJobIds model.jobs) then
                 ( newModel |> precomputeJobMetadata
@@ -236,7 +247,7 @@ handleCallback callback ( model, effects ) =
                 ( newModel, effects )
 
         AllJobsFetched (Err _) ->
-            ( { model | showTurbulence = True }, effects )
+            ( { model | isJobsErroring = True }, effects )
 
         AllResourcesFetched (Ok resources) ->
             ( { model
@@ -251,12 +262,13 @@ handleCallback callback ( model, effects ) =
                                     )
                             )
                             model.pipelinesWithResourceErrors
+                , isResourcesErroring = False
               }
             , effects
             )
 
         AllResourcesFetched (Err _) ->
-            ( { model | showTurbulence = True }, effects )
+            ( { model | isResourcesErroring = True }, effects )
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
             let
@@ -265,7 +277,10 @@ handleCallback callback ( model, effects ) =
                         |> List.map toDashboardPipeline
                         |> Fetched
             in
-            ( { model | pipelines = newPipelines }
+            ( { model
+                | pipelines = newPipelines
+                , isPipelinesErroring = False
+              }
             , effects
                 ++ (if List.isEmpty allPipelinesInEntireCluster then
                         [ ModifyUrl "/" ]
@@ -282,16 +297,15 @@ handleCallback callback ( model, effects ) =
             )
 
         AllPipelinesFetched (Err _) ->
-            ( { model | showTurbulence = True }, effects )
+            ( { model | isPipelinesErroring = True }, effects )
 
         PipelinesOrdered teamName _ ->
             ( model, effects ++ [ FetchPipelines teamName ] )
 
-        PipelinesFetched (Ok _) ->
-            ( { model | dropState = NotDropping }, effects )
-
-        PipelinesFetched (Err _) ->
-            ( { model | showTurbulence = True }, effects )
+        PipelinesFetched _ ->
+            ( { model | dropState = NotDropping }
+            , effects
+            )
 
         LoggedOut (Ok ()) ->
             ( model
@@ -746,6 +760,21 @@ clusterNameView session =
         [ Html.text session.clusterName ]
 
 
+showTurbulence :
+    { a
+        | isJobsErroring : Bool
+        , isTeamsErroring : Bool
+        , isResourcesErroring : Bool
+        , isPipelinesErroring : Bool
+    }
+    -> Bool
+showTurbulence model =
+    model.isJobsErroring
+        || model.isTeamsErroring
+        || model.isResourcesErroring
+        || model.isPipelinesErroring
+
+
 dashboardView :
     { a
         | hovered : HoverState.HoverState
@@ -757,7 +786,7 @@ dashboardView :
     -> Model
     -> Html Message
 dashboardView session model =
-    if model.showTurbulence then
+    if showTurbulence model then
         turbulenceView session.turbulenceImgSrc
 
     else

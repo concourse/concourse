@@ -166,15 +166,6 @@ all =
                 >> given iDropThePipelineCard
                 >> when orderPipelinesFails
                 >> then_ myBrowserMakesTheFetchPipelinesAPICall
-        , test "failed to fetch team's pipelines displays turbulence view" <|
-            given
-                iVisitedTheDashboard
-                >> given myBrowserFetchedTwoPipelines
-                >> given iAmDraggingTheFirstPipelineCard
-                >> given iAmDraggingOverTheThirdDropArea
-                >> given iDropThePipelineCard
-                >> when dashboardFailsToRefreshPipelines
-                >> then_ iSeeTheTurbulenceView
         ]
 
 
@@ -341,12 +332,6 @@ iSeeASpinner =
 
 iSeeAllCardsHaveOpacity =
     Query.each (Query.has [ style "opacity" "0.5" ])
-
-
-iSeeTheTurbulenceView =
-    Tuple.first
-        >> Common.queryView
-        >> Query.has [ text "experiencing turbulence" ]
 
 
 iDoNotSeeASpinner =

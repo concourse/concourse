@@ -147,6 +147,19 @@ flags =
     }
 
 
+internalServerError : Http.Error
+internalServerError =
+    Http.BadStatus
+        { url = "http://example.com"
+        , status =
+            { code = 500
+            , message = "internal server error"
+            }
+        , headers = Dict.empty
+        , body = ""
+        }
+
+
 all : Test
 all =
     describe "Dashboard"
@@ -258,60 +271,93 @@ all =
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.RedirectToLogin ]
+        , test "shows turbulence view if the all teams call gives a bad status error" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllTeamsFetched <| Err internalServerError)
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ text "experiencing turbulence" ]
+        , test "recovers from turbulence view if all teams call succeeds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllTeamsFetched <| Err internalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllTeamsFetched <| Ok [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
         , test "shows turbulence view if the all resources call gives a bad status error" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllResourcesFetched <|
-                            Err <|
-                                Http.BadStatus
-                                    { url = "http://example.com"
-                                    , status =
-                                        { code = 500
-                                        , message = "internal server error"
-                                        }
-                                    , headers = Dict.empty
-                                    , body = ""
-                                    }
-                        )
+                        (Callback.AllResourcesFetched <| Err internalServerError)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "experiencing turbulence" ]
+        , test "recovers from turbulence view if all resources call succeeds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllResourcesFetched <| Err internalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllResourcesFetched <| Ok [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
         , test "shows turbulence view if the all jobs call gives a bad status error" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllJobsFetched <|
-                            Err <|
-                                Http.BadStatus
-                                    { url = "http://example.com"
-                                    , status =
-                                        { code = 500
-                                        , message = "internal server error"
-                                        }
-                                    , headers = Dict.empty
-                                    , body = ""
-                                    }
-                        )
+                        (Callback.AllJobsFetched <| Err internalServerError)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "experiencing turbulence" ]
+        , test "recovers from turbulence view if all jobs call succeeds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Err internalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Ok [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
         , test "shows turbulence view if the all pipelines call gives a bad status error" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <|
-                            Err <|
-                                Http.BadStatus
-                                    { url = "http://example.com"
-                                    , status =
-                                        { code = 500
-                                        , message = "internal server error"
-                                        }
-                                    , headers = Dict.empty
-                                    , body = ""
-                                    }
-                        )
+                        (Callback.AllPipelinesFetched <| Err internalServerError)
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ text "experiencing turbulence" ]
+        , test "recovers from turbulence view if all pipelines call succeeds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <| Err internalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <| Ok [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
+        , test "does not recover from turbulence view if some endpoints are still errored" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Err internalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <| Err internalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <| Ok [])
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "experiencing turbulence" ]

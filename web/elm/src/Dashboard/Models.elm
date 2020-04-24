@@ -11,14 +11,15 @@ import Dashboard.Group.Models
 import Dict exposing (Dict)
 import FetchResult exposing (FetchResult)
 import Login.Login as Login
+import Message.Effects exposing (Effect)
+import Set exposing (Set)
 import Time
 
 
 type alias Model =
     FooterModel
         (Login.Model
-            { showTurbulence : Bool
-            , now : Maybe Time.Posix
+            { now : Maybe Time.Posix
             , highDensity : Bool
             , query : String
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
@@ -31,6 +32,10 @@ type alias Model =
             , isTeamsRequestFinished : Bool
             , isPipelinesRequestFinished : Bool
             , isResourcesRequestFinished : Bool
+            , isJobsErroring : Bool
+            , isTeamsErroring : Bool
+            , isResourcesErroring : Bool
+            , isPipelinesErroring : Bool
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
