@@ -65,6 +65,10 @@ type Tx interface {
 }
 
 func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory) (Conn, error) {
+	return OpenWithBusTimeout(logger, sqlDriver, sqlDataSource, newKey, oldKey, connectionName, lockFactory, 0)
+}
+
+func OpenWithBusTimeout(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory, timeout time.Duration) (Conn, error) {
 	for {
 		var strategy encryption.Strategy
 		if newKey != nil {
@@ -106,7 +110,7 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *e
 		return &db{
 			DB: sqlDb,
 
-			bus:        NewNotificationsBus(listener, sqlDb),
+			bus:        NewNotificationsBus(listener, sqlDb, timeout),
 			encryption: strategy,
 			name:       connectionName,
 		}, nil

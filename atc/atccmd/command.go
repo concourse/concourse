@@ -235,6 +235,9 @@ type RunCommand struct {
 	SystemClaimKey        string   `long:"system-claim-key" default:"aud" description:"The token claim key to use when matching system-claim-values"`
 	SystemClaimValues     []string `long:"system-claim-value" default:"concourse-worker" description:"Configure which token requests should be considered 'system' requests."`
 	EnableArchivePipeline bool     `long:"enable-archive-pipeline" description:"Enable /api/v1/teams/{team}/pipelines/{pipeline}/archive endpoint."`
+
+	LockTimeout         time.Duration `long:"lock-timeout" default:"0" description:"EXPERIMENTAL: Amount of time to wait before giving up acquiring locks"`
+	NotificationTimeout time.Duration `long:"notification-timeout" default:"0" description:"EXPERIMENTAL: Amount of time to wait before giving up listening for pub/sub messages"`
 }
 
 type Migration struct {
@@ -467,7 +470,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
+	lockFactory := lock.NewLockFactoryWithTimeout(lockConn, metric.LogLockAcquired, metric.LogLockReleased, cmd.LockTimeout)
 
 	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, "api", lockFactory)
 	if err != nil {
@@ -1392,7 +1395,16 @@ func (cmd *RunCommand) constructDBConn(
 	connectionName string,
 	lockFactory lock.LockFactory,
 ) (db.Conn, error) {
-	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), cmd.newKey(), cmd.oldKey(), connectionName, lockFactory)
+	dbConn, err := db.OpenWithBusTimeout(
+		logger.Session("db"),
+		driverName,
+		cmd.Postgres.ConnectionString(),
+		cmd.newKey(),
+		cmd.oldKey(),
+		connectionName,
+		lockFactory,
+		cmd.NotificationTimeout,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}

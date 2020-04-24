@@ -27,8 +27,6 @@ const (
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
 
-const lockTimeout = 10 * time.Second
-
 func NewBuildTrackingLockID(buildID int) LockID {
 	return LockID{LockTypeBuildTracking, buildID}
 }
@@ -67,10 +65,16 @@ type LockFactory interface {
 	Acquire(logger lager.Logger, ids LockID) (Lock, bool, error)
 }
 
+type Mutex interface {
+	Unlock()
+	Lock() bool
+	LockWithTimeout(timeout time.Duration) bool
+}
+
 type lockFactory struct {
 	db    LockDB
 	locks lockRepo
-	mutex *mutex
+	mutex Mutex
 
 	acquireFunc LogFunc
 	releaseFunc LogFunc
@@ -83,6 +87,15 @@ func NewLockFactory(
 	acquire LogFunc,
 	release LogFunc,
 ) LockFactory {
+	return NewLockFactoryWithTimeout(conn, acquire, release, 0)
+}
+
+func NewLockFactoryWithTimeout(
+	conn *sql.DB,
+	acquire LogFunc,
+	release LogFunc,
+	timeout time.Duration,
+) LockFactory {
 	return &lockFactory{
 		db: &lockDB{
 			conn:  conn,
@@ -94,7 +107,7 @@ func NewLockFactory(
 			locks: map[string]bool{},
 			mutex: &sync.Mutex{},
 		},
-		mutex: &mutex{make(chan struct{}, 1)},
+		mutex: NewMutex(timeout),
 	}
 }
 
@@ -105,7 +118,7 @@ func NewTestLockFactory(db LockDB) LockFactory {
 			locks: map[string]bool{},
 			mutex: &sync.Mutex{},
 		},
-		mutex:       &mutex{make(chan struct{}, 1)},
+		mutex:       NewMutex(time.Second),
 		acquireFunc: func(logger lager.Logger, id LockID) {},
 		releaseFunc: func(logger lager.Logger, id LockID) {},
 	}
@@ -153,14 +166,14 @@ type lock struct {
 	logger lager.Logger
 	db     LockDB
 	locks  lockRepo
-	mutex  *mutex
+	mutex  Mutex
 
 	acquired LogFunc
 	released LogFunc
 }
 
 func (l *lock) Acquire() (bool, error) {
-	if l.mutex.Lock(lockTimeout) {
+	if l.mutex.Lock() {
 		defer l.mutex.Unlock()
 
 		logger := l.logger.Session("acquire", lager.Data{"id": l.id})
@@ -210,23 +223,6 @@ func (l *lock) Release() error {
 	l.released(logger, l.id)
 
 	return nil
-}
-
-type mutex struct {
-	c chan struct{}
-}
-
-func (m *mutex) Lock(timeout time.Duration) bool {
-	select {
-	case m.c <- struct{}{}:
-		return true
-	case <-time.After(timeout):
-	}
-	return false
-}
-
-func (m *mutex) Unlock() {
-	<-m.c
 }
 
 type lockDB struct {

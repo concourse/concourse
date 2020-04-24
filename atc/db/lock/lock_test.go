@@ -41,7 +41,12 @@ var _ = Describe("Locks", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
+		lockFactory = lock.NewLockFactoryWithTimeout(
+			postgresRunner.OpenSingleton(),
+			fakeLogFunc,
+			fakeLogFunc,
+			time.Second,
+		)
 
 		dbConn = postgresRunner.OpenConn()
 		teamFactory = db.NewTeamFactory(dbConn, lockFactory)
@@ -86,7 +91,7 @@ var _ = Describe("Locks", func() {
 
 			fakeLockDB.AcquireStub = func(id lock.LockID) (bool, error) {
 				select {
-				case <-time.After(11 * time.Second):
+				case <-time.After(2 * time.Second):
 				case <-done:
 				}
 				return true, nil
@@ -150,7 +155,12 @@ var _ = Describe("Locks", func() {
 			var lockFactory2 lock.LockFactory
 
 			BeforeEach(func() {
-				lockFactory2 = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
+				lockFactory2 = lock.NewLockFactoryWithTimeout(
+					postgresRunner.OpenSingleton(),
+					fakeLogFunc,
+					fakeLogFunc,
+					time.Second,
+				)
 			})
 
 			It("does not acquire the lock", func() {
