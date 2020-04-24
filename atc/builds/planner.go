@@ -1,40 +1,21 @@
-package factory
+package builds
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
-var ErrResourceNotFound = errors.New("resource not found")
-
-type VersionNotFoundError struct {
-	Input string
-}
-
-func (e VersionNotFoundError) Error() string {
-	return fmt.Sprintf("version for input %s not found", e.Input)
-}
-
-//go:generate counterfeiter . BuildFactory
-
-type BuildFactory interface {
-	Create(atc.PlanConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
-}
-
-type buildFactory struct {
+type Planner struct {
 	planFactory atc.PlanFactory
 }
 
-func NewBuildFactory(planFactory atc.PlanFactory) BuildFactory {
-	return &buildFactory{
+func NewPlanner(planFactory atc.PlanFactory) Planner {
+	return Planner{
 		planFactory: planFactory,
 	}
 }
 
-func (factory *buildFactory) Create(
+func (planner Planner) Create(
 	planConfig atc.PlanConfig,
 	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
@@ -44,7 +25,7 @@ func (factory *buildFactory) Create(
 	var err error
 
 	if planConfig.Attempts == 0 {
-		plan, err = factory.basePlan(planConfig, resources, resourceTypes, inputs)
+		plan, err = planner.basePlan(planConfig, resources, resourceTypes, inputs)
 		if err != nil {
 			return atc.Plan{}, err
 		}
@@ -52,7 +33,7 @@ func (factory *buildFactory) Create(
 		retryStep := make(atc.RetryPlan, planConfig.Attempts)
 
 		for i := 0; i < planConfig.Attempts; i++ {
-			attempt, err := factory.basePlan(planConfig, resources, resourceTypes, inputs)
+			attempt, err := planner.basePlan(planConfig, resources, resourceTypes, inputs)
 			if err != nil {
 				return atc.Plan{}, err
 			}
@@ -60,11 +41,11 @@ func (factory *buildFactory) Create(
 			retryStep[i] = attempt
 		}
 
-		plan = factory.planFactory.NewPlan(retryStep)
+		plan = planner.planFactory.NewPlan(retryStep)
 	}
 
 	if planConfig.Abort != nil {
-		hookPlan, err := factory.Create(
+		hookPlan, err := planner.Create(
 			*planConfig.Abort,
 			resources,
 			resourceTypes,
@@ -74,14 +55,14 @@ func (factory *buildFactory) Create(
 			return atc.Plan{}, err
 		}
 
-		plan = factory.planFactory.NewPlan(atc.OnAbortPlan{
+		plan = planner.planFactory.NewPlan(atc.OnAbortPlan{
 			Step: plan,
 			Next: hookPlan,
 		})
 	}
 
 	if planConfig.Error != nil {
-		hookPlan, err := factory.Create(
+		hookPlan, err := planner.Create(
 			*planConfig.Error,
 			resources,
 			resourceTypes,
@@ -91,14 +72,14 @@ func (factory *buildFactory) Create(
 			return atc.Plan{}, err
 		}
 
-		plan = factory.planFactory.NewPlan(atc.OnErrorPlan{
+		plan = planner.planFactory.NewPlan(atc.OnErrorPlan{
 			Step: plan,
 			Next: hookPlan,
 		})
 	}
 
 	if planConfig.Failure != nil {
-		hookPlan, err := factory.Create(
+		hookPlan, err := planner.Create(
 			*planConfig.Failure,
 			resources,
 			resourceTypes,
@@ -108,14 +89,14 @@ func (factory *buildFactory) Create(
 			return atc.Plan{}, err
 		}
 
-		plan = factory.planFactory.NewPlan(atc.OnFailurePlan{
+		plan = planner.planFactory.NewPlan(atc.OnFailurePlan{
 			Step: plan,
 			Next: hookPlan,
 		})
 	}
 
 	if planConfig.Success != nil {
-		hookPlan, err := factory.Create(
+		hookPlan, err := planner.Create(
 			*planConfig.Success,
 			resources,
 			resourceTypes,
@@ -125,14 +106,14 @@ func (factory *buildFactory) Create(
 			return atc.Plan{}, err
 		}
 
-		plan = factory.planFactory.NewPlan(atc.OnSuccessPlan{
+		plan = planner.planFactory.NewPlan(atc.OnSuccessPlan{
 			Step: plan,
 			Next: hookPlan,
 		})
 	}
 
 	if planConfig.Ensure != nil {
-		hookPlan, err := factory.Create(
+		hookPlan, err := planner.Create(
 			*planConfig.Ensure,
 			resources,
 			resourceTypes,
@@ -142,7 +123,7 @@ func (factory *buildFactory) Create(
 			return atc.Plan{}, err
 		}
 
-		plan = factory.planFactory.NewPlan(atc.EnsurePlan{
+		plan = planner.planFactory.NewPlan(atc.EnsurePlan{
 			Step: plan,
 			Next: hookPlan,
 		})
@@ -151,7 +132,7 @@ func (factory *buildFactory) Create(
 	return plan, nil
 }
 
-func (factory *buildFactory) basePlan(
+func (factory Planner) basePlan(
 	planConfig atc.PlanConfig,
 	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
