@@ -62,3 +62,6 @@
 * Add loading indicator on dashboard while awaiting initial API/cache response. #5458
 
 
+#### <sub><sup><a name="5479" href="#5479">:link:</a></sup></sub> feature
+
+* Updated a migration that adds a column to the pipelines table. The syntax initially used is not supported by Postgres 9.5 which is still supported. Removed the unsupported syntax so users using Postgres 9.5 can run the migration. Our CI pipeline has also been updated to ensure we run our tests on Postgres 9.5. #5479
