@@ -170,7 +170,7 @@ func (factory Planner) basePlan(
 
 		resource, found := resources.Lookup(resourceName)
 		if !found {
-			return atc.Plan{}, ErrResourceNotFound
+			return atc.Plan{}, UnknownResourceError{resourceName}
 		}
 
 		atcPutPlan := atc.PutPlan{
@@ -213,7 +213,7 @@ func (factory Planner) basePlan(
 
 		resource, found := resources.Lookup(resourceName)
 		if !found {
-			return atc.Plan{}, ErrResourceNotFound
+			return atc.Plan{}, UnknownResourceError{resourceName}
 		}
 
 		name := planConfig.Get
@@ -226,7 +226,7 @@ func (factory Planner) basePlan(
 		}
 
 		if version == nil {
-			return atc.Plan{}, VersionNotFoundError{name}
+			return atc.Plan{}, VersionNotProvidedError{name}
 		}
 
 		plan = factory.planFactory.NewPlan(atc.GetPlan{

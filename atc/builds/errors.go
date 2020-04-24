@@ -1,16 +1,25 @@
 package builds
 
 import (
-	"errors"
 	"fmt"
 )
 
-var ErrResourceNotFound = errors.New("resource not found")
+// UnknownResourceError is returned when a 'get' or 'put' step refers to a
+// resource which is not in the set of resources provided to the Planner.
+type UnknownResourceError struct {
+	Resource string
+}
 
-type VersionNotFoundError struct {
+func (err UnknownResourceError) Error() string {
+	return fmt.Sprintf("unknown resource: %s", err.Resource)
+}
+
+// VersionNotProvidedError is returned when a 'get' step does not have a
+// corresponding input provided to the Planner.
+type VersionNotProvidedError struct {
 	Input string
 }
 
-func (e VersionNotFoundError) Error() string {
-	return fmt.Sprintf("version for input %s not found", e.Input)
+func (err VersionNotProvidedError) Error() string {
+	return fmt.Sprintf("version for input %s not provided", err.Input)
 }
