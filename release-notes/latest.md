@@ -61,4 +61,7 @@
 
 * Add loading indicator on dashboard while awaiting initial API/cache response. #5458
 
+#### <sub><sup><a name="5496" href="#5496">:link:</a></sup></sub> fix
+
+* Allow the dashboard to recover from the "show turbulence" view if any API call fails once, but starts working afterward. This will prevent users from needing to refresh the page after closing their laptop or in the presence of network flakiness. #5496
 
