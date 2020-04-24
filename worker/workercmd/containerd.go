@@ -13,6 +13,8 @@ import (
 
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/localip"
+	concourseCmd "github.com/concourse/concourse/cmd"
 	containerd "github.com/concourse/concourse/worker/backend"
 	"github.com/concourse/concourse/worker/backend/libcontainerd"
 	"github.com/tedsuo/ifrit"
@@ -143,19 +145,44 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		Pdeathsig: syscall.SIGKILL,
 	}
 
+	members := grouper.Members{}
+
+	dnsServers := cmd.Garden.DNSServers
+	if cmd.Garden.DNS.Enable {
+		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
+		if err != nil {
+			return nil, err
+		}
+
+		lip, err := localip.LocalIP()
+		if err != nil {
+			return nil, err
+		}
+
+		dnsServers = append(dnsServers, lip)
+
+		members = append(members, grouper.Member{
+			Name: "dns-proxy",
+			Runner: concourseCmd.NewLoggingRunner(
+				logger.Session("dns-proxy-runner"),
+				dnsProxyRunner,
+			),
+		})
+	}
+
 	backendRunner, err := containerdGardenServerRunner(
 		logger,
 		cmd.bindAddr(),
 		sock,
 		cmd.Garden.RequestTimeout,
-		cmd.Garden.DNSServers,
+		dnsServers,
 		cmd.ContainerNetworkPool,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("containerd garden server runner: %w", err)
 	}
 
-	return grouper.NewParallel(os.Interrupt, grouper.Members{
+	members = append(members, grouper.Members{
 		{
 			Name:   "containerd",
 			Runner: CmdRunner{command},
@@ -164,5 +191,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 			Name:   "containerd-backend",
 			Runner: backendRunner,
 		},
-	}), nil
+	}...)
+
+	return grouper.NewParallel(os.Interrupt, members), nil
 }
