@@ -154,7 +154,7 @@ var _ = Describe("TaskStep", func() {
 					Params:  atc.Params{"some": "params"},
 					Version: atc.Version{"some": "version"},
 				},
-				Limits: atc.ContainerLimits{
+				Limits: &atc.ContainerLimits{
 					CPU:    &cpu,
 					Memory: &memory,
 				},
