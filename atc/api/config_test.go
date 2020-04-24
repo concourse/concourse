@@ -722,6 +722,31 @@ jobs:
 								ExpectCredsValidationPass()
 								ExpectCredsValidationFail()
 							})
+
+							Context("when it contains nested task that uses external config file and params in task vars", func() {
+								BeforeEach(func() {
+									payload = `---
+resources:
+- name: some-resource
+  type: some-type
+  check_every: 10s
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource
+  - do:
+    - task: some-task
+      file: some-resource/config.yml
+      vars:
+        FOO: ((BAR))`
+
+									request.Header.Set("Content-Type", "application/x-yaml")
+									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+								})
+
+								ExpectCredsValidationPass()
+								ExpectCredsValidationFail()
+							})
 						})
 
 						Context("when it contains credentials to be interpolated", func() {
