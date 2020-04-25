@@ -9,7 +9,7 @@ complex.
 Concourse is very opinionated about a few things: idempotency, immutability,
 declarative config, stateless workers, and reproducible builds.
 
-## Installation
+## Installation and maintenance
 
 Concourse is distributed as a single `concourse` binary, available on the [Releases page](https://github.com/concourse/concourse/releases/latest).
 
