@@ -54,11 +54,34 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (step Step) MarshalJSON() ([]byte, error) {
+	fields := map[string]*json.RawMessage{}
+
+	unwrapped := step.Config
+	for unwrapped != nil {
+		payload, err := json.Marshal(unwrapped)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(payload, &fields)
+		if err != nil {
+			return nil, err
+		}
+
+		unwrapped = unwrapped.Unwrap()
+	}
+
+	return json.Marshal(fields)
+}
+
 type StepConfig interface {
 	ParseJSON([]byte) error
 
 	Visit(StepVisitor) error
+
 	Wrap(StepConfig)
+	Unwrap() StepConfig
 }
 
 type StepVisitor interface {
@@ -91,20 +114,20 @@ var stepPrecedence = []stepFactory{
 		New: func() StepConfig { return &EnsureStep{} },
 	},
 	{
-		Key: "on_success",
-		New: func() StepConfig { return &OnSuccessStep{} },
-	},
-	{
-		Key: "on_failure",
-		New: func() StepConfig { return &OnFailureStep{} },
+		Key: "on_error",
+		New: func() StepConfig { return &OnErrorStep{} },
 	},
 	{
 		Key: "on_abort",
 		New: func() StepConfig { return &OnAbortStep{} },
 	},
 	{
-		Key: "on_error",
-		New: func() StepConfig { return &OnErrorStep{} },
+		Key: "on_failure",
+		New: func() StepConfig { return &OnFailureStep{} },
+	},
+	{
+		Key: "on_success",
+		New: func() StepConfig { return &OnSuccessStep{} },
 	},
 	{
 		Key: "attempts",
@@ -162,11 +185,20 @@ type GetStep struct {
 	Tags     Tags           `json:"tags,omitempty"`
 }
 
+func (step *GetStep) ResourceName() string {
+	if step.Resource != "" {
+		return step.Resource
+	}
+
+	return step.Name
+}
+
 func (step *GetStep) ParseJSON(data []byte) error {
 	return unmarshalStrict(data, step)
 }
 
-func (step *GetStep) Wrap(StepConfig) {}
+func (step *GetStep) Wrap(StepConfig)    {}
+func (step *GetStep) Unwrap() StepConfig { return nil }
 
 func (step *GetStep) Visit(v StepVisitor) error {
 	return v.VisitGet(step)
@@ -181,11 +213,20 @@ type PutStep struct {
 	GetParams Params        `json:"get_params,omitempty"`
 }
 
+func (step *PutStep) ResourceName() string {
+	if step.Resource != "" {
+		return step.Resource
+	}
+
+	return step.Name
+}
+
 func (step *PutStep) ParseJSON(data []byte) error {
 	return unmarshalStrict(data, step)
 }
 
-func (step *PutStep) Wrap(StepConfig) {}
+func (step *PutStep) Wrap(StepConfig)    {}
+func (step *PutStep) Unwrap() StepConfig { return nil }
 
 func (step *PutStep) Visit(v StepVisitor) error {
 	return v.VisitPut(step)
@@ -208,7 +249,8 @@ func (step *TaskStep) ParseJSON(data []byte) error {
 	return unmarshalStrict(data, step)
 }
 
-func (step *TaskStep) Wrap(StepConfig) {}
+func (step *TaskStep) Wrap(StepConfig)    {}
+func (step *TaskStep) Unwrap() StepConfig { return nil }
 
 func (step *TaskStep) Visit(v StepVisitor) error {
 	return v.VisitTask(step)
@@ -226,7 +268,8 @@ func (step *SetPipelineStep) ParseJSON(data []byte) error {
 	return unmarshalStrict(data, step)
 }
 
-func (step *SetPipelineStep) Wrap(StepConfig) {}
+func (step *SetPipelineStep) Wrap(StepConfig)    {}
+func (step *SetPipelineStep) Unwrap() StepConfig { return nil }
 
 func (step *SetPipelineStep) Visit(v StepVisitor) error {
 	return v.VisitSetPipeline(step)
@@ -243,7 +286,8 @@ func (step *LoadVarStep) ParseJSON(data []byte) error {
 	return unmarshalStrict(data, step)
 }
 
-func (step *LoadVarStep) Wrap(StepConfig) {}
+func (step *LoadVarStep) Wrap(StepConfig)    {}
+func (step *LoadVarStep) Unwrap() StepConfig { return nil }
 
 func (step *LoadVarStep) Visit(v StepVisitor) error {
 	return v.VisitLoadVar(step)
@@ -257,7 +301,8 @@ func (step *TryStep) ParseJSON(data []byte) error {
 	return unmarshalStrict(data, step)
 }
 
-func (step *TryStep) Wrap(StepConfig) {}
+func (step *TryStep) Wrap(StepConfig)    {}
+func (step *TryStep) Unwrap() StepConfig { return nil }
 
 func (step *TryStep) Visit(v StepVisitor) error {
 	return v.VisitTry(step)
@@ -271,7 +316,8 @@ func (step *DoStep) ParseJSON(data []byte) error {
 	return unmarshalStrict(data, step)
 }
 
-func (step *DoStep) Wrap(StepConfig) {}
+func (step *DoStep) Wrap(StepConfig)    {}
+func (step *DoStep) Unwrap() StepConfig { return nil }
 
 func (step *DoStep) Visit(v StepVisitor) error {
 	return v.VisitDo(step)
@@ -285,7 +331,8 @@ func (step *AggregateStep) ParseJSON(data []byte) error {
 	return unmarshalStrict(data, step)
 }
 
-func (step *AggregateStep) Wrap(StepConfig) {}
+func (step *AggregateStep) Wrap(StepConfig)    {}
+func (step *AggregateStep) Unwrap() StepConfig { return nil }
 
 func (step *AggregateStep) Visit(v StepVisitor) error {
 	return v.VisitAggregate(step)
@@ -299,7 +346,8 @@ func (step *InParallelStep) ParseJSON(data []byte) error {
 	return unmarshalStrict(data, step)
 }
 
-func (step *InParallelStep) Wrap(StepConfig) {}
+func (step *InParallelStep) Wrap(StepConfig)    {}
+func (step *InParallelStep) Unwrap() StepConfig { return nil }
 
 func (step *InParallelStep) Visit(v StepVisitor) error {
 	return v.VisitInParallel(step)
@@ -341,9 +389,8 @@ func (c *InParallelConfig2) UnmarshalJSON(payload []byte) error {
 }
 
 type RetryStep struct {
-	Attempts int `json:"attempts"`
-
-	Step StepConfig
+	Step     StepConfig `json:"-"`
+	Attempts int        `json:"attempts"`
 }
 
 func (step *RetryStep) ParseJSON(data []byte) error {
@@ -358,14 +405,17 @@ func (step *RetryStep) Wrap(sub StepConfig) {
 	}
 }
 
+func (step *RetryStep) Unwrap() StepConfig {
+	return step.Step
+}
+
 func (step *RetryStep) Visit(v StepVisitor) error {
 	return v.VisitRetry(step)
 }
 
 type TimeoutStep struct {
-	Duration string `json:"timeout"`
-
-	Step StepConfig
+	Step     StepConfig `json:"-"`
+	Duration string     `json:"timeout"`
 }
 
 func (step *TimeoutStep) ParseJSON(data []byte) error {
@@ -395,13 +445,17 @@ func (step *TimeoutStep) Wrap(sub StepConfig) {
 	}
 }
 
+func (step *TimeoutStep) Unwrap() StepConfig {
+	return step.Step
+}
+
 func (step *TimeoutStep) Visit(v StepVisitor) error {
 	return v.VisitTimeout(step)
 }
 
 type OnSuccessStep struct {
-	Step StepConfig
-	Hook Step `json:"on_success"`
+	Step StepConfig `json:"-"`
+	Hook Step       `json:"on_success"`
 }
 
 func (step *OnSuccessStep) ParseJSON(data []byte) error {
@@ -416,13 +470,17 @@ func (step *OnSuccessStep) Wrap(sub StepConfig) {
 	}
 }
 
+func (step *OnSuccessStep) Unwrap() StepConfig {
+	return step.Step
+}
+
 func (step *OnSuccessStep) Visit(v StepVisitor) error {
 	return v.VisitOnSuccess(step)
 }
 
 type OnFailureStep struct {
-	Step StepConfig
-	Hook Step `json:"on_failure"`
+	Step StepConfig `json:"-"`
+	Hook Step       `json:"on_failure"`
 }
 
 func (step *OnFailureStep) ParseJSON(data []byte) error {
@@ -437,13 +495,17 @@ func (step *OnFailureStep) Wrap(sub StepConfig) {
 	}
 }
 
+func (step *OnFailureStep) Unwrap() StepConfig {
+	return step.Step
+}
+
 func (step *OnFailureStep) Visit(v StepVisitor) error {
 	return v.VisitOnFailure(step)
 }
 
 type OnErrorStep struct {
-	Step StepConfig
-	Hook Step `json:"on_error"`
+	Step StepConfig `json:"-"`
+	Hook Step       `json:"on_error"`
 }
 
 func (step *OnErrorStep) ParseJSON(data []byte) error {
@@ -458,13 +520,17 @@ func (step *OnErrorStep) Wrap(sub StepConfig) {
 	}
 }
 
+func (step *OnErrorStep) Unwrap() StepConfig {
+	return step.Step
+}
+
 func (step *OnErrorStep) Visit(v StepVisitor) error {
 	return v.VisitOnError(step)
 }
 
 type OnAbortStep struct {
-	Step StepConfig
-	Hook Step `json:"on_abort"`
+	Step StepConfig `json:"-"`
+	Hook Step       `json:"on_abort"`
 }
 
 func (step *OnAbortStep) ParseJSON(data []byte) error {
@@ -479,13 +545,17 @@ func (step *OnAbortStep) Wrap(sub StepConfig) {
 	}
 }
 
+func (step *OnAbortStep) Unwrap() StepConfig {
+	return step.Step
+}
+
 func (step *OnAbortStep) Visit(v StepVisitor) error {
 	return v.VisitOnAbort(step)
 }
 
 type EnsureStep struct {
-	Step StepConfig
-	Hook Step `json:"ensure"`
+	Step StepConfig `json:"-"`
+	Hook Step       `json:"ensure"`
 }
 
 func (step *EnsureStep) ParseJSON(data []byte) error {
@@ -498,6 +568,10 @@ func (step *EnsureStep) Wrap(sub StepConfig) {
 	} else {
 		step.Step = sub
 	}
+}
+
+func (step *EnsureStep) Unwrap() StepConfig {
+	return step.Step
 }
 
 func (step *EnsureStep) Visit(v StepVisitor) error {
