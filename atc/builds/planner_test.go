@@ -711,8 +711,8 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 	// thank goodness gofmt makes this a reasonable assumption
 	cleanIndents := strings.ReplaceAll(test.ConfigYAML, "\t", "")
 
-	var config atc.PlanConfig
-	err := yaml.UnmarshalStrict([]byte(cleanIndents), &config)
+	var config atc.Step
+	err := yaml.Unmarshal([]byte(cleanIndents), &config)
 	s.NoError(err)
 
 	actualPlan, actualErr := factory.Create(config, resources, resourceTypes, test.Inputs)
