@@ -1096,9 +1096,10 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
 	globalVars := creds.NewVariables(globalSecrets, p.TeamName(), p.Name(), false)
 	namedVarsMap := vars.NamedVariables{}
+
 	// It's safe to add NamedVariables to allVars via an array here, because
 	// a map is passed by reference.
-	allVars := vars.NewMultiVars([]vars.Variables{globalVars, namedVarsMap})
+	allVars := vars.NewMultiVars([]vars.Variables{namedVarsMap, globalVars})
 
 	orderedVarSources, err := p.varSources.OrderByDependency()
 	if err != nil {
