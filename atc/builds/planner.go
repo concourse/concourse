@@ -16,7 +16,7 @@ func NewPlanner(planFactory atc.PlanFactory) Planner {
 }
 
 func (planner Planner) Create(
-	planConfig atc.Step,
+	planConfig atc.StepConfig,
 	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
 	inputs []db.BuildInput,
@@ -29,7 +29,7 @@ func (planner Planner) Create(
 		inputs:        inputs,
 	}
 
-	err := planConfig.Config.Visit(visitor)
+	err := planConfig.Visit(visitor)
 	if err != nil {
 		return atc.Plan{}, err
 	}

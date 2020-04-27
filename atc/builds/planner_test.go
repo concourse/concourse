@@ -711,11 +711,11 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 	// thank goodness gofmt makes this a reasonable assumption
 	cleanIndents := strings.ReplaceAll(test.ConfigYAML, "\t", "")
 
-	var config atc.Step
-	err := yaml.Unmarshal([]byte(cleanIndents), &config)
+	var step atc.Step
+	err := yaml.Unmarshal([]byte(cleanIndents), &step)
 	s.NoError(err)
 
-	actualPlan, actualErr := factory.Create(config, resources, resourceTypes, test.Inputs)
+	actualPlan, actualErr := factory.Create(step.Config, resources, resourceTypes, test.Inputs)
 
 	if test.Err != nil {
 		s.Equal(test.Err, actualErr)
