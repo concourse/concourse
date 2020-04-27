@@ -131,7 +131,6 @@ type Build interface {
 
 	Events(uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
-	QueryEvent(eventType atc.EventType, originId event.OriginID) (string, error)
 
 	Artifacts() ([]WorkerArtifact, error)
 	Artifact(artifactID int) (WorkerArtifact, error)
@@ -846,34 +845,6 @@ func (b *build) SaveEvent(event atc.Event) error {
 	}
 
 	return b.conn.Bus().Notify(buildEventsChannel(b.id))
-}
-
-func (b *build) QueryEvent(eventType atc.EventType, originId event.OriginID) (string, error) {
-	table := fmt.Sprintf("team_build_events_%d", b.teamID)
-	if b.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
-	}
-	row, err := psql.Select("payload").From(table).
-		Where(sq.Eq{"payload::jsonb->'origin'->>'id'": originId}).
-		Where(sq.Eq{"build_id": b.id}).
-		Where(sq.Eq{"type": eventType}).
-		RunWith(b.conn).
-		Query()
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return "", nil
-		}
-		return "", nil
-	}
-	var payload string
-	if row.Next() {
-		err = row.Scan(&payload)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return payload, nil
 }
 
 func (b *build) Artifact(artifactID int) (WorkerArtifact, error) {

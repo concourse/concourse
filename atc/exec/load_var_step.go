@@ -1,16 +1,15 @@
 package exec
 
 import (
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"strings"
-
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"sigs.k8s.io/yaml"
+	"strings"
 
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
@@ -71,6 +70,13 @@ func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
+	succeeded, _ := step.delegate.HasDoneSuccessfully()
+	if succeeded {
+		logger.Debug("done-already-no-need-rerun")
+		step.succeeded = true
+		return nil
+	}
+
 	step.delegate.Initializing(logger)
 	stdout := step.delegate.Stdout()
 	stderr := step.delegate.Stderr()
@@ -92,7 +98,7 @@ func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
 	fmt.Fprintf(stdout, "added var %s to build.\n", step.plan.Name)
 
 	step.succeeded = true
-	step.delegate.Finished(logger, step.succeeded)
+	step.delegate.Finished(logger, step.succeeded, "")
 
 	return nil
 }
