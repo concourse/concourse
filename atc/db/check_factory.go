@@ -31,6 +31,8 @@ type Checkable interface {
 	LastCheckEndTime() time.Time
 	CurrentPinnedVersion() atc.Version
 
+	HasWebhook() bool
+
 	SetResourceConfig(
 		atc.Source,
 		atc.VersionedResourceTypes,

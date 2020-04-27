@@ -20,8 +20,11 @@ func NewScanner(
 	defaultCheckInterval time.Duration,
 	defaultWithWebhookCheckInterval time.Duration,
 ) *scanner {
-	// In case users are not aware of defaultWithWebhookCheckInterval and set defaultCheckInterval
-	// only, make sure defaultWithWebhookCheckInterval to not be smaller than defaultCheckInterval.
+	// In case that a user configures resource-checking-interval, but forgets to
+	// configure resource-with-webhook-checking-interval, keep both checking-
+	// intervals consistent. Even if both intervals are configured, there is no
+	// reason webhooked resources take shorter checking interval than normal
+	// resources.
 	if defaultWithWebhookCheckInterval < defaultCheckInterval {
 		logger.Info("update-default-with-webhook-check-interface",
 			lager.Data{"oldValue": defaultWithWebhookCheckInterval, "newValue": defaultCheckInterval})
@@ -103,7 +106,7 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes, 
 	}
 
 	interval := s.defaultCheckInterval
-	if resource, ok := checkable.(db.Resource); ok && resource.HasWebhook() {
+	if checkable.HasWebhook() {
 		interval = s.defaultWithWebhookCheckInterval
 	}
 	if every := checkable.CheckEvery(); every != "" {
