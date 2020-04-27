@@ -26,7 +26,7 @@ func NewScanner(
 	// reason webhooked resources take shorter checking interval than normal
 	// resources.
 	if defaultWithWebhookCheckInterval < defaultCheckInterval {
-		logger.Info("update-default-with-webhook-check-interface",
+		logger.Info("update-default-with-webhook-check-interval",
 			lager.Data{"oldValue": defaultWithWebhookCheckInterval, "newValue": defaultCheckInterval})
 		defaultWithWebhookCheckInterval = defaultCheckInterval
 	}
