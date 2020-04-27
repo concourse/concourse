@@ -516,9 +516,17 @@ var _ = Describe("CheckFactory", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							PlanSequence: atc.PlanSequence{
-								atc.PlanConfig{Get: "some-resource"},
-								atc.PlanConfig{Put: "some-resource-put-only"},
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name: "some-resource",
+									},
+								},
+								{
+									Config: &atc.PutStep{
+										Name: "some-resource-put-only",
+									},
+								},
 							},
 						},
 					},
