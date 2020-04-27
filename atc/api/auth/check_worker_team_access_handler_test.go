@@ -38,19 +38,23 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 		handlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(workerFactory)
 
 		delegate = &workerDelegateHandler{}
-		checkWorkerTeamAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+		innerHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+
 		handler = accessor.NewHandler(
 			logger,
-			checkWorkerTeamAccessHandler,
-			fakeAccessor,
 			"some-action",
+			innerHandler,
+			fakeAccessor,
+			new(accessorfakes.FakeTokenVerifier),
+			new(accessorfakes.FakeTeamFetcher),
+			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
-			new(dbfakes.FakeUserFactory),
+			map[string]string{},
 		)
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess, nil)
+		fakeAccessor.CreateReturns(fakeaccess)
 		routes := rata.Routes{}
 		for _, route := range atc.Routes {
 			if route.Name == atc.RetireWorker {

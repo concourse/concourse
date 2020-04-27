@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/api/accessor"
 )
 
-type FakeVerifier struct {
+type FakeTokenVerifier struct {
 	VerifyStub        func(*http.Request) (map[string]interface{}, error)
 	verifyMutex       sync.RWMutex
 	verifyArgsForCall []struct {
@@ -26,7 +26,7 @@ type FakeVerifier struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeVerifier) Verify(arg1 *http.Request) (map[string]interface{}, error) {
+func (fake *FakeTokenVerifier) Verify(arg1 *http.Request) (map[string]interface{}, error) {
 	fake.verifyMutex.Lock()
 	ret, specificReturn := fake.verifyReturnsOnCall[len(fake.verifyArgsForCall)]
 	fake.verifyArgsForCall = append(fake.verifyArgsForCall, struct {
@@ -44,26 +44,26 @@ func (fake *FakeVerifier) Verify(arg1 *http.Request) (map[string]interface{}, er
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeVerifier) VerifyCallCount() int {
+func (fake *FakeTokenVerifier) VerifyCallCount() int {
 	fake.verifyMutex.RLock()
 	defer fake.verifyMutex.RUnlock()
 	return len(fake.verifyArgsForCall)
 }
 
-func (fake *FakeVerifier) VerifyCalls(stub func(*http.Request) (map[string]interface{}, error)) {
+func (fake *FakeTokenVerifier) VerifyCalls(stub func(*http.Request) (map[string]interface{}, error)) {
 	fake.verifyMutex.Lock()
 	defer fake.verifyMutex.Unlock()
 	fake.VerifyStub = stub
 }
 
-func (fake *FakeVerifier) VerifyArgsForCall(i int) *http.Request {
+func (fake *FakeTokenVerifier) VerifyArgsForCall(i int) *http.Request {
 	fake.verifyMutex.RLock()
 	defer fake.verifyMutex.RUnlock()
 	argsForCall := fake.verifyArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *FakeVerifier) VerifyReturns(result1 map[string]interface{}, result2 error) {
+func (fake *FakeTokenVerifier) VerifyReturns(result1 map[string]interface{}, result2 error) {
 	fake.verifyMutex.Lock()
 	defer fake.verifyMutex.Unlock()
 	fake.VerifyStub = nil
@@ -73,7 +73,7 @@ func (fake *FakeVerifier) VerifyReturns(result1 map[string]interface{}, result2 
 	}{result1, result2}
 }
 
-func (fake *FakeVerifier) VerifyReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
+func (fake *FakeTokenVerifier) VerifyReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
 	fake.verifyMutex.Lock()
 	defer fake.verifyMutex.Unlock()
 	fake.VerifyStub = nil
@@ -89,7 +89,7 @@ func (fake *FakeVerifier) VerifyReturnsOnCall(i int, result1 map[string]interfac
 	}{result1, result2}
 }
 
-func (fake *FakeVerifier) Invocations() map[string][][]interface{} {
+func (fake *FakeTokenVerifier) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.verifyMutex.RLock()
@@ -101,7 +101,7 @@ func (fake *FakeVerifier) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeVerifier) recordInvocation(key string, args []interface{}) {
+func (fake *FakeTokenVerifier) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -113,4 +113,4 @@ func (fake *FakeVerifier) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ accessor.Verifier = new(FakeVerifier)
+var _ accessor.TokenVerifier = new(FakeTokenVerifier)

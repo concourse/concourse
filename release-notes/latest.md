@@ -1,25 +1,25 @@
-##### <sub><sup><a name="5305" href="#5305">:link:</a></sup></sub> feature
-
-* We've updated the way that containers associated with failed runs get garbage collected
-
-  Containers associated with failed runs used to sit around until a new run is executed.  They now have a max lifetime (default - 120 hours), configurable via 'failed-grace-period' flag.
-
 ### <sub><sup><a name="4950" href="#4950">:link:</a></sup></sub> feature, breaking
 
 * "Have you tried logging out and logging back in?"
             - Probably every concourse operator at some point
 
-  In the old login flow, concourse used to take all your upstream third party info (think github username, teams, etc) figure out what teams you're on, and encode those into your auth token. The problem with this approach is that every time you change your team config, you need to log out and log back in.
+  In the old login flow, concourse used to take all your upstream third party info (think github username, teams, etc) figure out what teams you're on, and encode those into your auth token. The problem with this approach is that every time you change your team config, you need to log out and log back in. So now concourse doesn't do this anymore. Instead we use a token directly from dex, the out-of-the-box identity provider that ships with concourse.
 
-  So now concourse doesn't do this anymore. Now we use a token directly from dex, the out-of-the-box identity provider that ships with concourse. If you're interested in the details you can check out [the issue](https://github.com/concourse/concourse/issues/2936).
+  This new flow does introduce a few additional database calls on each request, but we've added some mitigations (caching and batching) to help reduce the impact. If you're interested in the details you can check out [the original issue](https://github.com/concourse/concourse/issues/2936) or the follow up with some of the [optimizations](https://github.com/concourse/concourse/pull/5257).
 
-  NOTE: this is a breaking change. You'll neeed to add a couple required flags at startup `CONCOURSE_CLIENT_SECRET` and `CONCOURSE_TSA_CLIENT_SECRET`. And, yes, you will need to log out and log back in one last time.
+  NOTE: And yes, you will need to log out and log back in after upgrading.
 
 #### <sub><sup><a name="5305" href="#5305">:link:</a></sup></sub> feature
 
 * We've updated the way that hijacked containers get garbage collected
 
   We are no longer relying on garden to clean up hijacked containers. Instead, we have implemented this functionality in concourse itself. This makes it much more portable to different container backends.
+
+##### <sub><sup><a name="5431" href="#5431">:link:</a></sup></sub> feature
+
+* We've updated the way that containers associated with failed runs get garbage collected
+
+  Containers associated with failed runs used to sit around until a new run is executed.  They now have a max lifetime (default - 120 hours), configurable via 'failed-grace-period' flag.
 
 #### <sub><sup><a name="5375" href="#5375">:link:</a></sup></sub> fix
 
@@ -65,3 +65,6 @@
 
 * Allow the dashboard to recover from the "show turbulence" view if any API call fails once, but starts working afterward. This will prevent users from needing to refresh the page after closing their laptop or in the presence of network flakiness. #5496
 
+#### <sub><sup><a name="5479" href="#5479">:link:</a></sup></sub> feature
+
+* Updated a migration that adds a column to the pipelines table. The syntax initially used is not supported by Postgres 9.5 which is still supported. Removed the unsupported syntax so users using Postgres 9.5 can run the migration. Our CI pipeline has also been updated to ensure we run our tests on Postgres 9.5. #5479

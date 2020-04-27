@@ -367,6 +367,10 @@ var _ = Describe("Teams API", func() {
 					}))
 				})
 
+				It("delete the teams in cache", func() {
+					Expect(dbTeamFactory.NotifyCacherCallCount()).To(Equal(1))
+				})
+
 				Context("when it fails to create team", func() {
 					BeforeEach(func() {
 						dbTeamFactory.CreateTeamReturns(nil, errors.New("it is never going to happen"))
@@ -374,6 +378,10 @@ var _ = Describe("Teams API", func() {
 
 					It("returns a 500 Internal Server error", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+
+					It("does not delete the teams in cache", func() {
+						Expect(dbTeamFactory.NotifyCacherCallCount()).To(Equal(0))
 					})
 				})
 			})
