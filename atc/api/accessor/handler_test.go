@@ -6,9 +6,11 @@ import (
 	"net/http/httptest"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -18,54 +20,67 @@ import (
 var _ = Describe("Handler", func() {
 
 	var (
-		logger lager.Logger
-
-		fakeAccessorFactory *accessorfakes.FakeAccessFactory
+		logger              lager.Logger
 		fakeHandler         *accessorfakes.FakeHandler
-		fakeAuditor         *auditorfakes.FakeAuditor
-		fakeUserFactory     *dbfakes.FakeUserFactory
 		fakeAccess          *accessorfakes.FakeAccess
-		accessorHandler     http.Handler
+		fakeAccessorFactory *accessorfakes.FakeAccessFactory
+		fakeTokenVerifier   *accessorfakes.FakeTokenVerifier
+		fakeTeamFetcher     *accessorfakes.FakeTeamFetcher
+		fakeUserTracker     *accessorfakes.FakeUserTracker
+		fakeAuditor         *auditorfakes.FakeAuditor
 
-		req *http.Request
-		w   *httptest.ResponseRecorder
+		action      string
+		customRoles map[string]string
+
+		r *http.Request
+		w *httptest.ResponseRecorder
 	)
 
 	BeforeEach(func() {
 		logger = lager.NewLogger("test")
 
-		fakeAccessorFactory = new(accessorfakes.FakeAccessFactory)
 		fakeHandler = new(accessorfakes.FakeHandler)
-		fakeAuditor = new(auditorfakes.FakeAuditor)
-		fakeUserFactory = new(dbfakes.FakeUserFactory)
 		fakeAccess = new(accessorfakes.FakeAccess)
+		fakeAccessorFactory = new(accessorfakes.FakeAccessFactory)
+		fakeAccessorFactory.CreateReturns(fakeAccess)
+		fakeTokenVerifier = new(accessorfakes.FakeTokenVerifier)
+		fakeTeamFetcher = new(accessorfakes.FakeTeamFetcher)
+		fakeUserTracker = new(accessorfakes.FakeUserTracker)
+		fakeAuditor = new(auditorfakes.FakeAuditor)
+
+		action = "some-action"
+		customRoles = map[string]string{"some-action": "some-role"}
 
 		var err error
-		req, err = http.NewRequest("GET", "localhost:8080", nil)
+		r, err = http.NewRequest("GET", "localhost:8080", nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		w = httptest.NewRecorder()
 	})
 
 	JustBeforeEach(func() {
-		accessorHandler.ServeHTTP(w, req)
+		handler := accessor.NewHandler(
+			logger,
+			action,
+			fakeHandler,
+			fakeAccessorFactory,
+			fakeTokenVerifier,
+			fakeTeamFetcher,
+			fakeUserTracker,
+			fakeAuditor,
+			customRoles,
+		)
+
+		handler.ServeHTTP(w, r)
 	})
 
 	Describe("Accessor Handler", func() {
 		BeforeEach(func() {
-			accessorHandler = accessor.NewHandler(
-				logger,
-				fakeHandler,
-				fakeAccessorFactory,
-				"some-action",
-				fakeAuditor,
-				fakeUserFactory,
-			)
 		})
 
-		Context("when access factory returns an error", func() {
+		Context("when the team fetcher returns an error", func() {
 			BeforeEach(func() {
-				fakeAccessorFactory.CreateReturns(nil, errors.New("nope"))
+				fakeTeamFetcher.GetTeamsReturns(nil, errors.New("nope"))
 			})
 
 			It("returns a server error", func() {
@@ -73,37 +88,124 @@ var _ = Describe("Handler", func() {
 			})
 		})
 
-		Context("when access factory return valid access object", func() {
+		Context("when the team fetcher returns teams", func() {
+			var fakeTeams []db.Team
+
 			BeforeEach(func() {
-				fakeAccessorFactory.CreateReturns(fakeAccess, nil)
+				fakeTeam1 := new(dbfakes.FakeTeam)
+				fakeTeam2 := new(dbfakes.FakeTeam)
+				fakeTeam3 := new(dbfakes.FakeTeam)
+
+				fakeTeams = []db.Team{fakeTeam1, fakeTeam2, fakeTeam3}
+
+				fakeTeamFetcher.GetTeamsReturns(fakeTeams, nil)
 			})
 
-			Context("when the request is anonymous", func() {
+			It("creates an accessor with the given teams", func() {
+				Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
+				_, _, teams := fakeAccessorFactory.CreateArgsForCall(0)
+				Expect(teams).To(Equal(fakeTeams))
+			})
+
+			Context("when there's a default role for the given action", func() {
 				BeforeEach(func() {
-					fakeAccess.ClaimsReturns(accessor.Claims{})
+					action = atc.SaveConfig
 				})
 
-				It("doesn't track the request", func() {
-					Expect(fakeUserFactory.CreateOrUpdateUserCallCount()).To(Equal(0))
+				Context("when the role has not been customized", func() {
+					BeforeEach(func() {
+						customRoles = map[string]string{}
+					})
+
+					It("finds the role", func() {
+						Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
+						role, _, _ := fakeAccessorFactory.CreateArgsForCall(0)
+						Expect(role).To(Equal(accessor.MemberRole))
+					})
 				})
 
-				It("audits the anonymous request", func() {
-					Expect(fakeAuditor.AuditCallCount()).To(Equal(1))
-					action, userName, r := fakeAuditor.AuditArgsForCall(0)
-					Expect(action).To(Equal("some-action"))
-					Expect(userName).To(Equal(""))
-					Expect(r).To(Equal(req))
+				Context("when the role has been customized", func() {
+					BeforeEach(func() {
+						customRoles = map[string]string{
+							atc.SaveConfig: accessor.ViewerRole,
+						}
+					})
+
+					It("finds the role", func() {
+						Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
+						role, _, _ := fakeAccessorFactory.CreateArgsForCall(0)
+						Expect(role).To(Equal(accessor.ViewerRole))
+					})
+				})
+			})
+
+			Context("when there's no default role for the given action", func() {
+				BeforeEach(func() {
+					action = "some-admin-role"
 				})
 
-				It("invokes the handler", func() {
-					Expect(fakeHandler.ServeHTTPCallCount()).To(Equal(1))
-					_, r := fakeHandler.ServeHTTPArgsForCall(0)
-					Expect(accessor.GetAccessor(r)).To(Equal(fakeAccess))
+				Context("when the role has not been customized", func() {
+					BeforeEach(func() {
+						customRoles = map[string]string{}
+					})
+
+					It("sends a blank role (admin roles don't have defaults)", func() {
+						Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
+						role, _, _ := fakeAccessorFactory.CreateArgsForCall(0)
+						Expect(role).To(BeEmpty())
+					})
+				})
+			})
+
+			Context("when the verifier returns a NoToken error", func() {
+				BeforeEach(func() {
+					fakeTokenVerifier.VerifyReturns(nil, accessor.ErrVerificationNoToken)
+				})
+
+				It("creates an accessor with a verification result that has no token", func() {
+					Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
+					_, verification, _ := fakeAccessorFactory.CreateArgsForCall(0)
+					Expect(verification.HasToken).To(BeFalse())
+					Expect(verification.IsTokenValid).To(BeFalse())
+				})
+			})
+
+			Context("when the verifier returns any other error", func() {
+				BeforeEach(func() {
+					fakeTokenVerifier.VerifyReturns(nil, errors.New("nope"))
+				})
+
+				It("creates an accessor with a verification result that has an invalid token", func() {
+					Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
+					_, verification, _ := fakeAccessorFactory.CreateArgsForCall(0)
+					Expect(verification.HasToken).To(BeTrue())
+					Expect(verification.IsTokenValid).To(BeFalse())
+				})
+			})
+
+			Context("when the verifier returns claims", func() {
+				var claims map[string]interface{}
+
+				BeforeEach(func() {
+					claims = map[string]interface{}{
+						"some": "claim",
+					}
+
+					fakeTokenVerifier.VerifyReturns(claims, nil)
+				})
+
+				It("creates an accessor with a successful verification", func() {
+					Expect(fakeAccessorFactory.CreateCallCount()).To(Equal(1))
+					_, verification, _ := fakeAccessorFactory.CreateArgsForCall(0)
+					Expect(verification.HasToken).To(BeTrue())
+					Expect(verification.IsTokenValid).To(BeTrue())
+					Expect(verification.RawClaims).To(Equal(claims))
 				})
 			})
 
 			Context("when the request is authenticated", func() {
 				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(true)
 					fakeAccess.ClaimsReturns(accessor.Claims{
 						UserName:  "some-user",
 						Connector: "some-connector",
@@ -113,7 +215,7 @@ var _ = Describe("Handler", func() {
 
 				Context("when the user factory fails", func() {
 					BeforeEach(func() {
-						fakeUserFactory.CreateOrUpdateUserReturns(nil, errors.New("nope"))
+						fakeUserTracker.CreateOrUpdateUserReturns(errors.New("nope"))
 					})
 
 					It("returns a server error", func() {
@@ -123,13 +225,12 @@ var _ = Describe("Handler", func() {
 
 				Context("when the user factory succeeds", func() {
 					BeforeEach(func() {
-						fakeUser := new(dbfakes.FakeUser)
-						fakeUserFactory.CreateOrUpdateUserReturns(fakeUser, nil)
+						fakeUserTracker.CreateOrUpdateUserReturns(nil)
 					})
 
 					It("updates the requesting user's activity", func() {
-						Expect(fakeUserFactory.CreateOrUpdateUserCallCount()).To(Equal(1))
-						username, connector, sub := fakeUserFactory.CreateOrUpdateUserArgsForCall(0)
+						Expect(fakeUserTracker.CreateOrUpdateUserCallCount()).To(Equal(1))
+						username, connector, sub := fakeUserTracker.CreateOrUpdateUserArgsForCall(0)
 						Expect(username).To(Equal("some-user"))
 						Expect(connector).To(Equal("some-connector"))
 						Expect(sub).To(Equal("some-sub"))
@@ -137,10 +238,10 @@ var _ = Describe("Handler", func() {
 
 					It("audits the event", func() {
 						Expect(fakeAuditor.AuditCallCount()).To(Equal(1))
-						action, userName, r := fakeAuditor.AuditArgsForCall(0)
+						action, userName, req := fakeAuditor.AuditArgsForCall(0)
 						Expect(action).To(Equal("some-action"))
 						Expect(userName).To(Equal("some-user"))
-						Expect(r).To(Equal(req))
+						Expect(req).To(Equal(r))
 					})
 
 					It("invokes the handler", func() {
@@ -148,6 +249,31 @@ var _ = Describe("Handler", func() {
 						_, r := fakeHandler.ServeHTTPArgsForCall(0)
 						Expect(accessor.GetAccessor(r)).To(Equal(fakeAccess))
 					})
+				})
+			})
+
+			Context("when the request is not authenticated", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(false)
+					fakeAccess.ClaimsReturns(accessor.Claims{})
+				})
+
+				It("doesn't track the request", func() {
+					Expect(fakeUserTracker.CreateOrUpdateUserCallCount()).To(Equal(0))
+				})
+
+				It("audits the anonymous request", func() {
+					Expect(fakeAuditor.AuditCallCount()).To(Equal(1))
+					action, userName, req := fakeAuditor.AuditArgsForCall(0)
+					Expect(action).To(Equal("some-action"))
+					Expect(userName).To(Equal(""))
+					Expect(req).To(Equal(r))
+				})
+
+				It("invokes the handler", func() {
+					Expect(fakeHandler.ServeHTTPCallCount()).To(Equal(1))
+					_, r := fakeHandler.ServeHTTPArgsForCall(0)
+					Expect(accessor.GetAccessor(r)).To(Equal(fakeAccess))
 				})
 			})
 		})

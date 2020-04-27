@@ -651,17 +651,11 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
-	customRoles, err := cmd.parseCustomRoles(logger)
-	if err != nil {
-		return nil, err
-	}
+	tokenVerifier := cmd.constructTokenVerifier(httpClient)
 
 	accessFactory := accessor.NewAccessFactory(
-		cmd.constructTokenVerifier(httpClient),
-		teamFactory,
 		cmd.SystemClaimKey,
 		cmd.SystemClaimValues,
-		customRoles,
 	)
 
 	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
@@ -686,6 +680,8 @@ func (cmd *RunCommand) constructAPIMembers(
 		credsManagers,
 		accessFactory,
 		dbWall,
+		tokenVerifier,
+		dbConn.Bus(),
 	)
 	if err != nil {
 		return nil, err
@@ -1092,7 +1088,7 @@ func (cmd *RunCommand) validateCustomRoles() error {
 	return nil
 }
 
-func (cmd *RunCommand) parseCustomRoles(logger lager.Logger) (map[string]string, error) {
+func (cmd *RunCommand) parseCustomRoles() (map[string]string, error) {
 	mapping := map[string]string{}
 
 	path := cmd.ConfigRBAC.Path()
@@ -1693,7 +1689,7 @@ func (cmd *RunCommand) constructLoginHandler(
 	return skyserver.NewSkyHandler(skyServer), nil
 }
 
-func (cmd *RunCommand) constructTokenVerifier(httpClient *http.Client) accessor.Verifier {
+func (cmd *RunCommand) constructTokenVerifier(httpClient *http.Client) accessor.TokenVerifier {
 
 	publicKeyPath, _ := url.Parse("/sky/issuer/keys")
 	publicKeyURL := cmd.ExternalURL.URL.ResolveReference(publicKeyPath)
@@ -1726,6 +1722,8 @@ func (cmd *RunCommand) constructAPIHandler(
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
+	tokenVerifier accessor.TokenVerifier,
+	notifications db.NotificationsBus,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -1745,6 +1743,27 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.Auditor.EnableVolumeAuditLog,
 		logger,
 	)
+
+	batcher := accessor.NewBatcher(
+		logger,
+		dbUserFactory,
+		15*time.Second,
+		100,
+	)
+
+	cacher := accessor.NewCacher(
+		logger,
+		notifications,
+		teamFactory,
+		time.Minute,
+		time.Minute,
+	)
+
+	customRoles, err := cmd.parseCustomRoles()
+	if err != nil {
+		return nil, err
+	}
+
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewAPIAuthWrappa(
@@ -1754,7 +1773,15 @@ func (cmd *RunCommand) constructAPIHandler(
 			checkWorkerTeamAccessHandlerFactory,
 		),
 		wrappa.NewConcourseVersionWrappa(concourse.Version),
-		wrappa.NewAccessorWrappa(logger, accessFactory, aud, dbUserFactory),
+		wrappa.NewAccessorWrappa(
+			logger,
+			accessFactory,
+			tokenVerifier,
+			cacher,
+			batcher,
+			aud,
+			customRoles,
+		),
 		wrappa.NewCompressionWrappa(logger),
 	}
 

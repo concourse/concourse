@@ -20,6 +20,7 @@ type TeamFactory interface {
 	GetByID(teamID int) Team
 	CreateDefaultTeamIfNotExists() (Team, error)
 	NotifyResourceScanner() error
+	NotifyCacher() error
 }
 
 type teamFactory struct {
@@ -168,6 +169,10 @@ func (factory *teamFactory) CreateDefaultTeamIfNotExists() (Team, error) {
 
 func (factory *teamFactory) NotifyResourceScanner() error {
 	return factory.conn.Bus().Notify(atc.ComponentLidarScanner)
+}
+
+func (factory *teamFactory) NotifyCacher() error {
+	return factory.conn.Bus().Notify(atc.TeamCacheChannel)
 }
 
 func (factory *teamFactory) scanTeam(t *team, rows scannable) error {

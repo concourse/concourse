@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
-	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,7 +23,6 @@ var _ = Describe("AuthenticationHandler", func() {
 		fakeAccess   *accessorfakes.FakeAccess
 		fakeAccessor *accessorfakes.FakeAccessFactory
 		fakeRejector *authfakes.FakeRejector
-		fakeAuditor  *auditorfakes.FakeAuditor
 
 		server *httptest.Server
 		client *http.Client
@@ -45,9 +43,8 @@ var _ = Describe("AuthenticationHandler", func() {
 		fakeAccess = new(accessorfakes.FakeAccess)
 		fakeAccessor = new(accessorfakes.FakeAccessFactory)
 		fakeRejector = new(authfakes.FakeRejector)
-		fakeAuditor = new(auditorfakes.FakeAuditor)
 
-		fakeAccessor.CreateReturns(fakeAccess, nil)
+		fakeAccessor.CreateReturns(fakeAccess)
 
 		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "nope", http.StatusUnauthorized)
@@ -64,13 +61,21 @@ var _ = Describe("AuthenticationHandler", func() {
 	Describe("CheckAuthenticationHandler", func() {
 
 		BeforeEach(func() {
-			server = httptest.NewServer(accessor.NewHandler(logger, auth.CheckAuthenticationHandler(
+			innerHandler := auth.CheckAuthenticationHandler(
 				simpleHandler,
 				fakeRejector,
-			), fakeAccessor,
+			)
+
+			server = httptest.NewServer(accessor.NewHandler(
+				logger,
 				"some-action",
-				fakeAuditor,
-				new(dbfakes.FakeUserFactory),
+				innerHandler,
+				fakeAccessor,
+				new(accessorfakes.FakeTokenVerifier),
+				new(accessorfakes.FakeTeamFetcher),
+				new(accessorfakes.FakeUserTracker),
+				new(auditorfakes.FakeAuditor),
+				map[string]string{},
 			))
 		})
 
@@ -117,13 +122,21 @@ var _ = Describe("AuthenticationHandler", func() {
 	Describe("CheckAuthenticationIfProvidedHandler", func() {
 
 		BeforeEach(func() {
-			server = httptest.NewServer(accessor.NewHandler(logger, auth.CheckAuthenticationIfProvidedHandler(
+			innerHandler := auth.CheckAuthenticationIfProvidedHandler(
 				simpleHandler,
 				fakeRejector,
-			), fakeAccessor,
+			)
+
+			server = httptest.NewServer(accessor.NewHandler(
+				logger,
 				"some-action",
-				fakeAuditor,
-				new(dbfakes.FakeUserFactory),
+				innerHandler,
+				fakeAccessor,
+				new(accessorfakes.FakeTokenVerifier),
+				new(accessorfakes.FakeTeamFetcher),
+				new(accessorfakes.FakeUserTracker),
+				new(auditorfakes.FakeAuditor),
+				map[string]string{},
 			))
 		})
 

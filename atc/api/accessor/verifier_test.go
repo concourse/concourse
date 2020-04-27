@@ -19,13 +19,17 @@ import (
 	"gopkg.in/square/go-jose.v2"
 )
 
+type Verifier interface {
+	Verify(*http.Request) (map[string]interface{}, error)
+}
+
 var _ = Describe("Verifier", func() {
 	var (
 		key        *rsa.PrivateKey
 		authServer *ghttp.Server
 
 		req      *http.Request
-		verifier accessor.Verifier
+		verifier Verifier
 
 		err    error
 		claims map[string]interface{}
@@ -146,7 +150,6 @@ var _ = Describe("Verifier", func() {
 				})
 			})
 		})
-
 
 		Context("when the token has a valid signature", func() {
 			BeforeEach(func() {

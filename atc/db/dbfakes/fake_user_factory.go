@@ -9,7 +9,18 @@ import (
 )
 
 type FakeUserFactory struct {
-	CreateOrUpdateUserStub        func(string, string, string) (db.User, error)
+	BatchUpsertUsersStub        func(map[string]db.User) error
+	batchUpsertUsersMutex       sync.RWMutex
+	batchUpsertUsersArgsForCall []struct {
+		arg1 map[string]db.User
+	}
+	batchUpsertUsersReturns struct {
+		result1 error
+	}
+	batchUpsertUsersReturnsOnCall map[int]struct {
+		result1 error
+	}
+	CreateOrUpdateUserStub        func(string, string, string) error
 	createOrUpdateUserMutex       sync.RWMutex
 	createOrUpdateUserArgsForCall []struct {
 		arg1 string
@@ -17,12 +28,10 @@ type FakeUserFactory struct {
 		arg3 string
 	}
 	createOrUpdateUserReturns struct {
-		result1 db.User
-		result2 error
+		result1 error
 	}
 	createOrUpdateUserReturnsOnCall map[int]struct {
-		result1 db.User
-		result2 error
+		result1 error
 	}
 	GetAllUsersStub        func() ([]db.User, error)
 	getAllUsersMutex       sync.RWMutex
@@ -53,7 +62,67 @@ type FakeUserFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeUserFactory) CreateOrUpdateUser(arg1 string, arg2 string, arg3 string) (db.User, error) {
+func (fake *FakeUserFactory) BatchUpsertUsers(arg1 map[string]db.User) error {
+	fake.batchUpsertUsersMutex.Lock()
+	ret, specificReturn := fake.batchUpsertUsersReturnsOnCall[len(fake.batchUpsertUsersArgsForCall)]
+	fake.batchUpsertUsersArgsForCall = append(fake.batchUpsertUsersArgsForCall, struct {
+		arg1 map[string]db.User
+	}{arg1})
+	fake.recordInvocation("BatchUpsertUsers", []interface{}{arg1})
+	fake.batchUpsertUsersMutex.Unlock()
+	if fake.BatchUpsertUsersStub != nil {
+		return fake.BatchUpsertUsersStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.batchUpsertUsersReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeUserFactory) BatchUpsertUsersCallCount() int {
+	fake.batchUpsertUsersMutex.RLock()
+	defer fake.batchUpsertUsersMutex.RUnlock()
+	return len(fake.batchUpsertUsersArgsForCall)
+}
+
+func (fake *FakeUserFactory) BatchUpsertUsersCalls(stub func(map[string]db.User) error) {
+	fake.batchUpsertUsersMutex.Lock()
+	defer fake.batchUpsertUsersMutex.Unlock()
+	fake.BatchUpsertUsersStub = stub
+}
+
+func (fake *FakeUserFactory) BatchUpsertUsersArgsForCall(i int) map[string]db.User {
+	fake.batchUpsertUsersMutex.RLock()
+	defer fake.batchUpsertUsersMutex.RUnlock()
+	argsForCall := fake.batchUpsertUsersArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeUserFactory) BatchUpsertUsersReturns(result1 error) {
+	fake.batchUpsertUsersMutex.Lock()
+	defer fake.batchUpsertUsersMutex.Unlock()
+	fake.BatchUpsertUsersStub = nil
+	fake.batchUpsertUsersReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeUserFactory) BatchUpsertUsersReturnsOnCall(i int, result1 error) {
+	fake.batchUpsertUsersMutex.Lock()
+	defer fake.batchUpsertUsersMutex.Unlock()
+	fake.BatchUpsertUsersStub = nil
+	if fake.batchUpsertUsersReturnsOnCall == nil {
+		fake.batchUpsertUsersReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.batchUpsertUsersReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeUserFactory) CreateOrUpdateUser(arg1 string, arg2 string, arg3 string) error {
 	fake.createOrUpdateUserMutex.Lock()
 	ret, specificReturn := fake.createOrUpdateUserReturnsOnCall[len(fake.createOrUpdateUserArgsForCall)]
 	fake.createOrUpdateUserArgsForCall = append(fake.createOrUpdateUserArgsForCall, struct {
@@ -67,10 +136,10 @@ func (fake *FakeUserFactory) CreateOrUpdateUser(arg1 string, arg2 string, arg3 s
 		return fake.CreateOrUpdateUserStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
 	fakeReturns := fake.createOrUpdateUserReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
 func (fake *FakeUserFactory) CreateOrUpdateUserCallCount() int {
@@ -79,7 +148,7 @@ func (fake *FakeUserFactory) CreateOrUpdateUserCallCount() int {
 	return len(fake.createOrUpdateUserArgsForCall)
 }
 
-func (fake *FakeUserFactory) CreateOrUpdateUserCalls(stub func(string, string, string) (db.User, error)) {
+func (fake *FakeUserFactory) CreateOrUpdateUserCalls(stub func(string, string, string) error) {
 	fake.createOrUpdateUserMutex.Lock()
 	defer fake.createOrUpdateUserMutex.Unlock()
 	fake.CreateOrUpdateUserStub = stub
@@ -92,30 +161,27 @@ func (fake *FakeUserFactory) CreateOrUpdateUserArgsForCall(i int) (string, strin
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeUserFactory) CreateOrUpdateUserReturns(result1 db.User, result2 error) {
+func (fake *FakeUserFactory) CreateOrUpdateUserReturns(result1 error) {
 	fake.createOrUpdateUserMutex.Lock()
 	defer fake.createOrUpdateUserMutex.Unlock()
 	fake.CreateOrUpdateUserStub = nil
 	fake.createOrUpdateUserReturns = struct {
-		result1 db.User
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeUserFactory) CreateOrUpdateUserReturnsOnCall(i int, result1 db.User, result2 error) {
+func (fake *FakeUserFactory) CreateOrUpdateUserReturnsOnCall(i int, result1 error) {
 	fake.createOrUpdateUserMutex.Lock()
 	defer fake.createOrUpdateUserMutex.Unlock()
 	fake.CreateOrUpdateUserStub = nil
 	if fake.createOrUpdateUserReturnsOnCall == nil {
 		fake.createOrUpdateUserReturnsOnCall = make(map[int]struct {
-			result1 db.User
-			result2 error
+			result1 error
 		})
 	}
 	fake.createOrUpdateUserReturnsOnCall[i] = struct {
-		result1 db.User
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeUserFactory) GetAllUsers() ([]db.User, error) {
@@ -239,6 +305,8 @@ func (fake *FakeUserFactory) GetAllUsersByLoginDateReturnsOnCall(i int, result1 
 func (fake *FakeUserFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.batchUpsertUsersMutex.RLock()
+	defer fake.batchUpsertUsersMutex.RUnlock()
 	fake.createOrUpdateUserMutex.RLock()
 	defer fake.createOrUpdateUserMutex.RUnlock()
 	fake.getAllUsersMutex.RLock()

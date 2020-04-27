@@ -68,9 +68,17 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = s.teamFactory.NotifyCacher()
+	if err != nil {
+		hLog.Error("failed-to-notify-cacher", err, lager.Data{"teamName": teamName})
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	err = json.NewEncoder(w).Encode(present.Team(team))
 	if err != nil {
 		hLog.Error("failed-to-encode-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+
 }
