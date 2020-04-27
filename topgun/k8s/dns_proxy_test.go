@@ -14,21 +14,6 @@ var _ = Describe("DNS Resolution", func() {
 		setReleaseNameAndNamespace("dp")
 	})
 
-	var setupDeployment = func(dnsProxyEnable, dnsServer string) {
-		args := []string{
-			`--set=worker.replicas=1`,
-			`--set-string=concourse.worker.garden.dnsProxyEnable=` + dnsProxyEnable,
-		}
-		if dnsServer != "" {
-			args = append(args,
-				`--set=worker.env[0].name=CONCOURSE_GARDEN_DNS_SERVER`,
-				`--set=worker.env[0].value=`+dnsServer)
-		}
-
-		deployConcourseChart(releaseName, args...)
-		atc = waitAndLogin(namespace, releaseName+"-web")
-	}
-
 	AfterEach(func() {
 		cleanup(releaseName, namespace)
 		atc.Close()
@@ -52,51 +37,79 @@ var _ = Describe("DNS Resolution", func() {
 		shouldWork bool
 	}
 
-	DescribeTable("different proxy settings",
-		func(c Case) {
-			setupDeployment(c.enableDnsProxy, c.dnsServer)
+	var setupDeployment = func(useContainerd bool, dnsProxyEnable, dnsServer string) {
+		args := []string{
+			`--set=worker.replicas=1`,
+			`--set-string=concourse.worker.garden.dnsProxyEnable=` + dnsProxyEnable,
+		}
+		if useContainerd {
+			args = append(args, "--set=worker.garden.useContainerd=true")
+		}
+		if dnsServer != "" {
+			args = append(args,
+				`--set=worker.env[0].name=CONCOURSE_GARDEN_DNS_SERVER`,
+				`--set=worker.env[0].value=`+dnsServer)
+		}
 
-			sess := fly.Start("execute", "-c", "tasks/dns-proxy-task.yml", "-v", "url="+c.addressFunction())
-			<-sess.Exited
+		deployConcourseChart(releaseName, args...)
+		atc = waitAndLogin(namespace, releaseName+"-web")
+	}
 
-			if !c.shouldWork {
-				Expect(sess.ExitCode()).ToNot(BeZero())
-				return
-			}
+	expectedDnsProxyBehaviour := func(useContainerd bool) {
+		DescribeTable("different proxy settings",
+			func(c Case) {
+				setupDeployment(useContainerd, c.enableDnsProxy, c.dnsServer)
 
-			Expect(sess.ExitCode()).To(BeZero())
-		},
-		Entry("Proxy Enabled, with full service name", Case{
-			enableDnsProxy:  "true",
-			addressFunction: fullAddress,
-			shouldWork:      true,
-		}),
-		Entry("Proxy Enabled, with short service name", Case{
-			enableDnsProxy:  "true",
-			addressFunction: shortAddress,
-			shouldWork:      false,
-		}),
-		Entry("Proxy Disabled, with full service name", Case{
-			enableDnsProxy:  "false",
-			addressFunction: fullAddress,
-			shouldWork:      true,
-		}),
-		Entry("Proxy Disabled, with short service name", Case{
-			enableDnsProxy:  "false",
-			addressFunction: shortAddress,
-			shouldWork:      true,
-		}),
-		Entry("Adding extra dns server, with Proxy Disabled and full address", Case{
-			enableDnsProxy:  "false",
-			dnsServer:       "8.8.8.8",
-			addressFunction: fullAddress,
-			shouldWork:      false,
-		}),
-		Entry("Adding extra dns server, with Proxy Enabled and full address", Case{
-			enableDnsProxy:  "true",
-			dnsServer:       "8.8.8.8",
-			addressFunction: fullAddress,
-			shouldWork:      false,
-		}),
-	)
+				sess := fly.Start("execute", "-c", "tasks/dns-proxy-task.yml", "-v", "url="+c.addressFunction())
+				<-sess.Exited
+
+				if !c.shouldWork {
+					Expect(sess.ExitCode()).ToNot(BeZero())
+					return
+				}
+
+				Expect(sess.ExitCode()).To(BeZero())
+			},
+			Entry("Proxy Enabled, with full service name", Case{
+				enableDnsProxy:  "true",
+				addressFunction: fullAddress,
+				shouldWork:      true,
+			}),
+			Entry("Proxy Enabled, with short service name", Case{
+				enableDnsProxy:  "true",
+				addressFunction: shortAddress,
+				shouldWork:      false,
+			}),
+			Entry("Proxy Disabled, with full service name", Case{
+				enableDnsProxy:  "false",
+				addressFunction: fullAddress,
+				shouldWork:      true,
+			}),
+			Entry("Proxy Disabled, with short service name", Case{
+				enableDnsProxy:  "false",
+				addressFunction: shortAddress,
+				shouldWork:      true,
+			}),
+			Entry("Adding extra dns server, with Proxy Disabled and full address", Case{
+				enableDnsProxy:  "false",
+				dnsServer:       "8.8.8.8",
+				addressFunction: fullAddress,
+				shouldWork:      false,
+			}),
+			Entry("Adding extra dns server, with Proxy Enabled and full address", Case{
+				enableDnsProxy:  "true",
+				dnsServer:       "8.8.8.8",
+				addressFunction: fullAddress,
+				shouldWork:      false,
+			}),
+		)
+	}
+
+	Context("with gdn backend", func() {
+		expectedDnsProxyBehaviour(false)
+	})
+
+	Context("with containerd backend", func() {
+		expectedDnsProxyBehaviour(true)
+	})
 })
