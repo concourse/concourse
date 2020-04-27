@@ -65,3 +65,6 @@
 
 * Allow the dashboard to recover from the "show turbulence" view if any API call fails once, but starts working afterward. This will prevent users from needing to refresh the page after closing their laptop or in the presence of network flakiness. #5496
 
+#### <sub><sup><a name="5479" href="#5479">:link:</a></sup></sub> feature
+
+* Updated a migration that adds a column to the pipelines table. The syntax initially used is not supported by Postgres 9.5 which is still supported. Removed the unsupported syntax so users using Postgres 9.5 can run the migration. Our CI pipeline has also been updated to ensure we run our tests on Postgres 9.5. #5479
