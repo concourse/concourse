@@ -14,13 +14,13 @@ type JobConfig struct {
 
 	BuildLogRetention *BuildLogRetention `json:"build_log_retention,omitempty"`
 
-	Abort   *PlanConfig `json:"on_abort,omitempty"`
-	Error   *PlanConfig `json:"on_error,omitempty"`
-	Failure *PlanConfig `json:"on_failure,omitempty"`
-	Ensure  *PlanConfig `json:"ensure,omitempty"`
-	Success *PlanConfig `json:"on_success,omitempty"`
+	OnSuccess *Step `json:"on_success,omitempty"`
+	OnFailure *Step `json:"on_failure,omitempty"`
+	OnAbort   *Step `json:"on_abort,omitempty"`
+	OnError   *Step `json:"on_error,omitempty"`
+	Ensure    *Step `json:"ensure,omitempty"`
 
-	PlanSequence PlanSequence `json:"plan"`
+	PlanSequence []Step `json:"plan"`
 }
 
 type BuildLogRetention struct {
@@ -29,15 +29,47 @@ type BuildLogRetention struct {
 	Days                   int `json:"days,omitempty"`
 }
 
-func (config JobConfig) PlanConfig() PlanConfig {
-	return PlanConfig{
-		Do:      &config.PlanSequence,
-		Abort:   config.Abort,
-		Error:   config.Error,
-		Failure: config.Failure,
-		Ensure:  config.Ensure,
-		Success: config.Success,
+func (config JobConfig) StepConfig() StepConfig {
+	var step StepConfig = &DoStep{
+		Steps: config.PlanSequence,
 	}
+
+	if config.OnSuccess != nil {
+		step = &OnSuccessStep{
+			Step: step,
+			Hook: *config.OnSuccess,
+		}
+	}
+
+	if config.OnFailure != nil {
+		step = &OnFailureStep{
+			Step: step,
+			Hook: *config.OnFailure,
+		}
+	}
+
+	if config.OnAbort != nil {
+		step = &OnAbortStep{
+			Step: step,
+			Hook: *config.OnAbort,
+		}
+	}
+
+	if config.OnError != nil {
+		step = &OnErrorStep{
+			Step: step,
+			Hook: *config.OnError,
+		}
+	}
+
+	if config.Ensure != nil {
+		step = &EnsureStep{
+			Step: step,
+			Hook: *config.Ensure,
+		}
+	}
+
+	return step
 }
 
 func (config JobConfig) MaxInFlight() int {
@@ -52,54 +84,25 @@ func (config JobConfig) MaxInFlight() int {
 	return 0
 }
 
-func (config JobConfig) InputPlans() []PlanConfig {
-	var inputs []PlanConfig
-
-	config.PlanConfig().Each(func(plan PlanConfig) {
-		if plan.Get != "" {
-			inputs = append(inputs, plan)
-		}
-	})
-
-	return inputs
-}
-
-func (config JobConfig) OutputPlans() []PlanConfig {
-	var outputs []PlanConfig
-
-	config.PlanConfig().Each(func(plan PlanConfig) {
-		if plan.Put != "" {
-			outputs = append(outputs, plan)
-		}
-	})
-
-	return outputs
-}
-
 func (config JobConfig) Inputs() []JobInputParams {
 	var inputs []JobInputParams
 
-	config.PlanConfig().Each(func(plan PlanConfig) {
-		if plan.Get != "" {
-			get := plan.Get
-
-			resource := get
-			if plan.Resource != "" {
-				resource = plan.Resource
-			}
-
+	_ = config.StepConfig().Visit(StepRecursor{
+		OnGet: func(step *GetStep) error {
 			inputs = append(inputs, JobInputParams{
 				JobInput: JobInput{
-					Name:     get,
-					Resource: resource,
-					Passed:   plan.Passed,
-					Version:  plan.Version,
-					Trigger:  plan.Trigger,
+					Name:     step.Name,
+					Resource: step.ResourceName(),
+					Passed:   step.Passed,
+					Version:  step.Version,
+					Trigger:  step.Trigger,
 				},
-				Params: plan.Params,
-				Tags:   plan.Tags,
+				Params: step.Params,
+				Tags:   step.Tags,
 			})
-		}
+
+			return nil
+		},
 	})
 
 	return inputs
@@ -108,20 +111,15 @@ func (config JobConfig) Inputs() []JobInputParams {
 func (config JobConfig) Outputs() []JobOutput {
 	var outputs []JobOutput
 
-	config.PlanConfig().Each(func(plan PlanConfig) {
-		if plan.Put != "" {
-			put := plan.Put
-
-			resource := put
-			if plan.Resource != "" {
-				resource = plan.Resource
-			}
-
+	_ = config.StepConfig().Visit(StepRecursor{
+		OnPut: func(step *PutStep) error {
 			outputs = append(outputs, JobOutput{
-				Name:     put,
-				Resource: resource,
+				Name:     step.Name,
+				Resource: step.ResourceName(),
 			})
-		}
+
+			return nil
+		},
 	})
 
 	return outputs

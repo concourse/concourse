@@ -47,15 +47,15 @@ func (validator *StepValidator) popContext() {
 }
 
 func (validator *StepValidator) VisitTask(plan *TaskStep) error {
-	validator.pushContext(fmt.Sprintf("task(%s)", plan.Name))
+	validator.pushContext(fmt.Sprintf(".task(%s)", plan.Name))
 	defer validator.popContext()
 
 	if plan.Config == nil && plan.ConfigPath == "" {
-		validator.recordError("must specify either file: or config:")
+		validator.recordError("must specify either `file:` or `config:`")
 	}
 
 	if plan.Config != nil && plan.ConfigPath != "" {
-		validator.recordError("must specify one of file: or config:, not both")
+		validator.recordError("must specify one of `file:` or `config:`, not both")
 	}
 
 	if plan.Config != nil && (plan.Config.RootfsURI != "" || plan.Config.ImageResource != nil) && plan.ImageArtifactName != "" {
@@ -63,7 +63,7 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	}
 
 	if plan.Config != nil {
-		validator.pushContext("config")
+		validator.pushContext(".config")
 
 		if err := plan.Config.Validate(); err != nil {
 			if validationErr, ok := err.(TaskValidationError); ok {
@@ -95,7 +95,7 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 
 	_, found := validator.config.Resources.Lookup(resourceName)
 	if !found {
-		validator.recordError("unknown resource: %s", step.Resource)
+		validator.recordError("unknown resource '%s'", resourceName)
 	}
 
 	validator.pushContext(".passed")
@@ -103,7 +103,7 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 	for _, job := range step.Passed {
 		jobConfig, found := validator.config.Jobs.Lookup(job)
 		if !found {
-			validator.recordError("unknown job: %s", job)
+			validator.recordError("unknown job '%s'", job)
 			continue
 		}
 
@@ -142,7 +142,7 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 
 	_, found := validator.config.Resources.Lookup(resourceName)
 	if !found {
-		validator.recordError("unknown resource: %s", step.Resource)
+		validator.recordError("unknown resource '%s'", resourceName)
 	}
 
 	return nil
@@ -249,7 +249,7 @@ func (validator *StepValidator) VisitTimeout(step *TimeoutStep) error {
 
 	_, err = time.ParseDuration(step.Duration)
 	if err != nil {
-		validator.recordError("invalid duration: %s", err)
+		validator.recordError("invalid duration '%s'", step.Duration)
 	}
 
 	return nil

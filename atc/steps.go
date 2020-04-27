@@ -3,7 +3,9 @@ package atc
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 )
 
 type Step struct {
@@ -339,7 +341,7 @@ func (step *AggregateStep) Visit(v StepVisitor) error {
 }
 
 type InParallelStep struct {
-	Config InParallelConfig2 `json:"in_parallel"`
+	Config InParallelConfig `json:"in_parallel"`
 }
 
 func (step *InParallelStep) ParseJSON(data []byte) error {
@@ -353,13 +355,13 @@ func (step *InParallelStep) Visit(v StepVisitor) error {
 	return v.VisitInParallel(step)
 }
 
-type InParallelConfig2 struct {
+type InParallelConfig struct {
 	Steps    []Step `json:"steps,omitempty"`
 	Limit    int    `json:"limit,omitempty"`
 	FailFast bool   `json:"fail_fast,omitempty"`
 }
 
-func (c *InParallelConfig2) UnmarshalJSON(payload []byte) error {
+func (c *InParallelConfig) UnmarshalJSON(payload []byte) error {
 	var data interface{}
 	err := json.Unmarshal(payload, &data)
 	if err != nil {
@@ -373,7 +375,7 @@ func (c *InParallelConfig2) UnmarshalJSON(payload []byte) error {
 		}
 	case map[string]interface{}:
 		// Used to avoid infinite recursion when unmarshalling this variant.
-		type target InParallelConfig2
+		type target InParallelConfig
 
 		var t target
 		if err := json.Unmarshal(payload, &t); err != nil {
@@ -576,6 +578,124 @@ func (step *EnsureStep) Unwrap() StepConfig {
 
 func (step *EnsureStep) Visit(v StepVisitor) error {
 	return v.VisitEnsure(step)
+}
+
+// A VersionConfig represents the choice to include every version of a
+// resource, the latest version of a resource, or a pinned (specific) one.
+type VersionConfig struct {
+	Every  bool
+	Latest bool
+	Pinned Version
+}
+
+func (c *VersionConfig) UnmarshalJSON(version []byte) error {
+	var data interface{}
+
+	err := json.Unmarshal(version, &data)
+	if err != nil {
+		return err
+	}
+
+	switch actual := data.(type) {
+	case string:
+		c.Every = actual == "every"
+		c.Latest = actual == "latest"
+	case map[string]interface{}:
+		version := Version{}
+
+		for k, v := range actual {
+			if s, ok := v.(string); ok {
+				version[k] = s
+				continue
+			}
+
+			return fmt.Errorf("the value %v of %s is not a string", v, k)
+		}
+
+		c.Pinned = version
+	default:
+		return errors.New("unknown type for version")
+	}
+
+	return nil
+}
+
+const VersionLatest = "latest"
+const VersionEvery = "every"
+
+func (c *VersionConfig) MarshalJSON() ([]byte, error) {
+	if c.Latest {
+		return json.Marshal(VersionLatest)
+	}
+
+	if c.Every {
+		return json.Marshal(VersionEvery)
+	}
+
+	if c.Pinned != nil {
+		return json.Marshal(c.Pinned)
+	}
+
+	return json.Marshal("")
+}
+
+// A InputsConfig represents the choice to include every artifact within the
+// job as an input to the put step or specific ones.
+type InputsConfig struct {
+	All       bool
+	Detect    bool
+	Specified []string
+}
+
+func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
+	var data interface{}
+
+	err := json.Unmarshal(inputs, &data)
+	if err != nil {
+		return err
+	}
+
+	switch actual := data.(type) {
+	case string:
+		c.All = actual == "all"
+		c.Detect = actual == "detect"
+	case []interface{}:
+		inputs := []string{}
+
+		for _, v := range actual {
+			str, ok := v.(string)
+			if !ok {
+				return fmt.Errorf("non-string put input: %v", v)
+			}
+
+			inputs = append(inputs, strings.TrimSpace(str))
+		}
+
+		c.Specified = inputs
+	default:
+		return errors.New("unknown type for put inputs")
+	}
+
+	return nil
+}
+
+const InputsAll = "all"
+const InputsDetect = "detect"
+
+func (c InputsConfig) MarshalJSON() ([]byte, error) {
+	if c.All {
+		return json.Marshal(InputsAll)
+	}
+
+	if c.Detect {
+		return json.Marshal(InputsDetect)
+	}
+
+	if c.Specified != nil {
+		return json.Marshal(c.Specified)
+	}
+
+	return json.Marshal("")
 }
 
 func unmarshalStrict(data []byte, to interface{}) error {

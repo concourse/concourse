@@ -76,27 +76,33 @@ var _ = Describe("Config API", func() {
 					Name:   "some-job",
 					Public: true,
 					Serial: true,
-					PlanSequence: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Get:      "some-input",
-							Resource: "some-resource",
-							Params:   atc.Params{"some-param": "some-value"},
+							Config: &atc.GetStep{
+								Name:     "some-input",
+								Resource: "some-resource",
+								Params:   atc.Params{"some-param": "some-value"},
+							},
 						},
 						{
-							Task:       "some-task",
-							Privileged: true,
-							TaskConfig: &atc.TaskConfig{
-								Platform:  "linux",
-								RootfsURI: "some-image",
-								Run: atc.TaskRunConfig{
-									Path: "/path/to/run",
+							Config: &atc.TaskStep{
+								Name:       "some-task",
+								Privileged: true,
+								Config: &atc.TaskConfig{
+									Platform:  "linux",
+									RootfsURI: "some-image",
+									Run: atc.TaskRunConfig{
+										Path: "/path/to/run",
+									},
 								},
 							},
 						},
 						{
-							Put:      "some-output",
-							Resource: "some-resource",
-							Params:   atc.Params{"some-param": "some-value"},
+							Config: &atc.PutStep{
+								Name:     "some-output",
+								Resource: "some-resource",
+								Params:   atc.Params{"some-param": "some-value"},
+							},
 						},
 					},
 				},
@@ -545,23 +551,27 @@ jobs:
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",
-											PlanSequence: atc.PlanSequence{
+											PlanSequence: []atc.Step{
 												{
-													Get: "some-resource",
+													Config: &atc.GetStep{
+														Name: "some-resource",
+													},
 												},
 												{
-													Task: "some-task",
-													TaskConfig: &atc.TaskConfig{
-														Platform: "linux",
+													Config: &atc.TaskStep{
+														Name: "some-task",
+														Config: &atc.TaskConfig{
+															Platform: "linux",
 
-														Run: atc.TaskRunConfig{
-															Path: "ls",
-														},
+															Run: atc.TaskRunConfig{
+																Path: "ls",
+															},
 
-														Params: atc.TaskEnv{
-															"FOO": "true",
-															"BAR": "1",
-															"BAZ": "1.9",
+															Params: atc.TaskEnv{
+																"FOO": "true",
+																"BAR": "1",
+																"BAZ": "1.9",
+															},
 														},
 													},
 												},
@@ -783,21 +793,25 @@ jobs:
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",
-											PlanSequence: atc.PlanSequence{
+											PlanSequence: []atc.Step{
 												{
-													Get: "some-resource",
+													Config: &atc.GetStep{
+														Name: "some-resource",
+													},
 												},
 												{
-													Task: "some-task",
-													TaskConfig: &atc.TaskConfig{
-														Platform: "linux",
+													Config: &atc.TaskStep{
+														Name: "some-task",
+														Config: &atc.TaskConfig{
+															Platform: "linux",
 
-														Run: atc.TaskRunConfig{
-															Path: "ls",
-														},
+															Run: atc.TaskRunConfig{
+																Path: "ls",
+															},
 
-														Params: atc.TaskEnv{
-															"FOO": "((BAR))",
+															Params: atc.TaskEnv{
+																"FOO": "((BAR))",
+															},
 														},
 													},
 												},
@@ -968,7 +982,7 @@ jobs:
 								{
 									"name":   "some-job",
 									"public": true,
-									"plan":   atc.PlanSequence{},
+									"plan":   []atc.Step{},
 								},
 							},
 						})
@@ -998,7 +1012,7 @@ jobs:
 								{
 									Name:         "some-job",
 									Public:       true,
-									PlanSequence: atc.PlanSequence{},
+									PlanSequence: []atc.Step{},
 								},
 							},
 						}))
@@ -1018,7 +1032,7 @@ jobs:
 								{
 									"name":  "some-job",
 									"pubic": true,
-									"plan":  atc.PlanSequence{},
+									"plan":  []atc.Step{},
 								},
 							},
 						})

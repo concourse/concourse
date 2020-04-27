@@ -188,7 +188,7 @@ var factoryTests = []StepTest{
 		`,
 
 		StepConfig: &atc.InParallelStep{
-			Config: atc.InParallelConfig2{
+			Config: atc.InParallelConfig{
 				Steps: []atc.Step{
 					{
 						Config: &atc.LoadVarStep{
@@ -221,7 +221,7 @@ var factoryTests = []StepTest{
 		`,
 
 		StepConfig: &atc.InParallelStep{
-			Config: atc.InParallelConfig2{
+			Config: atc.InParallelConfig{
 				Steps: []atc.Step{
 					{
 						Config: &atc.LoadVarStep{

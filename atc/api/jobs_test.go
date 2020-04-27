@@ -1770,19 +1770,23 @@ var _ = Describe("Jobs API", func() {
 								BeforeEach(func() {
 									fakeJob.ConfigReturns(atc.JobConfig{
 										Name: "some-job",
-										PlanSequence: atc.PlanSequence{
+										PlanSequence: []atc.Step{
 											{
-												Get:      "some-input",
-												Resource: "some-resource",
-												Passed:   []string{"job-a", "job-b"},
-												Params:   atc.Params{"some": "params"},
+												Config: &atc.GetStep{
+													Name:     "some-input",
+													Resource: "some-resource",
+													Passed:   []string{"job-a", "job-b"},
+													Params:   atc.Params{"some": "params"},
+												},
 											},
 											{
-												Get:      "some-other-input",
-												Resource: "some-other-resource",
-												Passed:   []string{"job-c", "job-d"},
-												Params:   atc.Params{"some": "other-params"},
-												Tags:     []string{"some-tag"},
+												Config: &atc.GetStep{
+													Name:     "some-other-input",
+													Resource: "some-other-resource",
+													Passed:   []string{"job-c", "job-d"},
+													Params:   atc.Params{"some": "other-params"},
+													Tags:     []string{"some-tag"},
+												},
 											},
 										},
 									}, nil)
