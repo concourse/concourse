@@ -25,20 +25,20 @@ type Secrets struct {
 func (secrets Secrets) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	if len(pipelineName) > 0 {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+teamName+":"+pipelineName+"."))
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+teamName+"/"+pipelineName+"."))
 	}
-	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+teamName+":"))
+	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+teamName+"/"))
 	if allowRootPath {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+":"))
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(secrets.namespacePrefix+"/"))
 	}
 	return lookupPaths
 }
 
 // Get retrieves the value and expiration of an individual secret
 func (secrets Secrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
-	parts := strings.Split(secretPath, ":")
+	parts := strings.Split(secretPath, "/")
 	if len(parts) != 2 {
-		return nil, nil, false, fmt.Errorf("unable to split kubernetes secret path into [namespace]:[secret]: %s", secretPath)
+		return nil, nil, false, fmt.Errorf("unable to split kubernetes secret path into [namespace]/[secret]: %s", secretPath)
 	}
 
 	var namespace = parts[0]
