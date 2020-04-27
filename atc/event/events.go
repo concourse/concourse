@@ -17,6 +17,7 @@ type FinishTask struct {
 	Time       int64  `json:"time"`
 	ExitStatus int    `json:"exit_status"`
 	Origin     Origin `json:"origin"`
+	Worker     string `json:"worker"`
 }
 
 func (FinishTask) EventType() atc.EventType  { return EventTypeFinishTask }
@@ -135,6 +136,7 @@ type FinishGet struct {
 	ExitStatus      int                 `json:"exit_status"`
 	FetchedVersion  atc.Version         `json:"version"`
 	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+	Worker          string              `json:"worker"`
 }
 
 func (FinishGet) EventType() atc.EventType  { return EventTypeFinishGet }
@@ -143,6 +145,7 @@ func (FinishGet) Version() atc.EventVersion { return "5.1" }
 type InitializePut struct {
 	Origin Origin `json:"origin"`
 	Time   int64  `json:"time,omitempty"`
+	Worker string `json:"worker"`
 }
 
 func (InitializePut) EventType() atc.EventType  { return EventTypeInitializePut }
@@ -162,6 +165,7 @@ type FinishPut struct {
 	ExitStatus      int                 `json:"exit_status"`
 	CreatedVersion  atc.Version         `json:"version"`
 	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+	Worker          string              `json:"worker"`
 }
 
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }

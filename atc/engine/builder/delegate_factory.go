@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"encoding/json"
 	"io"
 	"strings"
 	"time"
@@ -87,7 +88,7 @@ func (d *getDelegate) Starting(logger lager.Logger) {
 	logger.Info("starting")
 }
 
-func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info runtime.VersionResult) {
+func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info runtime.VersionResult, worker string) {
 	// PR#4398: close to flush stdout and stderr
 	d.Stdout().(io.Closer).Close()
 	d.Stderr().(io.Closer).Close()
@@ -98,6 +99,7 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 		ExitStatus:      int(exitStatus),
 		FetchedVersion:  info.Version,
 		FetchedMetadata: info.Metadata,
+		Worker:          worker,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-finish-get-event", err)
@@ -105,6 +107,29 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
+}
+
+func (d *getDelegate) HasDoneSuccessfully() bool {
+	payload, err := d.build.QueryEvent(event.EventTypeFinishGet, d.eventOrigin.ID)
+	if err != nil {
+		return false
+	}
+	finishGet := event.FinishGet{}
+	err = json.Unmarshal([]byte(payload), &finishGet)
+	if err != nil {
+		return false
+	}
+	if finishGet.ExitStatus != 0 {
+		return false
+	}
+	worker, found, err := d.build.FindWorker(finishGet.Worker)
+	if err != nil || !found {
+		return false
+	}
+	if worker.State() != db.WorkerStateRunning {
+		return false
+	}
+	return true
 }
 
 func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info runtime.VersionResult) {
@@ -189,7 +214,7 @@ func (d *putDelegate) Starting(logger lager.Logger) {
 	logger.Info("starting")
 }
 
-func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info runtime.VersionResult) {
+func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info runtime.VersionResult, worker string) {
 	// PR#4398: close to flush stdout and stderr
 	d.Stdout().(io.Closer).Close()
 	d.Stderr().(io.Closer).Close()
@@ -200,6 +225,7 @@ func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 		ExitStatus:      int(exitStatus),
 		CreatedVersion:  info.Version,
 		CreatedMetadata: info.Metadata,
+		Worker:          worker,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-finish-put-event", err)
@@ -207,6 +233,19 @@ func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus, "version-info": info})
+}
+
+func (d *putDelegate) HasDoneSuccessfully() bool {
+	payload, err := d.build.QueryEvent(event.EventTypeFinishPut, d.eventOrigin.ID)
+	if err != nil {
+		return false
+	}
+	finishPut := event.FinishPut{}
+	err = json.Unmarshal([]byte(payload), &finishPut)
+	if err != nil {
+		return false
+	}
+	return (finishPut.ExitStatus == 0)
 }
 
 func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, resourceTypes atc.VersionedResourceTypes, info runtime.VersionResult) {
@@ -280,7 +319,7 @@ func (d *taskDelegate) Starting(logger lager.Logger) {
 	logger.Debug("starting")
 }
 
-func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus) {
+func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, worker string) {
 	// PR#4398: close to flush stdout and stderr
 	d.Stdout().(io.Closer).Close()
 	d.Stderr().(io.Closer).Close()
@@ -289,6 +328,7 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 		ExitStatus: int(exitStatus),
 		Time:       time.Now().Unix(),
 		Origin:     d.eventOrigin,
+		Worker:     worker,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-finish-event", err)
@@ -296,6 +336,31 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
+}
+
+func (d *taskDelegate) HasDoneSuccessfully(taskConfig *atc.TaskConfig) bool {
+	payload, err := d.build.QueryEvent(event.EventTypeFinishTask, d.eventOrigin.ID)
+	if err != nil {
+		return false
+	}
+	finishTask := event.FinishTask{}
+	err = json.Unmarshal([]byte(payload), &finishTask)
+	if err != nil {
+		return false
+	}
+	if finishTask.ExitStatus != 0 {
+		return false
+	}
+	if len(taskConfig.Outputs) > 0 {
+		worker, found, err := d.build.FindWorker(finishTask.Worker)
+		if err != nil || !found {
+			return false
+		}
+		if worker.State() != db.WorkerStateRunning {
+			return false
+		}
+	}
+	return true
 }
 
 func NewCheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.CheckDelegate {

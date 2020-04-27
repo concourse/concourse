@@ -1,12 +1,11 @@
 package exec
 
 import (
-	"context"
-	"reflect"
-	"regexp"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"context"
+	"github.com/concourse/concourse/atc/worker/transport"
+	"reflect"
 )
 
 type Retriable struct{}
@@ -42,12 +41,18 @@ func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
 }
 
 func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
-	re := regexp.MustCompile(`worker .+ disappeared`)
-	if re.MatchString(err.Error()) {
+	switch err.(type) {
+	case transport.WorkerMissingError, transport.WorkerUnreachableError:
 		logger.Debug("retry-error",
-			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
+			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true
+	// To add: input missing error, because if a previous get/task's worker crashed,
+	// later step may hit input missing error, in that, we should rerun the previous
+	// get/task. But we should distinct a real input-missing error (bad definition
+	// of a pipeline)
+	default:
+		logger.Debug("non-retry-error",
+			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
+		return false
 	}
-
-	return false
 }

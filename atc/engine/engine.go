@@ -222,24 +222,28 @@ func (b *engineBuild) Run(logger lager.Logger) {
 		}
 	}()
 
-	done := make(chan error)
-	go func() {
-		ctx := lagerctx.NewContext(ctx, logger)
-		done <- step.Run(ctx, state)
-	}()
+	// Retry up to 5 times.
+	for i := 0; i < 5; i ++ {
+		done := make(chan error)
+		go func() {
+			ctx := lagerctx.NewContext(ctx, logger)
+			done <- step.Run(ctx, state)
+		}()
 
-	select {
-	case <-b.release:
-		logger.Info("releasing")
+		select {
+		case <-b.release:
+			logger.Info("releasing")
 
-	case err = <-done:
-		logger.Debug("engine-build-done")
-		if err != nil {
-			if _, ok := err.(exec.Retriable); ok {
-				return
+		case err = <-done:
+			logger.Debug("engine-build-done")
+			if err != nil {
+				if _, ok := err.(exec.Retriable); ok {
+					continue
+				}
 			}
+			b.finish(logger.Session("finish"), err, step.Succeeded())
 		}
-		b.finish(logger.Session("finish"), err, step.Succeeded())
+		break
 	}
 }
 

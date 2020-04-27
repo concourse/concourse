@@ -288,6 +288,41 @@ var _ = Describe("DelegateFactory", func() {
 				Expect(event.EventType()).To(Equal(atc.EventType("finish-task")))
 			})
 		})
+
+		Describe("HasDoneSuccessfully", func(){
+			Context("when event found and result is success", func(){
+				BeforeEach(func(){
+					fakeBuild.QueryEventReturns(`{"time":1587956950,"exit_status":0,"origin":{"id":"5ea6461d"}}`, nil)
+				})
+				It("it should return true", func(){
+					Expect(delegate.HasDoneSuccessfully()).To(BeTrue())
+				})
+			})
+			Context("when event found and result is not success", func(){
+				BeforeEach(func(){
+					fakeBuild.QueryEventReturns(`{"time":1587956950,"exit_status":1,"origin":{"id":"5ea6461d"}}`, nil)
+				})
+				It("it should return true", func(){
+					Expect(delegate.HasDoneSuccessfully()).To(BeFalse())
+				})
+			})
+			Context("when event not found", func(){
+				BeforeEach(func(){
+					fakeBuild.QueryEventReturns(``, nil)
+				})
+				It("it should return true", func(){
+					Expect(delegate.HasDoneSuccessfully()).To(BeFalse())
+				})
+			})
+			Context("when fails to find event", func(){
+				BeforeEach(func(){
+					fakeBuild.QueryEventReturns(``, nil)
+				})
+				It("it should return true", func(){
+					Expect(delegate.HasDoneSuccessfully()).To(BeFalse())
+				})
+			})
+		})
 	})
 
 	Describe("CheckDelegate", func() {

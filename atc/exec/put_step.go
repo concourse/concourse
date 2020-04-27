@@ -28,8 +28,9 @@ type PutDelegate interface {
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
-	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
+	Finished(lager.Logger, ExitStatus, runtime.VersionResult, string)
 	Errored(lager.Logger, string)
+	HasDoneSuccessfully() bool
 
 	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)
 }
@@ -82,6 +83,17 @@ func NewPutStep(
 // The resource's put script is then invoked. If the context is canceled, the
 // script will be interrupted.
 func (step *PutStep) Run(ctx context.Context, state RunState) error {
+	if step.delegate.HasDoneSuccessfully() {
+		logger := lagerctx.FromContext(ctx)
+		logger = logger.Session("put-step", lager.Data{
+			"step-name": step.plan.Name,
+			"job-id":    step.metadata.JobID,
+		})
+		logger.Debug("has-done-no-rerun")
+		step.succeeded = true
+		return nil
+	}
+
 	ctx, span := tracing.StartSpan(ctx, "put", tracing.Attrs{
 		"team":     step.metadata.TeamName,
 		"pipeline": step.metadata.PipelineName,
@@ -203,7 +215,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 	}
 
 	if result.ExitStatus != 0 {
-		step.delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
+		step.delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{}, result.Worker)
 		return nil
 	}
 
@@ -218,7 +230,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 
 	step.succeeded = true
 
-	step.delegate.Finished(logger, 0, versionResult)
+	step.delegate.Finished(logger, 0, versionResult, result.Worker)
 
 	return nil
 
