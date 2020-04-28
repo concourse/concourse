@@ -3,6 +3,7 @@ package topgun
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -185,5 +186,17 @@ func FetchToken(webURL, username, password string) (*oauth2.Token, error) {
 		Scopes:       []string{"openid", "profile", "email", "federated:id"},
 	}
 
-	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
+	token, err := oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
+	if err != nil {
+		return nil, err
+	}
+
+	idToken, ok := token.Extra("id_token").(string)
+	if !ok {
+		return nil, errors.New("missing id_token")
+	}
+
+	token.AccessToken = idToken
+
+	return token, nil
 }
