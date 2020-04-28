@@ -2099,19 +2099,22 @@ var _ = Describe("Pipeline", func() {
 
 	Describe("Variables", func() {
 		var (
+			fakeGlobalSecrets *credsfakes.FakeSecrets
+
 			pvars vars.Variables
 			err   error
 		)
 		JustBeforeEach(func() {
-			fakeSecrets = new(credsfakes.FakeSecrets)
-			fakeSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
+			fakeGlobalSecrets = new(credsfakes.FakeSecrets)
+			fakeGlobalSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
 				if key == "gk" {
 					return "gv", nil, true, nil
 				}
 				return nil, nil, false, nil
 			}
+
 			varSourcePool := creds.NewVarSourcePool(1*time.Minute, clock.NewClock())
-			pvars, err = pipeline.Variables(logger, fakeSecrets, varSourcePool)
+			pvars, err = pipeline.Variables(logger, fakeGlobalSecrets, varSourcePool)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -2126,6 +2129,11 @@ var _ = Describe("Pipeline", func() {
 			_, found, err := pvars.Get(vars.VariableDefinition{Name: "pk"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+
+		It("should not get from global secrets if found in the pipeline var source", func() {
+			pvars.Get(vars.VariableDefinition{Name: "some-var-source:pk"})
+			Expect(fakeGlobalSecrets.GetCallCount()).To(Equal(0))
 		})
 
 		It("should get var from global var source", func() {
