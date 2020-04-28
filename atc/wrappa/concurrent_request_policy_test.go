@@ -1,8 +1,6 @@
 package wrappa_test
 
 import (
-	"sync"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/wrappa"
 	. "github.com/onsi/ginkgo"
@@ -58,53 +56,6 @@ var _ = Describe("Concurrent Request Policy", func() {
 			Expect(found).To(BeFalse())
 		})
 
-		It("can acquire a handler", func() {
-			pool := pool(1)
-
-			Expect(pool.TryAcquire()).To(BeTrue())
-		})
-
-		It("fails to acquire a handler when the limit is reached", func() {
-			pool := pool(1)
-
-			pool.TryAcquire()
-			Expect(pool.TryAcquire()).To(BeFalse())
-		})
-
-		It("can acquire a handler after releasing", func() {
-			pool := pool(1)
-
-			pool.TryAcquire()
-			pool.Release()
-			Expect(pool.TryAcquire()).To(BeTrue())
-		})
-
-		It("can acquire multiple handlers", func() {
-			pool := pool(2)
-
-			pool.TryAcquire()
-			Expect(pool.TryAcquire()).To(BeTrue())
-		})
-
-		It("cannot release more handlers than are held", func() {
-			pool := pool(1)
-
-			Expect(pool.Release).To(Panic())
-		})
-
-		It("cannot acquire multiple handlers simultaneously", func() {
-			pool := pool(100)
-			failed := false
-
-			doInParallel(101, func() {
-				if !pool.TryAcquire() {
-					failed = true
-				}
-			})
-
-			Expect(failed).To(BeTrue())
-		})
-
 		It("holds a reference to its pool", func() {
 			policy := wrappa.NewConcurrentRequestPolicy(
 				map[wrappa.LimitedRoute]int{
@@ -118,25 +69,3 @@ var _ = Describe("Concurrent Request Policy", func() {
 		})
 	})
 })
-
-func pool(size int) wrappa.Pool {
-	p, _ := wrappa.NewConcurrentRequestPolicy(
-		map[wrappa.LimitedRoute]int{
-			wrappa.LimitedRoute(atc.CreateJobBuild): size,
-		},
-	).HandlerPool(atc.CreateJobBuild)
-
-	return p
-}
-
-func doInParallel(numGoroutines int, thingToDo func()) {
-	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
-		go func() {
-			thingToDo()
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-}
