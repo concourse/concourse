@@ -260,6 +260,6 @@ type artifactDestination struct {
 	destination worker.Volume
 }
 
-func (wad *artifactDestination) StreamIn(ctx context.Context, path string, tarStream io.Reader) error {
-	return wad.destination.StreamIn(ctx, path, tarStream)
+func (wad *artifactDestination) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error {
+	return wad.destination.StreamIn(ctx, path, encoding, tarStream)
 }

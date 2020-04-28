@@ -146,8 +146,9 @@ var _ = Describe("ArtifactRepository API", func() {
 						BeforeEach(func() {
 							fakeVolume.StreamInReturns(nil)
 
-							fakeVolume.StreamInStub = func(ctx context.Context, path string, body io.Reader) error {
+							fakeVolume.StreamInStub = func(ctx context.Context, path string, encoding baggageclaim.Encoding, body io.Reader) error {
 								Expect(path).To(Equal("/"))
+								Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
 
 								contents, err := ioutil.ReadAll(body)
 								Expect(err).ToNot(HaveOccurred())
@@ -310,8 +311,9 @@ var _ = Describe("ArtifactRepository API", func() {
 					It("streams out the contents of the volume from the root path", func() {
 						Expect(fakeWorkerVolume.StreamOutCallCount()).To(Equal(1))
 
-						_, path := fakeWorkerVolume.StreamOutArgsForCall(0)
+						_, path, encoding := fakeWorkerVolume.StreamOutArgsForCall(0)
 						Expect(path).To(Equal("/"))
+						Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
 					})
 
 					Context("when streaming volume contents fails", func() {

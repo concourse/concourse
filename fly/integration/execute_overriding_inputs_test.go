@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,7 +11,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/DataDog/zstd"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
@@ -166,7 +166,10 @@ run:
 
 					Expect(req.FormValue("platform")).To(Equal("some-platform"))
 
-					tr := tar.NewReader(zstd.NewReader(req.Body))
+					gr, err := gzip.NewReader(req.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					tr := tar.NewReader(gr)
 
 					hdr, err := tr.Next()
 					Expect(err).NotTo(HaveOccurred())

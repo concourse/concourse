@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -36,14 +37,16 @@ var _ = Describe("Client", func() {
 		client          worker.Client
 		fakeLock        *lockfakes.FakeLock
 		fakeLockFactory *lockfakes.FakeLockFactory
+		fakeCompression *compressionfakes.FakeCompression
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakePool = new(workerfakes.FakePool)
 		fakeProvider = new(workerfakes.FakeWorkerProvider)
+		fakeCompression = new(compressionfakes.FakeCompression)
 
-		client = worker.NewClient(fakePool, fakeProvider)
+		client = worker.NewClient(fakePool, fakeProvider, fakeCompression)
 	})
 
 	Describe("FindContainer", func() {

@@ -1367,13 +1367,14 @@ var _ = Describe("Worker", func() {
 					Expect(fakeRemoteInputAS.StreamToCallCount()).To(Equal(1))
 					_, _, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
 
-					err := ad.StreamIn(context.TODO(), ".", bytes.NewBufferString("some-stream"))
+					err := ad.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, bytes.NewBufferString("some-stream"))
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(fakeRemoteInputContainerVolume.StreamInCallCount()).To(Equal(1))
 
-					_, dst, from := fakeRemoteInputContainerVolume.StreamInArgsForCall(0)
+					_, dst, encoding, from := fakeRemoteInputContainerVolume.StreamInArgsForCall(0)
 					Expect(dst).To(Equal("."))
+					Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
 					Expect(ioutil.ReadAll(from)).To(Equal([]byte("some-stream")))
 				})
 

@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/resource"
@@ -93,16 +94,18 @@ type Client interface {
 	) (GetResult, error)
 }
 
-func NewClient(pool Pool, provider WorkerProvider) *client {
+func NewClient(pool Pool, provider WorkerProvider, compression compression.Compression) *client {
 	return &client{
-		pool:     pool,
-		provider: provider,
+		pool:        pool,
+		provider:    provider,
+		compression: compression,
 	}
 }
 
 type client struct {
-	pool     Pool
-	provider WorkerProvider
+	pool        Pool
+	provider    WorkerProvider
+	compression compression.Compression
 }
 
 type TaskResult struct {
@@ -658,7 +661,7 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 				return fmt.Errorf("volume not found for artifact id %v type %T", artifact.ID(), artifact)
 			}
 
-			source := NewStreamableArtifactSource(artifact, artifactVolume)
+			source := NewStreamableArtifactSource(artifact, artifactVolume, client.compression)
 			inputs = append(inputs, inputSource{source, path})
 		}
 	}
@@ -679,7 +682,7 @@ func (client *client) wireImageVolume(logger lager.Logger, spec *ImageSpec) erro
 		return fmt.Errorf("volume not found for artifact id %v type %T", imageArtifact.ID(), imageArtifact)
 	}
 
-	spec.ImageArtifactSource = NewStreamableArtifactSource(imageArtifact, artifactVolume)
+	spec.ImageArtifactSource = NewStreamableArtifactSource(imageArtifact, artifactVolume, client.compression)
 
 	return nil
 }
@@ -699,8 +702,9 @@ func (client *client) StreamFileFromArtifact(
 	}
 
 	source := artifactSource{
-		artifact: artifact,
-		volume:   artifactVolume,
+		artifact:    artifact,
+		volume:      artifactVolume,
+		compression: client.compression,
 	}
 	return source.StreamFile(ctx, logger, filePath)
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/concourse/concourse/atc/api/containerserver"
 	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/builds"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/noop"
 	"github.com/concourse/concourse/atc/db"
@@ -145,6 +146,7 @@ type RunCommand struct {
 	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
 	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
+	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" description:"Compression algorithm for internal streaming."`
 
 	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 
@@ -619,11 +621,12 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
+	compressionLib := compression.NewGzipCompression()
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 		resourceFetcher,
-		image.NewImageFactory(imageResourceFetcherFactory),
+		image.NewImageFactory(imageResourceFetcherFactory, compressionLib),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
@@ -638,7 +641,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider)
+	workerClient := worker.NewClient(pool, workerProvider, compressionLib)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -841,11 +844,17 @@ func (cmd *RunCommand) constructBackendMembers(
 		return nil, err
 	}
 
+	var compressionLib compression.Compression
+	if cmd.StreamingArtifactsCompression == "zstd" {
+		compressionLib = compression.NewZstdCompression()
+	} else {
+		compressionLib = compression.NewGzipCompression()
+	}
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 		resourceFetcher,
-		image.NewImageFactory(imageResourceFetcherFactory),
+		image.NewImageFactory(imageResourceFetcherFactory, compressionLib),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
@@ -860,7 +869,7 @@ func (cmd *RunCommand) constructBackendMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider)
+	workerClient := worker.NewClient(pool, workerProvider, compressionLib)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {

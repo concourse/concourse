@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/DataDog/zstd"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/hashicorp/go-multierror"
 )
@@ -33,18 +33,25 @@ type StreamableArtifactSource interface {
 
 	// StreamFile returns the contents of a single file in the artifact source.
 	// This is used for loading a task's configuration at runtime.
-	//
-	// If the file cannot be found, FileNotFoundError should be returned.
 	StreamFile(context.Context, lager.Logger, string) (io.ReadCloser, error)
 }
 
 type artifactSource struct {
-	artifact runtime.Artifact
-	volume   Volume
+	artifact    runtime.Artifact
+	volume      Volume
+	compression compression.Compression
 }
 
-func NewStreamableArtifactSource(artifact runtime.Artifact, volume Volume) StreamableArtifactSource {
-	return &artifactSource{artifact: artifact, volume: volume}
+func NewStreamableArtifactSource(
+	artifact runtime.Artifact,
+	volume Volume,
+	compression compression.Compression,
+) StreamableArtifactSource {
+	return &artifactSource{
+		artifact:    artifact,
+		volume:      volume,
+		compression: compression,
+	}
 }
 
 // TODO: figure out if we want logging before and after streams, I remove logger from private methods
@@ -53,14 +60,14 @@ func (source *artifactSource) StreamTo(
 	logger lager.Logger,
 	destination ArtifactDestination,
 ) error {
-	out, err := source.volume.StreamOut(ctx, ".")
+	out, err := source.volume.StreamOut(ctx, ".", source.compression.Encoding())
 	if err != nil {
 		return err
 	}
 
 	defer out.Close()
 
-	err = destination.StreamIn(ctx, ".", out)
+	err = destination.StreamIn(ctx, ".", source.compression.Encoding(), out)
 	if err != nil {
 		return err
 	}
@@ -73,24 +80,27 @@ func (source *artifactSource) StreamFile(
 	logger lager.Logger,
 	filepath string,
 ) (io.ReadCloser, error) {
-	out, err := source.volume.StreamOut(ctx, filepath)
+	out, err := source.volume.StreamOut(ctx, filepath, source.compression.Encoding())
 	if err != nil {
 		return nil, err
 	}
 
-	zstdReader := zstd.NewReader(out)
-	tarReader := tar.NewReader(zstdReader)
+	compressionReader, err := source.compression.NewReader(out)
+	if err != nil {
+		return nil, err
+	}
+	tarReader := tar.NewReader(compressionReader)
 
 	_, err = tarReader.Next()
 	if err != nil {
-		return nil, runtime.FileNotFoundError{Path: filepath}
+		return nil, err
 	}
 
 	return fileReadMultiCloser{
 		reader: tarReader,
 		closers: []io.Closer{
 			out,
-			zstdReader,
+			compressionReader,
 		},
 	}, nil
 }
