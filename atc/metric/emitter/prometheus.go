@@ -158,7 +158,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Namespace: "concourse",
 		Subsystem: "concurrent_requests",
 		Name:      "limit_hit_total",
-		Help:      "Total number of requests that failed to acquire the lock to be served.",
+		Help:      "Total number of requests rejected because the server was already serving too many concurrent requests.",
 	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequestsLimitHit)
 
