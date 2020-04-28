@@ -126,4 +126,4 @@ go 1.13
 
 replace github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible
 
-replace github.com/jessevdk/go-flags => github.com/vito/go-flags v1.4.1-0.20200421142706-6149d40139cb
+replace github.com/jessevdk/go-flags => github.com/vito/go-flags v1.4.1-0.20200428200343-c7161c3bd74d
