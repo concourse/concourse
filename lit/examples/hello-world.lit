@@ -7,11 +7,9 @@ A single job is the simplest form of pipeline.
 
 \frame{https://ci.concourse-ci.org/teams/examples/pipelines/job}
 
-\right-side{Why?}{
 While this is less of an example pipeline, this is a simple introduction to a critical primitive to form pipelines.
 
 Also, due to the fact that there are minimal external factors (\reference{resources}) for the system to check and resolve. This is often used overall test system health.
-}
 
 \section{
   \title{Pipeline Configuration}{configuration}

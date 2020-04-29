@@ -11,11 +11,11 @@ From there you may want to poke around and try changing parts of the
 configuration to learn how things work. All the available knobs to turn are
 covered in the \reference{docs}.
 
-\include-section{./examples/job.lit}
+\include-section{./examples/hello-world.lit}
 \include-section{./examples/serial-job.lit}
 \include-section{./examples/pipeline-vars.lit}
 \include-section{./examples/set-pipelines.lit}
-\include-section{./examples/task-passing-artifact.lit}
+\include-section{./examples/task-inputs-outputs.lit}
 \include-section{./examples/time-triggered.lit}
 \include-section{./examples/git-triggered.lit}
 \include-section{./examples/manual-trigger.lit}
