@@ -20,13 +20,12 @@ type FakePutDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FinishedStub        func(lager.Logger, exec.ExitStatus, runtime.VersionResult, string)
+	FinishedStub        func(lager.Logger, exec.ExitStatus, runtime.VersionResult)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
 		arg3 runtime.VersionResult
-		arg4 string
 	}
 	HasDoneSuccessfullyStub        func() bool
 	hasDoneSuccessfullyMutex       sync.RWMutex
@@ -134,18 +133,17 @@ func (fake *FakePutDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakePutDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 runtime.VersionResult, arg4 string) {
+func (fake *FakePutDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 runtime.VersionResult) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
 		arg3 runtime.VersionResult
-		arg4 string
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3, arg4})
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3})
 	fake.finishedMutex.Unlock()
 	if fake.FinishedStub != nil {
-		fake.FinishedStub(arg1, arg2, arg3, arg4)
+		fake.FinishedStub(arg1, arg2, arg3)
 	}
 }
 
@@ -155,17 +153,17 @@ func (fake *FakePutDelegate) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakePutDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, runtime.VersionResult, string)) {
+func (fake *FakePutDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, runtime.VersionResult)) {
 	fake.finishedMutex.Lock()
 	defer fake.finishedMutex.Unlock()
 	fake.FinishedStub = stub
 }
 
-func (fake *FakePutDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, runtime.VersionResult, string) {
+func (fake *FakePutDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, runtime.VersionResult) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	argsForCall := fake.finishedArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakePutDelegate) HasDoneSuccessfully() bool {

@@ -19,17 +19,16 @@ type FakeTaskDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FinishedStub        func(lager.Logger, exec.ExitStatus, string)
+	FinishedStub        func(lager.Logger, exec.ExitStatus)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
-		arg3 string
 	}
-	HasDoneSuccessfullyStub        func(*atc.TaskConfig) bool
+	HasDoneSuccessfullyStub        func(bool) bool
 	hasDoneSuccessfullyMutex       sync.RWMutex
 	hasDoneSuccessfullyArgsForCall []struct {
-		arg1 *atc.TaskConfig
+		arg1 bool
 	}
 	hasDoneSuccessfullyReturns struct {
 		result1 bool
@@ -129,17 +128,16 @@ func (fake *FakeTaskDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeTaskDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 string) {
+func (fake *FakeTaskDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
-		arg3 string
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3})
+	}{arg1, arg2})
+	fake.recordInvocation("Finished", []interface{}{arg1, arg2})
 	fake.finishedMutex.Unlock()
 	if fake.FinishedStub != nil {
-		fake.FinishedStub(arg1, arg2, arg3)
+		fake.FinishedStub(arg1, arg2)
 	}
 }
 
@@ -149,24 +147,24 @@ func (fake *FakeTaskDelegate) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, string)) {
+func (fake *FakeTaskDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus)) {
 	fake.finishedMutex.Lock()
 	defer fake.finishedMutex.Unlock()
 	fake.FinishedStub = stub
 }
 
-func (fake *FakeTaskDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, string) {
+func (fake *FakeTaskDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	argsForCall := fake.finishedArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeTaskDelegate) HasDoneSuccessfully(arg1 *atc.TaskConfig) bool {
+func (fake *FakeTaskDelegate) HasDoneSuccessfully(arg1 bool) bool {
 	fake.hasDoneSuccessfullyMutex.Lock()
 	ret, specificReturn := fake.hasDoneSuccessfullyReturnsOnCall[len(fake.hasDoneSuccessfullyArgsForCall)]
 	fake.hasDoneSuccessfullyArgsForCall = append(fake.hasDoneSuccessfullyArgsForCall, struct {
-		arg1 *atc.TaskConfig
+		arg1 bool
 	}{arg1})
 	fake.recordInvocation("HasDoneSuccessfully", []interface{}{arg1})
 	fake.hasDoneSuccessfullyMutex.Unlock()
@@ -186,13 +184,13 @@ func (fake *FakeTaskDelegate) HasDoneSuccessfullyCallCount() int {
 	return len(fake.hasDoneSuccessfullyArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) HasDoneSuccessfullyCalls(stub func(*atc.TaskConfig) bool) {
+func (fake *FakeTaskDelegate) HasDoneSuccessfullyCalls(stub func(bool) bool) {
 	fake.hasDoneSuccessfullyMutex.Lock()
 	defer fake.hasDoneSuccessfullyMutex.Unlock()
 	fake.HasDoneSuccessfullyStub = stub
 }
 
-func (fake *FakeTaskDelegate) HasDoneSuccessfullyArgsForCall(i int) *atc.TaskConfig {
+func (fake *FakeTaskDelegate) HasDoneSuccessfullyArgsForCall(i int) bool {
 	fake.hasDoneSuccessfullyMutex.RLock()
 	defer fake.hasDoneSuccessfullyMutex.RUnlock()
 	argsForCall := fake.hasDoneSuccessfullyArgsForCall[i]

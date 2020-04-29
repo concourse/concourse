@@ -20,23 +20,12 @@ type FakeGetDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FinishedStub        func(lager.Logger, exec.ExitStatus, runtime.VersionResult, string)
+	FinishedStub        func(lager.Logger, exec.ExitStatus, runtime.VersionResult)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
 		arg3 runtime.VersionResult
-		arg4 string
-	}
-	HasDoneSuccessfullyStub        func() bool
-	hasDoneSuccessfullyMutex       sync.RWMutex
-	hasDoneSuccessfullyArgsForCall []struct {
-	}
-	hasDoneSuccessfullyReturns struct {
-		result1 bool
-	}
-	hasDoneSuccessfullyReturnsOnCall map[int]struct {
-		result1 bool
 	}
 	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
@@ -132,18 +121,17 @@ func (fake *FakeGetDelegate) ErroredArgsForCall(i int) (lager.Logger, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeGetDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 runtime.VersionResult, arg4 string) {
+func (fake *FakeGetDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, arg3 runtime.VersionResult) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
 		arg3 runtime.VersionResult
-		arg4 string
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3, arg4})
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3})
 	fake.finishedMutex.Unlock()
 	if fake.FinishedStub != nil {
-		fake.FinishedStub(arg1, arg2, arg3, arg4)
+		fake.FinishedStub(arg1, arg2, arg3)
 	}
 }
 
@@ -153,69 +141,17 @@ func (fake *FakeGetDelegate) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeGetDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, runtime.VersionResult, string)) {
+func (fake *FakeGetDelegate) FinishedCalls(stub func(lager.Logger, exec.ExitStatus, runtime.VersionResult)) {
 	fake.finishedMutex.Lock()
 	defer fake.finishedMutex.Unlock()
 	fake.FinishedStub = stub
 }
 
-func (fake *FakeGetDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, runtime.VersionResult, string) {
+func (fake *FakeGetDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.ExitStatus, runtime.VersionResult) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	argsForCall := fake.finishedArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
-}
-
-func (fake *FakeGetDelegate) HasDoneSuccessfully() bool {
-	fake.hasDoneSuccessfullyMutex.Lock()
-	ret, specificReturn := fake.hasDoneSuccessfullyReturnsOnCall[len(fake.hasDoneSuccessfullyArgsForCall)]
-	fake.hasDoneSuccessfullyArgsForCall = append(fake.hasDoneSuccessfullyArgsForCall, struct {
-	}{})
-	fake.recordInvocation("HasDoneSuccessfully", []interface{}{})
-	fake.hasDoneSuccessfullyMutex.Unlock()
-	if fake.HasDoneSuccessfullyStub != nil {
-		return fake.HasDoneSuccessfullyStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.hasDoneSuccessfullyReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeGetDelegate) HasDoneSuccessfullyCallCount() int {
-	fake.hasDoneSuccessfullyMutex.RLock()
-	defer fake.hasDoneSuccessfullyMutex.RUnlock()
-	return len(fake.hasDoneSuccessfullyArgsForCall)
-}
-
-func (fake *FakeGetDelegate) HasDoneSuccessfullyCalls(stub func() bool) {
-	fake.hasDoneSuccessfullyMutex.Lock()
-	defer fake.hasDoneSuccessfullyMutex.Unlock()
-	fake.HasDoneSuccessfullyStub = stub
-}
-
-func (fake *FakeGetDelegate) HasDoneSuccessfullyReturns(result1 bool) {
-	fake.hasDoneSuccessfullyMutex.Lock()
-	defer fake.hasDoneSuccessfullyMutex.Unlock()
-	fake.HasDoneSuccessfullyStub = nil
-	fake.hasDoneSuccessfullyReturns = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeGetDelegate) HasDoneSuccessfullyReturnsOnCall(i int, result1 bool) {
-	fake.hasDoneSuccessfullyMutex.Lock()
-	defer fake.hasDoneSuccessfullyMutex.Unlock()
-	fake.HasDoneSuccessfullyStub = nil
-	if fake.hasDoneSuccessfullyReturnsOnCall == nil {
-		fake.hasDoneSuccessfullyReturnsOnCall = make(map[int]struct {
-			result1 bool
-		})
-	}
-	fake.hasDoneSuccessfullyReturnsOnCall[i] = struct {
-		result1 bool
-	}{result1}
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeGetDelegate) ImageVersionDetermined(arg1 db.UsedResourceCache) error {
@@ -536,8 +472,6 @@ func (fake *FakeGetDelegate) Invocations() map[string][][]interface{} {
 	defer fake.erroredMutex.RUnlock()
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
-	fake.hasDoneSuccessfullyMutex.RLock()
-	defer fake.hasDoneSuccessfullyMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()

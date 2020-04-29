@@ -28,7 +28,7 @@ type PutDelegate interface {
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
-	Finished(lager.Logger, ExitStatus, runtime.VersionResult, string)
+	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
 	Errored(lager.Logger, string)
 	HasDoneSuccessfully() bool
 
@@ -215,7 +215,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 	}
 
 	if result.ExitStatus != 0 {
-		step.delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{}, result.Worker)
+		step.delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
 		return nil
 	}
 
@@ -230,7 +230,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 
 	step.succeeded = true
 
-	step.delegate.Finished(logger, 0, versionResult, result.Worker)
+	step.delegate.Finished(logger, 0, versionResult)
 
 	return nil
 

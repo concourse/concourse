@@ -101,7 +101,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 			fmt.Fprintf(stderr, "- %s", e)
 		}
 
-		step.delegate.Finished(logger, false, "")
+		step.delegate.Finished(logger, false)
 		return nil
 	}
 
@@ -130,7 +130,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 
 		fmt.Fprintf(stdout, "no diff found.\n")
 		step.succeeded = true
-		step.delegate.Finished(logger, true, "")
+		step.delegate.Finished(logger, true)
 		return nil
 	}
 
@@ -143,7 +143,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 	fmt.Fprintf(stdout, "done\n")
 	logger.Info("saved-pipeline", lager.Data{"team": team.Name(), "pipeline": pipeline.Name()})
 	step.succeeded = true
-	step.delegate.Finished(logger, true, "")
+	step.delegate.Finished(logger, true)
 
 	return nil
 }

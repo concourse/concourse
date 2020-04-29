@@ -716,6 +716,86 @@ var _ = Describe("Build", func() {
 		})
 	})
 
+	Describe("QueryEvent", func() {
+		Context("when event not found", func() {
+			It("should return false", func() {
+				outEvt := event.FinishPut{}
+				build, err := team.CreateOneOffBuild()
+				Expect(err).NotTo(HaveOccurred())
+				found, err := build.QueryEvent(outEvt.EventType(), event.OriginID("some-id"), &outEvt)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(Equal(false))
+			})
+		})
+
+		Context("Finish Event", func() {
+			var (
+				evt   event.Finish
+				build db.Build
+			)
+			BeforeEach(func() {
+				var err error
+				build, err = team.CreateOneOffBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				evt = event.Finish{
+					Origin: event.Origin{
+						ID: event.OriginID("some-id"),
+					},
+					Time:      time.Now().Unix(),
+					Succeeded: true,
+				}
+				err = build.SaveEvent(evt)
+				Expect(err).NotTo(HaveOccurred())
+
+			})
+			It("should query out saved event correctly", func() {
+				outEvt := event.Finish{}
+				found, err := build.QueryEvent(outEvt.EventType(), event.OriginID("some-id"), &outEvt)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(Equal(true))
+				Expect(outEvt).To(Equal(evt))
+			})
+		})
+
+		Context("FinishPut Event", func() {
+			var (
+				evt   event.FinishPut
+				build db.Build
+			)
+			BeforeEach(func() {
+				var err error
+				build, err = team.CreateOneOffBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				evt = event.FinishPut{
+					Origin: event.Origin{
+						ID: event.OriginID("some-id"),
+					},
+					Time:           time.Now().Unix(),
+					ExitStatus:     int(0),
+					CreatedVersion: atc.Version{"v": "1"},
+					CreatedMetadata: []atc.MetadataField{
+						{
+							Name:  "n1",
+							Value: "v1",
+						},
+					},
+				}
+				err = build.SaveEvent(evt)
+				Expect(err).NotTo(HaveOccurred())
+
+			})
+			It("should query out saved event correctly", func() {
+				outEvt := event.FinishPut{}
+				found, err := build.QueryEvent(outEvt.EventType(), event.OriginID("some-id"), &outEvt)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(Equal(true))
+				Expect(outEvt).To(Equal(evt))
+			})
+		})
+	})
+
 	Describe("SaveOutput", func() {
 		var pipeline db.Pipeline
 		var job db.Job
