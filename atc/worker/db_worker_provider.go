@@ -212,6 +212,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, savedWork
 		provider.resourceFetcher,
 		provider.dbTeamFactory,
 		savedWorker,
+		provider.dbResourceCacheFactory,
 		buildContainersCount,
 	)
 }

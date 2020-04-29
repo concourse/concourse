@@ -152,6 +152,7 @@ type CreatedVolume interface {
 	WorkerName() string
 
 	InitializeResourceCache(UsedResourceCache) error
+	GetResourceCacheID() int
 	InitializeArtifact(name string, buildID int) (WorkerArtifact, error)
 	InitializeTaskCache(jobID int, stepName string, path string) error
 
@@ -391,6 +392,10 @@ func (volume *createdVolume) InitializeResourceCache(resourceCache UsedResourceC
 	volume.typ = VolumeTypeResource
 
 	return nil
+}
+
+func (volume *createdVolume) GetResourceCacheID() int {
+	return volume.resourceCacheID
 }
 
 func (volume *createdVolume) InitializeArtifact(name string, buildID int) (WorkerArtifact, error) {

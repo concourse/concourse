@@ -42,6 +42,7 @@ var _ = Describe("Worker", func() {
 		fakeImage                 *workerfakes.FakeImage
 		fakeDBWorker              *dbfakes.FakeWorker
 		fakeDBVolumeRepository    *dbfakes.FakeVolumeRepository
+		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
 		fakeDBTeamFactory         *dbfakes.FakeTeamFactory
 		fakeDBTeam                *dbfakes.FakeTeam
 		fakeCreatingContainer     *dbfakes.FakeCreatingContainer
@@ -106,6 +107,7 @@ var _ = Describe("Worker", func() {
 		fakeCreatedContainer.HandleReturns("some-handle")
 
 		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
@@ -270,6 +272,7 @@ var _ = Describe("Worker", func() {
 			fakeFetcher,
 			fakeDBTeamFactory,
 			fakeDBWorker,
+			fakeResourceCacheFactory,
 			0,
 		)
 	})

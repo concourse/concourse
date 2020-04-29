@@ -65,7 +65,6 @@ type Pool interface {
 	ContainerInWorker(
 		lager.Logger,
 		db.ContainerOwner,
-		ContainerSpec,
 		WorkerSpec,
 	) (bool, error)
 
@@ -129,7 +128,7 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	}
 }
 
-func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner, containerSpec ContainerSpec, workerSpec WorkerSpec) (bool, error) {
+func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner, workerSpec WorkerSpec) (bool, error) {
 	workersWithContainer, err := pool.provider.FindWorkersForContainerByOwner(
 		logger.Session("find-worker"),
 		owner,

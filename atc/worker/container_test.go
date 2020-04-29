@@ -38,15 +38,16 @@ var _ = Describe("RunScript", func() {
 
 		stderrBuf *gbytes.Buffer
 
-		fakeGClientContainer   *gclientfakes.FakeContainer
-		fakeGClient            *gclientfakes.FakeClient
-		fakeVolumeClient       *workerfakes.FakeVolumeClient
-		fakeDBVolumeRepository *dbfakes.FakeVolumeRepository
-		fakeImageFactory       *workerfakes.FakeImageFactory
-		fakeFetcher            *workerfakes.FakeFetcher
-		fakeDBTeamFactory      *dbfakes.FakeTeamFactory
-		fakeDBWorker           *dbfakes.FakeWorker
-		fakeCreatedContainer   *dbfakes.FakeCreatedContainer
+		fakeGClientContainer     *gclientfakes.FakeContainer
+		fakeGClient              *gclientfakes.FakeClient
+		fakeVolumeClient         *workerfakes.FakeVolumeClient
+		fakeDBVolumeRepository   *dbfakes.FakeVolumeRepository
+		fakeImageFactory         *workerfakes.FakeImageFactory
+		fakeFetcher              *workerfakes.FakeFetcher
+		fakeDBTeamFactory        *dbfakes.FakeTeamFactory
+		fakeDBWorker             *dbfakes.FakeWorker
+		fakeCreatedContainer     *dbfakes.FakeCreatedContainer
+		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
 		gardenWorker    worker.Worker
 		workerContainer worker.Container
@@ -75,6 +76,7 @@ var _ = Describe("RunScript", func() {
 		fakeFetcher = new(workerfakes.FakeFetcher)
 		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeDBWorker = new(dbfakes.FakeWorker)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		fakeOwner = new(dbfakes.FakeContainerOwner)
@@ -102,6 +104,7 @@ var _ = Describe("RunScript", func() {
 			fakeFetcher,
 			fakeDBTeamFactory,
 			fakeDBWorker,
+			fakeResourceCacheFactory,
 			0,
 		)
 

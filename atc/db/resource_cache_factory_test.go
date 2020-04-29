@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
@@ -30,92 +31,94 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 		logger *lagertest.TestLogger
 		build  db.Build
+		err    error
 	)
 
 	BeforeEach(func() {
-		setupTx, err := dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-
-		baseResourceType := db.BaseResourceType{
-			Name: "some-base-type",
-		}
-
-		_, err = baseResourceType.FindOrCreate(setupTx, false)
-		Expect(err).NotTo(HaveOccurred())
-
-		imageBaseResourceType := db.BaseResourceType{
-			Name: "some-image-type",
-		}
-
-		resourceCacheLifecycle = db.NewResourceCacheLifecycle(dbConn)
-
-		usedImageBaseResourceType, err = imageBaseResourceType.FindOrCreate(setupTx, false)
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(setupTx.Commit()).To(Succeed())
-
-		resourceType1 = atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name: "some-type",
-				Type: "some-type-type",
-				Source: atc.Source{
-					"some-type": "source",
-				},
-			},
-			Version: atc.Version{"some-type": "version"},
-		}
-
-		resourceType2 = atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name: "some-type-type",
-				Type: "some-base-type",
-				Source: atc.Source{
-					"some-type-type": "some-secret-sauce",
-				},
-			},
-			Version: atc.Version{"some-type-type": "version"},
-		}
-
-		resourceType3 = atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name: "some-unused-type",
-				Type: "some-base-type",
-				Source: atc.Source{
-					"some-unused-type": "source",
-				},
-			},
-			Version: atc.Version{"some-unused-type": "version"},
-		}
-
-		resourceTypeUsingBogusBaseType = atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name: "some-type-using-bogus-base-type",
-				Type: "some-bogus-base-type",
-				Source: atc.Source{
-					"some-type-using-bogus-base-type": "source",
-				},
-			},
-			Version: atc.Version{"some-type-using-bogus-base-type": "version"},
-		}
-
-		resourceTypeOverridingBaseType = atc.VersionedResourceType{
-			ResourceType: atc.ResourceType{
-				Name: "some-image-type",
-				Type: "some-image-type",
-				Source: atc.Source{
-					"some-image-type": "source",
-				},
-			},
-			Version: atc.Version{"some-image-type": "version"},
-		}
-
 		build, err = defaultTeam.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
-
-		logger = lagertest.NewTestLogger("test")
 	})
 
 	Describe("FindOrCreateResourceCache", func() {
+		BeforeEach(func() {
+			setupTx, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			baseResourceType := db.BaseResourceType{
+				Name: "some-base-type",
+			}
+
+			_, err = baseResourceType.FindOrCreate(setupTx, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			imageBaseResourceType := db.BaseResourceType{
+				Name: "some-image-type",
+			}
+
+			resourceCacheLifecycle = db.NewResourceCacheLifecycle(dbConn)
+
+			usedImageBaseResourceType, err = imageBaseResourceType.FindOrCreate(setupTx, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(setupTx.Commit()).To(Succeed())
+
+			resourceType1 = atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name: "some-type",
+					Type: "some-type-type",
+					Source: atc.Source{
+						"some-type": "source",
+					},
+				},
+				Version: atc.Version{"some-type": "version"},
+			}
+
+			resourceType2 = atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name: "some-type-type",
+					Type: "some-base-type",
+					Source: atc.Source{
+						"some-type-type": "some-secret-sauce",
+					},
+				},
+				Version: atc.Version{"some-type-type": "version"},
+			}
+
+			resourceType3 = atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name: "some-unused-type",
+					Type: "some-base-type",
+					Source: atc.Source{
+						"some-unused-type": "source",
+					},
+				},
+				Version: atc.Version{"some-unused-type": "version"},
+			}
+
+			resourceTypeUsingBogusBaseType = atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name: "some-type-using-bogus-base-type",
+					Type: "some-bogus-base-type",
+					Source: atc.Source{
+						"some-type-using-bogus-base-type": "source",
+					},
+				},
+				Version: atc.Version{"some-type-using-bogus-base-type": "version"},
+			}
+
+			resourceTypeOverridingBaseType = atc.VersionedResourceType{
+				ResourceType: atc.ResourceType{
+					Name: "some-image-type",
+					Type: "some-image-type",
+					Source: atc.Source{
+						"some-image-type": "source",
+					},
+				},
+				Version: atc.Version{"some-image-type": "version"},
+			}
+
+			logger = lagertest.NewTestLogger("test")
+		})
 		It("creates resource cache in database", func() {
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				db.ForBuild(build.ID()),
@@ -293,6 +296,74 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 				wg.Wait()
 			})
+		})
+	})
+
+	Describe("FindResourceCacheByID", func() {
+		var resourceCacheUser db.ResourceCacheUser
+		var someUsedResourceCacheFromBaseResource db.UsedResourceCache
+		var someUsedResourceCacheFromCustomResource db.UsedResourceCache
+		BeforeEach(func() {
+			resourceCacheUser = db.ForBuild(build.ID())
+
+			someUsedResourceCacheFromBaseResource, err = resourceCacheFactory.FindOrCreateResourceCache(resourceCacheUser,
+				"some-base-resource-type",
+				atc.Version{"some": "version"},
+				atc.Source{
+					"some": "source",
+				},
+				atc.Params{"some": fmt.Sprintf("param-%d", time.Now().UnixNano())},
+				atc.VersionedResourceTypes{},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			someUsedResourceCacheFromCustomResource, err = resourceCacheFactory.FindOrCreateResourceCache(resourceCacheUser,
+				"some-custom-resource-type",
+				atc.Version{"some": "version"},
+				atc.Source{
+					"some": "source",
+				},
+				atc.Params{"some": fmt.Sprintf("param-%d", time.Now().UnixNano())},
+				atc.VersionedResourceTypes{
+					atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name: "some-custom-resource-type",
+							Type: "some-base-resource-type",
+							Source: atc.Source{
+								"some": "source",
+							},
+						},
+						Version: atc.Version{"showme": "whatyougot"},
+					},
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns a UsedResourceCache from a BaseResource", func() {
+			actualUsedResourceCache, found, err := resourceCacheFactory.FindResourceCacheByID(someUsedResourceCacheFromBaseResource.ID())
+
+			Expect(found).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(actualUsedResourceCache).To(Equal(someUsedResourceCacheFromBaseResource))
+			Expect(actualUsedResourceCache.ResourceConfig().CreatedByBaseResourceType().Name).To(Equal("some-base-resource-type"))
+			Expect(actualUsedResourceCache.ResourceConfig().CreatedByResourceCache()).To(BeNil())
+		})
+
+		It("returns a UsedResourceCache from a custom ResourceCache", func() {
+			actualUsedResourceCache, found, err := resourceCacheFactory.FindResourceCacheByID(someUsedResourceCacheFromCustomResource.ID())
+
+			Expect(found).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(actualUsedResourceCache).To(Equal(someUsedResourceCacheFromCustomResource))
+			Expect(actualUsedResourceCache.ResourceConfig().CreatedByResourceCache().Version()).To(Equal(atc.Version{"showme": "whatyougot"}))
+		})
+
+		It("returns !found when one is not found", func() {
+			_, found, err := resourceCacheFactory.FindResourceCacheByID(42)
+
+			Expect(found).To(BeFalse())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 

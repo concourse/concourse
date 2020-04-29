@@ -26,6 +26,7 @@ type Volume interface {
 	COWStrategy() baggageclaim.COWStrategy
 
 	InitializeResourceCache(db.UsedResourceCache) error
+	GetResourceCacheID() int
 	InitializeTaskCache(logger lager.Logger, jobID int, stepName string, path string, privileged bool) error
 	InitializeArtifact(name string, buildID int) (db.WorkerArtifact, error)
 
@@ -112,6 +113,10 @@ func (v *volume) COWStrategy() baggageclaim.COWStrategy {
 
 func (v *volume) InitializeResourceCache(urc db.UsedResourceCache) error {
 	return v.dbVolume.InitializeResourceCache(urc)
+}
+
+func (v *volume) GetResourceCacheID() int {
+	return v.dbVolume.GetResourceCacheID()
 }
 
 func (v *volume) InitializeArtifact(name string, buildID int) (db.WorkerArtifact, error) {
