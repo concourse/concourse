@@ -1,8 +1,6 @@
 package testflight_test
 
 import (
-	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,7 +21,6 @@ import (
 	"github.com/concourse/concourse/go-concourse/concourse"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/onsi/gomega/gexec"
-	"golang.org/x/oauth2"
 )
 
 const testflightFlyTarget = "tf"
@@ -186,33 +183,6 @@ func flyIn(dir string, argv ...string) *gexec.Session {
 	sess := spawnFlyIn(dir, argv...)
 	wait(sess)
 	return sess
-}
-
-func concourseClient() concourse.Client {
-	token, err := fetchToken(config.ATCURL, config.ATCUsername, config.ATCPassword)
-	Expect(err).NotTo(HaveOccurred())
-
-	httpClient := &http.Client{
-		Transport: &oauth2.Transport{
-			Source: oauth2.StaticTokenSource(token),
-			Base: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		},
-	}
-
-	return concourse.NewClient(config.ATCURL, httpClient, false)
-}
-
-func fetchToken(atcURL string, username, password string) (*oauth2.Token, error) {
-	oauth2Config := oauth2.Config{
-		ClientID:     "fly",
-		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: atcURL + "/sky/issuer/token"},
-		Scopes:       []string{"openid", "profile", "email", "federated:id"},
-	}
-
-	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
 }
 
 func spawnFlyLogin(target string, args ...string) *gexec.Session {
