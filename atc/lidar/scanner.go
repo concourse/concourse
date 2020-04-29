@@ -18,23 +18,26 @@ func NewScanner(
 	secrets creds.Secrets,
 	defaultCheckTimeout time.Duration,
 	defaultCheckInterval time.Duration,
+	defaultWithWebhookCheckInterval time.Duration,
 ) *scanner {
 	return &scanner{
-		logger:               logger,
-		checkFactory:         checkFactory,
-		secrets:              secrets,
-		defaultCheckTimeout:  defaultCheckTimeout,
-		defaultCheckInterval: defaultCheckInterval,
+		logger:                          logger,
+		checkFactory:                    checkFactory,
+		secrets:                         secrets,
+		defaultCheckTimeout:             defaultCheckTimeout,
+		defaultCheckInterval:            defaultCheckInterval,
+		defaultWithWebhookCheckInterval: defaultWithWebhookCheckInterval,
 	}
 }
 
 type scanner struct {
 	logger lager.Logger
 
-	checkFactory         db.CheckFactory
-	secrets              creds.Secrets
-	defaultCheckTimeout  time.Duration
-	defaultCheckInterval time.Duration
+	checkFactory                    db.CheckFactory
+	secrets                         creds.Secrets
+	defaultCheckTimeout             time.Duration
+	defaultCheckInterval            time.Duration
+	defaultWithWebhookCheckInterval time.Duration
 }
 
 func (s *scanner) Run(ctx context.Context) error {
@@ -92,6 +95,9 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes, 
 	}
 
 	interval := s.defaultCheckInterval
+	if checkable.HasWebhook() {
+		interval = s.defaultWithWebhookCheckInterval
+	}
 	if every := checkable.CheckEvery(); every != "" {
 		interval, err = time.ParseDuration(every)
 		if err != nil {

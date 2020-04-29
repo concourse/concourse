@@ -46,6 +46,8 @@ type ResourceType interface {
 	CurrentPinnedVersion() atc.Version
 	ResourceConfigScopeID() int
 
+	HasWebhook() bool
+
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetCheckSetupError(error) error
 
@@ -195,6 +197,10 @@ func (t *resourceType) ResourceConfigScopeID() int    { return t.resourceConfigS
 
 func (t *resourceType) Version() atc.Version              { return t.version }
 func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
+
+func (t *resourceType) HasWebhook() bool {
+	return false
+}
 
 func newEmptyResourceType(conn Conn, lockFactory lock.LockFactory) *resourceType {
 	return &resourceType{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}

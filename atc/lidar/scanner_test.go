@@ -42,6 +42,7 @@ var _ = Describe("Scanner", func() {
 			fakeSecrets,
 			time.Minute*1,
 			time.Minute*1,
+			time.Minute*10,
 		)
 	})
 
@@ -292,6 +293,46 @@ var _ = Describe("Scanner", func() {
 				checked = append(checked, checkable.Name())
 
 				Expect(checked).To(ConsistOf([]string{fakeResourceType.Name(), fakeResource1.Name(), fakeResource2.Name()}))
+			})
+		})
+
+		Context("Default with webhook check interval", func() {
+			var fakeResource *dbfakes.FakeResource
+			BeforeEach(func() {
+				fakeResource = new(dbfakes.FakeResource)
+				fakeResource.NameReturns("some-name")
+				fakeResource.TagsReturns([]string{"tag-a", "tag-b"})
+				fakeResource.SourceReturns(atc.Source{"some": "source"})
+				fakeResource.TypeReturns("base-type")
+				fakeResource.CheckEveryReturns("")
+				fakeCheckFactory.ResourcesReturns([]db.Resource{fakeResource}, nil)
+
+			})
+
+			Context("resource has webhook", func() {
+				BeforeEach(func() {
+					fakeResource.HasWebhookReturns(true)
+				})
+
+				Context("last check is 9 minutes ago", func() {
+					BeforeEach(func() {
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute*9))
+					})
+
+					It("does not create a check", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("last check is 11 minutes ago", func() {
+					BeforeEach(func() {
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute*11))
+					})
+
+					It("does not create a check", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+					})
+				})
 			})
 		})
 	})

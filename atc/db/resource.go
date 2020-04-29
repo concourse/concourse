@@ -43,6 +43,8 @@ type Resource interface {
 	ResourceConfigScopeID() int
 	Icon() string
 
+	HasWebhook() bool
+
 	CurrentPinnedVersion() atc.Version
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
@@ -180,6 +182,8 @@ func (r *resource) PinComment() string               { return r.pinComment }
 func (r *resource) ResourceConfigID() int            { return r.resourceConfigID }
 func (r *resource) ResourceConfigScopeID() int       { return r.resourceConfigScopeID }
 func (r *resource) Icon() string                     { return r.icon }
+
+func (r *resource) HasWebhook() bool { return r.WebhookToken() != "" }
 
 func (r *resource) Reload() (bool, error) {
 	row := resourcesQuery.Where(sq.Eq{"r.id": r.id}).

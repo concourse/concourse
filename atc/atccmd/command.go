@@ -140,8 +140,9 @@ type RunCommand struct {
 
 	ComponentRunnerInterval time.Duration `long:"component-runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
 
-	GlobalResourceCheckTimeout time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
-	ResourceCheckingInterval   time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	GlobalResourceCheckTimeout          time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
+	ResourceCheckingInterval            time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	ResourceWithWebhookCheckingInterval time.Duration `long:"resource-with-webhook-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources that has webhook defined."`
 
 	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
 	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
@@ -909,6 +910,20 @@ func (cmd *RunCommand) constructBackendMembers(
 	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
 	bus := dbConn.Bus()
 
+	// In case that a user configures resource-checking-interval, but forgets to
+	// configure resource-with-webhook-checking-interval, keep both checking-
+	// intervals consistent. Even if both intervals are configured, there is no
+	// reason webhooked resources take shorter checking interval than normal
+	// resources.
+	if cmd.ResourceWithWebhookCheckingInterval < cmd.ResourceCheckingInterval {
+		logger.Info("update-resource-with-webhook-checking-interval",
+			lager.Data{
+				"oldValue": cmd.ResourceWithWebhookCheckingInterval,
+				"newValue": cmd.ResourceCheckingInterval,
+			})
+		cmd.ResourceWithWebhookCheckingInterval = cmd.ResourceCheckingInterval
+	}
+
 	members := []grouper.Member{
 		{Name: "lidar", Runner: lidar.NewRunner(
 			logger.Session("lidar"),
@@ -919,6 +934,7 @@ func (cmd *RunCommand) constructBackendMembers(
 				secretManager,
 				cmd.GlobalResourceCheckTimeout,
 				cmd.ResourceCheckingInterval,
+				cmd.ResourceWithWebhookCheckingInterval,
 			),
 			lidar.NewChecker(
 				logger.Session(atc.ComponentLidarChecker),
