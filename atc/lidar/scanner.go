@@ -20,17 +20,6 @@ func NewScanner(
 	defaultCheckInterval time.Duration,
 	defaultWithWebhookCheckInterval time.Duration,
 ) *scanner {
-	// In case that a user configures resource-checking-interval, but forgets to
-	// configure resource-with-webhook-checking-interval, keep both checking-
-	// intervals consistent. Even if both intervals are configured, there is no
-	// reason webhooked resources take shorter checking interval than normal
-	// resources.
-	if defaultWithWebhookCheckInterval < defaultCheckInterval {
-		logger.Info("update-default-with-webhook-check-interval",
-			lager.Data{"oldValue": defaultWithWebhookCheckInterval, "newValue": defaultCheckInterval})
-		defaultWithWebhookCheckInterval = defaultCheckInterval
-	}
-
 	return &scanner{
 		logger:                          logger,
 		checkFactory:                    checkFactory,

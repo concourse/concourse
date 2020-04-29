@@ -905,6 +905,20 @@ func (cmd *RunCommand) constructBackendMembers(
 	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
 	bus := dbConn.Bus()
 
+	// In case that a user configures resource-checking-interval, but forgets to
+	// configure resource-with-webhook-checking-interval, keep both checking-
+	// intervals consistent. Even if both intervals are configured, there is no
+	// reason webhooked resources take shorter checking interval than normal
+	// resources.
+	if cmd.ResourceWithWebhookCheckingInterval < cmd.ResourceCheckingInterval {
+		logger.Info("update-resource-with-webhook-checking-interval",
+			lager.Data{
+				"oldValue": cmd.ResourceWithWebhookCheckingInterval,
+				"newValue": cmd.ResourceCheckingInterval,
+			})
+		cmd.ResourceWithWebhookCheckingInterval = cmd.ResourceCheckingInterval
+	}
+
 	members := []grouper.Member{
 		{Name: "lidar", Runner: lidar.NewRunner(
 			logger.Session("lidar"),
