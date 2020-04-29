@@ -33,15 +33,6 @@ var _ = Describe("Multiple ATCs Login Session Test", func() {
 			atc1URL = "http://" + atcs[1].IP + ":8080"
 		})
 
-		Describe("using database storage for dex", func() {
-			It("uses the same client for multiple ATCs", func() {
-				var numClient int
-				err := Psql.Select("COUNT(*)").From("client").RunWith(DbConn).QueryRow().Scan(&numClient)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(numClient).To(Equal(1))
-			})
-		})
-
 		Context("make api request to a different atc by a token from a stopped atc", func() {
 			var token *oauth2.Token
 
