@@ -253,27 +253,18 @@ var _ = Describe("NotificationBus", func() {
 			})
 		})
 
-		Context("when the notification channel is full", func() {
-
-			var ready chan bool
+		Context("when the notification channel fills up while listening", func() {
 
 			BeforeEach(func() {
-				ready = make(chan bool)
-
-				go func() {
-					close(ready)
+				fakeListener.ListenCalls(func(_ string) error {
 					c <- &pq.Notification{Channel: "some-channel"}
 					c <- &pq.Notification{Channel: "some-channel"}
 					c <- &pq.Notification{Channel: "some-channel"}
-					c <- &pq.Notification{Channel: "some-channel"}
-					c <- &pq.Notification{Channel: "some-channel"}
-					c <- &pq.Notification{Channel: "some-channel"}
-					c <- &pq.Notification{Channel: "some-channel"}
-				}()
+					return nil
+				})
 			})
 
-			It("should still be able to listen for notifications", func() {
-				<-ready
+			It("should still be able to listen for notifications", func(done Done) {
 
 				_, err := bus.Listen("some-channel")
 				Expect(err).NotTo(HaveOccurred())
@@ -283,17 +274,33 @@ var _ = Describe("NotificationBus", func() {
 
 				_, err = bus.Listen("some-new-channel")
 				Expect(err).NotTo(HaveOccurred())
+
+				close(done)
+			}, 5)
+
+		})
+
+		Context("when the notification channel fills up while unlistening", func() {
+
+			BeforeEach(func() {
+				fakeListener.UnlistenCalls(func(_ string) error {
+					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pq.Notification{Channel: "some-channel"}
+					return nil
+				})
 			})
 
-			It("should still be able to unlisten for notifications", func() {
-				<-ready
+			It("should still be able to unlisten for notifications", func(done Done) {
 
 				err := bus.Unlisten("some-channel", a)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = bus.Unlisten("some-other-channel", b)
 				Expect(err).NotTo(HaveOccurred())
-			})
+
+				close(done)
+			}, 5)
 		})
 	})
 })
