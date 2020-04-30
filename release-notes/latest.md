@@ -19,3 +19,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5452" href="#4081">:link:</a></sup></sub> fix
 
 * @shyamz-22 added ability to configure NewRelic insights endpoint which allows us to use EU or US data centers
+
+#### <sub><sup><a name="5520" href="#5520">:link:</a></sup></sub> fix
+
+* Fix a bug that when `--log-db-queries` is enabled only part of DB queries were logged. Expect to see more log outputs when using the flag now. #5520
