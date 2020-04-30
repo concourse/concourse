@@ -9,6 +9,58 @@
 
   NOTE: And yes, you will need to log out and log back in after upgrading.
 
+#### <sub><sup><a name="5371" href="#5371">:link:</a></sup></sub> fix, breaking
+
+* Remove `Query` argument from `fly curl` command. 
+
+  When passing curl options as `fly curl <url_path> -- <curl_options>`, the first curl option is parsed as query argument incorrectly, which then causes unexpected curl behaviour. #5366
+
+  With fix in #5371, `<curl_options>` functions as documented and the way to add query params to `fly curl` is more intuitive as following:
+
+  ```
+  fly curl <url_path?query_params> -- <curl_options>
+  ```
+
+### <sub><sup><a name="5506" href="#5506">:link:</a></sup></sub> fix, breaking
+
+* When looking up credentials, we now prefer pipeline scoped credential managers over global ones. #5398
+
+#### <sub><sup><a name="5398" href="#5398">:link:</a></sup></sub> fix, breaking
+
+* In a previous release, we made the switch to using `zstd` for compressing artifacts before they get streamed all over the place. This has proved to be unreliable for all our use cases so we switched the default back to `gzip`. We did make this configurable though so you can continue to use `zstd` if you so choose. #5398
+
+#### <sub><sup><a name="5397" href="#5397">:link:</a></sup></sub> feature, breaking
+
+* @pnsantos updated the Material Design icon library version to `5.0.45`.
+
+  **note:** some icons changed names (e.g. `mdi-github-circle` was changed to `mdi-github`) so after this update you might have to update some `icon:` references
+
+### <sub><sup><a name="5432" href="#5432">:link:</a></sup></sub> fix, breaking
+
+* @tjhiggins updated the flag for configuring the interval at which concourse runs its internal components. `CONCOURSE_RUNNER_INTERVAL` -> `CONCOURSE_COMPONENT_RUNNER_INTERVAL`. #5432
+
+#### <sub><sup><a name="5368" href="#5368">:link:</a></sup></sub> feature
+
+* Implemented the core functionality for archiving pipelines [RFC #33]. 
+
+  **note**: archived pipelines are neither visible in the web UI (#5370) nor in `fly pipelines`.
+
+  **note:** archiving a pipeline will nullify the pipeline configuration. If for some reason you downgrade the version of Concourse, unpausing a pipeline that was previously archived will result in a broken pipeline. To fix that, set the pipeline again.
+
+[RFC #33]: https://github.com/concourse/rfcs/pull/33
+
+#### <sub><sup><a name="5459" href="#5459">:link:</a></sup></sub> feature
+
+* Since switching to using dex tokens, we started using the client credentials grant type to fetch tokens for the TSA. This seemed like a good opportunity to start bcrypting client secrets in the db. #5459
+
+### <sub><sup><a name="5519" href="#5519">:link:</a></sup></sub> fix
+
+* Thanks to some [outstanding debugging](https://github.com/concourse/concourse/issues/5385) from @agurney, we've fixed a deadlock in the notifications bus which caused the build page not to load under certain conditions.
+
+### <sub><sup><a name="5091" href="#5091">:link:</a></sup></sub> feature
+
+* @evanchaoli added a global configuration to override the check interval for any resources that have been configured with a webhook token.
+
 #### <sub><sup><a name="5305" href="#5305">:link:</a></sup></sub> feature
 
 * We've updated the way that hijacked containers get garbage collected
@@ -37,25 +89,9 @@
 
 * Fix regression which inhibited scrolling through the build history list. #5392
 
-#### <sub><sup><a name="5397" href="#5397">:link:</a></sup></sub> feature, breaking
-
-* @pnsantos updated the Material Design icon library version to `5.0.45`.
-
-  **note:** some icons changed names (e.g. `mdi-github-circle` was changed to `mdi-github`) so after this update you might have to update some `icon:` references
-
 #### <sub><sup><a name="5410" href="#5410">:link:</a></sup></sub> feature
 
 * We've moved the "pin comment" field in the Resource view to the top of the page (next to the currently pinned version). The comment can be edited inline.
-
-#### <sub><sup><a name="5368" href="#5368">:link:</a></sup></sub> feature
-
-* Implemented the core functionality for archiving pipelines [RFC #33]. 
-
-  **note**: archived pipelines are neither visible in the web UI (#5370) nor in `fly pipelines`.
-
-  **note:** archiving a pipeline will nullify the pipeline configuration. If for some reason you downgrade the version of Concourse, unpausing a pipeline that was previously archived will result in a broken pipeline. To fix that, set the pipeline again.
-
-[RFC #33]: https://github.com/concourse/rfcs/pull/33
 
 #### <sub><sup><a name="5458" href="#5458">:link:</a></sup></sub> feature
 
@@ -72,3 +108,7 @@
 #### <sub><sup><a name="5452" href="#5452">:link:</a></sup></sub> fix
 
 * We fixed a bug where if you create a new build and then trigger a rerun build, both the builds will be stuck in pending state. #5452
+
+#### <sub><sup><a name="5486" href="#5486">:link:</a></sup></sub> feature
+
+* We added a new flag to let you configure the garden network pool. 
