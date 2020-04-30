@@ -37,6 +37,20 @@ all =
                                 { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
                                 , opacity = Styles.Bright
                                 }
+                , describe "when not favorited"
+                    [ test "displays an unfilled star icon" <|
+                        \_ ->
+                            pipeline { active = True, hovered = True }
+                                |> .favIcon
+                                |> Expect.equal { opacity = Styles.Bright, filled = False }
+                    ]
+                , describe "when favorited"
+                    [ test "displays a filled star icon" <|
+                        \_ ->
+                            pipeline { active = True, hovered = True }
+                                |> .favIcon
+                                |> Expect.equal { opacity = Styles.Bright, filled = True }
+                    ]
                 ]
             , describe "when unhovered"
                 [ test "pipeline background is dark" <|

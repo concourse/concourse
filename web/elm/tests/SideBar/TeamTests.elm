@@ -286,6 +286,14 @@ all =
                     ]
                 ]
             ]
+
+        --  , describe "when favorited"
+        --      [ test "shows up in a favorite section" <|
+        --          \_ ->
+        --                  givenPipelineFavorited
+        --                  |>  Query.find [ id "side-bar" ]
+        --                  |> Query.has [ text "favorites" ]
+        --      ]
         ]
 
 

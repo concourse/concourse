@@ -9,6 +9,7 @@ module SideBar.Styles exposing
     , iconGroup
     , opacityAttr
     , pipeline
+    , pipelineFavourite
     , pipelineIcon
     , pipelineName
     , sideBar
@@ -260,9 +261,33 @@ pipelineIcon { asset, opacity } =
     ]
 
 
-tooltip : List (Html.Attribute msg)
-tooltip =
-    [ style "z-index" "1"
+pipelineFavourite : { opacity : Opacity, filled : Bool } -> List (Html.Attribute msg)
+pipelineFavourite fav =
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just <|
+                if fav.filled then
+                    Assets.StarIconFilled
+
+                else
+                    Assets.StarIconUnfilled
+    , style "background-repeat" "no-repeat"
+    , style "height" "16px"
+    , style "width" "32px"
+    , style "background-size" "contain"
+    , style "margin-left" "28px"
+    , style "flex-shrink" "0"
+    , opacityAttr fav.opacity
+    ]
+
+
+tooltip : Float -> Float -> List (Html.Attribute msg)
+tooltip top left =
+    [ style "position" "fixed"
+    , style "left" <| String.fromFloat left ++ "px"
+    , style "top" <| String.fromFloat top ++ "px"
+    , style "margin-top" "-15px"
+    , style "z-index" "1"
     , style "display" "flex"
     ]
 
