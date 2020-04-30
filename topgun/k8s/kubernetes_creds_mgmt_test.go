@@ -68,6 +68,15 @@ var _ = Describe("Kubernetes credential management", func() {
 			By("creating a namespace made by the user instead of the chart")
 			Run(nil, "kubectl", "create", "namespace", releaseName+"-main")
 
+			By("binding the role that grants access to the secrets in our newly created namespace ")
+			Run(nil,
+				"kubectl", "create",
+				"--namespace", releaseName+"-main",
+				"rolebinding", "rb",
+				"--clusterrole", releaseName+"-web",
+				"--serviceaccount", releaseName+":"+releaseName+"-web",
+			)
+
 			deployConcourseChart(releaseName, "--set=worker.replicas=1",
 				"--set=concourse.web.secretCacheEnabled=true",
 				"--set=concourse.web.secretCacheDuration=600",
