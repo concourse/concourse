@@ -14,6 +14,7 @@ import (
 var _ = Describe("NotificationBus", func() {
 
 	var (
+		c            chan *pq.Notification
 		fakeExecutor *dbfakes.FakeExecutor
 		fakeListener *dbfakes.FakeListener
 
@@ -21,8 +22,11 @@ var _ = Describe("NotificationBus", func() {
 	)
 
 	BeforeEach(func() {
+		c = make(chan *pq.Notification, 1)
+
 		fakeExecutor = new(dbfakes.FakeExecutor)
 		fakeListener = new(dbfakes.FakeListener)
+		fakeListener.NotificationChannelReturns(c)
 
 		bus = db.NewNotificationsBus(fakeListener, fakeExecutor)
 	})
@@ -191,12 +195,8 @@ var _ = Describe("NotificationBus", func() {
 			})
 
 			Context("when it receives an upstream notification", func() {
-				var c chan *pq.Notification
 
 				BeforeEach(func() {
-					c = make(chan *pq.Notification, 1)
-					fakeListener.NotificationChannelReturns(c)
-
 					c <- &pq.Notification{Channel: "some-channel"}
 				})
 
@@ -207,12 +207,8 @@ var _ = Describe("NotificationBus", func() {
 			})
 
 			Context("when it receives an upstream disconnect notice", func() {
-				var c chan *pq.Notification
 
 				BeforeEach(func() {
-					c = make(chan *pq.Notification, 1)
-					fakeListener.NotificationChannelReturns(c)
-
 					c <- nil
 				})
 
@@ -233,12 +229,8 @@ var _ = Describe("NotificationBus", func() {
 			})
 
 			Context("when it receives an upstream notification", func() {
-				var c chan *pq.Notification
 
 				BeforeEach(func() {
-					c = make(chan *pq.Notification, 1)
-					fakeListener.NotificationChannelReturns(c)
-
 					c <- &pq.Notification{Channel: "some-channel"}
 				})
 
@@ -249,12 +241,8 @@ var _ = Describe("NotificationBus", func() {
 			})
 
 			Context("when it receives an upstream disconnect notice", func() {
-				var c chan *pq.Notification
 
 				BeforeEach(func() {
-					c = make(chan *pq.Notification, 1)
-					fakeListener.NotificationChannelReturns(c)
-
 					c <- nil
 				})
 
@@ -263,6 +251,56 @@ var _ = Describe("NotificationBus", func() {
 					Eventually(b).Should(Receive(Equal(false)))
 				})
 			})
+		})
+
+		Context("when the notification channel fills up while listening", func() {
+
+			BeforeEach(func() {
+				fakeListener.ListenCalls(func(_ string) error {
+					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pq.Notification{Channel: "some-channel"}
+					return nil
+				})
+			})
+
+			It("should still be able to listen for notifications", func(done Done) {
+
+				_, err := bus.Listen("some-channel")
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = bus.Listen("some-other-channel")
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = bus.Listen("some-new-channel")
+				Expect(err).NotTo(HaveOccurred())
+
+				close(done)
+			}, 5)
+
+		})
+
+		Context("when the notification channel fills up while unlistening", func() {
+
+			BeforeEach(func() {
+				fakeListener.UnlistenCalls(func(_ string) error {
+					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pq.Notification{Channel: "some-channel"}
+					return nil
+				})
+			})
+
+			It("should still be able to unlisten for notifications", func(done Done) {
+
+				err := bus.Unlisten("some-channel", a)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = bus.Unlisten("some-other-channel", b)
+				Expect(err).NotTo(HaveOccurred())
+
+				close(done)
+			}, 5)
 		})
 	})
 })
