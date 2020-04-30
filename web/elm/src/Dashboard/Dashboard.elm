@@ -17,7 +17,14 @@ import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Group.Models exposing (Pipeline)
-import Dashboard.Models as Models exposing (DragState(..), DropState(..), Dropdown(..), Model)
+import Dashboard.Models as Models
+    exposing
+        ( DragState(..)
+        , DropState(..)
+        , Dropdown(..)
+        , FetchError(..)
+        , Model
+        )
 import Dashboard.PipelineGrid as PipelineGrid
 import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Dashboard.RequestBuffer as RequestBuffer exposing (Buffer(..))
@@ -91,7 +98,7 @@ init searchType =
       , isTeamsRequestFinished = False
       , isResourcesRequestFinished = False
       , isPipelinesRequestFinished = False
-      , isJobsErroring = False
+      , jobsError = Nothing
       , isTeamsErroring = False
       , isResourcesErroring = False
       , isPipelinesErroring = False
@@ -230,7 +237,7 @@ handleCallback callback ( model, effects ) =
                 newModel =
                     { model
                         | jobs = newJobs
-                        , isJobsErroring = False
+                        , jobsError = Nothing
                     }
             in
             if mapToJobIds newJobs |> changedFrom (mapToJobIds model.jobs) then
@@ -246,8 +253,8 @@ handleCallback callback ( model, effects ) =
             else
                 ( newModel, effects )
 
-        AllJobsFetched (Err _) ->
-            ( { model | isJobsErroring = True }, effects )
+        AllJobsFetched (Err err) ->
+            ( { model | jobsError = Just Failed }, effects )
 
         AllResourcesFetched (Ok resources) ->
             ( { model
@@ -762,14 +769,14 @@ clusterNameView session =
 
 showTurbulence :
     { a
-        | isJobsErroring : Bool
+        | jobsError : Maybe FetchError
         , isTeamsErroring : Bool
         , isResourcesErroring : Bool
         , isPipelinesErroring : Bool
     }
     -> Bool
 showTurbulence model =
-    model.isJobsErroring
+    (model.jobsError == Just Failed)
         || model.isTeamsErroring
         || model.isResourcesErroring
         || model.isPipelinesErroring

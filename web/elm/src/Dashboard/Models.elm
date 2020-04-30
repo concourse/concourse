@@ -2,6 +2,7 @@ module Dashboard.Models exposing
     ( DragState(..)
     , DropState(..)
     , Dropdown(..)
+    , FetchError(..)
     , FooterModel
     , Model
     )
@@ -30,7 +31,7 @@ type alias Model =
             , isTeamsRequestFinished : Bool
             , isPipelinesRequestFinished : Bool
             , isResourcesRequestFinished : Bool
-            , isJobsErroring : Bool
+            , jobsError : Maybe FetchError
             , isTeamsErroring : Bool
             , isResourcesErroring : Bool
             , isPipelinesErroring : Bool
@@ -40,6 +41,11 @@ type alias Model =
             , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
             }
         )
+
+
+type FetchError
+    = Failed
+    | Disabled
 
 
 type DragState
