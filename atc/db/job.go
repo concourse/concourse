@@ -934,7 +934,7 @@ func (j *job) getRunningBuildsBySerialGroup(tx Tx, serialGroups []string) ([]Bui
 }
 
 func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Build, bool, error) {
-	row := buildsQuery.Options(`DISTINCT ON (b.id)`).
+	subQuery, params, err := buildsQuery.Options(`DISTINCT ON (b.id)`).
 		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
 		Where(sq.Eq{
 			"jsg.serial_group":    serialGroups,
@@ -942,13 +942,18 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Bu
 			"j.paused":            false,
 			"j.inputs_determined": true,
 			"j.pipeline_id":       j.pipelineID}).
-		OrderBy("b.id ASC").
-		Limit(1).
-		RunWith(tx).
-		QueryRow()
+		ToSql()
+	if err != nil {
+		return nil, false, err
+	}
+
+	row := tx.QueryRow(`
+			SELECT * FROM (`+subQuery+`) j
+			ORDER BY COALESCE(rerun_of, id) ASC, id ASC
+			LIMIT 1`, params...)
 
 	build := newEmptyBuild(j.conn, j.lockFactory)
-	err := scanBuild(build, row, j.conn.EncryptionStrategy())
+	err = scanBuild(build, row, j.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
