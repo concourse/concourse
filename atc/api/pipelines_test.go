@@ -1886,6 +1886,20 @@ var _ = Describe("Pipelines API", func() {
 					})
 				})
 
+				Context("when the pipeline is archived", func() {
+					BeforeEach(func() {
+						dbPipeline.ArchivedReturns(true)
+					})
+
+					It("returns a 409", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusConflict))
+					})
+					It("returns an error message in the body", func() {
+						body, _ := ioutil.ReadAll(response.Body)
+						Expect(body).To(Equal([]byte("action not allowed for archived pipeline\n")))
+					})
+				})
+
 				Context("when creating a started build succeeds", func() {
 					var fakeBuild *dbfakes.FakeBuild
 
