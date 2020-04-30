@@ -122,7 +122,7 @@ func (a *access) teamRoles() map[string][]string {
 
 func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
 
-	roles := []string{}
+	roleSet := map[string]bool{}
 
 	groups := a.groups()
 	connectorID := a.connectorID()
@@ -135,18 +135,18 @@ func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
 
 		// backwards compatibility for allow-all-users
 		if len(userAuth) == 0 && len(groupAuth) == 0 {
-			roles = append(roles, role)
+			roleSet[role] = true
 		}
 
 		for _, user := range userAuth {
 			if userID != "" {
 				if strings.EqualFold(user, fmt.Sprintf("%v:%v", connectorID, userID)) {
-					roles = append(roles, role)
+					roleSet[role] = true
 				}
 			}
 			if userName != "" {
 				if strings.EqualFold(user, fmt.Sprintf("%v:%v", connectorID, userName)) {
-					roles = append(roles, role)
+					roleSet[role] = true
 				}
 			}
 		}
@@ -155,13 +155,17 @@ func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
 			for _, claimGroup := range groups {
 				if claimGroup != "" {
 					if strings.EqualFold(group, fmt.Sprintf("%v:%v", connectorID, claimGroup)) {
-						roles = append(roles, role)
+						roleSet[role] = true
 					}
 				}
 			}
 		}
 	}
 
+	var roles []string
+	for role := range roleSet {
+		roles = append(roles, role)
+	}
 	return roles
 }
 
