@@ -186,7 +186,7 @@ type RunCommand struct {
 
 		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Period after which one-off build containers will be garbage-collected."`
 		MissingGracePeriod     time.Duration `long:"missing-grace-period" default:"5m" description:"Period after which to reap containers and volumes that were created but went missing from the worker."`
-		HijackGracePeriod      time.Duration `long:"hijack-grace-period" default:"10m" description:"Period after which hijacked containers will be garbage collected"`
+		HijackGracePeriod      time.Duration `long:"hijack-grace-period" default:"5m" description:"Period after which hijacked containers will be garbage collected"`
 		FailedGracePeriod      time.Duration `long:"failed-grace-period" default:"120h" description:"Period after which failed containers will be garbage collected"`
 		CheckRecyclePeriod     time.Duration `long:"check-recycle-period" default:"1m" description:"Period after which to reap checks that are completed."`
 	} `group:"Garbage Collection" namespace:"gc"`
