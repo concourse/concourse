@@ -156,6 +156,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 
 		ArtifactByPath: containerInputs,
 	}
+	tracing.Inject(ctx, &containerSpec)
 
 	workerSpec := worker.WorkerSpec{
 		ResourceType:  step.plan.Type,
