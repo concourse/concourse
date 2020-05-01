@@ -72,3 +72,7 @@
 #### <sub><sup><a name="5452" href="#5452">:link:</a></sup></sub> fix
 
 * We fixed a bug where if you create a new build and then trigger a rerun build, both the builds will be stuck in pending state. #5452
+
+#### <sub><sup><a name="5452" href="#4081">:link:</a></sup></sub> fix
+
+* @shyamz-22 added ability to configure NewRelic insights endpoint which allows us to use EU or US data centers
