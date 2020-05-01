@@ -649,6 +649,7 @@ var _ = Describe("Accessor", func() {
 						"user_id":      "some-user-id",
 						"user_name":    "some-user-name",
 					},
+					"groups": []string{"some-group"},
 				}
 			})
 
@@ -658,7 +659,7 @@ var _ = Describe("Accessor", func() {
 				})
 			})
 
-			Context("when the user is part of teams", func() {
+			Context("when the user is granted a role from their user id", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
@@ -678,11 +679,94 @@ var _ = Describe("Accessor", func() {
 				})
 
 				It("returns result with teams", func() {
-					Expect(result).To(Equal(map[string][]string{
-						"some-team-1": []string{"owner"},
-						"some-team-2": []string{"member"},
-						"some-team-3": []string{"viewer"},
-					}))
+					Expect(result["some-team-1"]).To(ContainElement("owner"))
+					Expect(result["some-team-2"]).To(ContainElement("member"))
+					Expect(result["some-team-3"]).To(ContainElement("viewer"))
+				})
+			})
+
+			Context("when the user is granted a role from their user name", func() {
+				BeforeEach(func() {
+					fakeTeam1.AuthReturns(atc.TeamAuth{
+						"owner": map[string][]string{
+							"users": []string{"some-connector:some-user-name"},
+						},
+					})
+					fakeTeam2.AuthReturns(atc.TeamAuth{
+						"member": map[string][]string{
+							"users": []string{"some-connector:some-user-name"},
+						},
+					})
+					fakeTeam3.AuthReturns(atc.TeamAuth{
+						"viewer": map[string][]string{
+							"users": []string{"some-connector:some-user-name"},
+						},
+					})
+				})
+
+				It("returns result with teams", func() {
+					Expect(result["some-team-1"]).To(ContainElement("owner"))
+					Expect(result["some-team-2"]).To(ContainElement("member"))
+					Expect(result["some-team-3"]).To(ContainElement("viewer"))
+				})
+			})
+
+			Context("when the user is granted a role from a group", func() {
+				BeforeEach(func() {
+					fakeTeam1.AuthReturns(atc.TeamAuth{
+						"owner": map[string][]string{
+							"groups": []string{"some-connector:some-group"},
+						},
+					})
+					fakeTeam2.AuthReturns(atc.TeamAuth{
+						"member": map[string][]string{
+							"groups": []string{"some-connector:some-group"},
+						},
+					})
+					fakeTeam3.AuthReturns(atc.TeamAuth{
+						"viewer": map[string][]string{
+							"groups": []string{"some-connector:some-group"},
+						},
+					})
+				})
+
+				It("returns result with teams", func() {
+					Expect(result["some-team-1"]).To(ContainElement("owner"))
+					Expect(result["some-team-2"]).To(ContainElement("member"))
+					Expect(result["some-team-3"]).To(ContainElement("viewer"))
+				})
+			})
+
+			Context("when the user is granted multiple roles on the same team", func() {
+				BeforeEach(func() {
+					fakeTeam1.AuthReturns(atc.TeamAuth{
+						"owner": map[string][]string{
+							"users": []string{"some-connector:some-user-id"},
+						},
+						"member": map[string][]string{
+							"groups": []string{"some-connector:some-group"},
+						},
+					})
+				})
+
+				It("adds both roles", func() {
+					Expect(result["some-team-1"]).To(ContainElement("owner"))
+					Expect(result["some-team-1"]).To(ContainElement("member"))
+				})
+			})
+
+			Context("when the user is granted the same role multiple times", func() {
+				BeforeEach(func() {
+					fakeTeam1.AuthReturns(atc.TeamAuth{
+						"owner": map[string][]string{
+							"users":  []string{"some-connector:some-user-id"},
+							"groups": []string{"some-connector:some-group"},
+						},
+					})
+				})
+
+				It("only adds the role once", func() {
+					Expect(result["some-team-1"]).To(ContainElement("owner"))
 				})
 			})
 		})
