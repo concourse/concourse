@@ -112,3 +112,12 @@
 #### <sub><sup><a name="5486" href="#5486">:link:</a></sup></sub> feature
 
 * We added a new flag to let you configure the garden network pool. 
+
+
+#### <sub><sup><a name="5465" href="#5465">:link:</a></sup></sub> feature
+
+* We added support for the configuration of the set of DNS resolvers to be made visibile (through `/etc/resolv.conf`) to containers that Concourse creates when leveraging the experimental [containerd](https://containerd.io) worker backend.
+
+#### <sub><sup><a name="5445" href="#5445">:link:</a></sup></sub> feature
+
+* Added support to the experimental [containerd](https://containerd.io) worker backend to leverage the worker's DNS proxy to allow name resolution even in cases where the worker's set of nameservers are not reachable from the container's network namespace (for instance, when deploying Concourse workers in Docker, where the worker namerserver points to 127.0.0.11, an address that an inner container wouldn't be able to reach without the worker proxy).
