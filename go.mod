@@ -9,10 +9,10 @@ require (
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/DataDog/datadog-go v3.2.0+incompatible
 	github.com/DataDog/zstd v1.4.0
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.1.0
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
-	github.com/The-Cloud-Source/goryman v0.0.0-20150410173800-c22b6e4a7ac1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/aws/aws-sdk-go v1.25.18
 	github.com/caarlos0/env v3.5.0+incompatible
@@ -45,7 +45,6 @@ require (
 	github.com/gobuffalo/packr v1.13.7
 	github.com/gogo/googleapis v1.3.1 // indirect
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/gorilla/context v1.1.1 // indirect
@@ -99,21 +98,16 @@ require (
 	github.com/vito/houdini v1.1.1
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.etcd.io/bbolt v1.3.3 // indirect
-	go.opencensus.io v0.22.2
-	go.opentelemetry.io/otel v0.2.1
-	go.opentelemetry.io/otel/exporter/trace/jaeger v0.2.1
-	go.opentelemetry.io/otel/exporter/trace/stackdriver v0.2.1
+	go.opentelemetry.io/otel v0.3.0
+	go.opentelemetry.io/otel/exporters/trace/jaeger v0.3.0
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20191220220014-0732a990476f // indirect
-	google.golang.org/genproto v0.0.0-20191223191004-3caeed10a8bf // indirect
-	google.golang.org/grpc v1.26.0
+	google.golang.org/grpc v1.27.1
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1
-	gopkg.in/yaml.v2 v2.2.4
+	gopkg.in/yaml.v2 v2.2.7
 	k8s.io/api v0.0.0-20190313235455-40a48860b5ab
 	k8s.io/apimachinery v0.0.0-20190313205120-d7deff9243b1
 	k8s.io/client-go v11.0.0+incompatible

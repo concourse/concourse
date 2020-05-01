@@ -3,7 +3,7 @@ package tracing
 import (
 	"fmt"
 
-	"go.opentelemetry.io/otel/exporter/trace/stackdriver"
+	stackdriver "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
 )
 

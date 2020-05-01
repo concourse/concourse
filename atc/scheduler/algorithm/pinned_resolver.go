@@ -39,7 +39,7 @@ func (r *pinnedResolver) Resolve(ctx context.Context) (map[string]*versionCandid
 
 	if !found {
 		span.AddEvent(ctx, "pinned version not found")
-		span.SetStatus(codes.NotFound)
+		span.SetStatus(codes.NotFound, "")
 		return nil, db.PinnedVersionNotFound{PinnedVersion: r.inputConfig.PinnedVersion}.String(), nil
 	}
 
@@ -49,6 +49,6 @@ func (r *pinnedResolver) Resolve(ctx context.Context) (map[string]*versionCandid
 		r.inputConfig.Name: newCandidateVersion(version),
 	}
 
-	span.SetStatus(codes.OK)
+	span.SetStatus(codes.OK, "")
 	return versionCandidate, "", nil
 }

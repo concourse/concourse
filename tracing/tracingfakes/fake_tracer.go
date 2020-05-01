@@ -24,12 +24,13 @@ type FakeTracer struct {
 		result1 context.Context
 		result2 trace.Span
 	}
-	WithSpanStub        func(context.Context, string, func(ctx context.Context) error) error
+	WithSpanStub        func(context.Context, string, func(ctx context.Context) error, ...trace.StartOption) error
 	withSpanMutex       sync.RWMutex
 	withSpanArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
 		arg3 func(ctx context.Context) error
+		arg4 []trace.StartOption
 	}
 	withSpanReturns struct {
 		result1 error
@@ -106,18 +107,19 @@ func (fake *FakeTracer) StartReturnsOnCall(i int, result1 context.Context, resul
 	}{result1, result2}
 }
 
-func (fake *FakeTracer) WithSpan(arg1 context.Context, arg2 string, arg3 func(ctx context.Context) error) error {
+func (fake *FakeTracer) WithSpan(arg1 context.Context, arg2 string, arg3 func(ctx context.Context) error, arg4 ...trace.StartOption) error {
 	fake.withSpanMutex.Lock()
 	ret, specificReturn := fake.withSpanReturnsOnCall[len(fake.withSpanArgsForCall)]
 	fake.withSpanArgsForCall = append(fake.withSpanArgsForCall, struct {
 		arg1 context.Context
 		arg2 string
 		arg3 func(ctx context.Context) error
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("WithSpan", []interface{}{arg1, arg2, arg3})
+		arg4 []trace.StartOption
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("WithSpan", []interface{}{arg1, arg2, arg3, arg4})
 	fake.withSpanMutex.Unlock()
 	if fake.WithSpanStub != nil {
-		return fake.WithSpanStub(arg1, arg2, arg3)
+		return fake.WithSpanStub(arg1, arg2, arg3, arg4...)
 	}
 	if specificReturn {
 		return ret.result1
@@ -132,17 +134,17 @@ func (fake *FakeTracer) WithSpanCallCount() int {
 	return len(fake.withSpanArgsForCall)
 }
 
-func (fake *FakeTracer) WithSpanCalls(stub func(context.Context, string, func(ctx context.Context) error) error) {
+func (fake *FakeTracer) WithSpanCalls(stub func(context.Context, string, func(ctx context.Context) error, ...trace.StartOption) error) {
 	fake.withSpanMutex.Lock()
 	defer fake.withSpanMutex.Unlock()
 	fake.WithSpanStub = stub
 }
 
-func (fake *FakeTracer) WithSpanArgsForCall(i int) (context.Context, string, func(ctx context.Context) error) {
+func (fake *FakeTracer) WithSpanArgsForCall(i int) (context.Context, string, func(ctx context.Context) error, []trace.StartOption) {
 	fake.withSpanMutex.RLock()
 	defer fake.withSpanMutex.RUnlock()
 	argsForCall := fake.withSpanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeTracer) WithSpanReturns(result1 error) {

@@ -5,8 +5,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel/api/global"
-	"go.opentelemetry.io/otel/api/propagators"
-	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -79,8 +78,8 @@ func StartSpan(
 	return ctx, span
 }
 
-func Inject(ctx context.Context, supplier propagators.Supplier) {
-	propagators.TraceContext{}.Inject(ctx, supplier)
+func Inject(ctx context.Context, supplier propagation.HTTPSupplier) {
+	trace.TraceContext{}.Inject(ctx, supplier)
 }
 
 func End(span trace.Span, err error) {
@@ -89,10 +88,7 @@ func End(span trace.Span, err error) {
 	}
 
 	if err != nil {
-		span.SetStatus(codes.Internal)
-		span.SetAttributes(
-			key.New("error").String(err.Error()),
-		)
+		span.SetStatus(codes.Internal, err.Error())
 	}
 
 	span.End()

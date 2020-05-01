@@ -46,7 +46,7 @@ func (r *individualResolver) Resolve(ctx context.Context) (map[string]*versionCa
 
 		if !found {
 			span.AddEvent(ctx, "next every version not found")
-			span.SetStatus(codes.NotFound)
+			span.SetStatus(codes.NotFound, "")
 			return nil, db.VersionNotFound, nil
 		}
 
@@ -63,7 +63,7 @@ func (r *individualResolver) Resolve(ctx context.Context) (map[string]*versionCa
 
 		if !found {
 			span.AddEvent(ctx, "latest version not found")
-			span.SetStatus(codes.NotFound)
+			span.SetStatus(codes.NotFound, "")
 			return nil, db.LatestVersionNotFound, nil
 		}
 
@@ -77,6 +77,6 @@ func (r *individualResolver) Resolve(ctx context.Context) (map[string]*versionCa
 		r.inputConfig.Name: candidate,
 	}
 
-	span.SetStatus(codes.OK)
+	span.SetStatus(codes.OK, "")
 	return versionCandidates, "", nil
 }

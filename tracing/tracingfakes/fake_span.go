@@ -42,6 +42,13 @@ type FakeSpan struct {
 	isRecordingReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	RecordErrorStub        func(context.Context, error, ...trace.ErrorOption)
+	recordErrorMutex       sync.RWMutex
+	recordErrorArgsForCall []struct {
+		arg1 context.Context
+		arg2 error
+		arg3 []trace.ErrorOption
+	}
 	SetAttributesStub        func(...core.KeyValue)
 	setAttributesMutex       sync.RWMutex
 	setAttributesArgsForCall []struct {
@@ -52,10 +59,11 @@ type FakeSpan struct {
 	setNameArgsForCall []struct {
 		arg1 string
 	}
-	SetStatusStub        func(codes.Code)
+	SetStatusStub        func(codes.Code, string)
 	setStatusMutex       sync.RWMutex
 	setStatusArgsForCall []struct {
 		arg1 codes.Code
+		arg2 string
 	}
 	SpanContextStub        func() core.SpanContext
 	spanContextMutex       sync.RWMutex
@@ -231,6 +239,39 @@ func (fake *FakeSpan) IsRecordingReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeSpan) RecordError(arg1 context.Context, arg2 error, arg3 ...trace.ErrorOption) {
+	fake.recordErrorMutex.Lock()
+	fake.recordErrorArgsForCall = append(fake.recordErrorArgsForCall, struct {
+		arg1 context.Context
+		arg2 error
+		arg3 []trace.ErrorOption
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("RecordError", []interface{}{arg1, arg2, arg3})
+	fake.recordErrorMutex.Unlock()
+	if fake.RecordErrorStub != nil {
+		fake.RecordErrorStub(arg1, arg2, arg3...)
+	}
+}
+
+func (fake *FakeSpan) RecordErrorCallCount() int {
+	fake.recordErrorMutex.RLock()
+	defer fake.recordErrorMutex.RUnlock()
+	return len(fake.recordErrorArgsForCall)
+}
+
+func (fake *FakeSpan) RecordErrorCalls(stub func(context.Context, error, ...trace.ErrorOption)) {
+	fake.recordErrorMutex.Lock()
+	defer fake.recordErrorMutex.Unlock()
+	fake.RecordErrorStub = stub
+}
+
+func (fake *FakeSpan) RecordErrorArgsForCall(i int) (context.Context, error, []trace.ErrorOption) {
+	fake.recordErrorMutex.RLock()
+	defer fake.recordErrorMutex.RUnlock()
+	argsForCall := fake.recordErrorArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
 func (fake *FakeSpan) SetAttributes(arg1 ...core.KeyValue) {
 	fake.setAttributesMutex.Lock()
 	fake.setAttributesArgsForCall = append(fake.setAttributesArgsForCall, struct {
@@ -293,15 +334,16 @@ func (fake *FakeSpan) SetNameArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeSpan) SetStatus(arg1 codes.Code) {
+func (fake *FakeSpan) SetStatus(arg1 codes.Code, arg2 string) {
 	fake.setStatusMutex.Lock()
 	fake.setStatusArgsForCall = append(fake.setStatusArgsForCall, struct {
 		arg1 codes.Code
-	}{arg1})
-	fake.recordInvocation("SetStatus", []interface{}{arg1})
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("SetStatus", []interface{}{arg1, arg2})
 	fake.setStatusMutex.Unlock()
 	if fake.SetStatusStub != nil {
-		fake.SetStatusStub(arg1)
+		fake.SetStatusStub(arg1, arg2)
 	}
 }
 
@@ -311,17 +353,17 @@ func (fake *FakeSpan) SetStatusCallCount() int {
 	return len(fake.setStatusArgsForCall)
 }
 
-func (fake *FakeSpan) SetStatusCalls(stub func(codes.Code)) {
+func (fake *FakeSpan) SetStatusCalls(stub func(codes.Code, string)) {
 	fake.setStatusMutex.Lock()
 	defer fake.setStatusMutex.Unlock()
 	fake.SetStatusStub = stub
 }
 
-func (fake *FakeSpan) SetStatusArgsForCall(i int) codes.Code {
+func (fake *FakeSpan) SetStatusArgsForCall(i int) (codes.Code, string) {
 	fake.setStatusMutex.RLock()
 	defer fake.setStatusMutex.RUnlock()
 	argsForCall := fake.setStatusArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeSpan) SpanContext() core.SpanContext {
@@ -439,6 +481,8 @@ func (fake *FakeSpan) Invocations() map[string][][]interface{} {
 	defer fake.endMutex.RUnlock()
 	fake.isRecordingMutex.RLock()
 	defer fake.isRecordingMutex.RUnlock()
+	fake.recordErrorMutex.RLock()
+	defer fake.recordErrorMutex.RUnlock()
 	fake.setAttributesMutex.RLock()
 	defer fake.setAttributesMutex.RUnlock()
 	fake.setNameMutex.RLock()

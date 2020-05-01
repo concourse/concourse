@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
-	"go.opentelemetry.io/otel/exporter/trace/jaeger"
+	"go.opentelemetry.io/otel/exporters/trace/jaeger"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"

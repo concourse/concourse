@@ -3,7 +3,7 @@ package tracing
 import (
 	"fmt"
 
-	"go.opentelemetry.io/otel/exporter/trace/jaeger"
+	"go.opentelemetry.io/otel/exporters/trace/jaeger"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
 )
 
@@ -18,7 +18,7 @@ func (j Jaeger) IsConfigured() bool {
 }
 
 func (j Jaeger) Exporter() (export.SpanSyncer, error) {
-	exporter, err := jaeger.NewExporter(
+	exporter, err := jaeger.NewRawExporter(
 		jaeger.WithCollectorEndpoint(j.Endpoint),
 		jaeger.WithProcess(jaeger.Process{
 			ServiceName: j.Service,

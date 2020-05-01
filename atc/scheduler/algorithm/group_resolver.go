@@ -74,7 +74,7 @@ func (r *groupResolver) Resolve(ctx context.Context) (map[string]*versionCandida
 
 		if !found {
 			notFoundErr := db.PinnedVersionNotFound{PinnedVersion: cfg.PinnedVersion}
-			span.SetStatus(codes.InvalidArgument)
+			span.SetStatus(codes.InvalidArgument, string(notFoundErr.String()))
 			return nil, notFoundErr.String(), nil
 		}
 
@@ -89,7 +89,7 @@ func (r *groupResolver) Resolve(ctx context.Context) (map[string]*versionCandida
 
 	if !resolved {
 		span.SetAttributes(key.New("failure").String(string(failure)))
-		span.SetStatus(codes.NotFound)
+		span.SetStatus(codes.NotFound, "")
 		return nil, failure, nil
 	}
 
@@ -98,7 +98,7 @@ func (r *groupResolver) Resolve(ctx context.Context) (map[string]*versionCandida
 		finalCandidates[input.Name] = r.candidates[i]
 	}
 
-	span.SetStatus(codes.OK)
+	span.SetStatus(codes.OK, "")
 	return finalCandidates, "", nil
 }
 
@@ -117,13 +117,13 @@ func (r *groupResolver) tryResolve(ctx context.Context) (bool, db.ResolutionFail
 
 		if !worked {
 			// input was not satisfiable
-			span.SetStatus(codes.NotFound)
+			span.SetStatus(codes.NotFound, "")
 			return false, failure, nil
 		}
 	}
 
 	// got to the end of all the inputs
-	span.SetStatus(codes.OK)
+	span.SetStatus(codes.OK, "")
 	return true, "", nil
 }
 
@@ -172,13 +172,13 @@ func (r *groupResolver) trySatisfyPassedConstraintsForInput(ctx context.Context,
 			// resolving recursively worked!
 			break
 		} else {
-			span.SetStatus(codes.NotFound)
+			span.SetStatus(codes.NotFound, "")
 			return false, db.NoSatisfiableBuilds, nil
 		}
 	}
 
 	// all passed constraints were satisfied
-	span.SetStatus(codes.OK)
+	span.SetStatus(codes.OK, "")
 	return true, "", nil
 }
 
@@ -197,7 +197,7 @@ func (r *groupResolver) tryJobBuilds(ctx context.Context, inputIndex int, passed
 
 		if !ok {
 			// reached the end of the builds
-			span.SetStatus(codes.ResourceExhausted)
+			span.SetStatus(codes.ResourceExhausted, "")
 			return false, nil
 		}
 
@@ -208,7 +208,7 @@ func (r *groupResolver) tryJobBuilds(ctx context.Context, inputIndex int, passed
 		}
 
 		if worked {
-			span.SetStatus(codes.OK)
+			span.SetStatus(codes.OK, "")
 			return true, nil
 		}
 	}
@@ -287,7 +287,7 @@ outputs:
 
 			if worked {
 				// this build's candidates satisfied everything else!
-				span.SetStatus(codes.OK)
+				span.SetStatus(codes.OK, "")
 				return true, nil
 			}
 
@@ -301,7 +301,7 @@ outputs:
 		r.candidates[c] = candidate
 	}
 
-	span.SetStatus(codes.InvalidArgument)
+	span.SetStatus(codes.InvalidArgument, "")
 	return false, nil
 }
 
