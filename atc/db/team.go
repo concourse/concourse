@@ -18,8 +18,6 @@ import (
 	"github.com/concourse/concourse/atc/event"
 )
 
-var ConfigPinnedComment = "pinned through resource config"
-
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
 
 //go:generate counterfeiter . Team
@@ -1021,7 +1019,7 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 
 		_, err = psql.Insert("resource_pins").
 			Columns("resource_id", "version", "comment_text", "config").
-			Values(resourceID, version, ConfigPinnedComment, true).
+			Values(resourceID, version, "", true).
 			Suffix("ON CONFLICT (resource_id) DO UPDATE SET version = EXCLUDED.version, comment_text = EXCLUDED.comment_text, config = true").
 			RunWith(tx).
 			Exec()

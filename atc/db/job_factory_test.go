@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"fmt"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
@@ -627,10 +629,14 @@ var _ = Describe("Job Factory", func() {
 					Expect(len(jobs)).To(Equal(1))
 					Expect(jobs[0].Name()).To(Equal(job1.Name()))
 					Expect(jobs[0].Resources).To(HaveLen(1))
-					Expect(jobs[0].Resources[0].Name).To(Equal("some-resource"))
-					Expect(jobs[0].Resources[0].Type).To(Equal("some-type"))
-					Expect(jobs[0].Resources[0].Source).To(Equal(atc.Source{"some": "source"}))
-					Expect(jobs[0].Resources[0].Tags).To(Equal(atc.Tags{"tag"}))
+					Expect(jobs[0].Resources).To(ConsistOf(
+						db.SchedulerResource{
+							Name:   "some-resource",
+							Type:   "some-type",
+							Source: atc.Source{"some": "source"},
+							Tags:   atc.Tags{"tag"},
+						},
+					))
 				})
 			})
 
@@ -730,52 +736,39 @@ var _ = Describe("Job Factory", func() {
 				It("fetches that job and the used resource", func() {
 					jobs, err := jobFactory.JobsToSchedule()
 					Expect(err).ToNot(HaveOccurred())
-					Expect(len(jobs)).To(Equal(3))
 
-					jobsMap := make(map[string]db.SchedulerJob)
 					for _, job := range jobs {
-						_, exists := jobsMap[job.Name()]
-						Expect(exists).To(BeFalse())
-
-						jobsMap[job.Name()] = job
+						switch job.Name() {
+						case job1.Name():
+							Expect(job.Resources).To(ConsistOf(
+								db.SchedulerResource{
+									Name: "some-resource",
+									Type: "some-type",
+								}))
+						case job2.Name():
+							Expect(job.Resources).To(ConsistOf(
+								db.SchedulerResource{
+									Name: "some-resource",
+									Type: "some-type",
+								},
+								db.SchedulerResource{
+									Name: "other-resource",
+									Type: "some-type",
+								}))
+						case job3.Name():
+							Expect(job.Resources).To(ConsistOf(
+								db.SchedulerResource{
+									Name: "some-resource",
+									Type: "other-type",
+								},
+								db.SchedulerResource{
+									Name: "some-resource-2",
+									Type: "other-type",
+								}))
+						default:
+							Fail(fmt.Sprintf("job %s is not expected to be scheduled", job.Name()))
+						}
 					}
-
-					job1, exists := jobsMap[job1.Name()]
-					Expect(exists).To(BeTrue())
-					Expect(job1.Name()).To(Equal(job1.Name()))
-					Expect(job1.Resources).To(HaveLen(1))
-					Expect(job1.Resources[0].Name).To(Equal("some-resource"))
-					Expect(job1.Resources[0].Type).To(Equal("some-type"))
-
-					job2, exists := jobsMap[job2.Name()]
-					Expect(exists).To(BeTrue())
-					Expect(job2.Name()).To(Equal(job2.Name()))
-					Expect(job2.Resources).To(HaveLen(2))
-					Expect(job2.Resources).To(ConsistOf(
-						db.SchedulerResource{
-							Name: "some-resource",
-							Type: "some-type",
-						},
-						db.SchedulerResource{
-							Name: "other-resource",
-							Type: "some-type",
-						},
-					))
-
-					job3, exists := jobsMap[job3.Name()]
-					Expect(exists).To(BeTrue())
-					Expect(job3.Name()).To(Equal(job3.Name()))
-					Expect(job3.Resources).To(HaveLen(2))
-					Expect(job3.Resources).To(ConsistOf(
-						db.SchedulerResource{
-							Name: "some-resource",
-							Type: "other-type",
-						},
-						db.SchedulerResource{
-							Name: "some-resource-2",
-							Type: "other-type",
-						},
-					))
 				})
 			})
 
@@ -823,11 +816,14 @@ var _ = Describe("Job Factory", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(len(jobs)).To(Equal(1))
 					Expect(jobs[0].Name()).To(Equal(job1.Name()))
-					Expect(jobs[0].Resources).To(HaveLen(1))
-					Expect(jobs[0].Resources[0].Name).To(Equal("some-resource"))
-					Expect(jobs[0].Resources[0].Type).To(Equal("some-type"))
-					Expect(jobs[0].Resources[0].Source).To(Equal(atc.Source{"some": "source"}))
-					Expect(jobs[0].Resources[0].Tags).To(Equal(atc.Tags{"tag"}))
+					Expect(jobs[0].Resources).To(ConsistOf(
+						db.SchedulerResource{
+							Name:   "some-resource",
+							Type:   "some-type",
+							Source: atc.Source{"some": "source"},
+							Tags:   atc.Tags{"tag"},
+						},
+					))
 				})
 			})
 
@@ -878,11 +874,14 @@ var _ = Describe("Job Factory", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(len(jobs)).To(Equal(1))
 					Expect(jobs[0].Name()).To(Equal(job1.Name()))
-					Expect(jobs[0].Resources).To(HaveLen(1))
-					Expect(jobs[0].Resources[0].Name).To(Equal("some-resource"))
-					Expect(jobs[0].Resources[0].Type).To(Equal("some-type"))
-					Expect(jobs[0].Resources[0].Source).To(Equal(atc.Source{"some": "source"}))
-					Expect(jobs[0].Resources[0].Tags).To(Equal(atc.Tags{"tag"}))
+					Expect(jobs[0].Resources).To(ConsistOf(
+						db.SchedulerResource{
+							Name:   "some-resource",
+							Type:   "some-type",
+							Source: atc.Source{"some": "source"},
+							Tags:   atc.Tags{"tag"},
+						},
+					))
 				})
 			})
 		})
@@ -917,10 +916,14 @@ var _ = Describe("Job Factory", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(len(jobs)).To(Equal(1))
 					Expect(jobs[0].Name()).To(Equal(job1.Name()))
-					Expect(jobs[0].ResourceTypes).ToNot(BeNil())
-					Expect(len(jobs[0].ResourceTypes)).To(Equal(1))
-					Expect(jobs[0].ResourceTypes[0].Name).To(Equal("some-type"))
-					Expect(jobs[0].ResourceTypes[0].Type).To(Equal("other-type"))
+					Expect(jobs[0].ResourceTypes).To(ConsistOf(
+						atc.VersionedResourceType{
+							ResourceType: atc.ResourceType{
+								Name: "some-type",
+								Type: "other-type",
+							},
+						},
+					))
 				})
 			})
 
@@ -983,50 +986,43 @@ var _ = Describe("Job Factory", func() {
 				It("fetches all jobs and resource types", func() {
 					jobs, err := jobFactory.JobsToSchedule()
 					Expect(err).ToNot(HaveOccurred())
-					Expect(len(jobs)).To(Equal(3))
 
-					jobsMap := make(map[string]db.SchedulerJob)
 					for _, job := range jobs {
-						_, exists := jobsMap[job.Name()]
-						Expect(exists).To(BeFalse())
-
-						jobsMap[job.Name()] = job
+						switch job.Name() {
+						case job1.Name():
+							Expect(job.ResourceTypes).To(ConsistOf(
+								atc.VersionedResourceType{
+									ResourceType: atc.ResourceType{
+										Name: "some-type",
+										Type: "other-type",
+									},
+								}))
+						case job2.Name():
+							Expect(job.ResourceTypes).To(ConsistOf(
+								atc.VersionedResourceType{
+									ResourceType: atc.ResourceType{
+										Name: "some-type",
+										Type: "other-type",
+									},
+								}))
+						case job3.Name():
+							Expect(job.ResourceTypes).To(ConsistOf(
+								atc.VersionedResourceType{
+									ResourceType: atc.ResourceType{
+										Name: "some-type-1",
+										Type: "other-type-1",
+									},
+								},
+								atc.VersionedResourceType{
+									ResourceType: atc.ResourceType{
+										Name: "some-type-2",
+										Type: "other-type-2",
+									},
+								}))
+						default:
+							Fail(fmt.Sprintf("job %s is not expected to be scheduled", job.Name()))
+						}
 					}
-
-					job1, exists := jobsMap[job1.Name()]
-					Expect(exists).To(BeTrue())
-					Expect(job1.Name()).To(Equal(job1.Name()))
-					Expect(job1.ResourceTypes).ToNot(BeNil())
-					Expect(len(job1.ResourceTypes)).To(Equal(1))
-					Expect(job1.ResourceTypes[0].Name).To(Equal("some-type"))
-					Expect(job1.ResourceTypes[0].Type).To(Equal("other-type"))
-
-					job2, exists := jobsMap[job2.Name()]
-					Expect(exists).To(BeTrue())
-					Expect(job2.Name()).To(Equal(job2.Name()))
-					Expect(job2.ResourceTypes).ToNot(BeNil())
-					Expect(len(job2.ResourceTypes)).To(Equal(1))
-					Expect(job2.ResourceTypes[0].Name).To(Equal("some-type"))
-					Expect(job2.ResourceTypes[0].Type).To(Equal("other-type"))
-
-					job3, exists := jobsMap[job3.Name()]
-					Expect(exists).To(BeTrue())
-					Expect(job3.Name()).To(Equal(job3.Name()))
-					Expect(job3.ResourceTypes).ToNot(BeNil())
-					Expect(len(job3.ResourceTypes)).To(Equal(2))
-					Expect(job3.ResourceTypes).To(ConsistOf(
-						atc.VersionedResourceType{
-							ResourceType: atc.ResourceType{
-								Name: "some-type-1",
-								Type: "other-type-1",
-							},
-						},
-						atc.VersionedResourceType{
-							ResourceType: atc.ResourceType{
-								Name: "some-type-2",
-								Type: "other-type-2",
-							},
-						}))
 				})
 			})
 		})

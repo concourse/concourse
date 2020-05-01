@@ -46,10 +46,10 @@ var _ = Describe("Migrate config pinned resources", func() {
 			err = db.QueryRow(`INSERT INTO resources(name, pipeline_id, config, active, type) VALUES('resource-1', 2, '{"type": "some-type", "version": {"ref": "v2"}}', true, 'some-type') RETURNING id`).Scan(&resource4ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = db.Exec(`INSERT INTO resource_pins(resource_id, version, comment_text) VALUES($1, '{"ref": "v0"}', '')`, resource1ID)
+			_, err = db.Exec(`INSERT INTO resource_pins(resource_id, version, comment_text) VALUES($1, '{"ref": "v0"}', 'api-pinned')`, resource1ID)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = db.Exec(`INSERT INTO resource_pins(resource_id, version, comment_text) VALUES($1, '{"ref": "api"}', '')`, resource2ID)
+			_, err = db.Exec(`INSERT INTO resource_pins(resource_id, version, comment_text) VALUES($1, '{"ref": "api"}', 'api-pinned')`, resource2ID)
 			Expect(err).NotTo(HaveOccurred())
 
 			db.Close()
@@ -60,21 +60,27 @@ var _ = Describe("Migrate config pinned resources", func() {
 				resourceID int
 				version    map[string]string
 				config     bool
+				comment    string
 			}
 
-			rows, err := db.Query(`SELECT resource_id, version, config FROM resource_pins`)
+			rows, err := db.Query(`SELECT resource_id, version, config, comment_text FROM resource_pins`)
 			Expect(err).NotTo(HaveOccurred())
 
 			var pinnedResources []pinnedResource
 			for rows.Next() {
 				var p pinnedResource
 				var version []byte
+				var pinComment sql.NullString
 
-				err := rows.Scan(&p.resourceID, &version, &p.config)
+				err := rows.Scan(&p.resourceID, &version, &p.config, &pinComment)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = json.Unmarshal(version, &p.version)
 				Expect(err).NotTo(HaveOccurred())
+
+				if pinComment.Valid {
+					p.comment = pinComment.String
+				}
 
 				pinnedResources = append(pinnedResources, p)
 			}
@@ -84,6 +90,7 @@ var _ = Describe("Migrate config pinned resources", func() {
 					resourceID: resource1ID,
 					version:    map[string]string{"ref": "v0"},
 					config:     false,
+					comment:    "api-pinned",
 				},
 				{
 					resourceID: resource2ID,

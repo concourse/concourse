@@ -2188,7 +2188,7 @@ var _ = Describe("Job", func() {
 			})
 		})
 
-		Context("when the input is pinned through the job config", func() {
+		Context("when the input is pinned through the get step", func() {
 			BeforeEach(func() {
 				var err error
 				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
@@ -2269,7 +2269,7 @@ var _ = Describe("Job", func() {
 					Expect(pinned).To(BeTrue())
 				})
 
-				It("resolves the pinned version to the version pinned through the input", func() {
+				It("resolves the pinned version to the version pinned through the get step", func() {
 					someResource, found, err := inputsPipeline.Resource("some-resource")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())

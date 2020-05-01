@@ -69,7 +69,7 @@ func (self *migrations) Up_1585079293() error {
 		_, err = tx.Exec(`
 			INSERT INTO resource_pins (resource_id, version, config, comment_text)
 			VALUES ($1, $2, true, '')
-			ON CONFLICT (resource_id) DO UPDATE SET version = EXCLUDED.version, config = EXCLUDED.config`, resourceID, versionJSON)
+			ON CONFLICT (resource_id) DO UPDATE SET version = EXCLUDED.version, config = EXCLUDED.config, comment_text = EXCLUDED.comment_text`, resourceID, versionJSON)
 		if err != nil {
 			return err
 		}
