@@ -142,6 +142,39 @@ var _ = Describe("NewRelicEmitter", func() {
 			Entry("is disabled", true, ""),
 		)
 	})
+
+	Context("NewRelicConfiguration", func() {
+
+		It("sends events to configured endpoint", func() {
+			config := &emitter.NewRelicConfig{
+				AccountID:     "123456",
+				APIKey:        "eu019347923874648573934074",
+				Url:           server.URL(),
+			}
+
+			server.RouteToHandler(http.MethodPost, "/v1/accounts/123456/events", verifyEvents(1))
+
+			e, _ := config.NewEmitter()
+			e.Emit(testLogger, testEvent)
+
+			newRelicEmitter := e.(*emitter.NewRelicEmitter)
+			Expect(newRelicEmitter.Url).To(Equal(server.URL()))
+			Eventually(server.ReceivedRequests).Should(HaveLen(1))
+		})
+
+		It("configures default insights endpoint when url is not configured", func() {
+			config := &emitter.NewRelicConfig{
+				AccountID:     "123456",
+				APIKey:        "eu019347923874648573934074",
+				ServicePrefix: "concourse_",
+			}
+
+			e, _ := config.NewEmitter()
+			newRelicEmitter := e.(*emitter.NewRelicEmitter)
+
+			Expect(newRelicEmitter.Url).To(Equal("https://insights-collector.newrelic.com/v1/accounts/123456/events"))
+		})
+	})
 })
 
 func verifyEvents(expectedEvents int) http.HandlerFunc {

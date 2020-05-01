@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -39,6 +40,7 @@ type (
 	NewRelicConfig struct {
 		AccountID          string        `long:"newrelic-account-id" description:"New Relic Account ID"`
 		APIKey             string        `long:"newrelic-api-key" description:"New Relic Insights API Key"`
+		Url                string        `long:"newrelic-insights-api-url" default:"https://insights-collector.newrelic.com" description:"Base Url for insights Insert API"`
 		ServicePrefix      string        `long:"newrelic-service-prefix" default:"" description:"An optional prefix for emitted New Relic events"`
 		BatchSize          uint64        `long:"newrelic-batch-size" default:"2000" description:"Number of events to batch together before emitting"`
 		BatchDuration      time.Duration `long:"newrelic-batch-duration" default:"60s" description:"Length of time to wait between emitting until all currently batched events are emitted"`
@@ -57,6 +59,13 @@ func (config *NewRelicConfig) IsConfigured() bool {
 	return config.AccountID != "" && config.APIKey != ""
 }
 
+func (config *NewRelicConfig) url() string {
+	if len(config.Url) > 0 {
+		return fmt.Sprintf("%s/v1/accounts/%s/events", config.Url, config.AccountID)
+	}
+	return fmt.Sprintf("https://insights-collector.newrelic.com/v1/accounts/%s/events", config.AccountID)
+}
+
 func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
 	client := &http.Client{
 		Transport: &http.Transport{},
@@ -65,7 +74,7 @@ func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
 
 	return &NewRelicEmitter{
 		Client:             client,
-		Url:                "https://insights-collector.newrelic.com/v1/accounts/" + config.AccountID + "/events",
+		Url:                config.url(),
 		apikey:             config.APIKey,
 		prefix:             config.ServicePrefix,
 		containers:         new(stats),
