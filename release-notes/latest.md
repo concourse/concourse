@@ -23,7 +23,7 @@
 
 ### <sub><sup><a name="5506" href="#5506">:link:</a></sup></sub> fix, breaking
 
-* When looking up credentials, we now prefer pipeline scoped credential managers over global ones. #5398
+* When looking up credentials, we now prefer pipeline scoped credential managers over global ones. #5506
 
 #### <sub><sup><a name="5398" href="#5398">:link:</a></sup></sub> fix, breaking
 
