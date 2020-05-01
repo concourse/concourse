@@ -33,8 +33,6 @@ var _ = Describe("Web Command", func() {
 		concourseRunner  *ginkgomon.Runner
 		postgresRunner   postgresrunner.Runner
 		dbProcess        ifrit.Process
-
-		// startErr error
 	)
 
 	BeforeEach(func() {
@@ -73,12 +71,6 @@ var _ = Describe("Web Command", func() {
 		})
 
 		concourseProcess = ifrit.Background(concourseRunner)
-
-		select {
-		case <-concourseProcess.Ready():
-			// case err := <-concourseProcess.Wait():
-			// 	startErr = err
-		}
 
 		// workaround to avoid panic due to registering http handlers multiple times
 		http.DefaultServeMux = new(http.ServeMux)
