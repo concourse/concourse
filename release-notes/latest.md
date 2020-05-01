@@ -31,9 +31,9 @@
 
 #### <sub><sup><a name="5397" href="#5397">:link:</a></sup></sub> feature, breaking
 
-* @pnsantos updated the Material Design icon library version to `5.0.45`.
+* @pnsantos updated the Material Design icon library version to `5.0.45`. #5397
 
-  **note:** some icons changed names (e.g. `mdi-github-circle` was changed to `mdi-github`) so after this update you might have to update some `icon:` references
+  **note:** some icons changed names (e.g. `mdi-github-circle` was changed to `mdi-github`) so after this update you might have to update some `icon:` references.
 
 ### <sub><sup><a name="5432" href="#5432">:link:</a></sup></sub> fix, breaking
 
@@ -41,7 +41,7 @@
 
 #### <sub><sup><a name="5368" href="#5368">:link:</a></sup></sub> feature
 
-* Implemented the core functionality for archiving pipelines [RFC #33]. 
+* Implemented the core functionality for archiving pipelines [RFC #33].  #5368
 
   **note**: archived pipelines are neither visible in the web UI (#5370) nor in `fly pipelines`.
 
@@ -51,15 +51,15 @@
 
 #### <sub><sup><a name="5459" href="#5459">:link:</a></sup></sub> feature
 
-* Since switching to using dex tokens, we started using the client credentials grant type to fetch tokens for the TSA. This seemed like a good opportunity to start bcrypting client secrets in the db. #5459
+* Since switching to using [dex](https://github.com/dexidp/dex) tokens, we started using the client credentials grant type to fetch tokens for the TSA. This seemed like a good opportunity to start `bcrypt`ing client secrets in the db. #5459
 
 ### <sub><sup><a name="5519" href="#5519">:link:</a></sup></sub> fix
 
-* Thanks to some [outstanding debugging](https://github.com/concourse/concourse/issues/5385) from @agurney, we've fixed a deadlock in the notifications bus which caused the build page not to load under certain conditions.
+* Thanks to some [outstanding debugging](https://github.com/concourse/concourse/issues/5385) from @agurney, we've fixed a deadlock in the notifications bus which caused the build page not to load under certain conditions. #5519
 
 ### <sub><sup><a name="5091" href="#5091">:link:</a></sup></sub> feature
 
-* @evanchaoli added a global configuration to override the check interval for any resources that have been configured with a webhook token.
+* @evanchaoli added a global configuration to override the check interval for any resources that have been configured with a webhook token. #5091
 
 #### <sub><sup><a name="5305" href="#5305">:link:</a></sup></sub> feature
 
@@ -111,7 +111,7 @@
 
 #### <sub><sup><a name="5486" href="#5486">:link:</a></sup></sub> feature
 
-* We added a new flag to let you configure the garden network pool. 
+* We added a new flag (`CONCOURSE_CONTAINER_NETWORK_POOL`) to let you configure the network range used for allocating IPs for the containers created by Concourse. This is primarily intended to support the experimental [containerd](https://containerd.io) worker backend. Despite the introduction of this new flag, `CONCOURSE_GARDEN_NETWORK_POOL` is still functional for the (stable and default) Garden worker backend. #5486
 
 
 #### <sub><sup><a name="5465" href="#5465">:link:</a></sup></sub> feature
