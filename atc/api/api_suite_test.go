@@ -4,9 +4,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 	"time"
+
+	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/exporters/trace/jaeger"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
@@ -24,6 +29,7 @@ import (
 	"github.com/concourse/concourse/atc/gc/gcfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/atc/wrappa"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -231,5 +237,24 @@ var _ = AfterEach(func() {
 
 func TestAPI(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "API Suite")
+	jaegerURL := os.Getenv("JAEGER_URL")
+	if jaegerURL != "" {
+
+		_, flush, _ := jaeger.NewExportPipeline(
+			jaeger.WithCollectorEndpoint(jaegerURL+"/api/traces"),
+			jaeger.WithProcess(jaeger.Process{ServiceName: "ginkgo"}),
+			jaeger.RegisterAsGlobal(),
+			jaeger.WithSDK(&sdktrace.Config{
+				DefaultSampler: sdktrace.AlwaysSample(),
+			}),
+		)
+		defer flush()
+		reporter := tracing.NewOpenTelemetryReporter(global.Tracer("ginkgo"))
+		RunSpecsWithDefaultAndCustomReporters(
+			t, "API Suite",
+			[]Reporter{reporter},
+		)
+	} else {
+		RunSpecs(t, "API Suite")
+	}
 }
