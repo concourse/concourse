@@ -139,6 +139,32 @@ func tick(logger lager.Logger) {
 		},
 	)
 
+	for action, gauge := range ConcurrentRequests {
+		emit(
+			logger.Session("concurrent-requests"),
+			Event{
+				Name:  "concurrent requests",
+				Value: gauge.Max(),
+				Attributes: map[string]string{
+					"action": action,
+				},
+			},
+		)
+	}
+
+	for action, counter := range ConcurrentRequestsLimitHit {
+		emit(
+			logger.Session("concurrent-requests-limit-hit"),
+			Event{
+				Name:  "concurrent requests limit hit",
+				Value: counter.Delta(),
+				Attributes: map[string]string{
+					"action": action,
+				},
+			},
+		)
+	}
+
 	emit(
 		logger.Session("checks-finished-with-error"),
 		Event{

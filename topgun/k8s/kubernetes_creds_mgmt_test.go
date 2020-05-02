@@ -60,7 +60,7 @@ var _ = Describe("Kubernetes credential management", func() {
 		var cachingSetup = func() {
 			deployConcourseChart(releaseName, "--set=worker.replicas=1",
 				"--set=concourse.web.secretCacheEnabled=true",
-				"--set=concourse.web.secretCacheDuration=600",
+				"--set=concourse.web.secretCacheDuration=600s",
 			)
 		}
 
@@ -79,7 +79,7 @@ var _ = Describe("Kubernetes credential management", func() {
 
 			deployConcourseChart(releaseName, "--set=worker.replicas=1",
 				"--set=concourse.web.secretCacheEnabled=true",
-				"--set=concourse.web.secretCacheDuration=600",
+				"--set=concourse.web.secretCacheDuration=600s",
 				"--set=concourse.web.kubernetes.createTeamNamespaces=false",
 			)
 		}

@@ -24,6 +24,9 @@ type PrometheusEmitter struct {
 	buildsStarted prometheus.Counter
 	buildsRunning prometheus.Gauge
 
+	concurrentRequestsLimitHit *prometheus.CounterVec
+	concurrentRequests         *prometheus.GaugeVec
+
 	buildDurationsVec *prometheus.HistogramVec
 	buildsAborted     prometheus.Counter
 	buildsErrored     prometheus.Counter
@@ -150,6 +153,21 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Help:      "Number of Concourse builds currently running.",
 	})
 	prometheus.MustRegister(buildsRunning)
+
+	concurrentRequestsLimitHit := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "concurrent_requests",
+		Name:      "limit_hit_total",
+		Help:      "Total number of requests rejected because the server was already serving too many concurrent requests.",
+	}, []string{"action"})
+	prometheus.MustRegister(concurrentRequestsLimitHit)
+
+	concurrentRequests := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "concourse",
+		Name:      "concurrent_requests",
+		Help:      "Number of concurrent requests being served by endpoints that have a specified limit of concurrent requests.",
+	}, []string{"action"})
+	prometheus.MustRegister(concurrentRequests)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
@@ -367,6 +385,9 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		buildsStarted: buildsStarted,
 		buildsRunning: buildsRunning,
 
+		concurrentRequestsLimitHit: concurrentRequestsLimitHit,
+		concurrentRequests:         concurrentRequests,
+
 		buildDurationsVec: buildDurationsVec,
 		buildsAborted:     buildsAborted,
 		buildsErrored:     buildsErrored,
@@ -427,6 +448,10 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.buildsStarted.Add(event.Value)
 	case "builds running":
 		emitter.buildsRunning.Set(event.Value)
+	case "concurrent requests limit hit":
+		emitter.concurrentRequestsLimitHit.WithLabelValues(event.Attributes["action"]).Add(event.Value)
+	case "concurrent requests":
+		emitter.concurrentRequests.WithLabelValues(event.Attributes["action"]).Set(event.Value)
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
 	case "worker containers":
