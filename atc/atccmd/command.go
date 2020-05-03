@@ -159,12 +159,6 @@ type RunCommand struct {
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
-	Worker struct {
-		GardenURL       flag.URL          `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
-		BaggageclaimURL flag.URL          `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
-		ResourceTypes   map[string]string `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
-	} `group:"Static Worker (optional)" namespace:"worker"`
-
 	Metrics struct {
 		HostName            string            `long:"metrics-host-name" description:"Host string to attach to emitted metrics."`
 		Attributes          map[string]string `long:"metrics-attribute" description:"A key-value attribute to attach to emitted metrics. Can be specified multiple times." value-name:"NAME:VALUE"`
@@ -1023,9 +1017,7 @@ func (cmd *RunCommand) constructBackendMembers(
 			)},
 		)
 	}
-	if cmd.Worker.GardenURL.URL != nil {
-		members = cmd.appendStaticWorker(logger, dbWorkerFactory, members)
-	}
+
 	return members, nil
 }
 
@@ -1878,34 +1870,6 @@ func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		h.baseHandler.ServeHTTP(w, r)
 	}
-}
-
-func (cmd *RunCommand) appendStaticWorker(
-	logger lager.Logger,
-	workerFactory db.WorkerFactory,
-	members []grouper.Member,
-) []grouper.Member {
-	var resourceTypes []atc.WorkerResourceType
-	for t, resourcePath := range cmd.Worker.ResourceTypes {
-		resourceTypes = append(resourceTypes, atc.WorkerResourceType{
-			Type:  t,
-			Image: resourcePath,
-		})
-	}
-
-	return append(members,
-		grouper.Member{
-			Name: "static-worker",
-			Runner: worker.NewHardcoded(
-				logger,
-				workerFactory,
-				clock.NewClock(),
-				cmd.Worker.GardenURL.URL.Host,
-				cmd.Worker.BaggageclaimURL.String(),
-				resourceTypes,
-			),
-		},
-	)
 }
 
 func (cmd *RunCommand) isTLSEnabled() bool {
