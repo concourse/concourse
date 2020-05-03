@@ -2078,10 +2078,20 @@ var _ = Describe("Pipeline", func() {
 	Describe("Variables", func() {
 		var (
 			fakeGlobalSecrets *credsfakes.FakeSecrets
+			pool              creds.VarSourcePool
 
 			pvars vars.Variables
 			err   error
 		)
+
+		BeforeEach(func() {
+			pool = creds.NewVarSourcePool(logger, 1*time.Minute, 1*time.Second, clock.NewClock())
+		})
+
+		AfterEach(func() {
+			pool.Close()
+		})
+
 		JustBeforeEach(func() {
 			fakeGlobalSecrets = new(credsfakes.FakeSecrets)
 			fakeGlobalSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
@@ -2091,8 +2101,7 @@ var _ = Describe("Pipeline", func() {
 				return nil, nil, false, nil
 			}
 
-			varSourcePool := creds.NewVarSourcePool(1*time.Minute, clock.NewClock())
-			pvars, err = pipeline.Variables(logger, fakeGlobalSecrets, varSourcePool)
+			pvars, err = pipeline.Variables(logger, fakeGlobalSecrets, pool)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
