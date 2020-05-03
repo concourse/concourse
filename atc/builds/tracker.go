@@ -12,13 +12,10 @@ import (
 )
 
 func NewTracker(
-	logger lager.Logger,
-
 	buildFactory db.BuildFactory,
 	engine engine.Engine,
 ) *Tracker {
 	return &Tracker{
-		logger:       logger,
 		buildFactory: buildFactory,
 		engine:       engine,
 		running:      &sync.Map{},
@@ -34,15 +31,15 @@ type Tracker struct {
 	running *sync.Map
 }
 
-func (bt *Tracker) Track() error {
-	tLog := bt.logger.Session("track")
+func (bt *Tracker) Run(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx)
 
-	tLog.Debug("start")
-	defer tLog.Debug("done")
+	logger.Debug("start")
+	defer logger.Debug("done")
 
 	builds, err := bt.buildFactory.GetAllStartedBuilds()
 	if err != nil {
-		tLog.Error("failed-to-lookup-started-builds", err)
+		logger.Error("failed-to-lookup-started-builds", err)
 		return err
 	}
 
@@ -58,7 +55,7 @@ func (bt *Tracker) Track() error {
 				bt.engine.NewBuild(build).Run(
 					lagerctx.NewContext(
 						ctx,
-						tLog.WithData(lager.Data{
+						logger.Session("run", lager.Data{
 							"build":    build.ID(),
 							"pipeline": build.PipelineName(),
 							"job":      build.JobName(),
@@ -71,12 +68,4 @@ func (bt *Tracker) Track() error {
 	}
 
 	return nil
-}
-
-func (bt *Tracker) Release() {
-	rLog := bt.logger.Session("release")
-	rLog.Debug("start")
-	defer rLog.Debug("done")
-
-	bt.engine.ReleaseAll(rLog)
 }

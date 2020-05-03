@@ -1,10 +1,10 @@
 package builds_test
 
 import (
+	"context"
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -29,7 +29,6 @@ func (s *TrackerSuite) SetupTest() {
 	s.fakeEngine = new(enginefakes.FakeEngine)
 
 	s.tracker = builds.NewTracker(
-		lagertest.NewTestLogger("test"),
 		s.fakeBuildFactory,
 		s.fakeEngine,
 	)
@@ -55,7 +54,7 @@ func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 		return engineBuild
 	}
 
-	err := s.tracker.Track()
+	err := s.tracker.Run(context.TODO())
 	s.NoError(err)
 
 	ranBuilds := []db.Build{
@@ -85,12 +84,12 @@ func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {
 		return engineBuild
 	}
 
-	err := s.tracker.Track()
+	err := s.tracker.Run(context.TODO())
 	s.NoError(err)
 
 	<-running
 
-	err = s.tracker.Track()
+	err = s.tracker.Run(context.TODO())
 	s.NoError(err)
 
 	select {
@@ -98,9 +97,4 @@ func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {
 		s.Fail("another build was started!")
 	case <-time.After(100 * time.Millisecond):
 	}
-}
-
-func (s *TrackerSuite) TestReleaseReleasesEngine() {
-	s.tracker.Release()
-	s.Equal(s.fakeEngine.ReleaseAllCallCount(), 1)
 }
