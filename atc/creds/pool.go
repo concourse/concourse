@@ -69,6 +69,8 @@ func NewVarSourcePool(
 }
 
 func (pool *varSourcePool) Size() int {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
 	return len(pool.pool)
 }
 
