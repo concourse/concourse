@@ -2,6 +2,7 @@ package builds_test
 
 import (
 	"context"
+	"testing"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -22,6 +23,12 @@ type TrackerSuite struct {
 	fakeEngine       *enginefakes.FakeEngine
 
 	tracker *builds.Tracker
+}
+
+func TestBuildTracker(t *testing.T) {
+	suite.Run(t, &TrackerSuite{
+		Assertions: require.New(t),
+	})
 }
 
 func (s *TrackerSuite) SetupTest() {
