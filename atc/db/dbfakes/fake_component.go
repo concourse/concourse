@@ -19,15 +19,15 @@ type FakeComponent struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	IntervalStub        func() string
+	IntervalStub        func() time.Duration
 	intervalMutex       sync.RWMutex
 	intervalArgsForCall []struct {
 	}
 	intervalReturns struct {
-		result1 string
+		result1 time.Duration
 	}
 	intervalReturnsOnCall map[int]struct {
-		result1 string
+		result1 time.Duration
 	}
 	IntervalElapsedStub        func() bool
 	intervalElapsedMutex       sync.RWMutex
@@ -147,7 +147,7 @@ func (fake *FakeComponent) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeComponent) Interval() string {
+func (fake *FakeComponent) Interval() time.Duration {
 	fake.intervalMutex.Lock()
 	ret, specificReturn := fake.intervalReturnsOnCall[len(fake.intervalArgsForCall)]
 	fake.intervalArgsForCall = append(fake.intervalArgsForCall, struct {
@@ -170,32 +170,32 @@ func (fake *FakeComponent) IntervalCallCount() int {
 	return len(fake.intervalArgsForCall)
 }
 
-func (fake *FakeComponent) IntervalCalls(stub func() string) {
+func (fake *FakeComponent) IntervalCalls(stub func() time.Duration) {
 	fake.intervalMutex.Lock()
 	defer fake.intervalMutex.Unlock()
 	fake.IntervalStub = stub
 }
 
-func (fake *FakeComponent) IntervalReturns(result1 string) {
+func (fake *FakeComponent) IntervalReturns(result1 time.Duration) {
 	fake.intervalMutex.Lock()
 	defer fake.intervalMutex.Unlock()
 	fake.IntervalStub = nil
 	fake.intervalReturns = struct {
-		result1 string
+		result1 time.Duration
 	}{result1}
 }
 
-func (fake *FakeComponent) IntervalReturnsOnCall(i int, result1 string) {
+func (fake *FakeComponent) IntervalReturnsOnCall(i int, result1 time.Duration) {
 	fake.intervalMutex.Lock()
 	defer fake.intervalMutex.Unlock()
 	fake.IntervalStub = nil
 	if fake.intervalReturnsOnCall == nil {
 		fake.intervalReturnsOnCall = make(map[int]struct {
-			result1 string
+			result1 time.Duration
 		})
 	}
 	fake.intervalReturnsOnCall[i] = struct {
-		result1 string
+		result1 time.Duration
 	}{result1}
 }
 

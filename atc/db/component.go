@@ -16,7 +16,7 @@ var componentsQuery = psql.Select("c.id, c.name, c.interval, c.last_ran, c.pause
 type Component interface {
 	ID() int
 	Name() string
-	Interval() string
+	Interval() time.Duration
 	LastRan() time.Time
 	Paused() bool
 
@@ -28,18 +28,18 @@ type Component interface {
 type component struct {
 	id       int
 	name     string
-	interval string
+	interval time.Duration
 	lastRan  time.Time
 	paused   bool
 
 	conn Conn
 }
 
-func (c *component) ID() int            { return c.id }
-func (c *component) Name() string       { return c.name }
-func (c *component) Interval() string   { return c.interval }
-func (c *component) LastRan() time.Time { return c.lastRan }
-func (c *component) Paused() bool       { return c.paused }
+func (c *component) ID() int                 { return c.id }
+func (c *component) Name() string            { return c.name }
+func (c *component) Interval() time.Duration { return c.interval }
+func (c *component) LastRan() time.Time      { return c.lastRan }
+func (c *component) Paused() bool            { return c.paused }
 
 func (c *component) Reload() (bool, error) {
 	row := componentsQuery.Where(sq.Eq{"c.id": c.id}).
@@ -58,17 +58,10 @@ func (c *component) Reload() (bool, error) {
 }
 
 func (c *component) IntervalElapsed() bool {
-	interval, err := time.ParseDuration(c.interval)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return time.Now().After(c.lastRan.Add(interval))
+	return time.Now().After(c.lastRan.Add(c.interval))
 }
 
 func (c *component) UpdateLastRan() error {
-
 	_, err := psql.Update("components").
 		Set("last_ran", sq.Expr("now()")).
 		Where(sq.Eq{
@@ -85,13 +78,14 @@ func (c *component) UpdateLastRan() error {
 
 func scanComponent(c *component, row scannable) error {
 	var (
-		lastRan pq.NullTime
+		lastRan  pq.NullTime
+		interval string
 	)
 
 	err := row.Scan(
 		&c.id,
 		&c.name,
-		&c.interval,
+		&interval,
 		&lastRan,
 		&c.paused,
 	)
@@ -100,6 +94,11 @@ func scanComponent(c *component, row scannable) error {
 	}
 
 	c.lastRan = lastRan.Time
+
+	c.interval, err = time.ParseDuration(interval)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
