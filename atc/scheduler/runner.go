@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 )
@@ -30,7 +31,7 @@ type schedulerRunner struct {
 	running            *sync.Map
 }
 
-func NewRunner(logger lager.Logger, jobFactory db.JobFactory, scheduler BuildScheduler, maxJobs uint64) Runner {
+func NewRunner(logger lager.Logger, jobFactory db.JobFactory, scheduler BuildScheduler, maxJobs uint64) component.Runnable {
 	newGuardJobScheduling := make(chan struct{}, maxJobs)
 	return &schedulerRunner{
 		logger:     logger,

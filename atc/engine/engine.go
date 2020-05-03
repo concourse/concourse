@@ -23,7 +23,8 @@ import (
 type Engine interface {
 	NewBuild(db.Build) Runnable
 	NewCheck(db.Check) Runnable
-	ReleaseAll(lager.Logger)
+
+	Drain(context.Context)
 }
 
 //go:generate counterfeiter . Runnable
@@ -57,16 +58,17 @@ type engine struct {
 	waitGroup     *sync.WaitGroup
 }
 
-func (engine *engine) ReleaseAll(logger lager.Logger) {
-	logger.Info("calling-release-on-builds")
+func (engine *engine) Drain(ctx context.Context) {
+	logger := lagerctx.FromContext(ctx)
+
+	logger.Info("start")
+	defer logger.Info("done")
 
 	close(engine.release)
 
-	logger.Info("waiting-on-builds")
+	logger.Info("waiting")
 
 	engine.waitGroup.Wait()
-
-	logger.Info("finished-waiting-on-builds")
 }
 
 func (engine *engine) NewBuild(build db.Build) Runnable {
