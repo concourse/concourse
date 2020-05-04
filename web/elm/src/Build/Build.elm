@@ -108,6 +108,7 @@ init flags =
           , status = BuildStatusPending
           , output = Empty
           , autoScroll = True
+          , isScrollToIdInProgress = False
           , previousKeyPress = Nothing
           , isTriggerBuildKeyDown = False
           , showHelp = False
@@ -141,6 +142,7 @@ subscriptions model =
     , OnKeyDown
     , OnKeyUp
     , OnElementVisible
+    , OnScrolledToId
     ]
         ++ (case buildEventsUrl of
                 Nothing ->
@@ -367,7 +369,11 @@ handleDelivery session delivery ( model, effects ) =
                                     )
 
                                 ScrollToID id ->
-                                    ( { model | highlight = Routes.HighlightNothing }
+                                    ( { model
+                                        | highlight = Routes.HighlightNothing
+                                        , autoScroll = False
+                                        , isScrollToIdInProgress = True
+                                      }
                                     , effects
                                         ++ [ Effects.Scroll
                                                 (ScrollDirection.ToId id)
@@ -391,6 +397,9 @@ handleDelivery session delivery ( model, effects ) =
 
                 _ ->
                     ( newModel, newEffects )
+
+        ScrolledToId _ ->
+            ( { model | isScrollToIdInProgress = False }, effects )
 
         _ ->
             ( model, effects )
@@ -469,7 +478,7 @@ getScrollBehavior model =
                 NoScroll
 
         Routes.HighlightNothing ->
-            if model.autoScroll then
+            if model.autoScroll && not model.isScrollToIdInProgress then
                 if model.hasLoadedYet then
                     case model.status of
                         BuildStatusSucceeded ->

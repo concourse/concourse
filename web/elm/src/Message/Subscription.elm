@@ -42,6 +42,9 @@ port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
 port rawHttpResponse : (String -> msg) -> Sub msg
 
 
+port scrolledToId : (( String, String ) -> msg) -> Sub msg
+
+
 type RawHttpResponse
     = Success
     | Timeout
@@ -64,6 +67,7 @@ type Subscription
     | OnCachedJobsReceived
     | OnCachedPipelinesReceived
     | OnCachedTeamsReceived
+    | OnScrolledToId
 
 
 type Delivery
@@ -83,6 +87,7 @@ type Delivery
     | CachedJobsReceived (Result Json.Decode.Error (List Concourse.Job))
     | CachedPipelinesReceived (Result Json.Decode.Error (List Concourse.Pipeline))
     | CachedTeamsReceived (Result Json.Decode.Error (List Concourse.Team))
+    | ScrolledToId ( String, String )
     | Noop
 
 
@@ -177,6 +182,9 @@ runSubscription s =
 
         OnTokenSentToFly ->
             rawHttpResponse (decodeHttpResponse >> TokenSentToFly)
+
+        OnScrolledToId ->
+            scrolledToId ScrolledToId
 
 
 decodeStorageResponse : Storage.Key -> Json.Decode.Decoder a -> (Result Json.Decode.Error a -> Delivery) -> ( Storage.Key, Storage.Value ) -> Delivery

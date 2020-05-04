@@ -205,6 +205,7 @@ app.ports.scrollToId.subscribe(function(params) {
       return;
     }
     parentElem.scrollTop = elem.offsetTop - padding;
+    app.ports.scrolledToId.send([parentId, toId]);
     clearInterval(interval);
   }, 20);
 });
