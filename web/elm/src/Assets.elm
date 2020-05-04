@@ -37,6 +37,7 @@ type Asset
     | FailureTimesIcon
     | ExclamationTriangleIcon
     | PipelineStatusIcon PipelineStatus
+    | PipelineStatusIconStale
     | ClippyIcon
     | UpArrow
     | DownArrow
@@ -247,11 +248,11 @@ toPath asset =
 
                         PipelineStatusErrored _ ->
                             "ic-error-orange.svg"
-
-                        PipelineStatusUnknown ->
-                            "ic-cached-grey.svg"
             in
             basePath ++ [ imageName ]
+
+        PipelineStatusIconStale ->
+            basePath ++ [ "ic-cached-grey.svg" ]
 
         ClippyIcon ->
             basePath ++ [ "clippy.svg" ]

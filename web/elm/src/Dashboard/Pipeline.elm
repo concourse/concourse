@@ -63,10 +63,14 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
         )
     <|
         [ Html.div
-            (Styles.pipelineCardBannerHd
-                { status = pipelineStatus isCached existingJobs pipeline
-                , pipelineRunningKeyframes = pipelineRunningKeyframes
-                }
+            (if isCached then
+                Styles.pipelineCardBannerStaleHd
+
+             else
+                Styles.pipelineCardBannerHd
+                    { status = pipelineStatus isCached existingJobs pipeline
+                    , pipelineRunningKeyframes = pipelineRunningKeyframes
+                    }
             )
             []
         , Html.div
@@ -95,6 +99,17 @@ pipelineView :
     }
     -> Html Message
 pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query, isCached } =
+    let
+        bannerStyle =
+            if isCached then
+                Styles.pipelineCardBannerStale
+
+            else
+                Styles.pipelineCardBanner
+                    { status = pipelineStatus isCached existingJobs pipeline
+                    , pipelineRunningKeyframes = pipelineRunningKeyframes
+                    }
+    in
     Html.div
         (Styles.pipelineCard
             ++ (if not isCached && String.isEmpty query then
@@ -111,12 +126,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
                )
         )
         [ Html.div
-            (class "banner"
-                :: Styles.pipelineCardBanner
-                    { status = pipelineStatus isCached existingJobs pipeline
-                    , pipelineRunningKeyframes = pipelineRunningKeyframes
-                    }
-            )
+            (class "banner" :: bannerStyle)
             []
         , headerView pipeline resourceError
         , bodyView hovered layers
@@ -126,10 +136,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
 
 pipelineStatus : Bool -> List Concourse.Job -> Pipeline -> PipelineStatus.PipelineStatus
 pipelineStatus isCached jobs pipeline =
-    if isCached then
-        PipelineStatus.PipelineStatusUnknown
-
-    else if pipeline.paused then
+    if pipeline.paused then
         PipelineStatus.PipelineStatusPaused
 
     else
@@ -277,10 +284,24 @@ footerView userState pipeline now hovered existingJobs isCached =
         (class "card-footer" :: Styles.pipelineCardFooter)
         [ Html.div
             [ style "display" "flex" ]
-            [ Icon.icon
-                { sizePx = 20, image = Assets.PipelineStatusIcon status }
-                Styles.pipelineStatusIcon
-            , transitionView now status
+            [ if isCached then
+                Icon.icon
+                    { sizePx = 20, image = Assets.PipelineStatusIconStale }
+                    Styles.pipelineStatusIcon
+
+              else
+                Icon.icon
+                    { sizePx = 20, image = Assets.PipelineStatusIcon status }
+                    Styles.pipelineStatusIcon
+            , if isCached then
+                Html.div
+                    (class "build-duration"
+                        :: Styles.pipelineCardTransitionAgeStale
+                    )
+                    [ Html.text "loading..." ]
+
+              else
+                transitionView now status
             ]
         , Html.div
             [ style "display" "flex" ]
@@ -383,13 +404,6 @@ transitionView t status =
                     :: Styles.pipelineCardTransitionAge status
                 )
                 [ Html.text "paused" ]
-
-        ( PipelineStatus.PipelineStatusUnknown, _ ) ->
-            Html.div
-                (class "build-duration"
-                    :: Styles.pipelineCardTransitionAge status
-                )
-                [ Html.text "loading..." ]
 
         ( PipelineStatus.PipelineStatusPending False, _ ) ->
             Html.div
