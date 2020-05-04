@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/metric"
 	"path"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
@@ -570,9 +570,9 @@ var _ = Describe("Client", func() {
 				ResourceTypes: atc.VersionedResourceTypes{},
 			}
 			fakeTaskProcessSpec = runtime.ProcessSpec{
-				Path: "/some/path",
-				Args: []string{"some", "args"},
-				Dir:  "/some/dir",
+				Path:         "/some/path",
+				Args:         []string{"some", "args"},
+				Dir:          "/some/dir",
 				StdoutWriter: new(bytes.Buffer),
 				StderrWriter: new(bytes.Buffer),
 			}
@@ -688,8 +688,12 @@ var _ = Describe("Client", func() {
 					})
 
 					It("metric task waiting is gauged", func() {
-						Expect(metric.TasksWaiting.Max()).To(Equal(float64(1)))
-						Expect(metric.TasksWaiting.Max()).To(Equal(float64(0)))
+						Eventually(metric.TasksWaiting.Max(), 5 * time.Second).Should(Equal(float64(1)))
+						Eventually(metric.TasksWaiting.Max(), 5 * time.Second).Should(Equal(float64(0)))
+					})
+
+					It("release the lock every time it acquires it", func() {
+						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
 					})
 
 				})
