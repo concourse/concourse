@@ -279,13 +279,15 @@ handleCallback callback ( model, effects ) =
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
             let
-                newPipelines =
-                    allPipelinesInEntireCluster
-                        |> List.map toDashboardPipeline
-                        |> Fetched
+                oldPipelines =
+                    model.pipelines
+                        |> FetchResult.map (List.map toConcoursePipeline)
             in
             ( { model
-                | pipelines = newPipelines
+                | pipelines =
+                    allPipelinesInEntireCluster
+                        |> List.map (toDashboardPipeline False)
+                        |> Fetched
                 , isPipelinesErroring = False
               }
             , effects
@@ -295,7 +297,7 @@ handleCallback callback ( model, effects ) =
                     else
                         []
                    )
-                ++ (if newPipelines |> changedFrom model.pipelines then
+                ++ (if Fetched allPipelinesInEntireCluster |> changedFrom oldPipelines then
                         [ SaveCachedPipelines allPipelinesInEntireCluster ]
 
                     else
@@ -424,7 +426,7 @@ handleDeliveryBody delivery ( model, effects ) =
             let
                 newPipelines =
                     pipelines
-                        |> List.map toDashboardPipeline
+                        |> List.map (toDashboardPipeline True)
                         |> Cached
             in
             if newPipelines |> changedFrom model.pipelines then
@@ -476,8 +478,8 @@ handleDeliveryBody delivery ( model, effects ) =
             ( model, effects )
 
 
-toDashboardPipeline : Concourse.Pipeline -> Pipeline
-toDashboardPipeline p =
+toDashboardPipeline : Bool -> Concourse.Pipeline -> Pipeline
+toDashboardPipeline isStale p =
     { id = p.id
     , name = p.name
     , teamName = p.teamName
@@ -486,6 +488,7 @@ toDashboardPipeline p =
     , isVisibilityLoading = False
     , paused = p.paused
     , archived = p.archived
+    , stale = isStale
     }
 
 
