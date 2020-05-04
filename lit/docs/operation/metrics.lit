@@ -112,6 +112,9 @@ metrics pipeline.
     # TYPE concourse_locks_held gauge
     concourse_locks_held{type="Batch"} 0
     concourse_locks_held{type="DatabaseMigration"} 0
+    # HELP concourse_tasks_waiting Number of Concourse tasks currently waiting. Only emitted when using the limit-acitve-tasks placement strategy.
+    # TYPE concourse_tasks_waiting gauge
+    concourse_tasks_waiting 3
     # HELP concourse_workers_containers Number of containers per worker
     # TYPE concourse_workers_containers gauge
     concourse_workers_containers{platform="linux",tags="",team="",worker="39d19eebdddb"} 0
