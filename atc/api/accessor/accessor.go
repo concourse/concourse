@@ -231,12 +231,17 @@ func (a *access) connectorID() string {
 }
 
 func (a *access) groups() []string {
+	groups := []string{}
 	if raw, ok := a.claims()["groups"]; ok {
-		if claim, ok := raw.([]string); ok {
-			return claim
+		if rawGroups, ok := raw.([]interface{}); ok {
+			for _, rawGroup := range rawGroups {
+				if group, ok := rawGroup.(string); ok {
+					groups = append(groups, group)
+				}
+			}
 		}
 	}
-	return []string{}
+	return groups
 }
 
 func (a *access) adminTeams() []string {
