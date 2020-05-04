@@ -59,7 +59,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
          , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
          , href <| Routes.toString <| Routes.pipelineRoute pipeline
          ]
-            ++ Styles.pipelineCardHd (pipelineStatus isCached existingJobs pipeline)
+            ++ Styles.pipelineCardHd (pipelineStatus existingJobs pipeline)
         )
     <|
         [ Html.div
@@ -68,7 +68,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
 
              else
                 Styles.pipelineCardBannerHd
-                    { status = pipelineStatus isCached existingJobs pipeline
+                    { status = pipelineStatus existingJobs pipeline
                     , pipelineRunningKeyframes = pipelineRunningKeyframes
                     }
             )
@@ -106,7 +106,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
 
             else
                 Styles.pipelineCardBanner
-                    { status = pipelineStatus isCached existingJobs pipeline
+                    { status = pipelineStatus existingJobs pipeline
                     , pipelineRunningKeyframes = pipelineRunningKeyframes
                     }
     in
@@ -134,8 +134,8 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
         ]
 
 
-pipelineStatus : Bool -> List Concourse.Job -> Pipeline -> PipelineStatus.PipelineStatus
-pipelineStatus isCached jobs pipeline =
+pipelineStatus : List Concourse.Job -> Pipeline -> PipelineStatus.PipelineStatus
+pipelineStatus jobs pipeline =
     if pipeline.paused then
         PipelineStatus.PipelineStatusPaused
 
@@ -278,7 +278,7 @@ footerView userState pipeline now hovered existingJobs isCached =
             }
 
         status =
-            pipelineStatus isCached existingJobs pipeline
+            pipelineStatus existingJobs pipeline
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)
