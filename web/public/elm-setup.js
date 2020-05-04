@@ -1,7 +1,7 @@
 const renderingModulePromise = import('./index.mjs');
 
 const node = document.getElementById("elm-app-embed");
-if (node == null) {
+if (node === null) {
   throw "missing #elm-app-embed";
 }
 
@@ -80,15 +80,15 @@ app.ports.tooltip.subscribe(function (pipelineInfo) {
   const pipelineTeamName = pipelineInfo[1];
 
   const team = document.getElementById(pipelineTeamName);
-  if (team == null) {
+  if (team === null) {
     return;
   }
   const card = team.querySelector(`.card[data-pipeline-name="${pipelineName}"]`);
-  if (card == null) {
+  if (card === null) {
     return;
   }
   const title = card.querySelector('.dashboard-pipeline-name');
-  if(title == null || title.offsetWidth >= title.scrollWidth) {
+  if(title === null || title.offsetWidth >= title.scrollWidth) {
     return;
   }
   title.parentNode.setAttribute('data-tooltip', pipelineName);
@@ -99,12 +99,12 @@ app.ports.tooltipHd.subscribe(function (pipelineInfo) {
   var pipelineTeamName = pipelineInfo[1];
 
   const card = document.querySelector(`.card[data-pipeline-name="${pipelineName}"][data-team-name="${pipelineTeamName}"]`);
-  if (card == null) {
+  if (card === null) {
     return;
   }
   const title = card.querySelector('.dashboardhd-pipeline-name');
 
-  if(title == null || title.offsetWidth >= title.scrollWidth){
+  if(title === null || title.offsetWidth >= title.scrollWidth){
     return;
   }
   title.parentNode.setAttribute('data-tooltip', pipelineName);
@@ -172,7 +172,7 @@ window.addEventListener('storage', function(event) {
 app.ports.syncTextareaHeight.subscribe(function(id) {
   const attemptToSyncHeight = () => {
     const elem = document.getElementById(id);
-    if (elem == null) {
+    if (elem === null) {
       return false;
     }
     elem.style.height = "auto";
@@ -197,11 +197,11 @@ app.ports.scrollToId.subscribe(function(params) {
   const padding = 10;
   const interval = setInterval(function() {
     const parentElem = document.getElementById(parentId);
-    if (parentElem == null) {
+    if (parentElem === null) {
       return;
     }
     const elem = document.getElementById(toId);
-    if (elem == null) {
+    if (elem === null) {
       return;
     }
     parentElem.scrollTop = elem.offsetTop - padding;
