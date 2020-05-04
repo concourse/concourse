@@ -1,9 +1,11 @@
 package worker_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/concourse/concourse/atc/metric"
 	"path"
 	"time"
 
@@ -571,6 +573,8 @@ var _ = Describe("Client", func() {
 				Path: "/some/path",
 				Args: []string{"some", "args"},
 				Dir:  "/some/dir",
+				StdoutWriter: new(bytes.Buffer),
+				StderrWriter: new(bytes.Buffer),
 			}
 			fakeContainer = new(workerfakes.FakeContainer)
 			fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
@@ -673,6 +677,21 @@ var _ = Describe("Client", func() {
 					It("release the task-step lock every time it acquires it", func() {
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
 					})
+				})
+
+				Context("when waiting for worker to be available", func() {
+					BeforeEach(func() {
+						fakePool.FindOrChooseWorkerForContainerReturns(nil, nil)
+						go func() {
+							cancel() // otherwise run task step waits indefinitely in test
+						}()
+					})
+
+					It("metric task waiting is gauged", func() {
+						Expect(metric.TasksWaiting.Max()).To(Equal(float64(1)))
+						Expect(metric.TasksWaiting.Max()).To(Equal(float64(0)))
+					})
+
 				})
 			})
 
