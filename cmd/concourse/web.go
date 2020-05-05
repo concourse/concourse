@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -116,6 +117,20 @@ func (cmd *WebCommand) populateSharedFlags() error {
 
 	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.TSACommand.ClientID] = cmd.TSACommand.ClientSecret
 	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.RunCommand.Server.ClientID] = cmd.RunCommand.Server.ClientSecret
+
+	if cmd.TSACommand.ClientID != "" {
+		if cmd.RunCommand.SystemClaimKey == "aud" {
+			found := false
+			for _, val := range cmd.RunCommand.SystemClaimValues {
+				if val == cmd.TSACommand.ClientID {
+					found = true
+				}
+			}
+			if !found {
+				return errors.New("at least one systemClaimValue must be equal to tsa-client-id")
+			}
+		}
+	}
 
 	cmd.TSACommand.ClusterName = cmd.RunCommand.Server.ClusterName
 	cmd.TSACommand.LogClusterName = cmd.RunCommand.LogClusterName
