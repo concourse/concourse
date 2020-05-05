@@ -246,17 +246,22 @@ var _ = Describe("Resolve", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		jobInputs := []atc.JobInput{
-			{
-				Name:     "some-input",
-				Resource: "r1",
+		resource, found, err := pipeline.Resource("r1")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		inputConfigs := algorithm.InputConfigs{
+			algorithm.InputConfig{
+				Name:       "some-input",
+				ResourceID: resource.ID(),
+				JobID:      job.ID(),
 			},
 		}
 
 		algorithm := algorithm.New(versionsDB)
 
 		var ok bool
-		inputMapping, ok, _, err = algorithm.Compute(context.Background(), job, jobInputs, dbResources, map[string]int{"j1": 1})
+		inputMapping, ok, _, err = algorithm.Compute(context.Background(), job, inputConfigs)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ok).To(BeTrue())
 	})

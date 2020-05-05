@@ -242,13 +242,16 @@ func (example Example) Run() {
 
 	alg := algorithm.New(versionsDB)
 
+	newInputConfigs, err := alg.CreateInputConfigs(job.ID(), jobInputs, dbResources, algorithm.NameToIDMap(setup.jobIDs))
+	Expect(err).ToNot(HaveOccurred())
+
 	iterations := 1
 	if example.Iterations != 0 {
 		iterations = example.Iterations
 	}
 
 	for i := 0; i < iterations; i++ {
-		example.assert(ctx, setup, alg, job, jobInputs, dbResources)
+		example.assert(ctx, setup, alg, job, newInputConfigs)
 		cache.Flush()
 	}
 }
@@ -606,15 +609,14 @@ func (example Example) assert(
 	setup setupDB,
 	alg *algorithm.Algorithm,
 	job db.Job,
-	jobInputs []atc.JobInput,
-	resources db.Resources,
+	inputConfigs algorithm.InputConfigs,
 ) {
 	ctx, span := tracing.StartSpan(ctx, "assert", tracing.Attrs{})
 	defer span.End()
 
 	span.SetAttributes(key.New("seed").Int64(ginkgo.GinkgoRandomSeed()))
 
-	resolved, ok, hasNext, resolvedErr := alg.Compute(ctx, job, jobInputs, resources, algorithm.NameToIDMap(setup.jobIDs))
+	resolved, ok, hasNext, resolvedErr := alg.Compute(ctx, job, inputConfigs)
 	if example.Error != nil {
 		Expect(resolvedErr).To(Equal(example.Error))
 	} else {

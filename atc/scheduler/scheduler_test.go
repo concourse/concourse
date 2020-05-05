@@ -115,7 +115,9 @@ var _ = Describe("Scheduler", func() {
 
 				It("computed the inputs", func() {
 					Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
-					_, actualJob, actualInputs, resources, relatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
+					actualJobId, actualInputs, resources, relatedJobs := fakeAlgorithm.CreateInputConfigsArgsForCall(0)
+					_, actualJob, _ := fakeAlgorithm.ComputeArgsForCall(0)
+					Expect(actualJobId).To(Equal(fakeJob.ID()))
 					Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
 					Expect(resources).To(Equal(expectedResources))
 					Expect(relatedJobs).To(Equal(expectedJobIDs))

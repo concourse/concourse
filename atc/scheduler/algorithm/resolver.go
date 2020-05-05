@@ -1,17 +1,13 @@
 package algorithm
 
 import (
-	"errors"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/tracing"
 )
 
 type NameToIDMap map[string]int
-
-type InputConfigs []InputConfig
 
 func (cfgs InputConfigs) String() string {
 	if !tracing.Configured {
@@ -26,15 +22,6 @@ func (cfgs InputConfigs) String() string {
 	return strings.Join(names, ",")
 }
 
-type InputConfig struct {
-	Name            string
-	Passed          db.JobSet
-	UseEveryVersion bool
-	PinnedVersion   atc.Version
-	ResourceID      int
-	JobID           int
-}
-
 type relatedInputConfigs struct {
 	passedJobs   map[int]bool
 	inputConfigs InputConfigs
@@ -42,54 +29,18 @@ type relatedInputConfigs struct {
 
 func constructResolvers(
 	versions db.VersionsDB,
-	job db.Job,
-	inputs []atc.JobInput,
-	resources db.Resources,
-	relatedJobs NameToIDMap,
+	inputConfigs InputConfigs,
 ) ([]Resolver, error) {
 	resolvers := []Resolver{}
 	inputConfigsWithPassed := InputConfigs{}
-	for _, input := range inputs {
-		resource, found := resources.Lookup(input.Resource)
-		if !found {
-			return nil, errors.New("input resource not found")
-		}
-
-		inputConfig := InputConfig{
-			Name:       input.Name,
-			ResourceID: resource.ID(),
-			JobID:      job.ID(),
-		}
-
-		var pinnedVersion atc.Version
-		if resource.CurrentPinnedVersion() != nil {
-			pinnedVersion = resource.CurrentPinnedVersion()
-		}
-
-		if input.Version != nil {
-			inputConfig.UseEveryVersion = input.Version.Every
-
-			if input.Version.Pinned != nil {
-				pinnedVersion = input.Version.Pinned
-			}
-		}
-
-		inputConfig.PinnedVersion = pinnedVersion
-
-		if len(input.Passed) == 0 {
+	for _, inputConfig := range inputConfigs {
+		if len(inputConfig.Passed) == 0 {
 			if inputConfig.PinnedVersion != nil {
 				resolvers = append(resolvers, NewPinnedResolver(versions, inputConfig))
 			} else {
 				resolvers = append(resolvers, NewIndividualResolver(versions, inputConfig))
 			}
 		} else {
-			jobs := db.JobSet{}
-			for _, passedJobName := range input.Passed {
-				jobID := relatedJobs[passedJobName]
-				jobs[jobID] = true
-			}
-
-			inputConfig.Passed = jobs
 			inputConfigsWithPassed = append(inputConfigsWithPassed, inputConfig)
 		}
 	}

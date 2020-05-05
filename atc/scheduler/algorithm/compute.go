@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/tracing"
 )
@@ -27,9 +26,7 @@ type Algorithm struct {
 func (a *Algorithm) Compute(
 	ctx context.Context,
 	job db.Job,
-	inputs []atc.JobInput,
-	resources db.Resources,
-	relatedJobs NameToIDMap,
+	inputConfigs InputConfigs,
 ) (db.InputMapping, bool, bool, error) {
 	ctx, span := tracing.StartSpan(ctx, "Algorithm.Compute", tracing.Attrs{
 		"pipeline": job.PipelineName(),
@@ -37,7 +34,7 @@ func (a *Algorithm) Compute(
 	})
 	defer span.End()
 
-	resolvers, err := constructResolvers(a.versionsDB, job, inputs, resources, relatedJobs)
+	resolvers, err := constructResolvers(a.versionsDB, inputConfigs)
 	if err != nil {
 		return nil, false, false, fmt.Errorf("construct resolvers: %w", err)
 	}

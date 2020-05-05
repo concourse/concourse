@@ -16,10 +16,14 @@ type Algorithm interface {
 	Compute(
 		context.Context,
 		db.Job,
-		[]atc.JobInput,
-		db.Resources,
-		algorithm.NameToIDMap,
+		algorithm.InputConfigs,
 	) (db.InputMapping, bool, bool, error)
+	CreateInputConfigs(
+		jobID int,
+		jobInputs []atc.JobInput,
+		resources db.Resources,
+		relatedJobs algorithm.NameToIDMap,
+	) (algorithm.InputConfigs, error)
 }
 
 type Scheduler struct {
@@ -40,7 +44,12 @@ func (s *Scheduler) Schedule(
 		return false, fmt.Errorf("inputs: %w", err)
 	}
 
-	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(ctx, job, jobInputs, resources, relatedJobs)
+	inputConfigs, err := s.Algorithm.CreateInputConfigs(job.ID(), jobInputs, resources, relatedJobs)
+	if err != nil {
+		return false, fmt.Errorf("input configs: %w", err)
+	}
+
+	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(ctx, job, inputConfigs)
 	if err != nil {
 		return false, fmt.Errorf("compute inputs: %w", err)
 	}

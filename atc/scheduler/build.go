@@ -44,7 +44,12 @@ func (m *manualTriggerBuild) IsReadyToDetermineInputs(logger lager.Logger) bool 
 }
 
 func (m *manualTriggerBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool, error) {
-	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(ctx, m.job, m.jobInputs, m.resources, m.relatedJobIDs)
+	inputConfigs, err := m.algorithm.CreateInputConfigs(m.job.ID(), m.jobInputs, m.resources, m.relatedJobIDs)
+	if err != nil {
+		return nil, false, fmt.Errorf("input configs: %w", err)
+	}
+
+	inputMapping, resolved, hasNextInputs, err := m.algorithm.Compute(ctx, m.job, inputConfigs)
 	if err != nil {
 		return nil, false, fmt.Errorf("compute inputs: %w", err)
 	}

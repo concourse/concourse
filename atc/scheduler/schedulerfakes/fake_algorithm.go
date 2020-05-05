@@ -12,14 +12,12 @@ import (
 )
 
 type FakeAlgorithm struct {
-	ComputeStub        func(context.Context, db.Job, []atc.JobInput, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, bool, error)
+	ComputeStub        func(context.Context, db.Job, algorithm.InputConfigs) (db.InputMapping, bool, bool, error)
 	computeMutex       sync.RWMutex
 	computeArgsForCall []struct {
 		arg1 context.Context
 		arg2 db.Job
-		arg3 []atc.JobInput
-		arg4 db.Resources
-		arg5 algorithm.NameToIDMap
+		arg3 algorithm.InputConfigs
 	}
 	computeReturns struct {
 		result1 db.InputMapping
@@ -33,29 +31,38 @@ type FakeAlgorithm struct {
 		result3 bool
 		result4 error
 	}
+	CreateInputConfigsStub        func(int, []atc.JobInput, db.Resources, algorithm.NameToIDMap) (algorithm.InputConfigs, error)
+	createInputConfigsMutex       sync.RWMutex
+	createInputConfigsArgsForCall []struct {
+		arg1 int
+		arg2 []atc.JobInput
+		arg3 db.Resources
+		arg4 algorithm.NameToIDMap
+	}
+	createInputConfigsReturns struct {
+		result1 algorithm.InputConfigs
+		result2 error
+	}
+	createInputConfigsReturnsOnCall map[int]struct {
+		result1 algorithm.InputConfigs
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAlgorithm) Compute(arg1 context.Context, arg2 db.Job, arg3 []atc.JobInput, arg4 db.Resources, arg5 algorithm.NameToIDMap) (db.InputMapping, bool, bool, error) {
-	var arg3Copy []atc.JobInput
-	if arg3 != nil {
-		arg3Copy = make([]atc.JobInput, len(arg3))
-		copy(arg3Copy, arg3)
-	}
+func (fake *FakeAlgorithm) Compute(arg1 context.Context, arg2 db.Job, arg3 algorithm.InputConfigs) (db.InputMapping, bool, bool, error) {
 	fake.computeMutex.Lock()
 	ret, specificReturn := fake.computeReturnsOnCall[len(fake.computeArgsForCall)]
 	fake.computeArgsForCall = append(fake.computeArgsForCall, struct {
 		arg1 context.Context
 		arg2 db.Job
-		arg3 []atc.JobInput
-		arg4 db.Resources
-		arg5 algorithm.NameToIDMap
-	}{arg1, arg2, arg3Copy, arg4, arg5})
-	fake.recordInvocation("Compute", []interface{}{arg1, arg2, arg3Copy, arg4, arg5})
+		arg3 algorithm.InputConfigs
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Compute", []interface{}{arg1, arg2, arg3})
 	fake.computeMutex.Unlock()
 	if fake.ComputeStub != nil {
-		return fake.ComputeStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.ComputeStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
@@ -70,17 +77,17 @@ func (fake *FakeAlgorithm) ComputeCallCount() int {
 	return len(fake.computeArgsForCall)
 }
 
-func (fake *FakeAlgorithm) ComputeCalls(stub func(context.Context, db.Job, []atc.JobInput, db.Resources, algorithm.NameToIDMap) (db.InputMapping, bool, bool, error)) {
+func (fake *FakeAlgorithm) ComputeCalls(stub func(context.Context, db.Job, algorithm.InputConfigs) (db.InputMapping, bool, bool, error)) {
 	fake.computeMutex.Lock()
 	defer fake.computeMutex.Unlock()
 	fake.ComputeStub = stub
 }
 
-func (fake *FakeAlgorithm) ComputeArgsForCall(i int) (context.Context, db.Job, []atc.JobInput, db.Resources, algorithm.NameToIDMap) {
+func (fake *FakeAlgorithm) ComputeArgsForCall(i int) (context.Context, db.Job, algorithm.InputConfigs) {
 	fake.computeMutex.RLock()
 	defer fake.computeMutex.RUnlock()
 	argsForCall := fake.computeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeAlgorithm) ComputeReturns(result1 db.InputMapping, result2 bool, result3 bool, result4 error) {
@@ -115,11 +122,84 @@ func (fake *FakeAlgorithm) ComputeReturnsOnCall(i int, result1 db.InputMapping, 
 	}{result1, result2, result3, result4}
 }
 
+func (fake *FakeAlgorithm) CreateInputConfigs(arg1 int, arg2 []atc.JobInput, arg3 db.Resources, arg4 algorithm.NameToIDMap) (algorithm.InputConfigs, error) {
+	var arg2Copy []atc.JobInput
+	if arg2 != nil {
+		arg2Copy = make([]atc.JobInput, len(arg2))
+		copy(arg2Copy, arg2)
+	}
+	fake.createInputConfigsMutex.Lock()
+	ret, specificReturn := fake.createInputConfigsReturnsOnCall[len(fake.createInputConfigsArgsForCall)]
+	fake.createInputConfigsArgsForCall = append(fake.createInputConfigsArgsForCall, struct {
+		arg1 int
+		arg2 []atc.JobInput
+		arg3 db.Resources
+		arg4 algorithm.NameToIDMap
+	}{arg1, arg2Copy, arg3, arg4})
+	fake.recordInvocation("CreateInputConfigs", []interface{}{arg1, arg2Copy, arg3, arg4})
+	fake.createInputConfigsMutex.Unlock()
+	if fake.CreateInputConfigsStub != nil {
+		return fake.CreateInputConfigsStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.createInputConfigsReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeAlgorithm) CreateInputConfigsCallCount() int {
+	fake.createInputConfigsMutex.RLock()
+	defer fake.createInputConfigsMutex.RUnlock()
+	return len(fake.createInputConfigsArgsForCall)
+}
+
+func (fake *FakeAlgorithm) CreateInputConfigsCalls(stub func(int, []atc.JobInput, db.Resources, algorithm.NameToIDMap) (algorithm.InputConfigs, error)) {
+	fake.createInputConfigsMutex.Lock()
+	defer fake.createInputConfigsMutex.Unlock()
+	fake.CreateInputConfigsStub = stub
+}
+
+func (fake *FakeAlgorithm) CreateInputConfigsArgsForCall(i int) (int, []atc.JobInput, db.Resources, algorithm.NameToIDMap) {
+	fake.createInputConfigsMutex.RLock()
+	defer fake.createInputConfigsMutex.RUnlock()
+	argsForCall := fake.createInputConfigsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeAlgorithm) CreateInputConfigsReturns(result1 algorithm.InputConfigs, result2 error) {
+	fake.createInputConfigsMutex.Lock()
+	defer fake.createInputConfigsMutex.Unlock()
+	fake.CreateInputConfigsStub = nil
+	fake.createInputConfigsReturns = struct {
+		result1 algorithm.InputConfigs
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeAlgorithm) CreateInputConfigsReturnsOnCall(i int, result1 algorithm.InputConfigs, result2 error) {
+	fake.createInputConfigsMutex.Lock()
+	defer fake.createInputConfigsMutex.Unlock()
+	fake.CreateInputConfigsStub = nil
+	if fake.createInputConfigsReturnsOnCall == nil {
+		fake.createInputConfigsReturnsOnCall = make(map[int]struct {
+			result1 algorithm.InputConfigs
+			result2 error
+		})
+	}
+	fake.createInputConfigsReturnsOnCall[i] = struct {
+		result1 algorithm.InputConfigs
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeAlgorithm) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.computeMutex.RLock()
 	defer fake.computeMutex.RUnlock()
+	fake.createInputConfigsMutex.RLock()
+	defer fake.createInputConfigsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
