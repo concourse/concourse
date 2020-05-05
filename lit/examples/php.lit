@@ -12,7 +12,7 @@ You can run the tests for a PHP application.
 	\codeblock{yaml}{{{
 ---
 resources:
-  - name: larvel-websockets-git
+  - name: laravel-websockets-git
     type: git
     icon: github-circle
     source:
@@ -22,7 +22,7 @@ jobs:
   - name: test
     public: true
     plan:
-      - get: larvel-websockets-git
+      - get: laravel-websockets-git
         trigger: true
       - task: run-tests
         config:
@@ -31,7 +31,7 @@ jobs:
             type: registry-image
             source: { repository: php, tag: 7.2-cli }
           inputs:
-            - name: larvel-websockets-git
+            - name: laravel-websockets-git
           run:
             path: /bin/sh
             args:
@@ -41,11 +41,11 @@ jobs:
                 apt-get install -y git unzip
 
                 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-                php -r "if (hash_file('sha384', 'composer-setup.php') === 'a5c698ffe4b8e849a443b120cd5ba38043260d5c4023dbf93e1558871f1f07f58274fc6f4c93bcfd858c6bd0775cd8d1') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-                php composer-setup.php --filename=composer --install-dir=/usr/bin
+                php -r "if (hash_file('sha384', 'composer-setup.php') === 'e0012edf3e80b6978849f5eff0d4b4e4c79ff1609dd1e613307e16318854d24ae64f26d17af3ef0bf7cfb710ca74755a') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+                php composer-setup.php --install-dir=/usr/local/bin --filename=composer
                 php -r "unlink('composer-setup.php');"
 
-                cd larvel-websockets-git
+                cd laravel-websockets-git
 
                 composer install
                 vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
