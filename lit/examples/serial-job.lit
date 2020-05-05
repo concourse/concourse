@@ -7,11 +7,9 @@ Setting the \reference{schema.job.serial} flag restricts a job to run one build 
 
 \frame{https://ci.concourse-ci.org/teams/examples/pipelines/serial-job}
 
-\right-side{Why?}{
 By default, jobs are run in parallel. For some use cases this might be ideal (ex. testing all incoming commits from a repository). For other use cases this might be less ideal (ex. deploying an application).
 
 You can also set the \reference{schema.job.max_in_flight} value to 1 to disable parallel job runs.
-}
 
 \section{
   \title{Pipeline Configuration}{configuration}

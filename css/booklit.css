@@ -83,8 +83,7 @@ pre,
 .highlight,
 ul,
 ol,
-dl,
-iframe {
+dl {
   margin: 0 0 1.5em;
 }
 dd,
