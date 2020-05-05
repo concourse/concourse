@@ -1764,6 +1764,8 @@ func (cmd *RunCommand) constructAPIHandler(
 	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
+	rejectArchivedHandlerFactory := wrappa.NewRejectArchivedHandlerFactory(teamFactory)
+
 	aud := auditor.NewAuditor(
 		cmd.Auditor.EnableBuildAuditLog,
 		cmd.Auditor.EnableContainerAuditLog,
@@ -1809,6 +1811,7 @@ func (cmd *RunCommand) constructAPIHandler(
 			checkBuildWriteAccessHandlerFactory,
 			checkWorkerTeamAccessHandlerFactory,
 		),
+		wrappa.NewRejectArchivedWrappa(rejectArchivedHandlerFactory),
 		wrappa.NewConcourseVersionWrappa(concourse.Version),
 		wrappa.NewAccessorWrappa(
 			logger,
