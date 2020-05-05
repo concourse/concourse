@@ -1,12 +1,11 @@
 package db_test
 
 import (
-	"fmt"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 )
 
 var _ = Describe("Job Factory", func() {
@@ -737,38 +736,37 @@ var _ = Describe("Job Factory", func() {
 					jobs, err := jobFactory.JobsToSchedule()
 					Expect(err).ToNot(HaveOccurred())
 
+					jobResources := make(map[string]db.SchedulerResources)
 					for _, job := range jobs {
-						switch job.Name() {
-						case job1.Name():
-							Expect(job.Resources).To(ConsistOf(
-								db.SchedulerResource{
-									Name: "some-resource",
-									Type: "some-type",
-								}))
-						case job2.Name():
-							Expect(job.Resources).To(ConsistOf(
-								db.SchedulerResource{
-									Name: "some-resource",
-									Type: "some-type",
-								},
-								db.SchedulerResource{
-									Name: "other-resource",
-									Type: "some-type",
-								}))
-						case job3.Name():
-							Expect(job.Resources).To(ConsistOf(
-								db.SchedulerResource{
-									Name: "some-resource",
-									Type: "other-type",
-								},
-								db.SchedulerResource{
-									Name: "some-resource-2",
-									Type: "other-type",
-								}))
-						default:
-							Fail(fmt.Sprintf("job %s is not expected to be scheduled", job.Name()))
-						}
+						jobResources[job.Name()] = job.Resources
 					}
+
+					Expect(jobResources).To(MatchAllKeys(Keys{
+						job1.Name(): ConsistOf(
+							db.SchedulerResource{
+								Name: "some-resource",
+								Type: "some-type",
+							},
+						),
+						job2.Name(): ConsistOf(
+							db.SchedulerResource{
+								Name: "some-resource",
+								Type: "some-type",
+							},
+							db.SchedulerResource{
+								Name: "other-resource",
+								Type: "some-type",
+							}),
+						job3.Name(): ConsistOf(
+							db.SchedulerResource{
+								Name: "some-resource",
+								Type: "other-type",
+							},
+							db.SchedulerResource{
+								Name: "some-resource-2",
+								Type: "other-type",
+							}),
+					}))
 				})
 			})
 
@@ -987,42 +985,43 @@ var _ = Describe("Job Factory", func() {
 					jobs, err := jobFactory.JobsToSchedule()
 					Expect(err).ToNot(HaveOccurred())
 
+					jobResourceTypes := make(map[string]atc.VersionedResourceTypes)
 					for _, job := range jobs {
-						switch job.Name() {
-						case job1.Name():
-							Expect(job.ResourceTypes).To(ConsistOf(
-								atc.VersionedResourceType{
-									ResourceType: atc.ResourceType{
-										Name: "some-type",
-										Type: "other-type",
-									},
-								}))
-						case job2.Name():
-							Expect(job.ResourceTypes).To(ConsistOf(
-								atc.VersionedResourceType{
-									ResourceType: atc.ResourceType{
-										Name: "some-type",
-										Type: "other-type",
-									},
-								}))
-						case job3.Name():
-							Expect(job.ResourceTypes).To(ConsistOf(
-								atc.VersionedResourceType{
-									ResourceType: atc.ResourceType{
-										Name: "some-type-1",
-										Type: "other-type-1",
-									},
-								},
-								atc.VersionedResourceType{
-									ResourceType: atc.ResourceType{
-										Name: "some-type-2",
-										Type: "other-type-2",
-									},
-								}))
-						default:
-							Fail(fmt.Sprintf("job %s is not expected to be scheduled", job.Name()))
-						}
+						jobResourceTypes[job.Name()] = job.ResourceTypes
 					}
+
+					Expect(jobResourceTypes).To(MatchAllKeys(Keys{
+						job1.Name(): ConsistOf(
+							atc.VersionedResourceType{
+								ResourceType: atc.ResourceType{
+									Name: "some-type",
+									Type: "other-type",
+								},
+							},
+						),
+						job2.Name(): ConsistOf(
+							atc.VersionedResourceType{
+								ResourceType: atc.ResourceType{
+									Name: "some-type",
+									Type: "other-type",
+								},
+							},
+						),
+						job3.Name(): ConsistOf(
+							atc.VersionedResourceType{
+								ResourceType: atc.ResourceType{
+									Name: "some-type-1",
+									Type: "other-type-1",
+								},
+							},
+							atc.VersionedResourceType{
+								ResourceType: atc.ResourceType{
+									Name: "some-type-2",
+									Type: "other-type-2",
+								},
+							},
+						),
+					}))
 				})
 			})
 		})
