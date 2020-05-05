@@ -155,15 +155,6 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     To run a cluster of \reference{web-node}s, you'll first need to ensure
     they're all pointing to the same PostgreSQL server.
 
-    Furthermore, you may wish to configure the max number of parallel database
-    connections that each node makes. The number you choose should not be
-    greater than the maximum number of simultaneous connections your Postgres
-    server will allow. For example:
-
-    \codeblock{bash}{{{
-    CONCOURSE_MAX_OPEN_CONNECTIONS=32
-    }}}
-
     Next, you'll need to configure a \italic{peer address}. This is a DNS or IP
     address that can be used to reach this \code{web} node from other
     \code{web} nodes. Typically this uses a private IP, like so:
@@ -185,6 +176,31 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
 
     Aside from the peer URL, all configuration must be consistent across all
     \code{web} nodes in the cluster to ensure consistent results.
+
+    \section{
+      \title{Database connection pooling}{web-connection-pooling}
+
+      You may wish to configure the max number of parallel database connections
+      that each node makes. There are two pools to configure: one for serving
+      API requests, and one used for all the backend work such as pipeline
+      scheduling. Another pool is reserved for garbage collection and has a
+      hardcoded cap at 5 connections.
+
+      The sum of these numbers across all \code{web} nodes should not be
+      greater than the maximum number of simultaneous connections your Postgres
+      server will allow. See \reference{db-resource-utilization}{\code{db} node
+      resource utilization} for more information.
+
+      For example, if 3 \code{web} nodes are configured as such:
+
+      \codeblock{bash}{{{
+      CONCOURSE_API_MAX_CONNS=10     # default
+      CONCOURSE_BACKEND_MAX_CONNS=50 # default
+      }}}
+
+      ...then your PostgreSQL server should be configured with a connection
+      limit of at least 195: (10 + 50 + 5) * 3.
+    }
   }
 
   \section{

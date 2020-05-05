@@ -58,9 +58,12 @@ data and coordinating work in a multi-\reference{web-node} installation.
     can grow arbitrarily large.
 
     Bandwidth usage: well, it's a database, so it most definitely uses the
-    network (duh). Not much should stand out here, though build logs can result
-    in an arbitrary amount of data being sent over the network to the database.
-    This should be nothing compared to worker bandwidth, though.
+    network. Something important to consider here is the number of simultaneous
+    connections that the database server itself will allow. Postgres exposes a
+    \link{\code{max_connections}}{https://www.postgresql.org/docs/current/runtime-config-connection.html#GUC-MAX-CONNECTIONS}
+    configuration variable, and depending on how many web nodes you are running
+    and the size of their \reference{web-connection-pooling}{connection pool},
+    you may need to tune these two numbers against each other.
 
     Highly available: up to you. Clustered PostgreSQL is kind of new and probably
     tricky to deploy, but there are various cloud solutions for this.
