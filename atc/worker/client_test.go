@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -520,6 +521,7 @@ var _ = Describe("Client", func() {
 
 			ctx    context.Context
 			cancel func()
+			wg     sync.WaitGroup
 		)
 
 		BeforeEach(func() {
@@ -682,20 +684,20 @@ var _ = Describe("Client", func() {
 				Context("when waiting for worker to be available", func() {
 					BeforeEach(func() {
 						fakePool.FindOrChooseWorkerForContainerReturns(nil, nil)
+						wg.Add(1)
 						go func() {
-							cancel() // otherwise run task step waits indefinitely in test
+							defer wg.Done()
+							cancel()
+
 						}()
 					})
 
-					It("metric task waiting is gauged", func() {
-						Eventually(metric.TasksWaiting.Max(), 5 * time.Second).Should(Equal(float64(1)))
-						Eventually(metric.TasksWaiting.Max(), 5 * time.Second).Should(Equal(float64(0)))
-					})
-
-					It("release the lock every time it acquires it", func() {
+					It("metric task waiting is gauged and lock is released", func() {
+						wg.Wait()
+						Eventually(metric.TasksWaiting.Max(), 6*time.Second).Should(Equal(float64(1)))
+						Eventually(metric.TasksWaiting.Max(), 6*time.Second).Should(Equal(float64(0)))
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
 					})
-
 				})
 			})
 
