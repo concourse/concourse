@@ -15,10 +15,9 @@ directories for them to be exported. This meshes well with build tools with
 configurable destination paths.
 
 \aside{
-  If your build tools don't support output paths you'll have to copy bits
-  around. If it's a \code{git} repo that you're modifying you can do a local
-  \code{git clone ./input ./output}, which is much more efficient than
-  \code{cp}, and then work out of \code{./output}.
+  If your build tools don't support output paths you can configure an input and
+  output with the same path. The directory will be populated by the input, and
+  any changes made to the directory will propagate downstream as an output.
 }
 
 Any \reference{schema.step.task-step.params} configured will be set in the environment for the
