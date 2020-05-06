@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"encoding/json"
 	"io"
 	"strings"
 	"time"
@@ -92,14 +93,13 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	d.Stdout().(io.Closer).Close()
 	d.Stderr().(io.Closer).Close()
 
-	d.CacheResult(exitStatus == 0, worker)
-
 	err := d.build.SaveEvent(event.FinishGet{
 		Origin:          d.eventOrigin,
 		Time:            d.clock.Now().Unix(),
 		ExitStatus:      int(exitStatus),
 		FetchedVersion:  info.Version,
 		FetchedMetadata: info.Metadata,
+		Worker:          worker,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-finish-get-event", err)
@@ -110,11 +110,19 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 }
 
 func (d *getDelegate) HasDoneSuccessfully() bool {
-	succeeded, workerName := d.BuildStepDelegate.HasDoneSuccessfully()
-	if !succeeded {
+	payload, err := d.build.QueryEvent(event.EventTypeFinishGet, d.eventOrigin.ID)
+	if err != nil {
 		return false
 	}
-	worker, found, err := d.build.FindWorker(workerName)
+	finishGet := event.FinishGet{}
+	err = json.Unmarshal([]byte(payload), &finishGet)
+	if err != nil {
+		return false
+	}
+	if finishGet.ExitStatus != 0 {
+		return false
+	}
+	worker, found, err := d.build.FindWorker(finishGet.Worker)
 	if err != nil || !found {
 		return false
 	}
@@ -211,14 +219,13 @@ func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	d.Stdout().(io.Closer).Close()
 	d.Stderr().(io.Closer).Close()
 
-	d.CacheResult(exitStatus == 0, worker)
-
 	err := d.build.SaveEvent(event.FinishPut{
 		Origin:          d.eventOrigin,
 		Time:            d.clock.Now().Unix(),
 		ExitStatus:      int(exitStatus),
 		CreatedVersion:  info.Version,
 		CreatedMetadata: info.Metadata,
+		Worker:          worker,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-finish-put-event", err)
@@ -229,8 +236,16 @@ func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 }
 
 func (d *putDelegate) HasDoneSuccessfully() bool {
-	succeeded, _ := d.BuildStepDelegate.HasDoneSuccessfully()
-	return succeeded
+	payload, err := d.build.QueryEvent(event.EventTypeFinishPut, d.eventOrigin.ID)
+	if err != nil {
+		return false
+	}
+	finishPut := event.FinishPut{}
+	err = json.Unmarshal([]byte(payload), &finishPut)
+	if err != nil {
+		return false
+	}
+	return (finishPut.ExitStatus == 0)
 }
 
 func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, resourceTypes atc.VersionedResourceTypes, info runtime.VersionResult) {
@@ -309,12 +324,11 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus,
 	d.Stdout().(io.Closer).Close()
 	d.Stderr().(io.Closer).Close()
 
-	d.CacheResult(exitStatus == 0, worker)
-
 	err := d.build.SaveEvent(event.FinishTask{
 		ExitStatus: int(exitStatus),
 		Time:       time.Now().Unix(),
 		Origin:     d.eventOrigin,
+		Worker:     worker,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-finish-event", err)
@@ -325,12 +339,20 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus,
 }
 
 func (d *taskDelegate) HasDoneSuccessfully(taskConfig *atc.TaskConfig) bool {
-	succeeded, workerName := d.BuildStepDelegate.HasDoneSuccessfully()
-	if !succeeded {
+	payload, err := d.build.QueryEvent(event.EventTypeFinishTask, d.eventOrigin.ID)
+	if err != nil {
+		return false
+	}
+	finishTask := event.FinishTask{}
+	err = json.Unmarshal([]byte(payload), &finishTask)
+	if err != nil {
+		return false
+	}
+	if finishTask.ExitStatus != 0 {
 		return false
 	}
 	if len(taskConfig.Outputs) > 0 {
-		worker, found, err := d.build.FindWorker(workerName)
+		worker, found, err := d.build.FindWorker(finishTask.Worker)
 		if err != nil || !found {
 			return false
 		}
@@ -392,8 +414,6 @@ func NewBuildStepDelegate(
 		credVarsTracker: credVarsTracker,
 		stdout:          nil,
 		stderr:          nil,
-		succeeded:       nil,
-		worker:          "",
 	}
 }
 
@@ -404,9 +424,6 @@ type buildStepDelegate struct {
 	credVarsTracker vars.CredVarsTracker
 	stderr          io.Writer
 	stdout          io.Writer
-
-	succeeded *bool
-	worker    string
 }
 
 func (delegate *buildStepDelegate) Variables() vars.CredVarsTracker {
@@ -519,18 +536,10 @@ func (delegate *buildStepDelegate) Starting(logger lager.Logger) {
 	logger.Debug("starting")
 }
 
-func (delegate *buildStepDelegate) CacheResult(succeeded bool, worker string) {
-	delegate.succeeded = new(bool)
-	*delegate.succeeded = succeeded
-	delegate.worker = worker
-}
-
-func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool, worker string) {
+func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool) {
 	// PR#4398: close to flush stdout and stderr
 	delegate.Stdout().(io.Closer).Close()
 	delegate.Stderr().(io.Closer).Close()
-
-	delegate.CacheResult(succeeded, worker)
 
 	err := delegate.build.SaveEvent(event.Finish{
 		Origin: event.Origin{
@@ -547,15 +556,7 @@ func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool,
 	logger.Info("finished")
 }
 
-func (delegate *buildStepDelegate) HasDoneSuccessfully() (bool, string) {
-	if delegate.succeeded == nil || !*delegate.succeeded {
-		return false, delegate.worker
-	}
-	return true, delegate.worker
-}
-
 func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) {
-	delegate.CacheResult(false, "")
 	err := delegate.build.SaveEvent(event.Error{
 		Message: message,
 		Origin: event.Origin{

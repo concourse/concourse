@@ -6,7 +6,6 @@ import (
 	"context"
 	"github.com/concourse/concourse/atc/worker/transport"
 	"reflect"
-	"regexp"
 )
 
 type Retriable struct{}
@@ -47,16 +46,11 @@ func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true
-
+	// To add: input missing error, because if a previous get/task's worker crashed,
+	// later step may hit input missing error, in that, we should rerun the previous
+	// get/task. But we should distinct a real input-missing error (bad definition
+	// of a pipeline)
 	default:
-		// "worker disappeared" could be wrapped in other errors, for example:
-		// Get "/volumes/ab430ab8-1b82-4a8b-5143-bdff077c071c": worker 13efffd92d02 disappeared while trying to reach it
-		re := regexp.MustCompile(`worker .+ disappeared`)
-		if re.MatchString(err.Error()) {
-			logger.Debug("retry-error",
-				lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
-			return true
-		}
 		logger.Debug("non-retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return false
