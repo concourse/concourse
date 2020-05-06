@@ -61,7 +61,7 @@ var _ = Describe("PutStep", func() {
 		repo  *build.Repository
 		state *execfakes.FakeRunState
 
-		putStep *exec.PutStep
+		putStep exec.Step
 		stepErr error
 
 		credVarsTracker vars.CredVarsTracker

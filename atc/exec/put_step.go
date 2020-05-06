@@ -59,7 +59,7 @@ func NewPutStep(
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
 	delegate PutDelegate,
-) *PutStep {
+) Step {
 	return &PutStep{
 		planID:                planID,
 		plan:                  plan,

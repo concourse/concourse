@@ -1,10 +1,15 @@
 package exec
 
 import (
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"fmt"
+	"io"
+	"path"
+	"path/filepath"
+	"strings"
+
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -14,10 +19,6 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	"io"
-	"path"
-	"path/filepath"
-	"strings"
 )
 
 // MissingInputsError is returned when any of the task's required inputs are
