@@ -27,6 +27,7 @@ import (
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
 	"github.com/concourse/concourse/atc/api/pipelineserver"
+	"github.com/concourse/concourse/atc/api/policychecker"
 	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/component"
@@ -39,9 +40,11 @@ import (
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/builder"
+	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/lidar"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
@@ -58,9 +61,9 @@ import (
 	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
-	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
+
 	"github.com/cppforlife/go-semi-semantic/version"
 	multierror "github.com/hashicorp/go-multierror"
 	flags "github.com/jessevdk/go-flags"
@@ -1561,7 +1564,7 @@ func (cmd *RunCommand) constructEngine(
 		resourceConfigFactory,
 		defaultLimits,
 		strategy,
-		policyChecker,
+		exec.NewImagePolicyChecker(policyChecker),
 		lockFactory,
 		cmd.EnableBuildRerunWhenWorkerDisappears,
 	)
@@ -1785,7 +1788,7 @@ func (cmd *RunCommand) constructAPIHandler(
 			wrappa.NewConcurrentRequestPolicy(cmd.ConcurrentRequestLimits),
 		),
 		wrappa.NewAPIMetricsWrappa(logger),
-		wrappa.NewPolicyCheckWrappa(logger, policyChecker),
+		wrappa.NewPolicyCheckWrappa(logger, policychecker.NewApiPolicyChecker(policyChecker)),
 		wrappa.NewAPIAuthWrappa(
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,

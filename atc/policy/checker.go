@@ -1,24 +1,16 @@
 package policy
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/concourse/concourse/atc"
-	"io/ioutil"
-	"net/http"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
-	"encoding/json"
 	"github.com/jessevdk/go-flags"
-	"sigs.k8s.io/yaml"
-
-	"github.com/concourse/concourse/atc/api/accessor"
 )
 
 const ActionUsingImage = "UsingImage"
 
-type PolicyCheckNotPass struct {}
+type PolicyCheckNotPass struct{}
 
 func (e PolicyCheckNotPass) Error() string {
 	return "policy check not pass"
@@ -56,16 +48,6 @@ type PolicyCheckInput struct {
 	Team           string      `json:"team,omitempty"`
 	Pipeline       string      `json:"pipeline,omitempty"`
 	Data           interface{} `json:"data,omitempty"`
-}
-
-//go:generate counterfeiter . Checker
-
-// Checker runs filters first, then calls underlying policy agent. If not going
-// through policy checker, check methods should return true.
-type Checker interface {
-	CheckHttpApi(string, accessor.Access, *http.Request) (bool, error)
-
-	CheckUsingImage(string, string, string, atc.Source) (bool, error)
 }
 
 //go:generate counterfeiter . Agent
@@ -118,16 +100,16 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 		}
 	}
 	if len(checkerDescriptions) > 1 {
-		return nil, fmt.Errorf("Multiple policy checker configured: %s", strings.Join(checkerDescriptions, ", "))
+		return Checker{}, fmt.Errorf("Multiple policy checker configured: %s", strings.Join(checkerDescriptions, ", "))
 	}
 
 	for _, factory := range agentFactories {
 		if factory.IsConfigured() {
 			agent, err := factory.NewAgent(logger.Session("policy-checker"))
 			if err != nil {
-				return nil, err
+				return Checker{}, err
 			}
-			return &checker{
+			return Checker{
 				filter: filter.normalize(),
 				agent:  agent,
 			}, nil
@@ -135,73 +117,23 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 	}
 
 	// No policy checker configured.
-	return nil, nil
+	return Checker{}, nil
 }
 
-type checker struct {
+type Checker struct {
 	filter Filter
 	agent  Agent
 }
 
-func (c *checker) CheckHttpApi(action string, acc accessor.Access, req *http.Request) (bool, error) {
-	// Ignore self invoked API calls.
-	if acc.IsSystem() {
-		return true, nil
-	}
-
-	// Actions in black will not go through policy check.
-	if c.actionToSkip(action) {
-		return true, nil
-	}
-
-	// Only actions with specified http method will go through policy check.
-	// But actions in white list will always go through policy check.
-	if !c.httpMethodShouldCheck(req) && !c.actionToCheck(action) {
-		return true, nil
-	}
-
-	input := PolicyCheckInput{
-		Service:        "concourse",
-		ClusterName:    clusterName,
-		ClusterVersion: clusterVersion,
-		HttpMethod:     req.Method,
-		Action:         action,
-		User:           acc.UserName(),
-		Team:           req.FormValue(":team_name"),
-		Pipeline:       req.FormValue(":pipeline_name"),
-	}
-
-	switch ct := req.Header.Get("Content-type"); ct {
-	case "application/json", "text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml":
-		body, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			return false, err
-		} else if body != nil && len(body) > 0 {
-			if ct == "application/json" {
-				err = json.Unmarshal(body, &input.Data)
-			} else {
-				err = yaml.Unmarshal(body, &input.Data)
-			}
-			if err != nil {
-				return false, err
-			}
-
-			req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-		}
-	}
-
-	return c.agent.Check(input)
+func (c Checker) ShouldCheckHttpMethod(method string) bool {
+	return inArray(c.filter.HttpMethods, method)
 }
 
-func (c *checker) httpMethodShouldCheck(req *http.Request) bool {
-	return inArray(c.filter.HttpMethods, req.Method)
-}
-
-func (c *checker) actionToCheck(action string) bool {
+func (c Checker) ShouldCheckAction(action string) bool {
 	return inArray(c.filter.Actions, action)
 }
 
-func (c *checker) actionToSkip(action string) bool {
+func (c Checker) ShouldSkipAction(action string) bool {
 	return inArray(c.filter.ActionsToSkip, action)
 }
 
@@ -216,38 +148,9 @@ func inArray(array []string, target string) bool {
 	return found
 }
 
-func (c *checker) CheckUsingImage(teamName, pipelineName, step string, imageSource atc.Source) (bool, error) {
-	// Actions in skip list will not go through policy check.
-	if c.actionToSkip(ActionUsingImage) {
-		return true, nil
-	}
-
-	imageInfo := map[string]string{
-		"step": step,
-	}
-
-	if repository, ok := imageSource["repository"].(string); ok {
-		imageInfo["repository"] = repository
-	} else {
-		// If imageSource doesn't have repository defined, then skip policy check.
-		return true, nil
-	}
-
-	if tag, ok := imageSource["tag"].(string); ok {
-		imageInfo["tag"] = tag
-	} else {
-		imageInfo["tag"] = "latest"
-	}
-
-	input := PolicyCheckInput{
-		Service:        "concourse",
-		ClusterName:    clusterName,
-		ClusterVersion: clusterVersion,
-		Action:         ActionUsingImage,
-		Team:           teamName,
-		Pipeline:       pipelineName,
-		Data:           imageInfo,
-	}
-
+func (c Checker) Check(input PolicyCheckInput) (bool, error) {
+	input.Service = "concourse"
+	input.ClusterName = clusterName
+	input.ClusterVersion = clusterVersion
 	return c.agent.Check(input)
 }

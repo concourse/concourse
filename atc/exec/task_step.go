@@ -79,7 +79,7 @@ type TaskStep struct {
 	containerMetadata db.ContainerMetadata
 	strategy          worker.ContainerPlacementStrategy
 	workerClient      worker.Client
-	policyChecker     policy.Checker
+	policyChecker     PolicyChecker
 	delegate          TaskDelegate
 	lockFactory       lock.LockFactory
 	succeeded         bool
@@ -93,7 +93,7 @@ func NewTaskStep(
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
-	policyChecker policy.Checker,
+	policyChecker PolicyChecker,
 	delegate TaskDelegate,
 	lockFactory lock.LockFactory,
 ) Step {
@@ -214,7 +214,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	step.delegate.Initializing(logger)
 
 	if step.policyChecker != nil && config.ImageResource != nil {
-		pass, err := step.policyChecker.CheckUsingImage(
+		pass, err := step.policyChecker.Check(
 			step.metadata.TeamName,
 			step.metadata.PipelineName,
 			"task",

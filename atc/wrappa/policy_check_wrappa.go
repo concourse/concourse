@@ -3,20 +3,19 @@ package wrappa
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/policychecker"
-	"github.com/concourse/concourse/atc/policy"
 	"github.com/tedsuo/rata"
 )
 
 func NewPolicyCheckWrappa(
 	logger lager.Logger,
-	checker policy.Checker,
+	checker policychecker.PolicyChecker,
 ) *PolicyCheckWrappa {
 	return &PolicyCheckWrappa{logger, checker}
 }
 
 type PolicyCheckWrappa struct {
 	logger  lager.Logger
-	checker policy.Checker
+	checker policychecker.PolicyChecker
 }
 
 func (w *PolicyCheckWrappa) Wrap(handlers rata.Handlers) rata.Handlers {

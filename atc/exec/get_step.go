@@ -64,7 +64,7 @@ type GetStep struct {
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
-	policyChecker        policy.Checker
+	policyChecker        PolicyChecker
 	delegate             GetDelegate
 	succeeded            bool
 }
@@ -77,7 +77,7 @@ func NewGetStep(
 	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
-	policyChecker policy.Checker,
+	policyChecker PolicyChecker,
 	delegate GetDelegate,
 	client worker.Client,
 ) Step {
@@ -144,7 +144,7 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 
 	if step.policyChecker != nil {
 		for _, resourceType := range resourceTypes {
-			pass, err := step.policyChecker.CheckUsingImage(
+			pass, err := step.policyChecker.Check(
 				step.metadata.TeamName,
 				step.metadata.PipelineName,
 				"get",

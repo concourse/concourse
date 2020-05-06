@@ -9,5 +9,5 @@ import (
 
 func TestAccessor(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "API Policy Checker Suite")
+	RunSpecs(t, "API PolicyChecker Suite")
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
@@ -38,6 +39,7 @@ var _ = Describe("PutStep", func() {
 		fakeResource              *resourcefakes.FakeResource
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeDelegate              *execfakes.FakePutDelegate
+		fakePolicyChecker         *execfakes.FakePolicyChecker
 		putPlan                   *atc.PutPlan
 
 		fakeArtifact        *runtimefakes.FakeArtifact
@@ -89,6 +91,7 @@ var _ = Describe("PutStep", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
+		fakePolicyChecker = new(execfakes.FakePolicyChecker)
 
 		credVars := vars.StaticVariables{"custom-param": "source", "source-param": "super-secret-source"}
 		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
@@ -99,6 +102,7 @@ var _ = Describe("PutStep", func() {
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 		fakeDelegate.VariablesReturns(vars.NewCredVarsTracker(credVarsTracker, false))
+		fakePolicyChecker.CheckReturns(true, nil)
 
 		versionResult = runtime.VersionResult{
 			Version:  atc.Version{"some": "version"},
@@ -155,7 +159,7 @@ var _ = Describe("PutStep", func() {
 		fakeResourceFactory.NewResourceReturns(fakeResource)
 
 		someExitStatus = 0
-
+		clientErr = nil
 	})
 
 	AfterEach(func() {
@@ -182,7 +186,7 @@ var _ = Describe("PutStep", func() {
 			fakeResourceConfigFactory,
 			fakeStrategy,
 			fakeClient,
-			nil,
+			fakePolicyChecker,
 			fakeDelegate,
 		)
 
@@ -465,6 +469,32 @@ var _ = Describe("PutStep", func() {
 
 		It("is not successful", func() {
 			Expect(putStep.Succeeded()).To(BeFalse())
+		})
+	})
+
+	Context("with policy checker", func() {
+		Context("when policy check not pass", func() {
+			BeforeEach(func() {
+				fakePolicyChecker.CheckReturns(false, nil)
+			})
+			It("should raise an error of policy not pass", func() {
+				Expect(stepErr).To(Equal(policy.PolicyCheckNotPass{}))
+			})
+			It("does NOT mark the step as succeeded", func() {
+				Expect(putStep.Succeeded()).To(BeFalse())
+			})
+		})
+
+		Context("when policy check failed", func() {
+			BeforeEach(func() {
+				fakePolicyChecker.CheckReturns(false, errors.New("some-error"))
+			})
+			It("should propagate", func() {
+				Expect(stepErr).To(Equal(errors.New("some-error")))
+			})
+			It("does NOT mark the step as succeeded", func() {
+				Expect(putStep.Succeeded()).To(BeFalse())
+			})
 		})
 	})
 })

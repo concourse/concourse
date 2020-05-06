@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/atc/api/policychecker"
-	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/atc/api/policychecker/policycheckerfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,14 +21,14 @@ var _ = Describe("Handler", func() {
 		dummyHandler         http.HandlerFunc
 		policyCheckerHandler http.Handler
 		req                  *http.Request
-		fakePolicyChecker    *policyfakes.FakeChecker
+		fakePolicyChecker    *policycheckerfakes.FakePolicyChecker
 		responseWriter       *httptest.ResponseRecorder
 
 		logger = lagertest.NewTestLogger("test")
 	)
 
 	BeforeEach(func() {
-		fakePolicyChecker = new(policyfakes.FakeChecker)
+		fakePolicyChecker = new(policycheckerfakes.FakePolicyChecker)
 
 		innerHandlerCalled = false
 		dummyHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +63,7 @@ var _ = Describe("Handler", func() {
 
 		Context("policy check passes", func() {
 			BeforeEach(func() {
-				fakePolicyChecker.CheckHttpApiReturns(true, nil)
+				fakePolicyChecker.CheckReturns(true, nil)
 			})
 
 			It("calls the inner handler", func() {
@@ -73,7 +73,7 @@ var _ = Describe("Handler", func() {
 
 		Context("policy check doesn't pass", func() {
 			BeforeEach(func() {
-				fakePolicyChecker.CheckHttpApiReturns(false, nil)
+				fakePolicyChecker.CheckReturns(false, nil)
 			})
 
 			It("return http forbidden", func() {
@@ -91,7 +91,7 @@ var _ = Describe("Handler", func() {
 
 		Context("policy check errors", func() {
 			BeforeEach(func() {
-				fakePolicyChecker.CheckHttpApiReturns(false, errors.New("some-error"))
+				fakePolicyChecker.CheckReturns(false, errors.New("some-error"))
 			})
 
 			It("return http bad request", func() {

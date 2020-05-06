@@ -45,10 +45,16 @@ type opa struct {
 func (c opa) Check(input policy.PolicyCheckInput) (bool, error) {
 	data := opaInput{input}
 	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return false, err
+	}
 
 	c.logger.Debug("opa-check", lager.Data{"input": string(jsonBytes)})
 
 	req, err := http.NewRequest("POST", c.config.URL, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return false, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}

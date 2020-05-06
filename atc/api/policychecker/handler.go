@@ -1,19 +1,19 @@
 package policychecker
 
 import (
-	"code.cloudfoundry.org/lager"
-	"context"
+	"fmt"
 	"net/http"
 
+	"code.cloudfoundry.org/lager"
+
 	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/policy"
 )
 
 func NewHandler(
 	logger lager.Logger,
 	handler http.Handler,
 	action string,
-	policyChecker policy.Checker,
+	policyChecker PolicyChecker,
 ) http.Handler {
 	return policyCheckingHandler{
 		logger:        logger,
@@ -27,26 +27,25 @@ type policyCheckingHandler struct {
 	logger        lager.Logger
 	handler       http.Handler
 	action        string
-	policyChecker policy.Checker
+	policyChecker PolicyChecker
 }
 
 func (h policyCheckingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	acc := accessor.GetAccessor(r)
-	ctx := context.WithValue(r.Context(), "accessor", acc)
 
 	if h.policyChecker != nil {
-		pass, err := h.policyChecker.CheckHttpApi(h.action, acc, r)
+		pass, err := h.policyChecker.Check(h.action, acc, r)
 		if err != nil {
-			rejector := NotPassRejector{msg: err.Error()}
-			rejector.Error(w, r)
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, fmt.Sprintf("policy check error: %s", err.Error()))
 			return
 		}
 		if !pass {
-			rejector := NotPassRejector{}
-			rejector.Reject(w, r)
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprintf(w, "policy check not pass")
 			return
 		}
 	}
 
-	h.handler.ServeHTTP(w, r.WithContext(ctx))
+	h.handler.ServeHTTP(w, r)
 }
