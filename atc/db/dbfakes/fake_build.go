@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/event"
 )
 
 type FakeBuild struct {
@@ -129,21 +128,6 @@ type FakeBuild struct {
 	eventsReturnsOnCall map[int]struct {
 		result1 db.EventSource
 		result2 error
-	}
-	FindWorkerStub        func(string) (db.Worker, bool, error)
-	findWorkerMutex       sync.RWMutex
-	findWorkerArgsForCall []struct {
-		arg1 string
-	}
-	findWorkerReturns struct {
-		result1 db.Worker
-		result2 bool
-		result3 error
-	}
-	findWorkerReturnsOnCall map[int]struct {
-		result1 db.Worker
-		result2 bool
-		result3 error
 	}
 	FinishStub        func(db.BuildStatus) error
 	finishMutex       sync.RWMutex
@@ -376,20 +360,6 @@ type FakeBuild struct {
 	}
 	publicPlanReturnsOnCall map[int]struct {
 		result1 *json.RawMessage
-	}
-	QueryEventStub        func(atc.EventType, event.OriginID) (string, error)
-	queryEventMutex       sync.RWMutex
-	queryEventArgsForCall []struct {
-		arg1 atc.EventType
-		arg2 event.OriginID
-	}
-	queryEventReturns struct {
-		result1 string
-		result2 error
-	}
-	queryEventReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
 	}
 	ReapTimeStub        func() time.Time
 	reapTimeMutex       sync.RWMutex
@@ -1109,72 +1079,6 @@ func (fake *FakeBuild) EventsReturnsOnCall(i int, result1 db.EventSource, result
 		result1 db.EventSource
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeBuild) FindWorker(arg1 string) (db.Worker, bool, error) {
-	fake.findWorkerMutex.Lock()
-	ret, specificReturn := fake.findWorkerReturnsOnCall[len(fake.findWorkerArgsForCall)]
-	fake.findWorkerArgsForCall = append(fake.findWorkerArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("FindWorker", []interface{}{arg1})
-	fake.findWorkerMutex.Unlock()
-	if fake.FindWorkerStub != nil {
-		return fake.FindWorkerStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.findWorkerReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakeBuild) FindWorkerCallCount() int {
-	fake.findWorkerMutex.RLock()
-	defer fake.findWorkerMutex.RUnlock()
-	return len(fake.findWorkerArgsForCall)
-}
-
-func (fake *FakeBuild) FindWorkerCalls(stub func(string) (db.Worker, bool, error)) {
-	fake.findWorkerMutex.Lock()
-	defer fake.findWorkerMutex.Unlock()
-	fake.FindWorkerStub = stub
-}
-
-func (fake *FakeBuild) FindWorkerArgsForCall(i int) string {
-	fake.findWorkerMutex.RLock()
-	defer fake.findWorkerMutex.RUnlock()
-	argsForCall := fake.findWorkerArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeBuild) FindWorkerReturns(result1 db.Worker, result2 bool, result3 error) {
-	fake.findWorkerMutex.Lock()
-	defer fake.findWorkerMutex.Unlock()
-	fake.FindWorkerStub = nil
-	fake.findWorkerReturns = struct {
-		result1 db.Worker
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeBuild) FindWorkerReturnsOnCall(i int, result1 db.Worker, result2 bool, result3 error) {
-	fake.findWorkerMutex.Lock()
-	defer fake.findWorkerMutex.Unlock()
-	fake.FindWorkerStub = nil
-	if fake.findWorkerReturnsOnCall == nil {
-		fake.findWorkerReturnsOnCall = make(map[int]struct {
-			result1 db.Worker
-			result2 bool
-			result3 error
-		})
-	}
-	fake.findWorkerReturnsOnCall[i] = struct {
-		result1 db.Worker
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakeBuild) Finish(arg1 db.BuildStatus) error {
@@ -2352,70 +2256,6 @@ func (fake *FakeBuild) PublicPlanReturnsOnCall(i int, result1 *json.RawMessage) 
 	}{result1}
 }
 
-func (fake *FakeBuild) QueryEvent(arg1 atc.EventType, arg2 event.OriginID) (string, error) {
-	fake.queryEventMutex.Lock()
-	ret, specificReturn := fake.queryEventReturnsOnCall[len(fake.queryEventArgsForCall)]
-	fake.queryEventArgsForCall = append(fake.queryEventArgsForCall, struct {
-		arg1 atc.EventType
-		arg2 event.OriginID
-	}{arg1, arg2})
-	fake.recordInvocation("QueryEvent", []interface{}{arg1, arg2})
-	fake.queryEventMutex.Unlock()
-	if fake.QueryEventStub != nil {
-		return fake.QueryEventStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.queryEventReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeBuild) QueryEventCallCount() int {
-	fake.queryEventMutex.RLock()
-	defer fake.queryEventMutex.RUnlock()
-	return len(fake.queryEventArgsForCall)
-}
-
-func (fake *FakeBuild) QueryEventCalls(stub func(atc.EventType, event.OriginID) (string, error)) {
-	fake.queryEventMutex.Lock()
-	defer fake.queryEventMutex.Unlock()
-	fake.QueryEventStub = stub
-}
-
-func (fake *FakeBuild) QueryEventArgsForCall(i int) (atc.EventType, event.OriginID) {
-	fake.queryEventMutex.RLock()
-	defer fake.queryEventMutex.RUnlock()
-	argsForCall := fake.queryEventArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakeBuild) QueryEventReturns(result1 string, result2 error) {
-	fake.queryEventMutex.Lock()
-	defer fake.queryEventMutex.Unlock()
-	fake.QueryEventStub = nil
-	fake.queryEventReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) QueryEventReturnsOnCall(i int, result1 string, result2 error) {
-	fake.queryEventMutex.Lock()
-	defer fake.queryEventMutex.Unlock()
-	fake.QueryEventStub = nil
-	if fake.queryEventReturnsOnCall == nil {
-		fake.queryEventReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 error
-		})
-	}
-	fake.queryEventReturnsOnCall[i] = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeBuild) ReapTime() time.Time {
 	fake.reapTimeMutex.Lock()
 	ret, specificReturn := fake.reapTimeReturnsOnCall[len(fake.reapTimeArgsForCall)]
@@ -3387,8 +3227,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.endTimeMutex.RUnlock()
 	fake.eventsMutex.RLock()
 	defer fake.eventsMutex.RUnlock()
-	fake.findWorkerMutex.RLock()
-	defer fake.findWorkerMutex.RUnlock()
 	fake.finishMutex.RLock()
 	defer fake.finishMutex.RUnlock()
 	fake.hasPlanMutex.RLock()
@@ -3433,8 +3271,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.privatePlanMutex.RUnlock()
 	fake.publicPlanMutex.RLock()
 	defer fake.publicPlanMutex.RUnlock()
-	fake.queryEventMutex.RLock()
-	defer fake.queryEventMutex.RUnlock()
 	fake.reapTimeMutex.RLock()
 	defer fake.reapTimeMutex.RUnlock()
 	fake.reloadMutex.RLock()

@@ -1,16 +1,10 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-	"io"
-	"path"
-	"path/filepath"
-	"strings"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-
+	"context"
+	"fmt"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -20,6 +14,10 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"io"
+	"path"
+	"path/filepath"
+	"strings"
 )
 
 // MissingInputsError is returned when any of the task's required inputs are
@@ -65,9 +63,8 @@ type TaskDelegate interface {
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
-	Finished(lager.Logger, ExitStatus, string)
+	Finished(lager.Logger, ExitStatus)
 	Errored(lager.Logger, string)
-	HasDoneSuccessfully(taskConfig *atc.TaskConfig) bool
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -125,18 +122,6 @@ func NewTaskStep(
 // task's entire working directory is registered as an StreamableArtifactSource under the
 // name of the task.
 func (step *TaskStep) Run(ctx context.Context, state RunState) error {
-	if step.delegate.HasDoneSuccessfully(step.plan.Config) {
-		logger := lagerctx.FromContext(ctx)
-		logger = logger.Session("task-step", lager.Data{
-			"step-name": step.plan.Name,
-			"job-id":    step.metadata.JobID,
-		})
-		logger.Debug("has-done-no-rerun")
-
-		step.succeeded = true
-		return nil
-	}
-
 	ctx, span := tracing.StartSpan(ctx, "task", tracing.Attrs{
 		"team":     step.metadata.TeamName,
 		"pipeline": step.metadata.PipelineName,
@@ -260,7 +245,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	}
 
 	step.succeeded = result.ExitStatus == 0
-	step.delegate.Finished(logger, ExitStatus(result.ExitStatus), result.Worker)
+	step.delegate.Finished(logger, ExitStatus(result.ExitStatus))
 
 	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 

@@ -52,24 +52,3 @@ services:
       # so we can reach Garden/Baggageclaim for debugging
       CONCOURSE_BIND_IP: 0.0.0.0
       CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
-
-  worker2:
-    build: .
-    image: concourse/concourse:local
-    command: worker
-    privileged: true
-    depends_on: [web]
-    ports:
-      - 17777:7777
-      - 17788:7788
-    stop_signal: SIGUSR2
-    environment:
-      CONCOURSE_LOG_LEVEL: debug
-      CONCOURSE_TSA_HOST: web:2222
-
-      # avoid using loopbacks
-      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
-
-      # so we can reach Garden/Baggageclaim for debugging
-      CONCOURSE_BIND_IP: 0.0.0.0
-      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0

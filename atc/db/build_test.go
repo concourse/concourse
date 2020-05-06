@@ -716,32 +716,6 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("QueryEvent", func() {
-		It("should query out saved event correctly", func() {
-			build, err := team.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-
-			e := event.FinishPut{
-				Origin: event.Origin{
-					ID: event.OriginID("some-id"),
-				},
-				Time:            time.Now().Unix(),
-				ExitStatus:      int(0),
-				CreatedVersion:  atc.Version{"v": "1"},
-				CreatedMetadata: []atc.MetadataField{},
-			}
-			err = build.SaveEvent(e)
-			Expect(err).NotTo(HaveOccurred())
-
-			payload, err := build.QueryEvent(e.EventType(), event.OriginID("some-id"))
-			Expect(err).NotTo(HaveOccurred())
-
-			encoded, err := json.Marshal(&e)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(payload).To(Equal(string(encoded)))
-		})
-	})
-
 	Describe("SaveOutput", func() {
 		var pipeline db.Pipeline
 		var job db.Job

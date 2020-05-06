@@ -111,7 +111,6 @@ type client struct {
 type TaskResult struct {
 	ExitStatus   int
 	VolumeMounts []VolumeMount
-	Worker       string
 }
 
 type CheckResult struct {
@@ -121,14 +120,12 @@ type CheckResult struct {
 type PutResult struct {
 	ExitStatus    int
 	VersionResult runtime.VersionResult
-	Worker        string
 }
 
 type GetResult struct {
 	ExitStatus    int
 	VersionResult runtime.VersionResult
 	GetArtifact   runtime.GetArtifact
-	Worker        string
 }
 
 type ImageFetcherSpec struct {
@@ -275,7 +272,7 @@ func (client *client) RunTaskStep(
 	}
 
 	// TODO: delete before merge.
-	processSpec.StderrWriter.Write([]byte(fmt.Sprintf("Chosen worker %s\n", chosenWorker.Name())))
+	//processSpec.StderrWriter.Write([]byte(fmt.Sprintf("Chosen worker %s\n", chosenWorker.Name())))
 
 	if strategy.ModifiesActiveTasks() {
 		defer decreaseActiveTasks(logger.Session("decrease-active-tasks"), chosenWorker)
@@ -387,7 +384,6 @@ func (client *client) RunTaskStep(
 		return TaskResult{
 			ExitStatus:   status.processStatus,
 			VolumeMounts: container.VolumeMounts(),
-			Worker:       chosenWorker.Name(),
 		}, err
 	}
 }
@@ -420,7 +416,7 @@ func (client *client) RunGetStep(
 	}
 
 	// TODO: delete before merge.
-	processSpec.StderrWriter.Write([]byte(fmt.Sprintf("Chosen worker %s: %s\n", chosenWorker.Name(), chosenWorker.Description())))
+	//processSpec.StderrWriter.Write([]byte(fmt.Sprintf("Chosen worker %s: %s\n", chosenWorker.Name(), chosenWorker.Description())))
 
 	sign, err := resource.Signature()
 	if err != nil {
@@ -445,7 +441,6 @@ func (client *client) RunGetStep(
 		resourceCache,
 		lockName,
 	)
-	getResult.Worker = chosenWorker.Name()
 	return getResult, err
 }
 
@@ -605,7 +600,7 @@ func (client *client) RunPutStep(
 	}
 
 	// TODO: delete before merge.
-	spec.StderrWriter.Write([]byte(fmt.Sprintf("Chosen worker %s: %s\n", chosenWorker.Name(), chosenWorker.Description())))
+	//spec.StderrWriter.Write([]byte(fmt.Sprintf("Chosen worker %s: %s\n", chosenWorker.Name(), chosenWorker.Description())))
 
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
@@ -652,7 +647,6 @@ func (client *client) RunPutStep(
 	return PutResult{
 		ExitStatus:    0,
 		VersionResult: vr,
-		Worker:        chosenWorker.Name(),
 	}, nil
 }
 
