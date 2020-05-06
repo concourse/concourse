@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/event"
 )
 
 type FakeBuild struct {
@@ -376,21 +375,6 @@ type FakeBuild struct {
 	}
 	publicPlanReturnsOnCall map[int]struct {
 		result1 *json.RawMessage
-	}
-	QueryEventStub        func(atc.EventType, event.OriginID, atc.Event) (bool, error)
-	queryEventMutex       sync.RWMutex
-	queryEventArgsForCall []struct {
-		arg1 atc.EventType
-		arg2 event.OriginID
-		arg3 atc.Event
-	}
-	queryEventReturns struct {
-		result1 bool
-		result2 error
-	}
-	queryEventReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
 	}
 	ReapTimeStub        func() time.Time
 	reapTimeMutex       sync.RWMutex
@@ -2353,71 +2337,6 @@ func (fake *FakeBuild) PublicPlanReturnsOnCall(i int, result1 *json.RawMessage) 
 	}{result1}
 }
 
-func (fake *FakeBuild) QueryEvent(arg1 atc.EventType, arg2 event.OriginID, arg3 atc.Event) (bool, error) {
-	fake.queryEventMutex.Lock()
-	ret, specificReturn := fake.queryEventReturnsOnCall[len(fake.queryEventArgsForCall)]
-	fake.queryEventArgsForCall = append(fake.queryEventArgsForCall, struct {
-		arg1 atc.EventType
-		arg2 event.OriginID
-		arg3 atc.Event
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("QueryEvent", []interface{}{arg1, arg2, arg3})
-	fake.queryEventMutex.Unlock()
-	if fake.QueryEventStub != nil {
-		return fake.QueryEventStub(arg1, arg2, arg3)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.queryEventReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeBuild) QueryEventCallCount() int {
-	fake.queryEventMutex.RLock()
-	defer fake.queryEventMutex.RUnlock()
-	return len(fake.queryEventArgsForCall)
-}
-
-func (fake *FakeBuild) QueryEventCalls(stub func(atc.EventType, event.OriginID, atc.Event) (bool, error)) {
-	fake.queryEventMutex.Lock()
-	defer fake.queryEventMutex.Unlock()
-	fake.QueryEventStub = stub
-}
-
-func (fake *FakeBuild) QueryEventArgsForCall(i int) (atc.EventType, event.OriginID, atc.Event) {
-	fake.queryEventMutex.RLock()
-	defer fake.queryEventMutex.RUnlock()
-	argsForCall := fake.queryEventArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeBuild) QueryEventReturns(result1 bool, result2 error) {
-	fake.queryEventMutex.Lock()
-	defer fake.queryEventMutex.Unlock()
-	fake.QueryEventStub = nil
-	fake.queryEventReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) QueryEventReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.queryEventMutex.Lock()
-	defer fake.queryEventMutex.Unlock()
-	fake.QueryEventStub = nil
-	if fake.queryEventReturnsOnCall == nil {
-		fake.queryEventReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
-		})
-	}
-	fake.queryEventReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeBuild) ReapTime() time.Time {
 	fake.reapTimeMutex.Lock()
 	ret, specificReturn := fake.reapTimeReturnsOnCall[len(fake.reapTimeArgsForCall)]
@@ -3435,8 +3354,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.privatePlanMutex.RUnlock()
 	fake.publicPlanMutex.RLock()
 	defer fake.publicPlanMutex.RUnlock()
-	fake.queryEventMutex.RLock()
-	defer fake.queryEventMutex.RUnlock()
 	fake.reapTimeMutex.RLock()
 	defer fake.reapTimeMutex.RUnlock()
 	fake.reloadMutex.RLock()

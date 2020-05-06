@@ -46,8 +46,9 @@ type GetDelegate interface {
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
-	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
+	Finished(lager.Logger, ExitStatus, runtime.VersionResult, string)
 	Errored(lager.Logger, string)
+	HasDoneSuccessfully() bool
 
 	UpdateVersion(lager.Logger, atc.GetPlan, runtime.VersionResult)
 }
@@ -91,6 +92,17 @@ func NewGetStep(
 	}
 }
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
+	if step.delegate.HasDoneSuccessfully() {
+		logger := lagerctx.FromContext(ctx)
+		logger = logger.Session("get-step", lager.Data{
+			"step-name": step.plan.Name,
+			"job-id":    step.metadata.JobID,
+		})
+		logger.Debug("has-done-no-rerun")
+		step.succeeded = true
+		return nil
+	}
+
 	ctx, span := tracing.StartSpan(ctx, "get", tracing.Attrs{
 		"team":     step.metadata.TeamName,
 		"pipeline": step.metadata.PipelineName,
@@ -220,6 +232,7 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		logger,
 		ExitStatus(getResult.ExitStatus),
 		getResult.VersionResult,
+		getResult.Worker,
 	)
 
 	return nil

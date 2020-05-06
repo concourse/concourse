@@ -111,6 +111,7 @@ type client struct {
 type TaskResult struct {
 	ExitStatus   int
 	VolumeMounts []VolumeMount
+	Worker       string
 }
 
 type CheckResult struct {
@@ -120,12 +121,14 @@ type CheckResult struct {
 type PutResult struct {
 	ExitStatus    int
 	VersionResult runtime.VersionResult
+	Worker        string
 }
 
 type GetResult struct {
 	ExitStatus    int
 	VersionResult runtime.VersionResult
 	GetArtifact   runtime.GetArtifact
+	Worker        string
 }
 
 type ImageFetcherSpec struct {
@@ -384,6 +387,7 @@ func (client *client) RunTaskStep(
 		return TaskResult{
 			ExitStatus:   status.processStatus,
 			VolumeMounts: container.VolumeMounts(),
+			Worker:       chosenWorker.Name(),
 		}, err
 	}
 }
@@ -441,6 +445,7 @@ func (client *client) RunGetStep(
 		resourceCache,
 		lockName,
 	)
+	getResult.Worker = chosenWorker.Name()
 	return getResult, err
 }
 
@@ -647,6 +652,7 @@ func (client *client) RunPutStep(
 	return PutResult{
 		ExitStatus:    0,
 		VersionResult: vr,
+		Worker:        chosenWorker.Name(),
 	}, nil
 }
 

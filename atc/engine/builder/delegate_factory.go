@@ -87,10 +87,12 @@ func (d *getDelegate) Starting(logger lager.Logger) {
 	logger.Info("starting")
 }
 
-func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info runtime.VersionResult) {
+func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info runtime.VersionResult, worker string) {
 	// PR#4398: close to flush stdout and stderr
 	d.Stdout().(io.Closer).Close()
 	d.Stderr().(io.Closer).Close()
+
+	d.CacheResult(exitStatus == 0, worker)
 
 	err := d.build.SaveEvent(event.FinishGet{
 		Origin:          d.eventOrigin,
@@ -105,6 +107,21 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
+}
+
+func (d *getDelegate) HasDoneSuccessfully() bool {
+	succeeded, workerName := d.BuildStepDelegate.HasDoneSuccessfully()
+	if !succeeded {
+		return false
+	}
+	worker, found, err := d.build.FindWorker(workerName)
+	if err != nil || !found {
+		return false
+	}
+	if worker.State() != db.WorkerStateRunning {
+		return false
+	}
+	return true
 }
 
 func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info runtime.VersionResult) {
@@ -189,10 +206,12 @@ func (d *putDelegate) Starting(logger lager.Logger) {
 	logger.Info("starting")
 }
 
-func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info runtime.VersionResult) {
+func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info runtime.VersionResult, worker string) {
 	// PR#4398: close to flush stdout and stderr
 	d.Stdout().(io.Closer).Close()
 	d.Stderr().(io.Closer).Close()
+
+	d.CacheResult(exitStatus == 0, worker)
 
 	err := d.build.SaveEvent(event.FinishPut{
 		Origin:          d.eventOrigin,
@@ -210,12 +229,8 @@ func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 }
 
 func (d *putDelegate) HasDoneSuccessfully() bool {
-	evt := event.FinishPut{}
-	found, err := d.build.QueryEvent(evt.EventType(), d.eventOrigin.ID, &evt)
-	if err != nil || !found {
-		return false
-	}
-	return (evt.ExitStatus == 0)
+	succeeded, _ := d.BuildStepDelegate.HasDoneSuccessfully()
+	return succeeded
 }
 
 func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, resourceTypes atc.VersionedResourceTypes, info runtime.VersionResult) {
@@ -289,10 +304,12 @@ func (d *taskDelegate) Starting(logger lager.Logger) {
 	logger.Debug("starting")
 }
 
-func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus) {
+func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, worker string) {
 	// PR#4398: close to flush stdout and stderr
 	d.Stdout().(io.Closer).Close()
 	d.Stderr().(io.Closer).Close()
+
+	d.CacheResult(exitStatus == 0, worker)
 
 	err := d.build.SaveEvent(event.FinishTask{
 		ExitStatus: int(exitStatus),
@@ -307,16 +324,21 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func (d *taskDelegate) HasDoneSuccessfully(hasOutput bool) bool {
-	if hasOutput {
+func (d *taskDelegate) HasDoneSuccessfully(taskConfig *atc.TaskConfig) bool {
+	succeeded, workerName := d.BuildStepDelegate.HasDoneSuccessfully()
+	if !succeeded {
 		return false
 	}
-	evt := event.FinishTask{}
-	found, err := d.build.QueryEvent(evt.EventType(), d.eventOrigin.ID, &evt)
-	if err != nil || !found {
-		return false
+	if len(taskConfig.Outputs) > 0 {
+		worker, found, err := d.build.FindWorker(workerName)
+		if err != nil || !found {
+			return false
+		}
+		if worker.State() != db.WorkerStateRunning {
+			return false
+		}
 	}
-	return (evt.ExitStatus == 0)
+	return true
 }
 
 func NewCheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.CheckDelegate {
@@ -370,6 +392,8 @@ func NewBuildStepDelegate(
 		credVarsTracker: credVarsTracker,
 		stdout:          nil,
 		stderr:          nil,
+		succeeded:       nil,
+		worker:          "",
 	}
 }
 
@@ -380,6 +404,9 @@ type buildStepDelegate struct {
 	credVarsTracker vars.CredVarsTracker
 	stderr          io.Writer
 	stdout          io.Writer
+
+	succeeded *bool
+	worker    string
 }
 
 func (delegate *buildStepDelegate) Variables() vars.CredVarsTracker {
@@ -492,10 +519,18 @@ func (delegate *buildStepDelegate) Starting(logger lager.Logger) {
 	logger.Debug("starting")
 }
 
-func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool) {
+func (delegate *buildStepDelegate) CacheResult(succeeded bool, worker string) {
+	delegate.succeeded = new(bool)
+	*delegate.succeeded = succeeded
+	delegate.worker = worker
+}
+
+func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool, worker string) {
 	// PR#4398: close to flush stdout and stderr
 	delegate.Stdout().(io.Closer).Close()
 	delegate.Stderr().(io.Closer).Close()
+
+	delegate.CacheResult(succeeded, worker)
 
 	err := delegate.build.SaveEvent(event.Finish{
 		Origin: event.Origin{
@@ -512,16 +547,15 @@ func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool)
 	logger.Info("finished")
 }
 
-func (delegate *buildStepDelegate) HasDoneSuccessfully() bool {
-	evt := event.Finish{}
-	found, err := delegate.build.QueryEvent(evt.EventType(), event.OriginID(delegate.planID), &evt)
-	if err != nil || !found {
-		return false
+func (delegate *buildStepDelegate) HasDoneSuccessfully() (bool, string) {
+	if delegate.succeeded == nil || !*delegate.succeeded {
+		return false, delegate.worker
 	}
-	return evt.Succeeded
+	return true, delegate.worker
 }
 
 func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) {
+	delegate.CacheResult(false, "")
 	err := delegate.build.SaveEvent(event.Error{
 		Message: message,
 		Origin: event.Origin{

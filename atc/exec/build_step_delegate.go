@@ -20,8 +20,9 @@ type BuildStepDelegate interface {
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
-	Finished(lager.Logger, bool)
+	Finished(lager.Logger, bool, string)
 	Errored(lager.Logger, string)
 
-	HasDoneSuccessfully() bool
+	CacheResult(bool, string)
+	HasDoneSuccessfully() (bool, string)
 }

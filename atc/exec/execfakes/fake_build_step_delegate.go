@@ -12,27 +12,36 @@ import (
 )
 
 type FakeBuildStepDelegate struct {
+	CacheResultStub        func(bool, string)
+	cacheResultMutex       sync.RWMutex
+	cacheResultArgsForCall []struct {
+		arg1 bool
+		arg2 string
+	}
 	ErroredStub        func(lager.Logger, string)
 	erroredMutex       sync.RWMutex
 	erroredArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FinishedStub        func(lager.Logger, bool)
+	FinishedStub        func(lager.Logger, bool, string)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 bool
+		arg3 string
 	}
-	HasDoneSuccessfullyStub        func() bool
+	HasDoneSuccessfullyStub        func() (bool, string)
 	hasDoneSuccessfullyMutex       sync.RWMutex
 	hasDoneSuccessfullyArgsForCall []struct {
 	}
 	hasDoneSuccessfullyReturns struct {
 		result1 bool
+		result2 string
 	}
 	hasDoneSuccessfullyReturnsOnCall map[int]struct {
 		result1 bool
+		result2 string
 	}
 	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
@@ -89,6 +98,38 @@ type FakeBuildStepDelegate struct {
 	invocationsMutex sync.RWMutex
 }
 
+func (fake *FakeBuildStepDelegate) CacheResult(arg1 bool, arg2 string) {
+	fake.cacheResultMutex.Lock()
+	fake.cacheResultArgsForCall = append(fake.cacheResultArgsForCall, struct {
+		arg1 bool
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("CacheResult", []interface{}{arg1, arg2})
+	fake.cacheResultMutex.Unlock()
+	if fake.CacheResultStub != nil {
+		fake.CacheResultStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeBuildStepDelegate) CacheResultCallCount() int {
+	fake.cacheResultMutex.RLock()
+	defer fake.cacheResultMutex.RUnlock()
+	return len(fake.cacheResultArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) CacheResultCalls(stub func(bool, string)) {
+	fake.cacheResultMutex.Lock()
+	defer fake.cacheResultMutex.Unlock()
+	fake.CacheResultStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) CacheResultArgsForCall(i int) (bool, string) {
+	fake.cacheResultMutex.RLock()
+	defer fake.cacheResultMutex.RUnlock()
+	argsForCall := fake.cacheResultArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
 func (fake *FakeBuildStepDelegate) Errored(arg1 lager.Logger, arg2 string) {
 	fake.erroredMutex.Lock()
 	fake.erroredArgsForCall = append(fake.erroredArgsForCall, struct {
@@ -121,16 +162,17 @@ func (fake *FakeBuildStepDelegate) ErroredArgsForCall(i int) (lager.Logger, stri
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeBuildStepDelegate) Finished(arg1 lager.Logger, arg2 bool) {
+func (fake *FakeBuildStepDelegate) Finished(arg1 lager.Logger, arg2 bool, arg3 string) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 bool
-	}{arg1, arg2})
-	fake.recordInvocation("Finished", []interface{}{arg1, arg2})
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3})
 	fake.finishedMutex.Unlock()
 	if fake.FinishedStub != nil {
-		fake.FinishedStub(arg1, arg2)
+		fake.FinishedStub(arg1, arg2, arg3)
 	}
 }
 
@@ -140,20 +182,20 @@ func (fake *FakeBuildStepDelegate) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeBuildStepDelegate) FinishedCalls(stub func(lager.Logger, bool)) {
+func (fake *FakeBuildStepDelegate) FinishedCalls(stub func(lager.Logger, bool, string)) {
 	fake.finishedMutex.Lock()
 	defer fake.finishedMutex.Unlock()
 	fake.FinishedStub = stub
 }
 
-func (fake *FakeBuildStepDelegate) FinishedArgsForCall(i int) (lager.Logger, bool) {
+func (fake *FakeBuildStepDelegate) FinishedArgsForCall(i int) (lager.Logger, bool, string) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	argsForCall := fake.finishedArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeBuildStepDelegate) HasDoneSuccessfully() bool {
+func (fake *FakeBuildStepDelegate) HasDoneSuccessfully() (bool, string) {
 	fake.hasDoneSuccessfullyMutex.Lock()
 	ret, specificReturn := fake.hasDoneSuccessfullyReturnsOnCall[len(fake.hasDoneSuccessfullyArgsForCall)]
 	fake.hasDoneSuccessfullyArgsForCall = append(fake.hasDoneSuccessfullyArgsForCall, struct {
@@ -164,10 +206,10 @@ func (fake *FakeBuildStepDelegate) HasDoneSuccessfully() bool {
 		return fake.HasDoneSuccessfullyStub()
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.hasDoneSuccessfullyReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeBuildStepDelegate) HasDoneSuccessfullyCallCount() int {
@@ -176,33 +218,36 @@ func (fake *FakeBuildStepDelegate) HasDoneSuccessfullyCallCount() int {
 	return len(fake.hasDoneSuccessfullyArgsForCall)
 }
 
-func (fake *FakeBuildStepDelegate) HasDoneSuccessfullyCalls(stub func() bool) {
+func (fake *FakeBuildStepDelegate) HasDoneSuccessfullyCalls(stub func() (bool, string)) {
 	fake.hasDoneSuccessfullyMutex.Lock()
 	defer fake.hasDoneSuccessfullyMutex.Unlock()
 	fake.HasDoneSuccessfullyStub = stub
 }
 
-func (fake *FakeBuildStepDelegate) HasDoneSuccessfullyReturns(result1 bool) {
+func (fake *FakeBuildStepDelegate) HasDoneSuccessfullyReturns(result1 bool, result2 string) {
 	fake.hasDoneSuccessfullyMutex.Lock()
 	defer fake.hasDoneSuccessfullyMutex.Unlock()
 	fake.HasDoneSuccessfullyStub = nil
 	fake.hasDoneSuccessfullyReturns = struct {
 		result1 bool
-	}{result1}
+		result2 string
+	}{result1, result2}
 }
 
-func (fake *FakeBuildStepDelegate) HasDoneSuccessfullyReturnsOnCall(i int, result1 bool) {
+func (fake *FakeBuildStepDelegate) HasDoneSuccessfullyReturnsOnCall(i int, result1 bool, result2 string) {
 	fake.hasDoneSuccessfullyMutex.Lock()
 	defer fake.hasDoneSuccessfullyMutex.Unlock()
 	fake.HasDoneSuccessfullyStub = nil
 	if fake.hasDoneSuccessfullyReturnsOnCall == nil {
 		fake.hasDoneSuccessfullyReturnsOnCall = make(map[int]struct {
 			result1 bool
+			result2 string
 		})
 	}
 	fake.hasDoneSuccessfullyReturnsOnCall[i] = struct {
 		result1 bool
-	}{result1}
+		result2 string
+	}{result1, result2}
 }
 
 func (fake *FakeBuildStepDelegate) ImageVersionDetermined(arg1 db.UsedResourceCache) error {
@@ -486,6 +531,8 @@ func (fake *FakeBuildStepDelegate) VariablesReturnsOnCall(i int, result1 vars.Cr
 func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.cacheResultMutex.RLock()
+	defer fake.cacheResultMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
 	fake.finishedMutex.RLock()

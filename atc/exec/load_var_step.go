@@ -70,7 +70,8 @@ func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	if step.delegate.HasDoneSuccessfully() {
+	succeeded, _ := step.delegate.HasDoneSuccessfully()
+	if succeeded {
 		logger.Debug("done-already-no-need-rerun")
 		step.succeeded = true
 		return nil
@@ -97,7 +98,7 @@ func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
 	fmt.Fprintf(stdout, "added var %s to build.\n", step.plan.Name)
 
 	step.succeeded = true
-	step.delegate.Finished(logger, step.succeeded)
+	step.delegate.Finished(logger, step.succeeded, "")
 
 	return nil
 }

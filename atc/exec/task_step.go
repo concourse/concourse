@@ -65,9 +65,9 @@ type TaskDelegate interface {
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
-	Finished(lager.Logger, ExitStatus)
+	Finished(lager.Logger, ExitStatus, string)
 	Errored(lager.Logger, string)
-	HasDoneSuccessfully(bool) bool
+	HasDoneSuccessfully(taskConfig *atc.TaskConfig) bool
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -125,7 +125,7 @@ func NewTaskStep(
 // task's entire working directory is registered as an StreamableArtifactSource under the
 // name of the task.
 func (step *TaskStep) Run(ctx context.Context, state RunState) error {
-	if step.delegate.HasDoneSuccessfully(len(step.plan.Config.Outputs) > 0) {
+	if step.delegate.HasDoneSuccessfully(step.plan.Config) {
 		logger := lagerctx.FromContext(ctx)
 		logger = logger.Session("task-step", lager.Data{
 			"step-name": step.plan.Name,
@@ -260,7 +260,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	}
 
 	step.succeeded = result.ExitStatus == 0
-	step.delegate.Finished(logger, ExitStatus(result.ExitStatus))
+	step.delegate.Finished(logger, ExitStatus(result.ExitStatus), result.Worker)
 
 	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 
