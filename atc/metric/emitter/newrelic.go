@@ -59,13 +59,6 @@ func (config *NewRelicConfig) IsConfigured() bool {
 	return config.AccountID != "" && config.APIKey != ""
 }
 
-func (config *NewRelicConfig) url() string {
-	if len(config.Url) > 0 {
-		return fmt.Sprintf("%s/v1/accounts/%s/events", config.Url, config.AccountID)
-	}
-	return fmt.Sprintf("https://insights-collector.newrelic.com/v1/accounts/%s/events", config.AccountID)
-}
-
 func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
 	client := &http.Client{
 		Transport: &http.Transport{},
@@ -74,7 +67,7 @@ func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
 
 	return &NewRelicEmitter{
 		Client:             client,
-		Url:                config.url(),
+		Url:                fmt.Sprintf("%s/v1/accounts/%s/events", config.Url, config.AccountID),
 		apikey:             config.APIKey,
 		prefix:             config.ServicePrefix,
 		containers:         new(stats),
