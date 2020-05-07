@@ -3,6 +3,7 @@ package emitter_test
 import (
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -141,6 +142,25 @@ var _ = Describe("NewRelicEmitter", func() {
 			Entry("is enabled", false, "gzip"),
 			Entry("is disabled", true, ""),
 		)
+	})
+
+	Context("NewRelicConfiguration", func() {
+		It("sends events to configured endpoint", func() {
+			config := &emitter.NewRelicConfig{
+				AccountID: "123456",
+				APIKey:    "eu019347923874648573934074",
+				Url:       server.URL(),
+			}
+
+			server.RouteToHandler(http.MethodPost, "/v1/accounts/123456/events", verifyEvents(1))
+
+			e, _ := config.NewEmitter()
+			e.Emit(testLogger, testEvent)
+
+			newRelicEmitter := e.(*emitter.NewRelicEmitter)
+			Expect(newRelicEmitter.Url).To(Equal(fmt.Sprintf("%s/v1/accounts/123456/events", server.URL())))
+			Eventually(server.ReceivedRequests).Should(HaveLen(1))
+		})
 	})
 })
 

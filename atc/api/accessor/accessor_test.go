@@ -222,7 +222,7 @@ var _ = Describe("Accessor", func() {
 			verification.HasToken = true
 			verification.IsTokenValid = true
 			verification.RawClaims = map[string]interface{}{
-				"groups": []string{"some-group"},
+				"groups": []interface{}{"some-group"},
 				"federated_claims": map[string]interface{}{
 					"connector_id": "some-connector",
 				},
@@ -649,7 +649,7 @@ var _ = Describe("Accessor", func() {
 						"user_id":      "some-user-id",
 						"user_name":    "some-user-name",
 					},
-					"groups": []string{"some-group"},
+					"groups": []interface{}{"some-group"},
 				}
 			})
 

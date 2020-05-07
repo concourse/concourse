@@ -20,3 +20,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 * Close Worker's registration connection to the TSA on application level keepalive failure
 * Add 5 second timeout for keepalive operation
+
+#### <sub><sup><a name="5452" href="#4081">:link:</a></sup></sub> fix
+
+* @shyamz-22 added ability to configure NewRelic insights endpoint which allows us to use EU or US data centers
