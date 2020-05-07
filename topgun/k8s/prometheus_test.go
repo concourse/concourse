@@ -6,6 +6,7 @@ import (
 	"path"
 	"time"
 
+	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -19,10 +20,13 @@ var _ = Describe("Prometheus integration", func() {
 		prometheusReleaseName = releaseName + "-prom"
 
 		deployConcourseChart(releaseName,
-			"--set=worker.replicas=1",
-			"--set=concourse.worker.ephemeral=true",
-			"--set=concourse.web.prometheus.enabled=true",
-			"--set=concourse.worker.baggageclaim.driver=detect")
+			"--set=worker.enabled=false",
+			"--set=concourse.web.prometheus.enabled=true")
+
+		Run(nil,
+			"helm", "dependency", "update",
+			path.Join(Environment.HelmChartsDir, "stable/prometheus"),
+		)
 
 		helmDeploy(prometheusReleaseName,
 			namespace,
