@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = FDescribe("Scaling web instances", func() {
+var _ = Describe("Scaling web instances", func() {
 
 	BeforeEach(func() {
 		setReleaseNameAndNamespace("swi")
