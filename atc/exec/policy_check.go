@@ -12,10 +12,13 @@ type PolicyChecker interface {
 }
 
 type checker struct {
-	policyChecker policy.Checker
+	policyChecker *policy.Checker
 }
 
-func NewImagePolicyChecker(policyChecker policy.Checker) PolicyChecker {
+func NewImagePolicyChecker(policyChecker *policy.Checker) PolicyChecker {
+	if policyChecker == nil {
+		return nil
+	}
 	return &checker{policyChecker: policyChecker}
 }
 

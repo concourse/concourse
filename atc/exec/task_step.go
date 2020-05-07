@@ -3,7 +3,6 @@ package exec
 import (
 	"context"
 	"fmt"
-	"github.com/concourse/concourse/atc/policy"
 	"io"
 	"path"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"

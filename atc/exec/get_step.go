@@ -3,7 +3,6 @@ package exec
 import (
 	"context"
 	"fmt"
-	"github.com/concourse/concourse/atc/policy"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -12,6 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"

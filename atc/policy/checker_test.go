@@ -1,6 +1,8 @@
 package policy_test
 
 import (
+	"errors"
+
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 
@@ -11,7 +13,7 @@ import (
 var _ = Describe("Policy checker", func() {
 
 	var (
-		checker policy.Checker
+		checker *policy.Checker
 		filter  policy.Filter
 		err     error
 	)
@@ -33,303 +35,102 @@ var _ = Describe("Policy checker", func() {
 
 	// fakeAgent is configured in BeforeSuite.
 	Context("Initialize", func() {
+		It("new agent should be returned", func() {
+			Expect(fakeAgentFactory.NewAgentCallCount()).To(Equal(1))
+		})
+
 		It("should return a checker", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(checker).ToNot(BeNil())
 		})
 
-		//Context("Checker", func() {
-		//	Context("CheckHttpApi", func() {
-		//		var (
-		//			fakeAccessor *accessorfakes.FakeAccess
-		//			fakeRequest  *http.Request
-		//			action       string
-		//			pass         bool
-		//		)
-		//
-		//		BeforeEach(func() {
-		//			fakeAccessor = new(accessorfakes.FakeAccess)
-		//			fakeAccessor.ClaimsReturns(accessor.Claims{UserName: "some-user"})
-		//		})
-		//
-		//		JustBeforeEach(func() {
-		//			pass, err = checker.CheckHttpApi(action, fakeAccessor, fakeRequest)
-		//		})
-		//
-		//		Context("when it's system action", func() {
-		//			BeforeEach(func() {
-		//				action = "some-action"
-		//				fakeAccessor.IsSystemReturns(true)
-		//			})
-		//
-		//			It("should pass", func() {
-		//				Expect(err).ToNot(HaveOccurred())
-		//				Expect(pass).To(BeTrue())
-		//			})
-		//
-		//			It("agent should not be called", func() {
-		//				Expect(fakeAgent.CheckCallCount()).To(Equal(0))
-		//			})
-		//		})
-		//
-		//		Context("action skip_1", func() {
-		//			BeforeEach(func() {
-		//				action = "skip_1"
-		//			})
-		//
-		//			It("should pass", func() {
-		//				Expect(err).ToNot(HaveOccurred())
-		//				Expect(pass).To(BeTrue())
-		//			})
-		//
-		//			It("agent should not be called", func() {
-		//				Expect(fakeAgent.CheckCallCount()).To(Equal(0))
-		//			})
-		//		})
-		//
-		//		Context("HTTP GET method", func() {
-		//			BeforeEach(func() {
-		//				action = "some-action"
-		//				fakeRequest = httptest.NewRequest("GET", "/something", nil)
-		//			})
-		//
-		//			It("should pass", func() {
-		//				Expect(err).ToNot(HaveOccurred())
-		//				Expect(pass).To(BeTrue())
-		//			})
-		//
-		//			It("agent should not be called", func() {
-		//				Expect(fakeAgent.CheckCallCount()).To(Equal(0))
-		//			})
-		//		})
-		//
-		//		Context("HTTP GET method and action do_1", func() {
-		//			BeforeEach(func() {
-		//				action = "do_1"
-		//				fakeRequest = httptest.NewRequest("GET", "/something", nil)
-		//			})
-		//
-		//			It("should go through agent", func() {
-		//				Expect(err).ToNot(HaveOccurred())
-		//				Expect(fakeAgent.CheckCallCount()).To(Equal(1))
-		//			})
-		//		})
-		//
-		//		Context("when request body is a bad json", func() {
-		//			BeforeEach(func() {
-		//				action = "some-action"
-		//				body := bytes.NewBuffer([]byte("hello"))
-		//				fakeRequest = httptest.NewRequest("PUT", "/something", body)
-		//				fakeRequest.Header.Add("Content-type", "application/json")
-		//			})
-		//
-		//			It("should error", func() {
-		//				Expect(err).To(HaveOccurred())
-		//				Expect(err.Error()).To(Equal(`invalid character 'h' looking for beginning of value`))
-		//				Expect(pass).To(BeFalse())
-		//			})
-		//
-		//			It("agent should not be called", func() {
-		//				Expect(fakeAgent.CheckCallCount()).To(Equal(0))
-		//			})
-		//		})
-		//
-		//		Context("when request body is a bad yaml", func() {
-		//			BeforeEach(func() {
-		//				action = "some-action"
-		//				body := bytes.NewBuffer([]byte("a:\nb"))
-		//				fakeRequest = httptest.NewRequest("PUT", "/something", body)
-		//				fakeRequest.Header.Add("Content-type", "application/x-yaml")
-		//			})
-		//
-		//			It("should error", func() {
-		//				Expect(err).To(HaveOccurred())
-		//				Expect(err.Error()).To(Equal(`error converting YAML to JSON: yaml: line 3: could not find expected ':'`))
-		//				Expect(pass).To(BeFalse())
-		//			})
-		//
-		//			It("agent should not be called", func() {
-		//				Expect(fakeAgent.CheckCallCount()).To(Equal(0))
-		//			})
-		//		})
-		//
-		//		Context("when every is ok", func() {
-		//			BeforeEach(func() {
-		//				action = "some-action"
-		//				body := bytes.NewBuffer([]byte("a: b"))
-		//				fakeRequest = httptest.NewRequest("PUT", "/something?:team_name=some-team&:pipeline_name=some-pipeline", body)
-		//				fakeRequest.Header.Add("Content-type", "application/x-yaml")
-		//				fakeRequest.ParseForm()
-		//			})
-		//
-		//			It("should not error", func() {
-		//				Expect(err).ToNot(HaveOccurred())
-		//			})
-		//
-		//			It("agent should be called", func() {
-		//				Expect(fakeAgent.CheckCallCount()).To(Equal(1))
-		//			})
-		//
-		//			It("agent should take correct input", func() {
-		//				Expect(fakeAgent.CheckArgsForCall(0)).To(Equal(policy.PolicyCheckInput{
-		//					Service:        "concourse",
-		//					ClusterName:    "some-cluster",
-		//					ClusterVersion: "some-version",
-		//					HttpMethod:     "PUT",
-		//					Action:         action,
-		//					User:           "some-user",
-		//					Team:           "some-team",
-		//					Pipeline:       "some-pipeline",
-		//					Data:           map[string]interface{}{"a": "b"},
-		//				}))
-		//			})
-		//
-		//			It("request body should still be readable", func() {
-		//				body, err := ioutil.ReadAll(fakeRequest.Body)
-		//				Expect(err).ToNot(HaveOccurred())
-		//				Expect(body).To(Equal([]byte("a: b")))
-		//			})
-		//
-		//			Context("when agent says pass", func() {
-		//				BeforeEach(func() {
-		//					fakeAgent.CheckReturns(true, nil)
-		//				})
-		//
-		//				It("it should pass", func() {
-		//					Expect(err).ToNot(HaveOccurred())
-		//					Expect(pass).To(BeTrue())
-		//				})
-		//			})
-		//
-		//			Context("when agent says not-pass", func() {
-		//				BeforeEach(func() {
-		//					fakeAgent.CheckReturns(false, nil)
-		//				})
-		//
-		//				It("should not pass", func() {
-		//					Expect(err).ToNot(HaveOccurred())
-		//					Expect(pass).To(BeFalse())
-		//				})
-		//			})
-		//
-		//			Context("when agent says error", func() {
-		//				BeforeEach(func() {
-		//					fakeAgent.CheckReturns(false, errors.New("some-error"))
-		//				})
-		//
-		//				It("should not pass", func() {
-		//					Expect(err).To(HaveOccurred())
-		//					Expect(err.Error()).To(Equal("some-error"))
-		//					Expect(pass).To(BeFalse())
-		//				})
-		//			})
-		//		})
-		//	})
-		//
-		//	Context("CheckUsingImage", func() {
-		//		var (
-		//			fakeBuild  *dbfakes.FakeBuild
-		//			pass       bool
-		//		)
-		//
-		//		BeforeEach(func() {
-		//			fakeBuild = new(dbfakes.FakeBuild)
-		//		})
-		//
-		//		JustBeforeEach(func() {
-		//			pass, err = checker.CheckUsingImage("some-team", "some-pipeline", "task", atc.Source{"repository": "some-image"})
-		//		})
-		//
-		//		Context("when UsingImage is in skip list", func() {
-		//			BeforeEach(func() {
-		//				filter = policy.Filter{
-		//					HttpMethods:   []string{"POST,PUT"},
-		//					Actions:       []string{"do_1,do_2"},
-		//					ActionsToSkip: []string{policy.ActionUsingImage},
-		//				}
-		//			})
-		//
-		//			It("should pass", func() {
-		//				Expect(err).ToNot(HaveOccurred())
-		//				Expect(pass).To(BeTrue())
-		//			})
-		//
-		//			It("agent should not be called", func() {
-		//				Expect(fakeAgent.CheckCallCount()).To(Equal(0))
-		//			})
-		//		})
-		//
-		//		Context("when RunTask is not in skip list", func() {
-		//			BeforeEach(func() {
-		//				filter = policy.Filter{
-		//					HttpMethods:   []string{"POST,PUT"},
-		//					Actions:       []string{"do_1,do_2"},
-		//					ActionsToSkip: []string{},
-		//				}
-		//
-		//				fakeBuild.TeamNameReturns("some-team")
-		//				fakeBuild.PipelineNameReturns("some-pipeline")
-		//			})
-		//
-		//			It("should not error", func() {
-		//				Expect(err).ToNot(HaveOccurred())
-		//			})
-		//
-		//			It("agent should be called", func() {
-		//				Expect(fakeAgent.CheckCallCount()).To(Equal(1))
-		//			})
-		//
-		//			It("agent should take correct input", func() {
-		//				Expect(fakeAgent.CheckArgsForCall(0)).To(Equal(policy.PolicyCheckInput{
-		//					Service:        "concourse",
-		//					ClusterName:    "some-cluster",
-		//					ClusterVersion: "some-version",
-		//					Action:         policy.ActionUsingImage,
-		//					Team:           "some-team",
-		//					Pipeline:       "some-pipeline",
-		//					Data: map[string]string{
-		//						"repository": "some-image",
-		//						"step":       "task",
-		//						"tag":        "latest",
-		//					},
-		//				}))
-		//			})
-		//
-		//			Context("when agent says pass", func() {
-		//				BeforeEach(func() {
-		//					fakeAgent.CheckReturns(true, nil)
-		//				})
-		//
-		//				It("it should pass", func() {
-		//					Expect(err).ToNot(HaveOccurred())
-		//					Expect(pass).To(BeTrue())
-		//				})
-		//			})
-		//
-		//			Context("when agent says not-pass", func() {
-		//				BeforeEach(func() {
-		//					fakeAgent.CheckReturns(false, nil)
-		//				})
-		//
-		//				It("should not pass", func() {
-		//					Expect(err).ToNot(HaveOccurred())
-		//					Expect(pass).To(BeFalse())
-		//				})
-		//			})
-		//
-		//			Context("when agent says error", func() {
-		//				BeforeEach(func() {
-		//					fakeAgent.CheckReturns(false, errors.New("some-error"))
-		//				})
-		//
-		//				It("should not pass", func() {
-		//					Expect(err).To(HaveOccurred())
-		//					Expect(err.Error()).To(Equal("some-error"))
-		//					Expect(pass).To(BeFalse())
-		//				})
-		//			})
-		//		})
-		//	})
-		//})
+		Context("Checker", func() {
+			Context("ShouldCheckHttpMethod", func() {
+				It("should return correct result", func() {
+					Expect(checker.ShouldCheckHttpMethod("GET")).To(BeFalse())
+					Expect(checker.ShouldCheckHttpMethod("DELETE")).To(BeFalse())
+					Expect(checker.ShouldCheckHttpMethod("PUT")).To(BeTrue())
+					Expect(checker.ShouldCheckHttpMethod("POST")).To(BeTrue())
+				})
+			})
+
+			Context("ShouldCheckAction", func() {
+				It("should return correct result", func() {
+					Expect(checker.ShouldCheckAction("did_1")).To(BeFalse())
+					Expect(checker.ShouldCheckAction("did_2")).To(BeFalse())
+					Expect(checker.ShouldCheckAction("do_1")).To(BeTrue())
+					Expect(checker.ShouldCheckAction("do_2")).To(BeTrue())
+				})
+			})
+
+			Context("ShouldSkipAction", func() {
+				It("should return correct result", func() {
+					Expect(checker.ShouldSkipAction("did_1")).To(BeFalse())
+					Expect(checker.ShouldSkipAction("did_2")).To(BeFalse())
+					Expect(checker.ShouldSkipAction("skip_1")).To(BeTrue())
+					Expect(checker.ShouldSkipAction("skip_2")).To(BeTrue())
+				})
+			})
+
+			Context("Check", func() {
+				var (
+					input    policy.PolicyCheckInput
+					pass     bool
+					checkErr error
+				)
+				BeforeEach(func() {
+					input = policy.PolicyCheckInput{}
+				})
+				JustBeforeEach(func() {
+					pass, checkErr = checker.Check(input)
+				})
+
+				It("agent should be called", func() {
+					Expect(fakeAgent.CheckCallCount()).To(Equal(1))
+				})
+				It("cluster name should be injected into input", func() {
+					realInput := fakeAgent.CheckArgsForCall(0)
+					Expect(realInput).To(Equal(policy.PolicyCheckInput{
+						Service:        "concourse",
+						ClusterName:    "some-cluster",
+						ClusterVersion: "some-version",
+					}))
+				})
+
+				Context("when agent says pass", func() {
+					BeforeEach(func() {
+						fakeAgent.CheckReturns(true, nil)
+					})
+
+					It("it should pass", func() {
+						Expect(checkErr).ToNot(HaveOccurred())
+						Expect(pass).To(BeTrue())
+					})
+				})
+
+				Context("when agent says not-pass", func() {
+					BeforeEach(func() {
+						fakeAgent.CheckReturns(false, nil)
+					})
+
+					It("should not pass", func() {
+						Expect(checkErr).ToNot(HaveOccurred())
+						Expect(pass).To(BeFalse())
+					})
+				})
+
+				Context("when agent says error", func() {
+					BeforeEach(func() {
+						fakeAgent.CheckReturns(false, errors.New("some-error"))
+					})
+
+					It("should not pass", func() {
+						Expect(checkErr).To(HaveOccurred())
+						Expect(checkErr.Error()).To(Equal("some-error"))
+						Expect(pass).To(BeFalse())
+					})
+				})
+			})
+		})
 	})
 })

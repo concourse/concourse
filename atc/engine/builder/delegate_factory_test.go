@@ -24,12 +24,12 @@ import (
 
 var _ = Describe("DelegateFactory", func() {
 	var (
-		logger            *lagertest.TestLogger
-		fakeBuild         *dbfakes.FakeBuild
-		fakePipeline      *dbfakes.FakePipeline
-		fakeResource      *dbfakes.FakeResource
-		fakeClock         *fakeclock.FakeClock
-		credVarsTracker   vars.CredVarsTracker
+		logger          *lagertest.TestLogger
+		fakeBuild       *dbfakes.FakeBuild
+		fakePipeline    *dbfakes.FakePipeline
+		fakeResource    *dbfakes.FakeResource
+		fakeClock       *fakeclock.FakeClock
+		credVarsTracker vars.CredVarsTracker
 	)
 
 	BeforeEach(func() {
@@ -38,7 +38,6 @@ var _ = Describe("DelegateFactory", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeResource = new(dbfakes.FakeResource)
-
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123456789, 0))
 		credVars := vars.StaticVariables{
 			"source-param": "super-secret-source",

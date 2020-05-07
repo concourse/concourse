@@ -1,7 +1,7 @@
 package policy_test
 
 import (
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	. "github.com/onsi/ginkgo"
@@ -16,7 +16,7 @@ func TestPolicy(t *testing.T) {
 }
 
 var (
-	testLogger = lager.NewLogger("test")
+	testLogger = lagertest.NewTestLogger("test")
 
 	fakeAgent        *policyfakes.FakeAgent
 	fakeAgentFactory *policyfakes.FakeAgentFactory
@@ -26,6 +26,5 @@ var _ = BeforeSuite(func() {
 	fakeAgentFactory = new(policyfakes.FakeAgentFactory)
 	fakeAgentFactory.IsConfiguredReturns(true)
 	fakeAgentFactory.DescriptionReturns("fakeAgent")
-
 	policy.RegisterAgent(fakeAgentFactory)
 })

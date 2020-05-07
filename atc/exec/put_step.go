@@ -2,7 +2,6 @@ package exec
 
 import (
 	"context"
-	"github.com/concourse/concourse/atc/policy"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -10,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"

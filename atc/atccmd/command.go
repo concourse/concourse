@@ -644,7 +644,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
-	policyChecker policy.Checker,
+	policyChecker *policy.Checker,
 ) ([]grouper.Member, error) {
 
 	httpClient, err := cmd.skyHttpClient()
@@ -877,7 +877,7 @@ func (cmd *RunCommand) backendComponents(
 	dbConn db.Conn,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
-	policyChecker policy.Checker,
+	policyChecker *policy.Checker,
 ) ([]RunnableComponent, error) {
 
 	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
@@ -1552,7 +1552,7 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
-	policyChecker policy.Checker,
+	policyChecker *policy.Checker,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1739,7 +1739,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbWall db.Wall,
 	tokenVerifier accessor.TokenVerifier,
 	notifications db.NotificationsBus,
-	policyChecker policy.Checker,
+	policyChecker *policy.Checker,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)

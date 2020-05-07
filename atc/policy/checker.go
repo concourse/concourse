@@ -19,7 +19,7 @@ func (e PolicyCheckNotPass) Error() string {
 type Filter struct {
 	HttpMethods   []string `long:"policy-check-filter-http-methods" description:"API http method to go through policy check"`
 	Actions       []string `long:"policy-check-filter-action" description:"Actions in the list will go through policy check"`
-	ActionsToSkip []string `long:"policy-check-filter-action-skip" default:"RunTask" description:"Actions the list will not go through policy check"`
+	ActionsToSkip []string `long:"policy-check-filter-action-skip" default:"UsingImage" description:"Actions the list will not go through policy check"`
 }
 
 func (f Filter) normalize() Filter {
@@ -87,7 +87,7 @@ var (
 	clusterVersion string
 )
 
-func Initialize(logger lager.Logger, cluster string, version string, filter Filter) (Checker, error) {
+func Initialize(logger lager.Logger, cluster string, version string, filter Filter) (*Checker, error) {
 	logger.Debug("policy-checker-initialize")
 
 	clusterName = cluster
@@ -100,16 +100,16 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 		}
 	}
 	if len(checkerDescriptions) > 1 {
-		return Checker{}, fmt.Errorf("Multiple policy checker configured: %s", strings.Join(checkerDescriptions, ", "))
+		return nil, fmt.Errorf("Multiple policy checker configured: %s", strings.Join(checkerDescriptions, ", "))
 	}
 
 	for _, factory := range agentFactories {
 		if factory.IsConfigured() {
 			agent, err := factory.NewAgent(logger.Session("policy-checker"))
 			if err != nil {
-				return Checker{}, err
+				return nil, err
 			}
-			return Checker{
+			return &Checker{
 				filter: filter.normalize(),
 				agent:  agent,
 			}, nil
@@ -117,7 +117,7 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 	}
 
 	// No policy checker configured.
-	return Checker{}, nil
+	return nil, nil
 }
 
 type Checker struct {
@@ -125,15 +125,15 @@ type Checker struct {
 	agent  Agent
 }
 
-func (c Checker) ShouldCheckHttpMethod(method string) bool {
+func (c *Checker) ShouldCheckHttpMethod(method string) bool {
 	return inArray(c.filter.HttpMethods, method)
 }
 
-func (c Checker) ShouldCheckAction(action string) bool {
+func (c *Checker) ShouldCheckAction(action string) bool {
 	return inArray(c.filter.Actions, action)
 }
 
-func (c Checker) ShouldSkipAction(action string) bool {
+func (c *Checker) ShouldSkipAction(action string) bool {
 	return inArray(c.filter.ActionsToSkip, action)
 }
 
@@ -148,7 +148,7 @@ func inArray(array []string, target string) bool {
 	return found
 }
 
-func (c Checker) Check(input PolicyCheckInput) (bool, error) {
+func (c *Checker) Check(input PolicyCheckInput) (bool, error) {
 	input.Service = "concourse"
 	input.ClusterName = clusterName
 	input.ClusterVersion = clusterVersion
