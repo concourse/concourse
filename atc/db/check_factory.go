@@ -142,7 +142,7 @@ func (c *checkFactory) TryCreateCheck(logger lager.Logger, checkable Checkable, 
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
 		if parentType.Version() == nil {
-			return nil, false, fmt.Errorf("resource's parent type '%s' has no version", parentType.Name())
+			return nil, false, fmt.Errorf("resource type '%s' has no version", parentType.Name())
 		}
 	}
 
