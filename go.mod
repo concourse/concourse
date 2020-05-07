@@ -7,6 +7,8 @@ require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	code.cloudfoundry.org/localip v0.0.0-20170223024724-b88ad0dea95c
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
+	github.com/Azure/go-autorest/autorest v0.10.1 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.8.3 // indirect
 	github.com/DataDog/datadog-go v3.2.0+incompatible
 	github.com/MasterOfBinary/gobatch v0.0.0-20180929163814-711b27aab3df
 	github.com/Masterminds/squirrel v1.1.0
@@ -47,6 +49,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
 	github.com/googleapis/gnostic v0.3.1 // indirect
+	github.com/gophercloud/gophercloud v0.10.0 // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v1.6.2 // indirect
 	github.com/gorilla/websocket v1.4.0
@@ -113,7 +116,7 @@ require (
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1
-	gopkg.in/yaml.v2 v2.2.4
+	gopkg.in/yaml.v2 v2.2.7
 	k8s.io/api v0.0.0-20190313235455-40a48860b5ab
 	k8s.io/apimachinery v0.0.0-20190313205120-d7deff9243b1
 	k8s.io/client-go v11.0.0+incompatible

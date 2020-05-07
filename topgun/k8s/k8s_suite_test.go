@@ -17,10 +17,16 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 func TestK8s(t *testing.T) {
@@ -44,6 +50,7 @@ var (
 	endpointFactory        EndpointFactory
 	fly                    FlyCli
 	releaseName, namespace string
+	kubeClient             *kubernetes.Clientset
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -56,7 +63,19 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		parsedEnv.FlyPath = BuildBinary()
 	}
 
-	By("Checking if kubectl has a context set")
+	By("Checking if kubeconfig exists")
+	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+	_, err = os.Stat(kubeconfig)
+	Expect(err).ToNot(HaveOccurred(), "kubeconfig should exist")
+
+	By("Creating a kubernetes client")
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	Expect(err).ToNot(HaveOccurred())
+
+	kubeClient, err = kubernetes.NewForConfig(config)
+	Expect(err).ToNot(HaveOccurred())
+
+	By("Checking if kubectl has a context set for port forwarding later")
 	Wait(Start(nil, "kubectl", "config", "current-context"))
 
 	By("Initializing the client side of helm")
@@ -212,11 +231,11 @@ func (f AddressEndpointFactory) NewPodEndpoint(namespace, pod, port string) Endp
 	}
 }
 
-func podAddress(namespace, pod string) (address string) {
-	pods := getPods(namespace, "--field-selector=metadata.name="+pod)
+func podAddress(namespace, pod string) string {
+	pods := getPods(namespace, metav1.ListOptions{FieldSelector: "metadata.name=" + pod})
 	Expect(pods).To(HaveLen(1))
 
-	return pods[0].Status.Ip
+	return pods[0].Status.PodIP
 }
 
 // serviceAddress retrieves the ClusterIP address of a service on a given
@@ -307,30 +326,16 @@ func helmDestroy(releaseName string) {
 	Wait(Start(nil, "helm", helmArgs...))
 }
 
-func getPods(namespace string, flags ...string) []pod {
-	var (
-		pods struct {
-			Items []pod `json:"items"`
-		}
-
-		args = append([]string{"get", "pods",
-			"--namespace=" + namespace,
-			"--output=json",
-			"--no-headers"}, flags...)
-		session = Start(nil, "kubectl", args...)
-	)
-
-	Wait(session)
-
-	err := json.Unmarshal(session.Out.Contents(), &pods)
+func getPods(namespace string, listOptions metav1.ListOptions) []corev1.Pod {
+	pods, err := kubeClient.CoreV1().Pods(namespace).List(listOptions)
 	Expect(err).ToNot(HaveOccurred())
 
 	return pods.Items
 }
 
-func isPodReady(p pod) bool {
+func isPodReady(p corev1.Pod) bool {
 	for _, condition := range p.Status.Conditions {
-		if condition.Type != "ContainersReady" {
+		if condition.Type != corev1.ContainersReady {
 			continue
 		}
 
@@ -342,8 +347,8 @@ func isPodReady(p pod) bool {
 
 func waitAllPodsInNamespaceToBeReady(namespace string) {
 	Eventually(func() bool {
-		expectedPods := getPods(namespace)
-		actualPods := getPods(namespace, "--field-selector=status.phase=Running")
+		expectedPods := getPods(namespace, metav1.ListOptions{})
+		actualPods := getPods(namespace, metav1.ListOptions{FieldSelector: "status.phase=Running"})
 
 		if len(expectedPods) != len(actualPods) {
 			return false

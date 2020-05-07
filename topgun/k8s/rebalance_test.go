@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Worker Rebalancing", func() {
@@ -31,7 +32,7 @@ var _ = Describe("Worker Rebalancing", func() {
 	})
 
 	It("eventually has worker connecting to each web nodes over a period of time", func() {
-		pods := getPods(releaseName, "--selector=app="+releaseName+"-web")
+		pods := getPods(releaseName, metav1.ListOptions{LabelSelector: "app=" + releaseName + "-web"})
 
 		Eventually(func() string {
 			workers := fly.GetWorkers()
@@ -39,7 +40,7 @@ var _ = Describe("Worker Rebalancing", func() {
 
 			return strings.Split(workers[0].GardenAddress, ":")[0]
 		}, 2*time.Minute, 10*time.Second).
-			Should(Equal(pods[0].Status.Ip))
+			Should(Equal(pods[0].Status.PodIP))
 
 		Eventually(func() string {
 			workers := fly.GetWorkers()
@@ -47,6 +48,6 @@ var _ = Describe("Worker Rebalancing", func() {
 			Expect(workers).To(HaveLen(1))
 			return strings.Split(workers[0].GardenAddress, ":")[0]
 		}, 2*time.Minute, 10*time.Second).
-			Should(Equal(pods[1].Status.Ip))
+			Should(Equal(pods[1].Status.PodIP))
 	})
 })
