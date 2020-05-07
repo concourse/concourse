@@ -617,7 +617,11 @@ chart`][concourse-helm-chart] exists.
 With those set, go to `topgun/k8s` and run Ginkgo:
 
 ```sh
+# run the test cases serially
 ginkgo .
+
+# run the test cases with a concurrency level of 16
+ginkgo -nodes=16 .
 ```
 
 [`kind`]: https://kind.sigs.k8s.io/
