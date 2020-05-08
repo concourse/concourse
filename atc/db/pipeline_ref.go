@@ -22,14 +22,25 @@ type pipelineRef struct {
 
 	conn        Conn
 	lockFactory lock.LockFactory
+	eventStore  EventStore
 }
 
-func NewPipelineRef(id int, name string, conn Conn, lockFactory lock.LockFactory) PipelineRef {
+func NewPipelineRef(id int, name string, conn Conn, lockFactory lock.LockFactory, eventStore EventStore) pipelineRef {
 	return pipelineRef{
 		pipelineID:   id,
 		pipelineName: name,
-		conn:         conn,
-		lockFactory:  lockFactory,
+
+		conn:        conn,
+		lockFactory: lockFactory,
+		eventStore:  eventStore,
+	}
+}
+
+func newEmptyPipelineRef(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) pipelineRef {
+	return pipelineRef{
+		conn:        conn,
+		lockFactory: lockFactory,
+		eventStore:  eventStore,
 	}
 }
 
@@ -51,7 +62,7 @@ func (r pipelineRef) Pipeline() (Pipeline, bool, error) {
 		RunWith(r.conn).
 		QueryRow()
 
-	pipeline := newPipeline(r.conn, r.lockFactory)
+	pipeline := newEmptyPipeline(r.conn, r.lockFactory, r.eventStore)
 	err := scanPipeline(pipeline, row)
 	if err != nil {
 		if err == sql.ErrNoRows {

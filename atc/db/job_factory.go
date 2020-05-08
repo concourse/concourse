@@ -26,12 +26,14 @@ type JobFactory interface {
 type jobFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
+	eventStore  EventStore
 }
 
-func NewJobFactory(conn Conn, lockFactory lock.LockFactory) JobFactory {
+func NewJobFactory(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) JobFactory {
 	return &jobFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
+		eventStore:  eventStore,
 	}
 }
 
@@ -82,7 +84,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 		return nil, err
 	}
 
-	jobs, err := scanJobs(j.conn, j.lockFactory, rows)
+	jobs, err := scanJobs(j.conn, j.lockFactory, j.eventStore, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +158,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			defer Close(rows)
 
 			for rows.Next() {
-				resourceType := newEmptyResourceType(j.conn, j.lockFactory)
+				resourceType := newEmptyResourceType(j.conn, j.lockFactory, j.eventStore)
 				err := scanResourceType(resourceType, rows)
 				if err != nil {
 					return nil, err

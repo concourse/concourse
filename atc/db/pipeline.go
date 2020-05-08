@@ -115,6 +115,7 @@ type pipeline struct {
 
 	conn        Conn
 	lockFactory lock.LockFactory
+	eventStore  EventStore
 }
 
 // ConfigVersion is a sequence identifier used for compare-and-swap.
@@ -139,10 +140,11 @@ var pipelinesQuery = psql.Select(`
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
 
-func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
+func newEmptyPipeline(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) *pipeline {
 	return &pipeline{
 		conn:        conn,
 		lockFactory: lockFactory,
+		eventStore:  eventStore,
 	}
 }
 
@@ -298,7 +300,7 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 		return nil, err
 	}
 
-	build := newEmptyBuild(p.conn, p.lockFactory)
+	build := newEmptyBuild(p.conn, p.lockFactory, p.eventStore)
 	err = scanBuild(build, buildsQuery.
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
@@ -388,7 +390,7 @@ func (p *pipeline) GetBuildsWithVersionAsInput(resourceID, resourceConfigVersion
 
 	builds := []Build{}
 	for rows.Next() {
-		build := newEmptyBuild(p.conn, p.lockFactory)
+		build := newEmptyBuild(p.conn, p.lockFactory, p.eventStore)
 		err = scanBuild(build, rows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -416,7 +418,7 @@ func (p *pipeline) GetBuildsWithVersionAsOutput(resourceID, resourceConfigVersio
 
 	builds := []Build{}
 	for rows.Next() {
-		build := newEmptyBuild(p.conn, p.lockFactory)
+		build := newEmptyBuild(p.conn, p.lockFactory, p.eventStore)
 		err = scanBuild(build, rows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -448,7 +450,7 @@ func (p *pipeline) resource(where map[string]interface{}) (Resource, bool, error
 		RunWith(p.conn).
 		QueryRow()
 
-	resource := newEmptyResource(p.conn, p.lockFactory)
+	resource := newEmptyResource(p.conn, p.lockFactory, p.eventStore)
 	err := scanResource(resource, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -463,16 +465,16 @@ func (p *pipeline) resource(where map[string]interface{}) (Resource, bool, error
 
 func (p *pipeline) Builds(page Page) ([]Build, Pagination, error) {
 	return getBuildsWithPagination(
-		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory)
+		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory, p.eventStore)
 }
 
 func (p *pipeline) BuildsWithTime(page Page) ([]Build, Pagination, error) {
 	return getBuildsWithDates(
-		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory)
+		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory, p.eventStore)
 }
 
 func (p *pipeline) Resources() (Resources, error) {
-	return resources(p.id, p.conn, p.lockFactory)
+	return resources(p.id, p.conn, p.lockFactory, p.eventStore)
 }
 
 func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
@@ -489,7 +491,7 @@ func (p *pipeline) ResourceTypes() (ResourceTypes, error) {
 	resourceTypes := []ResourceType{}
 
 	for rows.Next() {
-		resourceType := newEmptyResourceType(p.conn, p.lockFactory)
+		resourceType := newEmptyResourceType(p.conn, p.lockFactory, p.eventStore)
 		err := scanResourceType(resourceType, rows)
 		if err != nil {
 			return nil, err
@@ -521,7 +523,7 @@ func (p *pipeline) resourceType(where map[string]interface{}) (ResourceType, boo
 		RunWith(p.conn).
 		QueryRow()
 
-	resourceType := newEmptyResourceType(p.conn, p.lockFactory)
+	resourceType := newEmptyResourceType(p.conn, p.lockFactory, p.eventStore)
 	err := scanResourceType(resourceType, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -541,7 +543,7 @@ func (p *pipeline) Job(name string) (Job, bool, error) {
 		"j.pipeline_id": p.id,
 	}).RunWith(p.conn).QueryRow()
 
-	job := newEmptyJob(p.conn, p.lockFactory)
+	job := newEmptyJob(p.conn, p.lockFactory, p.eventStore)
 	err := scanJob(job, row)
 
 	if err != nil {
@@ -568,7 +570,7 @@ func (p *pipeline) Jobs() (Jobs, error) {
 		return nil, err
 	}
 
-	jobs, err := scanJobs(p.conn, p.lockFactory, rows)
+	jobs, err := scanJobs(p.conn, p.lockFactory, p.eventStore, rows)
 	return jobs, err
 }
 
@@ -994,7 +996,7 @@ func (p *pipeline) CreateOneOffBuild() (Build, error) {
 
 	defer Rollback(tx)
 
-	build := newEmptyBuild(p.conn, p.lockFactory)
+	build := newEmptyBuild(p.conn, p.lockFactory, p.eventStore)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":        sq.Expr("nextval('one_off_name')"),
 		"pipeline_id": p.id,
@@ -1031,7 +1033,7 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		return nil, err
 	}
 
-	build := newEmptyBuild(p.conn, p.lockFactory)
+	build := newEmptyBuild(p.conn, p.lockFactory, p.eventStore)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":         sq.Expr("nextval('one_off_name')"),
 		"pipeline_id":  p.id,
@@ -1087,7 +1089,7 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 	nextBuilds := make(map[string]Build)
 
 	for rows.Next() {
-		build := newEmptyBuild(p.conn, p.lockFactory)
+		build := newEmptyBuild(p.conn, p.lockFactory, p.eventStore)
 		err := scanBuild(build, rows, p.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -1195,7 +1197,7 @@ func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, 
 	return buildName, jobID, err
 }
 
-func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resources, error) {
+func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory, eventStore EventStore) (Resources, error) {
 	rows, err := resourcesQuery.
 		Where(sq.Eq{"r.pipeline_id": pipelineID}).
 		OrderBy("r.name").
@@ -1209,7 +1211,7 @@ func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resourc
 	var resources Resources
 
 	for rows.Next() {
-		newResource := newEmptyResource(conn, lockFactory)
+		newResource := newEmptyResource(conn, lockFactory, eventStore)
 		err := scanResource(newResource, rows)
 		if err != nil {
 			return nil, err

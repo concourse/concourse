@@ -16,12 +16,15 @@ type PipelineFactory interface {
 type pipelineFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
+	eventStore  EventStore
 }
 
-func NewPipelineFactory(conn Conn, lockFactory lock.LockFactory) PipelineFactory {
+func NewPipelineFactory(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) PipelineFactory {
 	return &pipelineFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
+
+		eventStore: eventStore,
 	}
 }
 
@@ -42,7 +45,7 @@ func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, erro
 		return nil, err
 	}
 
-	currentTeamPipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
+	currentTeamPipelines, err := scanPipelines(f.conn, f.lockFactory, f.eventStore, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +60,7 @@ func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, erro
 		return nil, err
 	}
 
-	otherTeamPublicPipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
+	otherTeamPublicPipelines, err := scanPipelines(f.conn, f.lockFactory, f.eventStore, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +82,7 @@ func (f *pipelineFactory) AllPipelines() ([]Pipeline, error) {
 		return nil, err
 	}
 
-	return scanPipelines(f.conn, f.lockFactory, rows)
+	return scanPipelines(f.conn, f.lockFactory, f.eventStore, rows)
 }
 
 func (f *pipelineFactory) PipelinesToSchedule() ([]Pipeline, error) {
@@ -92,5 +95,5 @@ func (f *pipelineFactory) PipelinesToSchedule() ([]Pipeline, error) {
 		return nil, err
 	}
 
-	return scanPipelines(f.conn, f.lockFactory, rows)
+	return scanPipelines(f.conn, f.lockFactory, f.eventStore, rows)
 }

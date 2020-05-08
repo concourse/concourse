@@ -26,12 +26,14 @@ type TeamFactory interface {
 type teamFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
+	eventStore  EventStore
 }
 
-func NewTeamFactory(conn Conn, lockFactory lock.LockFactory) TeamFactory {
+func NewTeamFactory(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) TeamFactory {
 	return &teamFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
+		eventStore:  eventStore,
 	}
 }
 
@@ -59,10 +61,7 @@ func (factory *teamFactory) createTeam(t atc.Team, admin bool) (Team, error) {
 		RunWith(tx).
 		QueryRow()
 
-	team := &team{
-		conn:        factory.conn,
-		lockFactory: factory.lockFactory,
-	}
+	team := newEmptyTeam(factory.conn, factory.lockFactory, factory.eventStore)
 
 	err = factory.scanTeam(team, row)
 	if err != nil {
@@ -78,18 +77,13 @@ func (factory *teamFactory) createTeam(t atc.Team, admin bool) (Team, error) {
 }
 
 func (factory *teamFactory) GetByID(teamID int) Team {
-	return &team{
-		id:          teamID,
-		conn:        factory.conn,
-		lockFactory: factory.lockFactory,
-	}
+	team := newEmptyTeam(factory.conn, factory.lockFactory, factory.eventStore)
+	team.id = teamID
+	return team
 }
 
 func (factory *teamFactory) FindTeam(teamName string) (Team, bool, error) {
-	team := &team{
-		conn:        factory.conn,
-		lockFactory: factory.lockFactory,
-	}
+	team := newEmptyTeam(factory.conn, factory.lockFactory, factory.eventStore)
 
 	row := psql.Select("id, name, admin, auth").
 		From("teams").
@@ -123,10 +117,7 @@ func (factory *teamFactory) GetTeams() ([]Team, error) {
 	teams := []Team{}
 
 	for rows.Next() {
-		team := &team{
-			conn:        factory.conn,
-			lockFactory: factory.lockFactory,
-		}
+		team := newEmptyTeam(factory.conn, factory.lockFactory, factory.eventStore)
 
 		err = factory.scanTeam(team, rows)
 		if err != nil {

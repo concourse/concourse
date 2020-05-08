@@ -49,6 +49,7 @@ var (
 	workerTaskCacheFactory              db.WorkerTaskCacheFactory
 	userFactory                         db.UserFactory
 	dbWall                              db.Wall
+	eventStore                          db.EventStore
 	fakeClock                           dbfakes.FakeClock
 
 	defaultWorkerResourceType atc.WorkerResourceType
@@ -106,17 +107,18 @@ var _ = BeforeEach(func() {
 	fakeSecrets = new(credsfakes.FakeSecrets)
 	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 	componentFactory = db.NewComponentFactory(dbConn)
-	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 5*time.Minute, 5*time.Minute)
+	eventStore = new(dbfakes.FakeEventStore)
+	buildFactory = db.NewBuildFactory(dbConn, lockFactory, eventStore, 5*time.Minute, 5*time.Minute)
 	volumeRepository = db.NewVolumeRepository(dbConn)
 	containerRepository = db.NewContainerRepository(dbConn)
-	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
+	teamFactory = db.NewTeamFactory(dbConn, lockFactory, eventStore)
 	workerFactory = db.NewWorkerFactory(dbConn)
 	workerLifecycle = db.NewWorkerLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle = db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	taskCacheFactory = db.NewTaskCacheFactory(dbConn)
-	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, time.Minute)
+	checkFactory = db.NewCheckFactory(dbConn, lockFactory, eventStore, fakeSecrets, fakeVarSourcePool, time.Minute)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)

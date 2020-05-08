@@ -9,11 +9,11 @@ import (
 
 var _ = Describe("PipelineRef", func() {
 	var (
-		pr       db.PipelineRef
+		pr db.PipelineRef
 	)
 
 	BeforeEach(func(){
-		pr = db.NewPipelineRef(defaultPipeline.ID(), defaultPipeline.Name(), dbConn, lockFactory)
+		pr = db.NewPipelineRef(defaultPipeline.ID(), defaultPipeline.Name(), dbConn, lockFactory, eventStore)
 	})
 
 	It("id should be correct", func() {

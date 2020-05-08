@@ -58,6 +58,7 @@ type CheckFactory interface {
 type checkFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
+	eventStore  EventStore
 
 	secrets             creds.Secrets
 	varSourcePool       creds.VarSourcePool
@@ -67,6 +68,7 @@ type checkFactory struct {
 func NewCheckFactory(
 	conn Conn,
 	lockFactory lock.LockFactory,
+	eventStore EventStore,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	defaultCheckTimeout time.Duration,
@@ -74,6 +76,7 @@ func NewCheckFactory(
 	return &checkFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
+		eventStore:  eventStore,
 
 		secrets:             secrets,
 		varSourcePool:       varSourcePool,
@@ -95,7 +98,7 @@ func (c *checkFactory) AcquireScanningLock(
 }
 
 func (c *checkFactory) Check(id int) (Check, bool, error) {
-	check := newEmptyCheck(c.conn, c.lockFactory)
+	check := newEmptyCheck(c.conn, c.lockFactory, c.eventStore)
 	row := checksQuery.
 		Where(sq.Eq{"c.id": id}).
 		RunWith(c.conn).
@@ -125,7 +128,7 @@ func (c *checkFactory) StartedChecks() ([]Check, error) {
 	var checks []Check
 
 	for rows.Next() {
-		check := newEmptyCheck(c.conn, c.lockFactory)
+		check := newEmptyCheck(c.conn, c.lockFactory, c.eventStore)
 		err := scanCheck(check, rows)
 		if err != nil {
 			return nil, err
@@ -320,14 +323,10 @@ func (c *checkFactory) CreateCheck(
 		createTime:            createTime,
 		metadata:              meta,
 
-		pipelineRef: pipelineRef{
-			conn:         c.conn,
-			lockFactory:  c.lockFactory,
-			pipelineID:   meta.PipelineID,
-			pipelineName: meta.PipelineName,
-		},
+		pipelineRef: NewPipelineRef(meta.PipelineID, meta.PipelineName, c.conn, c.lockFactory, c.eventStore),
 
 		spanContext: sc,
+
 	}, true, err
 }
 
@@ -347,7 +346,7 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		r := newEmptyResource(c.conn, c.lockFactory)
+		r := newEmptyResource(c.conn, c.lockFactory, c.eventStore)
 		err = scanResource(r, rows)
 		if err != nil {
 			return nil, err
@@ -373,7 +372,7 @@ func (c *checkFactory) ResourceTypes() ([]ResourceType, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		r := newEmptyResourceType(c.conn, c.lockFactory)
+		r := newEmptyResourceType(c.conn, c.lockFactory, c.eventStore)
 		err = scanResourceType(r, rows)
 		if err != nil {
 			return nil, err

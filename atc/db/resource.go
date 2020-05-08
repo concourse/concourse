@@ -120,8 +120,8 @@ type resource struct {
 	icon                  string
 }
 
-func newEmptyResource(conn Conn, lockFactory lock.LockFactory) *resource {
-	return &resource{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+func newEmptyResource(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) *resource {
+	return &resource{pipelineRef: newEmptyPipelineRef(conn, lockFactory, eventStore)}
 }
 
 type ResourceNotFoundError struct {

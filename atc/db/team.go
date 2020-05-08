@@ -70,14 +70,24 @@ type Team interface {
 }
 
 type team struct {
-	id          int
+	id int
+
 	conn        Conn
 	lockFactory lock.LockFactory
+	eventStore  EventStore
 
 	name  string
 	admin bool
 
 	auth atc.TeamAuth
+}
+
+func newEmptyTeam(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) *team {
+	return &team{
+		conn:        conn,
+		lockFactory: lockFactory,
+		eventStore:  eventStore,
+	}
 }
 
 func (t *team) ID() int      { return t.id }
@@ -519,8 +529,7 @@ func (t *team) SavePipeline(
 		return nil, false, err
 	}
 
-	pipeline := newPipeline(t.conn, t.lockFactory)
-
+	pipeline := newEmptyPipeline(t.conn, t.lockFactory, t.eventStore)
 	err = scanPipeline(
 		pipeline,
 		pipelinesQuery.
@@ -541,7 +550,7 @@ func (t *team) SavePipeline(
 }
 
 func (t *team) Pipeline(pipelineName string) (Pipeline, bool, error) {
-	pipeline := newPipeline(t.conn, t.lockFactory)
+	pipeline := newEmptyPipeline(t.conn, t.lockFactory, t.eventStore)
 
 	err := scanPipeline(
 		pipeline,
@@ -575,7 +584,7 @@ func (t *team) Pipelines() ([]Pipeline, error) {
 		return nil, err
 	}
 
-	pipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+	pipelines, err := scanPipelines(t.conn, t.lockFactory, t.eventStore, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -596,7 +605,7 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 		return nil, err
 	}
 
-	pipelines, err := scanPipelines(t.conn, t.lockFactory, rows)
+	pipelines, err := scanPipelines(t.conn, t.lockFactory, t.eventStore, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -645,7 +654,7 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 
 	defer Rollback(tx)
 
-	build := newEmptyBuild(t.conn, t.lockFactory)
+	build := newEmptyBuild(t.conn, t.lockFactory, t.eventStore)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":    sq.Expr("nextval('one_off_name')"),
 		"team_id": t.id,
@@ -681,7 +690,7 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		return nil, err
 	}
 
-	build := newEmptyBuild(t.conn, t.lockFactory)
+	build := newEmptyBuild(t.conn, t.lockFactory, t.eventStore)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":         sq.Expr("nextval('one_off_name')"),
 		"team_id":      t.id,
@@ -724,15 +733,15 @@ func (t *team) PrivateAndPublicBuilds(page Page) ([]Build, Pagination, error) {
 	newBuildsQuery := buildsQuery.
 		Where(sq.Or{sq.Eq{"p.public": true}, sq.Eq{"t.id": t.id}})
 
-	return getBuildsWithPagination(newBuildsQuery, minMaxIdQuery, page, t.conn, t.lockFactory)
+	return getBuildsWithPagination(newBuildsQuery, minMaxIdQuery, page, t.conn, t.lockFactory, t.eventStore)
 }
 
 func (t *team) BuildsWithTime(page Page) ([]Build, Pagination, error) {
-	return getBuildsWithDates(buildsQuery.Where(sq.Eq{"t.id": t.id}), minMaxIdQuery, page, t.conn, t.lockFactory)
+	return getBuildsWithDates(buildsQuery.Where(sq.Eq{"t.id": t.id}), minMaxIdQuery, page, t.conn, t.lockFactory, t.eventStore)
 }
 
 func (t *team) Builds(page Page) ([]Build, Pagination, error) {
-	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"t.id": t.id}), minMaxIdQuery, page, t.conn, t.lockFactory)
+	return getBuildsWithPagination(buildsQuery.Where(sq.Eq{"t.id": t.id}), minMaxIdQuery, page, t.conn, t.lockFactory, t.eventStore)
 }
 
 func (t *team) SaveWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error) {
@@ -1201,13 +1210,13 @@ func scanPipeline(p *pipeline, scan scannable) error {
 	return nil
 }
 
-func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Pipeline, error) {
+func scanPipelines(conn Conn, lockFactory lock.LockFactory, eventStore EventStore, rows *sql.Rows) ([]Pipeline, error) {
 	defer Close(rows)
 
 	pipelines := []Pipeline{}
 
 	for rows.Next() {
-		pipeline := newPipeline(conn, lockFactory)
+		pipeline := newEmptyPipeline(conn, lockFactory, eventStore)
 
 		err := scanPipeline(pipeline, rows)
 		if err != nil {

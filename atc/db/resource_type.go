@@ -202,8 +202,8 @@ func (t *resourceType) HasWebhook() bool {
 	return false
 }
 
-func newEmptyResourceType(conn Conn, lockFactory lock.LockFactory) *resourceType {
-	return &resourceType{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+func newEmptyResourceType(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) *resourceType {
+	return &resourceType{pipelineRef: newEmptyPipelineRef(conn, lockFactory, eventStore)}
 }
 
 func (t *resourceType) Reload() (bool, error) {

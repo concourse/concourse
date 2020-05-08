@@ -12,7 +12,7 @@ var _ = Describe("Job Factory", func() {
 	var jobFactory db.JobFactory
 
 	BeforeEach(func() {
-		jobFactory = db.NewJobFactory(dbConn, lockFactory)
+		jobFactory = db.NewJobFactory(dbConn, lockFactory, eventStore)
 	})
 
 	Context("when there are public and private pipelines", func() {

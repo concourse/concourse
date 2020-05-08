@@ -11,7 +11,7 @@ var _ = Describe("Resource Factory", func() {
 	var resourceFactory db.ResourceFactory
 
 	BeforeEach(func() {
-		resourceFactory = db.NewResourceFactory(dbConn, lockFactory)
+		resourceFactory = db.NewResourceFactory(dbConn, lockFactory, eventStore)
 	})
 
 	Describe("Public And Private Resources", func() {

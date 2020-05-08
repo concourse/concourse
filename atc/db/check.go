@@ -100,8 +100,8 @@ type CheckMetadata struct {
 	BaseResourceTypeID int    `json:"base_resource_type_id"`
 }
 
-func newEmptyCheck(conn Conn, lockFactory lock.LockFactory) *check {
-	return &check{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+func newEmptyCheck(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) *check {
+	return &check{pipelineRef: newEmptyPipelineRef(conn, lockFactory, eventStore)}
 }
 
 func (c *check) ID() int                    { return c.id }
@@ -287,7 +287,7 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		r := newEmptyResource(c.conn, c.lockFactory)
+		r := newEmptyResource(c.conn, c.lockFactory, c.eventStore)
 		err = scanResource(r, rows)
 		if err != nil {
 			return nil, err
@@ -310,7 +310,7 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		r := newEmptyResourceType(c.conn, c.lockFactory)
+		r := newEmptyResourceType(c.conn, c.lockFactory, c.eventStore)
 		err = scanResourceType(r, rows)
 		if err != nil {
 			return nil, err

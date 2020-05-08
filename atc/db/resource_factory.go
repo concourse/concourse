@@ -18,17 +18,19 @@ type ResourceFactory interface {
 type resourceFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
+	eventStore  EventStore
 }
 
-func NewResourceFactory(conn Conn, lockFactory lock.LockFactory) ResourceFactory {
+func NewResourceFactory(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) ResourceFactory {
 	return &resourceFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
+		eventStore:  eventStore,
 	}
 }
 
 func (r *resourceFactory) Resource(resourceID int) (Resource, bool, error) {
-	resource := newEmptyResource(r.conn, r.lockFactory)
+	resource := newEmptyResource(r.conn, r.lockFactory, r.eventStore)
 	row := resourcesQuery.
 		Where(sq.Eq{"r.id": resourceID}).
 		RunWith(r.conn).
@@ -61,7 +63,7 @@ func (r *resourceFactory) VisibleResources(teamNames []string) ([]Resource, erro
 		return nil, err
 	}
 
-	return scanResources(rows, r.conn, r.lockFactory)
+	return scanResources(rows, r.conn, r.lockFactory, r.eventStore)
 }
 
 func (r *resourceFactory) AllResources() ([]Resource, error) {
@@ -73,14 +75,14 @@ func (r *resourceFactory) AllResources() ([]Resource, error) {
 		return nil, err
 	}
 
-	return scanResources(rows, r.conn, r.lockFactory)
+	return scanResources(rows, r.conn, r.lockFactory, r.eventStore)
 }
 
-func scanResources(resourceRows *sql.Rows, conn Conn, lockFactory lock.LockFactory) ([]Resource, error) {
+func scanResources(resourceRows *sql.Rows, conn Conn, lockFactory lock.LockFactory, eventStore EventStore) ([]Resource, error) {
 	var resources []Resource
 
 	for resourceRows.Next() {
-		resource := newEmptyResource(conn, lockFactory)
+		resource := newEmptyResource(conn, lockFactory, eventStore)
 		err := scanResource(resource, resourceRows)
 		if err != nil {
 			return nil, err

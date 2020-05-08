@@ -141,8 +141,8 @@ type job struct {
 	nonce     *string
 }
 
-func newEmptyJob(conn Conn, lockFactory lock.LockFactory) *job {
-	return &job{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+func newEmptyJob(conn Conn, lockFactory lock.LockFactory, eventStore EventStore) *job {
+	return &job{pipelineRef: newEmptyPipelineRef(conn, lockFactory, eventStore)}
 }
 
 func (j *job) SetHasNewInputs(hasNewInputs bool) error {
@@ -484,7 +484,7 @@ func (j *job) BuildsWithTime(page Page) ([]Build, Pagination, error) {
 			"j.name":        j.name,
 			"j.pipeline_id": j.pipelineID,
 		})
-	return getBuildsWithDates(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory)
+	return getBuildsWithDates(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory, j.eventStore)
 }
 
 func (j *job) Builds(page Page) ([]Build, Pagination, error) {
@@ -496,7 +496,7 @@ func (j *job) Builds(page Page) ([]Build, Pagination, error) {
 			"j.pipeline_id": j.pipelineID,
 		})
 
-	return getBuildsWithPagination(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory)
+	return getBuildsWithPagination(newBuildsQuery, newMinMaxIdQuery, page, j.conn, j.lockFactory, j.eventStore)
 }
 
 func (j *job) Build(name string) (Build, bool, error) {
@@ -516,7 +516,7 @@ func (j *job) Build(name string) (Build, bool, error) {
 
 	row := query.RunWith(j.conn).QueryRow()
 
-	build := newEmptyBuild(j.conn, j.lockFactory)
+	build := newEmptyBuild(j.conn, j.lockFactory, j.eventStore)
 
 	err := scanBuild(build, row, j.conn.EncryptionStrategy())
 	if err != nil {
@@ -739,7 +739,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 		"j.pipeline_id": j.pipelineID,
 	}).RunWith(j.conn).QueryRow()
 
-	job := newEmptyJob(j.conn, j.lockFactory)
+	job := newEmptyJob(j.conn, j.lockFactory, j.eventStore)
 	err := scanJob(job, row)
 	if err != nil {
 		return nil, err
@@ -760,7 +760,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 	defer Close(rows)
 
 	for rows.Next() {
-		build := newEmptyBuild(j.conn, j.lockFactory)
+		build := newEmptyBuild(j.conn, j.lockFactory, j.eventStore)
 		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -785,7 +785,7 @@ func (j *job) CreateBuild() (Build, error) {
 		return nil, err
 	}
 
-	build := newEmptyBuild(j.conn, j.lockFactory)
+	build := newEmptyBuild(j.conn, j.lockFactory, j.eventStore)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":               buildName,
 		"job_id":             j.id,
@@ -854,7 +854,7 @@ func (j *job) tryRerunBuild(buildToRerun Build) (Build, error) {
 		return nil, err
 	}
 
-	rerunBuild := newEmptyBuild(j.conn, j.lockFactory)
+	rerunBuild := newEmptyBuild(j.conn, j.lockFactory, j.eventStore)
 	err = createBuild(tx, rerunBuild, map[string]interface{}{
 		"name":         rerunBuildName,
 		"job_id":       j.id,
@@ -1044,7 +1044,7 @@ func (j *job) getRunningBuildsBySerialGroup(tx Tx, serialGroups []string) ([]Bui
 	bs := []Build{}
 
 	for rows.Next() {
-		build := newEmptyBuild(j.conn, j.lockFactory)
+		build := newEmptyBuild(j.conn, j.lockFactory, j.eventStore)
 		err = scanBuild(build, rows, j.conn.EncryptionStrategy())
 		if err != nil {
 			return nil, err
@@ -1075,7 +1075,7 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Bu
 			ORDER BY COALESCE(rerun_of, id) ASC, id ASC
 			LIMIT 1`, params...)
 
-	build := newEmptyBuild(j.conn, j.lockFactory)
+	build := newEmptyBuild(j.conn, j.lockFactory, j.eventStore)
 	err = scanBuild(build, row, j.conn.EncryptionStrategy())
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1224,7 +1224,7 @@ func (j *job) nextBuild(tx Tx) (Build, error) {
 		RunWith(tx).
 		QueryRow()
 
-	nextBuild := newEmptyBuild(j.conn, j.lockFactory)
+	nextBuild := newEmptyBuild(j.conn, j.lockFactory, j.eventStore)
 	err := scanBuild(nextBuild, row, j.conn.EncryptionStrategy())
 	if err == nil {
 		next = nextBuild
@@ -1244,7 +1244,7 @@ func (j *job) finishedBuild(tx Tx) (Build, error) {
 		RunWith(tx).
 		QueryRow()
 
-	finishedBuild := newEmptyBuild(j.conn, j.lockFactory)
+	finishedBuild := newEmptyBuild(j.conn, j.lockFactory, j.eventStore)
 	err := scanBuild(finishedBuild, row, j.conn.EncryptionStrategy())
 	if err == nil {
 		finished = finishedBuild
@@ -1394,13 +1394,13 @@ func scanJob(j *job, row scannable) error {
 	return nil
 }
 
-func scanJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) (Jobs, error) {
+func scanJobs(conn Conn, lockFactory lock.LockFactory, eventStore EventStore, rows *sql.Rows) (Jobs, error) {
 	defer Close(rows)
 
 	jobs := Jobs{}
 
 	for rows.Next() {
-		job := newEmptyJob(conn, lockFactory)
+		job := newEmptyJob(conn, lockFactory, eventStore)
 		err := scanJob(job, rows)
 		if err != nil {
 			return nil, err
