@@ -63,18 +63,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		parsedEnv.FlyPath = BuildBinary()
 	}
 
-	By("Checking if kubeconfig exists")
-	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
-	_, err = os.Stat(kubeconfig)
-	Expect(err).ToNot(HaveOccurred(), "kubeconfig should exist")
-
-	By("Creating a kubernetes client")
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	Expect(err).ToNot(HaveOccurred())
-
-	kubeClient, err = kubernetes.NewForConfig(config)
-	Expect(err).ToNot(HaveOccurred())
-
 	By("Checking if kubectl has a context set for port forwarding later")
 	Wait(Start(nil, "kubectl", "config", "current-context"))
 
@@ -112,6 +100,18 @@ var _ = BeforeEach(func() {
 	}
 
 	err = os.Mkdir(fly.Home, 0755)
+	Expect(err).ToNot(HaveOccurred())
+
+	By("Checking if kubeconfig exists")
+	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+	_, err = os.Stat(kubeconfig)
+	Expect(err).ToNot(HaveOccurred(), "kubeconfig should exist")
+
+	By("Creating a kubernetes client")
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	Expect(err).ToNot(HaveOccurred())
+
+	kubeClient, err = kubernetes.NewForConfig(config)
 	Expect(err).ToNot(HaveOccurred())
 })
 
