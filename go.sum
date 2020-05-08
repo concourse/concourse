@@ -74,6 +74,8 @@ github.com/prometheus/common v0.9.1 h1:KOMtN28tlbam3/7ZKEYKHhKoJZYYj3gMH4uc62x7X
 github.com/prometheus/common v0.9.1/go.mod h1:yhUN8i9wzaXS3w1O07YhxHEBxD+W35wd8bs7vj7HSQ4=
 github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/prometheus/procfs v0.0.2/go.mod h1:TjEm7ze935MbeOT/UhFTIMYKhuLP4wbCsTZCD3I8kEA=
+github.com/segmentio/textio v1.2.0 h1:Ug4IkV3kh72juJbG8azoSBlgebIbUUxVNrfFcKHfTSQ=
+github.com/segmentio/textio v1.2.0/go.mod h1:+Rb7v0YVODP+tK5F7FD9TCkV7gOYx9IgLHWiqtvY8ag=
 github.com/sergi/go-diff v1.0.0 h1:Kpca3qRNrduNnOQeazBd0ysaKrUJiIuISHxogkT9RPQ=
 github.com/sergi/go-diff v1.0.0/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAmXWZgo=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
@@ -88,6 +90,10 @@ github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/vito/booklit v0.10.1-0.20200506172243-0753b4a78766 h1:EWieWlPC7oNNd5uCXOTHsLnQs2cLCBG9rc2+YR67edI=
 github.com/vito/booklit v0.10.1-0.20200506172243-0753b4a78766/go.mod h1:PABFI6CUtYORQeJFqkbiQaew3a7+0R4IUAwRt5kwpL4=
+github.com/vito/booklit v0.10.1-0.20200508035331-f676d9d08216 h1:YHHjOlLVkEA+F5msuf2UU0YjeEme6CkNbez4hZHwPOo=
+github.com/vito/booklit v0.10.1-0.20200508035331-f676d9d08216/go.mod h1:EJD//6POAlujndCtf1FeZrutEN7jNnDsnwmxEGnODOQ=
+github.com/vito/booklit v0.11.0 h1:pAmjde1ZpNmvYXZ9Gt4Oy0w4Cyxu3bBVmYMbN5tLWo4=
+github.com/vito/booklit v0.11.0/go.mod h1:EJD//6POAlujndCtf1FeZrutEN7jNnDsnwmxEGnODOQ=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=

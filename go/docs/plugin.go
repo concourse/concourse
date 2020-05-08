@@ -1,4 +1,4 @@
-package main
+package docs
 
 import (
 	"bytes"
@@ -127,6 +127,7 @@ func (p *Plugin) Schema(name string, contentNode ast.Node) (booklit.Content, err
 			},
 			booklit.String(" schema"),
 		},
+		p.section.InvokeLocation,
 		booklit.Empty,
 		tagName,
 	)
@@ -821,7 +822,7 @@ var flyBinariesVersion = semver.MustParse("2.2.0")
 func (p Plugin) ReleaseVersion(version string) error {
 	p.section.Style = "release"
 
-	p.section.SetTitle(booklit.String("v" + version))
+	p.section.SetTitle(booklit.String("v"+version), p.section.InvokeLocation)
 
 	p.section.SetPartial("Version", booklit.String(version))
 
