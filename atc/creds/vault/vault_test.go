@@ -1,8 +1,6 @@
 package vault_test
 
 import (
-	"text/template"
-
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/vault"
 	"github.com/concourse/concourse/vars"
@@ -55,7 +53,7 @@ var _ = Describe("Vault", func() {
 		v = &vault.Vault{
 			SecretReader:    msr,
 			Prefix:          "/concourse",
-			LookupTemplates: []*template.Template{p, t},
+			LookupTemplates: []*creds.SecretTemplate{p, t},
 			SharedPath:      "shared",
 		}
 
@@ -159,7 +157,7 @@ var _ = Describe("Vault", func() {
 				v = &vault.Vault{
 					SecretReader:    sr,
 					Prefix:          "/concourse",
-					LookupTemplates: []*template.Template{a, b, c},
+					LookupTemplates: []*creds.SecretTemplate{a, b, c},
 				}
 
 				variables = creds.NewVariables(v, "team", "pipeline", false)
@@ -195,7 +193,7 @@ var _ = Describe("Vault", func() {
 				v = &vault.Vault{
 					SecretReader:    msr,
 					Prefix:          "/concourse",
-					LookupTemplates: []*template.Template{p, t},
+					LookupTemplates: []*creds.SecretTemplate{p, t},
 				}
 
 				variables = creds.NewVariables(v, "team", "pipeline", false)

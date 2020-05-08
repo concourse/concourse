@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
 	"strconv"
-	"text/template"
 
 	"github.com/concourse/concourse/atc/creds"
 
@@ -92,13 +91,13 @@ var _ = Describe("Ssm", func() {
 
 	JustBeforeEach(func() {
 		varDef = vars.VariableDefinition{Name: "cheery"}
-		t1, err := template.New("test").Parse(DefaultPipelineSecretTemplate)
+		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		t2, err := template.New("test").Parse(DefaultTeamSecretTemplate)
+		t2, err := creds.BuildSecretTemplate("t2", DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		ssmAccess = NewSsm(lagertest.NewTestLogger("ssm_test"), &mockService, []*template.Template{t1, t2})
+		ssmAccess = NewSsm(lagertest.NewTestLogger("ssm_test"), &mockService, []*creds.SecretTemplate{t1, t2})
 		variables = creds.NewVariables(ssmAccess, "alpha", "bogus", false)
 		Expect(ssmAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (string, error) {

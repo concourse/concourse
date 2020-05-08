@@ -1,8 +1,6 @@
 package secretsmanager
 
 import (
-	"text/template"
-
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -12,10 +10,10 @@ import (
 type secretsManagerFactory struct {
 	log             lager.Logger
 	api             *secretsmanager.SecretsManager
-	secretTemplates []*template.Template
+	secretTemplates []*creds.SecretTemplate
 }
 
-func NewSecretsManagerFactory(log lager.Logger, session *session.Session, secretTemplates []*template.Template) *secretsManagerFactory {
+func NewSecretsManagerFactory(log lager.Logger, session *session.Session, secretTemplates []*creds.SecretTemplate) *secretsManagerFactory {
 	return &secretsManagerFactory{
 		log:             log,
 		api:             secretsmanager.New(session),

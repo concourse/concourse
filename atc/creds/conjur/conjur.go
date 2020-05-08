@@ -1,8 +1,6 @@
 package conjur
 
 import (
-	"strings"
-	"text/template"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -16,10 +14,10 @@ type IConjurClient interface {
 type Conjur struct {
 	log             lager.Logger
 	client          IConjurClient
-	secretTemplates []*template.Template
+	secretTemplates []*creds.SecretTemplate
 }
 
-func NewConjur(log lager.Logger, client IConjurClient, secretTemplates []*template.Template) *Conjur {
+func NewConjur(log lager.Logger, client IConjurClient, secretTemplates []*creds.SecretTemplate) *Conjur {
 	return &Conjur{
 		log:             log,
 		client:          client,
@@ -31,9 +29,7 @@ func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string, allow
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, template := range c.secretTemplates {
 		c.log.Info(" teamname: " + teamName + "pipeline: " + pipelineName)
-		lPath := creds.NewSecretLookupWithTemplate(template, teamName, pipelineName)
-		samplePath, err := lPath.VariableToSecretPath("variable")
-		if err == nil && !strings.Contains(samplePath, "//") {
+		if lPath := creds.NewSecretLookupWithTemplate(template, teamName, pipelineName); lPath != nil {
 			lookupPaths = append(lookupPaths, lPath)
 		}
 	}

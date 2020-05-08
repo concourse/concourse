@@ -2,7 +2,6 @@ package conjur_test
 
 import (
 	"errors"
-	"text/template"
 
 	"github.com/concourse/concourse/atc/creds"
 
@@ -40,13 +39,13 @@ var _ = Describe("Conjur", func() {
 
 	JustBeforeEach(func() {
 		varDef = vars.VariableDefinition{Name: "cheery"}
-		t1, err := template.New("test").Parse(DefaultPipelineSecretTemplate)
+		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		t2, err := template.New("test").Parse(DefaultTeamSecretTemplate)
+		t2, err := creds.BuildSecretTemplate("t2", DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*template.Template{t1, t2})
+		secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{t1, t2})
 		variables = creds.NewVariables(secretAccess, "alpha", "bogus", false)
 		Expect(secretAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) ([]byte, error) {
@@ -98,7 +97,8 @@ var _ = Describe("Conjur", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should allow full variable path", func() {
+		It("should allow full variable path when no templates were configured", func() {
+			secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{}) 
 			variables := creds.NewVariables(secretAccess, "", "", false)
 			mockService.stubGetParameter = func(input string) ([]byte, error) {
 				Expect(input).To(Equal("cheery"))

@@ -1,7 +1,6 @@
 package vault
 
 import (
-	"text/template"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
@@ -12,11 +11,11 @@ type vaultFactory struct {
 	sr              SecretReader
 	prefix          string
 	sharedPath      string
-	lookupTemplates []*template.Template
+	lookupTemplates []*creds.SecretTemplate
 	loggedIn        <-chan struct{}
 }
 
-func NewVaultFactory(sr SecretReader, loggedIn <-chan struct{}, prefix string, lookupTemplates []*template.Template, sharedPath string) *vaultFactory {
+func NewVaultFactory(sr SecretReader, loggedIn <-chan struct{}, prefix string, lookupTemplates []*creds.SecretTemplate, sharedPath string) *vaultFactory {
 	factory := &vaultFactory{
 		sr:               sr,
 		prefix:           prefix,

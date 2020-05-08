@@ -2,8 +2,6 @@ package vault
 
 import (
 	"path"
-	"strings"
-	"text/template"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
@@ -22,7 +20,7 @@ type SecretReader interface {
 type Vault struct {
 	SecretReader    SecretReader
 	Prefix          string
-	LookupTemplates []*template.Template
+	LookupTemplates []*creds.SecretTemplate
 	SharedPath      string
 }
 
@@ -30,13 +28,8 @@ type Vault struct {
 func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range v.LookupTemplates {
-		lpath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName)
-
-		// Avoid adding an unintended path from expanding "/{{.Pipeline}}/"
-		// when there is no pipeline name present
-		samplePath, err := lpath.VariableToSecretPath("variable")
-		if err == nil && !strings.Contains(samplePath, "//") {
-			lookupPaths = append(lookupPaths, creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName))
+		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
+			lookupPaths = append(lookupPaths, lPath)
 		}
 	}
 	if v.SharedPath != "" {

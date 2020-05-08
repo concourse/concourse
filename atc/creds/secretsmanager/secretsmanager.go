@@ -2,8 +2,6 @@ package secretsmanager
 
 import (
 	"encoding/json"
-	"strings"
-	"text/template"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
@@ -17,10 +15,10 @@ import (
 type SecretsManager struct {
 	log             lager.Logger
 	api             secretsmanageriface.SecretsManagerAPI
-	secretTemplates []*template.Template
+	secretTemplates []*creds.SecretTemplate
 }
 
-func NewSecretsManager(log lager.Logger, api secretsmanageriface.SecretsManagerAPI, secretTemplates []*template.Template) *SecretsManager {
+func NewSecretsManager(log lager.Logger, api secretsmanageriface.SecretsManagerAPI, secretTemplates []*creds.SecretTemplate) *SecretsManager {
 	return &SecretsManager{
 		log:             log,
 		api:             api,
@@ -32,12 +30,7 @@ func NewSecretsManager(log lager.Logger, api secretsmanageriface.SecretsManagerA
 func (s *SecretsManager) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range s.secretTemplates {
-		lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName)
-
-		// if pipeline name is empty, double slashes may be present in the rendered template
-		// let's avoid adding these templates
-		samplePath, err := lPath.VariableToSecretPath("variable")
-		if err == nil && !strings.Contains(samplePath, "//") {
+		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
 			lookupPaths = append(lookupPaths, lPath)
 		}
 	}

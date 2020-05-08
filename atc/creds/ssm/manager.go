@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
-	"text/template"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
@@ -140,7 +139,7 @@ func (manager *SsmManager) NewSecretsFactory(log lager.Logger) (creds.SecretsFac
 		return nil, err
 	}
 
-	return NewSsmFactory(log, session, []*template.Template{pipelineSecretTemplate, teamSecretTemplate}), nil
+	return NewSsmFactory(log, session, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate}), nil
 }
 
 func (manager *SsmManager) Close(logger lager.Logger) {

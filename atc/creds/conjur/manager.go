@@ -2,7 +2,6 @@ package conjur
 
 import (
 	"errors"
-	"text/template"
 
 	"code.cloudfoundry.org/lager"
 
@@ -142,7 +141,7 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 		return nil, err
 	}
 
-	return NewConjurFactory(log, client, []*template.Template{pipelineSecretTemplate, teamSecretTemplate, secretTemplate}), nil
+	return NewConjurFactory(log, client, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate, secretTemplate}), nil
 }
 
 func (manager Manager) Close(logger lager.Logger) {
