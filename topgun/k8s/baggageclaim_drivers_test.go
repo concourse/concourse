@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
@@ -102,7 +103,7 @@ func baggageclaimFails(driver string, selectorFlags ...string) {
 
 				return workerLogsSession.Out.Contents()
 
-			}).Should(ContainSubstring("failed-to-set-up-driver"))
+			}, 2*time.Minute, 1*time.Second).Should(ContainSubstring("failed-to-set-up-driver"))
 		})
 	})
 }
