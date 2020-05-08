@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 )
@@ -22,7 +21,7 @@ type BuildScheduler interface {
 	) (bool, error)
 }
 
-type schedulerRunner struct {
+type Runner struct {
 	logger     lager.Logger
 	jobFactory db.JobFactory
 	scheduler  BuildScheduler
@@ -31,19 +30,18 @@ type schedulerRunner struct {
 	running            *sync.Map
 }
 
-func NewRunner(logger lager.Logger, jobFactory db.JobFactory, scheduler BuildScheduler, maxJobs uint64) component.Runnable {
-	newGuardJobScheduling := make(chan struct{}, maxJobs)
-	return &schedulerRunner{
+func NewRunner(logger lager.Logger, jobFactory db.JobFactory, scheduler BuildScheduler, maxJobs uint64) *Runner {
+	return &Runner{
 		logger:     logger,
 		jobFactory: jobFactory,
 		scheduler:  scheduler,
 
-		guardJobScheduling: newGuardJobScheduling,
+		guardJobScheduling: make(chan struct{}, maxJobs),
 		running:            &sync.Map{},
 	}
 }
 
-func (s *schedulerRunner) Run(ctx context.Context) error {
+func (s *Runner) Run(ctx context.Context) error {
 	sLog := s.logger.Session("run")
 
 	sLog.Debug("start")
@@ -92,7 +90,7 @@ func (s *schedulerRunner) Run(ctx context.Context) error {
 	return nil
 }
 
-func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, job db.SchedulerJob) error {
+func (s *Runner) scheduleJob(ctx context.Context, logger lager.Logger, job db.SchedulerJob) error {
 	metric.JobsScheduling.Inc()
 	defer metric.JobsScheduling.Dec()
 	defer metric.JobsScheduled.Inc()
