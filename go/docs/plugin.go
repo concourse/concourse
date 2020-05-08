@@ -182,9 +182,10 @@ func (p *Plugin) SchemaGroup(title booklit.Content, tagName string, contentNode 
 			"Title":   title,
 			"TagName": booklit.String(tagName),
 			"Target": booklit.Target{
-				TagName: tagName,
-				Title:   title,
-				Content: content,
+				TagName:  tagName,
+				Location: p.section.InvokeLocation,
+				Title:    title,
+				Content:  content,
 			},
 		},
 	}, nil
@@ -288,16 +289,17 @@ func (p *Plugin) schemaAttribute(attribute string, type_ string, contentNode ast
 
 	targets := booklit.Sequence{
 		booklit.Target{
-			TagName: tagName,
-			Title:   display,
-			Content: content,
+			TagName:  tagName,
+			Location: p.section.InvokeLocation,
+			Title:    display,
+			Content:  content,
 		},
 	}
 
 	partials["TagName"] = booklit.String(tagName)
 	partials["Targets"] = targets
 	partials["Attribute"] = booklit.String(attribute)
-	partials["Type"] = autoReferenceType(type_)
+	partials["Type"] = p.autoReferenceType(type_)
 
 	return NoIndex{
 		booklit.Styled{
@@ -526,9 +528,10 @@ func (p *Plugin) DefineAttribute(attribute string, contentNode ast.Node, tags ..
 	targets := booklit.Sequence{}
 	for _, t := range tags {
 		targets = append(targets, booklit.Target{
-			TagName: t,
-			Title:   display,
-			Content: content,
+			TagName:  t,
+			Location: p.section.InvokeLocation,
+			Title:    display,
+			Content:  content,
 		})
 	}
 
@@ -543,7 +546,8 @@ func (p *Plugin) DefineAttribute(attribute string, contentNode ast.Node, tags ..
 					Content: booklit.Preformatted{
 						booklit.Sequence{
 							&booklit.Reference{
-								TagName: tags[0],
+								TagName:  tags[0],
+								Location: p.section.InvokeLocation,
 								Content: booklit.Styled{
 									Style:   booklit.StyleBold,
 									Content: booklit.String(attrName),
@@ -565,9 +569,10 @@ func (p Plugin) DefineMetric(metric string, content booklit.Content) booklit.Con
 			Content: content,
 			Partials: booklit.Partials{
 				"Targets": booklit.Target{
-					TagName: metric,
-					Title:   booklit.String(metric),
-					Content: content,
+					TagName:  metric,
+					Location: p.section.InvokeLocation,
+					Title:    booklit.String(metric),
+					Content:  content,
 				},
 				"Thumb": booklit.Styled{
 					Style:   booklit.StyleVerbatim,
@@ -587,7 +592,8 @@ func (p Plugin) DefineTable(table string, content booklit.Content) booklit.Conte
 			Content: content,
 			Partials: booklit.Partials{
 				"Targets": booklit.Target{
-					TagName: tagName,
+					TagName:  tagName,
+					Location: p.section.InvokeLocation,
 					Title: booklit.Styled{
 						Style: booklit.StyleVerbatim,
 						Content: booklit.Styled{
@@ -601,7 +607,8 @@ func (p Plugin) DefineTable(table string, content booklit.Content) booklit.Conte
 					Style: booklit.StyleVerbatim,
 					Content: booklit.Preformatted{
 						&booklit.Reference{
-							TagName: tagName,
+							TagName:  tagName,
+							Location: p.section.InvokeLocation,
 							Content: booklit.Styled{
 								Style:   booklit.StyleBold,
 								Content: booklit.String(table),
@@ -616,7 +623,8 @@ func (p Plugin) DefineTable(table string, content booklit.Content) booklit.Conte
 
 func (p Plugin) ReferenceColumn(table string, column string) booklit.Content {
 	return &booklit.Reference{
-		TagName: table + "-table",
+		TagName:  table + "-table",
+		Location: p.section.InvokeLocation,
 		Content: booklit.Styled{
 			Style: booklit.StyleVerbatim,
 			Content: booklit.Sequence{
@@ -944,20 +952,12 @@ func (p Plugin) PromethusDocs(sample string) (booklit.Content, error) {
 	return metrics, nil
 }
 
-type NoIndex struct {
-	booklit.Content
-}
-
-func (NoIndex) String() string {
-	return ""
-}
-
-func autoReferenceType(type_ string) booklit.Content {
+func (p Plugin) autoReferenceType(type_ string) booklit.Content {
 	if strings.HasPrefix(type_, "[") && strings.HasSuffix(type_, "]") {
 		subType := strings.TrimPrefix(strings.TrimSuffix(type_, "]"), "[")
 		return booklit.Sequence{
 			booklit.String("["),
-			autoReferenceType(subType),
+			p.autoReferenceType(subType),
 			booklit.String("]"),
 		}
 	}
@@ -966,7 +966,7 @@ func autoReferenceType(type_ string) booklit.Content {
 		subType := strings.TrimPrefix(strings.TrimSuffix(type_, "}"), "{")
 		return booklit.Sequence{
 			booklit.String("{"),
-			autoReferenceType(subType),
+			p.autoReferenceType(subType),
 			booklit.String("}"),
 		}
 	}
@@ -977,7 +977,7 @@ func autoReferenceType(type_ string) booklit.Content {
 
 			seq := booklit.Sequence{}
 			for i, t := range ors {
-				seq = append(seq, autoReferenceType(t))
+				seq = append(seq, p.autoReferenceType(t))
 
 				if i+1 < len(ors) {
 					seq = append(seq, booklit.String(punc))
@@ -997,10 +997,19 @@ func autoReferenceType(type_ string) booklit.Content {
 	}
 
 	return &booklit.Reference{
-		TagName: "schema." + type_,
+		TagName:  "schema." + type_,
+		Location: p.section.InvokeLocation,
 		Content: booklit.Styled{
 			Style:   booklit.StyleBold,
 			Content: booklit.String(type_),
 		},
 	}
+}
+
+type NoIndex struct {
+	booklit.Content
+}
+
+func (NoIndex) String() string {
+	return ""
 }
