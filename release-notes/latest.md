@@ -28,7 +28,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 * Improve consistency of auto-scrolling to highlighted logs. #5457
 
-#### <sub><sup><a name="5452" href="#4081">:link:</a></sup></sub> fix
+#### <sub><sup><a name="4081" href="#4081">:link:</a></sup></sub> fix
 
 * @shyamz-22 added ability to configure NewRelic insights endpoint which allows us to use EU or US data centers
 
