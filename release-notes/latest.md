@@ -16,6 +16,11 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 * It has long been possible to configure concourse either by passing flags to the binary, or by passing their equivalent `CONCOURSE_*` environment variables. Until now we had noticed that when an environment variable is passed, the flags library we use would treat it as a "default" value -- this is a [bug](https://github.com/jessevdk/go-flags/issues/329). We issued a PR to that library adding stricter validation for flags passed via environment variables. What this means is that operators may have been passing invalid configuration via environment variables and concourse wasn't complaining -- after this upgrade, that invalid configuration will cause the binary to fail. Hopefully it's a good prompt to fix up your manifests! #5429
 
+#### <sub><sup><a name="5082" href="#5082">:link:</a></sup></sub> fix
+
+* Close Worker's registration connection to the TSA on application level keepalive failure
+* Add 5 second timeout for keepalive operation
+
 #### <sub><sup><a name="5452" href="#4081">:link:</a></sup></sub> fix
 
 * @shyamz-22 added ability to configure NewRelic insights endpoint which allows us to use EU or US data centers

@@ -565,6 +565,43 @@ Kubernetes-related testing are all end-to-end, living under `topgun/k8s`. They
 require access to a real Kubernetes cluster with access granted through a
 properly configured `~/.kube/config` file.
 
+[`kind`] is a great choice when it comes to running a local Kubernetes cluster -
+all you need is `docker`, and the `kind` CLI. If you wish to run the tests with
+a high degree of concurrency, it's advised to have multiple kubernetes nodes.
+This can be achieved with the following `kind` config:
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+- role: worker
+- role: worker
+- role: worker
+```
+
+
+With the cluster up, the next step is to have a proper [Tiller] setup (the tests
+still run with Helm 2):
+
+
+```bash
+kubectl create serviceaccount \
+	--namespace kube-system \
+	tiller
+
+kubectl create clusterrolebinding \
+	tiller-cluster-rule \
+	--clusterrole=cluster-admin \
+	--serviceaccount=kube-system:tiller
+
+helm init \
+	--service-account tiller \
+	--upgrade
+```
+
+
 The tests require a few environment variables to be set:
 
 - `CONCOURSE_IMAGE_TAG` or `CONCOURSE_IMAGE_DIGEST`: the tag or digest to use
@@ -576,11 +613,19 @@ to define the postgres chart that Concourse depends on.
 - `CONCOURSE_CHART_DIR`: location in the filesystem where a copy of [`the Concourse Helm
 chart`][concourse-helm-chart] exists.
 
+
 With those set, go to `topgun/k8s` and run Ginkgo:
 
 ```sh
+# run the test cases serially
 ginkgo .
+
+# run the test cases with a concurrency level of 16
+ginkgo -nodes=16 .
 ```
+
+[`kind`]: https://kind.sigs.k8s.io/
+[Tiller]: https://v2.helm.sh/docs/install/
 
 
 ### A note on `topgun`

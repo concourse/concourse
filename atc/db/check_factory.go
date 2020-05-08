@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -143,7 +142,7 @@ func (c *checkFactory) TryCreateCheck(logger lager.Logger, checkable Checkable, 
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
 		if parentType.Version() == nil {
-			return nil, false, errors.New("parent type has no version")
+			return nil, false, fmt.Errorf("resource type '%s' has no version", parentType.Name())
 		}
 	}
 

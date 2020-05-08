@@ -44,7 +44,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			checkResource := spawnFly("check-resource", "-r", inPipeline("my-resource"), "--shallow")
 			<-checkResource.Exited
 			Expect(checkResource).To(gexec.Exit(1))
-			Expect(checkResource.Err).To(gbytes.Say("parent type has no version"))
+			Expect(checkResource.Err).To(gbytes.Say("resource type '.*' has no version"))
 		})
 	})
 
