@@ -24,3 +24,12 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5452" href="#4081">:link:</a></sup></sub> fix
 
 * @shyamz-22 added ability to configure NewRelic insights endpoint which allows us to use EU or US data centers
+
+#### <sub><sup><a name="5013" href="#5013">:link:</a></sup></sub> feature
+
+* Support path templating for secret lookups in Vault credential
+  manager. Previously, pipeline and team secrets would always be
+  searched for under "/prefix/TEAM/PIPELINE/" or "/prefix/TEAM/",
+  where you could customize the prefix but nothing else. Now you can
+  supply your own templates if your secret collections are organized
+  differently, including for use in `var_sources`. #5013
