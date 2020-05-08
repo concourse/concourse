@@ -14,16 +14,16 @@ import (
 )
 
 type stepFactory struct {
-	pool                           worker.Pool
-	client                         worker.Client
-	resourceFactory                resource.ResourceFactory
-	teamFactory                    db.TeamFactory
-	resourceCacheFactory           db.ResourceCacheFactory
-	resourceConfigFactory          db.ResourceConfigFactory
-	defaultLimits                  atc.ContainerLimits
-	strategy                       worker.ContainerPlacementStrategy
-	lockFactory                    lock.LockFactory
-	enableRerunWhenWorkerDisappear bool
+	pool                            worker.Pool
+	client                          worker.Client
+	resourceFactory                 resource.ResourceFactory
+	teamFactory                     db.TeamFactory
+	resourceCacheFactory            db.ResourceCacheFactory
+	resourceConfigFactory           db.ResourceConfigFactory
+	defaultLimits                   atc.ContainerLimits
+	strategy                        worker.ContainerPlacementStrategy
+	lockFactory                     lock.LockFactory
+	enableRerunWhenWorkerDisappears bool
 }
 
 func NewStepFactory(
@@ -36,19 +36,19 @@ func NewStepFactory(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
-	enableRerunWhenWorkerDisappear bool,
+	enableRerunWhenWorkerDisappears bool,
 ) *stepFactory {
 	return &stepFactory{
-		pool:                           pool,
-		client:                         client,
-		resourceFactory:                resourceFactory,
-		teamFactory:                    teamFactory,
-		resourceCacheFactory:           resourceCacheFactory,
-		resourceConfigFactory:          resourceConfigFactory,
-		defaultLimits:                  defaultLimits,
-		strategy:                       strategy,
-		lockFactory:                    lockFactory,
-		enableRerunWhenWorkerDisappear: enableRerunWhenWorkerDisappear,
+		pool:                            pool,
+		client:                          client,
+		resourceFactory:                 resourceFactory,
+		teamFactory:                     teamFactory,
+		resourceCacheFactory:            resourceCacheFactory,
+		resourceConfigFactory:           resourceConfigFactory,
+		defaultLimits:                   defaultLimits,
+		strategy:                        strategy,
+		lockFactory:                     lockFactory,
+		enableRerunWhenWorkerDisappears: enableRerunWhenWorkerDisappears,
 	}
 }
 
@@ -73,7 +73,7 @@ func (factory *stepFactory) GetStep(
 	)
 
 	getStep = exec.LogError(getStep, delegate)
-	if factory.enableRerunWhenWorkerDisappear {
+	if factory.enableRerunWhenWorkerDisappears {
 		getStep = exec.RetryError(getStep, delegate)
 	}
 	return getStep
@@ -100,7 +100,7 @@ func (factory *stepFactory) PutStep(
 	)
 
 	putStep = exec.LogError(putStep, delegate)
-	if factory.enableRerunWhenWorkerDisappear {
+	if factory.enableRerunWhenWorkerDisappears {
 		putStep = exec.RetryError(putStep, delegate)
 	}
 	return putStep
@@ -151,7 +151,7 @@ func (factory *stepFactory) TaskStep(
 	)
 
 	taskStep = exec.LogError(taskStep, delegate)
-	if factory.enableRerunWhenWorkerDisappear {
+	if factory.enableRerunWhenWorkerDisappears {
 		taskStep = exec.RetryError(taskStep, delegate)
 	}
 	return taskStep
@@ -172,7 +172,7 @@ func (factory *stepFactory) SetPipelineStep(
 	)
 
 	spStep = exec.LogError(spStep, delegate)
-	if factory.enableRerunWhenWorkerDisappear {
+	if factory.enableRerunWhenWorkerDisappears {
 		spStep = exec.RetryError(spStep, delegate)
 	}
 	return spStep
@@ -192,7 +192,7 @@ func (factory *stepFactory) LoadVarStep(
 	)
 
 	loadVarStep = exec.LogError(loadVarStep, delegate)
-	if factory.enableRerunWhenWorkerDisappear {
+	if factory.enableRerunWhenWorkerDisappears {
 		loadVarStep = exec.RetryError(loadVarStep, delegate)
 	}
 	return loadVarStep

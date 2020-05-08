@@ -240,7 +240,7 @@ type RunCommand struct {
 	SystemClaimValues     []string `long:"system-claim-value" default:"concourse-worker" description:"Configure which token requests should be considered 'system' requests."`
 	EnableArchivePipeline bool     `long:"enable-archive-pipeline" description:"Enable /api/v1/teams/{team}/pipelines/{pipeline}/archive endpoint."`
 
-	EnableBuildRerunWhenWorkerDisappear bool `long:"enable-rerun-when-worker-disappear" description:"Enable automatically build rerun when worker disappears"`
+	EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears"`
 }
 
 type Migration struct {
@@ -1580,7 +1580,7 @@ func (cmd *RunCommand) constructEngine(
 		defaultLimits,
 		strategy,
 		lockFactory,
-		cmd.EnableBuildRerunWhenWorkerDisappear,
+		cmd.EnableBuildRerunWhenWorkerDisappears,
 	)
 
 	stepBuilder := builder.NewStepBuilder(
