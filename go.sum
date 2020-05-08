@@ -26,8 +26,6 @@ code.cloudfoundry.org/localip v0.0.0-20170223024724-b88ad0dea95c/go.mod h1:q9OZP
 code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50 h1:y+DtLO/eX/9NZjGGHntWs1bNG6uxdql8SqrHzu6VH3Q=
 code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50/go.mod h1:GyubIUn2eHGSlpIqJhGKBKicAe6CUV/pQJosfNEHdo4=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-github.com/Azure/go-autorest v1.1.1 h1:4G9tVCqooRY3vDTB2bA1Z01PlSALtnUbji0AfzthUSs=
-github.com/Azure/go-autorest v14.1.0+incompatible h1:qROrS0rWxAXGfFdNOI33we8553d7T8v78jXf/8tjLBM=
 github.com/Azure/go-autorest/autorest v0.9.0/go.mod h1:xyHB1BMZT0cuDHU7I0+g046+BFDTQ8rEZB0s4Yfa6bI=
 github.com/Azure/go-autorest/autorest v0.10.1 h1:uaB8A32IZU9YKs9v50+/LWIWTDHJk2vlGzbfd7FfESI=
 github.com/Azure/go-autorest/autorest v0.10.1/go.mod h1:/FALq9T/kS7b5J5qsQ+RSTUdAmGFqi0vUdVNNx8q630=
@@ -40,6 +38,7 @@ github.com/Azure/go-autorest/autorest/date v0.2.0 h1:yW+Zlqf26583pE43KhfnhFcdmSW
 github.com/Azure/go-autorest/autorest/date v0.2.0/go.mod h1:vcORJHLJEh643/Ioh9+vPmf1Ij9AEBM5FuBIXLmIy0g=
 github.com/Azure/go-autorest/autorest/mocks v0.1.0/go.mod h1:OTyCOPRA2IgIlWxVYxBee2F5Gr4kF2zd2J5cFRaIDN0=
 github.com/Azure/go-autorest/autorest/mocks v0.2.0/go.mod h1:OTyCOPRA2IgIlWxVYxBee2F5Gr4kF2zd2J5cFRaIDN0=
+github.com/Azure/go-autorest/autorest/mocks v0.3.0 h1:qJumjCaCudz+OcqE9/XtEPfvtOjOmKaui4EOpFI6zZc=
 github.com/Azure/go-autorest/autorest/mocks v0.3.0/go.mod h1:a8FDP3DYzQ4RYfVAxAN3SVSiiO77gL2j2ronKKP0syM=
 github.com/Azure/go-autorest/logger v0.1.0 h1:ruG4BSDXONFRrZZJ2GUXDiUyVpayPmb1GnWeHDdaNKY=
 github.com/Azure/go-autorest/logger v0.1.0/go.mod h1:oExouG+K6PryycPJfVSxi/koC6LSNgds39diKLz7Vrc=
@@ -117,8 +116,6 @@ github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2/go.mod h
 github.com/cockroachdb/cmux v0.0.0-20170110192607-30d10be49292/go.mod h1:qRiX68mZX1lGBkTWyp3CLcenw9I94W2dLeRvMzcn9N4=
 github.com/concourse/baggageclaim v1.6.6 h1:wQyJgf41L522Vl1Z6L+LueoCLKia+/XqhrtTz0yrHRI=
 github.com/concourse/baggageclaim v1.6.6/go.mod h1:UdvVE2W8LgXcCz0ZdKBwUbpKZ0KN4Fx1OeY1xtZOUvY=
-github.com/concourse/dex v0.0.0-20191211162806-d04c1742d527 h1:Ep+u+I/PBlINJF63aUHBao80GgfLqaz5aWFw/pLiavw=
-github.com/concourse/dex v0.0.0-20191211162806-d04c1742d527/go.mod h1:7xVx6jMkg5UoaGhDHp3mGdETzdVSTY8dOEG1v6ixNQc=
 github.com/concourse/dex v0.0.0-20200417202922-dcbe94f28c88 h1:8BK+Qq51oMwD2CzjAbbMKlAjcXM/PHnAjuRkzZvFmZ4=
 github.com/concourse/dex v0.0.0-20200417202922-dcbe94f28c88/go.mod h1:7xVx6jMkg5UoaGhDHp3mGdETzdVSTY8dOEG1v6ixNQc=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
@@ -397,8 +394,6 @@ github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf/go.mod h
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/influxdata/influxdb1-client v0.0.0-20190118215656-f8cdb5d5f175 h1:NR6eyx+1eski3gN8uqdtjnfpmq0T3lO6HhrPheCPFFc=
 github.com/influxdata/influxdb1-client v0.0.0-20190118215656-f8cdb5d5f175/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
-github.com/jessevdk/go-flags v1.4.0 h1:4IU2WS7AumrZ/40jfhf4QVDMsQwqA7VEHozFRrGARJA=
-github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af h1:pmfjZENx5imkbgOkpRUYLnmbU7UEFbjtDA2hxJ1ichM=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/joefitzgerald/rainbow-reporter v0.1.0 h1:AuMG652zjdzI0YCCnXAqATtRBpGXMcAnrajcaTrSeuo=
@@ -686,8 +681,6 @@ github.com/valyala/quicktemplate v1.2.0/go.mod h1:EH+4AkTd43SvgIbQHYu59/cJyxDoOV
 github.com/valyala/tcplisten v0.0.0-20161114210144-ceec8f93295a/go.mod h1:v3UYOV9WzVtRmSR+PDvWpU/qWl4Wa5LApYYX4ZtKbio=
 github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6 h1:nrfAgxqk5DJ20IK1tt0dXbT+heIiNeTmtvj+twRxCbo=
 github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6/go.mod h1:bTEFEKvSeMyGvZVflCs/jDs0Jlc5RJJVSN72r0QxBJI=
-github.com/vito/go-flags v1.4.1-0.20200421142706-6149d40139cb h1:VrOHyy7wcNjIAzb+V0Ue2YRVwt8KKtJeJGPv2KAVV3U=
-github.com/vito/go-flags v1.4.1-0.20200421142706-6149d40139cb/go.mod h1:07OkXRRK4EbEtvYreaZfRIqssDcoccQKxBVOBg1zgV0=
 github.com/vito/go-flags v1.4.1-0.20200428200343-c7161c3bd74d h1:PjnCfyHrDAJTvOJr4q4lnxWfV3rrF3K5b5kfg1SjmW0=
 github.com/vito/go-flags v1.4.1-0.20200428200343-c7161c3bd74d/go.mod h1:07OkXRRK4EbEtvYreaZfRIqssDcoccQKxBVOBg1zgV0=
 github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec h1:Klu98tQ9Z1t23gvC7p7sCmvxkZxLhBHLNyrUPsWsYFg=
@@ -875,6 +868,7 @@ golang.org/x/tools v0.0.0-20191010075000-0337d82405ff/go.mod h1:b+2E5dAYhXwXZwtn
 golang.org/x/tools v0.0.0-20191010171213-8abd42400456/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20191025174333-e96d959c4788 h1:V1TVsT556gJ/CGE0EoWtjLu1VXDAAmFz1AuGKPpn1Q0=
 golang.org/x/tools v0.0.0-20191025174333-e96d959c4788/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
+golang.org/x/tools v0.0.0-20191203134012-c197fd4bf371 h1:Cjq6sG3gnKDchzWy7ouGQklhxMtWvh4AhSNJ0qGIeo4=
 golang.org/x/tools v0.0.0-20191203134012-c197fd4bf371/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
