@@ -16,29 +16,29 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-func TestScheduler(t *testing.T) {
-	suite.Run(t, &SchedulerSuite{
+func TestRunner(t *testing.T) {
+	suite.Run(t, &RunnerSuite{
 		Assertions: require.New(t),
 	})
 }
 
-type SchedulerSuite struct {
+type RunnerSuite struct {
 	suite.Suite
 	*require.Assertions
 
 	clock *fakeclock.FakeClock
 }
 
-func (s *SchedulerSuite) SetupTest() {
+func (s *RunnerSuite) SetupTest() {
 	s.clock = fakeclock.NewFakeClock(time.Now())
 	component.Clock = s.clock
 }
 
-func (s *SchedulerSuite) TearDownTest() {
+func (s *RunnerSuite) TearDownTest() {
 	component.Clock = clock.NewClock()
 }
 
-func (s *SchedulerSuite) TestEndToEnd() {
+func (s *RunnerSuite) TestEndToEnd() {
 	interval := 30 * time.Second
 	componentName := "some-component"
 
@@ -60,7 +60,7 @@ func (s *SchedulerSuite) TestEndToEnd() {
 		},
 	}
 
-	scheduler := &component.Scheduler{
+	scheduler := &component.Runner{
 		Logger:      lagertest.NewTestLogger("test"),
 		Interval:    interval,
 		Component:   mockComponent,

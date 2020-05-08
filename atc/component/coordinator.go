@@ -14,16 +14,6 @@ type Coordinator struct {
 	Runnable  Runnable
 }
 
-type Component interface {
-	Name() string
-	Paused() bool
-
-	IntervalElapsed() bool
-
-	Reload() (bool, error)
-	UpdateLastRan() error
-}
-
 func (coordinator *Coordinator) RunPeriodically(ctx context.Context) {
 	coordinator.run(ctx, false)
 }

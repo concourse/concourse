@@ -581,7 +581,7 @@ func (cmd *RunCommand) constructMembers(
 
 		members = append(members, grouper.Member{
 			Name: c.Component.Name,
-			Runner: &component.Scheduler{
+			Runner: &component.Runner{
 				Logger:    componentLogger,
 				Interval:  cmd.ComponentRunnerInterval,
 				Component: dbComponent,
