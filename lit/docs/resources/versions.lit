@@ -67,7 +67,7 @@ behavior}{https://github.com/concourse/git-resource#check-check-for-new-commits}
   is only valid if that pinned version has been used by the passed constraint
   job.
 
-  Lets say we have a pipeline with two jobs and one resource that is being used
+  Let's say we have a pipeline with two jobs and one resource that is being used
   as a passed constraint between the two jobs. If that resource is pinned to a
   version, the first job will produce a build using the pinned version of the
   resource. After that build succeeds, the second job that has a passed
