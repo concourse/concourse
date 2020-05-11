@@ -13,13 +13,13 @@ import (
 	"strconv"
 
 	"github.com/concourse/concourse/atc/postgresrunner"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 	"golang.org/x/crypto/ssh"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Web Command", func() {
@@ -45,12 +45,12 @@ var _ = Describe("Web Command", func() {
 
 		concourseRunner = ginkgomon.New(ginkgomon.Config{
 			Command:       concourseCommand,
-			Name:          "tsa",
+			Name:          "web",
 			StartCheck:    "atc.cmd.start",
 			AnsiColorCode: "32m",
 		})
 
-		concourseProcess = ginkgomon.Invoke(concourseRunner)
+		concourseProcess = ifrit.Background(concourseRunner)
 
 		// workaround to avoid panic due to registering http handlers multiple times
 		http.DefaultServeMux = new(http.ServeMux)
@@ -97,8 +97,6 @@ var _ = Describe("Web Command", func() {
 					"--tsa-bind-port", strconv.Itoa(2222+GinkgoParallelNode()),
 					"--client-id", "client-id",
 					"--client-secret", "client-secret",
-					"--tsa-client-id", "tsa-client-id",
-					"--tsa-client-secret", "tsa-client-secret",
 					"--tsa-token-url", "http://localhost/token",
 				)
 			})
@@ -111,12 +109,78 @@ var _ = Describe("Web Command", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("ATC should start up", func() {
+			It("starts atc", func() {
 				Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
 			})
 
-			It("TSA should start up", func() {
+			It("starts tsa", func() {
 				Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
+			})
+
+			Context("with tsa-client-id specified", func() {
+				BeforeEach(func() {
+					args = append(args, "--tsa-client-id", "tsa-client-id")
+				})
+
+				It("starts atc", func() {
+					Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
+				})
+
+				It("starts tsa", func() {
+					Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
+				})
+
+				Context("with system-claim-key is not set to 'aud'", func() {
+					BeforeEach(func() {
+						args = append(args, "--system-claim-key", "not-aud")
+					})
+
+					It("starts atc", func() {
+						Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
+					})
+
+					It("starts tsa", func() {
+						Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
+					})
+				})
+
+				Context("with system-claim-key set to 'aud'", func() {
+					BeforeEach(func() {
+						args = append(args, "--system-claim-key", "aud")
+					})
+
+					Context("when the system claim values does not contain the client id", func() {
+						BeforeEach(func() {
+							args = append(args,
+								"--system-claim-value", "system-claim-value-1",
+								"--system-claim-value", "system-claim-value-2",
+							)
+						})
+
+						It("errors", func() {
+							Eventually(concourseRunner.Err()).Should(
+								gbytes.Say("at least one systemClaimValue must be equal to tsa-client-id"),
+							)
+						})
+					})
+
+					Context("when the system claim values contain the client id", func() {
+						BeforeEach(func() {
+							args = append(args,
+								"--system-claim-value", "tsa-client-id",
+								"--system-claim-value", "system-claim-value-1",
+							)
+						})
+
+						It("starts atc", func() {
+							Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
+						})
+
+						It("starts tsa", func() {
+							Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
+						})
+					})
+				})
 			})
 		})
 	})
