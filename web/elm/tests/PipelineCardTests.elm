@@ -5,7 +5,32 @@ import Assets
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
-import DashboardTests exposing (afterSeconds, amber, apiData, blue, brown, circularJobs, darkGrey, fadedGreen, givenDataAndUser, givenDataUnauthenticated, green, iconSelector, job, jobWithNameTransitionedAt, lightGrey, middleGrey, orange, otherJob, red, running, userWithRoles, whenOnDashboard, white)
+import DashboardTests
+    exposing
+        ( afterSeconds
+        , amber
+        , apiData
+        , blue
+        , brown
+        , circularJobs
+        , darkGrey
+        , fadedGreen
+        , givenDataAndUser
+        , givenDataUnauthenticated
+        , green
+        , iconSelector
+        , job
+        , jobWithNameTransitionedAt
+        , lightGrey
+        , middleGrey
+        , orange
+        , otherJob
+        , red
+        , running
+        , userWithRoles
+        , whenOnDashboard
+        , white
+        )
 import Data
 import Dict
 import Expect exposing (Expectation)
@@ -1204,6 +1229,76 @@ all =
                             setup
                                 |> Query.find [ class "card" ]
                                 |> Query.has [ style "opacity" "0.45" ]
+                    ]
+                , describe "when pipeline has no jobs due to a disabled endpoint" <|
+                    let
+                        setup =
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    [ { id = 0, name = "team" } ]
+                                |> Tuple.first
+                                |> Application.handleDelivery
+                                    (CachedJobsReceived <| Ok [ Data.job 0 ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ Data.pipeline "team" 0 ]
+                                    )
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllJobsFetched <|
+                                        Err <|
+                                            Http.BadStatus
+                                                { url = "http://example.com"
+                                                , status =
+                                                    { code = 501
+                                                    , message = "Not Implemented"
+                                                    }
+                                                , headers = Dict.empty
+                                                , body = ""
+                                                }
+                                    )
+                    in
+                    [ test "status icon is sync" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> findStatusIcon
+                                |> Query.has
+                                    (iconSelector
+                                        { size = "20px"
+                                        , image = Assets.PipelineStatusIconJobsDisabled
+                                        }
+                                        ++ [ style "background-size" "contain" ]
+                                    )
+                    , test "status text says 'no data'" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> findStatusText
+                                |> Query.has [ text "no data" ]
+                    , test "job preview is empty placeholder" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> Query.find [ class "card-body" ]
+                                |> Query.has [ style "background-color" middleGrey ]
+                    , test "job data is cleared" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> Query.find [ class "parallel-grid" ]
+                                |> Query.hasNot [ tag "a" ]
+                    , test "job data is cleared from local cache" <|
+                        \_ ->
+                            setup
+                                |> Tuple.second
+                                |> Common.contains (Effects.SaveCachedJobs [])
                     ]
                 , describe "when pipeline is pending" <|
                     [ test "status icon is grey" <|

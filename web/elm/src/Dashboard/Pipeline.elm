@@ -27,6 +27,13 @@ import Views.Spinner as Spinner
 import Views.Styles
 
 
+previewPlaceholder : Html Message
+previewPlaceholder =
+    Html.div
+        (class "card-body" :: Styles.cardBody)
+        [ Html.div Styles.previewPlaceholder [] ]
+
+
 pipelineNotSetView : Html Message
 pipelineNotSetView =
     Html.div (class "card" :: Styles.noPipelineCard)
@@ -34,9 +41,7 @@ pipelineNotSetView =
             (class "card-header" :: Styles.noPipelineCardHeader)
             [ Html.text "no pipeline set"
             ]
-        , Html.div
-            (class "card-body" :: Styles.cardBody)
-            [ Html.div Styles.previewPlaceholder [] ]
+        , previewPlaceholder
         , Html.div
             (class "card-footer" :: Styles.cardFooter)
             []
@@ -127,7 +132,11 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
             (class "banner" :: bannerStyle)
             []
         , headerView pipeline resourceError
-        , bodyView hovered layers
+        , if pipeline.jobsDisabled then
+            previewPlaceholder
+
+          else
+            bodyView hovered layers
         , footerView userState pipeline now hovered existingJobs
         ]
 
@@ -281,7 +290,12 @@ footerView userState pipeline now hovered existingJobs =
         (class "card-footer" :: Styles.pipelineCardFooter)
         [ Html.div
             [ style "display" "flex" ]
-            [ if pipeline.stale then
+            [ if pipeline.jobsDisabled then
+                Icon.icon
+                    { sizePx = 20, image = Assets.PipelineStatusIconJobsDisabled }
+                    Styles.pipelineStatusIcon
+
+              else if pipeline.stale then
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIconStale }
                     Styles.pipelineStatusIcon
@@ -290,7 +304,14 @@ footerView userState pipeline now hovered existingJobs =
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIcon status }
                     Styles.pipelineStatusIcon
-            , if pipeline.stale then
+            , if pipeline.jobsDisabled then
+                Html.div
+                    (class "build-duration"
+                        :: Styles.pipelineCardTransitionAgeStale
+                    )
+                    [ Html.text "no data" ]
+
+              else if pipeline.stale then
                 Html.div
                     (class "build-duration"
                         :: Styles.pipelineCardTransitionAgeStale

@@ -38,6 +38,7 @@ type Asset
     | ExclamationTriangleIcon
     | PipelineStatusIcon PipelineStatus
     | PipelineStatusIconStale
+    | PipelineStatusIconJobsDisabled
     | ClippyIcon
     | UpArrow
     | DownArrow
@@ -253,6 +254,9 @@ toPath asset =
 
         PipelineStatusIconStale ->
             basePath ++ [ "ic-cached-grey.svg" ]
+
+        PipelineStatusIconJobsDisabled ->
+            basePath ++ [ "ic-sync.svg" ]
 
         ClippyIcon ->
             basePath ++ [ "clippy.svg" ]

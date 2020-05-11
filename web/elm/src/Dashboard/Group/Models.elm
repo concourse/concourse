@@ -17,4 +17,5 @@ type alias Pipeline =
     , paused : Bool
     , archived : Bool
     , stale : Bool
+    , jobsDisabled : Bool
     }

@@ -51,6 +51,7 @@ import Html.Events
         ( onMouseEnter
         , onMouseLeave
         )
+import Http
 import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..), TooltipPolicy(..))
@@ -254,7 +255,29 @@ handleCallback callback ( model, effects ) =
                 ( newModel, effects )
 
         AllJobsFetched (Err err) ->
-            ( { model | jobsError = Just Failed }, effects )
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == httpStatusNotImplemented then
+                        ( { model
+                            | jobsError = Just Disabled
+                            , jobs = Fetched Dict.empty
+                            , pipelines =
+                                model.pipelines
+                                    |> Maybe.map
+                                        (List.map
+                                            (\p ->
+                                                { p | jobsDisabled = True }
+                                            )
+                                        )
+                          }
+                        , effects ++ [ SaveCachedJobs [] ]
+                        )
+
+                    else
+                        ( { model | jobsError = Just Failed }, effects )
+
+                _ ->
+                    ( { model | jobsError = Just Failed }, effects )
 
         AllResourcesFetched (Ok resources) ->
             ( { model
@@ -281,7 +304,7 @@ handleCallback callback ( model, effects ) =
             let
                 newPipelines =
                     allPipelinesInEntireCluster
-                        |> List.map (toDashboardPipeline False)
+                        |> List.map (toDashboardPipeline False (model.jobsError == Just Disabled))
                         |> Just
             in
             ( { model
@@ -381,6 +404,11 @@ handleCallback callback ( model, effects ) =
         |> RequestBuffer.handleCallback callback buffers
 
 
+httpStatusNotImplemented : Int
+httpStatusNotImplemented =
+    501
+
+
 updatePipeline :
     (Pipeline -> Pipeline)
     -> Concourse.PipelineIdentifier
@@ -424,7 +452,7 @@ handleDeliveryBody delivery ( model, effects ) =
             let
                 newPipelines =
                     pipelines
-                        |> List.map (toDashboardPipeline True)
+                        |> List.map (toDashboardPipeline True (model.jobsError == Just Disabled))
                         |> Just
             in
             if newPipelines |> pipelinesChangedFrom model.pipelines then
@@ -476,8 +504,8 @@ handleDeliveryBody delivery ( model, effects ) =
             ( model, effects )
 
 
-toDashboardPipeline : Bool -> Concourse.Pipeline -> Pipeline
-toDashboardPipeline isStale p =
+toDashboardPipeline : Bool -> Bool -> Concourse.Pipeline -> Pipeline
+toDashboardPipeline isStale jobsDisabled p =
     { id = p.id
     , name = p.name
     , teamName = p.teamName
@@ -487,6 +515,7 @@ toDashboardPipeline isStale p =
     , paused = p.paused
     , archived = p.archived
     , stale = isStale
+    , jobsDisabled = jobsDisabled
     }
 
 
