@@ -1,6 +1,7 @@
 package pipelineserver_test
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -88,6 +89,14 @@ var _ = Describe("Rejected Archived Handler", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 			})
 		})
+		Context("when getting a pipeline returns an error", func() {
+			BeforeEach(func() {
+				fakeTeam.PipelineReturns(nil, false, errors.New("some error"))
+			})
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
 	})
 	Context("when a team is not found", func() {
 		BeforeEach(func() {
@@ -95,6 +104,14 @@ var _ = Describe("Rejected Archived Handler", func() {
 		})
 		It("returns 404", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+		})
+	})
+	Context("when finding a team returns an error", func() {
+		BeforeEach(func() {
+			dbTeamFactory.FindTeamReturns(nil, false, errors.New("some error"))
+		})
+		It("returns 500", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 		})
 	})
 })
