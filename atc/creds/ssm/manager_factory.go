@@ -1,6 +1,7 @@
 package ssm
 
 import (
+	"fmt"
 	"github.com/concourse/concourse/atc/creds"
 	flags "github.com/jessevdk/go-flags"
 )
@@ -26,6 +27,17 @@ func (factory *ssmManagerFactory) AddConfig(group *flags.Group) creds.Manager {
 	return manager
 }
 
-func (factory *ssmManagerFactory) NewInstance(interface{}) (creds.Manager, error) {
-	return &SsmManager{}, nil
+func (factory *ssmManagerFactory) NewInstance(config interface{}) (creds.Manager, error) {
+	if c, ok := config.(map[string]interface{}); !ok {
+		return nil, fmt.Errorf("invalid aws ssm config format")
+	} else {
+		manager := &SsmManager{}
+
+		err := manager.Config(c)
+		if err != nil {
+			return nil, err
+		}
+
+		return manager, nil
+	}
 }

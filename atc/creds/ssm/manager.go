@@ -1,32 +1,32 @@
 package ssm
 
 import (
+	"code.cloudfoundry.org/lager"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
-	"strings"
-	"text/template"
-	"text/template/parse"
-
-	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/mitchellh/mapstructure"
+	"io/ioutil"
+	"strings"
+	"text/template"
+	"text/template/parse"
 )
 
 const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
 type SsmManager struct {
-	AwsAccessKeyID         string `long:"access-key" description:"AWS Access key ID"`
-	AwsSecretAccessKey     string `long:"secret-key" description:"AWS Secret Access Key"`
-	AwsSessionToken        string `long:"session-token" description:"AWS Session Token"`
-	AwsRegion              string `long:"region" description:"AWS region to send requests to"`
-	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS SSM parameter name template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS SSM parameter name template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	AwsAccessKeyID         string `mapstructure:"access-key" long:"access-key" description:"AWS Access key ID"`
+	AwsSecretAccessKey     string `mapstructure:"secret-key" long:"secret-key" description:"AWS Secret Access Key"`
+	AwsSessionToken        string `mapstructure:"session-token" long:"session-token" description:"AWS Session Token"`
+	AwsRegion              string `mapstructure:"region" long:"region" description:"AWS region to send requests to"`
+	PipelineSecretTemplate string `mapstructure:"pipeline-secret-template" long:"pipeline-secret-template" description:"AWS SSM parameter name template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
+	TeamSecretTemplate     string `mapstructure:"team-secret-template" long:"team-secret-template" description:"AWS SSM parameter name template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
 	Ssm                    *Ssm
 }
 
@@ -73,6 +73,28 @@ func (manager *SsmManager) Init(log lager.Logger) error {
 
 	manager.Ssm = &Ssm{
 		api: ssm.New(session),
+	}
+
+	return nil
+}
+
+func (manager *SsmManager) Config(config map[string]interface{}) error {
+	// apply defaults
+	manager.TeamSecretTemplate = DefaultTeamSecretTemplate
+	manager.PipelineSecretTemplate = DefaultPipelineSecretTemplate
+
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook:  mapstructure.StringToTimeDurationHookFunc(),
+		ErrorUnused: true,
+		Result:      &manager,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = decoder.Decode(config)
+	if err != nil {
+		return err
 	}
 
 	return nil
