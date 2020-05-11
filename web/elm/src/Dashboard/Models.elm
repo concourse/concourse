@@ -32,9 +32,9 @@ type alias Model =
             , isPipelinesRequestFinished : Bool
             , isResourcesRequestFinished : Bool
             , jobsError : Maybe FetchError
-            , isTeamsErroring : Bool
-            , isResourcesErroring : Bool
-            , isPipelinesErroring : Bool
+            , teamsError : Maybe FetchError
+            , resourcesError : Maybe FetchError
+            , pipelinesError : Maybe FetchError
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float

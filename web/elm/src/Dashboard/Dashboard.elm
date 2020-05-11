@@ -99,9 +99,9 @@ init searchType =
       , isResourcesRequestFinished = False
       , isPipelinesRequestFinished = False
       , jobsError = Nothing
-      , isTeamsErroring = False
-      , isResourcesErroring = False
-      , isPipelinesErroring = False
+      , teamsError = Nothing
+      , resourcesError = Nothing
+      , pipelinesError = Nothing
       , viewportWidth = 0
       , viewportHeight = 0
       , scrollTop = 0
@@ -182,7 +182,7 @@ handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     (case callback of
         AllTeamsFetched (Err _) ->
-            ( { model | isTeamsErroring = True }
+            ( { model | teamsError = Just Failed }
             , effects
             )
 
@@ -193,7 +193,7 @@ handleCallback callback ( model, effects ) =
             in
             ( { model
                 | teams = newTeams
-                , isTeamsErroring = False
+                , teamsError = Nothing
               }
             , effects
                 ++ (if newTeams |> changedFrom model.teams then
@@ -269,13 +269,13 @@ handleCallback callback ( model, effects ) =
                                     )
                             )
                             model.pipelinesWithResourceErrors
-                , isResourcesErroring = False
+                , resourcesError = Nothing
               }
             , effects
             )
 
         AllResourcesFetched (Err _) ->
-            ( { model | isResourcesErroring = True }, effects )
+            ( { model | resourcesError = Just Failed }, effects )
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
             let
@@ -286,7 +286,7 @@ handleCallback callback ( model, effects ) =
             in
             ( { model
                 | pipelines = newPipelines
-                , isPipelinesErroring = False
+                , pipelinesError = Nothing
               }
             , effects
                 ++ (if List.isEmpty allPipelinesInEntireCluster then
@@ -304,7 +304,7 @@ handleCallback callback ( model, effects ) =
             )
 
         AllPipelinesFetched (Err _) ->
-            ( { model | isPipelinesErroring = True }, effects )
+            ( { model | pipelinesError = Just Failed }, effects )
 
         PipelinesOrdered teamName _ ->
             ( model, effects ++ [ FetchPipelines teamName ] )
@@ -780,16 +780,16 @@ clusterNameView session =
 showTurbulence :
     { a
         | jobsError : Maybe FetchError
-        , isTeamsErroring : Bool
-        , isResourcesErroring : Bool
-        , isPipelinesErroring : Bool
+        , teamsError : Maybe FetchError
+        , resourcesError : Maybe FetchError
+        , pipelinesError : Maybe FetchError
     }
     -> Bool
 showTurbulence model =
     (model.jobsError == Just Failed)
-        || model.isTeamsErroring
-        || model.isResourcesErroring
-        || model.isPipelinesErroring
+        || (model.teamsError == Just Failed)
+        || (model.resourcesError == Just Failed)
+        || (model.pipelinesError == Just Failed)
 
 
 dashboardView :
