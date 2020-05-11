@@ -48,7 +48,7 @@ behavior}{https://github.com/concourse/git-resource#check-check-for-new-commits}
   the resource version history page which is accessed through clicking into the
   resource within the pipeline page.
 
-  Pinning through the pipeline config is useful for a more permanant pinned
+  Pinning through the pipeline config is useful for a more permanent pinned
   state. If a resource is pinned through the pipeline config, it cannot be
   modified through the web UI and can only be changed through modifiying and
   resetting the pipeline config.
