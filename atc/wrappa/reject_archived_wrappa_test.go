@@ -59,4 +59,11 @@ var _ = Describe("RejectArchivedWrappa", func() {
 			Expect(wrappedHandlers[name]).To(BeIdenticalTo(expectedHandler), "handler is "+name)
 		}
 	})
+
+	It("panics on unknown handlers", func() {
+		inputHandlers := rata.Handlers{
+			"unknownHandler": &stupidHandler{},
+		}
+		Expect(func() { raWrappa.Wrap(inputHandlers) }).To(PanicWith("how do archived pipelines affect your endpoint?"))
+	})
 })
