@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"github.com/concourse/concourse/tracing"
 	"io"
 
 	"code.cloudfoundry.org/lager"
@@ -86,6 +87,11 @@ func (v *volume) SetPrivileged(privileged bool) error {
 }
 
 func (v *volume) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error {
+	_, span := tracing.StartSpan(ctx, "volume.StreamIn", tracing.Attrs{
+		"destination-volume": v.Handle(),
+		"destination-worker": v.WorkerName(),
+	})
+	defer span.End()
 	return v.bcVolume.StreamIn(ctx, path, encoding, tarStream)
 }
 
