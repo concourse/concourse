@@ -92,7 +92,7 @@ behavior}{https://github.com/concourse/git-resource#check-check-for-new-commits}
   \title{Disabling a Version}{disable-version}
 
   A resource version can also be disabled through the web UI on the resource
-  version history page. These disabled versions will be not be used to schedule
+  version history page. These disabled versions will not be used to schedule
   any further builds for any jobs that use the resource as an input.
 
   Disabled versions can also be re-enabled through the resource version history
