@@ -87,7 +87,7 @@ init searchType =
       , query = Routes.extractQuery searchType
       , pipelinesWithResourceErrors = Dict.empty
       , jobs = None
-      , pipelines = None
+      , pipelines = Nothing
       , pipelineLayers = Dict.empty
       , teams = None
       , isUserMenuExpanded = False
@@ -279,15 +279,13 @@ handleCallback callback ( model, effects ) =
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
             let
-                oldPipelines =
-                    model.pipelines
-                        |> FetchResult.map (List.map toConcoursePipeline)
-            in
-            ( { model
-                | pipelines =
+                newPipelines =
                     allPipelinesInEntireCluster
                         |> List.map (toDashboardPipeline False)
-                        |> Fetched
+                        |> Just
+            in
+            ( { model
+                | pipelines = newPipelines
                 , isPipelinesErroring = False
               }
             , effects
@@ -297,7 +295,7 @@ handleCallback callback ( model, effects ) =
                     else
                         []
                    )
-                ++ (if Fetched allPipelinesInEntireCluster |> changedFrom oldPipelines then
+                ++ (if newPipelines |> pipelinesChangedFrom model.pipelines then
                         [ SaveCachedPipelines allPipelinesInEntireCluster ]
 
                     else
@@ -392,7 +390,7 @@ updatePipeline updater pipelineId model =
     { model
         | pipelines =
             model.pipelines
-                |> FetchResult.map
+                |> Maybe.map
                     (List.Extra.updateIf
                         (\p ->
                             p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
@@ -427,9 +425,9 @@ handleDeliveryBody delivery ( model, effects ) =
                 newPipelines =
                     pipelines
                         |> List.map (toDashboardPipeline True)
-                        |> Cached
+                        |> Just
             in
-            if newPipelines |> changedFrom model.pipelines then
+            if newPipelines |> pipelinesChangedFrom model.pipelines then
                 ( { model | pipelines = newPipelines }, effects )
 
             else
@@ -504,6 +502,15 @@ toConcoursePipeline p =
     }
 
 
+pipelinesChangedFrom : Maybe (List Pipeline) -> Maybe (List Pipeline) -> Bool
+pipelinesChangedFrom ps qs =
+    let
+        project =
+            Maybe.map <| List.map (\x -> { x | stale = True })
+    in
+    project ps /= project qs
+
+
 groupBy : (a -> comparable) -> List a -> Dict comparable (List a)
 groupBy keyfn list =
     -- From https://github.com/elm-community/dict-extra/blob/2.3.0/src/Dict/Extra.elm
@@ -573,14 +580,14 @@ updateBody msg ( model, effects ) =
                     let
                         teamStartIndex =
                             model.pipelines
-                                |> FetchResult.withDefault []
+                                |> Maybe.withDefault []
                                 |> List.Extra.findIndex (\p -> p.teamName == teamName)
 
                         pipelines =
                             case teamStartIndex of
                                 Just teamStartIdx ->
                                     model.pipelines
-                                        |> FetchResult.withDefault []
+                                        |> Maybe.withDefault []
                                         |> Drag.drag
                                             (teamStartIdx + dragIdx)
                                             (teamStartIdx
@@ -594,10 +601,10 @@ updateBody msg ( model, effects ) =
                                             )
 
                                 _ ->
-                                    model.pipelines |> FetchResult.withDefault []
+                                    model.pipelines |> Maybe.withDefault []
                     in
                     ( { model
-                        | pipelines = Fetched pipelines
+                        | pipelines = Just pipelines
                         , dragState = NotDragging
                         , dropState = DroppingWhileApiRequestInFlight teamName
                       }
@@ -618,7 +625,7 @@ updateBody msg ( model, effects ) =
         Click LogoutButton ->
             ( { model
                 | teams = None
-                , pipelines = None
+                , pipelines = Nothing
                 , jobs = None
               }
             , effects
@@ -628,7 +635,7 @@ updateBody msg ( model, effects ) =
             let
                 isPaused =
                     model.pipelines
-                        |> FetchResult.withDefault []
+                        |> Maybe.withDefault []
                         |> List.Extra.find
                             (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
                         |> Maybe.map .paused
@@ -650,7 +657,7 @@ updateBody msg ( model, effects ) =
             let
                 isPublic =
                     model.pipelines
-                        |> FetchResult.withDefault []
+                        |> Maybe.withDefault []
                         |> List.Extra.find
                             (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
                         |> Maybe.map .public
@@ -806,7 +813,7 @@ dashboardView session model =
                 :: onScroll Scrolled
                 :: Styles.content model.highDensity
             )
-            (if model.pipelines == None then
+            (if model.pipelines == Nothing then
                 [ loadingView ]
 
              else
@@ -823,7 +830,7 @@ loadingView =
 
 welcomeCard :
     { a | hovered : HoverState.HoverState, userState : UserState.UserState }
-    -> { b | pipelines : FetchResult (List Pipeline) }
+    -> { b | pipelines : Maybe (List Pipeline) }
     -> Html Message
 welcomeCard session { pipelines } =
     let
@@ -848,15 +855,7 @@ welcomeCard session { pipelines } =
                 []
 
         noPipelines =
-            case pipelines of
-                None ->
-                    False
-
-                Cached p ->
-                    List.isEmpty p
-
-                Fetched p ->
-                    List.isEmpty p
+            pipelines |> Maybe.map List.isEmpty |> Maybe.withDefault False
     in
     if noPipelines then
         Html.div
@@ -951,7 +950,7 @@ pipelinesView :
             , highDensity : Bool
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
-            , pipelines : FetchResult (List Pipeline)
+            , pipelines : Maybe (List Pipeline)
             , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
             , dragState : DragState
             , dropState : DropState
@@ -966,7 +965,7 @@ pipelinesView session params =
     let
         pipelines =
             params.pipelines
-                |> FetchResult.withDefault []
+                |> Maybe.withDefault []
                 |> List.filter (not << .archived)
 
         jobs =
@@ -987,17 +986,6 @@ pipelinesView session params =
                 }
                 |> List.sortWith (Group.ordering session)
 
-        isCached =
-            case ( params.pipelines, params.jobs ) of
-                ( Cached _, _ ) ->
-                    True
-
-                ( _, Cached _ ) ->
-                    True
-
-                _ ->
-                    False
-
         groupViews =
             filteredGroups
                 |> (if params.highDensity then
@@ -1007,7 +995,6 @@ pipelinesView session params =
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                 , pipelineJobs = params.pipelineJobs
                                 , jobs = jobs
-                                , isCached = isCached
                                 }
                                 session
                             )
@@ -1042,7 +1029,6 @@ pipelinesView session params =
                                     , groupCardsHeight = layout.height
                                     , pipelineJobs = params.pipelineJobs
                                     , jobs = jobs
-                                    , isCached = isCached
                                     }
                                     g
                                     |> (\html ->
@@ -1060,7 +1046,7 @@ pipelinesView session params =
                    )
     in
     if
-        (params.pipelines /= None)
+        (params.pipelines /= Nothing)
             && List.isEmpty groupViews
             && not (String.isEmpty params.query)
     then

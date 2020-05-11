@@ -48,10 +48,9 @@ hdPipelineView :
     , pipelineRunningKeyframes : String
     , resourceError : Bool
     , existingJobs : List Concourse.Job
-    , isCached : Bool
     }
     -> Html Message
-hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs, isCached } =
+hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs } =
     Html.a
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
@@ -63,7 +62,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
         )
     <|
         [ Html.div
-            (if isCached then
+            (if pipeline.stale then
                 Styles.pipelineCardBannerStaleHd
 
              else
@@ -95,13 +94,12 @@ pipelineView :
     , existingJobs : List Concourse.Job
     , layers : List (List Concourse.Job)
     , query : String
-    , isCached : Bool
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query, isCached } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query } =
     let
         bannerStyle =
-            if isCached then
+            if pipeline.stale then
                 Styles.pipelineCardBannerStale
 
             else
@@ -112,13 +110,13 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
     in
     Html.div
         (Styles.pipelineCard
-            ++ (if not isCached && String.isEmpty query then
+            ++ (if not pipeline.stale && String.isEmpty query then
                     [ style "cursor" "move" ]
 
                 else
                     []
                )
-            ++ (if isCached then
+            ++ (if pipeline.stale then
                     [ style "opacity" "0.45" ]
 
                 else
@@ -130,7 +128,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
             []
         , headerView pipeline resourceError
         , bodyView hovered layers
-        , footerView userState pipeline now hovered existingJobs isCached
+        , footerView userState pipeline now hovered existingJobs
         ]
 
 
@@ -265,9 +263,8 @@ footerView :
     -> Maybe Time.Posix
     -> HoverState.HoverState
     -> List Concourse.Job
-    -> Bool
     -> Html Message
-footerView userState pipeline now hovered existingJobs isCached =
+footerView userState pipeline now hovered existingJobs =
     let
         spacer =
             Html.div [ style "width" "13.5px" ] []
@@ -284,7 +281,7 @@ footerView userState pipeline now hovered existingJobs isCached =
         (class "card-footer" :: Styles.pipelineCardFooter)
         [ Html.div
             [ style "display" "flex" ]
-            [ if isCached then
+            [ if pipeline.stale then
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIconStale }
                     Styles.pipelineStatusIcon
@@ -293,7 +290,7 @@ footerView userState pipeline now hovered existingJobs isCached =
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIcon status }
                     Styles.pipelineStatusIcon
-            , if isCached then
+            , if pipeline.stale then
                 Html.div
                     (class "build-duration"
                         :: Styles.pipelineCardTransitionAgeStale
