@@ -122,10 +122,12 @@ var _ = Describe("Web Command", func() {
 					args = append(args, "--tsa-client-id", "tsa-client-id")
 				})
 
-				It("errors", func() {
-					Eventually(concourseRunner.Err()).Should(
-						gbytes.Say("at least one systemClaimValue must be equal to tsa-client-id"),
-					)
+				It("starts atc", func() {
+					Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
+				})
+
+				It("starts tsa", func() {
+					Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
 				})
 
 				Context("with system-claim-key is not set to 'aud'", func() {
