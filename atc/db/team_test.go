@@ -1078,7 +1078,7 @@ var _ = Describe("Team", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			events, err := startedBuild.Events(0)
+			events, err := startedBuild.Events()
 			Expect(err).NotTo(HaveOccurred())
 
 			defer db.Close(events)

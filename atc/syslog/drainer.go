@@ -72,7 +72,7 @@ func (d *drainer) drainBuild(logger lager.Logger, build db.Build, syslog *Syslog
 		"build":    build.Name(),
 	})
 
-	events, err := build.Events(0)
+	events, err := build.Events()
 	if err != nil {
 		return err
 	}

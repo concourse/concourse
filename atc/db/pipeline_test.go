@@ -1385,7 +1385,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("deleting events for build 1")
-			events1, err := build1DB.Events(0)
+			events1, err := build1DB.Events()
 			Expect(err).ToNot(HaveOccurred())
 			defer db.Close(events1)
 
@@ -1393,7 +1393,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 
 			By("preserving events for build 2")
-			events2, err := build2DB.Events(0)
+			events2, err := build2DB.Events()
 			Expect(err).ToNot(HaveOccurred())
 			defer db.Close(events2)
 
@@ -1410,7 +1410,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 
 			By("deleting events for build 3")
-			events3, err := build3DB.Events(0)
+			events3, err := build3DB.Events()
 			Expect(err).ToNot(HaveOccurred())
 			defer db.Close(events3)
 
@@ -1418,7 +1418,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 
 			By("being unflapped by build 4, which had no events at the time")
-			events4, err := build4DB.Events(0)
+			events4, err := build4DB.Events()
 			Expect(err).ToNot(HaveOccurred())
 			defer db.Close(events4)
 
@@ -1839,7 +1839,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			events, err := startedBuild.Events(0)
+			events, err := startedBuild.Events()
 			Expect(err).NotTo(HaveOccurred())
 
 			defer db.Close(events)

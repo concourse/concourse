@@ -24,7 +24,6 @@ func newBuildEventSource(
 	table string,
 	conn Conn,
 	notifier Notifier,
-	from uint,
 ) *buildEventSource {
 	wg := new(sync.WaitGroup)
 
@@ -42,7 +41,7 @@ func newBuildEventSource(
 	}
 
 	wg.Add(1)
-	go source.collectEvents(from)
+	go source.collectEvents()
 
 	return source
 }
@@ -82,11 +81,12 @@ func (source *buildEventSource) Close() error {
 	return source.notifier.Close()
 }
 
-func (source *buildEventSource) collectEvents(cursor uint) {
+func (source *buildEventSource) collectEvents() {
 	defer source.wg.Done()
 
 	var batchSize = cap(source.events)
 
+	var cursor uint
 	for {
 		select {
 		case <-source.stop:

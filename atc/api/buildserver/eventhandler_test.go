@@ -68,7 +68,8 @@ var _ = Describe("Handler", func() {
 
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
-				build.EventsStub = func(from uint) (db.EventSource, error) {
+				build.EventsStub = func() (db.EventSource, error) {
+					var from uint
 					fakeEventSource.NextStub = func() (event.Envelope, error) {
 						defer GinkgoRecover()
 
@@ -101,11 +102,9 @@ var _ = Describe("Handler", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("gets the events from the right build, starting at 0", func() {
+			It("gets the events from the right build", func() {
 				_ = response.Body.Close()
 				Eventually(build.EventsCallCount).Should(Equal(1))
-				actualFrom := build.EventsArgsForCall(0)
-				Expect(actualFrom).To(BeZero())
 			})
 
 			It("returns 200", func() {
@@ -164,19 +163,6 @@ var _ = Describe("Handler", func() {
 					Name: "end",
 					Data: []byte{},
 				}))
-			})
-
-			Context("when the Last-Event-ID header is given", func() {
-				BeforeEach(func() {
-					request.Header.Set("Last-Event-ID", "1")
-				})
-
-				It("starts subscribing from after the id", func() {
-					_ = response.Body.Close()
-					Eventually(build.EventsCallCount).Should(Equal(1))
-					actualFrom := build.EventsArgsForCall(0)
-					Expect(actualFrom).To(Equal(uint(2)))
-				})
 			})
 		})
 

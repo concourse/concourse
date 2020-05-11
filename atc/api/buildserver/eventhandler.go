@@ -16,19 +16,6 @@ const CurrentProtocolVersion = "2.0"
 
 func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var eventID uint = 0
-		if r.Header.Get("Last-Event-ID") != "" {
-			startString := r.Header.Get("Last-Event-ID")
-			_, err := fmt.Sscanf(startString, "%d", &eventID)
-			if err != nil {
-				logger.Info("failed-to-parse-last-event-id", lager.Data{"last-event-id": startString})
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
-			eventID++
-		}
-
 		w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
 		w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.Header().Add("X-Accel-Buffering", "no")
@@ -39,15 +26,16 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 			responseFlusher: w.(http.Flusher),
 		}
 
-		events, err := build.Events(eventID)
+		events, err := build.Events()
 		if err != nil {
-			logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": build.ID(), "start": eventID})
+			logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": build.ID()})
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		defer db.Close(events)
 
+		var eventID uint
 		for {
 			logger = logger.WithData(lager.Data{"id": eventID})
 
