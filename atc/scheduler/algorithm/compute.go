@@ -96,7 +96,7 @@ func (a *Algorithm) candidatesToInputMapping(ctx context.Context, mapping db.Inp
 				ResolveError: resolveErr,
 			}
 		} else {
-			firstOcc, err := a.versionsDB.IsFirstOccurrence(ctx, input.JobID, input.Name, candidates[input.Name].Version)
+			firstOcc, err := a.versionsDB.IsFirstOccurrence(ctx, input.JobID, input.Name, candidates[input.Name].Version, input.ResourceID)
 			if err != nil {
 				return nil, err
 			}
