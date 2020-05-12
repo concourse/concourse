@@ -159,7 +159,7 @@ buffers =
                 _ ->
                     False
         )
-        (.dragState >> (/=) NotDragging)
+        (\model -> model.dragState /= NotDragging || model.jobsError == Just Disabled)
         { get = \m -> m.isJobsRequestFinished
         , set = \f m -> { m | isJobsRequestFinished = f }
         }

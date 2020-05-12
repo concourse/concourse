@@ -1827,6 +1827,18 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains Effects.FetchAllJobs
+        , test "stops polling jobs if the endpoint is disabled" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Data.httpNotImplemented)
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <|
+                            Time.millisToPosix 0
+                        )
+                    |> Tuple.second
+                    |> Common.notContains Effects.FetchAllJobs
         , test "auto refreshes jobs on next five-second tick after dropping" <|
             \_ ->
                 Common.init "/"
