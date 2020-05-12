@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"strings"
 	"text/template"
@@ -73,27 +72,6 @@ func (manager *SsmManager) Init(log lager.Logger) error {
 
 	manager.Ssm = &Ssm{
 		api: ssm.New(session),
-	}
-
-	return nil
-}
-
-func (manager *SsmManager) Config(config map[string]interface{}) error {
-	// apply defaults
-	manager.TeamSecretTemplate = DefaultTeamSecretTemplate
-	manager.PipelineSecretTemplate = DefaultPipelineSecretTemplate
-
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		ErrorUnused: true,
-		Result:      &manager,
-	})
-	if err != nil {
-		return err
-	}
-
-	err = decoder.Decode(config)
-	if err != nil {
-		return err
 	}
 
 	return nil
