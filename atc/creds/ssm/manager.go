@@ -1,19 +1,20 @@
 package ssm
 
 import (
-	"code.cloudfoundry.org/lager"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"strings"
+	"text/template"
+	"text/template/parse"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/concourse/concourse/atc/creds"
-	"io/ioutil"
-	"strings"
-	"text/template"
-	"text/template/parse"
 )
 
 const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
