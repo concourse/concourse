@@ -93,6 +93,9 @@ var retryingDriverName = "too-many-connections-retrying"
 var flyClientID = "fly"
 var flyClientSecret = "Zmx5"
 
+var workerAvailabilityPollingInterval = 5 * time.Second
+var workerStatusPublishInterval = 1 * time.Minute
+
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
 	Migration  Migration  `command:"migrate"`
@@ -643,7 +646,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider, compressionLib)
+	workerClient := worker.NewClient(pool, workerProvider, compressionLib, workerAvailabilityPollingInterval, workerStatusPublishInterval)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -871,7 +874,11 @@ func (cmd *RunCommand) constructBackendMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider, compressionLib)
+	workerClient := worker.NewClient(pool,
+		workerProvider,
+		compressionLib,
+		workerAvailabilityPollingInterval,
+		workerStatusPublishInterval)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {

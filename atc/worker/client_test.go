@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"sync"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -16,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
@@ -48,8 +46,10 @@ var _ = Describe("Client", func() {
 		fakePool = new(workerfakes.FakePool)
 		fakeProvider = new(workerfakes.FakeWorkerProvider)
 		fakeCompression = new(compressionfakes.FakeCompression)
+		workerPolling := 1 * time.Second
+		workerStatus := 2 * time.Second
 
-		client = worker.NewClient(fakePool, fakeProvider, fakeCompression)
+		client = worker.NewClient(fakePool, fakeProvider, fakeCompression, workerPolling, workerStatus)
 	})
 
 	Describe("FindContainer", func() {
@@ -521,7 +521,6 @@ var _ = Describe("Client", func() {
 
 			ctx    context.Context
 			cancel func()
-			wg     sync.WaitGroup
 		)
 
 		BeforeEach(func() {
@@ -667,7 +666,7 @@ var _ = Describe("Client", func() {
 						cancel()
 					})
 					It("exits releasing the lock", func() {
-						Expect(err).To(Equal(context.Canceled))
+						Expect(err.Error()).To(ContainSubstring(context.Canceled.Error()))
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
 					})
 				})
@@ -677,25 +676,6 @@ var _ = Describe("Client", func() {
 						fakePool.ContainerInWorkerReturns(false, errors.New("nope"))
 					})
 					It("release the task-step lock every time it acquires it", func() {
-						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
-					})
-				})
-
-				Context("when waiting for worker to be available", func() {
-					BeforeEach(func() {
-						fakePool.FindOrChooseWorkerForContainerReturns(nil, nil)
-						wg.Add(1)
-						go func() {
-							defer wg.Done()
-							cancel()
-
-						}()
-					})
-
-					It("metric task waiting is gauged and lock is released", func() {
-						wg.Wait()
-						Eventually(metric.TasksWaiting.Max(), 6*time.Second).Should(Equal(float64(1)))
-						Eventually(metric.TasksWaiting.Max(), 6*time.Second).Should(Equal(float64(0)))
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
 					})
 				})
