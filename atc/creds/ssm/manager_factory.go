@@ -1,7 +1,6 @@
 package ssm
 
 import (
-	"fmt"
 	"github.com/concourse/concourse/atc/creds"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/mitchellh/mapstructure"
@@ -29,27 +28,23 @@ func (factory *ssmManagerFactory) AddConfig(group *flags.Group) creds.Manager {
 }
 
 func (factory *ssmManagerFactory) NewInstance(config interface{}) (creds.Manager, error) {
-	if c, ok := config.(map[string]interface{}); !ok {
-		return nil, fmt.Errorf("invalid aws ssm config format")
-	} else {
-		manager := &SsmManager{
-			TeamSecretTemplate: DefaultTeamSecretTemplate,
-			PipelineSecretTemplate : DefaultPipelineSecretTemplate,
-		}
-
-		decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-			ErrorUnused: true,
-			Result:      &manager,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		err = decoder.Decode(c)
-		if err != nil {
-			return nil, err
-		}
-
-		return manager, nil
+	manager := &SsmManager{
+		TeamSecretTemplate:     DefaultTeamSecretTemplate,
+		PipelineSecretTemplate: DefaultPipelineSecretTemplate,
 	}
+
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		ErrorUnused: true,
+		Result:      &manager,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = decoder.Decode(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return manager, nil
 }
