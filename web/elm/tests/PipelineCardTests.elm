@@ -1248,16 +1248,7 @@ all =
                                 |> Tuple.first
                                 |> Application.handleCallback
                                     (Callback.AllJobsFetched <|
-                                        Err <|
-                                            Http.BadStatus
-                                                { url = "http://example.com"
-                                                , status =
-                                                    { code = 501
-                                                    , message = "Not Implemented"
-                                                    }
-                                                , headers = Dict.empty
-                                                , body = ""
-                                                }
+                                        Data.httpNotImplemented
                                     )
                     in
                     [ test "status icon is faded sync" <|
@@ -1300,7 +1291,7 @@ all =
                         \_ ->
                             setup
                                 |> Tuple.second
-                                |> Common.contains (Effects.DeleteCachedJobs)
+                                |> Common.contains Effects.DeleteCachedJobs
                     ]
                 , describe "when pipeline is pending" <|
                     [ test "status icon is grey" <|
@@ -1632,17 +1623,7 @@ all =
                                             (Callback.VisibilityChanged
                                                 Msgs.Hide
                                                 pipelineId
-                                             <|
-                                                Err <|
-                                                    Http.BadStatus
-                                                        { url = "http://example.com"
-                                                        , status =
-                                                            { code = 500
-                                                            , message = ""
-                                                            }
-                                                        , headers = Dict.empty
-                                                        , body = ""
-                                                        }
+                                                Data.httpInternalServerError
                                             )
                                         |> Tuple.first
                                         |> visibilityToggle
@@ -1663,17 +1644,7 @@ all =
                                             (Callback.VisibilityChanged
                                                 Msgs.Hide
                                                 pipelineId
-                                             <|
-                                                Err <|
-                                                    Http.BadStatus
-                                                        { url = "http://example.com"
-                                                        , status =
-                                                            { code = 401
-                                                            , message = "unauthorized"
-                                                            }
-                                                        , headers = Dict.empty
-                                                        , body = ""
-                                                        }
+                                                Data.httpUnauthorized
                                             )
                                         |> Tuple.second
                                         |> Expect.equal
@@ -1848,17 +1819,7 @@ all =
                                             (Callback.VisibilityChanged
                                                 Msgs.Expose
                                                 pipelineId
-                                             <|
-                                                Err <|
-                                                    Http.BadStatus
-                                                        { url = "http://example.com"
-                                                        , status =
-                                                            { code = 500
-                                                            , message = ""
-                                                            }
-                                                        , headers = Dict.empty
-                                                        , body = ""
-                                                        }
+                                                Data.httpInternalServerError
                                             )
                                         |> Tuple.first
                                         |> visibilityToggle
@@ -2325,17 +2286,7 @@ all =
                                         { pipelineName = "pipeline"
                                         , teamName = "team"
                                         }
-                                        (Err <|
-                                            Http.BadStatus
-                                                { url = "http://example.com"
-                                                , status =
-                                                    { code = 401
-                                                    , message = ""
-                                                    }
-                                                , headers = Dict.empty
-                                                , body = ""
-                                                }
-                                        )
+                                        Data.httpUnauthorized
                                     )
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.RedirectToLogin ]
