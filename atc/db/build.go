@@ -394,12 +394,16 @@ func (b *build) Finish(status BuildStatus) error {
 	}
 
 	if b.jobID != 0 && status == BuildStatusSucceeded {
-		_, err = psql.Delete("build_image_resource_caches birc USING builds b").
-			Where(sq.Expr("birc.build_id = b.id")).
-			Where(sq.Lt{"build_id": b.id}).
-			Where(sq.Eq{"b.job_id": b.jobID}).
-			RunWith(tx).
-			Exec()
+		_, err = tx.Exec(`WITH caches AS (
+			SELECT resource_cache_id, build_id
+			FROM build_image_resource_caches brc
+			JOIN builds b ON b.id = brc.build_id
+			WHERE b.job_id = $1
+		)
+		DELETE FROM build_image_resource_caches birc
+		USING caches c
+		WHERE c.build_id = birc.build_id AND birc.build_id < $2`,
+			b.jobID, b.id)
 		if err != nil {
 			return err
 		}
