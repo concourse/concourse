@@ -84,7 +84,6 @@ func (manager *SsmManager) Config(config map[string]interface{}) error {
 	manager.PipelineSecretTemplate = DefaultPipelineSecretTemplate
 
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook:  mapstructure.StringToTimeDurationHookFunc(),
 		ErrorUnused: true,
 		Result:      &manager,
 	})
