@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -117,8 +118,42 @@ func (cmd *WebCommand) populateSharedFlags() error {
 	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.TSACommand.ClientID] = cmd.TSACommand.ClientSecret
 	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.RunCommand.Server.ClientID] = cmd.RunCommand.Server.ClientSecret
 
+	// if we're using the 'aud' as the SystemClaimKey then we want to validate
+	// that the SystemClaimValues contains our TSA Client. If it's not 'aud' then
+	// we can't validate anything
+	if cmd.RunCommand.SystemClaimKey == "aud" {
+
+		// if we're using the default SystemClaimValues then override these values
+		// to make sure they include the TSA ClientID
+		if len(cmd.RunCommand.SystemClaimValues) == 1 {
+			if cmd.RunCommand.SystemClaimValues[0] == "concourse-worker" {
+				cmd.RunCommand.SystemClaimValues = []string{cmd.TSACommand.ClientID}
+			}
+		}
+
+		if err := cmd.validateSystemClaimValues(); err != nil {
+			return err
+		}
+	}
+
 	cmd.TSACommand.ClusterName = cmd.RunCommand.Server.ClusterName
 	cmd.TSACommand.LogClusterName = cmd.RunCommand.LogClusterName
+
+	return nil
+}
+
+func (cmd *WebCommand) validateSystemClaimValues() error {
+
+	found := false
+	for _, val := range cmd.RunCommand.SystemClaimValues {
+		if val == cmd.TSACommand.ClientID {
+			found = true
+		}
+	}
+
+	if !found {
+		return errors.New("at least one systemClaimValue must be equal to tsa-client-id")
+	}
 
 	return nil
 }

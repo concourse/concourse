@@ -13,13 +13,13 @@ import (
 	"strconv"
 
 	"github.com/concourse/concourse/atc/postgresrunner"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 	"golang.org/x/crypto/ssh"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Web Command", func() {
@@ -89,11 +89,11 @@ var _ = Describe("Web Command", func() {
 		os.Remove(filepath.Dir(hostPubKeyFile))
 	})
 
-	It("ATC should start up", func() {
+	It("starts atc", func() {
 		Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
 	})
 
-	It("TSA should start up", func() {
+	It("starts tsa", func() {
 		Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
 	})
 
@@ -104,6 +104,66 @@ var _ = Describe("Web Command", func() {
 
 		It("prints an error and exits", func() {
 			Eventually(concourseRunner.Err()).Should(gbytes.Say("'InvalidAction' is not a valid action"))
+		})
+	})
+
+	Context("with CONCOURSE_TSA_CLIENT_ID specified", func() {
+		BeforeEach(func() {
+			concourseCommand.Env = append(concourseCommand.Env, "CONCOURSE_TSA_CLIENT_ID=tsa-client-id")
+		})
+
+		It("starts atc", func() {
+			Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
+		})
+
+		It("starts tsa", func() {
+			Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
+		})
+
+		Context("with CONCOURSE_SYSTEM_CLAIM_KEY is not set to 'aud'", func() {
+			BeforeEach(func() {
+				concourseCommand.Env = append(concourseCommand.Env, "CONCOURSE_SYSTEM_CLAIM_KEY=not-aud")
+			})
+
+			It("starts atc", func() {
+				Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
+			})
+
+			It("starts tsa", func() {
+				Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
+			})
+		})
+
+		Context("with CONCOURSE_SYSTEM_CLAIM_KEY set to 'aud'", func() {
+			BeforeEach(func() {
+				concourseCommand.Env = append(concourseCommand.Env, "CONCOURSE_SYSTEM_CLAIM_KEY=aud")
+			})
+
+			Context("when the system claim values does not contain the client id", func() {
+				BeforeEach(func() {
+					concourseCommand.Env = append(concourseCommand.Env, "CONCOURSE_SYSTEM_CLAIM_VALUE=system-claim-value-1,system-claim-value-2")
+				})
+
+				It("errors", func() {
+					Eventually(concourseRunner.Err()).Should(
+						gbytes.Say("at least one systemClaimValue must be equal to tsa-client-id"),
+					)
+				})
+			})
+
+			Context("when the system claim values contain the client id", func() {
+				BeforeEach(func() {
+					concourseCommand.Env = append(concourseCommand.Env, "CONCOURSE_SYSTEM_CLAIM_VALUE=system-claim-value-1,tsa-client-id")
+				})
+
+				It("starts atc", func() {
+					Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("atc.listening"))
+				})
+
+				It("starts tsa", func() {
+					Eventually(concourseRunner.Buffer(), "30s", "2s").Should(gbytes.Say("tsa.listening"))
+				})
+			})
 		})
 	})
 })
