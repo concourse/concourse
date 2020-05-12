@@ -842,11 +842,15 @@ dashboardView session model =
                 :: onScroll Scrolled
                 :: Styles.content model.highDensity
             )
-            (if model.pipelines == Nothing then
-                [ loadingView ]
+            (case model.pipelines of
+                Nothing ->
+                    [ loadingView ]
 
-             else
-                welcomeCard session model :: pipelinesView session model
+                Just [] ->
+                    welcomeCard session :: pipelinesView session model
+
+                Just _ ->
+                    pipelinesView session model
             )
 
 
@@ -859,9 +863,8 @@ loadingView =
 
 welcomeCard :
     { a | hovered : HoverState.HoverState, userState : UserState.UserState }
-    -> { b | pipelines : Maybe (List Pipeline) }
     -> Html Message
-welcomeCard session { pipelines } =
+welcomeCard session =
     let
         cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
         cliIcon hoverable cli =
@@ -882,41 +885,34 @@ welcomeCard session { pipelines } =
                         }
                 )
                 []
-
-        noPipelines =
-            pipelines |> Maybe.map List.isEmpty |> Maybe.withDefault False
     in
-    if noPipelines then
-        Html.div
-            (id "welcome-card" :: Styles.welcomeCard)
+    Html.div
+        (id "welcome-card" :: Styles.welcomeCard)
+        [ Html.div
+            Styles.welcomeCardTitle
+            [ Html.text Text.welcome ]
+        , Html.div
+            Styles.welcomeCardBody
+          <|
             [ Html.div
-                Styles.welcomeCardTitle
-                [ Html.text Text.welcome ]
-            , Html.div
-                Styles.welcomeCardBody
+                [ style "display" "flex"
+                , style "align-items" "center"
+                ]
               <|
                 [ Html.div
-                    [ style "display" "flex"
-                    , style "align-items" "center"
-                    ]
-                  <|
-                    [ Html.div
-                        [ style "margin-right" "10px" ]
-                        [ Html.text Text.cliInstructions ]
-                    ]
-                        ++ List.map (cliIcon session.hovered) Cli.clis
-                , Html.div
-                    []
-                    [ Html.text Text.setPipelineInstructions ]
+                    [ style "margin-right" "10px" ]
+                    [ Html.text Text.cliInstructions ]
                 ]
-                    ++ loginInstruction session.userState
-            , Html.pre
-                Styles.asciiArt
-                [ Html.text Text.asciiArt ]
+                    ++ List.map (cliIcon session.hovered) Cli.clis
+            , Html.div
+                []
+                [ Html.text Text.setPipelineInstructions ]
             ]
-
-    else
-        Html.text ""
+                ++ loginInstruction session.userState
+        , Html.pre
+            Styles.asciiArt
+            [ Html.text Text.asciiArt ]
+        ]
 
 
 loginInstruction : UserState.UserState -> List (Html Message)
