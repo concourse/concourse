@@ -1260,7 +1260,7 @@ all =
                                                 }
                                     )
                     in
-                    [ test "status icon is sync" <|
+                    [ test "status icon is faded sync" <|
                         \_ ->
                             setup
                                 |> Tuple.first
@@ -1271,7 +1271,9 @@ all =
                                         { size = "20px"
                                         , image = Assets.PipelineStatusIconJobsDisabled
                                         }
-                                        ++ [ style "background-size" "contain" ]
+                                        ++ [ style "background-size" "contain"
+                                           , style "opacity" "0.5"
+                                           ]
                                     )
                     , test "status text says 'no data'" <|
                         \_ ->

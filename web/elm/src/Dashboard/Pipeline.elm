@@ -293,7 +293,7 @@ footerView userState pipeline now hovered existingJobs =
             [ if pipeline.jobsDisabled then
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIconJobsDisabled }
-                    Styles.pipelineStatusIcon
+                    (style "opacity" "0.5" :: Styles.pipelineStatusIcon)
 
               else if pipeline.stale then
                 Icon.icon
