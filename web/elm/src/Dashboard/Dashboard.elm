@@ -270,7 +270,7 @@ handleCallback callback ( model, effects ) =
                                             )
                                         )
                           }
-                        , effects ++ [ SaveCachedJobs [] ]
+                        , effects ++ [ DeleteCachedJobs ]
                         )
 
                     else

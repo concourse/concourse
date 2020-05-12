@@ -1300,7 +1300,7 @@ all =
                         \_ ->
                             setup
                                 |> Tuple.second
-                                |> Common.contains (Effects.SaveCachedJobs [])
+                                |> Common.contains (Effects.DeleteCachedJobs)
                     ]
                 , describe "when pipeline is pending" <|
                     [ test "status icon is grey" <|
