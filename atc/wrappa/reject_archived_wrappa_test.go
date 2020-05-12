@@ -32,6 +32,7 @@ var _ = Describe("RejectArchivedWrappa", func() {
 
 		rejectArchivedRoutes := []string{
 			atc.PausePipeline,
+			atc.UnpausePipeline,
 			atc.CreateJobBuild,
 			atc.ScheduleJob,
 			atc.CheckResource,

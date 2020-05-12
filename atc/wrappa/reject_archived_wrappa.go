@@ -25,6 +25,7 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		switch name {
 		case
 			atc.PausePipeline,
+			atc.UnpausePipeline,
 			atc.CreateJobBuild,
 			atc.ScheduleJob,
 			atc.CheckResource,
@@ -114,7 +115,6 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.RenamePipeline,
 			atc.SaveConfig,
 			atc.UnpauseJob,
-			atc.UnpausePipeline,
 			atc.ExposePipeline,
 			atc.HidePipeline,
 			atc.CreatePipelineBuild,
