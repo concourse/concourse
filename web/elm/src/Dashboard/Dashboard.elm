@@ -850,7 +850,7 @@ dashboardView session model =
                     welcomeCard session :: pipelinesView session model
 
                 Just _ ->
-                    pipelinesView session model
+                    Html.text "" :: pipelinesView session model
             )
 
 
