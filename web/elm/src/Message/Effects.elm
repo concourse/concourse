@@ -642,6 +642,12 @@ toHtmlID domId =
         SideBarPipeline p ->
             Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
 
+        PipelineStatusIcon p ->
+            Base64.encode p.teamName
+                ++ "_"
+                ++ Base64.encode p.pipelineName
+                ++ "_icon"
+
         FirstOccurrenceGetStepLabel stepID ->
             stepID ++ "_first_occurrence"
 

@@ -1250,6 +1250,12 @@ all =
                                     (Callback.AllJobsFetched <|
                                         Data.httpNotImplemented
                                     )
+
+                        domID =
+                            Msgs.PipelineStatusIcon
+                                { teamName = "team"
+                                , pipelineName = "pipeline-0"
+                                }
                     in
                     [ test "status icon is faded sync" <|
                         \_ ->
@@ -1266,6 +1272,30 @@ all =
                                            , style "opacity" "0.5"
                                            ]
                                     )
+                    , test "status icon is hoverable" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> findStatusIcon
+                                |> Event.simulate Event.mouseEnter
+                                |> Event.expect
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.Hover <|
+                                            Just domID
+                                    )
+                    , test "hovering status icon sends location request" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Application.update
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.Hover <|
+                                            Just domID
+                                    )
+                                |> Tuple.second
+                                |> Common.contains
+                                    (Effects.GetViewportOf domID)
                     , test "status text says 'no data'" <|
                         \_ ->
                             setup

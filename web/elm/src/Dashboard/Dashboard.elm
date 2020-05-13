@@ -662,6 +662,9 @@ updateBody msg ( model, effects ) =
                 _ ->
                     ( model, effects )
 
+        Hover (Just domID) ->
+            ( model, effects ++ [ GetViewportOf domID ] )
+
         Click LogoutButton ->
             ( { model
                 | teams = None

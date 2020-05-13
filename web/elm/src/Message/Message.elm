@@ -60,6 +60,7 @@ type DomID
     | PinMenuDropDown String
     | PinButton VersionId
     | PinBar
+    | PipelineStatusIcon Concourse.PipelineIdentifier
     | PipelineButton Concourse.PipelineIdentifier
     | VisibilityButton Concourse.PipelineIdentifier
     | FooterCliIcon Cli.Cli

@@ -14,6 +14,7 @@ module Dashboard.Styles exposing
     , infoItem
     , jobPreview
     , jobPreviewLink
+    , jobsDisabledTooltip
     , legend
     , legendItem
     , legendSeparator
@@ -766,6 +767,17 @@ visibilityTooltip =
     , style "margin-bottom" "5px"
     , style "right" "-150%"
     ]
+
+
+jobsDisabledTooltip : List (Html.Attribute msg)
+jobsDisabledTooltip =
+    [ style "background-color" Colors.tooltipBackground
+    , style "padding" "2.5px"
+    , style "z-index" "100"
+    , style "margin-bottom" "5px"
+    , style "pointer-events" "none"
+    ]
+        ++ Application.Styles.disableInteraction
 
 
 jobPreview : Concourse.Job -> Bool -> List (Html.Attribute msg)

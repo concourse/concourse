@@ -15,8 +15,18 @@ import Dashboard.Styles as Styles
 import Duration
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, draggable, href, style)
+import Html.Attributes
+    exposing
+        ( attribute
+        , class
+        , classList
+        , draggable
+        , href
+        , id
+        , style
+        )
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Routes
 import Time
@@ -293,7 +303,12 @@ footerView userState pipeline now hovered existingJobs =
             [ if pipeline.jobsDisabled then
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIconJobsDisabled }
-                    (style "opacity" "0.5" :: Styles.pipelineStatusIcon)
+                    ([ style "opacity" "0.5"
+                     , id <| Effects.toHtmlID <| PipelineStatusIcon pipelineId
+                     , onMouseEnter <| Hover <| Just <| PipelineStatusIcon pipelineId
+                     ]
+                        ++ Styles.pipelineStatusIcon
+                    )
 
               else if pipeline.stale then
                 Icon.icon

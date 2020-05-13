@@ -2,6 +2,7 @@ module Tooltip exposing (Model, handleCallback, view)
 
 import Browser.Dom
 import Build.Styles
+import Dashboard.Styles
 import EffectTransformer exposing (ET)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
@@ -175,6 +176,13 @@ view { hovered } =
                 [ Html.div SideBar.Styles.tooltipArrow []
                 , Html.div SideBar.Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
                 ]
+
+        HoverState.Tooltip (Message.PipelineStatusIcon _) target ->
+            Html.div
+                (Dashboard.Styles.jobsDisabledTooltip
+                    ++ position { direction = Top, alignment = Start } target Nothing Nothing
+                )
+                [ Html.text "automatic job monitoring disabled" ]
 
         _ ->
             Html.text ""
