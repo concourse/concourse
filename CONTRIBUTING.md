@@ -85,6 +85,9 @@ indeed submitting a code change. Cheers! 🍻
     `release-notes/` directory! For formatting and style examples,
     see previous release notes in the same directory.
 
+  * Run [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
+    to ensure your code follows our code style guidelines.
+
   * *Optional: check out our [Go style guide][style-guide]!*
 
 * Putting this all together, here is a sample anatomy of an ideal commit:
