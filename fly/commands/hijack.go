@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
@@ -30,6 +31,7 @@ type HijackCommand struct {
 	StepName       string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
 	StepType       string                   `          long:"step-type"                         description:"Type of step to hijack (e.g. get, put, task)"`
 	Attempt        string                   `short:"a" long:"attempt" value-name:"N[,N,...]"    description:"Attempt number of step to hijack."`
+	TimeOut        string                   `short:"o" long:"timeout"                           description:"Time to wait for container."`
 	PositionalArgs struct {
 		Command []string `positional-arg-name:"command" description:"The command to run in the container (default: bash)"`
 	} `positional-args:"yes"`
@@ -76,81 +78,14 @@ func (command *HijackCommand) Execute([]string) error {
 		team = target.Team()
 	}
 
-	if command.Handle != "" {
-		chosenContainer, err = team.GetContainer(command.Handle)
-		if err != nil {
-			displayhelpers.Failf("no containers matched the given handle id!\n\nthey may have expired if your build hasn't recently finished.")
-		}
+	chosenContainer, err = command.chooseContainer(target, team)
 
-	} else {
-		fingerprint, err := command.getContainerFingerprint(target, team)
-		if err != nil {
-			return err
-		}
+	if err == io.EOF {
+		return nil
+	}
 
-		containers, err := command.getContainerIDs(target, fingerprint, team)
-		if err != nil {
-			return err
-		}
-
-		hijackableContainers := make([]atc.Container, 0)
-
-		for _, container := range containers {
-			if container.State == atc.ContainerStateCreated || container.State == atc.ContainerStateFailed {
-				hijackableContainers = append(hijackableContainers, container)
-			}
-		}
-
-		if len(hijackableContainers) == 0 {
-			displayhelpers.Failf("no containers matched your search parameters!\n\nthey may have expired if your build hasn't recently finished.")
-		} else if len(hijackableContainers) > 1 {
-			var choices []interact.Choice
-			for _, container := range hijackableContainers {
-				var infos []string
-
-				if container.BuildID != 0 {
-					if container.JobName != "" {
-						infos = append(infos, fmt.Sprintf("build #%s", container.BuildName))
-					} else {
-						infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
-					}
-				}
-
-				if container.StepName != "" {
-					infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
-				}
-
-				if container.ResourceName != "" {
-					infos = append(infos, fmt.Sprintf("resource: %s", container.ResourceName))
-				}
-
-				infos = append(infos, fmt.Sprintf("type: %s", container.Type))
-
-				if container.Type == "check" {
-					infos = append(infos, fmt.Sprintf("expires in: %s", container.ExpiresIn))
-				}
-
-				if container.Attempt != "" {
-					infos = append(infos, fmt.Sprintf("attempt: %s", container.Attempt))
-				}
-
-				choices = append(choices, interact.Choice{
-					Display: strings.Join(infos, ", "),
-					Value:   container,
-				})
-			}
-
-			err = interact.NewInteraction("choose a container", choices...).Resolve(&chosenContainer)
-			if err == io.EOF {
-				return nil
-			}
-
-			if err != nil {
-				return err
-			}
-		} else {
-			chosenContainer = hijackableContainers[0]
-		}
+	if err != nil {
+		return err
 	}
 
 	privileged := true
@@ -419,4 +354,115 @@ func locateContainer(client concourse.Client, fingerprint *containerFingerprint)
 	}
 
 	return locator.locate(fingerprint)
+}
+
+func (command *HijackCommand) chooseContainer(target rc.Target, team concourse.Team) (atc.Container, error) {
+	var err error
+	chosenContainer := atc.Container{}
+	timeout, err := time.ParseDuration(fmt.Sprintf("%s", command.TimeOut))
+	if err != nil {
+		return chosenContainer, err
+	}
+
+	start := time.Now()
+	currentTime := start
+	for currentTime.Sub(start).Seconds() < timeout.Seconds() {
+		if command.Handle != "" {
+			chosenContainer, err = team.GetContainer(command.Handle)
+			if err == nil {
+				break
+			}
+		} else {
+			fingerprint, err := command.getContainerFingerprint(target, team)
+			if err != nil {
+				return chosenContainer, err
+			}
+
+			containers, err := command.getContainerIDs(target, fingerprint, team)
+			if err != nil {
+				return chosenContainer, err
+			}
+
+			hijackableContainers := make([]atc.Container, 0)
+
+			for _, container := range containers {
+				if container.State == atc.ContainerStateCreated || container.State == atc.ContainerStateFailed {
+					hijackableContainers = append(hijackableContainers, container)
+				}
+			}
+
+			if len(hijackableContainers) == 0 {
+				currentTime = time.Now()
+				continue
+			} else if len(hijackableContainers) > 1 {
+
+				// timeout flag was set, assume container selection criteria is concise enough for 1 container
+				if command.TimeOut != "" {
+					currentTime = time.Now()
+					continue
+				}
+
+				var choices []interact.Choice
+				for _, container := range hijackableContainers {
+					var infos []string
+
+					if container.BuildID != 0 {
+						if container.JobName != "" {
+							infos = append(infos, fmt.Sprintf("build #%s", container.BuildName))
+						} else {
+							infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
+						}
+					}
+
+					if container.StepName != "" {
+						infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
+					}
+
+					if container.ResourceName != "" {
+						infos = append(infos, fmt.Sprintf("resource: %s", container.ResourceName))
+					}
+
+					infos = append(infos, fmt.Sprintf("type: %s", container.Type))
+
+					if container.Type == "check" {
+						infos = append(infos, fmt.Sprintf("expires in: %s", container.ExpiresIn))
+					}
+
+					if container.Attempt != "" {
+						infos = append(infos, fmt.Sprintf("attempt: %s", container.Attempt))
+					}
+
+					choices = append(choices, interact.Choice{
+						Display: strings.Join(infos, ", "),
+						Value:   container,
+					})
+				}
+
+				err = interact.NewInteraction("choose a container", choices...).Resolve(&chosenContainer)
+				if err != nil {
+					return chosenContainer, err
+				}
+			} else {
+				chosenContainer = hijackableContainers[0]
+				break
+			}
+		}
+
+		// probably not needed
+		currentTime = time.Now()
+	}
+
+	// no container found
+	if chosenContainer == (atc.Container{}) {
+		if command.Handle != "" {
+			displayhelpers.Failf("no containers matched the given handle id!\n\nthey may have expired if your build hasn't recently finished.")
+		} else {
+			displayhelpers.Failf("no containers matched your search parameters!\n\nthey may have expired if your build hasn't recently finished.")
+		}
+	} else {
+		// do not confuse caller with previous loop's err
+		err = nil
+	}
+
+	return chosenContainer, err
 }
