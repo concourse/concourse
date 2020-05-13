@@ -345,7 +345,7 @@ var _ = Describe("Teams API", func() {
 						dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 					})
 
-					FIt("does not update provider auth", func() {
+					It("does not update provider auth", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
 						Expect(fakeTeam.UpdateProviderAuthCallCount()).To(Equal(0))
 					})
