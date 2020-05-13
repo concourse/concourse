@@ -36,20 +36,20 @@ type UserNamespace interface {
 	MaxValidIds() (uid, gid uint32, err error)
 }
 
-func WithUserNamespace(s UserNamespace) BackendOpt {
+func WithUserNamespace(s UserNamespace) GardenBackendOpt {
 	return func(b *GardenBackend) {
 		b.userNamespace = s
 	}
 }
 
-// BackendOpt defines a functional option that when applied, modifies the
+// GardenBackendOpt defines a functional option that when applied, modifies the
 // configuration of a GardenBackend.
 //
-type BackendOpt func(b *GardenBackend)
+type GardenBackendOpt func(b *GardenBackend)
 
 // WithRootfsManager configures the RootfsManager used by the backend.
 //
-func WithRootfsManager(r RootfsManager) BackendOpt {
+func WithRootfsManager(r RootfsManager) GardenBackendOpt {
 	return func(b *GardenBackend) {
 		b.rootfsManager = r
 	}
@@ -57,7 +57,7 @@ func WithRootfsManager(r RootfsManager) BackendOpt {
 
 // WithKiller configures the killer used to terminate tasks.
 //
-func WithKiller(k Killer) BackendOpt {
+func WithKiller(k Killer) GardenBackendOpt {
 	return func(b *GardenBackend) {
 		b.killer = k
 	}
@@ -65,7 +65,7 @@ func WithKiller(k Killer) BackendOpt {
 
 // WithNetwork configures the network used by the backend.
 //
-func WithNetwork(n Network) BackendOpt {
+func WithNetwork(n Network) GardenBackendOpt {
 	return func(b *GardenBackend) {
 		b.network = n
 	}
@@ -73,7 +73,7 @@ func WithNetwork(n Network) BackendOpt {
 
 // NewGardenBackend instantiates a GardenBackend with tweakable configurations passed as Config.
 //
-func NewGardenBackend(client libcontainerd.Client, opts ...BackendOpt) (b GardenBackend, err error) {
+func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b GardenBackend, err error) {
 	if client == nil {
 		err = ErrInvalidInput("nil client")
 		return

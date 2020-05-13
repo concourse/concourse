@@ -35,7 +35,7 @@ func containerdGardenServerRunner(
 		namespace = "concourse"
 	)
 
-	backendOpts := []runtime.BackendOpt{}
+	backendOpts := []runtime.GardenBackendOpt{}
 	networkOpts := []runtime.CNINetworkOpt{}
 
 	if len(dnsServers) > 0 {
