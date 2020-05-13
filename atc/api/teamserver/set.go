@@ -43,11 +43,13 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 
 	if found {
 		hLog.Debug("updating-credentials")
-		err = team.UpdateProviderAuth(atcTeam.Auth)
-		if err != nil {
-			hLog.Error("failed-to-update-team", err, lager.Data{"teamName": teamName})
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+		if len(atcTeam.Auth) > 0 {
+			err = team.UpdateProviderAuth(atcTeam.Auth)
+			if err != nil {
+				hLog.Error("failed-to-update-team", err, lager.Data{"teamName": teamName})
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")

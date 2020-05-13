@@ -339,6 +339,17 @@ var _ = Describe("Teams API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
+				Context("when provider auth is empty", func() {
+					BeforeEach(func() {
+						atcTeam = atc.Team{}
+						dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+					})
+
+					FIt("does not update provider auth", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+						Expect(fakeTeam.UpdateProviderAuthCallCount()).To(Equal(0))
+					})
+				})
 			})
 		}
 
