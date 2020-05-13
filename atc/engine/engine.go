@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -239,7 +240,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 }
 
 func (b *engineBuild) finish(logger lager.Logger, err error, succeeded bool) {
-	if err == context.Canceled {
+	if errors.Is(err, context.Canceled) {
 		b.saveStatus(logger, atc.StatusAborted)
 		logger.Info("aborted")
 
