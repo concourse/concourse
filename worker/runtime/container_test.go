@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/backendfakes"
+	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/containerd/containerd"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -21,16 +21,16 @@ type ContainerSuite struct {
 	containerdContainer *libcontainerdfakes.FakeContainer
 	containerdProcess   *libcontainerdfakes.FakeProcess
 	containerdTask      *libcontainerdfakes.FakeTask
-	rootfsManager       *backendfakes.FakeRootfsManager
-	killer              *backendfakes.FakeKiller
+	rootfsManager       *runtimefakes.FakeRootfsManager
+	killer              *runtimefakes.FakeKiller
 }
 
 func (s *ContainerSuite) SetupTest() {
 	s.containerdContainer = new(libcontainerdfakes.FakeContainer)
 	s.containerdProcess = new(libcontainerdfakes.FakeProcess)
 	s.containerdTask = new(libcontainerdfakes.FakeTask)
-	s.rootfsManager = new(backendfakes.FakeRootfsManager)
-	s.killer = new(backendfakes.FakeKiller)
+	s.rootfsManager = new(runtimefakes.FakeRootfsManager)
+	s.killer = new(runtimefakes.FakeKiller)
 
 	s.container = runtime.NewContainer(
 		s.containerdContainer,

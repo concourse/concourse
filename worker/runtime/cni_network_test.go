@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/backendfakes"
+	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
@@ -17,15 +17,15 @@ type CNINetworkSuite struct {
 	*require.Assertions
 
 	network runtime.Network
-	cni     *backendfakes.FakeCNI
-	store   *backendfakes.FakeFileStore
+	cni     *runtimefakes.FakeCNI
+	store   *runtimefakes.FakeFileStore
 }
 
 func (s *CNINetworkSuite) SetupTest() {
 	var err error
 
-	s.store = new(backendfakes.FakeFileStore)
-	s.cni = new(backendfakes.FakeCNI)
+	s.store = new(runtimefakes.FakeFileStore)
+	s.cni = new(runtimefakes.FakeCNI)
 	s.network, err = runtime.NewCNINetwork(
 		runtime.WithCNIFileStore(s.store),
 		runtime.WithCNIClient(s.cni),

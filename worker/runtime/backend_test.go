@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/backendfakes"
+	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/errdefs"
@@ -22,16 +22,16 @@ type BackendSuite struct {
 
 	backend runtime.Backend
 	client  *libcontainerdfakes.FakeClient
-	network *backendfakes.FakeNetwork
-	userns  *backendfakes.FakeUserNamespace
-	killer  *backendfakes.FakeKiller
+	network *runtimefakes.FakeNetwork
+	userns  *runtimefakes.FakeUserNamespace
+	killer  *runtimefakes.FakeKiller
 }
 
 func (s *BackendSuite) SetupTest() {
 	s.client = new(libcontainerdfakes.FakeClient)
-	s.killer = new(backendfakes.FakeKiller)
-	s.network = new(backendfakes.FakeNetwork)
-	s.userns = new(backendfakes.FakeUserNamespace)
+	s.killer = new(runtimefakes.FakeKiller)
+	s.network = new(runtimefakes.FakeNetwork)
+	s.userns = new(runtimefakes.FakeUserNamespace)
 
 	var err error
 	s.backend, err = runtime.New(s.client,

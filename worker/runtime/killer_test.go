@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/backendfakes"
+	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/runtime/v2/runc/options"
@@ -20,13 +20,13 @@ type KillerSuite struct {
 	*require.Assertions
 
 	task          *libcontainerdfakes.FakeTask
-	processKiller *backendfakes.FakeProcessKiller
+	processKiller *runtimefakes.FakeProcessKiller
 	killer        runtime.Killer
 }
 
 func (s *KillerSuite) SetupTest() {
 	s.task = new(libcontainerdfakes.FakeTask)
-	s.processKiller = new(backendfakes.FakeProcessKiller)
+	s.processKiller = new(runtimefakes.FakeProcessKiller)
 	s.killer = runtime.NewKiller(
 		runtime.WithProcessKiller(s.processKiller),
 	)
