@@ -29,11 +29,11 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 * Fix a bug that when `--log-db-queries` is enabled only part of DB queries were logged. Expect to see more log outputs when using the flag now. #5520
 
-#### <sub><sup><a name="5057" href="#5057">:link:</a></sup></sub> feature
+#### <sub><sup><a name="5448" href="#5448">:link:</a></sup></sub> feature
  
-* @HannesHasselbring and @tenjaa added a metric for the amount of tasks that are currently waiting to be scheduled when using the `limit-active-tasks` placement strategy. #5448
+* @HannesHasselbring, @tenjaa and @shyamz-22 added a metric for the amount of tasks that are currently waiting to be scheduled when using the `limit-active-tasks` placement strategy. #5448
 
 
-#### <sub><sup><a name="5057" href="#5057">:link:</a></sup></sub> feature
+#### <sub><sup><a name="5596" href="#5596">:link:</a></sup></sub> fix
  
-* @HannesHasselbring and @tenjaa added a metric for the amount of tasks that are currently waiting to be scheduled when using the `limit-active-tasks` placement strategy. #5448
+* @lbenedix and @shyamz-22 fixed overriding of the provider Auth when Team Auth is empty. This prevents the accidental locking out of users from `main` or other teams. #5596
