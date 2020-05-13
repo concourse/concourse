@@ -15,8 +15,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
 	concourseCmd "github.com/concourse/concourse/cmd"
-	containerd "github.com/concourse/concourse/worker/backend"
-	"github.com/concourse/concourse/worker/backend/libcontainerd"
+	"github.com/concourse/concourse/worker/runtime"
+	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/restart"
@@ -35,30 +35,30 @@ func containerdGardenServerRunner(
 		namespace = "concourse"
 	)
 
-	backendOpts := []containerd.BackendOpt{}
-	networkOpts := []containerd.CNINetworkOpt{}
+	backendOpts := []runtime.BackendOpt{}
+	networkOpts := []runtime.CNINetworkOpt{}
 
 	if len(dnsServers) > 0 {
-		networkOpts = append(networkOpts, containerd.WithNameServers(dnsServers))
+		networkOpts = append(networkOpts, runtime.WithNameServers(dnsServers))
 	}
 
 	if networkPool != "" {
-		networkOpts = append(networkOpts, containerd.WithCNINetworkConfig(
-			containerd.CNINetworkConfig{
+		networkOpts = append(networkOpts, runtime.WithCNINetworkConfig(
+			runtime.CNINetworkConfig{
 				BridgeName:  "concourse0",
 				NetworkName: "concourse",
 				Subnet:      networkPool,
 			}))
 	}
 
-	cniNetwork, err := containerd.NewCNINetwork(networkOpts...)
+	cniNetwork, err := runtime.NewCNINetwork(networkOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("new cni network: %w", err)
 	}
 
-	backendOpts = append(backendOpts, containerd.WithNetwork(cniNetwork))
+	backendOpts = append(backendOpts, runtime.WithNetwork(cniNetwork))
 
-	backend, err := containerd.New(
+	backend, err := runtime.New(
 		libcontainerd.New(containerdAddr, namespace, requestTimeout),
 		backendOpts...,
 	)
