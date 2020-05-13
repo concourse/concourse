@@ -734,6 +734,8 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		return nil, err
 	}
 
+	defer tx.Rollback()
+
 	rows, err := psql.Select("v.id, v.check_order, r.id, v.resource_config_scope_id, o.build_id, b.job_id").
 		From("build_resource_config_version_outputs o").
 		Join("builds b ON b.id = o.build_id").

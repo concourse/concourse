@@ -535,6 +535,8 @@ func (j *job) GetNextBuildInputs() ([]BuildInput, error) {
 		return nil, err
 	}
 
+	defer tx.Rollback()
+
 	buildInputs, err := j.getNextBuildInputs(tx)
 	if err != nil {
 		return nil, err

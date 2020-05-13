@@ -631,6 +631,8 @@ func (r *resource) UnpinVersion() error {
 		return err
 	}
 
+	defer tx.Rollback()
+
 	results, err := psql.Delete("resource_pins").
 		Where(sq.Eq{"resource_pins.resource_id": r.id}).
 		RunWith(tx).
