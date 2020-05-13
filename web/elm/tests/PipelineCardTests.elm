@@ -5,7 +5,32 @@ import Assets
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
-import DashboardTests exposing (afterSeconds, amber, apiData, blue, brown, circularJobs, darkGrey, fadedGreen, givenDataAndUser, givenDataUnauthenticated, green, iconSelector, job, jobWithNameTransitionedAt, lightGrey, middleGrey, orange, otherJob, red, running, userWithRoles, whenOnDashboard, white)
+import DashboardTests
+    exposing
+        ( afterSeconds
+        , amber
+        , apiData
+        , blue
+        , brown
+        , circularJobs
+        , darkGrey
+        , fadedGreen
+        , givenDataAndUser
+        , givenDataUnauthenticated
+        , green
+        , iconSelector
+        , job
+        , jobWithNameTransitionedAt
+        , lightGrey
+        , middleGrey
+        , orange
+        , otherJob
+        , red
+        , running
+        , userWithRoles
+        , whenOnDashboard
+        , white
+        )
 import Data
 import Dict
 import Expect exposing (Expectation)
@@ -1185,7 +1210,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = PipelineStatusUnknown |> Assets.PipelineStatusIcon
+                                        , image = Assets.PipelineStatusIconStale
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1204,6 +1229,69 @@ all =
                             setup
                                 |> Query.find [ class "card" ]
                                 |> Query.has [ style "opacity" "0.45" ]
+                    ]
+                , describe "when pipeline has no jobs due to a disabled endpoint" <|
+                    let
+                        setup =
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    [ { id = 0, name = "team" } ]
+                                |> Tuple.first
+                                |> Application.handleDelivery
+                                    (CachedJobsReceived <| Ok [ Data.job 0 ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ Data.pipeline "team" 0 ]
+                                    )
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllJobsFetched <|
+                                        Data.httpNotImplemented
+                                    )
+                    in
+                    [ test "status icon is faded sync" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> findStatusIcon
+                                |> Query.has
+                                    (iconSelector
+                                        { size = "20px"
+                                        , image = Assets.PipelineStatusIconJobsDisabled
+                                        }
+                                        ++ [ style "background-size" "contain"
+                                           , style "opacity" "0.5"
+                                           ]
+                                    )
+                    , test "status text says 'no data'" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> findStatusText
+                                |> Query.has [ text "no data" ]
+                    , test "job preview is empty placeholder" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> Query.find [ class "card-body" ]
+                                |> Query.has [ style "background-color" middleGrey ]
+                    , test "job data is cleared" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> Query.find [ class "parallel-grid" ]
+                                |> Query.hasNot [ tag "a" ]
+                    , test "job data is cleared from local cache" <|
+                        \_ ->
+                            setup
+                                |> Tuple.second
+                                |> Common.contains Effects.DeleteCachedJobs
                     ]
                 , describe "when pipeline is pending" <|
                     [ test "status icon is grey" <|
@@ -1535,17 +1623,7 @@ all =
                                             (Callback.VisibilityChanged
                                                 Msgs.Hide
                                                 pipelineId
-                                             <|
-                                                Err <|
-                                                    Http.BadStatus
-                                                        { url = "http://example.com"
-                                                        , status =
-                                                            { code = 500
-                                                            , message = ""
-                                                            }
-                                                        , headers = Dict.empty
-                                                        , body = ""
-                                                        }
+                                                Data.httpInternalServerError
                                             )
                                         |> Tuple.first
                                         |> visibilityToggle
@@ -1566,17 +1644,7 @@ all =
                                             (Callback.VisibilityChanged
                                                 Msgs.Hide
                                                 pipelineId
-                                             <|
-                                                Err <|
-                                                    Http.BadStatus
-                                                        { url = "http://example.com"
-                                                        , status =
-                                                            { code = 401
-                                                            , message = "unauthorized"
-                                                            }
-                                                        , headers = Dict.empty
-                                                        , body = ""
-                                                        }
+                                                Data.httpUnauthorized
                                             )
                                         |> Tuple.second
                                         |> Expect.equal
@@ -1751,17 +1819,7 @@ all =
                                             (Callback.VisibilityChanged
                                                 Msgs.Expose
                                                 pipelineId
-                                             <|
-                                                Err <|
-                                                    Http.BadStatus
-                                                        { url = "http://example.com"
-                                                        , status =
-                                                            { code = 500
-                                                            , message = ""
-                                                            }
-                                                        , headers = Dict.empty
-                                                        , body = ""
-                                                        }
+                                                Data.httpInternalServerError
                                             )
                                         |> Tuple.first
                                         |> visibilityToggle
@@ -2228,17 +2286,7 @@ all =
                                         { pipelineName = "pipeline"
                                         , teamName = "team"
                                         }
-                                        (Err <|
-                                            Http.BadStatus
-                                                { url = "http://example.com"
-                                                , status =
-                                                    { code = 401
-                                                    , message = ""
-                                                    }
-                                                , headers = Dict.empty
-                                                , body = ""
-                                                }
-                                        )
+                                        Data.httpUnauthorized
                                     )
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.RedirectToLogin ]

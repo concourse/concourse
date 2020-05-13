@@ -1281,18 +1281,7 @@ iSeeTheTurbulenceMessage =
 myBrowserFailsToFetchPipelines =
     Tuple.first
         >> Application.handleCallback
-            (Callback.AllPipelinesFetched <|
-                Err <|
-                    Http.BadStatus
-                        { url = "http://example.com"
-                        , status =
-                            { code = 500
-                            , message = "internal server error"
-                            }
-                        , headers = Dict.empty
-                        , body = ""
-                        }
-            )
+            (Callback.AllPipelinesFetched <| Data.httpInternalServerError)
 
 
 iSeeSomeChildren =
@@ -1618,18 +1607,7 @@ iOpenTheNotFoundPage =
     iOpenTheJobPage
         >> Tuple.first
         >> Application.handleCallback
-            (Callback.JobFetched <|
-                Err <|
-                    Http.BadStatus
-                        { url = "http://example.com"
-                        , status =
-                            { code = 404
-                            , message = "not found"
-                            }
-                        , headers = Dict.empty
-                        , body = ""
-                        }
-            )
+            (Callback.JobFetched <| Data.httpNotFound)
 
 
 iSeeAGreyBackground =

@@ -2,6 +2,7 @@ module Dashboard.Models exposing
     ( DragState(..)
     , DropState(..)
     , Dropdown(..)
+    , FetchError(..)
     , FooterModel
     , Model
     )
@@ -30,16 +31,21 @@ type alias Model =
             , isTeamsRequestFinished : Bool
             , isPipelinesRequestFinished : Bool
             , isResourcesRequestFinished : Bool
-            , isJobsErroring : Bool
-            , isTeamsErroring : Bool
-            , isResourcesErroring : Bool
-            , isPipelinesErroring : Bool
+            , jobsError : Maybe FetchError
+            , teamsError : Maybe FetchError
+            , resourcesError : Maybe FetchError
+            , pipelinesError : Maybe FetchError
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
             , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
             }
         )
+
+
+type FetchError
+    = Failed
+    | Disabled
 
 
 type DragState
@@ -62,7 +68,7 @@ type alias FooterModel r =
         | hideFooter : Bool
         , hideFooterCounter : Int
         , showHelp : Bool
-        , pipelines : FetchResult (List Dashboard.Group.Models.Pipeline)
+        , pipelines : Maybe (List Dashboard.Group.Models.Pipeline)
         , dropdown : Dropdown
         , highDensity : Bool
     }

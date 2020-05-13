@@ -56,7 +56,6 @@ view :
         , groupCardsHeight : Float
         , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
         , jobs : Dict ( String, String, String ) Concourse.Job
-        , isCached : Bool
         }
     -> Group
     -> Html Message
@@ -134,12 +133,11 @@ hdView :
     , pipelinesWithResourceErrors : Dict ( String, String ) Bool
     , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
     , jobs : Dict ( String, String, String ) Concourse.Job
-    , isCached : Bool
     }
     -> { a | userState : UserState }
     -> Group
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, isCached, jobs } session g =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jobs } session g =
     let
         orderedPipelines =
             g.pipelines
@@ -170,7 +168,6 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, is
                                         |> Dict.get ( p.teamName, p.name )
                                         |> Maybe.withDefault []
                                         |> List.filterMap (lookupJob jobs)
-                                , isCached = isCached
                                 }
                         )
     in
@@ -220,7 +217,6 @@ pipelineCardView :
             , query : String
             , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
             , jobs : Dict ( String, String, String ) Concourse.Job
-            , isCached : Bool
         }
     ->
         { bounds : PipelineGrid.Bounds
@@ -291,7 +287,7 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
              , style "width" "100%"
              , attribute "data-pipeline-name" pipeline.name
              ]
-                ++ (if not params.isCached && String.isEmpty params.query then
+                ++ (if not pipeline.stale && String.isEmpty params.query then
                         [ attribute
                             "ondragstart"
                             "event.dataTransfer.setData('text/plain', '');"
@@ -341,7 +337,6 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
                 , pipelineRunningKeyframes = params.pipelineRunningKeyframes
                 , userState = session.userState
                 , query = params.query
-                , isCached = params.isCached
                 }
             ]
         ]

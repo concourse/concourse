@@ -1,5 +1,9 @@
 module Data exposing
     ( check
+    , httpInternalServerError
+    , httpNotFound
+    , httpNotImplemented
+    , httpUnauthorized
     , job
     , jobBuild
     , jobId
@@ -21,7 +25,64 @@ module Data exposing
 import Concourse
 import Concourse.BuildStatus as BuildStatus
 import Dict exposing (Dict)
+import Http
 import Time
+
+
+httpUnauthorized : Result Http.Error a
+httpUnauthorized =
+    Err <|
+        Http.BadStatus
+            { url = "http://example.com"
+            , status =
+                { code = 401
+                , message = ""
+                }
+            , headers = Dict.empty
+            , body = ""
+            }
+
+
+httpNotFound : Result Http.Error a
+httpNotFound =
+    Err <|
+        Http.BadStatus
+            { url = "http://example.com"
+            , status =
+                { code = 404
+                , message = "not found"
+                }
+            , headers = Dict.empty
+            , body = ""
+            }
+
+
+httpNotImplemented : Result Http.Error a
+httpNotImplemented =
+    Err <|
+        Http.BadStatus
+            { url = "http://example.com"
+            , status =
+                { code = 501
+                , message = "not implemented"
+                }
+            , headers = Dict.empty
+            , body = ""
+            }
+
+
+httpInternalServerError : Result Http.Error a
+httpInternalServerError =
+    Err <|
+        Http.BadStatus
+            { url = "http://example.com"
+            , status =
+                { code = 500
+                , message = "internal server error"
+                }
+            , headers = Dict.empty
+            , body = ""
+            }
 
 
 check : Concourse.CheckStatus -> Concourse.Check
