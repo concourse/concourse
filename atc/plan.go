@@ -111,14 +111,23 @@ type PutPlan struct {
 }
 
 type CheckPlan struct {
-	Type        string  `json:"type"`
-	Name        string  `json:"name,omitempty"`
-	Source      Source  `json:"source"`
-	Tags        Tags    `json:"tags,omitempty"`
-	Timeout     string  `json:"timeout,omitempty"`
-	FromVersion Version `json:"from_version,omitempty"`
+	Type        string            `json:"type"`
+	Name        string            `json:"name,omitempty"`
+	Source      Source            `json:"source"`
+	Tags        Tags              `json:"tags,omitempty"`
+	Timeout     string            `json:"timeout,omitempty"`
+	FromVersion Version           `json:"from_version,omitempty"`
+	SpanContext map[string]string `json:"span_context"`
 
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+}
+
+func (cp *CheckPlan) Get(key string) string {
+	return cp.SpanContext[key]
+}
+
+func (cp *CheckPlan) Set(key, value string) {
+	cp.SpanContext[key] = value
 }
 
 type TaskPlan struct {

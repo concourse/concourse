@@ -2,12 +2,14 @@ package lidar
 
 import (
 	"context"
+	"strconv"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/tracing"
 )
 
 func NewChecker(
@@ -47,6 +49,17 @@ func (c *checker) Run(ctx context.Context) error {
 	for _, ck := range checks {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
 			go func(check db.Check) {
+				_, span := tracing.StartSpanFollowing(
+					check,
+					"checker.Run",
+					tracing.Attrs{
+						"team":                     ck.TeamName(),
+						"pipeline":                 ck.PipelineName(),
+						"check_id":                 strconv.Itoa(ck.ID()),
+						"resource_config_scope_id": strconv.Itoa(ck.ResourceConfigScopeID()),
+					},
+				)
+				defer span.End()
 				defer c.running.Delete(check.ID())
 
 				engineCheck := c.engine.NewCheck(check)

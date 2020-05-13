@@ -51,6 +51,7 @@ var _ = Describe("Check", func() {
 			false,
 			atc.Plan{},
 			metadata,
+			map[string]string{"fake": "span"},
 		)
 		Expect(created).To(BeTrue())
 		Expect(err).NotTo(HaveOccurred())
@@ -179,6 +180,7 @@ var _ = Describe("Check", func() {
 					false,
 					atc.Plan{},
 					metadata,
+					map[string]string{"fake": "span"},
 				)
 				Expect(created).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())
