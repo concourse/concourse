@@ -68,7 +68,7 @@ var _ = Describe("BuildFactory", func() {
 			DescribeTable("completed and past the grace period",
 				func(status db.BuildStatus, matcher types.GomegaMatcher) {
 					//set grace period to 0 for this test
-					buildFactory = db.NewBuildFactory(dbConn, lockFactory, eventStore, 0, 0)
+					buildFactory = db.NewBuildFactory(dbConn, lockFactory, fakeEventStore, 0, 0)
 					b, err := defaultTeam.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
 
@@ -211,7 +211,7 @@ var _ = Describe("BuildFactory", func() {
 		})
 		Context("GC failed builds", func() {
 			It("marks failed builds non-interceptible after failed-grace-period", func() {
-				buildFactory = db.NewBuildFactory(dbConn, lockFactory, eventStore, 0, 2*time.Second) // 1 second could create a flaky test
+				buildFactory = db.NewBuildFactory(dbConn, lockFactory, fakeEventStore, 0, 2*time.Second) // 1 second could create a flaky test
 				build, err := defaultJob.CreateBuild()
 				Expect(err).NotTo(HaveOccurred())
 

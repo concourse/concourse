@@ -13,7 +13,7 @@ var _ = Describe("PipelineRef", func() {
 	)
 
 	BeforeEach(func(){
-		pr = db.NewPipelineRef(defaultPipeline.ID(), defaultPipeline.Name(), dbConn, lockFactory, eventStore)
+		pr = db.NewPipelineRef(defaultPipeline.ID(), defaultPipeline.Name(), dbConn, lockFactory, fakeEventStore)
 	})
 
 	It("id should be correct", func() {

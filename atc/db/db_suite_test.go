@@ -49,8 +49,8 @@ var (
 	workerTaskCacheFactory              db.WorkerTaskCacheFactory
 	userFactory                         db.UserFactory
 	dbWall                              db.Wall
-	eventStore                          db.EventStore
-	fakeClock                           dbfakes.FakeClock
+	fakeEventStore                      *dbfakes.FakeEventStore
+	fakeClock                           *dbfakes.FakeClock
 
 	defaultWorkerResourceType atc.WorkerResourceType
 	defaultTeam               db.Team
@@ -106,23 +106,24 @@ var _ = BeforeEach(func() {
 
 	fakeSecrets = new(credsfakes.FakeSecrets)
 	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
+	fakeEventStore = new(dbfakes.FakeEventStore)
+	fakeClock = new(dbfakes.FakeClock)
 	componentFactory = db.NewComponentFactory(dbConn)
-	eventStore = new(dbfakes.FakeEventStore)
-	buildFactory = db.NewBuildFactory(dbConn, lockFactory, eventStore, 5*time.Minute, 5*time.Minute)
+	buildFactory = db.NewBuildFactory(dbConn, lockFactory, fakeEventStore, 5*time.Minute, 5*time.Minute)
 	volumeRepository = db.NewVolumeRepository(dbConn)
 	containerRepository = db.NewContainerRepository(dbConn)
-	teamFactory = db.NewTeamFactory(dbConn, lockFactory, eventStore)
+	teamFactory = db.NewTeamFactory(dbConn, lockFactory, fakeEventStore)
 	workerFactory = db.NewWorkerFactory(dbConn)
 	workerLifecycle = db.NewWorkerLifecycle(dbConn)
 	resourceConfigCheckSessionLifecycle = db.NewResourceConfigCheckSessionLifecycle(dbConn)
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	taskCacheFactory = db.NewTaskCacheFactory(dbConn)
-	checkFactory = db.NewCheckFactory(dbConn, lockFactory, eventStore, fakeSecrets, fakeVarSourcePool, time.Minute)
+	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeEventStore, fakeSecrets, fakeVarSourcePool, time.Minute)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)
-	dbWall = db.NewWall(dbConn, &fakeClock)
+	dbWall = db.NewWall(dbConn, fakeClock)
 
 	var err error
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})

@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -19,7 +17,6 @@ var _ = Describe("Wall", func() {
 
 	Context(" a message is set", func() {
 		BeforeEach(func() {
-			fakeClock = dbfakes.FakeClock{}
 			fakeClock.NowReturns(startTime)
 		})
 		Context("with no expiration", func() {

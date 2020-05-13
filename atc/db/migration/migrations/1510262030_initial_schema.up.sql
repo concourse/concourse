@@ -82,13 +82,13 @@ BEGIN;
 
 
 
-  CREATE TABLE build_events (
-      build_id integer,
-      type character varying(32) NOT NULL,
-      payload text NOT NULL,
-      event_id integer NOT NULL,
-      version text NOT NULL
-  );
+--   CREATE TABLE build_events (
+--       build_id integer,
+--       type character varying(32) NOT NULL,
+--       payload text NOT NULL,
+--       event_id integer NOT NULL,
+--       version text NOT NULL
+--   );
 
 
 
@@ -1046,11 +1046,11 @@ BEGIN;
 
 
 
-  CREATE UNIQUE INDEX build_events_build_id_event_id ON build_events USING btree (build_id, event_id);
+--   CREATE UNIQUE INDEX build_events_build_id_event_id ON build_events USING btree (build_id, event_id);
 
 
 
-  CREATE INDEX build_events_build_id_idx ON build_events USING btree (build_id);
+--   CREATE INDEX build_events_build_id_idx ON build_events USING btree (build_id);
 
 
 

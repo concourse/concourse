@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -1188,10 +1189,6 @@ var _ = Describe("Pipeline", func() {
 			err = build.SaveOutput("some-type", atc.Source{"some": "source"}, atc.VersionedResourceTypes{}, atc.Version{"key": "value"}, nil, "some-output-name", "some-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			By("populating build events")
-			err = build.SaveEvent(event.StartTask{})
-			Expect(err).ToNot(HaveOccurred())
-
 			err = pipeline.Destroy()
 			Expect(err).ToNot(HaveOccurred())
 
@@ -1206,6 +1203,13 @@ var _ = Describe("Pipeline", func() {
 			_, found, err = team.Pipeline(pipeline.Name())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+
+		It("calls DeletePipeline on the EventStore", func() {
+			pipeline.Destroy()
+
+			Expect(fakeEventStore.DeletePipelineCallCount()).To(Equal(1))
+			Expect(fakeEventStore.DeletePipelineArgsForCall(0)).To(BeIdenticalTo(pipeline))
 		})
 	})
 
@@ -1337,122 +1341,6 @@ var _ = Describe("Pipeline", func() {
 				Passed:   []string{"job-1", "job-2"},
 				Trigger:  true,
 			}))
-		})
-	})
-
-	Describe("DeleteBuildEventsByBuildIDs", func() {
-		It("deletes all build logs corresponding to the given build ids", func() {
-			build1DB, err := team.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = build1DB.SaveEvent(event.Log{
-				Payload: "log 1",
-			})
-			Expect(err).ToNot(HaveOccurred())
-
-			build2DB, err := team.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = build2DB.SaveEvent(event.Log{
-				Payload: "log 2",
-			})
-			Expect(err).ToNot(HaveOccurred())
-
-			build3DB, err := team.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = build3DB.Finish(db.BuildStatusSucceeded)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = build1DB.Finish(db.BuildStatusSucceeded)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = build2DB.Finish(db.BuildStatusSucceeded)
-			Expect(err).ToNot(HaveOccurred())
-
-			build4DB, err := team.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
-
-			By("doing nothing if the list is empty")
-			err = pipeline.DeleteBuildEventsByBuildIDs([]int{})
-			Expect(err).ToNot(HaveOccurred())
-
-			By("not returning an error")
-			err = pipeline.DeleteBuildEventsByBuildIDs([]int{build3DB.ID(), build4DB.ID(), build1DB.ID()})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = build4DB.Finish(db.BuildStatusSucceeded)
-			Expect(err).ToNot(HaveOccurred())
-
-			By("deleting events for build 1")
-			events1, err := build1DB.Events()
-			Expect(err).ToNot(HaveOccurred())
-			defer db.Close(events1)
-
-			_, err = events1.Next()
-			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
-
-			By("preserving events for build 2")
-			events2, err := build2DB.Events()
-			Expect(err).ToNot(HaveOccurred())
-			defer db.Close(events2)
-
-			build2Event1, err := events2.Next()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(build2Event1).To(Equal(envelope(event.Log{
-				Payload: "log 2",
-			})))
-
-			_, err = events2.Next() // finish event
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = events2.Next()
-			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
-
-			By("deleting events for build 3")
-			events3, err := build3DB.Events()
-			Expect(err).ToNot(HaveOccurred())
-			defer db.Close(events3)
-
-			_, err = events3.Next()
-			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
-
-			By("being unflapped by build 4, which had no events at the time")
-			events4, err := build4DB.Events()
-			Expect(err).ToNot(HaveOccurred())
-			defer db.Close(events4)
-
-			_, err = events4.Next() // finish event
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = events4.Next()
-			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
-
-			By("updating ReapTime for the affected builds")
-			found, err := build1DB.Reload()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(build1DB.ReapTime()).To(BeTemporally(">", build1DB.EndTime()))
-
-			found, err = build2DB.Reload()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(build2DB.ReapTime()).To(BeZero())
-
-			found, err = build3DB.Reload()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(build3DB.ReapTime()).To(Equal(build1DB.ReapTime()))
-
-			found, err = build4DB.Reload()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			// Not required behavior, just a sanity check for what I think will happen
-			Expect(build4DB.ReapTime()).To(Equal(build1DB.ReapTime()))
 		})
 	})
 
@@ -1813,12 +1701,12 @@ var _ = Describe("Pipeline", func() {
 					},
 				},
 			}
-
-			startedBuild, err = pipeline.CreateStartedBuild(plan)
-			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("can create started builds with plans", func() {
+			startedBuild, err = pipeline.CreateStartedBuild(plan)
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(startedBuild.ID()).ToNot(BeZero())
 			Expect(startedBuild.JobName()).To(BeZero())
 			Expect(startedBuild.PipelineName()).To(Equal("fake-pipeline"))
@@ -1828,26 +1716,46 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		It("saves the public plan", func() {
+			startedBuild, _ = pipeline.CreateStartedBuild(plan)
+
 			found, err := startedBuild.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(startedBuild.PublicPlan()).To(Equal(plan.Public()))
 		})
 
+		It("initializes the newly created build", func() {
+			startedBuild, _ = pipeline.CreateStartedBuild(plan)
+
+			Expect(fakeEventStore.InitializeCallCount()).To(Equal(1))
+			Expect(fakeEventStore.InitializeArgsForCall(0)).To(BeIdenticalTo(startedBuild))
+		})
+
 		It("creates Start event", func() {
+			startedBuild, _ = pipeline.CreateStartedBuild(plan)
+
 			found, err := startedBuild.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			events, err := startedBuild.Events()
-			Expect(err).NotTo(HaveOccurred())
-
-			defer db.Close(events)
-
-			Expect(events.Next()).To(Equal(envelope(event.Status{
+			Expect(fakeEventStore.PutCallCount()).To(Equal(1))
+			putBuild, putEvents := fakeEventStore.PutArgsForCall(0)
+			Expect(putBuild).To(BeIdenticalTo(startedBuild))
+			Expect(putEvents).To(ConsistOf(event.Status{
 				Status: atc.StatusStarted,
 				Time:   startedBuild.StartTime().Unix(),
-			})))
+			}))
+		})
+
+		Context("when initializing the Build in the EventStore fails", func() {
+			BeforeEach(func() {
+				fakeEventStore.InitializeReturns(errors.New("initialize error"))
+			})
+
+			It("errors", func() {
+				startedBuild, err = pipeline.CreateStartedBuild(plan)
+				Expect(err).To(HaveOccurred())
+			})
 		})
 	})
 

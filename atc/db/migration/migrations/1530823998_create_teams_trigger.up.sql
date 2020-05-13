@@ -16,9 +16,9 @@ BEGIN;
 
 
   DROP TRIGGER IF EXISTS team_build_events_delete_trigger ON teams;
-  CREATE TRIGGER team_build_events_delete_trigger AFTER DELETE on teams FOR EACH ROW EXECUTE PROCEDURE on_team_delete();
+--   CREATE TRIGGER team_build_events_delete_trigger AFTER DELETE on teams FOR EACH ROW EXECUTE PROCEDURE on_team_delete();
 
   DROP TRIGGER IF EXISTS team_build_events_insert_trigger ON teams;
-  CREATE TRIGGER team_build_events_insert_trigger AFTER INSERT on teams FOR EACH ROW EXECUTE PROCEDURE on_team_insert();
+--   CREATE TRIGGER team_build_events_insert_trigger AFTER INSERT on teams FOR EACH ROW EXECUTE PROCEDURE on_team_insert();
 COMMIT;
 

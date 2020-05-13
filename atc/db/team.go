@@ -103,8 +103,11 @@ func (t *team) Delete() error {
 		}).
 		RunWith(t.conn).
 		Exec()
+	if err != nil {
+		return err
+	}
 
-	return err
+	return t.eventStore.DeleteTeam(t)
 }
 
 func (t *team) Rename(name string) error {
@@ -705,14 +708,6 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		return nil, err
 	}
 
-	err = build.saveEvent(tx, event.Status{
-		Status: atc.StatusStarted,
-		Time:   build.StartTime().Unix(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
@@ -722,7 +717,11 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		return nil, err
 	}
 
-	if err = t.conn.Bus().Notify(buildEventsChannel(build.id)); err != nil {
+	err = build.SaveEvent(event.Status{
+		Status: atc.StatusStarted,
+		Time:   build.StartTime().Unix(),
+	})
+	if err != nil {
 		return nil, err
 	}
 

@@ -56,7 +56,7 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 		}
 
 		for _, job := range jobs {
-			err = br.reapLogsOfJob(pipeline, job, logger)
+			err = br.reapLogsOfJob(job, logger)
 			if err != nil {
 				return err
 			}
@@ -66,9 +66,7 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 	return nil
 }
 
-func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
-	job db.Job,
-	logger lager.Logger) error {
+func (br *buildLogCollector) reapLogsOfJob(job db.Job, logger lager.Logger) error {
 
 	jobConfig, err := job.Config()
 	if err != nil {
@@ -128,8 +126,8 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 		return nil
 	}
 
-	buildIDsToDelete := []int{}
-	toRetainNonSucceededBuildIDs := []int{}
+	var buildsToDelete []db.Build
+	var toRetainNonSucceededBuilds []db.Build
 	retainedBuilds := 0
 	retainedSucceededBuilds := 0
 	firstLoggedBuildID := 0
@@ -143,7 +141,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 		if logRetention.Days > 0 {
 			if !build.EndTime().IsZero() && build.EndTime().AddDate(0, 0, logRetention.Days).Before(time.Now()) {
 				logger.Debug("should-reap-due-to-days", lager.Data{"build_id": build.ID()})
-				buildIDsToDelete = append(buildIDsToDelete, build.ID())
+				buildsToDelete = append(buildsToDelete, build)
 				continue
 			}
 		}
@@ -170,12 +168,12 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 
 			if retainedBuilds < logRetention.Builds {
 				retainedBuilds++
-				toRetainNonSucceededBuildIDs = append(toRetainNonSucceededBuildIDs, build.ID())
+				toRetainNonSucceededBuilds = append(toRetainNonSucceededBuilds, build)
 				firstLoggedBuildID = build.ID()
 				continue
 			}
 
-			buildIDsToDelete = append(buildIDsToDelete, build.ID())
+			buildsToDelete = append(buildsToDelete, build)
 		}
 	}
 
@@ -184,7 +182,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 		"retainedSucceededBuilds": retainedSucceededBuilds,
 	})
 
-	if len(buildIDsToDelete) == 0 {
+	if len(buildsToDelete) == 0 {
 		logger.Debug("no-builds-to-reap")
 		return nil
 	}
@@ -196,17 +194,22 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 			"retainedBuilds": retainedBuilds,
 		})
 		delta := retainedBuilds - logRetention.Builds
-		n := len(toRetainNonSucceededBuildIDs)
+		n := len(toRetainNonSucceededBuilds)
 		for i := 1; i <= delta; i++ {
-			buildIDsToDelete = append(buildIDsToDelete, toRetainNonSucceededBuildIDs[n-i])
+			buildsToDelete = append(buildsToDelete, toRetainNonSucceededBuilds[n-i])
 		}
 	}
 
+	buildIDsToDelete := make([]int, len(buildsToDelete))
+	for i, build := range buildsToDelete {
+		buildIDsToDelete[i] = build.ID()
+	}
+
 	logger.Debug("reaping-builds", lager.Data{
-		"build-ids": buildIDsToDelete,
+		"build-ids": buildsToDelete,
 	})
 
-	err = pipeline.DeleteBuildEventsByBuildIDs(buildIDsToDelete)
+	err = job.DeleteBuildEvents(buildsToDelete)
 	if err != nil {
 		logger.Error("failed-to-delete-build-events", err)
 		return err

@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -561,6 +562,27 @@ var _ = Describe("Job", func() {
 		})
 	})
 
+	Describe("CreateBuild", func() {
+		It("initializes the newly created build", func() {
+			build, err := job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(fakeEventStore.InitializeCallCount()).To(Equal(1))
+			Expect(fakeEventStore.InitializeArgsForCall(0)).To(BeIdenticalTo(build))
+		})
+
+		Context("when initializing the Build in the EventStore fails", func() {
+			BeforeEach(func() {
+				fakeEventStore.InitializeReturns(errors.New("initialize error"))
+			})
+
+			It("errors", func() {
+				_, err := job.CreateBuild()
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
 	Describe("RerunBuild", func() {
 		var firstBuild db.Build
 		var rerunErr error
@@ -605,6 +627,14 @@ var _ = Describe("Job", func() {
 				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 
+			It("initializes the newly created rerun build", func() {
+				prevCalls := fakeEventStore.InitializeCallCount()
+				rerunBuild, _ := job.RerunBuild(buildToRerun)
+
+				Expect(fakeEventStore.InitializeCallCount() - prevCalls).To(Equal(1))
+				Expect(fakeEventStore.InitializeArgsForCall(prevCalls)).To(BeIdenticalTo(rerunBuild))
+			})
+
 			Context("when there is an existing rerun build", func() {
 				var rerun1 db.Build
 
@@ -640,6 +670,17 @@ var _ = Describe("Job", func() {
 					Expect(rerunErr).ToNot(HaveOccurred())
 					Expect(rerunBuild.Name()).To(Equal(fmt.Sprintf("%s.2", firstBuild.Name())))
 					Expect(rerunBuild.RerunNumber()).To(Equal(rerun1.RerunNumber() + 1))
+				})
+			})
+
+			Context("when initializing the Build in the EventStore fails", func() {
+				BeforeEach(func() {
+					fakeEventStore.InitializeReturns(errors.New("initialize error"))
+				})
+
+				It("errors", func() {
+					_, err := job.RerunBuild(buildToRerun)
+					Expect(err).To(HaveOccurred())
 				})
 			})
 		})
@@ -1724,7 +1765,6 @@ var _ = Describe("Job", func() {
 		It("becomes the next pending build for job", func() {
 			nextPendings, err := job.GetPendingBuilds()
 			Expect(err).NotTo(HaveOccurred())
-			//time.Sleep(10 * time.Hour)
 			Expect(nextPendings).NotTo(BeEmpty())
 			Expect(nextPendings[0].ID()).To(Equal(build1DB.ID()))
 		})
@@ -1978,6 +2018,14 @@ var _ = Describe("Job", func() {
 				})
 			})
 
+			It("initializes the newly created pending build", func() {
+				job.EnsurePendingBuildExists(context.TODO())
+				pendingBuilds, _ := job.GetPendingBuilds()
+
+				Expect(fakeEventStore.InitializeCallCount()).To(Equal(1))
+				Expect(fakeEventStore.InitializeArgsForCall(0)).To(Equal(pendingBuilds[0]))
+			})
+
 			It("doesn't create another build the second time it's called", func() {
 				err := job.EnsurePendingBuildExists(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
@@ -1996,6 +2044,17 @@ var _ = Describe("Job", func() {
 				builds2, err = job.GetPendingBuilds()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(builds2).To(HaveLen(0))
+			})
+
+			Context("when initializing the Build in the EventStore fails", func() {
+				BeforeEach(func() {
+					fakeEventStore.InitializeReturns(errors.New("initialize error"))
+				})
+
+				It("errors", func() {
+					err := job.EnsurePendingBuildExists(context.TODO())
+					Expect(err).To(HaveOccurred())
+				})
 			})
 		})
 	})
@@ -2134,6 +2193,61 @@ var _ = Describe("Job", func() {
 					})
 				})
 			})
+		})
+	})
+
+	Describe("DeleteBuildEventsByBuilds", func() {
+		var (
+			build1         db.Build
+			build2         db.Build
+			notReapedBuild db.Build
+		)
+
+		BeforeEach(func() {
+			var err error
+			build1, err = job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			build2, err = job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			notReapedBuild, err = job.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("deletes all build events for the given builds", func() {
+			err := job.DeleteBuildEvents([]db.Build{build1, build2})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeEventStore.DeleteCallCount()).To(Equal(1))
+			Expect(fakeEventStore.DeleteArgsForCall(0)).To(ConsistOf(BeIdenticalTo(build1), BeIdenticalTo(build2)))
+		})
+
+		It("updates the reap time for each build", func() {
+			err := job.DeleteBuildEvents([]db.Build{build1, build2})
+			Expect(err).NotTo(HaveOccurred())
+
+			build1.Reload()
+			build2.Reload()
+			notReapedBuild.Reload()
+
+			Expect(build1.ReapTime()).ToNot(BeZero())
+			Expect(build2.ReapTime()).ToNot(BeZero())
+			Expect(notReapedBuild.ReapTime()).To(BeZero())
+		})
+
+		It("does nothing when no builds are passed in", func() {
+			err := job.DeleteBuildEvents([]db.Build{})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeEventStore.DeleteCallCount()).To(Equal(0))
+		})
+
+		It("does errors when deleting the build events fails", func() {
+			fakeEventStore.DeleteReturns(errors.New("delete error"))
+
+			err := job.DeleteBuildEvents([]db.Build{build1})
+			Expect(err).To(HaveOccurred())
 		})
 	})
 

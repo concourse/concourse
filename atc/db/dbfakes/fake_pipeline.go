@@ -147,17 +147,6 @@ type FakePipeline struct {
 		result1 atc.Dashboard
 		result2 error
 	}
-	DeleteBuildEventsByBuildIDsStub        func([]int) error
-	deleteBuildEventsByBuildIDsMutex       sync.RWMutex
-	deleteBuildEventsByBuildIDsArgsForCall []struct {
-		arg1 []int
-	}
-	deleteBuildEventsByBuildIDsReturns struct {
-		result1 error
-	}
-	deleteBuildEventsByBuildIDsReturnsOnCall map[int]struct {
-		result1 error
-	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct {
@@ -1170,71 +1159,6 @@ func (fake *FakePipeline) DashboardReturnsOnCall(i int, result1 atc.Dashboard, r
 		result1 atc.Dashboard
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakePipeline) DeleteBuildEventsByBuildIDs(arg1 []int) error {
-	var arg1Copy []int
-	if arg1 != nil {
-		arg1Copy = make([]int, len(arg1))
-		copy(arg1Copy, arg1)
-	}
-	fake.deleteBuildEventsByBuildIDsMutex.Lock()
-	ret, specificReturn := fake.deleteBuildEventsByBuildIDsReturnsOnCall[len(fake.deleteBuildEventsByBuildIDsArgsForCall)]
-	fake.deleteBuildEventsByBuildIDsArgsForCall = append(fake.deleteBuildEventsByBuildIDsArgsForCall, struct {
-		arg1 []int
-	}{arg1Copy})
-	fake.recordInvocation("DeleteBuildEventsByBuildIDs", []interface{}{arg1Copy})
-	fake.deleteBuildEventsByBuildIDsMutex.Unlock()
-	if fake.DeleteBuildEventsByBuildIDsStub != nil {
-		return fake.DeleteBuildEventsByBuildIDsStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.deleteBuildEventsByBuildIDsReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakePipeline) DeleteBuildEventsByBuildIDsCallCount() int {
-	fake.deleteBuildEventsByBuildIDsMutex.RLock()
-	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
-	return len(fake.deleteBuildEventsByBuildIDsArgsForCall)
-}
-
-func (fake *FakePipeline) DeleteBuildEventsByBuildIDsCalls(stub func([]int) error) {
-	fake.deleteBuildEventsByBuildIDsMutex.Lock()
-	defer fake.deleteBuildEventsByBuildIDsMutex.Unlock()
-	fake.DeleteBuildEventsByBuildIDsStub = stub
-}
-
-func (fake *FakePipeline) DeleteBuildEventsByBuildIDsArgsForCall(i int) []int {
-	fake.deleteBuildEventsByBuildIDsMutex.RLock()
-	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
-	argsForCall := fake.deleteBuildEventsByBuildIDsArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakePipeline) DeleteBuildEventsByBuildIDsReturns(result1 error) {
-	fake.deleteBuildEventsByBuildIDsMutex.Lock()
-	defer fake.deleteBuildEventsByBuildIDsMutex.Unlock()
-	fake.DeleteBuildEventsByBuildIDsStub = nil
-	fake.deleteBuildEventsByBuildIDsReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) DeleteBuildEventsByBuildIDsReturnsOnCall(i int, result1 error) {
-	fake.deleteBuildEventsByBuildIDsMutex.Lock()
-	defer fake.deleteBuildEventsByBuildIDsMutex.Unlock()
-	fake.DeleteBuildEventsByBuildIDsStub = nil
-	if fake.deleteBuildEventsByBuildIDsReturnsOnCall == nil {
-		fake.deleteBuildEventsByBuildIDsReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.deleteBuildEventsByBuildIDsReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakePipeline) Destroy() error {
@@ -3079,8 +3003,6 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.createStartedBuildMutex.RUnlock()
 	fake.dashboardMutex.RLock()
 	defer fake.dashboardMutex.RUnlock()
-	fake.deleteBuildEventsByBuildIDsMutex.RLock()
-	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
 	fake.exposeMutex.RLock()

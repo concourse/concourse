@@ -11,7 +11,7 @@ var _ = Describe("Pipeline Factory", func() {
 	var pipelineFactory db.PipelineFactory
 
 	BeforeEach(func() {
-		pipelineFactory = db.NewPipelineFactory(dbConn, lockFactory, eventStore)
+		pipelineFactory = db.NewPipelineFactory(dbConn, lockFactory, fakeEventStore)
 	})
 
 	Describe("VisiblePipelines", func() {

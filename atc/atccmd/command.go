@@ -892,6 +892,9 @@ func (cmd *RunCommand) backendComponents(
 	}
 
 	eventStore := constructEventStore(dbConn)
+	if err := eventStore.Setup(); err != nil {
+		return nil, fmt.Errorf("failed to setup the event store: %w", err)
+	}
 
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory, eventStore)
 
@@ -1135,8 +1138,7 @@ func (cmd *RunCommand) gcComponents(
 }
 
 func constructEventStore(dbConn db.Conn) db.EventStore {
-	// TODO: actually construct something!
-	return nil
+	return db.NewBuildEventStore(dbConn)
 }
 
 func (cmd *RunCommand) validateCustomRoles() error {

@@ -123,6 +123,17 @@ type FakeJob struct {
 		result1 db.Build
 		result2 error
 	}
+	DeleteBuildEventsStub        func([]db.Build) error
+	deleteBuildEventsMutex       sync.RWMutex
+	deleteBuildEventsArgsForCall []struct {
+		arg1 []db.Build
+	}
+	deleteBuildEventsReturns struct {
+		result1 error
+	}
+	deleteBuildEventsReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DisableManualTriggerStub        func() bool
 	disableManualTriggerMutex       sync.RWMutex
 	disableManualTriggerArgsForCall []struct {
@@ -972,6 +983,71 @@ func (fake *FakeJob) CreateBuildReturnsOnCall(i int, result1 db.Build, result2 e
 		result1 db.Build
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeJob) DeleteBuildEvents(arg1 []db.Build) error {
+	var arg1Copy []db.Build
+	if arg1 != nil {
+		arg1Copy = make([]db.Build, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	fake.deleteBuildEventsMutex.Lock()
+	ret, specificReturn := fake.deleteBuildEventsReturnsOnCall[len(fake.deleteBuildEventsArgsForCall)]
+	fake.deleteBuildEventsArgsForCall = append(fake.deleteBuildEventsArgsForCall, struct {
+		arg1 []db.Build
+	}{arg1Copy})
+	fake.recordInvocation("DeleteBuildEvents", []interface{}{arg1Copy})
+	fake.deleteBuildEventsMutex.Unlock()
+	if fake.DeleteBuildEventsStub != nil {
+		return fake.DeleteBuildEventsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deleteBuildEventsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) DeleteBuildEventsCallCount() int {
+	fake.deleteBuildEventsMutex.RLock()
+	defer fake.deleteBuildEventsMutex.RUnlock()
+	return len(fake.deleteBuildEventsArgsForCall)
+}
+
+func (fake *FakeJob) DeleteBuildEventsCalls(stub func([]db.Build) error) {
+	fake.deleteBuildEventsMutex.Lock()
+	defer fake.deleteBuildEventsMutex.Unlock()
+	fake.DeleteBuildEventsStub = stub
+}
+
+func (fake *FakeJob) DeleteBuildEventsArgsForCall(i int) []db.Build {
+	fake.deleteBuildEventsMutex.RLock()
+	defer fake.deleteBuildEventsMutex.RUnlock()
+	argsForCall := fake.deleteBuildEventsArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeJob) DeleteBuildEventsReturns(result1 error) {
+	fake.deleteBuildEventsMutex.Lock()
+	defer fake.deleteBuildEventsMutex.Unlock()
+	fake.DeleteBuildEventsStub = nil
+	fake.deleteBuildEventsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeJob) DeleteBuildEventsReturnsOnCall(i int, result1 error) {
+	fake.deleteBuildEventsMutex.Lock()
+	defer fake.deleteBuildEventsMutex.Unlock()
+	fake.DeleteBuildEventsStub = nil
+	if fake.deleteBuildEventsReturnsOnCall == nil {
+		fake.deleteBuildEventsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteBuildEventsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeJob) DisableManualTrigger() bool {
@@ -2753,6 +2829,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.configMutex.RUnlock()
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
+	fake.deleteBuildEventsMutex.RLock()
+	defer fake.deleteBuildEventsMutex.RUnlock()
 	fake.disableManualTriggerMutex.RLock()
 	defer fake.disableManualTriggerMutex.RUnlock()
 	fake.ensurePendingBuildExistsMutex.RLock()

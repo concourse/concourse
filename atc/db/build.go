@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -378,20 +379,15 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 		return false, err
 	}
 
-	err = b.saveEvent(tx, event.Status{
-		Status: atc.StatusStarted,
-		Time:   startTime.Unix(),
-	})
-	if err != nil {
-		return false, err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return false, err
 	}
 
-	err = b.conn.Bus().Notify(buildEventsChannel(b.id))
+	err = b.SaveEvent(event.Status{
+		Status: atc.StatusStarted,
+		Time:   startTime.Unix(),
+	})
 	if err != nil {
 		return false, err
 	}
@@ -425,21 +421,6 @@ func (b *build) Finish(status BuildStatus) error {
 		RunWith(tx).
 		QueryRow().
 		Scan(&endTime)
-	if err != nil {
-		return err
-	}
-
-	err = b.saveEvent(tx, event.Status{
-		Status: atc.BuildStatus(status),
-		Time:   endTime.Unix(),
-	})
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(fmt.Sprintf(`
-		DROP SEQUENCE %s
-	`, buildEventSeq(b.id)))
 	if err != nil {
 		return err
 	}
@@ -583,12 +564,15 @@ func (b *build) Finish(status BuildStatus) error {
 		return err
 	}
 
-	err = b.conn.Bus().Notify(buildEventsChannel(b.id))
+	err = b.SaveEvent(event.Status{
+		Status: atc.BuildStatus(status),
+		Time:   endTime.Unix(),
+	})
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return b.eventStore.Finalize(b)
 }
 
 func (b *build) SetDrained(drained bool) error {
@@ -857,50 +841,49 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 	return buildPreparation, true, nil
 }
 
+func falseOnceThenTrueForever() func() (bool, error) {
+	var v int32
+	return func() (bool, error) {
+		return !atomic.CompareAndSwapInt32(&v, 0, 1), nil
+	}
+}
+
 func (b *build) Events() (EventSource, error) {
-	notifier, err := newConditionNotifier(b.conn.Bus(), buildEventsChannel(b.id), func() (bool, error) {
-		return true, nil
-	})
+	notifier, err := newConditionNotifier(
+		b.conn.Bus(),
+		buildEventsNotificationChannel(b.ID()),
+		// We want the first condition to be false since we don't want to notify right away.
+		// This is because we perform an `EventStore.Get` at the start. If we notify
+		// immediately, we'll always end up performing an unnecessary extra `Get`.
+		// That said, we want to perform a `Get` whenever we reconnect to the notification
+		// bus in case we missed anything, so return true forever after.
+		falseOnceThenTrueForever(),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	table := fmt.Sprintf("team_build_events_%d", b.teamID)
-	if b.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
-	}
-
 	return newBuildEventSource(
-		b.id,
-		table,
+		b,
 		b.conn,
+		b.eventStore,
 		notifier,
 	), nil
 }
 
 func (b *build) SaveEvent(event atc.Event) error {
-	tx, err := b.conn.Begin()
+	err := b.eventStore.Put(b, []atc.Event{event})
 	if err != nil {
 		return err
 	}
+	return b.conn.Bus().Notify(buildEventsNotificationChannel(b.ID()))
+}
 
-	defer Rollback(tx)
-
-	err = b.saveEvent(tx, event)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return b.conn.Bus().Notify(buildEventsChannel(b.id))
+func buildEventsNotificationChannel(buildID int) string {
+	return fmt.Sprintf("build_events_%d", buildID)
 }
 
 func (b *build) Artifact(artifactID int) (WorkerArtifact, error) {
-
 	artifact := artifact{
 		conn: b.conn,
 	}
@@ -1535,17 +1518,6 @@ func newNullInt64(i int) sql.NullInt64 {
 	}
 }
 
-func createBuildEventSeq(tx Tx, buildid int) error {
-	_, err := tx.Exec(fmt.Sprintf(`
-		CREATE SEQUENCE %s MINVALUE 0
-	`, buildEventSeq(buildid)))
-	return err
-}
-
-func buildEventSeq(buildid int) string {
-	return fmt.Sprintf("build_event_id_seq_%d", buildid)
-}
-
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
 		jobID, pipelineID, rerunOf, rerunNumber                             sql.NullInt64
@@ -1645,24 +1617,6 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	return nil
 }
 
-func (b *build) saveEvent(tx Tx, event atc.Event) error {
-	payload, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-
-	table := fmt.Sprintf("team_build_events_%d", b.teamID)
-	if b.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
-	}
-	_, err = psql.Insert(table).
-		Columns("event_id", "build_id", "type", "version", "payload").
-		Values(sq.Expr("nextval('"+buildEventSeq(b.id)+"')"), b.id, string(event.EventType()), string(event.Version()), payload).
-		RunWith(tx).
-		Exec()
-	return err
-}
-
 func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	var buildID int
 
@@ -1693,15 +1647,11 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 		return err
 	}
 
-	return createBuildEventSeq(tx, buildID)
+	return build.eventStore.Initialize(build)
 }
 
 func buildStartedChannel() string {
 	return atc.ComponentBuildTracker
-}
-
-func buildEventsChannel(buildID int) string {
-	return fmt.Sprintf("build_events_%d", buildID)
 }
 
 func buildAbortChannel(buildID int) string {

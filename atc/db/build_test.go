@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -120,7 +121,56 @@ var _ = Describe("Build", func() {
 
 		JustBeforeEach(func() {
 			started, err = build.Start(plan)
+		})
+
+		It("does not error", func() {
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("starts the build", func() {
+			Expect(started).To(BeTrue())
+		})
+
+		It("updates build status", func() {
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.Status()).To(Equal(db.BuildStatusStarted))
+		})
+
+		It("creates Start event", func() {
+			build.Reload()
+
+			Expect(fakeEventStore.PutCallCount()).To(Equal(1))
+			putBuild, putEvents := fakeEventStore.PutArgsForCall(0)
+			Expect(putBuild).To(BeIdenticalTo(build))
+			Expect(putEvents).To(ConsistOf(event.Status{
+				Status: atc.StatusStarted,
+				Time:   build.StartTime().Unix(),
+			}))
+		})
+
+		It("initializes the Build in the EventStore", func() {
+			Expect(fakeEventStore.InitializeCallCount()).To(Equal(1))
+			Expect(fakeEventStore.InitializeArgsForCall(0)).To(BeIdenticalTo(build))
+		})
+
+		It("saves the public plan", func() {
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.HasPlan()).To(BeTrue())
+			Expect(build.PublicPlan()).To(Equal(plan.Public()))
+		})
+
+		Context("when saving to the EventStore fails", func() {
+			BeforeEach(func() {
+				fakeEventStore.PutReturns(errors.New("put error"))
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+			})
 		})
 
 		Context("build has been aborted", func() {
@@ -140,44 +190,6 @@ var _ = Describe("Build", func() {
 				Expect(build.Status()).To(Equal(db.BuildStatusPending))
 			})
 		})
-
-		Context("build has not been aborted", func() {
-			It("starts the build", func() {
-				Expect(started).To(BeTrue())
-			})
-
-			It("creates Start event", func() {
-				found, err := build.Reload()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.Status()).To(Equal(db.BuildStatusStarted))
-
-				events, err := build.Events()
-				Expect(err).NotTo(HaveOccurred())
-
-				defer db.Close(events)
-
-				Expect(events.Next()).To(Equal(envelope(event.Status{
-					Status: atc.StatusStarted,
-					Time:   build.StartTime().Unix(),
-				})))
-			})
-
-			It("updates build status", func() {
-				found, err := build.Reload()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.Status()).To(Equal(db.BuildStatusStarted))
-			})
-
-			It("saves the public plan", func() {
-				found, err := build.Reload()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.HasPlan()).To(BeTrue())
-				Expect(build.PublicPlan()).To(Equal(plan.Public()))
-			})
-		})
 	})
 
 	Describe("Finish", func() {
@@ -185,6 +197,7 @@ var _ = Describe("Build", func() {
 		var build db.Build
 		var expectedOutputs []db.AlgorithmVersion
 		var job db.Job
+		var err error
 
 		BeforeEach(func() {
 			setupTx, err := dbConn.Begin()
@@ -341,9 +354,6 @@ var _ = Describe("Build", func() {
 			err = build.SaveOutput("some-type", atc.Source{"some": "source"}, atc.VersionedResourceTypes{}, atc.Version{"ver": "3"}, nil, "output-2", "some-resource")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = build.Finish(db.BuildStatusSucceeded)
-			Expect(err).NotTo(HaveOccurred())
-
 			expectedOutputs = []db.AlgorithmVersion{
 				{
 					Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "1"})),
@@ -364,21 +374,12 @@ var _ = Describe("Build", func() {
 			}
 		})
 
-		It("creates Finish event", func() {
-			found, err := build.Reload()
+		JustBeforeEach(func() {
+			err = build.Finish(db.BuildStatusSucceeded)
+		})
+
+		It("succeeds", func() {
 			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(build.Status()).To(Equal(db.BuildStatusSucceeded))
-
-			events, err := build.Events()
-			Expect(err).NotTo(HaveOccurred())
-
-			defer db.Close(events)
-
-			Expect(events.Next()).To(Equal(envelope(event.Status{
-				Status: atc.StatusSucceeded,
-				Time:   build.EndTime().Unix(),
-			})))
 		})
 
 		It("updates build status", func() {
@@ -386,6 +387,43 @@ var _ = Describe("Build", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(build.Status()).To(Equal(db.BuildStatusSucceeded))
+		})
+
+		It("creates Finish event", func() {
+			build.Reload()
+
+			Expect(fakeEventStore.PutCallCount()).To(Equal(1))
+			putBuild, putEvents := fakeEventStore.PutArgsForCall(0)
+			Expect(putBuild).To(BeIdenticalTo(build))
+			Expect(putEvents).To(ConsistOf(event.Status{
+				Status: atc.StatusSucceeded,
+				Time:   build.EndTime().Unix(),
+			}))
+		})
+
+		Context("when saving to the EventStore fails", func() {
+			BeforeEach(func() {
+				fakeEventStore.PutReturns(errors.New("put error"))
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		It("finalizes the Build in the EventStore", func() {
+			Expect(fakeEventStore.FinalizeCallCount()).To(Equal(1))
+			Expect(fakeEventStore.FinalizeArgsForCall(0)).To(BeIdenticalTo(build))
+		})
+
+		Context("when finalizing the Build in the EventStore fails", func() {
+			BeforeEach(func() {
+				fakeEventStore.FinalizeReturns(errors.New("finalize error"))
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+			})
 		})
 
 		Context("rerunning a build", func() {
@@ -410,7 +448,7 @@ var _ = Describe("Build", func() {
 					})
 
 					Context("when the rerun finishes and status changed", func() {
-						BeforeEach(func() {
+						JustBeforeEach(func() {
 							err = rrBuild.Finish(db.BuildStatusFailed)
 							Expect(err).NotTo(HaveOccurred())
 						})
@@ -467,7 +505,7 @@ var _ = Describe("Build", func() {
 					Context("when rerunning the rerun build", func() {
 						var rrBuild2 db.Build
 
-						BeforeEach(func() {
+						JustBeforeEach(func() {
 							err = rrBuild.Finish(db.BuildStatusSucceeded)
 							Expect(err).NotTo(HaveOccurred())
 
@@ -486,7 +524,7 @@ var _ = Describe("Build", func() {
 				})
 
 				Context("when pending build finished and rerunning a non latest build and it finishes", func() {
-					BeforeEach(func() {
+					JustBeforeEach(func() {
 						err = pdBuild.Finish(db.BuildStatusErrored)
 						Expect(err).NotTo(HaveOccurred())
 
@@ -599,116 +637,113 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("Events", func() {
-		It("saves and emits status events", func() {
-			build, err := team.CreateOneOffBuild()
+	Describe("SaveEvent", func() {
+		var build db.Build
+
+		BeforeEach(func() {
+			var err error
+			build, err = team.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("writes to the EventStore", func() {
+			err := build.SaveEvent(event.Log{
+				Payload: "hello",
+			})
 			Expect(err).NotTo(HaveOccurred())
 
-			By("allowing you to subscribe when no events have yet occurred")
-			events, err := build.Events()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeEventStore.PutCallCount()).To(Equal(1))
 
-			defer db.Close(events)
+			putBuild, putEvents := fakeEventStore.PutArgsForCall(0)
+			Expect(putBuild).To(BeIdenticalTo(build))
+			Expect(putEvents).To(ConsistOf(event.Log{
+				Payload: "hello",
+			}))
+		})
 
-			By("emitting a status event when started")
-			started, err := build.Start(atc.Plan{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(started).To(BeTrue())
+		Context("when Put errors", func() {
+			BeforeEach(func() {
+				fakeEventStore.PutReturns(errors.New("put error"))
+			})
 
-			found, err := build.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(events.Next()).To(Equal(envelope(event.Status{
-				Status: atc.StatusStarted,
-				Time:   build.StartTime().Unix(),
-			})))
-
-			By("emitting a status event when finished")
-			err = build.Finish(db.BuildStatusSucceeded)
-			Expect(err).NotTo(HaveOccurred())
-
-			found, err = build.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(events.Next()).To(Equal(envelope(event.Status{
-				Status: atc.StatusSucceeded,
-				Time:   build.EndTime().Unix(),
-			})))
-
-			By("ending the stream when finished")
-			_, err = events.Next()
-			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
+			It("errors", func() {
+				err := build.SaveEvent(event.Log{
+					Payload: "hello",
+				})
+				Expect(err).To(HaveOccurred())
+			})
 		})
 	})
 
-	Describe("SaveEvent", func() {
-		It("saves and propagates events correctly", func() {
-			build, err := team.CreateOneOffBuild()
+	Describe("Events", func() {
+		var build db.Build
+		var events db.EventSource
+
+		BeforeEach(func() {
+			var err error
+			build, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			By("allowing you to subscribe when no events have yet occurred")
-			events, err := build.Events()
+			events, err = build.Events()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			db.Close(events)
+		})
+
+		It("Gets from the EventStore", func() {
+			Eventually(fakeEventStore.GetCallCount).Should(Equal(1))
+			getBuild, requested, cursor := fakeEventStore.GetArgsForCall(0)
+			Expect(getBuild).To(BeIdenticalTo(build))
+			Expect(requested).To(Equal(2000))
+			Expect(*cursor).To(BeNil())
+
+			Consistently(fakeEventStore.GetCallCount).Should(Equal(1))
+		})
+
+		It("re-Gets from the EventStore when we save an event", func() {
+			err := build.SaveEvent(event.Start{})
 			Expect(err).NotTo(HaveOccurred())
 
-			defer db.Close(events)
+			Eventually(fakeEventStore.GetCallCount).Should(Equal(2))
+		})
 
-			By("saving them in order")
-			err = build.SaveEvent(event.Log{
-				Payload: "some ",
+		It("re-Gets from the EventStore when Get returns the number of events requested", func() {
+			fakeEventStore.GetReturnsOnCall(0, make([]event.Envelope, 2000), nil)
+
+			Eventually(fakeEventStore.GetCallCount).Should(Equal(2))
+		})
+
+		Context("when the build is completed", func() {
+			It("ends the build event stream", func() {
+				err := build.Finish(db.BuildStatusSucceeded)
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = events.Next()
+				Expect(err).To(MatchError(db.ErrEndOfBuildEventStream))
 			})
-			Expect(err).NotTo(HaveOccurred())
+		})
 
-			Expect(events.Next()).To(Equal(envelope(event.Log{
-				Payload: "some ",
-			})))
+		Context("when the event stream is closed", func() {
+			It("returns an error on Next()", func() {
+				err := events.Close()
+				Expect(err).NotTo(HaveOccurred())
 
-			err = build.SaveEvent(event.Log{
-				Payload: "log",
+				_, err = events.Next()
+				Expect(err).To(MatchError(db.ErrBuildEventStreamClosed))
 			})
-			Expect(err).NotTo(HaveOccurred())
+		})
 
-			Expect(events.Next()).To(Equal(envelope(event.Log{
-				Payload: "log",
-			})))
-
-			By("notifying those waiting on events as soon as they're saved")
-			nextEvent := make(chan event.Envelope)
-			nextErr := make(chan error)
-
-			go func() {
-				event, err := events.Next()
-				if err != nil {
-					nextErr <- err
-				} else {
-					nextEvent <- event
-				}
-			}()
-
-			Consistently(nextEvent).ShouldNot(Receive())
-			Consistently(nextErr).ShouldNot(Receive())
-
-			err = build.SaveEvent(event.Log{
-				Payload: "log 2",
+		Context("when EventStore.Get fails", func() {
+			BeforeEach(func() {
+				fakeEventStore.GetReturns(nil, errors.New("get error"))
 			})
-			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(nextEvent).Should(Receive(Equal(envelope(event.Log{
-				Payload: "log 2",
-			}))))
-
-			By("returning ErrBuildEventStreamClosed for Next calls after Close")
-			events3, err := build.Events()
-			Expect(err).NotTo(HaveOccurred())
-
-			err = events3.Close()
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(func() error {
-				_, err := events3.Next()
-				return err
-			}).Should(Equal(db.ErrBuildEventStreamClosed))
+			It("returns the error", func() {
+				_, err := events.Next()
+				Expect(err).To(HaveOccurred())
+			})
 		})
 	})
 

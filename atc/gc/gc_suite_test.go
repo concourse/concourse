@@ -2,6 +2,7 @@ package gc_test
 
 import (
 	"context"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"os"
 	"time"
 
@@ -44,6 +45,8 @@ var (
 	buildFactory           db.BuildFactory
 	lockFactory            lock.LockFactory
 
+	fakeEventStore *dbfakes.FakeEventStore
+
 	teamFactory db.TeamFactory
 
 	defaultTeam     db.Team
@@ -74,8 +77,10 @@ var _ = BeforeEach(func() {
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 
-	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
-	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, time.Hour)
+	fakeEventStore = new(dbfakes.FakeEventStore)
+
+	teamFactory = db.NewTeamFactory(dbConn, lockFactory, fakeEventStore)
+	buildFactory = db.NewBuildFactory(dbConn, lockFactory, fakeEventStore, 0, time.Hour)
 
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})
 	Expect(err).NotTo(HaveOccurred())

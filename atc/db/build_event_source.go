@@ -1,11 +1,9 @@
 package db
 
 import (
-	"encoding/json"
 	"errors"
 	"sync"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 )
 
@@ -20,16 +18,16 @@ type EventSource interface {
 }
 
 func newBuildEventSource(
-	buildID int,
-	table string,
+	build Build,
 	conn Conn,
+	eventStore EventStore,
 	notifier Notifier,
 ) *buildEventSource {
 	wg := new(sync.WaitGroup)
 
 	source := &buildEventSource{
-		buildID: buildID,
-		table:   table,
+		build:      build,
+		eventStore: eventStore,
 
 		conn: conn,
 
@@ -47,8 +45,8 @@ func newBuildEventSource(
 }
 
 type buildEventSource struct {
-	buildID int
-	table   string
+	build      Build
+	eventStore EventStore
 
 	conn     Conn
 	notifier Notifier
@@ -86,7 +84,7 @@ func (source *buildEventSource) collectEvents() {
 
 	var batchSize = cap(source.events)
 
-	var cursor uint
+	var cursor Key
 	for {
 		select {
 		case <-source.stop:
@@ -96,83 +94,36 @@ func (source *buildEventSource) collectEvents() {
 		default:
 		}
 
-		completed := false
-
-		tx, err := source.conn.Begin()
-		if err != nil {
-			return
-		}
-
-		defer Rollback(tx)
-
-		err = tx.QueryRow(`
+		var completed bool
+		err := source.conn.QueryRow(`
 			SELECT builds.completed
 			FROM builds
 			WHERE builds.id = $1
-		`, source.buildID).Scan(&completed)
+		`, source.build.ID()).Scan(&completed)
 		if err != nil {
 			source.err = err
 			close(source.events)
 			return
 		}
 
-		rows, err := tx.Query(`
-			SELECT type, version, payload
-			FROM `+source.table+`
-			WHERE build_id = $1
-			ORDER BY event_id ASC
-			OFFSET $2
-			LIMIT $3
-		`, source.buildID, cursor, batchSize)
+		events, err := source.eventStore.Get(source.build, batchSize, &cursor)
 		if err != nil {
 			source.err = err
 			close(source.events)
 			return
 		}
 
-		rowsReturned := 0
-
-		for rows.Next() {
-			rowsReturned++
-
-			cursor++
-
-			var t, v, p string
-			err := rows.Scan(&t, &v, &p)
-			if err != nil {
-				_ = rows.Close()
-
-				source.err = err
-				close(source.events)
-				return
-			}
-
-			data := json.RawMessage(p)
-
-			ev := event.Envelope{
-				Data:    &data,
-				Event:   atc.EventType(t),
-				Version: atc.EventVersion(v),
-			}
-
+		for _, evt := range events {
 			select {
-			case source.events <- ev:
+			case source.events <- evt:
 			case <-source.stop:
-				_ = rows.Close()
-
 				source.err = ErrBuildEventStreamClosed
 				close(source.events)
 				return
 			}
 		}
 
-		err = tx.Commit()
-		if err != nil {
-			close(source.events)
-			return
-		}
-
-		if rowsReturned == batchSize {
+		if len(events) >= batchSize {
 			// still more events
 			continue
 		}

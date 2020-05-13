@@ -2,7 +2,7 @@ package db_test
 
 import (
 	"database/sql"
-	"fmt"
+	"errors"
 	"strconv"
 	"time"
 
@@ -41,16 +41,8 @@ var _ = Describe("Team", func() {
 
 	Describe("Delete", func() {
 		var err error
-		var otherTeamPipeline db.Pipeline
 
 		BeforeEach(func() {
-			otherTeamPipeline, _, err = otherTeam.SavePipeline("fake-pipeline", atc.Config{
-				Jobs: atc.JobConfigs{
-					{Name: "job-name"},
-				},
-			}, db.ConfigVersion(1), false)
-			Expect(err).ToNot(HaveOccurred())
-
 			err = otherTeam.Delete()
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -62,18 +54,9 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("drops the team_build_events_ID table", func() {
-			var exists bool
-			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'team_build_events_%d')", otherTeam.ID())).Scan(&exists)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(exists).To(BeFalse())
-		})
-
-		It("drops the teams pipeline_build_events_ID table", func() {
-			var exists bool
-			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'pipeline_build_events_%d')", otherTeamPipeline.ID())).Scan(&exists)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(exists).To(BeFalse())
+		It("calls DeleteTeam on the EventStore", func() {
+			Expect(fakeEventStore.DeleteTeamCallCount()).To(Equal(1))
+			Expect(fakeEventStore.DeleteTeamArgsForCall(0)).To(BeIdenticalTo(otherTeam))
 		})
 	})
 
@@ -1052,12 +1035,12 @@ var _ = Describe("Team", func() {
 					},
 				},
 			}
-
-			startedBuild, err = team.CreateStartedBuild(plan)
-			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("can create started builds with plans", func() {
+			startedBuild, err = team.CreateStartedBuild(plan)
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(startedBuild.ID()).ToNot(BeZero())
 			Expect(startedBuild.JobName()).To(BeZero())
 			Expect(startedBuild.PipelineName()).To(BeZero())
@@ -1067,26 +1050,46 @@ var _ = Describe("Team", func() {
 		})
 
 		It("saves the public plan", func() {
+			startedBuild, _ = team.CreateStartedBuild(plan)
+
 			found, err := startedBuild.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(startedBuild.PublicPlan()).To(Equal(plan.Public()))
 		})
 
+		It("initializes the newly created build", func() {
+			startedBuild, _ = team.CreateStartedBuild(plan)
+
+			Expect(fakeEventStore.InitializeCallCount()).To(Equal(1))
+			Expect(fakeEventStore.InitializeArgsForCall(0)).To(BeIdenticalTo(startedBuild))
+		})
+
 		It("creates Start event", func() {
+			startedBuild, _ = team.CreateStartedBuild(plan)
+
 			found, err := startedBuild.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			events, err := startedBuild.Events()
-			Expect(err).NotTo(HaveOccurred())
-
-			defer db.Close(events)
-
-			Expect(events.Next()).To(Equal(envelope(event.Status{
+			Expect(fakeEventStore.PutCallCount()).To(Equal(1))
+			putBuild, putEvents := fakeEventStore.PutArgsForCall(0)
+			Expect(putBuild).To(BeIdenticalTo(startedBuild))
+			Expect(putEvents).To(ConsistOf(event.Status{
 				Status: atc.StatusStarted,
 				Time:   startedBuild.StartTime().Unix(),
-			})))
+			}))
+		})
+
+		Context("when initializing the Build in the EventStore fails", func() {
+			BeforeEach(func() {
+				fakeEventStore.InitializeReturns(errors.New("initialize error"))
+			})
+
+			It("errors", func() {
+				startedBuild, err = team.CreateStartedBuild(plan)
+				Expect(err).To(HaveOccurred())
+			})
 		})
 	})
 

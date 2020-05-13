@@ -18,8 +18,8 @@ BEGIN;
 
 
   DROP TRIGGER IF EXISTS pipeline_build_events_delete_trigger ON pipelines;
-  CREATE TRIGGER pipeline_build_events_delete_trigger AFTER DELETE on pipelines FOR EACH ROW EXECUTE PROCEDURE on_pipeline_delete();
+--   CREATE TRIGGER pipeline_build_events_delete_trigger AFTER DELETE on pipelines FOR EACH ROW EXECUTE PROCEDURE on_pipeline_delete();
 
   DROP TRIGGER IF EXISTS pipeline_build_events_insert_trigger ON pipelines;
-  CREATE TRIGGER pipeline_build_events_insert_trigger AFTER INSERT on pipelines FOR EACH ROW EXECUTE PROCEDURE on_pipeline_insert();
+--   CREATE TRIGGER pipeline_build_events_insert_trigger AFTER INSERT on pipelines FOR EACH ROW EXECUTE PROCEDURE on_pipeline_insert();
 COMMIT;
