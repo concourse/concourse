@@ -46,7 +46,7 @@ func (s *ContainerSuite) SetupTest() {
 // }
 
 // func (s *ContainerSuite) TestStopWithKillFailing() {
-// 	s.ungracefulKiller.UngracefullyStopReturns(errors.New("ungraceful-stop-err"))
+// 	s.ungracefulKiller.UngracefullyStopReturns(errors.NewGardenBackend("ungraceful-stop-err"))
 
 // 	err := s.container.Stop(true)
 // 	s.Equal(1, s.ungracefulKiller.UngracefullyStopCallCount())
@@ -60,7 +60,7 @@ func (s *ContainerSuite) SetupTest() {
 // }
 
 // func (s *ContainerSuite) TestStopWithoutKillFailing() {
-// 	s.ungracefulKiller.GracefullyStopReturns(errors.New("graceful-stop-err"))
+// 	s.ungracefulKiller.GracefullyStopReturns(errors.NewGardenBackend("graceful-stop-err"))
 
 // 	err := s.container.Stop(false)
 // 	s.EqualError(errors.Unwrap(err), "graceful-stop-err")

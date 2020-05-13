@@ -24,7 +24,7 @@ type IntegrationSuite struct {
 	suite.Suite
 	*require.Assertions
 
-	backend           runtime.Backend
+	gardenBackend     runtime.GardenBackend
 	client            *libcontainerd.Client
 	containerdProcess ifrit.Process
 	rootfs            string
@@ -90,7 +90,7 @@ func (s *IntegrationSuite) SetupTest() {
 		requestTimeout = 3 * time.Second
 	)
 
-	s.backend, err = runtime.New(
+	s.gardenBackend, err = runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
 			namespace,
@@ -98,7 +98,7 @@ func (s *IntegrationSuite) SetupTest() {
 		),
 	)
 	s.NoError(err)
-	s.NoError(s.backend.Start())
+	s.NoError(s.gardenBackend.Start())
 
 	s.setupRootfs()
 }
@@ -122,12 +122,12 @@ func (s *IntegrationSuite) setupRootfs() {
 }
 
 func (s *IntegrationSuite) TearDownTest() {
-	s.backend.Stop()
+	s.gardenBackend.Stop()
 	os.RemoveAll(s.rootfs)
 }
 
 func (s *IntegrationSuite) TestPing() {
-	s.NoError(s.backend.Ping())
+	s.NoError(s.gardenBackend.Ping())
 }
 
 // TestContainerCreateRunStopDestroy validates that we're able to go through the
@@ -142,7 +142,7 @@ func (s *IntegrationSuite) TestContainerCreateRunStopedDestroy() {
 	handle := uuid()
 	properties := garden.Properties{"test": uuid()}
 
-	_, err := s.backend.Create(garden.ContainerSpec{
+	_, err := s.gardenBackend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
@@ -150,27 +150,27 @@ func (s *IntegrationSuite) TestContainerCreateRunStopedDestroy() {
 	})
 	s.NoError(err)
 
-	containers, err := s.backend.Containers(properties)
+	containers, err := s.gardenBackend.Containers(properties)
 	s.NoError(err)
 
 	s.Len(containers, 1)
 
-	err = s.backend.Destroy(handle)
+	err = s.gardenBackend.Destroy(handle)
 	s.NoError(err)
 
-	containers, err = s.backend.Containers(properties)
+	containers, err = s.gardenBackend.Containers(properties)
 	s.NoError(err)
 	s.Len(containers, 0)
 }
 
 // TestContainerNetworkEgress aims at verifying that a process that we run in a
-// container that we create through our backend is able to make requests to
+// container that we create through our gardenBackend is able to make requests to
 // external services.
 //
 func (s *IntegrationSuite) TestContainerNetworkEgress() {
 	handle := uuid()
 
-	container, err := s.backend.Create(garden.ContainerSpec{
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
@@ -178,7 +178,7 @@ func (s *IntegrationSuite) TestContainerNetworkEgress() {
 	s.NoError(err)
 
 	defer func() {
-		s.NoError(s.backend.Destroy(handle))
+		s.NoError(s.gardenBackend.Destroy(handle))
 	}()
 
 	buf := new(buffer)
@@ -231,7 +231,7 @@ func (s *IntegrationSuite) TestRunUnprivileged() {
 func (s *IntegrationSuite) runToCompletion(privileged bool) {
 	handle := uuid()
 
-	container, err := s.backend.Create(garden.ContainerSpec{
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: privileged,
@@ -242,7 +242,7 @@ func (s *IntegrationSuite) runToCompletion(privileged bool) {
 	s.NoError(err)
 
 	defer func() {
-		s.NoError(s.backend.Destroy(handle))
+		s.NoError(s.gardenBackend.Destroy(handle))
 	}()
 
 	buf := new(buffer)
@@ -272,7 +272,7 @@ func (s *IntegrationSuite) runToCompletion(privileged bool) {
 func (s *IntegrationSuite) TestAttachToUnknownProc() {
 	handle := uuid()
 
-	container, err := s.backend.Create(garden.ContainerSpec{
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
@@ -280,7 +280,7 @@ func (s *IntegrationSuite) TestAttachToUnknownProc() {
 	s.NoError(err)
 
 	defer func() {
-		s.NoError(s.backend.Destroy(handle))
+		s.NoError(s.gardenBackend.Destroy(handle))
 	}()
 
 	_, err = container.Attach("inexistent", garden.ProcessIO{
@@ -297,7 +297,7 @@ func (s *IntegrationSuite) TestAttachToUnknownProc() {
 func (s *IntegrationSuite) TestAttach() {
 	handle := uuid()
 
-	container, err := s.backend.Create(garden.ContainerSpec{
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
@@ -325,10 +325,10 @@ func (s *IntegrationSuite) TestAttach() {
 
 	// kill the conn, and attach
 
-	s.backend.Stop()
-	s.NoError(s.backend.Start())
+	s.gardenBackend.Stop()
+	s.NoError(s.gardenBackend.Start())
 
-	container, err = s.backend.Lookup(handle)
+	container, err = s.gardenBackend.Lookup(handle)
 	s.NoError(err)
 
 	buf := new(buffer)
@@ -344,7 +344,7 @@ func (s *IntegrationSuite) TestAttach() {
 	s.Equal(exitCode, 0)
 	s.Contains(buf.String(), "aa\naa\naa\naa\naa\naa\n")
 
-	err = s.backend.Destroy(container.Handle())
+	err = s.gardenBackend.Destroy(container.Handle())
 	s.NoError(err)
 }
 
@@ -363,7 +363,7 @@ func (s *IntegrationSuite) TestCustomDNS() {
 	s.NoError(err)
 
 	networkOpt := runtime.WithNetwork(network)
-	customBackend, err := runtime.New(
+	customBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
 			namespace,
@@ -432,7 +432,7 @@ func (s *IntegrationSuite) TestGracefulStop() {
 
 func (s *IntegrationSuite) testStop(kill bool) {
 	handle := uuid()
-	container, err := s.backend.Create(garden.ContainerSpec{
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
@@ -440,7 +440,7 @@ func (s *IntegrationSuite) testStop(kill bool) {
 	s.NoError(err)
 
 	defer func() {
-		s.NoError(s.backend.Destroy(handle))
+		s.NoError(s.gardenBackend.Destroy(handle))
 	}()
 
 	_, err = container.Run(

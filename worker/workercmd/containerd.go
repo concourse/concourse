@@ -58,7 +58,7 @@ func containerdGardenServerRunner(
 
 	backendOpts = append(backendOpts, runtime.WithNetwork(cniNetwork))
 
-	backend, err := runtime.New(
+	gardenBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(containerdAddr, namespace, requestTimeout),
 		backendOpts...,
 	)
@@ -68,7 +68,7 @@ func containerdGardenServerRunner(
 
 	server := server.New("tcp", bindAddr,
 		graceTime,
-		&backend,
+		&gardenBackend,
 		logger,
 	)
 
@@ -170,7 +170,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		})
 	}
 
-	backendRunner, err := containerdGardenServerRunner(
+	gardenServerRunner, err := containerdGardenServerRunner(
 		logger,
 		cmd.bindAddr(),
 		sock,
@@ -188,8 +188,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 			Runner: CmdRunner{command},
 		},
 		{
-			Name:   "containerd-backend",
-			Runner: backendRunner,
+			Name:   "containerd-garden-backend",
+			Runner: gardenServerRunner,
 		},
 	}...)
 

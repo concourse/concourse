@@ -18,11 +18,11 @@ import (
 	"github.com/containerd/containerd/errdefs"
 )
 
-var _ garden.Backend = (*Backend)(nil)
+var _ garden.Backend = (*GardenBackend)(nil)
 
-// Backend implements a Garden backend backed by `containerd`.
+// GardenBackend implements a Garden backend backed by `containerd`.
 //
-type Backend struct {
+type GardenBackend struct {
 	client        libcontainerd.Client
 	killer        Killer
 	network       Network
@@ -37,20 +37,20 @@ type UserNamespace interface {
 }
 
 func WithUserNamespace(s UserNamespace) BackendOpt {
-	return func(b *Backend) {
+	return func(b *GardenBackend) {
 		b.userNamespace = s
 	}
 }
 
 // BackendOpt defines a functional option that when applied, modifies the
-// configuration of a Backend.
+// configuration of a GardenBackend.
 //
-type BackendOpt func(b *Backend)
+type BackendOpt func(b *GardenBackend)
 
 // WithRootfsManager configures the RootfsManager used by the backend.
 //
 func WithRootfsManager(r RootfsManager) BackendOpt {
-	return func(b *Backend) {
+	return func(b *GardenBackend) {
 		b.rootfsManager = r
 	}
 }
@@ -58,7 +58,7 @@ func WithRootfsManager(r RootfsManager) BackendOpt {
 // WithKiller configures the killer used to terminate tasks.
 //
 func WithKiller(k Killer) BackendOpt {
-	return func(b *Backend) {
+	return func(b *GardenBackend) {
 		b.killer = k
 	}
 }
@@ -66,20 +66,20 @@ func WithKiller(k Killer) BackendOpt {
 // WithNetwork configures the network used by the backend.
 //
 func WithNetwork(n Network) BackendOpt {
-	return func(b *Backend) {
+	return func(b *GardenBackend) {
 		b.network = n
 	}
 }
 
-// New instantiates a Backend with tweakable configurations passed as Config.
+// NewGardenBackend instantiates a GardenBackend with tweakable configurations passed as Config.
 //
-func New(client libcontainerd.Client, opts ...BackendOpt) (b Backend, err error) {
+func NewGardenBackend(client libcontainerd.Client, opts ...BackendOpt) (b GardenBackend, err error) {
 	if client == nil {
 		err = ErrInvalidInput("nil client")
 		return
 	}
 
-	b = Backend{client: client}
+	b = GardenBackend{client: client}
 	for _, opt := range opts {
 		opt(&b)
 	}
@@ -108,7 +108,7 @@ func New(client libcontainerd.Client, opts ...BackendOpt) (b Backend, err error)
 
 // Start initializes the client.
 //
-func (b *Backend) Start() (err error) {
+func (b *GardenBackend) Start() (err error) {
 	err = b.client.Init()
 	if err != nil {
 		return fmt.Errorf("client init: %w", err)
@@ -120,13 +120,13 @@ func (b *Backend) Start() (err error) {
 // Stop closes the client's underlying connections and frees any resources
 // associated with it.
 //
-func (b *Backend) Stop() {
+func (b *GardenBackend) Stop() {
 	_ = b.client.Stop()
 }
 
 // Ping pings the garden server in order to check connectivity.
 //
-func (b *Backend) Ping() (err error) {
+func (b *GardenBackend) Ping() (err error) {
 	err = b.client.Version(context.Background())
 	if err != nil {
 		return fmt.Errorf("getting containerd version: %w", err)
@@ -137,7 +137,7 @@ func (b *Backend) Ping() (err error) {
 
 // Create creates a new container.
 //
-func (b *Backend) Create(gdnSpec garden.ContainerSpec) (garden.Container, error) {
+func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, error) {
 	ctx := context.Background()
 
 	maxUid, maxGid, err := b.userNamespace.MaxValidIds()
@@ -186,7 +186,7 @@ func (b *Backend) Create(gdnSpec garden.ContainerSpec) (garden.Container, error)
 
 // Destroy gracefully destroys a container.
 //
-func (b *Backend) Destroy(handle string) error {
+func (b *GardenBackend) Destroy(handle string) error {
 	if handle == "" {
 		return ErrInvalidInput("empty handle")
 	}
@@ -238,7 +238,7 @@ func (b *Backend) Destroy(handle string) error {
 // Containers lists all containers filtered by properties (which are ANDed
 // together).
 //
-func (b *Backend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
+func (b *GardenBackend) Containers(properties garden.Properties) (containers []garden.Container, err error) {
 	filters, err := propertiesToFilterList(properties)
 	if err != nil {
 		return
@@ -264,7 +264,7 @@ func (b *Backend) Containers(properties garden.Properties) (containers []garden.
 
 // Lookup returns the container with the specified handle.
 //
-func (b *Backend) Lookup(handle string) (garden.Container, error) {
+func (b *GardenBackend) Lookup(handle string) (garden.Container, error) {
 	if handle == "" {
 		return nil, ErrInvalidInput("empty handle")
 	}
@@ -283,7 +283,7 @@ func (b *Backend) Lookup(handle string) (garden.Container, error) {
 
 // GraceTime returns the value of the "garden.grace-time" property
 //
-func (b *Backend) GraceTime(container garden.Container) (duration time.Duration) {
+func (b *GardenBackend) GraceTime(container garden.Container) (duration time.Duration) {
 	property, err := container.Property(GraceTimeKey)
 	if err != nil {
 		return 0
@@ -299,21 +299,21 @@ func (b *Backend) GraceTime(container garden.Container) (duration time.Duration)
 
 // Capacity - Not Implemented
 //
-func (b *Backend) Capacity() (capacity garden.Capacity, err error) {
+func (b *GardenBackend) Capacity() (capacity garden.Capacity, err error) {
 	err = ErrNotImplemented
 	return
 }
 
 // BulkInfo - Not Implemented
 //
-func (b *Backend) BulkInfo(handles []string) (info map[string]garden.ContainerInfoEntry, err error) {
+func (b *GardenBackend) BulkInfo(handles []string) (info map[string]garden.ContainerInfoEntry, err error) {
 	err = ErrNotImplemented
 	return
 }
 
 // BulkMetrics - Not Implemented
 //
-func (b *Backend) BulkMetrics(handles []string) (metrics map[string]garden.ContainerMetricsEntry, err error) {
+func (b *GardenBackend) BulkMetrics(handles []string) (metrics map[string]garden.ContainerMetricsEntry, err error) {
 	err = ErrNotImplemented
 	return
 }

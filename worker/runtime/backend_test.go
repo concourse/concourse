@@ -20,7 +20,7 @@ type BackendSuite struct {
 	suite.Suite
 	*require.Assertions
 
-	backend runtime.Backend
+	backend runtime.GardenBackend
 	client  *libcontainerdfakes.FakeClient
 	network *runtimefakes.FakeNetwork
 	userns  *runtimefakes.FakeUserNamespace
@@ -34,7 +34,7 @@ func (s *BackendSuite) SetupTest() {
 	s.userns = new(runtimefakes.FakeUserNamespace)
 
 	var err error
-	s.backend, err = runtime.New(s.client,
+	s.backend, err = runtime.NewGardenBackend(s.client,
 		runtime.WithKiller(s.killer),
 		runtime.WithNetwork(s.network),
 		runtime.WithUserNamespace(s.userns),
@@ -43,7 +43,7 @@ func (s *BackendSuite) SetupTest() {
 }
 
 func (s *BackendSuite) TestNew() {
-	_, err := runtime.New(nil)
+	_, err := runtime.NewGardenBackend(nil)
 	s.EqualError(err, "nil client")
 }
 
