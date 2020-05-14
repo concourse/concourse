@@ -15,7 +15,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
@@ -70,7 +70,6 @@ update message model =
             ( model
             , [ Effects.GetViewportOf
                     (SideBarPipeline pipelineID)
-                    OnlyShowWhenOverflowing
               ]
             )
 
@@ -78,7 +77,6 @@ update message model =
             ( model
             , [ Effects.GetViewportOf
                     (SideBarTeam teamName)
-                    OnlyShowWhenOverflowing
               ]
             )
 

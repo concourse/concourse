@@ -54,7 +54,7 @@ import Html.Events
 import Http
 import List.Extra
 import Login.Login as Login
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message
     exposing
@@ -118,7 +118,7 @@ init searchType =
       , LoadCachedJobs
       , LoadCachedPipelines
       , LoadCachedTeams
-      , GetViewportOf Dashboard AlwaysShow
+      , GetViewportOf Dashboard
       ]
     )
 
@@ -405,7 +405,7 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        GotViewport Dashboard _ (Ok viewport) ->
+        GotViewport Dashboard (Ok viewport) ->
             ( { model
                 | viewportWidth = viewport.viewport.width
                 , viewportHeight = viewport.viewport.height
@@ -454,10 +454,10 @@ handleDeliveryBody delivery ( model, effects ) =
             ( { model | now = Just time, effectsToRetry = [] }, model.effectsToRetry )
 
         WindowResized _ _ ->
-            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+            ( model, effects ++ [ GetViewportOf Dashboard ] )
 
         SideBarStateReceived _ ->
-            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+            ( model, effects ++ [ GetViewportOf Dashboard ] )
 
         CachedPipelinesReceived (Ok pipelines) ->
             let
@@ -721,7 +721,7 @@ updateBody msg ( model, effects ) =
                     ( model, effects )
 
         Click HamburgerMenu ->
-            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+            ( model, effects ++ [ GetViewportOf Dashboard ] )
 
         Scrolled scrollState ->
             ( { model | scrollTop = scrollState.scrollTop }, effects )

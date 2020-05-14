@@ -47,7 +47,7 @@ import Http
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.ScrollDirection as ScrollDirection
@@ -316,11 +316,10 @@ handleDelivery session delivery ( model, effects ) =
                         HoverState.Hovered (FirstOccurrenceGetStepLabel stepID) ->
                             [ GetViewportOf
                                 (FirstOccurrenceGetStepLabel stepID)
-                                AlwaysShow
                             ]
 
                         HoverState.Hovered (StepState stepID) ->
-                            [ GetViewportOf (StepState stepID) AlwaysShow ]
+                            [ GetViewportOf (StepState stepID) ]
 
                         _ ->
                             []

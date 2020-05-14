@@ -4,9 +4,9 @@ import Build.Styles
 import EffectTransformer exposing (ET)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message as Message
+import Message.Message as Message exposing (DomID(..))
 import SideBar.Styles
 
 
@@ -14,17 +14,38 @@ type alias Model m =
     { m | hovered : HoverState.HoverState }
 
 
+type TooltipPolicy
+    = AlwaysShow
+    | OnlyShowWhenOverflowing
+
+
+policy : DomID -> TooltipPolicy
+policy domID =
+    case domID of
+        SideBarPipeline _ ->
+            OnlyShowWhenOverflowing
+
+        SideBarTeam _ ->
+            OnlyShowWhenOverflowing
+
+        _ ->
+            AlwaysShow
+
+
 handleCallback : Callback -> ET (Model m)
 handleCallback callback ( model, effects ) =
     case callback of
-        GotViewport _ policy (Ok { scene, viewport }) ->
+        GotViewport _ (Ok { scene, viewport }) ->
             case model.hovered of
                 HoverState.Hovered domID ->
-                    if policy == OnlyShowWhenOverflowing && viewport.width >= scene.width then
+                    if policy domID == OnlyShowWhenOverflowing && viewport.width >= scene.width then
                         ( model, effects )
 
                     else
-                        ( { model | hovered = HoverState.TooltipPending domID }
+                        ( { model
+                            | hovered =
+                                HoverState.TooltipPending domID
+                          }
                         , effects ++ [ Effects.GetElement domID ]
                         )
 

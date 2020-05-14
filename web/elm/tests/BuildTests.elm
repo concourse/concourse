@@ -3141,10 +3141,7 @@ all =
                                 )
                             >> Tuple.second
                             >> Common.contains
-                                (Effects.GetViewportOf
-                                    firstOccurrenceLabelID
-                                    Callback.AlwaysShow
-                                )
+                                (Effects.GetViewportOf firstOccurrenceLabelID)
                     , test "mousing off yellow label triggers Hover message" <|
                         fetchPlanWithGetStepWithFirstOccurrence
                             >> hoverFirstOccurrenceLabel
@@ -3190,7 +3187,7 @@ all =
                             )
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.GotViewport firstOccurrenceLabelID Callback.AlwaysShow <|
+                            (Callback.GotViewport firstOccurrenceLabelID <|
                                 Ok
                                     { scene =
                                         { width = 1
@@ -3378,10 +3375,7 @@ all =
                             )
                         >> Tuple.second
                         >> Common.contains
-                            (Effects.GetViewportOf
-                                (Message.Message.StepState "plan")
-                                Callback.AlwaysShow
-                            )
+                            (Effects.GetViewportOf <| Message.Message.StepState "plan")
                 , test "finished task lists initialization duration in tooltip" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3423,9 +3417,7 @@ all =
                             )
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.GotViewport (Message.Message.StepState "plan")
-                                Callback.AlwaysShow
-                             <|
+                            (Callback.GotViewport (Message.Message.StepState "plan") <|
                                 Ok
                                     { scene =
                                         { width = 1
@@ -3510,9 +3502,7 @@ all =
                             )
                         >> Tuple.first
                         >> Application.handleCallback
-                            (Callback.GotViewport (Message.Message.StepState "plan")
-                                Callback.AlwaysShow
-                             <|
+                            (Callback.GotViewport (Message.Message.StepState "plan") <|
                                 Ok
                                     { scene =
                                         { width = 1

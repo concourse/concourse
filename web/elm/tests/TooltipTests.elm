@@ -19,7 +19,7 @@ all =
                 \_ ->
                     ( { hovered = HoverState.Hovered domID }, [] )
                         |> Tooltip.handleCallback
-                            (Callback.GotViewport domID Callback.OnlyShowWhenOverflowing <|
+                            (Callback.GotViewport domID <|
                                 Ok overflowingViewport
                             )
                         |> Tuple.first
@@ -29,7 +29,7 @@ all =
                 \_ ->
                     ( { hovered = HoverState.Hovered domID }, [] )
                         |> Tooltip.handleCallback
-                            (Callback.GotViewport domID Callback.OnlyShowWhenOverflowing <|
+                            (Callback.GotViewport domID <|
                                 Ok overflowingViewport
                             )
                         |> Tuple.second
@@ -38,7 +38,7 @@ all =
                 \_ ->
                     ( { hovered = HoverState.Hovered domID }, [] )
                         |> Tooltip.handleCallback
-                            (Callback.GotViewport domID Callback.OnlyShowWhenOverflowing <|
+                            (Callback.GotViewport domID <|
                                 Ok nonOverflowingViewport
                             )
                         |> Tuple.first
@@ -47,13 +47,11 @@ all =
             ]
         , test "AlwaysShow callback with non-overflowing viewport gets element" <|
             \_ ->
-                ( { hovered = HoverState.Hovered domID }, [] )
+                ( { hovered = HoverState.Hovered Dashboard }, [] )
                     |> Tooltip.handleCallback
-                        (Callback.GotViewport domID Callback.AlwaysShow <|
-                            Ok nonOverflowingViewport
-                        )
+                        (Callback.GotViewport Dashboard <| Ok nonOverflowingViewport)
                     |> Tuple.second
-                    |> Common.contains (Effects.GetElement domID)
+                    |> Common.contains (Effects.GetElement Dashboard)
         , test "callback with tooltip position turns pending -> tooltip" <|
             \_ ->
                 ( { hovered = HoverState.TooltipPending domID }, [] )

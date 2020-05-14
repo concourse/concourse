@@ -5,7 +5,6 @@ import Common
 import Data
 import Expect
 import HoverState
-import Message.Callback as Callback exposing (TooltipPolicy(..))
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import RemoteData
@@ -25,7 +24,7 @@ all =
                         |> SideBar.update (Hover <| Just domID)
                         |> Tuple.second
                         |> Common.contains
-                            (Effects.GetViewportOf domID OnlyShowWhenOverflowing)
+                            (Effects.GetViewportOf domID)
             , test "does not ask browser for viewport otherwise" <|
                 \_ ->
                     model
