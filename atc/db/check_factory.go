@@ -207,7 +207,6 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 			Tags:        checkable.Tags(),
 			Timeout:     timeout.String(),
 			FromVersion: fromVersion,
-			SpanContext: map[string]string{},
 
 			VersionedResourceTypes: filteredTypes,
 		},
