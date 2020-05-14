@@ -2,6 +2,7 @@
 package dbfakes
 
 import (
+	"context"
 	"database/sql"
 	"sync"
 
@@ -9,17 +10,18 @@ import (
 )
 
 type FakeExecutor struct {
-	ExecStub        func(string, ...interface{}) (sql.Result, error)
-	execMutex       sync.RWMutex
-	execArgsForCall []struct {
-		arg1 string
-		arg2 []interface{}
+	ExecContextStub        func(context.Context, string, ...interface{}) (sql.Result, error)
+	execContextMutex       sync.RWMutex
+	execContextArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 []interface{}
 	}
-	execReturns struct {
+	execContextReturns struct {
 		result1 sql.Result
 		result2 error
 	}
-	execReturnsOnCall map[int]struct {
+	execContextReturnsOnCall map[int]struct {
 		result1 sql.Result
 		result2 error
 	}
@@ -27,65 +29,66 @@ type FakeExecutor struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeExecutor) Exec(arg1 string, arg2 ...interface{}) (sql.Result, error) {
-	fake.execMutex.Lock()
-	ret, specificReturn := fake.execReturnsOnCall[len(fake.execArgsForCall)]
-	fake.execArgsForCall = append(fake.execArgsForCall, struct {
-		arg1 string
-		arg2 []interface{}
-	}{arg1, arg2})
-	fake.recordInvocation("Exec", []interface{}{arg1, arg2})
-	fake.execMutex.Unlock()
-	if fake.ExecStub != nil {
-		return fake.ExecStub(arg1, arg2...)
+func (fake *FakeExecutor) ExecContext(arg1 context.Context, arg2 string, arg3 ...interface{}) (sql.Result, error) {
+	fake.execContextMutex.Lock()
+	ret, specificReturn := fake.execContextReturnsOnCall[len(fake.execContextArgsForCall)]
+	fake.execContextArgsForCall = append(fake.execContextArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 []interface{}
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("ExecContext", []interface{}{arg1, arg2, arg3})
+	fake.execContextMutex.Unlock()
+	if fake.ExecContextStub != nil {
+		return fake.ExecContextStub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.execReturns
+	fakeReturns := fake.execContextReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeExecutor) ExecCallCount() int {
-	fake.execMutex.RLock()
-	defer fake.execMutex.RUnlock()
-	return len(fake.execArgsForCall)
+func (fake *FakeExecutor) ExecContextCallCount() int {
+	fake.execContextMutex.RLock()
+	defer fake.execContextMutex.RUnlock()
+	return len(fake.execContextArgsForCall)
 }
 
-func (fake *FakeExecutor) ExecCalls(stub func(string, ...interface{}) (sql.Result, error)) {
-	fake.execMutex.Lock()
-	defer fake.execMutex.Unlock()
-	fake.ExecStub = stub
+func (fake *FakeExecutor) ExecContextCalls(stub func(context.Context, string, ...interface{}) (sql.Result, error)) {
+	fake.execContextMutex.Lock()
+	defer fake.execContextMutex.Unlock()
+	fake.ExecContextStub = stub
 }
 
-func (fake *FakeExecutor) ExecArgsForCall(i int) (string, []interface{}) {
-	fake.execMutex.RLock()
-	defer fake.execMutex.RUnlock()
-	argsForCall := fake.execArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+func (fake *FakeExecutor) ExecContextArgsForCall(i int) (context.Context, string, []interface{}) {
+	fake.execContextMutex.RLock()
+	defer fake.execContextMutex.RUnlock()
+	argsForCall := fake.execContextArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeExecutor) ExecReturns(result1 sql.Result, result2 error) {
-	fake.execMutex.Lock()
-	defer fake.execMutex.Unlock()
-	fake.ExecStub = nil
-	fake.execReturns = struct {
+func (fake *FakeExecutor) ExecContextReturns(result1 sql.Result, result2 error) {
+	fake.execContextMutex.Lock()
+	defer fake.execContextMutex.Unlock()
+	fake.ExecContextStub = nil
+	fake.execContextReturns = struct {
 		result1 sql.Result
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeExecutor) ExecReturnsOnCall(i int, result1 sql.Result, result2 error) {
-	fake.execMutex.Lock()
-	defer fake.execMutex.Unlock()
-	fake.ExecStub = nil
-	if fake.execReturnsOnCall == nil {
-		fake.execReturnsOnCall = make(map[int]struct {
+func (fake *FakeExecutor) ExecContextReturnsOnCall(i int, result1 sql.Result, result2 error) {
+	fake.execContextMutex.Lock()
+	defer fake.execContextMutex.Unlock()
+	fake.ExecContextStub = nil
+	if fake.execContextReturnsOnCall == nil {
+		fake.execContextReturnsOnCall = make(map[int]struct {
 			result1 sql.Result
 			result2 error
 		})
 	}
-	fake.execReturnsOnCall[i] = struct {
+	fake.execContextReturnsOnCall[i] = struct {
 		result1 sql.Result
 		result2 error
 	}{result1, result2}
@@ -94,8 +97,8 @@ func (fake *FakeExecutor) ExecReturnsOnCall(i int, result1 sql.Result, result2 e
 func (fake *FakeExecutor) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.execMutex.RLock()
-	defer fake.execMutex.RUnlock()
+	fake.execContextMutex.RLock()
+	defer fake.execContextMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

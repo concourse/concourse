@@ -142,7 +142,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	if nextPendingBuild.IsAborted() {
 		logger.Debug("cancel-aborted-pending-build")
 
-		err := nextPendingBuild.Finish(db.BuildStatusAborted)
+		err := nextPendingBuild.Finish(context.TODO(), db.BuildStatusAborted)
 		if err != nil {
 			return startResults{}, fmt.Errorf("finish aborted build: %w", err)
 		}
@@ -203,7 +203,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		logger.Error("failed-to-create-build-plan", err)
 
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
-		if err = nextPendingBuild.Finish(db.BuildStatusErrored); err != nil {
+		if err = nextPendingBuild.Finish(context.TODO(), db.BuildStatusErrored); err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)
 			return startResults{}, fmt.Errorf("finish build: %w", err)
 		}
@@ -213,14 +213,14 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}, nil
 	}
 
-	started, err := nextPendingBuild.Start(plan)
+	started, err := nextPendingBuild.Start(context.TODO(), plan)
 	if err != nil {
 		logger.Error("failed-to-mark-build-as-started", err)
 		return startResults{}, fmt.Errorf("start build: %w", err)
 	}
 
 	if !started {
-		if err = nextPendingBuild.Finish(db.BuildStatusAborted); err != nil {
+		if err = nextPendingBuild.Finish(context.TODO(), db.BuildStatusAborted); err != nil {
 			logger.Error("failed-to-mark-build-as-finished", err)
 			return startResults{}, fmt.Errorf("finish build: %w", err)
 		}

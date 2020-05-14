@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 
@@ -159,11 +160,11 @@ func (factory *teamFactory) CreateDefaultTeamIfNotExists() (Team, error) {
 }
 
 func (factory *teamFactory) NotifyResourceScanner() error {
-	return factory.conn.Bus().Notify(atc.ComponentLidarScanner)
+	return factory.conn.Bus().Notify(context.TODO(), atc.ComponentLidarScanner)
 }
 
 func (factory *teamFactory) NotifyCacher() error {
-	return factory.conn.Bus().Notify(atc.TeamCacheChannel)
+	return factory.conn.Bus().Notify(context.TODO(), atc.TeamCacheChannel)
 }
 
 func (factory *teamFactory) scanTeam(t *team, rows scannable) error {

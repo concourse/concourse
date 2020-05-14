@@ -2,6 +2,7 @@
 package dbfakes
 
 import (
+	"context"
 	"sync"
 
 	"github.com/concourse/concourse/atc"
@@ -10,10 +11,11 @@ import (
 )
 
 type FakeEventStore struct {
-	DeleteStub        func([]db.Build) error
+	DeleteStub        func(context.Context, []db.Build) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
-		arg1 []db.Build
+		arg1 context.Context
+		arg2 []db.Build
 	}
 	deleteReturns struct {
 		result1 error
@@ -21,10 +23,11 @@ type FakeEventStore struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
-	DeletePipelineStub        func(db.Pipeline) error
+	DeletePipelineStub        func(context.Context, db.Pipeline) error
 	deletePipelineMutex       sync.RWMutex
 	deletePipelineArgsForCall []struct {
-		arg1 db.Pipeline
+		arg1 context.Context
+		arg2 db.Pipeline
 	}
 	deletePipelineReturns struct {
 		result1 error
@@ -32,10 +35,11 @@ type FakeEventStore struct {
 	deletePipelineReturnsOnCall map[int]struct {
 		result1 error
 	}
-	DeleteTeamStub        func(db.Team) error
+	DeleteTeamStub        func(context.Context, db.Team) error
 	deleteTeamMutex       sync.RWMutex
 	deleteTeamArgsForCall []struct {
-		arg1 db.Team
+		arg1 context.Context
+		arg2 db.Team
 	}
 	deleteTeamReturns struct {
 		result1 error
@@ -43,10 +47,11 @@ type FakeEventStore struct {
 	deleteTeamReturnsOnCall map[int]struct {
 		result1 error
 	}
-	FinalizeStub        func(db.Build) error
+	FinalizeStub        func(context.Context, db.Build) error
 	finalizeMutex       sync.RWMutex
 	finalizeArgsForCall []struct {
-		arg1 db.Build
+		arg1 context.Context
+		arg2 db.Build
 	}
 	finalizeReturns struct {
 		result1 error
@@ -54,12 +59,13 @@ type FakeEventStore struct {
 	finalizeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	GetStub        func(db.Build, int, *db.Key) ([]event.Envelope, error)
+	GetStub        func(context.Context, db.Build, int, *db.Key) ([]event.Envelope, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
-		arg1 db.Build
-		arg2 int
-		arg3 *db.Key
+		arg1 context.Context
+		arg2 db.Build
+		arg3 int
+		arg4 *db.Key
 	}
 	getReturns struct {
 		result1 []event.Envelope
@@ -69,10 +75,11 @@ type FakeEventStore struct {
 		result1 []event.Envelope
 		result2 error
 	}
-	InitializeStub        func(db.Build) error
+	InitializeStub        func(context.Context, db.Build) error
 	initializeMutex       sync.RWMutex
 	initializeArgsForCall []struct {
-		arg1 db.Build
+		arg1 context.Context
+		arg2 db.Build
 	}
 	initializeReturns struct {
 		result1 error
@@ -80,11 +87,12 @@ type FakeEventStore struct {
 	initializeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	PutStub        func(db.Build, []atc.Event) error
+	PutStub        func(context.Context, db.Build, []atc.Event) error
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
-		arg1 db.Build
-		arg2 []atc.Event
+		arg1 context.Context
+		arg2 db.Build
+		arg3 []atc.Event
 	}
 	putReturns struct {
 		result1 error
@@ -92,9 +100,10 @@ type FakeEventStore struct {
 	putReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SetupStub        func() error
+	SetupStub        func(context.Context) error
 	setupMutex       sync.RWMutex
 	setupArgsForCall []struct {
+		arg1 context.Context
 	}
 	setupReturns struct {
 		result1 error
@@ -106,21 +115,22 @@ type FakeEventStore struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeEventStore) Delete(arg1 []db.Build) error {
-	var arg1Copy []db.Build
-	if arg1 != nil {
-		arg1Copy = make([]db.Build, len(arg1))
-		copy(arg1Copy, arg1)
+func (fake *FakeEventStore) Delete(arg1 context.Context, arg2 []db.Build) error {
+	var arg2Copy []db.Build
+	if arg2 != nil {
+		arg2Copy = make([]db.Build, len(arg2))
+		copy(arg2Copy, arg2)
 	}
 	fake.deleteMutex.Lock()
 	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
-		arg1 []db.Build
-	}{arg1Copy})
-	fake.recordInvocation("Delete", []interface{}{arg1Copy})
+		arg1 context.Context
+		arg2 []db.Build
+	}{arg1, arg2Copy})
+	fake.recordInvocation("Delete", []interface{}{arg1, arg2Copy})
 	fake.deleteMutex.Unlock()
 	if fake.DeleteStub != nil {
-		return fake.DeleteStub(arg1)
+		return fake.DeleteStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -135,17 +145,17 @@ func (fake *FakeEventStore) DeleteCallCount() int {
 	return len(fake.deleteArgsForCall)
 }
 
-func (fake *FakeEventStore) DeleteCalls(stub func([]db.Build) error) {
+func (fake *FakeEventStore) DeleteCalls(stub func(context.Context, []db.Build) error) {
 	fake.deleteMutex.Lock()
 	defer fake.deleteMutex.Unlock()
 	fake.DeleteStub = stub
 }
 
-func (fake *FakeEventStore) DeleteArgsForCall(i int) []db.Build {
+func (fake *FakeEventStore) DeleteArgsForCall(i int) (context.Context, []db.Build) {
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	argsForCall := fake.deleteArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeEventStore) DeleteReturns(result1 error) {
@@ -171,16 +181,17 @@ func (fake *FakeEventStore) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEventStore) DeletePipeline(arg1 db.Pipeline) error {
+func (fake *FakeEventStore) DeletePipeline(arg1 context.Context, arg2 db.Pipeline) error {
 	fake.deletePipelineMutex.Lock()
 	ret, specificReturn := fake.deletePipelineReturnsOnCall[len(fake.deletePipelineArgsForCall)]
 	fake.deletePipelineArgsForCall = append(fake.deletePipelineArgsForCall, struct {
-		arg1 db.Pipeline
-	}{arg1})
-	fake.recordInvocation("DeletePipeline", []interface{}{arg1})
+		arg1 context.Context
+		arg2 db.Pipeline
+	}{arg1, arg2})
+	fake.recordInvocation("DeletePipeline", []interface{}{arg1, arg2})
 	fake.deletePipelineMutex.Unlock()
 	if fake.DeletePipelineStub != nil {
-		return fake.DeletePipelineStub(arg1)
+		return fake.DeletePipelineStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -195,17 +206,17 @@ func (fake *FakeEventStore) DeletePipelineCallCount() int {
 	return len(fake.deletePipelineArgsForCall)
 }
 
-func (fake *FakeEventStore) DeletePipelineCalls(stub func(db.Pipeline) error) {
+func (fake *FakeEventStore) DeletePipelineCalls(stub func(context.Context, db.Pipeline) error) {
 	fake.deletePipelineMutex.Lock()
 	defer fake.deletePipelineMutex.Unlock()
 	fake.DeletePipelineStub = stub
 }
 
-func (fake *FakeEventStore) DeletePipelineArgsForCall(i int) db.Pipeline {
+func (fake *FakeEventStore) DeletePipelineArgsForCall(i int) (context.Context, db.Pipeline) {
 	fake.deletePipelineMutex.RLock()
 	defer fake.deletePipelineMutex.RUnlock()
 	argsForCall := fake.deletePipelineArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeEventStore) DeletePipelineReturns(result1 error) {
@@ -231,16 +242,17 @@ func (fake *FakeEventStore) DeletePipelineReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEventStore) DeleteTeam(arg1 db.Team) error {
+func (fake *FakeEventStore) DeleteTeam(arg1 context.Context, arg2 db.Team) error {
 	fake.deleteTeamMutex.Lock()
 	ret, specificReturn := fake.deleteTeamReturnsOnCall[len(fake.deleteTeamArgsForCall)]
 	fake.deleteTeamArgsForCall = append(fake.deleteTeamArgsForCall, struct {
-		arg1 db.Team
-	}{arg1})
-	fake.recordInvocation("DeleteTeam", []interface{}{arg1})
+		arg1 context.Context
+		arg2 db.Team
+	}{arg1, arg2})
+	fake.recordInvocation("DeleteTeam", []interface{}{arg1, arg2})
 	fake.deleteTeamMutex.Unlock()
 	if fake.DeleteTeamStub != nil {
-		return fake.DeleteTeamStub(arg1)
+		return fake.DeleteTeamStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -255,17 +267,17 @@ func (fake *FakeEventStore) DeleteTeamCallCount() int {
 	return len(fake.deleteTeamArgsForCall)
 }
 
-func (fake *FakeEventStore) DeleteTeamCalls(stub func(db.Team) error) {
+func (fake *FakeEventStore) DeleteTeamCalls(stub func(context.Context, db.Team) error) {
 	fake.deleteTeamMutex.Lock()
 	defer fake.deleteTeamMutex.Unlock()
 	fake.DeleteTeamStub = stub
 }
 
-func (fake *FakeEventStore) DeleteTeamArgsForCall(i int) db.Team {
+func (fake *FakeEventStore) DeleteTeamArgsForCall(i int) (context.Context, db.Team) {
 	fake.deleteTeamMutex.RLock()
 	defer fake.deleteTeamMutex.RUnlock()
 	argsForCall := fake.deleteTeamArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeEventStore) DeleteTeamReturns(result1 error) {
@@ -291,16 +303,17 @@ func (fake *FakeEventStore) DeleteTeamReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEventStore) Finalize(arg1 db.Build) error {
+func (fake *FakeEventStore) Finalize(arg1 context.Context, arg2 db.Build) error {
 	fake.finalizeMutex.Lock()
 	ret, specificReturn := fake.finalizeReturnsOnCall[len(fake.finalizeArgsForCall)]
 	fake.finalizeArgsForCall = append(fake.finalizeArgsForCall, struct {
-		arg1 db.Build
-	}{arg1})
-	fake.recordInvocation("Finalize", []interface{}{arg1})
+		arg1 context.Context
+		arg2 db.Build
+	}{arg1, arg2})
+	fake.recordInvocation("Finalize", []interface{}{arg1, arg2})
 	fake.finalizeMutex.Unlock()
 	if fake.FinalizeStub != nil {
-		return fake.FinalizeStub(arg1)
+		return fake.FinalizeStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -315,17 +328,17 @@ func (fake *FakeEventStore) FinalizeCallCount() int {
 	return len(fake.finalizeArgsForCall)
 }
 
-func (fake *FakeEventStore) FinalizeCalls(stub func(db.Build) error) {
+func (fake *FakeEventStore) FinalizeCalls(stub func(context.Context, db.Build) error) {
 	fake.finalizeMutex.Lock()
 	defer fake.finalizeMutex.Unlock()
 	fake.FinalizeStub = stub
 }
 
-func (fake *FakeEventStore) FinalizeArgsForCall(i int) db.Build {
+func (fake *FakeEventStore) FinalizeArgsForCall(i int) (context.Context, db.Build) {
 	fake.finalizeMutex.RLock()
 	defer fake.finalizeMutex.RUnlock()
 	argsForCall := fake.finalizeArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeEventStore) FinalizeReturns(result1 error) {
@@ -351,18 +364,19 @@ func (fake *FakeEventStore) FinalizeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEventStore) Get(arg1 db.Build, arg2 int, arg3 *db.Key) ([]event.Envelope, error) {
+func (fake *FakeEventStore) Get(arg1 context.Context, arg2 db.Build, arg3 int, arg4 *db.Key) ([]event.Envelope, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		arg1 db.Build
-		arg2 int
-		arg3 *db.Key
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3})
+		arg1 context.Context
+		arg2 db.Build
+		arg3 int
+		arg4 *db.Key
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3)
+		return fake.GetStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -377,17 +391,17 @@ func (fake *FakeEventStore) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeEventStore) GetCalls(stub func(db.Build, int, *db.Key) ([]event.Envelope, error)) {
+func (fake *FakeEventStore) GetCalls(stub func(context.Context, db.Build, int, *db.Key) ([]event.Envelope, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
 }
 
-func (fake *FakeEventStore) GetArgsForCall(i int) (db.Build, int, *db.Key) {
+func (fake *FakeEventStore) GetArgsForCall(i int) (context.Context, db.Build, int, *db.Key) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	argsForCall := fake.getArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeEventStore) GetReturns(result1 []event.Envelope, result2 error) {
@@ -416,16 +430,17 @@ func (fake *FakeEventStore) GetReturnsOnCall(i int, result1 []event.Envelope, re
 	}{result1, result2}
 }
 
-func (fake *FakeEventStore) Initialize(arg1 db.Build) error {
+func (fake *FakeEventStore) Initialize(arg1 context.Context, arg2 db.Build) error {
 	fake.initializeMutex.Lock()
 	ret, specificReturn := fake.initializeReturnsOnCall[len(fake.initializeArgsForCall)]
 	fake.initializeArgsForCall = append(fake.initializeArgsForCall, struct {
-		arg1 db.Build
-	}{arg1})
-	fake.recordInvocation("Initialize", []interface{}{arg1})
+		arg1 context.Context
+		arg2 db.Build
+	}{arg1, arg2})
+	fake.recordInvocation("Initialize", []interface{}{arg1, arg2})
 	fake.initializeMutex.Unlock()
 	if fake.InitializeStub != nil {
-		return fake.InitializeStub(arg1)
+		return fake.InitializeStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -440,17 +455,17 @@ func (fake *FakeEventStore) InitializeCallCount() int {
 	return len(fake.initializeArgsForCall)
 }
 
-func (fake *FakeEventStore) InitializeCalls(stub func(db.Build) error) {
+func (fake *FakeEventStore) InitializeCalls(stub func(context.Context, db.Build) error) {
 	fake.initializeMutex.Lock()
 	defer fake.initializeMutex.Unlock()
 	fake.InitializeStub = stub
 }
 
-func (fake *FakeEventStore) InitializeArgsForCall(i int) db.Build {
+func (fake *FakeEventStore) InitializeArgsForCall(i int) (context.Context, db.Build) {
 	fake.initializeMutex.RLock()
 	defer fake.initializeMutex.RUnlock()
 	argsForCall := fake.initializeArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeEventStore) InitializeReturns(result1 error) {
@@ -476,22 +491,23 @@ func (fake *FakeEventStore) InitializeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEventStore) Put(arg1 db.Build, arg2 []atc.Event) error {
-	var arg2Copy []atc.Event
-	if arg2 != nil {
-		arg2Copy = make([]atc.Event, len(arg2))
-		copy(arg2Copy, arg2)
+func (fake *FakeEventStore) Put(arg1 context.Context, arg2 db.Build, arg3 []atc.Event) error {
+	var arg3Copy []atc.Event
+	if arg3 != nil {
+		arg3Copy = make([]atc.Event, len(arg3))
+		copy(arg3Copy, arg3)
 	}
 	fake.putMutex.Lock()
 	ret, specificReturn := fake.putReturnsOnCall[len(fake.putArgsForCall)]
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
-		arg1 db.Build
-		arg2 []atc.Event
-	}{arg1, arg2Copy})
-	fake.recordInvocation("Put", []interface{}{arg1, arg2Copy})
+		arg1 context.Context
+		arg2 db.Build
+		arg3 []atc.Event
+	}{arg1, arg2, arg3Copy})
+	fake.recordInvocation("Put", []interface{}{arg1, arg2, arg3Copy})
 	fake.putMutex.Unlock()
 	if fake.PutStub != nil {
-		return fake.PutStub(arg1, arg2)
+		return fake.PutStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -506,17 +522,17 @@ func (fake *FakeEventStore) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeEventStore) PutCalls(stub func(db.Build, []atc.Event) error) {
+func (fake *FakeEventStore) PutCalls(stub func(context.Context, db.Build, []atc.Event) error) {
 	fake.putMutex.Lock()
 	defer fake.putMutex.Unlock()
 	fake.PutStub = stub
 }
 
-func (fake *FakeEventStore) PutArgsForCall(i int) (db.Build, []atc.Event) {
+func (fake *FakeEventStore) PutArgsForCall(i int) (context.Context, db.Build, []atc.Event) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
 	argsForCall := fake.putArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeEventStore) PutReturns(result1 error) {
@@ -542,15 +558,16 @@ func (fake *FakeEventStore) PutReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEventStore) Setup() error {
+func (fake *FakeEventStore) Setup(arg1 context.Context) error {
 	fake.setupMutex.Lock()
 	ret, specificReturn := fake.setupReturnsOnCall[len(fake.setupArgsForCall)]
 	fake.setupArgsForCall = append(fake.setupArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Setup", []interface{}{})
+		arg1 context.Context
+	}{arg1})
+	fake.recordInvocation("Setup", []interface{}{arg1})
 	fake.setupMutex.Unlock()
 	if fake.SetupStub != nil {
-		return fake.SetupStub()
+		return fake.SetupStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -565,10 +582,17 @@ func (fake *FakeEventStore) SetupCallCount() int {
 	return len(fake.setupArgsForCall)
 }
 
-func (fake *FakeEventStore) SetupCalls(stub func() error) {
+func (fake *FakeEventStore) SetupCalls(stub func(context.Context) error) {
 	fake.setupMutex.Lock()
 	defer fake.setupMutex.Unlock()
 	fake.SetupStub = stub
+}
+
+func (fake *FakeEventStore) SetupArgsForCall(i int) context.Context {
+	fake.setupMutex.RLock()
+	defer fake.setupMutex.RUnlock()
+	argsForCall := fake.setupArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeEventStore) SetupReturns(result1 error) {

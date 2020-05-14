@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -29,7 +30,7 @@ type Team interface {
 
 	Auth() atc.TeamAuth
 
-	Delete() error
+	Delete(ctx context.Context) error
 	Rename(string) error
 
 	SavePipeline(
@@ -45,7 +46,7 @@ type Team interface {
 	OrderPipelines([]string) error
 
 	CreateOneOffBuild() (Build, error)
-	CreateStartedBuild(plan atc.Plan) (Build, error)
+	CreateStartedBuild(ctx context.Context, plan atc.Plan) (Build, error)
 
 	PrivateAndPublicBuilds(Page) ([]Build, Pagination, error)
 	Builds(page Page) ([]Build, Pagination, error)
@@ -96,18 +97,18 @@ func (t *team) Admin() bool  { return t.admin }
 
 func (t *team) Auth() atc.TeamAuth { return t.auth }
 
-func (t *team) Delete() error {
+func (t *team) Delete(ctx context.Context) error {
 	_, err := psql.Delete("teams").
 		Where(sq.Eq{
 			"name": t.name,
 		}).
 		RunWith(t.conn).
-		Exec()
+		ExecContext(ctx)
 	if err != nil {
 		return err
 	}
 
-	return t.eventStore.DeleteTeam(t)
+	return t.eventStore.DeleteTeam(ctx, t)
 }
 
 func (t *team) Rename(name string) error {
@@ -658,7 +659,7 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 	defer Rollback(tx)
 
 	build := newEmptyBuild(t.conn, t.lockFactory, t.eventStore)
-	err = createBuild(tx, build, map[string]interface{}{
+	err = createBuild(context.TODO(), tx, build, map[string]interface{}{
 		"name":    sq.Expr("nextval('one_off_name')"),
 		"team_id": t.id,
 		"status":  BuildStatusPending,
@@ -675,7 +676,7 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 	return build, nil
 }
 
-func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
+func (t *team) CreateStartedBuild(ctx context.Context, plan atc.Plan) (Build, error) {
 	tx, err := t.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -694,7 +695,7 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	}
 
 	build := newEmptyBuild(t.conn, t.lockFactory, t.eventStore)
-	err = createBuild(tx, build, map[string]interface{}{
+	err = createBuild(ctx, tx, build, map[string]interface{}{
 		"name":         sq.Expr("nextval('one_off_name')"),
 		"team_id":      t.id,
 		"status":       BuildStatusStarted,
@@ -713,11 +714,11 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		return nil, err
 	}
 
-	if err = t.conn.Bus().Notify(buildStartedChannel()); err != nil {
+	if err = t.conn.Bus().Notify(ctx, buildStartedChannel()); err != nil {
 		return nil, err
 	}
 
-	err = build.SaveEvent(event.Status{
+	err = build.SaveEvent(ctx, event.Status{
 		Status: atc.StatusStarted,
 		Time:   build.StartTime().Unix(),
 	})

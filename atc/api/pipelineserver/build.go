@@ -21,7 +21,7 @@ func (s *Server) CreateBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		build, err := pipeline.CreateStartedBuild(plan)
+		build, err := pipeline.CreateStartedBuild(r.Context(), plan)
 		if err != nil {
 			logger.Error("failed-to-create-one-off-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

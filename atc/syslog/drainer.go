@@ -55,7 +55,7 @@ func (d *drainer) Run(ctx context.Context) error {
 		defer db.Close(syslog)
 
 		for _, build := range builds {
-			err := d.drainBuild(logger, build, syslog)
+			err := d.drainBuild(ctx, logger, build, syslog)
 			if err != nil {
 				return err
 			}
@@ -64,7 +64,7 @@ func (d *drainer) Run(ctx context.Context) error {
 	return nil
 }
 
-func (d *drainer) drainBuild(logger lager.Logger, build db.Build, syslog *Syslog) error {
+func (d *drainer) drainBuild(ctx context.Context, logger lager.Logger, build db.Build, syslog *Syslog) error {
 	logger = logger.Session("drain-build", lager.Data{
 		"team":     build.TeamName(),
 		"pipeline": build.PipelineName(),
@@ -72,13 +72,10 @@ func (d *drainer) drainBuild(logger lager.Logger, build db.Build, syslog *Syslog
 		"build":    build.Name(),
 	})
 
-	events, err := build.Events()
+	events, err := build.Events(ctx)
 	if err != nil {
 		return err
 	}
-
-	// ignore any errors coming from events.Close()
-	defer db.Close(events)
 
 	for {
 		ev, err := events.Next()

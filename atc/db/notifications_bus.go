@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"sync"
 
@@ -19,11 +20,11 @@ type Listener interface {
 //go:generate counterfeiter . Executor
 
 type Executor interface {
-	Exec(statement string, args ...interface{}) (sql.Result, error)
+	ExecContext(ctx context.Context, statement string, args ...interface{}) (sql.Result, error)
 }
 
 type NotificationsBus interface {
-	Notify(channel string) error
+	Notify(ctx context.Context, channel string) error
 	Listen(channel string) (chan bool, error)
 	Unlisten(channel string, notify chan bool) error
 	Close() error
@@ -54,8 +55,8 @@ func (bus *notificationsBus) Close() error {
 	return bus.listener.Close()
 }
 
-func (bus *notificationsBus) Notify(channel string) error {
-	_, err := bus.executor.Exec("NOTIFY " + channel)
+func (bus *notificationsBus) Notify(ctx context.Context, channel string) error {
+	_, err := bus.executor.ExecContext(ctx, "NOTIFY " + channel)
 	return err
 }
 

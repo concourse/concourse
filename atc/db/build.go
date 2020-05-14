@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -136,13 +137,13 @@ type Build interface {
 	Interceptible() (bool, error)
 	Preparation() (BuildPreparation, bool, error)
 
-	Start(atc.Plan) (bool, error)
-	Finish(BuildStatus) error
+	Start(ctx context.Context, plan atc.Plan) (bool, error)
+	Finish(ctx context.Context, status BuildStatus) error
 
 	SetInterceptible(bool) error
 
-	Events() (EventSource, error)
-	SaveEvent(event atc.Event) error
+	Events(ctx context.Context) (EventSource, error)
+	SaveEvent(ctx context.Context, event atc.Event) error
 
 	Artifacts() ([]WorkerArtifact, error)
 	Artifact(artifactID int) (WorkerArtifact, error)
@@ -336,7 +337,7 @@ func (b *build) ResourcesChecked() (bool, error) {
 	return !notChecked, nil
 }
 
-func (b *build) Start(plan atc.Plan) (bool, error) {
+func (b *build) Start(ctx context.Context, plan atc.Plan) (bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return false, err
@@ -370,7 +371,7 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 		}).
 		Suffix("RETURNING start_time").
 		RunWith(tx).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&startTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -384,7 +385,7 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 		return false, err
 	}
 
-	err = b.SaveEvent(event.Status{
+	err = b.SaveEvent(ctx, event.Status{
 		Status: atc.StatusStarted,
 		Time:   startTime.Unix(),
 	})
@@ -392,7 +393,7 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 		return false, err
 	}
 
-	err = b.conn.Bus().Notify(atc.ComponentBuildTracker)
+	err = b.conn.Bus().Notify(ctx, atc.ComponentBuildTracker)
 	if err != nil {
 		return false, err
 	}
@@ -400,7 +401,7 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 	return true, nil
 }
 
-func (b *build) Finish(status BuildStatus) error {
+func (b *build) Finish(ctx context.Context, status BuildStatus) error {
 	tx, err := b.conn.Begin()
 	if err != nil {
 		return err
@@ -419,14 +420,14 @@ func (b *build) Finish(status BuildStatus) error {
 		Where(sq.Eq{"id": b.id}).
 		Suffix("RETURNING end_time").
 		RunWith(tx).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&endTime)
 	if err != nil {
 		return err
 	}
 
 	if b.jobID != 0 && status == BuildStatusSucceeded {
-		_, err = tx.Exec(`WITH caches AS (
+		_, err = tx.ExecContext(ctx, `WITH caches AS (
 			SELECT resource_cache_id, build_id
 			FROM build_image_resource_caches brc
 			JOIN builds b ON b.id = brc.build_id
@@ -446,7 +447,7 @@ func (b *build) Finish(status BuildStatus) error {
 				"o.build_id": b.id,
 			}).
 			RunWith(tx).
-			Query()
+			QueryContext(ctx)
 		if err != nil {
 			return err
 		}
@@ -483,7 +484,7 @@ func (b *build) Finish(status BuildStatus) error {
 				"i.build_id": b.id,
 			}).
 			RunWith(tx).
-			Query()
+			QueryContext(ctx)
 		if err != nil {
 			return err
 		}
@@ -526,34 +527,34 @@ func (b *build) Finish(status BuildStatus) error {
 			Columns("build_id", "job_id", "rerun_of", "outputs").
 			Values(b.id, b.jobID, rerunOf, outputsJSON).
 			RunWith(tx).
-			Exec()
+			ExecContext(ctx)
 		if err != nil {
 			return err
 		}
 	}
 
 	if b.jobID != 0 {
-		err = requestScheduleOnDownstreamJobs(tx, b.jobID)
+		err = requestScheduleOnDownstreamJobs(ctx, tx, b.jobID)
 		if err != nil {
 			return err
 		}
 
-		err = updateTransitionBuildForJob(tx, b.jobID, b.id, status, b.rerunOf)
+		err = updateTransitionBuildForJob(ctx, tx, b.jobID, b.id, status, b.rerunOf)
 		if err != nil {
 			return err
 		}
 
-		latestNonRerunID, err := latestCompletedNonRerunBuild(tx, b.jobID)
+		latestNonRerunID, err := latestCompletedNonRerunBuild(ctx, tx, b.jobID)
 		if err != nil {
 			return err
 		}
 
-		err = updateLatestCompletedBuildForJob(tx, b.jobID, latestNonRerunID)
+		err = updateLatestCompletedBuildForJob(ctx, tx, b.jobID, latestNonRerunID)
 		if err != nil {
 			return err
 		}
 
-		err = updateNextBuildForJob(tx, b.jobID, latestNonRerunID)
+		err = updateNextBuildForJob(ctx, tx, b.jobID, latestNonRerunID)
 		if err != nil {
 			return err
 		}
@@ -564,7 +565,7 @@ func (b *build) Finish(status BuildStatus) error {
 		return err
 	}
 
-	err = b.SaveEvent(event.Status{
+	err = b.SaveEvent(ctx, event.Status{
 		Status: atc.BuildStatus(status),
 		Time:   endTime.Unix(),
 	})
@@ -572,7 +573,7 @@ func (b *build) Finish(status BuildStatus) error {
 		return err
 	}
 
-	return b.eventStore.Finalize(b)
+	return b.eventStore.Finalize(ctx, b)
 }
 
 func (b *build) SetDrained(drained bool) error {
@@ -627,7 +628,7 @@ func (b *build) MarkAsAborted() error {
 		return err
 	}
 
-	return b.conn.Bus().Notify(buildAbortChannel(b.id))
+	return b.conn.Bus().Notify(context.TODO(), buildAbortChannel(b.id))
 }
 
 // AbortNotifier returns a Notifier that can be watched for when the build
@@ -848,7 +849,7 @@ func falseOnceThenTrueForever() func() (bool, error) {
 	}
 }
 
-func (b *build) Events() (EventSource, error) {
+func (b *build) Events(ctx context.Context) (EventSource, error) {
 	notifier, err := newConditionNotifier(
 		b.conn.Bus(),
 		buildEventsNotificationChannel(b.ID()),
@@ -864,6 +865,7 @@ func (b *build) Events() (EventSource, error) {
 	}
 
 	return newBuildEventSource(
+		ctx,
 		b,
 		b.conn,
 		b.eventStore,
@@ -871,12 +873,12 @@ func (b *build) Events() (EventSource, error) {
 	), nil
 }
 
-func (b *build) SaveEvent(event atc.Event) error {
-	err := b.eventStore.Put(b, []atc.Event{event})
+func (b *build) SaveEvent(ctx context.Context, event atc.Event) error {
+	err := b.eventStore.Put(ctx, b, []atc.Event{event})
 	if err != nil {
 		return err
 	}
-	return b.conn.Bus().Notify(buildEventsNotificationChannel(b.ID()))
+	return b.conn.Bus().Notify(ctx, buildEventsNotificationChannel(b.ID()))
 }
 
 func buildEventsNotificationChannel(buildID int) string {
@@ -1617,7 +1619,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	return nil
 }
 
-func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
+func createBuild(ctx context.Context, tx Tx, build *build, vals map[string]interface{}) error {
 	var buildID int
 
 	buildVals := make(map[string]interface{})
@@ -1631,7 +1633,7 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 		SetMap(buildVals).
 		Suffix("RETURNING id").
 		RunWith(tx).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&buildID)
 	if err != nil {
 		return err
@@ -1640,14 +1642,14 @@ func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
 	err = scanBuild(build, buildsQuery.
 		Where(sq.Eq{"b.id": buildID}).
 		RunWith(tx).
-		QueryRow(),
+		QueryRowContext(ctx),
 		build.conn.EncryptionStrategy(),
 	)
 	if err != nil {
 		return err
 	}
 
-	return build.eventStore.Initialize(build)
+	return build.eventStore.Initialize(ctx, build)
 }
 
 func buildStartedChannel() string {
@@ -1658,13 +1660,13 @@ func buildAbortChannel(buildID int) string {
 	return fmt.Sprintf("build_abort_%d", buildID)
 }
 
-func latestCompletedNonRerunBuild(tx Tx, jobID int) (int, error) {
+func latestCompletedNonRerunBuild(ctx context.Context, tx Tx, jobID int) (int, error) {
 	var latestNonRerunId int
 	err := latestCompletedBuildQuery.
 		Where(sq.Eq{"job_id": jobID}).
 		Where(sq.Eq{"rerun_of": nil}).
 		RunWith(tx).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&latestNonRerunId)
 	if err != nil && err == sql.ErrNoRows {
 		return 0, nil
@@ -1673,8 +1675,8 @@ func latestCompletedNonRerunBuild(tx Tx, jobID int) (int, error) {
 	return latestNonRerunId, nil
 }
 
-func updateNextBuildForJob(tx Tx, jobID int, latestNonRerunId int) error {
-	_, err := tx.Exec(`
+func updateNextBuildForJob(ctx context.Context, tx Tx, jobID int, latestNonRerunId int) error {
+	_, err := tx.ExecContext(ctx, `
 		UPDATE jobs AS j
 		SET next_build_id = (
 			SELECT min(b.id)
@@ -1692,13 +1694,13 @@ func updateNextBuildForJob(tx Tx, jobID int, latestNonRerunId int) error {
 	return nil
 }
 
-func updateLatestCompletedBuildForJob(tx Tx, jobID int, latestNonRerunId int) error {
+func updateLatestCompletedBuildForJob(ctx context.Context, tx Tx, jobID int, latestNonRerunId int) error {
 	var latestRerunId sql.NullString
 	err := latestCompletedBuildQuery.
 		Where(sq.Eq{"job_id": jobID}).
 		Where(sq.Eq{"rerun_of": latestNonRerunId}).
 		RunWith(tx).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&latestRerunId)
 	if err != nil {
 		return err
@@ -1726,7 +1728,7 @@ func updateLatestCompletedBuildForJob(tx Tx, jobID int, latestNonRerunId int) er
 	return nil
 }
 
-func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus BuildStatus, rerunID int) error {
+func updateTransitionBuildForJob(ctx context.Context, tx Tx, jobID int, buildID int, buildStatus BuildStatus, rerunID int) error {
 	var shouldUpdateTransition bool
 
 	var latestID int
@@ -1736,7 +1738,7 @@ func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus Buil
 		JoinClause("INNER JOIN jobs j ON j.latest_completed_build_id = b.id").
 		Where(sq.Eq{"j.id": jobID}).
 		RunWith(tx).
-		QueryRow().
+		QueryRowContext(ctx).
 		Scan(&latestID, &latestStatus)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1766,7 +1768,7 @@ func updateTransitionBuildForJob(tx Tx, jobID int, buildID int, buildStatus Buil
 			Set("transition_build_id", buildID).
 			Where(sq.Eq{"id": jobID}).
 			RunWith(tx).
-			Exec()
+			ExecContext(ctx)
 		if err != nil {
 			return err
 		}

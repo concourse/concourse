@@ -2,6 +2,7 @@
 package dbfakes
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -86,10 +87,11 @@ type FakeTeam struct {
 		result1 db.Build
 		result2 error
 	}
-	CreateStartedBuildStub        func(atc.Plan) (db.Build, error)
+	CreateStartedBuildStub        func(context.Context, atc.Plan) (db.Build, error)
 	createStartedBuildMutex       sync.RWMutex
 	createStartedBuildArgsForCall []struct {
-		arg1 atc.Plan
+		arg1 context.Context
+		arg2 atc.Plan
 	}
 	createStartedBuildReturns struct {
 		result1 db.Build
@@ -99,9 +101,10 @@ type FakeTeam struct {
 		result1 db.Build
 		result2 error
 	}
-	DeleteStub        func() error
+	DeleteStub        func(context.Context) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
+		arg1 context.Context
 	}
 	deleteReturns struct {
 		result1 error
@@ -744,16 +747,17 @@ func (fake *FakeTeam) CreateOneOffBuildReturnsOnCall(i int, result1 db.Build, re
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) CreateStartedBuild(arg1 atc.Plan) (db.Build, error) {
+func (fake *FakeTeam) CreateStartedBuild(arg1 context.Context, arg2 atc.Plan) (db.Build, error) {
 	fake.createStartedBuildMutex.Lock()
 	ret, specificReturn := fake.createStartedBuildReturnsOnCall[len(fake.createStartedBuildArgsForCall)]
 	fake.createStartedBuildArgsForCall = append(fake.createStartedBuildArgsForCall, struct {
-		arg1 atc.Plan
-	}{arg1})
-	fake.recordInvocation("CreateStartedBuild", []interface{}{arg1})
+		arg1 context.Context
+		arg2 atc.Plan
+	}{arg1, arg2})
+	fake.recordInvocation("CreateStartedBuild", []interface{}{arg1, arg2})
 	fake.createStartedBuildMutex.Unlock()
 	if fake.CreateStartedBuildStub != nil {
-		return fake.CreateStartedBuildStub(arg1)
+		return fake.CreateStartedBuildStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -768,17 +772,17 @@ func (fake *FakeTeam) CreateStartedBuildCallCount() int {
 	return len(fake.createStartedBuildArgsForCall)
 }
 
-func (fake *FakeTeam) CreateStartedBuildCalls(stub func(atc.Plan) (db.Build, error)) {
+func (fake *FakeTeam) CreateStartedBuildCalls(stub func(context.Context, atc.Plan) (db.Build, error)) {
 	fake.createStartedBuildMutex.Lock()
 	defer fake.createStartedBuildMutex.Unlock()
 	fake.CreateStartedBuildStub = stub
 }
 
-func (fake *FakeTeam) CreateStartedBuildArgsForCall(i int) atc.Plan {
+func (fake *FakeTeam) CreateStartedBuildArgsForCall(i int) (context.Context, atc.Plan) {
 	fake.createStartedBuildMutex.RLock()
 	defer fake.createStartedBuildMutex.RUnlock()
 	argsForCall := fake.createStartedBuildArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeTeam) CreateStartedBuildReturns(result1 db.Build, result2 error) {
@@ -807,15 +811,16 @@ func (fake *FakeTeam) CreateStartedBuildReturnsOnCall(i int, result1 db.Build, r
 	}{result1, result2}
 }
 
-func (fake *FakeTeam) Delete() error {
+func (fake *FakeTeam) Delete(arg1 context.Context) error {
 	fake.deleteMutex.Lock()
 	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Delete", []interface{}{})
+		arg1 context.Context
+	}{arg1})
+	fake.recordInvocation("Delete", []interface{}{arg1})
 	fake.deleteMutex.Unlock()
 	if fake.DeleteStub != nil {
-		return fake.DeleteStub()
+		return fake.DeleteStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -830,10 +835,17 @@ func (fake *FakeTeam) DeleteCallCount() int {
 	return len(fake.deleteArgsForCall)
 }
 
-func (fake *FakeTeam) DeleteCalls(stub func() error) {
+func (fake *FakeTeam) DeleteCalls(stub func(context.Context) error) {
 	fake.deleteMutex.Lock()
 	defer fake.deleteMutex.Unlock()
 	fake.DeleteStub = stub
+}
+
+func (fake *FakeTeam) DeleteArgsForCall(i int) context.Context {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	argsForCall := fake.deleteArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeTeam) DeleteReturns(result1 error) {

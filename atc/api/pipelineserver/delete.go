@@ -15,7 +15,7 @@ func (s *Server) DeletePipeline(pipelineDB db.Pipeline) http.Handler {
 
 		logger.Info("start")
 
-		err := pipelineDB.Destroy()
+		err := pipelineDB.Destroy(r.Context())
 		if err != nil {
 			logger.Error("failed", err)
 

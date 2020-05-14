@@ -2,6 +2,7 @@
 package dbfakes
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -122,10 +123,11 @@ type FakePipeline struct {
 		result1 db.Build
 		result2 error
 	}
-	CreateStartedBuildStub        func(atc.Plan) (db.Build, error)
+	CreateStartedBuildStub        func(context.Context, atc.Plan) (db.Build, error)
 	createStartedBuildMutex       sync.RWMutex
 	createStartedBuildArgsForCall []struct {
-		arg1 atc.Plan
+		arg1 context.Context
+		arg2 atc.Plan
 	}
 	createStartedBuildReturns struct {
 		result1 db.Build
@@ -147,9 +149,10 @@ type FakePipeline struct {
 		result1 atc.Dashboard
 		result2 error
 	}
-	DestroyStub        func() error
+	DestroyStub        func(context.Context) error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct {
+		arg1 context.Context
 	}
 	destroyReturns struct {
 		result1 error
@@ -1043,16 +1046,17 @@ func (fake *FakePipeline) CreateOneOffBuildReturnsOnCall(i int, result1 db.Build
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) CreateStartedBuild(arg1 atc.Plan) (db.Build, error) {
+func (fake *FakePipeline) CreateStartedBuild(arg1 context.Context, arg2 atc.Plan) (db.Build, error) {
 	fake.createStartedBuildMutex.Lock()
 	ret, specificReturn := fake.createStartedBuildReturnsOnCall[len(fake.createStartedBuildArgsForCall)]
 	fake.createStartedBuildArgsForCall = append(fake.createStartedBuildArgsForCall, struct {
-		arg1 atc.Plan
-	}{arg1})
-	fake.recordInvocation("CreateStartedBuild", []interface{}{arg1})
+		arg1 context.Context
+		arg2 atc.Plan
+	}{arg1, arg2})
+	fake.recordInvocation("CreateStartedBuild", []interface{}{arg1, arg2})
 	fake.createStartedBuildMutex.Unlock()
 	if fake.CreateStartedBuildStub != nil {
-		return fake.CreateStartedBuildStub(arg1)
+		return fake.CreateStartedBuildStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1067,17 +1071,17 @@ func (fake *FakePipeline) CreateStartedBuildCallCount() int {
 	return len(fake.createStartedBuildArgsForCall)
 }
 
-func (fake *FakePipeline) CreateStartedBuildCalls(stub func(atc.Plan) (db.Build, error)) {
+func (fake *FakePipeline) CreateStartedBuildCalls(stub func(context.Context, atc.Plan) (db.Build, error)) {
 	fake.createStartedBuildMutex.Lock()
 	defer fake.createStartedBuildMutex.Unlock()
 	fake.CreateStartedBuildStub = stub
 }
 
-func (fake *FakePipeline) CreateStartedBuildArgsForCall(i int) atc.Plan {
+func (fake *FakePipeline) CreateStartedBuildArgsForCall(i int) (context.Context, atc.Plan) {
 	fake.createStartedBuildMutex.RLock()
 	defer fake.createStartedBuildMutex.RUnlock()
 	argsForCall := fake.createStartedBuildArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakePipeline) CreateStartedBuildReturns(result1 db.Build, result2 error) {
@@ -1161,15 +1165,16 @@ func (fake *FakePipeline) DashboardReturnsOnCall(i int, result1 atc.Dashboard, r
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) Destroy() error {
+func (fake *FakePipeline) Destroy(arg1 context.Context) error {
 	fake.destroyMutex.Lock()
 	ret, specificReturn := fake.destroyReturnsOnCall[len(fake.destroyArgsForCall)]
 	fake.destroyArgsForCall = append(fake.destroyArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Destroy", []interface{}{})
+		arg1 context.Context
+	}{arg1})
+	fake.recordInvocation("Destroy", []interface{}{arg1})
 	fake.destroyMutex.Unlock()
 	if fake.DestroyStub != nil {
-		return fake.DestroyStub()
+		return fake.DestroyStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1184,10 +1189,17 @@ func (fake *FakePipeline) DestroyCallCount() int {
 	return len(fake.destroyArgsForCall)
 }
 
-func (fake *FakePipeline) DestroyCalls(stub func() error) {
+func (fake *FakePipeline) DestroyCalls(stub func(context.Context) error) {
 	fake.destroyMutex.Lock()
 	defer fake.destroyMutex.Unlock()
 	fake.DestroyStub = stub
+}
+
+func (fake *FakePipeline) DestroyArgsForCall(i int) context.Context {
+	fake.destroyMutex.RLock()
+	defer fake.destroyMutex.RUnlock()
+	argsForCall := fake.destroyArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakePipeline) DestroyReturns(result1 error) {

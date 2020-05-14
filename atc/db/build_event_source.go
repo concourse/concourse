@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -14,10 +15,10 @@ var ErrBuildEventStreamClosed = errors.New("build event stream closed")
 
 type EventSource interface {
 	Next() (event.Envelope, error)
-	Close() error
 }
 
 func newBuildEventSource(
+	ctx context.Context,
 	build Build,
 	conn Conn,
 	eventStore EventStore,
@@ -34,12 +35,11 @@ func newBuildEventSource(
 		notifier: notifier,
 
 		events: make(chan event.Envelope, 2000),
-		stop:   make(chan struct{}),
 		wg:     wg,
 	}
 
 	wg.Add(1)
-	go source.collectEvents()
+	go source.collectEvents(ctx)
 
 	return source
 }
@@ -52,7 +52,6 @@ type buildEventSource struct {
 	notifier Notifier
 
 	events chan event.Envelope
-	stop   chan struct{}
 	err    error
 	wg     *sync.WaitGroup
 }
@@ -66,20 +65,7 @@ func (source *buildEventSource) Next() (event.Envelope, error) {
 	return e, nil
 }
 
-func (source *buildEventSource) Close() error {
-	select {
-	case <-source.stop:
-		return nil
-	default:
-		close(source.stop)
-	}
-
-	source.wg.Wait()
-
-	return source.notifier.Close()
-}
-
-func (source *buildEventSource) collectEvents() {
+func (source *buildEventSource) collectEvents(ctx context.Context) {
 	defer source.wg.Done()
 
 	var batchSize = cap(source.events)
@@ -87,7 +73,7 @@ func (source *buildEventSource) collectEvents() {
 	var cursor Key
 	for {
 		select {
-		case <-source.stop:
+		case <-ctx.Done():
 			source.err = ErrBuildEventStreamClosed
 			close(source.events)
 			return
@@ -106,7 +92,7 @@ func (source *buildEventSource) collectEvents() {
 			return
 		}
 
-		events, err := source.eventStore.Get(source.build, batchSize, &cursor)
+		events, err := source.eventStore.Get(ctx, source.build, batchSize, &cursor)
 		if err != nil {
 			source.err = err
 			close(source.events)
@@ -116,7 +102,7 @@ func (source *buildEventSource) collectEvents() {
 		for _, evt := range events {
 			select {
 			case source.events <- evt:
-			case <-source.stop:
+			case <-ctx.Done():
 				source.err = ErrBuildEventStreamClosed
 				close(source.events)
 				return
@@ -136,7 +122,7 @@ func (source *buildEventSource) collectEvents() {
 
 		select {
 		case <-source.notifier.Notify():
-		case <-source.stop:
+		case <-ctx.Done():
 			source.err = ErrBuildEventStreamClosed
 			close(source.events)
 			return

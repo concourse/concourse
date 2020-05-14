@@ -56,7 +56,7 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 		}
 
 		for _, job := range jobs {
-			err = br.reapLogsOfJob(job, logger)
+			err = br.reapLogsOfJob(ctx, job, logger)
 			if err != nil {
 				return err
 			}
@@ -66,7 +66,7 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 	return nil
 }
 
-func (br *buildLogCollector) reapLogsOfJob(job db.Job, logger lager.Logger) error {
+func (br *buildLogCollector) reapLogsOfJob(ctx context.Context, job db.Job, logger lager.Logger) error {
 
 	jobConfig, err := job.Config()
 	if err != nil {
@@ -209,7 +209,7 @@ func (br *buildLogCollector) reapLogsOfJob(job db.Job, logger lager.Logger) erro
 		"build-ids": buildsToDelete,
 	})
 
-	err = job.DeleteBuildEvents(buildsToDelete)
+	err = job.DeleteBuildEvents(ctx, buildsToDelete)
 	if err != nil {
 		logger.Error("failed-to-delete-build-events", err)
 		return err

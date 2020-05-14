@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -60,7 +61,7 @@ type Pipeline interface {
 	Builds(page Page) ([]Build, Pagination, error)
 
 	CreateOneOffBuild() (Build, error)
-	CreateStartedBuild(plan atc.Plan) (Build, error)
+	CreateStartedBuild(ctx context.Context, plan atc.Plan) (Build, error)
 
 	BuildsWithTime(page Page) ([]Build, Pagination, error)
 
@@ -86,7 +87,7 @@ type Pipeline interface {
 
 	Archive() error
 
-	Destroy() error
+	Destroy(ctx context.Context) error
 	Rename(string) error
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
@@ -663,17 +664,17 @@ func (p *pipeline) Rename(name string) error {
 	return err
 }
 
-func (p *pipeline) Destroy() error {
+func (p *pipeline) Destroy(ctx context.Context) error {
 	_, err := psql.Delete("pipelines").
 		Where(sq.Eq{
 			"id": p.id,
 		}).
 		RunWith(p.conn).
-		Exec()
+		ExecContext(ctx)
 	if err != nil {
 		return err
 	}
-	return p.eventStore.DeletePipeline(p)
+	return p.eventStore.DeletePipeline(ctx, p)
 }
 
 func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
@@ -903,7 +904,7 @@ func (p *pipeline) CreateOneOffBuild() (Build, error) {
 	defer Rollback(tx)
 
 	build := newEmptyBuild(p.conn, p.lockFactory, p.eventStore)
-	err = createBuild(tx, build, map[string]interface{}{
+	err = createBuild(context.TODO(), tx, build, map[string]interface{}{
 		"name":        sq.Expr("nextval('one_off_name')"),
 		"pipeline_id": p.id,
 		"team_id":     p.teamID,
@@ -921,7 +922,7 @@ func (p *pipeline) CreateOneOffBuild() (Build, error) {
 	return build, nil
 }
 
-func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
+func (p *pipeline) CreateStartedBuild(ctx context.Context, plan atc.Plan) (Build, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -940,7 +941,7 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	}
 
 	build := newEmptyBuild(p.conn, p.lockFactory, p.eventStore)
-	err = createBuild(tx, build, map[string]interface{}{
+	err = createBuild(ctx, tx, build, map[string]interface{}{
 		"name":         sq.Expr("nextval('one_off_name')"),
 		"pipeline_id":  p.id,
 		"team_id":      p.teamID,
@@ -960,11 +961,11 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 		return nil, err
 	}
 
-	if err = p.conn.Bus().Notify(buildStartedChannel()); err != nil {
+	if err = p.conn.Bus().Notify(ctx, buildStartedChannel()); err != nil {
 		return nil, err
 	}
 
-	err = build.SaveEvent(event.Status{
+	err = build.SaveEvent(ctx, event.Status{
 		Status: atc.StatusStarted,
 		Time:   build.StartTime().Unix(),
 	})

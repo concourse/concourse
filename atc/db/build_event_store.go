@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	sq "github.com/Masterminds/squirrel"
@@ -14,17 +15,18 @@ type Key interface {
 //go:generate counterfeiter . EventStore
 
 type EventStore interface {
-	Setup() error
+	Setup(ctx context.Context) error
+	// TODO: add Close(ctx context.Context) error
 
-	Initialize(build Build) error
-	Finalize(build Build) error
+	Initialize(ctx context.Context, build Build) error
+	Finalize(ctx context.Context, build Build) error
 
-	Put(build Build, event []atc.Event) error
-	Get(build Build, requested int, cursor *Key) ([]event.Envelope, error)
+	Put(ctx context.Context, build Build, event []atc.Event) error
+	Get(ctx context.Context, build Build, requested int, cursor *Key) ([]event.Envelope, error)
 
-	Delete(build []Build) error
-	DeletePipeline(pipeline Pipeline) error
-	DeleteTeam(team Team) error
+	Delete(ctx context.Context, build []Build) error
+	DeletePipeline(ctx context.Context, pipeline Pipeline) error
+	DeleteTeam(ctx context.Context, team Team) error
 }
 
 type buildEventStore struct {
@@ -37,7 +39,7 @@ func NewBuildEventStore(conn Conn) EventStore {
 	}
 }
 
-func (s *buildEventStore) Setup() error {
+func (s *buildEventStore) Setup(ctx context.Context) error {
 	tx, err := s.conn.Begin()
 	if err != nil {
 		return err
@@ -45,7 +47,7 @@ func (s *buildEventStore) Setup() error {
 
 	defer Rollback(tx)
 
-	_, err = tx.Exec(`
+	_, err = tx.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS build_events (
 			  build_id integer,
 			  type character varying(32) NOT NULL,
@@ -65,7 +67,7 @@ func (s *buildEventStore) Setup() error {
 	return tx.Commit()
 }
 
-func (s *buildEventStore) Initialize(build Build) error {
+func (s *buildEventStore) Initialize(ctx context.Context, build Build) error {
 	tx, err := s.conn.Begin()
 	if err != nil {
 		return err
@@ -75,35 +77,35 @@ func (s *buildEventStore) Initialize(build Build) error {
 
 	tableName := buildEventsTable(build)
 
-	_, err = tx.Exec(fmt.Sprintf(`
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS %s () INHERITS (build_events)
 	`, tableName))
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec(fmt.Sprintf(`
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
 		CREATE INDEX IF NOT EXISTS %s_build_id ON %s (build_id);
 	`, tableName, tableName))
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec(fmt.Sprintf(`
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
 		CREATE UNIQUE INDEX IF NOT EXISTS %s_build_id_event_id ON %s (build_id, event_id)
 	`, tableName, tableName))
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec(fmt.Sprintf(`
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
 	`, buildEventsSeq(build.ID())))
 
 	return tx.Commit()
 }
 
-func (s *buildEventStore) Finalize(build Build) error {
+func (s *buildEventStore) Finalize(ctx context.Context, build Build) error {
 	tx, err := s.conn.Begin()
 	if err != nil {
 		return err
@@ -111,7 +113,7 @@ func (s *buildEventStore) Finalize(build Build) error {
 
 	defer Rollback(tx)
 
-	_, err = tx.Exec(fmt.Sprintf(`
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
 		DROP SEQUENCE %s
 	`, buildEventsSeq(build.ID())))
 	if err != nil {
@@ -121,7 +123,7 @@ func (s *buildEventStore) Finalize(build Build) error {
 	return tx.Commit()
 }
 
-func (s *buildEventStore) Put(build Build, events []atc.Event) error {
+func (s *buildEventStore) Put(ctx context.Context, build Build, events []atc.Event) error {
 	tx, err := s.conn.Begin()
 	if err != nil {
 		return err
@@ -129,7 +131,7 @@ func (s *buildEventStore) Put(build Build, events []atc.Event) error {
 
 	defer Rollback(tx)
 
-	err = s.saveEvents(tx, build, events)
+	err = s.saveEvents(ctx, tx, build, events)
 	if err != nil {
 		return err
 	}
@@ -137,7 +139,7 @@ func (s *buildEventStore) Put(build Build, events []atc.Event) error {
 	return tx.Commit()
 }
 
-func (s *buildEventStore) saveEvents(tx Tx, build Build, events []atc.Event) error {
+func (s *buildEventStore) saveEvents(ctx context.Context, tx Tx, build Build, events []atc.Event) error {
 	query := psql.Insert(buildEventsTable(build)).
 		Columns("event_id", "build_id", "type", "version", "payload")
 	for _, evt := range events {
@@ -153,11 +155,11 @@ func (s *buildEventStore) saveEvents(tx Tx, build Build, events []atc.Event) err
 			payload,
 		)
 	}
-	_, err := query.RunWith(tx).Exec()
+	_, err := query.RunWith(tx).ExecContext(ctx)
 	return err
 }
 
-func (s *buildEventStore) Get(build Build, requested int, cursor *Key) ([]event.Envelope, error) {
+func (s *buildEventStore) Get(ctx context.Context, build Build, requested int, cursor *Key) ([]event.Envelope, error) {
 	tx, err := s.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -176,7 +178,7 @@ func (s *buildEventStore) Get(build Build, requested int, cursor *Key) ([]event.
 		Offset(uint64(offset)).
 		Limit(uint64(requested)).
 		RunWith(tx).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +222,7 @@ func (s *buildEventStore) offset(cursor *Key) (uint, error) {
 	return offset + 1, nil
 }
 
-func (s *buildEventStore) Delete(builds []Build) error {
+func (s *buildEventStore) Delete(ctx context.Context, builds []Build) error {
 	if len(builds) == 0 {
 		return nil
 	}
@@ -239,7 +241,7 @@ func (s *buildEventStore) Delete(builds []Build) error {
 	_, err = psql.Delete("build_events").
 		Where(sq.Eq{"build_id": buildIDs}).
 		RunWith(tx).
-		Exec()
+		ExecContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -247,14 +249,14 @@ func (s *buildEventStore) Delete(builds []Build) error {
 	return tx.Commit()
 }
 
-func (s *buildEventStore) DeletePipeline(pipeline Pipeline) error {
+func (s *buildEventStore) DeletePipeline(ctx context.Context, pipeline Pipeline) error {
 	tx, err := s.conn.Begin()
 	if err != nil {
 		return err
 	}
 	defer Rollback(tx)
 
-	err = dropTableIfExists(tx, pipelineBuildEventsTable(pipeline.ID()))
+	err = dropTableIfExists(ctx, tx, pipelineBuildEventsTable(pipeline.ID()))
 	if err != nil {
 		return err
 	}
@@ -262,7 +264,7 @@ func (s *buildEventStore) DeletePipeline(pipeline Pipeline) error {
 	return tx.Commit()
 }
 
-func (s *buildEventStore) DeleteTeam(team Team) error {
+func (s *buildEventStore) DeleteTeam(ctx context.Context, team Team) error {
 	pipelines, err := team.Pipelines()
 	if err != nil {
 		return err
@@ -274,13 +276,13 @@ func (s *buildEventStore) DeleteTeam(team Team) error {
 	}
 	defer Rollback(tx)
 
-	err = dropTableIfExists(tx, teamBuildEventsTable(team.ID()))
+	err = dropTableIfExists(ctx, tx, teamBuildEventsTable(team.ID()))
 	if err != nil {
 		return err
 	}
 
 	for _, pipeline := range pipelines {
-		err = dropTableIfExists(tx, pipelineBuildEventsTable(pipeline.ID()))
+		err = dropTableIfExists(ctx, tx, pipelineBuildEventsTable(pipeline.ID()))
 		if err != nil {
 			return err
 		}
@@ -289,8 +291,8 @@ func (s *buildEventStore) DeleteTeam(team Team) error {
 	return tx.Commit()
 }
 
-func dropTableIfExists(tx Tx, tableName string) error {
-	_, err := tx.Exec(fmt.Sprintf(`
+func dropTableIfExists(ctx context.Context, tx Tx, tableName string) error {
+	_, err := tx.ExecContext(ctx, fmt.Sprintf(`
 		DROP TABLE IF EXISTS %s
 	`, tableName))
 	return err

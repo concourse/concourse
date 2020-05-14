@@ -54,7 +54,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = team.Delete()
+	err = team.Delete(r.Context())
 	if err != nil {
 		hLog.Error("failed-to-delete-team", err)
 		w.WriteHeader(http.StatusInternalServerError)

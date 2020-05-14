@@ -9,16 +9,6 @@ import (
 )
 
 type FakeEventSource struct {
-	CloseStub        func() error
-	closeMutex       sync.RWMutex
-	closeArgsForCall []struct {
-	}
-	closeReturns struct {
-		result1 error
-	}
-	closeReturnsOnCall map[int]struct {
-		result1 error
-	}
 	NextStub        func() (event.Envelope, error)
 	nextMutex       sync.RWMutex
 	nextArgsForCall []struct {
@@ -33,58 +23,6 @@ type FakeEventSource struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeEventSource) Close() error {
-	fake.closeMutex.Lock()
-	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
-	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Close", []interface{}{})
-	fake.closeMutex.Unlock()
-	if fake.CloseStub != nil {
-		return fake.CloseStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.closeReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeEventSource) CloseCallCount() int {
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
-	return len(fake.closeArgsForCall)
-}
-
-func (fake *FakeEventSource) CloseCalls(stub func() error) {
-	fake.closeMutex.Lock()
-	defer fake.closeMutex.Unlock()
-	fake.CloseStub = stub
-}
-
-func (fake *FakeEventSource) CloseReturns(result1 error) {
-	fake.closeMutex.Lock()
-	defer fake.closeMutex.Unlock()
-	fake.CloseStub = nil
-	fake.closeReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeEventSource) CloseReturnsOnCall(i int, result1 error) {
-	fake.closeMutex.Lock()
-	defer fake.closeMutex.Unlock()
-	fake.CloseStub = nil
-	if fake.closeReturnsOnCall == nil {
-		fake.closeReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.closeReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeEventSource) Next() (event.Envelope, error) {
@@ -145,8 +83,6 @@ func (fake *FakeEventSource) NextReturnsOnCall(i int, result1 event.Envelope, re
 func (fake *FakeEventSource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
 	fake.nextMutex.RLock()
 	defer fake.nextMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

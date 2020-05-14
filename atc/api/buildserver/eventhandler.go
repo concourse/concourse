@@ -26,14 +26,12 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 			responseFlusher: w.(http.Flusher),
 		}
 
-		events, err := build.Events()
+		events, err := build.Events(r.Context())
 		if err != nil {
 			logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": build.ID()})
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		defer db.Close(events)
 
 		var eventID uint
 		for {

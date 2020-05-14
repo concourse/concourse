@@ -184,7 +184,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 		// like pipeline var_source is wrong, will cause a build to never start
 		// to run.
 		b.builder.BuildStepErrored(logger, b.build, err)
-		b.finish(logger.Session("finish"), err, false)
+		b.finish(ctx, logger.Session("finish"), err, false)
 
 		return
 	}
@@ -228,31 +228,31 @@ func (b *engineBuild) Run(ctx context.Context) {
 				return
 			}
 		}
-		b.finish(logger.Session("finish"), err, step.Succeeded())
+		b.finish(ctx, logger.Session("finish"), err, step.Succeeded())
 	}
 }
 
-func (b *engineBuild) finish(logger lager.Logger, err error, succeeded bool) {
+func (b *engineBuild) finish(ctx context.Context, logger lager.Logger, err error, succeeded bool) {
 	if errors.Is(err, context.Canceled) {
-		b.saveStatus(logger, atc.StatusAborted)
+		b.saveStatus(ctx, logger, atc.StatusAborted)
 		logger.Info("aborted")
 
 	} else if err != nil {
-		b.saveStatus(logger, atc.StatusErrored)
+		b.saveStatus(ctx, logger, atc.StatusErrored)
 		logger.Info("errored", lager.Data{"error": err.Error()})
 
 	} else if succeeded {
-		b.saveStatus(logger, atc.StatusSucceeded)
+		b.saveStatus(ctx, logger, atc.StatusSucceeded)
 		logger.Info("succeeded")
 
 	} else {
-		b.saveStatus(logger, atc.StatusFailed)
+		b.saveStatus(ctx, logger, atc.StatusFailed)
 		logger.Info("failed")
 	}
 }
 
-func (b *engineBuild) saveStatus(logger lager.Logger, status atc.BuildStatus) {
-	if err := b.build.Finish(db.BuildStatus(status)); err != nil {
+func (b *engineBuild) saveStatus(ctx context.Context, logger lager.Logger, status atc.BuildStatus) {
+	if err := b.build.Finish(ctx, db.BuildStatus(status)); err != nil {
 		logger.Error("failed-to-finish-build", err)
 	}
 }
