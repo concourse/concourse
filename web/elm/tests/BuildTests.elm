@@ -522,18 +522,7 @@ all =
                         (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusSucceeded))
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.PlanAndResourcesFetched 1 <|
-                            Err <|
-                                Http.BadStatus
-                                    { url = "http://example.com"
-                                    , status =
-                                        { code = 401
-                                        , message = ""
-                                        }
-                                    , headers = Dict.empty
-                                    , body = ""
-                                    }
-                        )
+                        (Callback.PlanAndResourcesFetched 1 <| Data.httpUnauthorized)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ class "not-authorized" ]
@@ -561,18 +550,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.PlanAndResourcesFetched 1 <|
-                            Err <|
-                                Http.BadStatus
-                                    { url = "http://example.com"
-                                    , status =
-                                        { code = 404
-                                        , message = "not found"
-                                        }
-                                    , headers = Dict.empty
-                                    , body = ""
-                                    }
-                        )
+                        (Callback.PlanAndResourcesFetched 1 <| Data.httpNotFound)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has
@@ -605,19 +583,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.BuildPrepFetched 1 <|
-                            Err <|
-                                Http.BadStatus
-                                    { status =
-                                        { code = 401
-                                        , message = "Unauthorized"
-                                        }
-                                    , headers =
-                                        Dict.empty
-                                    , url = ""
-                                    , body = "not authorized"
-                                    }
-                        )
+                        (Callback.BuildPrepFetched 1 <| Data.httpUnauthorized)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ class "not-authorized" ]
@@ -2597,18 +2563,7 @@ all =
                 , test "if build plan request fails, no event stream" <|
                     preBuildPlanReceived
                         >> Application.handleCallback
-                            (Callback.PlanAndResourcesFetched 1 <|
-                                Err <|
-                                    Http.BadStatus
-                                        { url = "http://example.com"
-                                        , status =
-                                            { code = 401
-                                            , message = ""
-                                            }
-                                        , headers = Dict.empty
-                                        , body = ""
-                                        }
-                            )
+                            (Callback.PlanAndResourcesFetched 1 <| Data.httpUnauthorized)
                         >> Expect.all
                             [ Tuple.second >> Expect.equal []
                             , Tuple.first

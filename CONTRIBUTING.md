@@ -85,6 +85,9 @@ indeed submitting a code change. Cheers! 🍻
     `release-notes/` directory! For formatting and style examples,
     see previous release notes in the same directory.
 
+  * Run [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
+    to ensure your code follows our code style guidelines.
+
   * *Optional: check out our [Go style guide][style-guide]!*
 
 * Putting this all together, here is a sample anatomy of an ideal commit:
@@ -111,6 +114,11 @@ indeed submitting a code change. Cheers! 🍻
     1. [sign-off line](#signing-your-work)
 
 * When you're ready, [submit a pull request][how-to-pr]!
+
+  * You will be invited to join `Contributors` team under `Concourse` org on
+    Github. Upon accepting the invite you will be able to login to our CI and
+    manage the build of your pull request in
+    [PRs pipeline](https://ci.concourse-ci.org/teams/contributor/pipelines/prs).
 
 ### Structure and Behaviour
 

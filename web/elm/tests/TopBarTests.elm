@@ -184,18 +184,7 @@ all =
                 ]
             , context "when logged out"
                 (Application.handleCallback
-                    (Callback.UserFetched <|
-                        Err <|
-                            Http.BadStatus
-                                { url = ""
-                                , status =
-                                    { code = 401
-                                    , message = "unauthorized"
-                                    }
-                                , headers = Dict.empty
-                                , body = ""
-                                }
-                    )
+                    (Callback.UserFetched <| Data.httpUnauthorized)
                     >> Tuple.first
                     >> queryView
                 )
@@ -1533,16 +1522,7 @@ all =
                     givenPipelinePaused
                         |> Application.handleCallback
                             (Callback.PipelineToggled pipelineIdentifier <|
-                                Err <|
-                                    Http.BadStatus
-                                        { url = "http://example.com"
-                                        , status =
-                                            { code = 401
-                                            , message = "unauthorized"
-                                            }
-                                        , headers = Dict.empty
-                                        , body = ""
-                                        }
+                                Data.httpUnauthorized
                             )
                         |> Tuple.second
                         |> Expect.equal
@@ -1552,16 +1532,7 @@ all =
                     givenPipelinePaused
                         |> Application.handleCallback
                             (Callback.PipelineToggled pipelineIdentifier <|
-                                Err <|
-                                    Http.BadStatus
-                                        { url = "http://example.com"
-                                        , status =
-                                            { code = 500
-                                            , message = ""
-                                            }
-                                        , headers = Dict.empty
-                                        , body = ""
-                                        }
+                                Data.httpInternalServerError
                             )
                         |> Tuple.first
                         |> queryView

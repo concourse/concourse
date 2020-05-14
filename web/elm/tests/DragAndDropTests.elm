@@ -384,16 +384,7 @@ orderPipelinesSucceeds =
 orderPipelinesFails =
     Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesOrdered "team" <|
-                Err
-                    (Http.BadStatus
-                        { url = "http://localhost:8080"
-                        , status = { code = 500, message = "could not find pipeline" }
-                        , headers = Dict.empty
-                        , body = ""
-                        }
-                    )
-            )
+            (Callback.PipelinesOrdered "team" <| Data.httpInternalServerError)
 
 
 dashboardRefreshPipelines =
@@ -410,16 +401,7 @@ dashboardRefreshPipelines =
 dashboardFailsToRefreshPipelines =
     Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched <|
-                Err
-                    (Http.BadStatus
-                        { url = "http://localhost:8080"
-                        , status = { code = 500, message = "could not find pipeline" }
-                        , headers = Dict.empty
-                        , body = ""
-                        }
-                    )
-            )
+            (Callback.PipelinesFetched <| Data.httpInternalServerError)
 
 
 fiveSecondsPasses =

@@ -257,13 +257,12 @@ toStringTests =
                         |> PipelineStatusIcon
                         |> toString
                         |> Expect.equal "/public/images/ic-error-orange.svg"
-            , test "Unknown" <|
-                \_ ->
-                    PipelineStatusUnknown
-                        |> PipelineStatusIcon
-                        |> toString
-                        |> Expect.equal "/public/images/ic-cached-grey.svg"
             ]
+        , test "PipelineStatusIconStale" <|
+            \_ ->
+                PipelineStatusIconStale
+                    |> toString
+                    |> Expect.equal "/public/images/ic-cached-grey.svg"
         , test "ClippyIcon" <|
             \_ ->
                 ClippyIcon

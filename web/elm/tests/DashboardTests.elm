@@ -147,19 +147,6 @@ flags =
     }
 
 
-internalServerError : Http.Error
-internalServerError =
-    Http.BadStatus
-        { url = "http://example.com"
-        , status =
-            { code = 500
-            , message = "internal server error"
-            }
-        , headers = Dict.empty
-        , body = ""
-        }
-
-
 all : Test
 all =
     describe "Dashboard"
@@ -258,16 +245,7 @@ all =
                 Common.init "/"
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <|
-                            Err <|
-                                Http.BadStatus
-                                    { url = "http://example.com"
-                                    , status =
-                                        { code = 401
-                                        , message = "unauthorized"
-                                        }
-                                    , headers = Dict.empty
-                                    , body = ""
-                                    }
+                            Data.httpUnauthorized
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.RedirectToLogin ]
@@ -275,7 +253,7 @@ all =
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllTeamsFetched <| Err internalServerError)
+                        (Callback.AllTeamsFetched <| Data.httpInternalServerError)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "experiencing turbulence" ]
@@ -283,7 +261,7 @@ all =
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllTeamsFetched <| Err internalServerError)
+                        (Callback.AllTeamsFetched <| Data.httpInternalServerError)
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <| Ok [])
@@ -294,7 +272,7 @@ all =
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllResourcesFetched <| Err internalServerError)
+                        (Callback.AllResourcesFetched <| Data.httpInternalServerError)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "experiencing turbulence" ]
@@ -302,7 +280,7 @@ all =
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllResourcesFetched <| Err internalServerError)
+                        (Callback.AllResourcesFetched <| Data.httpInternalServerError)
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.AllResourcesFetched <| Ok [])
@@ -313,7 +291,7 @@ all =
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllJobsFetched <| Err internalServerError)
+                        (Callback.AllJobsFetched <| Data.httpInternalServerError)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "experiencing turbulence" ]
@@ -321,7 +299,7 @@ all =
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllJobsFetched <| Err internalServerError)
+                        (Callback.AllJobsFetched <| Data.httpInternalServerError)
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <| Ok [])
@@ -332,7 +310,7 @@ all =
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <| Err internalServerError)
+                        (Callback.AllPipelinesFetched <| Data.httpInternalServerError)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "experiencing turbulence" ]
@@ -340,7 +318,7 @@ all =
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <| Err internalServerError)
+                        (Callback.AllPipelinesFetched <| Data.httpInternalServerError)
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <| Ok [])
@@ -351,10 +329,10 @@ all =
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllJobsFetched <| Err internalServerError)
+                        (Callback.AllJobsFetched <| Data.httpInternalServerError)
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <| Err internalServerError)
+                        (Callback.AllPipelinesFetched <| Data.httpInternalServerError)
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <| Ok [])
@@ -1849,6 +1827,18 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains Effects.FetchAllJobs
+        , test "stops polling jobs if the endpoint is disabled" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Data.httpNotImplemented)
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <|
+                            Time.millisToPosix 0
+                        )
+                    |> Tuple.second
+                    |> Common.notContains Effects.FetchAllJobs
         , test "auto refreshes jobs on next five-second tick after dropping" <|
             \_ ->
                 Common.init "/"
@@ -2008,18 +1998,7 @@ givenDataUnauthenticated data =
         (Callback.AllTeamsFetched <| Ok data)
         >> Tuple.first
         >> Application.handleCallback
-            (Callback.UserFetched <|
-                Err <|
-                    Http.BadStatus
-                        { url = "http://example.com"
-                        , status =
-                            { code = 401
-                            , message = ""
-                            }
-                        , headers = Dict.empty
-                        , body = ""
-                        }
-            )
+            (Callback.UserFetched <| Data.httpUnauthorized)
 
 
 givenClusterInfo :
