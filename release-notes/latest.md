@@ -33,3 +33,6 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 * Fix a bug that when `--log-db-queries` is enabled only part of DB queries were logged. Expect to see more log outputs when using the flag now. #5520
 
+#### <sub><sup><a name="5485" href="#5485">:link:</a></sup></sub> fix
+
+* Fix a bug where a Task's image or input volume(s) were redundantly streamed from another worker despite having a local copy. This would only occur if the image or input(s) were provided by a resource definition (eg. Get step).
