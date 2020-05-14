@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"go.opentelemetry.io/otel/api/propagators"
 )
 
 type FakeCheck struct {
@@ -207,15 +208,15 @@ type FakeCheck struct {
 	schemaReturnsOnCall map[int]struct {
 		result1 string
 	}
-	SpanContextStub        func() db.SpanContext
+	SpanContextStub        func() propagators.Supplier
 	spanContextMutex       sync.RWMutex
 	spanContextArgsForCall []struct {
 	}
 	spanContextReturns struct {
-		result1 db.SpanContext
+		result1 propagators.Supplier
 	}
 	spanContextReturnsOnCall map[int]struct {
-		result1 db.SpanContext
+		result1 propagators.Supplier
 	}
 	StartStub        func() error
 	startMutex       sync.RWMutex
@@ -1254,7 +1255,7 @@ func (fake *FakeCheck) SchemaReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeCheck) SpanContext() db.SpanContext {
+func (fake *FakeCheck) SpanContext() propagators.Supplier {
 	fake.spanContextMutex.Lock()
 	ret, specificReturn := fake.spanContextReturnsOnCall[len(fake.spanContextArgsForCall)]
 	fake.spanContextArgsForCall = append(fake.spanContextArgsForCall, struct {
@@ -1277,32 +1278,32 @@ func (fake *FakeCheck) SpanContextCallCount() int {
 	return len(fake.spanContextArgsForCall)
 }
 
-func (fake *FakeCheck) SpanContextCalls(stub func() db.SpanContext) {
+func (fake *FakeCheck) SpanContextCalls(stub func() propagators.Supplier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = stub
 }
 
-func (fake *FakeCheck) SpanContextReturns(result1 db.SpanContext) {
+func (fake *FakeCheck) SpanContextReturns(result1 propagators.Supplier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = nil
 	fake.spanContextReturns = struct {
-		result1 db.SpanContext
+		result1 propagators.Supplier
 	}{result1}
 }
 
-func (fake *FakeCheck) SpanContextReturnsOnCall(i int, result1 db.SpanContext) {
+func (fake *FakeCheck) SpanContextReturnsOnCall(i int, result1 propagators.Supplier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = nil
 	if fake.spanContextReturnsOnCall == nil {
 		fake.spanContextReturnsOnCall = make(map[int]struct {
-			result1 db.SpanContext
+			result1 propagators.Supplier
 		})
 	}
 	fake.spanContextReturnsOnCall[i] = struct {
-		result1 db.SpanContext
+		result1 propagators.Supplier
 	}{result1}
 }
 
