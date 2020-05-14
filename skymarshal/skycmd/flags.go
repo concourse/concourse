@@ -144,6 +144,10 @@ func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 		}
 	}
 
+	if len(auth) == 0 {
+		return nil, ErrAuthNotConfiguredFromFile
+	}
+
 	return auth, nil
 }
 
