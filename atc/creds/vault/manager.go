@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -169,7 +170,8 @@ func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.Secre
 		templates := []*creds.SecretTemplate{}
 		for i, tmpl := range manager.LookupTemplates {
 			name := fmt.Sprintf("lookup-template-%d", i)
-			if template, err := creds.BuildSecretTemplate(name, manager.PathPrefix + tmpl); err != nil {
+			scopedTemplate := path.Join(manager.PathPrefix, tmpl)
+			if template, err := creds.BuildSecretTemplate(name, scopedTemplate); err != nil {
 				return nil, err
 			} else {
 				templates = append(templates, template)
