@@ -115,6 +115,11 @@ indeed submitting a code change. Cheers! 🍻
 
 * When you're ready, [submit a pull request][how-to-pr]!
 
+  * You will be invited to join `Contributors` team under `Concourse` org on
+    Github. Upon accepting the invite you will be able to login to our CI and
+    manage the build of your pull request in
+    [PRs pipeline](https://ci.concourse-ci.org/teams/contributor/pipelines/prs).
+
 ### Structure and Behaviour
 
 In an ideal world, every pull request is small, but the codebase is large and
