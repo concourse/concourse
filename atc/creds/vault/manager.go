@@ -93,10 +93,6 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 func (manager *VaultManager) Config(config map[string]interface{}) error {
 	// apply defaults
 	manager.PathPrefix = "/concourse"
-	manager.LookupTemplates = []string{
-		"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
-		"/{{.Team}}/{{.Secret}}",
-	}
 	manager.Auth.RetryMax = 5 * time.Minute
 	manager.Auth.RetryInitial = time.Second
 
@@ -112,6 +108,16 @@ func (manager *VaultManager) Config(config map[string]interface{}) error {
 	err = decoder.Decode(config)
 	if err != nil {
 		return err
+	}
+
+	// Fill in default templates if not otherwise set (done here so
+	// that these are effective all together or not at all, rather
+	// than combining the defaults with a user's custom setting)
+	if _, setsTemplates := config["lookup_templates"]; !setsTemplates {
+		manager.LookupTemplates = []string{
+			"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
+			"/{{.Team}}/{{.Secret}}",
+		}
 	}
 
 	return nil

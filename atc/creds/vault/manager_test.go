@@ -210,6 +210,7 @@ var _ = Describe("VaultManager", func() {
 				delete(config, "path_prefix")
 				delete(config, "auth_retry_max")
 				delete(config, "auth_retry_initial")
+				delete(config, "lookup_templates")
 			})
 
 			It("has sane defaults", func() {
@@ -218,6 +219,10 @@ var _ = Describe("VaultManager", func() {
 				Expect(manager.PathPrefix).To(Equal("/concourse"))
 				Expect(manager.Auth.RetryMax).To(Equal(5 * time.Minute))
 				Expect(manager.Auth.RetryInitial).To(Equal(time.Second))
+				Expect(manager.LookupTemplates).To(Equal([]string{
+					"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
+					"/{{.Team}}/{{.Secret}}",
+				}))
 			})
 		})
 
