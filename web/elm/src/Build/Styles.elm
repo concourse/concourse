@@ -230,12 +230,9 @@ stepStatusIcon =
     ]
 
 
-firstOccurrenceTooltip : Float -> Float -> List (Html.Attribute msg)
-firstOccurrenceTooltip bottom left =
-    [ style "position" "fixed"
-    , style "left" <| String.fromFloat left ++ "px"
-    , style "bottom" <| String.fromFloat bottom ++ "px"
-    , style "background-color" Colors.tooltipBackground
+firstOccurrenceTooltip : List (Html.Attribute msg)
+firstOccurrenceTooltip =
+    [ style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"
     , style "width" "6em"
@@ -244,12 +241,9 @@ firstOccurrenceTooltip bottom left =
         ++ Application.Styles.disableInteraction
 
 
-firstOccurrenceTooltipArrow : Float -> Float -> Float -> List (Html.Attribute msg)
-firstOccurrenceTooltipArrow bottom left width =
-    [ style "position" "fixed"
-    , style "left" <| String.fromFloat (left + width / 2) ++ "px"
-    , style "bottom" <| String.fromFloat bottom ++ "px"
-    , style "margin-bottom" "-5px"
+firstOccurrenceTooltipArrow : List (Html.Attribute msg)
+firstOccurrenceTooltipArrow =
+    [ style "margin-bottom" "-5px"
     , style "margin-left" "-5px"
     , style "width" "0"
     , style "height" "0"

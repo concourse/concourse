@@ -59,7 +59,7 @@ all =
                         (Callback.GotElement <| Ok elementPosition)
                     |> Tuple.first
                     |> .hovered
-                    |> Expect.equal (HoverState.Tooltip domID (Top 0.5 1))
+                    |> Expect.equal (HoverState.Tooltip domID elementPosition)
         ]
 
 

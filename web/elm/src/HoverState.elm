@@ -5,6 +5,7 @@ module HoverState exposing
     , isHovered
     )
 
+import Browser.Dom
 import Message.Message exposing (DomID)
 
 
@@ -17,7 +18,7 @@ type HoverState
     = NoHover
     | Hovered DomID
     | TooltipPending DomID
-    | Tooltip DomID TooltipPosition
+    | Tooltip DomID Browser.Dom.Element
 
 
 hoveredElement : HoverState -> Maybe DomID

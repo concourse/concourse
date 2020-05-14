@@ -251,13 +251,9 @@ pipelineIcon opacity =
     ]
 
 
-tooltip : Float -> Float -> List (Html.Attribute msg)
-tooltip top left =
-    [ style "position" "fixed"
-    , style "left" <| String.fromFloat left ++ "px"
-    , style "top" <| String.fromFloat top ++ "px"
-    , style "margin-top" "-15px"
-    , style "z-index" "1"
+tooltip : List (Html.Attribute msg)
+tooltip =
+    [ style "z-index" "1"
     , style "display" "flex"
     ]
 
