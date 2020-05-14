@@ -88,6 +88,7 @@ init flags url =
             , draggingSideBar = False
             , screenSize = ScreenSize.Desktop
             , timeZone = Time.utc
+            , favoritedPipelines = []
             }
 
         ( subModel, subEffects ) =

@@ -378,6 +378,7 @@ session =
     , authToken = ""
     , pipelineRunningKeyframes = ""
     , timeZone = Time.utc
+    , favoritedPipelines = []
     }
 
 

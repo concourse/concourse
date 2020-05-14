@@ -25,13 +25,14 @@ all =
                 [ test "pipeline background is dark with bright border" <|
                     \_ ->
                         pipeline
-                            |> viewPipeline { active = True, hovered = True }
-                            |> .background
+                            |> viewPipeline { active = True, hovered = True, favorited = False }
+                            |> .name
+                            |> .rectangle
                             |> Expect.equal Styles.Dark
                 , test "pipeline icon is bright" <|
                     \_ ->
                         pipeline
-                            |> viewPipeline { active = True, hovered = True }
+                            |> viewPipeline { active = True, hovered = True, favorited = False }
                             |> .icon
                             |> Expect.equal
                                 { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
@@ -40,14 +41,16 @@ all =
                 , describe "when not favorited"
                     [ test "displays an unfilled star icon" <|
                         \_ ->
-                            pipeline { active = True, hovered = True }
+                            pipeline
+                                |> viewPipeline { active = True, hovered = True, favorited = False }
                                 |> .favIcon
                                 |> Expect.equal { opacity = Styles.Bright, filled = False }
                     ]
                 , describe "when favorited"
                     [ test "displays a filled star icon" <|
                         \_ ->
-                            pipeline { active = True, hovered = True }
+                            pipeline
+                                |> viewPipeline { active = True, hovered = True, favorited = True }
                                 |> .favIcon
                                 |> Expect.equal { opacity = Styles.Bright, filled = True }
                     ]
@@ -56,13 +59,14 @@ all =
                 [ test "pipeline background is dark" <|
                     \_ ->
                         pipeline
-                            |> viewPipeline { active = True, hovered = False }
-                            |> .background
+                            |> viewPipeline { active = True, hovered = False, favorited = False }
+                            |> .name
+                            |> .rectangle
                             |> Expect.equal Styles.Dark
                 , test "pipeline icon is bright" <|
                     \_ ->
                         pipeline
-                            |> viewPipeline { active = True, hovered = False }
+                            |> viewPipeline { active = True, hovered = False, favorited = False }
                             |> .icon
                             |> Expect.equal
                                 { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
@@ -82,13 +86,14 @@ all =
                 [ test "pipeline background is light" <|
                     \_ ->
                         pipeline
-                            |> viewPipeline { active = False, hovered = True }
-                            |> .background
+                            |> viewPipeline { active = False, hovered = True, favorited = False }
+                            |> .name
+                            |> .rectangle
                             |> Expect.equal Styles.Light
                 , test "pipeline icon is bright" <|
                     \_ ->
                         pipeline
-                            |> viewPipeline { active = False, hovered = True }
+                            |> viewPipeline { active = False, hovered = True, favorited = False }
                             |> .icon
                             |> Expect.equal
                                 { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
@@ -99,20 +104,21 @@ all =
                 [ test "pipeline name is dim" <|
                     \_ ->
                         pipeline
-                            |> viewPipeline { active = False, hovered = False }
+                            |> viewPipeline { active = False, hovered = False, favorited = False }
                             |> .name
                             |> .opacity
                             |> Expect.equal Styles.Dim
                 , test "pipeline has no background" <|
                     \_ ->
                         pipeline
-                            |> viewPipeline { active = False, hovered = False }
-                            |> .background
-                            |> Expect.equal Styles.Invisible
+                            |> viewPipeline { active = False, hovered = False, favorited = False }
+                            |> .name
+                            |> .rectangle
+                            |> Expect.equal Styles.PipelineInvisible
                 , test "pipeline icon is dim" <|
                     \_ ->
                         pipeline
-                            |> viewPipeline { active = False, hovered = False }
+                            |> viewPipeline { active = False, hovered = False, favorited = False }
                             |> .icon
                             |> Expect.equal
                                 { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
@@ -140,8 +146,8 @@ all =
         ]
 
 
-viewPipeline : { active : Bool, hovered : Bool } -> Concourse.Pipeline -> Views.Pipeline
-viewPipeline { active, hovered } =
+viewPipeline : { active : Bool, hovered : Bool, favorited : Bool } -> Concourse.Pipeline -> Views.Pipeline
+viewPipeline { active, hovered, favorited } =
     let
         pipelineIdentifier =
             { teamName = "team"
@@ -161,10 +167,18 @@ viewPipeline { active, hovered } =
 
             else
                 Nothing
+
+        favoritedPipelines =
+            if favorited then
+                [ pipelineIdentifier ]
+
+            else
+                []
     in
     Pipeline.pipeline
         { hovered = hoveredDomId
         , currentPipeline = activePipeline
+        , favoritedPipelines = favoritedPipelines
         }
 
 

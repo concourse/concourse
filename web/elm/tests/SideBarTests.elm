@@ -48,6 +48,7 @@ model =
         }
     , draggingSideBar = False
     , screenSize = ScreenSize.Desktop
+    , favoritedPipelines = []
     }
 
 

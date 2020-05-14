@@ -15,7 +15,7 @@ import Common
         )
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import DashboardTests
+import DashboardTests exposing (iconSelector)
 import Data
 import Dict
 import Expect
@@ -380,6 +380,16 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtThePipelineList
                 >> then_ iSeeTwoChildren
+        , test "unfavorited pipeline has unfilled star icon" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> when iAmLookingAtTheFirstPipeline
+                >> then_ iSeeUnfilledStarIcon
+        , test "pipeline gets favorited when star icon is clicked" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> when iClickedTheFirstPipelineStar
+                >> then_ iSeeFilledStarIcon
         , test "pipeline list lays out vertically" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -389,7 +399,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipeline
-                >> then_ iSeeTwoChildren
+                >> then_ iSeeThreeChildren
         , test "pipeline lays out horizontally" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -871,6 +881,10 @@ iSeeTwoTeams =
     Query.children [ class "side-bar-team" ] >> Query.count (Expect.equal 2)
 
 
+iSeeThreeChildren =
+    Query.children [] >> Query.count (Expect.equal 3)
+
+
 iAmLookingAtThePageBelowTheTopBar =
     Tuple.first
         >> Common.queryView
@@ -1024,10 +1038,44 @@ iSeeItHasAResizeHandle =
     Query.has [ style "cursor" "col-resize" ]
 
 
+iSeeUnfilledStarIcon =
+    Query.has
+        (DashboardTests.iconSelector
+            { size = "16px"
+            , image = Assets.StarIconUnfilled
+            }
+        )
+
+
+iSeeFilledStarIcon =
+    Query.has
+        (DashboardTests.iconSelector
+            { size = "16px"
+            , image = Assets.StarIconFilled
+            }
+        )
+
+
 iClickedThePipelineGroup =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <| Message.Click <| Message.SideBarTeam "team")
+
+
+iClickedTheFirstPipelineStar =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <|
+                Message.Click <|
+                    Message.SideBarStarIcon
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        }
+            )
+        >> Tuple.first
+        >> Common.queryView
+        >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
+        >> Query.index 0
 
 
 iSeeAMinusIcon =
@@ -1379,16 +1427,6 @@ myBrowserFetchedNoPipelines =
 
 iHaveAnExpandedPipelineGroup =
     iHaveAnOpenSideBar >> iClickedThePipelineGroup
-
-
-iHoveredThePipelineGroup =
-    Tuple.first
-        >> Application.update
-            (TopLevelMessage.Update <|
-                Message.Hover <|
-                    Just <|
-                        Message.SideBarTeam "team"
-            )
 
 
 iHoveredThePipelineLink =

@@ -25,7 +25,7 @@ module SideBar.Styles exposing
 import Assets
 import Colors
 import Html
-import Html.Attributes exposing (style)
+import Html.Attributes as Attr exposing (style)
 import Views.Icon as Icon
 import Views.Styles
 
@@ -272,12 +272,14 @@ pipelineFavourite fav =
                 else
                     Assets.StarIconUnfilled
     , style "background-repeat" "no-repeat"
+    , style "background-position" "50% 50%"
     , style "height" "16px"
-    , style "width" "32px"
+    , style "width" "16px"
     , style "background-size" "contain"
     , style "margin-left" "28px"
     , style "flex-shrink" "0"
     , opacityAttr fav.opacity
+    , Attr.attribute "aria-label" "Favorite Icon"
     ]
 
 
