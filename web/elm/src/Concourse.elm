@@ -61,6 +61,7 @@ module Concourse exposing
     , encodeBuild
     , encodeJob
     , encodePipeline
+    , encodePipelineIdentifier
     , encodeTeam
     , retrieveCSRFToken
     )
@@ -701,6 +702,14 @@ type alias PipelineGroup =
     , jobs : List String
     , resources : List String
     }
+
+
+encodePipelineIdentifier : PipelineIdentifier -> Json.Encode.Value
+encodePipelineIdentifier pipelineIdentifier =
+    Json.Encode.object
+        [ ( "name", pipelineIdentifier.pipelineName |> Json.Encode.string )
+        , ( "team_name", pipelineIdentifier.teamName |> Json.Encode.string )
+        ]
 
 
 encodePipeline : Pipeline -> Json.Encode.Value
