@@ -28,7 +28,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(atcTeam.Auth) == 0 {
+	if err := atcTeam.Validate(); err != nil {
 		hLog.Error("malformed-auth-config", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return

@@ -356,6 +356,25 @@ var _ = Describe("Teams API", func() {
 							Expect(fakeTeam.UpdateProviderAuthCallCount()).To(Equal(0))
 						})
 					})
+
+					Context("when provider auth is invalid", func() {
+						BeforeEach(func() {
+							atcTeam = atc.Team{
+								Auth: atc.TeamAuth{
+									"owner": {
+										//"users": []string{},
+										//"groups": []string{},
+									},
+								},
+							}
+							dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+						})
+
+						It("does not update provider auth", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							Expect(fakeTeam.UpdateProviderAuthCallCount()).To(Equal(0))
+						})
+					})
 				})
 			}
 

@@ -8,10 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/flag"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/mitchellh/mapstructure"
 	"sigs.k8s.io/yaml"
+
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/flag"
 )
 
 var ErrAuthNotConfiguredFromFlags = errors.New("ErrAuthNotConfiguredFromFlags")
@@ -144,7 +146,7 @@ func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 		}
 	}
 
-	if len(auth) == 0 {
+	if err := atc.TeamAuth(auth).Validate(); err != nil {
 		return nil, ErrAuthNotConfiguredFromFile
 	}
 
