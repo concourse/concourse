@@ -1,62 +1,61 @@
-> Hi there! Thanks for submitting a pull request to Concourse!
+<!---
+Hi there! Thanks for submitting a pull request to Concourse!
+To help us review your PR, please fill in the following information.
+-->
 
-> If you haven't already, please take a look at our [Code of Conduct] and our
-> [Contributing Guide]. There are certain anti-patterns that we try to avoid -
-> check the [Anti-patterns page] to know more.
-
-> To help us review your PR, please fill in the following information.
-
-> Also, before submitting, please remove all the lines starting with '>'.
-
-
-[Code of Conduct]: https://github.com/concourse/concourse/blob/master/CODE_OF_CONDUCT.md
-[Contributing Guide]: https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md
-[Anti-patterns page]: https://github.com/concourse/concourse/wiki/Anti-Patterns
-
-
-# Why is this PR needed?
-
-> There must be a reason why the change being submitted is necessary.
-> Why is Concourse worse off without it?
-
-
-
-# What is this PR trying to accomplish?
-
-> What is the end goal of this PR?
-> What is it trying to solve / improve / add?
-> Is there an existing issue related to this PR? Fill in the issue number as follows: closes #1234.
+## What does this PR accomplish?
+<!---
+Choose all that apply.
+Also, mention the linked issue here.
+This will magically close the issue once the PR is merged.
+-->
+Bug Fix | Feature | Documentation
 
 closes # .
 
+## Changes proposed by this PR:
+<!---
+Tell the reviewer What changed, Why, and How were you able to accomplish that?
+-->
 
-# How does it accomplish that?
+## Notes to reviewer:
+<!---
+Leave a message to whoever is going to review this PR.
+Mainly, pointers to review the PR, and how they can test it.
+-->
 
-> What is the approach that you took to get to the end goal of this PR?
-> Briefly, what are the changes included in this PR?
+## Contributor Checklist
+<!---
+Most of the PRs should have the following added to them,
+this doesn't apply to all PRs, so it is helpful to tell us what you did.
+-->
+- [ ] Followed [Code of conduct], [Contributing Guide] & avoided [Anti-patterns]
+- [ ] [Signed] all commits
+- [ ] Added tests (Unit and/or Integration)
+- [ ] Updated [Documentation]
+- [ ] Updated [Release notes]
 
+[Code of Conduct]: https://github.com/concourse/concourse/blob/master/CODE_OF_CONDUCT.md
+[Contributing Guide]: https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md
+[Anti-patterns]: https://github.com/concourse/concourse/wiki/Anti-Patterns
+[Signed]: https://help.github.com/en/github/authenticating-to-github/signing-commits
+[Documentation]: https://github.com/concourse/docs
+[Release notes]: https://github.com/concourse/concourse/tree/master/release-notes
 
-
-# Contributor Checklist
-
-> Are the following items included as part of this PR? If no, please say why not.
-
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Updated documentation (located at https://github.com/concourse/docs)
-- [ ] Updated release notes (located at https://github.com/concourse/concourse/tree/master/release-notes)
-
-
-# Reviewer Checklist
-
-> This section is intended for the core maintainers only, to track review progress.
-
-> Please do not fill out this section.
-
+## Reviewer Checklist
+<!---
+This section is intended for the reviewers only, to track review
+progress.
+-->
 - [ ] Code reviewed
 - [ ] Tests reviewed
 - [ ] Documentation reviewed
 - [ ] Release notes reviewed
 - [ ] PR acceptance performed
-- [ ] New config flags added? Ensure that they are added to the [BOSH](https://github.com/concourse/concourse-bosh-release) 
-      and [Helm](https://github.com/concourse/helm) packaging; otherwise, ignored for the [integration tests](https://github.com/concourse/ci/tree/master/tasks/scripts/check-distribution-env) (for example, if they are Garden configs that are not displayed in the `--help` text). 
+- [ ] New config flags added? Ensure that they are added to the
+  [BOSH](https://github.com/concourse/concourse-bosh-release) and
+  [Helm](https://github.com/concourse/helm) packaging; otherwise, ignored for
+  the [integration
+  tests](https://github.com/concourse/ci/tree/master/tasks/scripts/check-distribution-env)
+  (for example, if they are Garden configs that are not displayed in the
+  `--help` text).
