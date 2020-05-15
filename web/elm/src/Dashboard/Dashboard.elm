@@ -107,6 +107,7 @@ init searchType =
       , viewportHeight = 0
       , scrollTop = 0
       , pipelineJobs = Dict.empty
+      , effectsToRetry = []
       }
     , [ FetchAllTeams
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -257,24 +258,39 @@ handleCallback callback ( model, effects ) =
         AllJobsFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    if status.code == httpStatusNotImplemented then
-                        ( { model
-                            | jobsError = Just Disabled
-                            , jobs = Fetched Dict.empty
-                            , pipelines =
-                                model.pipelines
-                                    |> Maybe.map
-                                        (List.map
-                                            (\p ->
-                                                { p | jobsDisabled = True }
+                    case status.code of
+                        501 ->
+                            ( { model
+                                | jobsError = Just Disabled
+                                , jobs = Fetched Dict.empty
+                                , pipelines =
+                                    model.pipelines
+                                        |> Maybe.map
+                                            (List.map
+                                                (\p ->
+                                                    { p | jobsDisabled = True }
+                                                )
                                             )
-                                        )
-                          }
-                        , effects ++ [ DeleteCachedJobs ]
-                        )
+                              }
+                            , effects ++ [ DeleteCachedJobs ]
+                            )
 
-                    else
-                        ( { model | jobsError = Just Failed }, effects )
+                        503 ->
+                            ( { model
+                                | effectsToRetry =
+                                    model.effectsToRetry
+                                        ++ (if List.member FetchAllJobs model.effectsToRetry then
+                                                []
+
+                                            else
+                                                [ FetchAllJobs ]
+                                           )
+                              }
+                            , effects
+                            )
+
+                        _ ->
+                            ( { model | jobsError = Just Failed }, effects )
 
                 _ ->
                     ( { model | jobsError = Just Failed }, effects )
@@ -404,11 +420,6 @@ handleCallback callback ( model, effects ) =
         |> RequestBuffer.handleCallback callback buffers
 
 
-httpStatusNotImplemented : Int
-httpStatusNotImplemented =
-    501
-
-
 updatePipeline :
     (Pipeline -> Pipeline)
     -> Concourse.PipelineIdentifier
@@ -440,7 +451,7 @@ handleDeliveryBody : Delivery -> ET Model
 handleDeliveryBody delivery ( model, effects ) =
     case delivery of
         ClockTicked OneSecond time ->
-            ( { model | now = Just time }, effects )
+            ( { model | now = Just time, effectsToRetry = [] }, model.effectsToRetry )
 
         WindowResized _ _ ->
             ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )

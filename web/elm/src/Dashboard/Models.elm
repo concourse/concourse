@@ -10,6 +10,7 @@ module Dashboard.Models exposing
 import Concourse
 import Dashboard.Group.Models
 import Dict exposing (Dict)
+import Message.Effects exposing (Effect(..))
 import FetchResult exposing (FetchResult)
 import Login.Login as Login
 import Time
@@ -39,6 +40,7 @@ type alias Model =
             , viewportHeight : Float
             , scrollTop : Float
             , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+            , effectsToRetry : List Effect
             }
         )
 
