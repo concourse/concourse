@@ -53,10 +53,10 @@ func (c *checker) Run(ctx context.Context) error {
 					check,
 					"checker.Run",
 					tracing.Attrs{
-						"team":                     ck.TeamName(),
-						"pipeline":                 ck.PipelineName(),
-						"check_id":                 strconv.Itoa(ck.ID()),
-						"resource_config_scope_id": strconv.Itoa(ck.ResourceConfigScopeID()),
+						"team":                     check.TeamName(),
+						"pipeline":                 check.PipelineName(),
+						"check_id":                 strconv.Itoa(check.ID()),
+						"resource_config_scope_id": strconv.Itoa(check.ResourceConfigScopeID()),
 					},
 				)
 				defer span.End()
