@@ -604,7 +604,6 @@ var _ = Describe("Job Factory", func() {
 								Source: atc.Source{
 									"some": "source",
 								},
-								Tags: atc.Tags{"tag"},
 							},
 							{
 								Name: "unused-resource",
@@ -633,7 +632,6 @@ var _ = Describe("Job Factory", func() {
 							Name:   "some-resource",
 							Type:   "some-type",
 							Source: atc.Source{"some": "source"},
-							Tags:   atc.Tags{"tag"},
 						},
 					))
 				})
@@ -791,7 +789,6 @@ var _ = Describe("Job Factory", func() {
 								Source: atc.Source{
 									"some": "source",
 								},
-								Tags: atc.Tags{"tag"},
 							},
 							{
 								Name: "unused-resource",
@@ -819,7 +816,6 @@ var _ = Describe("Job Factory", func() {
 							Name:   "some-resource",
 							Type:   "some-type",
 							Source: atc.Source{"some": "source"},
-							Tags:   atc.Tags{"tag"},
 						},
 					))
 				})
@@ -849,7 +845,6 @@ var _ = Describe("Job Factory", func() {
 								Source: atc.Source{
 									"some": "source",
 								},
-								Tags: atc.Tags{"tag"},
 							},
 							{
 								Name: "unused-resource",
@@ -877,7 +872,6 @@ var _ = Describe("Job Factory", func() {
 							Name:   "some-resource",
 							Type:   "some-type",
 							Source: atc.Source{"some": "source"},
-							Tags:   atc.Tags{"tag"},
 						},
 					))
 				})

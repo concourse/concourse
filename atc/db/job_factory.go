@@ -49,7 +49,6 @@ type SchedulerResource struct {
 	Name   string
 	Type   string
 	Source atc.Source
-	Tags   atc.Tags
 }
 
 func (resources SchedulerResources) Lookup(name string) (SchedulerResource, bool) {
@@ -138,7 +137,6 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 				Name:   name,
 				Type:   type_,
 				Source: config.Source,
-				Tags:   config.Tags,
 			})
 		}
 
