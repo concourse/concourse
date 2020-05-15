@@ -13,7 +13,8 @@ A resource type is implemented by a container image with three scripts:
 }
 
 Distributing resource types as containers allows them to package their own
-dependencies. For example, the Git resource comes with \code{git} installed.
+dependencies. For example, the \code{git} resource comes with the \code{git}
+binary pre-installed.
 
 All resources must implement all three actions, though the actions can just be
 no-ops (which still must be correctly implemented as detailed below).
@@ -37,8 +38,8 @@ UI, so you should make your output pretty.
     the resource, including any credentials. This is passed verbatim from the
     \reference{resources}{resource configuration}.
 
-    For \code{git} this would be the repo URI, the branch, and the private key,
-    if necessary.
+    For the \code{git} resource this would be the repo URI, the branch, and the
+    private key, if necessary.
   }{
     \code{version} is a JSON object with \code{string} fields, used to uniquely
     identify an instance of the resource. For \code{git} this would be a commit
@@ -49,7 +50,7 @@ UI, so you should make your output pretty.
     resource's inception).
   }
 
-  For example, here's what the input for a \code{git} resource may look like:
+  For example, here's what the input for the \code{git} resource may look like:
 
   \codeblock{json}{{{
   {
