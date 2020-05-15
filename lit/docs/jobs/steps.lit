@@ -1004,7 +1004,7 @@ by configuring \reference{schema.step.on_failure} or
           params: {path: my-repo}
         - task: acceptance-tests
           tags: [private]
-          file: my-repo/ci/atteptance.yml
+          file: my-repo/ci/acceptance.yml
         }}}
       }
   }
