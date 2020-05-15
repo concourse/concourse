@@ -37,7 +37,7 @@ UI, so you should make your output pretty.
     the resource, including any credentials. This is passed verbatim from the
     \reference{resources}{resource configuration}.
 
-    For \code{git} this would be the repo URI, which branch, and a private key
+    For \code{git} this would be the repo URI, the branch, and the private key,
     if necessary.
   }{
     \code{version} is a JSON object with \code{string} fields, used to uniquely
