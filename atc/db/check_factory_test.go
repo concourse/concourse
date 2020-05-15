@@ -1,8 +1,7 @@
 package db_test
 
 import (
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"context"
 	"errors"
 	"time"
 
@@ -55,6 +54,7 @@ var _ = Describe("CheckFactory", func() {
 				false,
 				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
 				metadata,
+				map[string]string{"fake": "span"},
 			)
 			Expect(created).To(BeTrue())
 			Expect(err).NotTo(HaveOccurred())
@@ -85,7 +85,6 @@ var _ = Describe("CheckFactory", func() {
 			fakeResourceTypes []db.ResourceType
 			fromVersion       atc.Version
 			manuallyTriggered bool
-			logger            lager.Logger
 		)
 
 		BeforeEach(func() {
@@ -110,12 +109,10 @@ var _ = Describe("CheckFactory", func() {
 
 			fakeResourceTypes = []db.ResourceType{fakeResourceType}
 			manuallyTriggered = true
-
-			logger = lagertest.NewTestLogger("db-test")
 		})
 
 		JustBeforeEach(func() {
-			check, created, err = checkFactory.TryCreateCheck(logger, fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
+			check, created, err = checkFactory.TryCreateCheck(context.TODO(), fakeResource, fakeResourceTypes, fromVersion, manuallyTriggered)
 		})
 
 		Context("when the resource parent type is not a custom type", func() {
@@ -325,6 +322,7 @@ var _ = Describe("CheckFactory", func() {
 				false,
 				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
 				metadata,
+				map[string]string{"fake": "span"},
 			)
 		})
 
@@ -353,6 +351,7 @@ var _ = Describe("CheckFactory", func() {
 					false,
 					atc.Plan{},
 					metadata,
+					map[string]string{"fake": "span"},
 				)
 				Expect(created).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())
@@ -414,6 +413,7 @@ var _ = Describe("CheckFactory", func() {
 					false,
 					atc.Plan{},
 					metadata,
+					map[string]string{"fake": "span"},
 				)
 				Expect(created).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())
@@ -444,7 +444,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when the resources are used", func() {
 
-			BeforeEach(func(){
+			BeforeEach(func() {
 				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
 					Jobs: atc.JobConfigs{
 						{
