@@ -254,7 +254,7 @@ UI, so you should make your output pretty.
   If the build is a one-off, \code{$BUILD_NAME}, \code{$BUILD_JOB_NAME}, and
   \code{$BUILD_PIPELINE_NAME} will not be set.
 
-  None of these variables are available to \code{/check}.
+  None of these variables are available to \code{check}.
 
   These variables should be used solely for annotating things with metadata for
   traceability, i.e. for linking to the build in an alert or annotating an
