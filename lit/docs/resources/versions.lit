@@ -72,7 +72,7 @@ behavior}{https://github.com/concourse/git-resource#check-check-for-new-commits}
   version, the first job will produce a build using the pinned version of the
   resource. After that build succeeds, the second job that has a passed
   constraint on the first will then be able to trigger off a build because the
-  pinned version has successfully used by the first job.
+  pinned version has been successfully used by the first job.
 
   \section{
     \title{Unpinning}{version-unpinning}
