@@ -26,8 +26,8 @@ UI, so you should make your output pretty.
   \title{\code{check}\aux{: Check for new versions.}}{resource-check}
 
   A resource type's \code{check} script is invoked to detect new versions of
-  the resource. It is given the configured source and current version on stdin,
-  and must print the array of new versions, in chronological order, to stdout,
+  the resource. It is given the configured source and current version on \code{stdin},
+  and must print the array of new versions, in chronological order, to \code{stdout},
   including the requested version if it's still valid.
 
   The request body will have the following fields:
@@ -99,7 +99,7 @@ UI, so you should make your output pretty.
   \title{\code{in}\aux{: Fetch a given resource.}}{resource-in}
 
   The \code{in} script is passed a destination directory as command line argument \code{$1}, and
-  is given on stdin the configured source and a precise version of the resource
+  is given on \code{stdin} the configured source and a precise version of the resource
   to fetch.
 
   The script must fetch the resource and place it in the given directory.
@@ -162,7 +162,7 @@ UI, so you should make your output pretty.
   \title{\code{out}\aux{: Update a resource.}}{resource-out}
 
   The \code{out} script is called with a path to the directory containing the
-  build's full set of sources as the first argument, and is given on stdin the
+  build's full set of sources as the first argument, and is given on \code{stdin} the
   configured params and the resource's source configuration.
 
   The script must emit the resulting version of the resource. For example, the
