@@ -259,7 +259,7 @@ UI, so you should make your output pretty.
 
   These variables should be used solely for annotating things with metadata for
   traceability, i.e. for linking to the build in an alert or annotating an
-  automated commit so its origin can be discovered.
+  automated commit to facilitate its origin discovery.
 
   They should \italic{not} be used to emulate versioning (e.g. by using the
   increasing build number). They are not provided to \reference{task-step}s
