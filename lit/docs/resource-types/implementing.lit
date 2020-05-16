@@ -42,7 +42,7 @@ UI, so you should make your output pretty.
     private key, if necessary.
   }{
     \code{version} is a JSON object with \code{string} fields, used to uniquely
-    identify an instance of the resource. For \code{git} this would be a commit
+    identify an instance of the resource. For \code{git} this would be the commit's
     SHA.
 
     This will be omitted from the first request, in which case the resource
