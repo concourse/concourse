@@ -227,7 +227,7 @@ UI, so you should make your output pretty.
   \definitions{
     \definition{\code{$BUILD_ID}}{
       The internal identifier for the build. Right now this is numeric but it
-      may become a guid in the future. Treat it as an absolute reference to the
+      may become a UUID in the future. Treat it as an absolute reference to the
       build.
     }
   }{
