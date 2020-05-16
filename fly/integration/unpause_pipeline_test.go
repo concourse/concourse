@@ -18,46 +18,86 @@ var _ = Describe("Fly CLI", func() {
 	Describe("unpause-pipeline", func() {
 		Context("when the pipeline name is specified", func() {
 			var (
-				path string
-				err  error
+				mainPath  string
+				otherPath string
+				err       error
 			)
 			BeforeEach(func() {
-				path, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				mainPath, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				Expect(err).NotTo(HaveOccurred())
+
+				otherPath, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "other-team"})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			Context("when the pipeline exists", func() {
-				BeforeEach(func() {
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", path),
-							ghttp.RespondWith(http.StatusOK, nil),
-						),
-					)
+
+				Context("user and pipeline are part of the main team", func() {
+					Context("user is targeting the same team the pipeline belongs to", func() {
+						BeforeEach(func() {
+							atcServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("PUT", mainPath),
+									ghttp.RespondWith(http.StatusOK, nil),
+								),
+							)
+						})
+
+						It("unpauses the pipeline", func() {
+							Expect(func() {
+								flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline")
+
+								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+								Expect(err).NotTo(HaveOccurred())
+
+								Eventually(sess).Should(gbytes.Say(`unpaused 'awesome-pipeline'`))
+
+								<-sess.Exited
+								Expect(sess.ExitCode()).To(Equal(0))
+							}).To(Change(func() int {
+								return len(atcServer.ReceivedRequests())
+							}).By(2))
+						})
+					})
+
+					Context("user is NOT targeting the same team the pipeline belongs to", func() {
+						BeforeEach(func() {
+							atcServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+									ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+										Name: "other-team",
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("PUT", otherPath),
+									ghttp.RespondWith(http.StatusOK, nil),
+								),
+							)
+						})
+
+						It("unpauses the pipeline", func() {
+							flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline", "--team", "other-team")
+
+							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+
+							Eventually(sess).Should(gbytes.Say(`unpaused 'awesome-pipeline'`))
+
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(0))
+						})
+					})
+
 				})
 
-				It("unpauses the pipeline", func() {
-					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline")
-
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
-
-						Eventually(sess).Should(gbytes.Say(`unpaused 'awesome-pipeline'`))
-
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
-					}).To(Change(func() int {
-						return len(atcServer.ReceivedRequests())
-					}).By(2))
-				})
 			})
 
 			Context("when the pipeline doesn't exist", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", path),
+							ghttp.VerifyRequest("PUT", mainPath),
 							ghttp.RespondWith(http.StatusNotFound, nil),
 						),
 					)
