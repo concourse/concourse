@@ -277,7 +277,7 @@ UI, so you should make your output pretty.
 
   The worker's certificate directory will then be always mounted at
   \code{/etc/ssl/certs}, read-only, in each resource container created on the
-  worker. There's no single standard path for this so we picked one that would
+  worker. There's no single standard path for this, so we picked one that would
   work out of the box in most cases.
 
   This approach to certificate configuration is similar in mindset to the
