@@ -106,7 +106,7 @@ UI, so you should make your output pretty.
   The script must fetch the resource and place it in the given directory.
 
   If the desired resource version is unavailable (for example, if it was
-  deleted), the script must error.
+  deleted), the script must exit with error.
 
   The script must emit the fetched version, and may emit metadata as a list of
   key-value pairs. This data is intended for public consumption and will make it
