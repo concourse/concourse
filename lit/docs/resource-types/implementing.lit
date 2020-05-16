@@ -166,7 +166,7 @@ UI, so you should make your output pretty.
   configured params and the resource's source configuration.
 
   The script must emit the resulting version of the resource. For example, the
-  \code{git} resource emits the SHA of the commit that it just pushed.
+  \code{git} resource emits the SHA of the commit that it has just pushed.
 
   Additionally, the script may emit metadata as a list of key-value pairs. This
   data is intended for public consumption and will make it upstream, intended to
