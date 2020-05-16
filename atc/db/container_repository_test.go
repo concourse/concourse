@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -206,7 +207,7 @@ var _ = Describe("ContainerRepository", func() {
 
 			BeforeEach(func() {
 				var err error
-				build, err = defaultJob.CreateBuild()
+				build, err = defaultJob.CreateBuild(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				creatingContainer, err = defaultWorker.CreateContainer(
@@ -289,7 +290,7 @@ var _ = Describe("ContainerRepository", func() {
 
 			Context("when build is deleted", func() {
 				BeforeEach(func() {
-					err := defaultPipeline.Destroy()
+					err := defaultPipeline.Destroy(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -314,7 +315,7 @@ var _ = Describe("ContainerRepository", func() {
 
 			BeforeEach(func() {
 				var err error
-				build, err = defaultJob.CreateBuild()
+				build, err = defaultJob.CreateBuild(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				creatingTaskContainer, err = defaultWorker.CreateContainer(
@@ -382,7 +383,7 @@ var _ = Describe("ContainerRepository", func() {
 
 			BeforeEach(func() {
 				var err error
-				build, err = defaultJob.CreateBuild()
+				build, err = defaultJob.CreateBuild(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				creatingTaskContainer, err = defaultWorker.CreateContainer(

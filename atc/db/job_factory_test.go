@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"context"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
@@ -203,27 +205,27 @@ var _ = Describe("Job Factory", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				transitionBuild, err := job.CreateBuild()
+				transitionBuild, err := job.CreateBuild(context.TODO())
 				Expect(err).ToNot(HaveOccurred())
 
-				err = transitionBuild.Finish(db.BuildStatusSucceeded)
+				err = transitionBuild.Finish(context.TODO(), db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
 				found, err = transitionBuild.Reload()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				finishedBuild, err := job.CreateBuild()
+				finishedBuild, err := job.CreateBuild(context.TODO())
 				Expect(err).ToNot(HaveOccurred())
 
-				err = finishedBuild.Finish(db.BuildStatusSucceeded)
+				err = finishedBuild.Finish(context.TODO(), db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
 				found, err = finishedBuild.Reload()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				nextBuild, err := job.CreateBuild()
+				nextBuild, err := job.CreateBuild(context.TODO())
 				Expect(err).ToNot(HaveOccurred())
 
 				visibleJobs, err := jobFactory.VisibleJobs([]string{"default-team"})
@@ -348,7 +350,7 @@ var _ = Describe("Job Factory", func() {
 		)
 
 		BeforeEach(func() {
-			err := defaultPipeline.Destroy()
+			err := defaultPipeline.Destroy(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 		})
 

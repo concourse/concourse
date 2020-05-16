@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	"errors"
 
 	"github.com/concourse/concourse/atc/db"
@@ -37,18 +38,18 @@ var _ = Describe("NotificationBus", func() {
 		)
 
 		JustBeforeEach(func() {
-			err = bus.Notify("some-channel")
+			err = bus.Notify(context.TODO(), "some-channel")
 		})
 
 		It("notifies the channel", func() {
-			Expect(fakeExecutor.ExecCallCount()).To(Equal(1))
-			msg, _ := fakeExecutor.ExecArgsForCall(0)
+			Expect(fakeExecutor.ExecContextCallCount()).To(Equal(1))
+			_, msg, _ := fakeExecutor.ExecContextArgsForCall(0)
 			Expect(msg).To(Equal("NOTIFY some-channel"))
 		})
 
 		Context("when the executor errors", func() {
 			BeforeEach(func() {
-				fakeExecutor.ExecReturns(nil, errors.New("nope"))
+				fakeExecutor.ExecContextReturns(nil, errors.New("nope"))
 			})
 
 			It("errors", func() {
@@ -58,7 +59,7 @@ var _ = Describe("NotificationBus", func() {
 
 		Context("when the executor succeeds", func() {
 			BeforeEach(func() {
-				fakeExecutor.ExecReturns(nil, nil)
+				fakeExecutor.ExecContextReturns(nil, nil)
 			})
 
 			It("succeeds", func() {

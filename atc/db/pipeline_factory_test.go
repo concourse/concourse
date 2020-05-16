@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	context "context"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
@@ -22,7 +24,7 @@ var _ = Describe("Pipeline Factory", func() {
 		)
 
 		BeforeEach(func() {
-			err := defaultPipeline.Destroy()
+			err := defaultPipeline.Destroy(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 
 			team, err := teamFactory.CreateTeam(atc.Team{Name: "some-team"})
@@ -92,7 +94,7 @@ var _ = Describe("Pipeline Factory", func() {
 		)
 
 		BeforeEach(func() {
-			err := defaultPipeline.Destroy()
+			err := defaultPipeline.Destroy(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 
 			team, err := teamFactory.CreateTeam(atc.Team{Name: "some-team"})

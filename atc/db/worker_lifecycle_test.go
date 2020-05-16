@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -168,10 +169,10 @@ var _ = Describe("Worker Lifecycle", func() {
 					switch s {
 					case db.BuildStatusPending:
 					case db.BuildStatusStarted:
-						_, err = dbBuild.Start(atc.Plan{})
+						_, err = dbBuild.Start(context.TODO(), atc.Plan{})
 						Expect(err).ToNot(HaveOccurred())
 					default:
-						err = dbBuild.Finish(s)
+						err = dbBuild.Finish(context.TODO(), s)
 						Expect(err).ToNot(HaveOccurred())
 					}
 					_, err = dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4), defaultTeam.ID()), db.ContainerMetadata{})
@@ -200,10 +201,10 @@ var _ = Describe("Worker Lifecycle", func() {
 				switch s {
 				case db.BuildStatusPending:
 				case db.BuildStatusStarted:
-					_, err := dbBuild.Start(atc.Plan{})
+					_, err := dbBuild.Start(context.TODO(), atc.Plan{})
 					Expect(err).ToNot(HaveOccurred())
 				default:
-					err := dbBuild.Finish(s)
+					err := dbBuild.Finish(context.TODO(), s)
 					Expect(err).ToNot(HaveOccurred())
 				}
 
@@ -239,7 +240,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					dbBuild, err = job.CreateBuild()
+					dbBuild, err = job.CreateBuild(context.TODO())
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -271,7 +272,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					dbBuild, err = job.CreateBuild()
+					dbBuild, err = job.CreateBuild(context.TODO())
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -412,10 +413,10 @@ var _ = Describe("Worker Lifecycle", func() {
 					switch s {
 					case db.BuildStatusPending:
 					case db.BuildStatusStarted:
-						_, err := dbBuild.Start(atc.Plan{})
+						_, err := dbBuild.Start(context.TODO(), atc.Plan{})
 						Expect(err).ToNot(HaveOccurred())
 					default:
-						err := dbBuild.Finish(s)
+						err := dbBuild.Finish(context.TODO(), s)
 						Expect(err).ToNot(HaveOccurred())
 					}
 
@@ -446,10 +447,10 @@ var _ = Describe("Worker Lifecycle", func() {
 				switch s {
 				case db.BuildStatusPending:
 				case db.BuildStatusStarted:
-					_, err := dbBuild.Start(atc.Plan{})
+					_, err := dbBuild.Start(context.TODO(), atc.Plan{})
 					Expect(err).ToNot(HaveOccurred())
 				default:
-					err := dbBuild.Finish(s)
+					err := dbBuild.Finish(context.TODO(), s)
 					Expect(err).ToNot(HaveOccurred())
 				}
 
@@ -486,7 +487,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					dbBuild, err = job.CreateBuild()
+					dbBuild, err = job.CreateBuild(context.TODO())
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -518,7 +519,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					dbBuild, err = job.CreateBuild()
+					dbBuild, err = job.CreateBuild(context.TODO())
 					Expect(err).ToNot(HaveOccurred())
 				})
 

@@ -52,7 +52,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				jobBuild, err = defaultJob.CreateBuild()
+				jobBuild, err = defaultJob.CreateBuild(context.TODO())
 				Expect(err).ToNot(HaveOccurred())
 
 				jobCache, err = resourceCacheFactory.FindOrCreateResourceCache(
@@ -108,8 +108,8 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 			Context("when the cache is no longer in use", func() {
 				BeforeEach(func() {
-					Expect(oneOffBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
-					Expect(jobBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
+					Expect(oneOffBuild.Finish(context.TODO(), db.BuildStatusSucceeded)).To(Succeed())
+					Expect(jobBuild.Finish(context.TODO(), db.BuildStatusSucceeded)).To(Succeed())
 				})
 
 				Context("when the cache is an input to a job", func() {
@@ -168,7 +168,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						var secondJobCache db.UsedResourceCache
 
 						BeforeEach(func() {
-							secondJobBuild, err = defaultJob.CreateBuild()
+							secondJobBuild, err = defaultJob.CreateBuild(context.TODO())
 							Expect(err).ToNot(HaveOccurred())
 
 							secondJobCache, err = resourceCacheFactory.FindOrCreateResourceCache(
@@ -188,7 +188,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 						Context("when the second build succeeds", func() {
 							BeforeEach(func() {
-								Expect(secondJobBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
+								Expect(secondJobBuild.Finish(context.TODO(), db.BuildStatusSucceeded)).To(Succeed())
 							})
 
 							It("keeps the new cache and removes the old one", func() {
@@ -199,7 +199,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 						Context("when the second build fails", func() {
 							BeforeEach(func() {
-								Expect(secondJobBuild.Finish(db.BuildStatusFailed)).To(Succeed())
+								Expect(secondJobBuild.Finish(context.TODO(), db.BuildStatusFailed)).To(Succeed())
 							})
 
 							It("keeps the new cache and the old one", func() {
@@ -218,7 +218,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 							Expect(err).NotTo(HaveOccurred())
 							Expect(found).To(BeTrue())
 
-							secondJobBuild, err = secondJob.CreateBuild()
+							secondJobBuild, err = secondJob.CreateBuild(context.TODO())
 							Expect(err).ToNot(HaveOccurred())
 
 							secondJobCache, err = resourceCacheFactory.FindOrCreateResourceCache(
@@ -238,7 +238,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 						Context("when the second build succeeds", func() {
 							BeforeEach(func() {
-								Expect(secondJobBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
+								Expect(secondJobBuild.Finish(context.TODO(), db.BuildStatusSucceeded)).To(Succeed())
 							})
 
 							It("keeps the new cache and the old one", func() {
@@ -249,7 +249,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 
 						Context("when the second build fails", func() {
 							BeforeEach(func() {
-								Expect(secondJobBuild.Finish(db.BuildStatusFailed)).To(Succeed())
+								Expect(secondJobBuild.Finish(context.TODO(), db.BuildStatusFailed)).To(Succeed())
 							})
 
 							It("keeps the new cache and the old one", func() {

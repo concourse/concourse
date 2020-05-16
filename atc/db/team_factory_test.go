@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	context "context"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
@@ -110,7 +112,7 @@ var _ = Describe("Team Factory", func() {
 		)
 
 		BeforeEach(func() {
-			err := defaultTeam.Delete()
+			err := defaultTeam.Delete(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 		})
 

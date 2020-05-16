@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	"sync"
 
 	"github.com/concourse/concourse/atc"
@@ -19,13 +20,13 @@ var _ = Describe("ResourceConfigFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build, err = job.CreateBuild()
+			build, err = job.CreateBuild(context.TODO())
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when the resource config is concurrently deleted and created", func() {
 			BeforeEach(func() {
-				Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
+				Expect(build.Finish(context.TODO(), db.BuildStatusSucceeded)).To(Succeed())
 				Expect(build.SetInterceptible(false)).To(Succeed())
 			})
 

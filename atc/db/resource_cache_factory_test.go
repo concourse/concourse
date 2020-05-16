@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	"crypto/md5"
 	"crypto/sha256"
 	"database/sql"
@@ -243,7 +244,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 		Context("when the resource cache is concurrently deleted and created", func() {
 			BeforeEach(func() {
-				Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
+				Expect(build.Finish(context.TODO(), db.BuildStatusSucceeded)).To(Succeed())
 				Expect(build.SetInterceptible(false)).To(Succeed())
 			})
 

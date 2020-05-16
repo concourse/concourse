@@ -108,15 +108,17 @@ var _ = Describe("BuildLogCollector", func() {
 				It("should not reap builds which have not been drained", func() {
 					Expect(fakeJob.DeleteBuildEventsCallCount()).To(Equal(1))
 
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(6)))
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(8)))
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(9)))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(6)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(8)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(9)))
 				})
 
 				It("should reap builds which have been drained", func() {
 					Expect(fakeJob.DeleteBuildEventsCallCount()).To(Equal(1))
 
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).To(ConsistOf(7))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).To(ConsistOf(7))
 				})
 
 				It("should update first logged build id to the earliest non-drained build", func() {
@@ -154,7 +156,8 @@ var _ = Describe("BuildLogCollector", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(fakeJob.DeleteBuildEventsCallCount()).To(Equal(1))
 
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).To(ConsistOf(5, 6, 7, 8))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).To(ConsistOf(5, 6, 7, 8))
 
 					Expect(fakeJob.UpdateFirstLoggedBuildIDCallCount()).To(Equal(1))
 					actualNewFirstLoggedBuildID := fakeJob.UpdateFirstLoggedBuildIDArgsForCall(0)
@@ -248,7 +251,8 @@ var _ = Describe("BuildLogCollector", func() {
 
 				It("reaps only not-running builds", func() {
 					Expect(fakeJob.DeleteBuildEventsCallCount()).To(Equal(1))
-					actualBuildIDs := buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					actualBuildIDs := buildIDs(deletedBuilds)
 					Expect(actualBuildIDs).To(ConsistOf(6))
 				})
 
@@ -348,8 +352,8 @@ var _ = Describe("BuildLogCollector", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeJob.DeleteBuildEventsCallCount()).To(Equal(1))
-					actualBuildIDs := buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))
-					Expect(actualBuildIDs).To(ConsistOf(6))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).To(ConsistOf(6))
 				})
 			})
 
@@ -410,8 +414,8 @@ var _ = Describe("BuildLogCollector", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeJob.DeleteBuildEventsCallCount()).To(Equal(1))
-					actualBuildIDs := buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))
-					Expect(actualBuildIDs).To(ConsistOf(6))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).To(ConsistOf(6))
 				})
 			})
 
@@ -441,8 +445,8 @@ var _ = Describe("BuildLogCollector", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeJob.DeleteBuildEventsCallCount()).To(Equal(1))
-					actualBuildIDs := buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))
-					Expect(actualBuildIDs).To(ConsistOf(6))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).To(ConsistOf(6))
 				})
 			})
 
@@ -476,16 +480,17 @@ var _ = Describe("BuildLogCollector", func() {
 
 				It("should reap non success builds", func() {
 					Expect(fakeJob.DeleteBuildEventsCallCount()).To(Equal(1))
-					actualBuildIDs := buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))
-					Expect(actualBuildIDs).To(ConsistOf(7, 9, 10, 11, 12, 14, 15))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).To(ConsistOf(7, 9, 10, 11, 12, 14, 15))
 
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(5)))
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(6)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(5)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(6)))
 				})
 
 				It("should keep at least n success builds, n=MinSuccessBuilds, n=2 ", func() {
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(8)))
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(13)))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(8)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(13)))
 				})
 
 				It("should update first logged build id to the earliest success build", func() {
@@ -525,19 +530,20 @@ var _ = Describe("BuildLogCollector", func() {
 
 				It("should reap non success builds and success builds that exceeds min success build retained number", func() {
 					Expect(fakeJob.DeleteBuildEventsCallCount()).To(Equal(1))
-					actualBuildIDs := buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))
-					Expect(actualBuildIDs).To(ConsistOf(7, 8, 9, 11, 14, 16, 17))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).To(ConsistOf(7, 8, 9, 11, 14, 16, 17))
 
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(5)))
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(6)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(5)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(6)))
 				})
 
 				It("should keep at least n success builds, n=MinSuccessBuilds, n=5", func() {
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(10)))
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(12)))
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(13)))
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(15)))
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).Should(Not(ContainElement(18)))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(10)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(12)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(13)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(15)))
+					Expect(buildIDs(deletedBuilds)).Should(Not(ContainElement(18)))
 				})
 
 				It("should update first logged build id to the earliest success build", func() {
@@ -582,7 +588,8 @@ var _ = Describe("BuildLogCollector", func() {
 				It("uses build log calculator", func() {
 					Expect(buildLogCollector.Run(context.TODO())).NotTo(HaveOccurred())
 					Expect(fakeJob.DeleteBuildEventsCallCount()).To(Equal(1))
-					Expect(buildIDs(fakeJob.DeleteBuildEventsArgsForCall(0))).To(ConsistOf(1))
+					_, deletedBuilds := fakeJob.DeleteBuildEventsArgsForCall(0)
+					Expect(buildIDs(deletedBuilds)).To(ConsistOf(1))
 				})
 			})
 

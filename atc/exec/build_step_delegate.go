@@ -21,6 +21,7 @@ type BuildStepDelegate interface {
 
 	Variables() vars.CredVarsTracker
 
+	// TODO: context-ify these
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, bool)

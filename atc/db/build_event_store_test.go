@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/concourse/concourse/atc"
@@ -26,7 +27,7 @@ var _ = Describe("BuildEventStore", func() {
 			`)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Setup()
+			err = eventStore.Setup(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -73,7 +74,7 @@ var _ = Describe("BuildEventStore", func() {
 		})
 
 		It("doesn't error when run multiple times", func() {
-			err := eventStore.Setup()
+			err := eventStore.Setup(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -82,12 +83,12 @@ var _ = Describe("BuildEventStore", func() {
 		var build db.Build
 
 		BeforeEach(func() {
-			err := eventStore.Setup()
+			err := eventStore.Setup(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
-			err := eventStore.Initialize(build)
+			err := eventStore.Initialize(context.TODO(), build)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -132,7 +133,7 @@ var _ = Describe("BuildEventStore", func() {
 				otherBuild, err := defaultPipeline.CreateOneOffBuild()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = eventStore.Initialize(otherBuild)
+				err = eventStore.Initialize(context.TODO(), otherBuild)
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})
@@ -165,10 +166,10 @@ var _ = Describe("BuildEventStore", func() {
 		})
 
 		It("drops the event id sequence", func() {
-			err := eventStore.Initialize(build)
+			err := eventStore.Initialize(context.TODO(), build)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Finalize(build)
+			err = eventStore.Finalize(context.TODO(), build)
 			Expect(err).ToNot(HaveOccurred())
 
 			seqName := fmt.Sprintf("build_event_id_seq_%d", build.ID())
@@ -187,22 +188,22 @@ var _ = Describe("BuildEventStore", func() {
 			build, err = defaultPipeline.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Initialize(build)
+			err = eventStore.Initialize(context.TODO(), build)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("storing and retrieving single events", func() {
-			err := eventStore.Put(build, []atc.Event{event.Start{}})
+			err := eventStore.Put(context.TODO(), build, []atc.Event{event.Start{}})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Put(build, []atc.Event{
+			err = eventStore.Put(context.TODO(), build, []atc.Event{
 				event.Log{Payload: "hello"},
 				event.Log{Payload: "world"},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
 			var cursor db.Key
-			events, err := eventStore.Get(build, 3, &cursor)
+			events, err := eventStore.Get(context.TODO(), build, 3, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(Equal([]event.Envelope{
 				envelope(event.Start{}),
@@ -212,7 +213,7 @@ var _ = Describe("BuildEventStore", func() {
 		})
 
 		It("supports pagination", func() {
-			err := eventStore.Put(build, []atc.Event{
+			err := eventStore.Put(context.TODO(), build, []atc.Event{
 				event.Log{Payload: "A"},
 				event.Log{Payload: "B"},
 				event.Log{Payload: "C"},
@@ -221,25 +222,25 @@ var _ = Describe("BuildEventStore", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Finalize(build)
+			err = eventStore.Finalize(context.TODO(), build)
 			Expect(err).ToNot(HaveOccurred())
 
 			var cursor db.Key
-			events, err := eventStore.Get(build, 2, &cursor)
+			events, err := eventStore.Get(context.TODO(), build, 2, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(Equal([]event.Envelope{
 				envelope(event.Log{Payload: "A"}),
 				envelope(event.Log{Payload: "B"}),
 			}))
 
-			events, err = eventStore.Get(build, 2, &cursor)
+			events, err = eventStore.Get(context.TODO(), build, 2, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(Equal([]event.Envelope{
 				envelope(event.Log{Payload: "C"}),
 				envelope(event.Log{Payload: "D"}),
 			}))
 
-			events, err = eventStore.Get(build, 2, &cursor)
+			events, err = eventStore.Get(context.TODO(), build, 2, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(Equal([]event.Envelope{
 				envelope(event.Log{Payload: "E"}),
@@ -259,36 +260,36 @@ var _ = Describe("BuildEventStore", func() {
 			build2, err = defaultTeam.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Setup()
+			err = eventStore.Setup(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Initialize(build1)
+			err = eventStore.Initialize(context.TODO(), build1)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Initialize(build2)
+			err = eventStore.Initialize(context.TODO(), build2)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("deletes all events from the provided builds", func() {
-			err := eventStore.Put(build1, []atc.Event{event.Start{}})
+			err := eventStore.Put(context.TODO(), build1, []atc.Event{event.Start{}})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Put(build2, []atc.Event{
+			err = eventStore.Put(context.TODO(), build2, []atc.Event{
 				event.Log{Payload: "hello"},
 				event.Log{Payload: "world"},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Delete([]db.Build{build1, build2})
+			err = eventStore.Delete(context.TODO(), []db.Build{build1, build2})
 			Expect(err).ToNot(HaveOccurred())
 
 			var cursor db.Key
-			events, err := eventStore.Get(build1, 100, &cursor)
+			events, err := eventStore.Get(context.TODO(), build1, 100, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(BeEmpty())
 			Expect(cursor).To(BeNil())
 
-			events, err = eventStore.Get(build2, 100, &cursor)
+			events, err = eventStore.Get(context.TODO(), build2, 100, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(BeEmpty())
 		})
@@ -302,15 +303,15 @@ var _ = Describe("BuildEventStore", func() {
 			build, err = defaultPipeline.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Setup()
+			err = eventStore.Setup(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Initialize(build)
+			err = eventStore.Initialize(context.TODO(), build)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("drops the pipeline build events table", func() {
-			err := eventStore.DeletePipeline(defaultPipeline)
+			err := eventStore.DeletePipeline(context.TODO(), defaultPipeline)
 			Expect(err).ToNot(HaveOccurred())
 
 			tableName := fmt.Sprintf("pipeline_build_events_%d", defaultPipeline.ID())
@@ -333,18 +334,18 @@ var _ = Describe("BuildEventStore", func() {
 			teamBuild, err = defaultTeam.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Setup()
+			err = eventStore.Setup(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Initialize(pipelineBuild)
+			err = eventStore.Initialize(context.TODO(), pipelineBuild)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Initialize(teamBuild)
+			err = eventStore.Initialize(context.TODO(), teamBuild)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("drops the team build events table", func() {
-			err := eventStore.DeleteTeam(defaultTeam)
+			err := eventStore.DeleteTeam(context.TODO(), defaultTeam)
 			Expect(err).ToNot(HaveOccurred())
 
 			tableName := fmt.Sprintf("team_build_events_%d", defaultTeam.ID())
@@ -355,7 +356,7 @@ var _ = Describe("BuildEventStore", func() {
 		})
 
 		It("drops the pipeline build events table for pipelines in that team", func() {
-			err := eventStore.DeleteTeam(defaultTeam)
+			err := eventStore.DeleteTeam(context.TODO(), defaultTeam)
 			Expect(err).ToNot(HaveOccurred())
 
 			tableName := fmt.Sprintf("pipeline_build_events_%d", defaultPipeline.ID())
