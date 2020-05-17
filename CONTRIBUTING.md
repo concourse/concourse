@@ -96,13 +96,13 @@ indeed submitting a code change. Cheers! 🍻
      i       ii         iii
      |       |           |
     web: structure: add var declarations
-    
+
     Since scripts are run in module mode, they follow the "strict mode"
     semantics. Variables must be declared prior to being assigned (e.g. - iv
     cannot have `x = 1` without declaring x (using var, let, or const)
-    
+
     concourse/concourse#5131 -------------------------------------------- v
-    
+
     Signed-off-by: Aidan Oldershaw <aoldershaw@pivotal.io> -------------- vi
     ```
 
@@ -182,8 +182,13 @@ $ fly -t dev login -c http://localhost:8080 -u test -p test
 ```
 
 **Create an example pipeline that runs a hello world job every minute:**
+[concourse/examples](https://github.com/concourse/examples) provides a collection
+of example Concourse pipelines. Use its `time-triggered.yml` pipeline to create a
+hello world job:
+
 ```sh
-$ fly -t dev set-pipeline -p example -c examples/hello-world-every-minute.yml
+$ git clone git@github.com:concourse/examples.git
+$ fly -t dev set-pipeline -p example -c examples/time-triggered.yml
 ```
 
 **Unpause the example pipeline:**
@@ -301,7 +306,7 @@ $ ./hack/trace worker --listen 2345
 
 After this is done, the final step is to connect your IDE to the debugger with the following parameters:
 * host: `localhost`
-* port: `2345` 
+* port: `2345`
 
 For GoLand you can do so by going to Run | Edit Configurations… | + | Go Remote and fill in the parameters.
 
