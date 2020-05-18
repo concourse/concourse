@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/hashicorp/go-rootcerts"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
