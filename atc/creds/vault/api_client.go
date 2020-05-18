@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/hashicorp/go-rootcerts"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
@@ -94,7 +93,7 @@ func (ac *APIClient) Login() (time.Duration, error) {
 	client := ac.client()
 	loginPath := path.Join("auth", ac.authConfig.Backend, "login")
 
-	if ac.authConfig.Backend == "ldap" {
+	if ac.authConfig.Backend == "ldap" || ac.authConfig.Backend == "okta" {
 		username, ok := ac.loginParams()["username"].(string)
 		if !ok {
 			err := fmt.Errorf("failed to assert username as string")
