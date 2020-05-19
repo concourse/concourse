@@ -94,7 +94,15 @@ test('auto-refreshes to reflect state changes', async t => {
 
 test('picks up cluster name from configuration', async t => {
   await t.context.web.page.goto(t.context.web.route('/'));
-  const clusterName = await t.context.web.page.$eval(`#top-bar-app > div:nth-child(1)`, el => el.innerText);
+
+  const clusterNameSelector = `#top-bar-app > div:nth-child(1)`;
+  await t.context.web.page.waitFor(({selector}) => {
+    return document.querySelector(selector).innerText.length > 0;
+  }, {timeout: 10000}, {
+    selector: clusterNameSelector,
+  });
+
+  const clusterName = await t.context.web.page.$eval(clusterNameSelector, el => el.innerText);
 
   t.is(clusterName, 'dev');
 });
