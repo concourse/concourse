@@ -11,6 +11,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
@@ -191,16 +193,61 @@ var _ = Describe("StreamableArtifactSource", func() {
 			actualVolume, actualFound, actualErr = artifactSource.ExistsOn(testLogger, fakeWorker)
 		})
 
-		It("calls Worker.LookupVolume with the the correct params", func() {
-			_, actualArtifactID := fakeWorker.LookupVolumeArgsForCall(0)
-			Expect(actualArtifactID).To(Equal(fakeArtifact.ID()))
+		Context("when the volume belongs to the worker passed in", func() {
+			BeforeEach(func() {
+				fakeWorker.NameReturns("some-foo-worker-name")
+				fakeVolume.WorkerNameReturns("some-foo-worker-name")
+			})
+			It("returns the volume", func() {
+				Expect(actualFound).To(BeTrue())
+				Expect(actualVolume).To(Equal(fakeVolume))
+				Expect(actualErr).ToNot(HaveOccurred())
+			})
 		})
+		Context("when the volume doesn't belong to the worker passed in", func() {
+			BeforeEach(func() {
+				fakeWorker.NameReturns("some-foo-worker-name")
+				fakeVolume.WorkerNameReturns("some-other-foo-worker-name")
+			})
+			Context("when the volume has a resource cache", func() {
+				var fakeResourceCache db.UsedResourceCache
 
-		It("returns the response of Worker.LookupVolume", func() {
-			Expect(actualVolume).To(Equal(fakeVolume))
-			Expect(actualFound).To(BeTrue())
-			Expect(actualErr).To(Equal(disaster))
+				BeforeEach(func() {
+					fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+					fakeWorker.FindResourceCacheForVolumeReturns(fakeResourceCache, true, nil)
 
+				})
+
+				It("queries the worker's local volume for the resourceCache", func() {
+					_, actualResourceCache := fakeWorker.FindVolumeForResourceCacheArgsForCall(0)
+					Expect(actualResourceCache).To(Equal(fakeResourceCache))
+				})
+
+				Context("when the resource cache has a local volume on the worker", func() {
+					var localFakeVolume worker.Volume
+					BeforeEach(func() {
+						localFakeVolume = new(workerfakes.FakeVolume)
+						fakeWorker.FindVolumeForResourceCacheReturns(localFakeVolume, true, nil)
+					})
+					It("returns worker's local volume for the resourceCache", func() {
+						Expect(actualFound).To(BeTrue())
+						Expect(actualVolume).To(Equal(localFakeVolume))
+						Expect(actualErr).ToNot(HaveOccurred())
+					})
+				})
+
+			})
+
+			Context("when the volume does NOT have a resource cache", func() {
+				BeforeEach(func() {
+					fakeWorker.FindResourceCacheForVolumeReturns(nil, false, nil)
+
+				})
+				It("returns not found", func() {
+					Expect(actualFound).To(BeFalse())
+					Expect(actualErr).ToNot(HaveOccurred())
+				})
+			})
 		})
 	})
 

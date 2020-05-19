@@ -101,6 +101,7 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 		logger.Error("failed-to-stream-image-artifact-source", err)
 		return worker.FetchedImage{}, err
 	}
+	logger.Debug("streamed-non-local-image-volume")
 
 	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ctx, logger, ImageMetadataFile)
 	if err != nil {
