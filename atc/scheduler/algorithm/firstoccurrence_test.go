@@ -212,51 +212,27 @@ var _ = Describe("Resolve", func() {
 		}
 
 		versionsDB := db.NewVersionsDB(dbConn, 2, gocache.New(10*time.Second, 10*time.Second))
-		resourceConfigs := atc.ResourceConfigs{}
-		for _, resource := range resources {
-			resourceConfigs = append(resourceConfigs, resource)
-		}
-
-		pipeline, _, err = team.SavePipeline("algorithm", atc.Config{
-			Jobs: atc.JobConfigs{
-				{
-					Name: "j1",
-					Plan: atc.PlanSequence{
-						{
-							Get:      "some-input",
-							Resource: "r1",
-						},
-					},
-				},
-			},
-			Resources: resourceConfigs,
-		}, db.ConfigVersion(1), false)
-		Expect(err).NotTo(HaveOccurred())
-
-		dbResources := db.Resources{}
-		for name, _ := range setup.resourceIDs {
-			resource, found, err := pipeline.Resource(name)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			dbResources = append(dbResources, resource)
-		}
 
 		job, found, err := pipeline.Job("j1")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		jobInputs := []atc.JobInput{
+		r1, found, err := pipeline.Resource("r1")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		jobInputs := db.InputConfigs{
 			{
-				Name:     "some-input",
-				Resource: "r1",
+				Name:       "some-input",
+				ResourceID: r1.ID(),
+				JobID:      job.ID(),
 			},
 		}
 
 		algorithm := algorithm.New(versionsDB)
 
 		var ok bool
-		inputMapping, ok, _, err = algorithm.Compute(context.Background(), job, jobInputs, dbResources, map[string]int{"j1": 1})
+		inputMapping, ok, _, err = algorithm.Compute(context.Background(), job, jobInputs)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ok).To(BeTrue())
 	})

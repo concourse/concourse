@@ -1688,6 +1688,8 @@ var _ = Describe("Resource", func() {
 		})
 
 		Context("when we pin a resource that is already pinned to a version (through the config)", func() {
+			var resConf db.ResourceConfigVersion
+
 			BeforeEach(func() {
 				var found bool
 				var err error
@@ -1716,21 +1718,15 @@ var _ = Describe("Resource", func() {
 				})
 				Expect(err).ToNot(HaveOccurred())
 
-				resConf, found, err := resourceScope.FindVersion(atc.Version{"version": "v1"})
+				resConf, found, err = resourceScope.FindVersion(atc.Version{"version": "v1"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
-
-				found, err = resource.PinVersion(resConf.ID())
-				Expect(found).To(BeTrue())
-				Expect(err).ToNot(HaveOccurred())
-
-				found, err = resource.Reload()
-				Expect(found).To(BeTrue())
-				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("should return the config pinned version", func() {
-				Expect(resource.CurrentPinnedVersion()).To(Equal(atc.Version{"ref": "abcdef"}))
+			It("should fail to update the pinned version", func() {
+				found, err := resource.PinVersion(resConf.ID())
+				Expect(found).To(BeFalse())
+				Expect(err).To(Equal(db.ErrPinnedThroughConfig))
 			})
 		})
 	})

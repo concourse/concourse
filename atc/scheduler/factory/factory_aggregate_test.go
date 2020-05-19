@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,7 +12,7 @@ var _ = Describe("Factory Aggregate", func() {
 	var (
 		buildFactory factory.BuildFactory
 
-		resources           atc.ResourceConfigs
+		resources           db.SchedulerResources
 		resourceTypes       atc.VersionedResourceTypes
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
@@ -23,7 +24,7 @@ var _ = Describe("Factory Aggregate", func() {
 
 		buildFactory = factory.NewBuildFactory(actualPlanFactory)
 
-		resources = atc.ResourceConfigs{
+		resources = db.SchedulerResources{
 			{
 				Name:   "some-resource",
 				Type:   "git",

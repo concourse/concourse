@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
@@ -13,7 +14,7 @@ var _ = Describe("Factory Put", func() {
 		var (
 			buildFactory factory.BuildFactory
 
-			resources           atc.ResourceConfigs
+			resources           db.SchedulerResources
 			resourceTypes       atc.VersionedResourceTypes
 			input               atc.JobConfig
 			actualPlanFactory   atc.PlanFactory
@@ -25,7 +26,7 @@ var _ = Describe("Factory Put", func() {
 			expectedPlanFactory = atc.NewPlanFactory(123)
 			buildFactory = factory.NewBuildFactory(actualPlanFactory)
 
-			resources = atc.ResourceConfigs{
+			resources = db.SchedulerResources{
 				{
 					Name:   "some-resource",
 					Type:   "git",
@@ -111,7 +112,7 @@ var _ = Describe("Factory Put", func() {
 		var (
 			buildFactory factory.BuildFactory
 
-			resources           atc.ResourceConfigs
+			resources           db.SchedulerResources
 			resourceTypes       atc.VersionedResourceTypes
 			input               atc.JobConfig
 			actualPlanFactory   atc.PlanFactory
@@ -123,7 +124,7 @@ var _ = Describe("Factory Put", func() {
 			expectedPlanFactory = atc.NewPlanFactory(123)
 			buildFactory = factory.NewBuildFactory(actualPlanFactory)
 
-			resources = atc.ResourceConfigs{
+			resources = db.SchedulerResources{
 				{
 					Name:   "some-resource",
 					Type:   "git",

@@ -3,14 +3,12 @@ package scheduler_test
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
 
 	. "github.com/onsi/ginkgo"
@@ -26,7 +24,7 @@ var _ = Describe("BuildStarter", func() {
 
 		buildStarter scheduler.BuildStarter
 
-		jobInputs []atc.JobInput
+		jobInputs db.InputConfigs
 
 		disaster error
 	)
@@ -46,10 +44,8 @@ var _ = Describe("BuildStarter", func() {
 		var needsReschedule bool
 		var createdBuild *dbfakes.FakeBuild
 		var job *dbfakes.FakeJob
-		var resource *dbfakes.FakeResource
-		var resources db.Resources
+		var resources db.SchedulerResources
 		var versionedResourceTypes atc.VersionedResourceTypes
-		var relatedJobs algorithm.NameToIDMap
 
 		BeforeEach(func() {
 			versionedResourceTypes = atc.VersionedResourceTypes{
@@ -59,8 +55,11 @@ var _ = Describe("BuildStarter", func() {
 				},
 			}
 
-			resource = new(dbfakes.FakeResource)
-			resource.NameReturns("some-resource")
+			resources = db.SchedulerResources{
+				{
+					Name: "some-resource",
+				},
+			}
 		})
 
 		Context("when pending builds are successfully fetched", func() {
@@ -77,17 +76,14 @@ var _ = Describe("BuildStarter", func() {
 				job.IDReturns(1)
 				job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}}, nil)
 
-				relatedJobs = algorithm.NameToIDMap{"some-job": 1}
-
-				fakePipeline.CheckPausedReturns(false, nil)
-				jobInputs = []atc.JobInput{
+				jobInputs = db.InputConfigs{
 					{
-						Name:     "input-1",
-						Resource: "some-resource",
+						Name:       "input-1",
+						ResourceID: 1,
 					},
 					{
-						Name:     "input-2",
-						Resource: "some-resource",
+						Name:       "input-2",
+						ResourceID: 1,
 					},
 				}
 			})
@@ -100,18 +96,17 @@ var _ = Describe("BuildStarter", func() {
 					abortedBuild.IDReturns(42)
 					abortedBuild.IsAbortedReturns(true)
 					abortedBuild.FinishReturns(nil)
-
-					resources = db.Resources{resource}
 				})
 
 				JustBeforeEach(func() {
 					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
 						lagertest.NewTestLogger("test"),
-						fakePipeline,
-						job,
+						db.SchedulerJob{
+							Job:           job,
+							Resources:     resources,
+							ResourceTypes: versionedResourceTypes,
+						},
 						jobInputs,
-						resources,
-						relatedJobs,
 					)
 				})
 
@@ -161,17 +156,21 @@ var _ = Describe("BuildStarter", func() {
 				BeforeEach(func() {
 					createdBuild.IsManuallyTriggeredReturns(true)
 
-					resources = db.Resources{resource}
+					resources = db.SchedulerResources{
+						{
+							Name: "some-resource",
+						},
+					}
 				})
 
 				JustBeforeEach(func() {
 					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
 						lagertest.NewTestLogger("test"),
-						fakePipeline,
-						job,
+						db.SchedulerJob{
+							Job:       job,
+							Resources: resources,
+						},
 						jobInputs,
-						resources,
-						relatedJobs,
 					)
 				})
 
@@ -209,21 +208,20 @@ var _ = Describe("BuildStarter", func() {
 						job.ScheduleBuildReturns(true, nil)
 					})
 
-					Context("when looking up resource is not found", func() {
+					Context("when checking if resources have been checked fails", func() {
 						BeforeEach(func() {
-							resource.NameReturns("not-found")
-							resources = db.Resources{resource}
+							createdBuild.ResourcesCheckedReturns(false, disaster)
 						})
 
-						It("does not return error and retries to schedule", func() {
-							Expect(tryStartErr).ToNot(HaveOccurred())
-							Expect(needsReschedule).To(BeTrue())
+						It("returns the error", func() {
+							Expect(tryStartErr).To(Equal(fmt.Errorf("ready to determine inputs: %w", disaster)))
+							Expect(needsReschedule).To(BeFalse())
 						})
 					})
 
 					Context("when some of the resources are checked before build create time", func() {
 						BeforeEach(func() {
-							createdBuild.IsNewerThanLastCheckOfReturns(true)
+							createdBuild.ResourcesCheckedReturns(false, nil)
 						})
 
 						It("does not save the next input mapping", func() {
@@ -245,26 +243,7 @@ var _ = Describe("BuildStarter", func() {
 
 					Context("when all resources are checked after build create time or pinned", func() {
 						BeforeEach(func() {
-							fakeDBResourceType := new(dbfakes.FakeResourceType)
-							fakeDBResourceType.NameReturns("fake-resource-type")
-							fakeDBResourceType.TypeReturns("fake")
-							fakeDBResourceType.SourceReturns(atc.Source{"im": "fake"})
-							fakeDBResourceType.PrivilegedReturns(true)
-							fakeDBResourceType.VersionReturns(atc.Version{"version": "1.2.3"})
-
-							fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeDBResourceType}, nil)
-
-							job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "other-resource"}}}, nil)
-
-							createdBuild.IsNewerThanLastCheckOfReturns(false)
-
-							otherResource := new(dbfakes.FakeResource)
-							otherResource.IDReturns(25)
-							otherResource.NameReturns("other-resource")
-							otherResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
-							otherResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute))
-
-							resources = db.Resources{resource, otherResource}
+							createdBuild.ResourcesCheckedReturns(true, nil)
 						})
 
 						It("computes a new set of versions for inputs to the build", func() {
@@ -278,9 +257,12 @@ var _ = Describe("BuildStarter", func() {
 
 							It("computes the next inputs for the right job and versions", func() {
 								Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
-								_, actualJob, actualInputs, _, actualRelatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
-								Expect(actualJob.Name()).To(Equal(job.Name()))
-								Expect(actualRelatedJobs).To(Equal(relatedJobs))
+								_, actualJob, actualInputs := fakeAlgorithm.ComputeArgsForCall(0)
+								Expect(actualJob).To(Equal(
+									db.SchedulerJob{
+										Job:       job,
+										Resources: resources,
+									}))
 								Expect(actualInputs).To(Equal(jobInputs))
 							})
 
@@ -377,8 +359,8 @@ var _ = Describe("BuildStarter", func() {
 									createdBuild.AdoptInputsAndPipesReturns([]db.BuildInput{}, true, nil)
 								})
 
-								It("tries to fetch resource types", func() {
-									Expect(fakePipeline.ResourceTypesCallCount()).To(Equal(1))
+								It("tries to fetch the job config", func() {
+									Expect(job.ConfigCallCount()).To(Equal(1))
 								})
 							})
 
@@ -419,41 +401,31 @@ var _ = Describe("BuildStarter", func() {
 					job.ConfigReturns(atc.JobConfig{Name: "some-job"}, nil)
 					createdBuild.IsManuallyTriggeredReturns(false)
 
-					relatedJobs = algorithm.NameToIDMap{"some-job": 1}
-
-					fakeDBResourceType := new(dbfakes.FakeResourceType)
-					fakeDBResourceType.NameReturns("some-resource-type")
-					fakeDBResourceType.VersionReturns(atc.Version{"some": "version"})
-
-					fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeDBResourceType}, nil)
-
-					jobInputs = []atc.JobInput{}
+					jobInputs = db.InputConfigs{}
 				})
 
 				JustBeforeEach(func() {
 					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
 						lagertest.NewTestLogger("test"),
-						fakePipeline,
-						job,
+						db.SchedulerJob{
+							Job:       job,
+							Resources: resources,
+							ResourceTypes: atc.VersionedResourceTypes{
+								{
+									ResourceType: atc.ResourceType{
+										Name: "some-resource-type",
+									},
+									Version: atc.Version{"some": "version"},
+								},
+							},
+						},
 						jobInputs,
-						db.Resources{resource},
-						relatedJobs,
 					)
 				})
 
-				It("doesn't reload the resource types list", func() {
-					Expect(fakePipeline.ResourceTypesCallCount()).To(Equal(0))
+				It("doesn't compute the algorithm", func() {
+					Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(0))
 				})
-
-				itDoesntReturnAnErrorOrMarkTheBuildAsScheduled := func() {
-					It("doesn't return an error", func() {
-						Expect(tryStartErr).NotTo(HaveOccurred())
-					})
-
-					It("doesn't try to mark the build as scheduled", func() {
-						Expect(job.ScheduleBuildCallCount()).To(BeZero())
-					})
-				}
 
 				itScheduledAllBuilds := func() {
 					It("scheduled all the pending builds", func() {
@@ -466,12 +438,6 @@ var _ = Describe("BuildStarter", func() {
 
 						actualBuild = job.ScheduleBuildArgsForCall(2)
 						Expect(actualBuild.ID()).To(Equal(pendingBuild2.ID()))
-					})
-				}
-
-				itDidNotAttemptToScheduleAnyBuilds := func() {
-					It("did not try to schedule any builds", func() {
-						Expect(job.ScheduleBuildCallCount()).To(Equal(0))
 					})
 				}
 
@@ -600,7 +566,7 @@ var _ = Describe("BuildStarter", func() {
 										Expect(fakeFactory.CreateCallCount()).To(Equal(3))
 										actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
 										Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
-										Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
 										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
@@ -669,19 +635,19 @@ var _ = Describe("BuildStarter", func() {
 										Expect(fakeFactory.CreateCallCount()).To(Equal(3))
 										actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
 										Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
-										Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
 										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
 										actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(1)
 										Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
-										Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
 										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
 										actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(2)
 										Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
-										Expect(actualResourceConfigs).To(Equal(atc.ResourceConfigs{{Name: "some-resource"}}))
+										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
 										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 									})
@@ -784,17 +750,6 @@ var _ = Describe("BuildStarter", func() {
 									})
 								})
 							})
-
-							Context("when it fails to fetch resource types", func() {
-								BeforeEach(func() {
-									fakePipeline.ResourceTypesReturns(nil, disaster)
-								})
-
-								It("returns the error", func() {
-									Expect(tryStartErr).To(Equal(fmt.Errorf("find resource types: %w", disaster)))
-									Expect(needsReschedule).To(BeFalse())
-								})
-							})
 						})
 
 						Context("when adopting the inputs and pipes fails", func() {
@@ -820,45 +775,6 @@ var _ = Describe("BuildStarter", func() {
 
 							It("does not start the build", func() {
 								Expect(createdBuild.StartCallCount()).To(BeZero())
-							})
-						})
-
-						Context("when checking if the pipeline is paused fails", func() {
-							BeforeEach(func() {
-								fakePipeline.CheckPausedReturns(false, disaster)
-							})
-
-							It("returns the error", func() {
-								Expect(tryStartErr).To(Equal(fmt.Errorf("check pipeline paused: %w", disaster)))
-								Expect(needsReschedule).To(BeFalse())
-							})
-
-							itDidNotAttemptToScheduleAnyBuilds()
-						})
-
-						Context("when the pipeline is paused", func() {
-							BeforeEach(func() {
-								fakePipeline.CheckPausedReturns(true, nil)
-							})
-
-							itDoesntReturnAnErrorOrMarkTheBuildAsScheduled()
-							itDidNotAttemptToScheduleAnyBuilds()
-
-							It("is rescheduled", func() {
-								Expect(needsReschedule).To(BeTrue())
-							})
-						})
-
-						Context("when the job is paused", func() {
-							BeforeEach(func() {
-								job.PausedReturns(true)
-							})
-
-							itDoesntReturnAnErrorOrMarkTheBuildAsScheduled()
-							itDidNotAttemptToScheduleAnyBuilds()
-
-							It("is rescheduled", func() {
-								Expect(needsReschedule).To(BeTrue())
 							})
 						})
 
