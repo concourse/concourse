@@ -112,7 +112,7 @@ func (factory *teamFactory) FindTeam(teamName string) (Team, bool, error) {
 func (factory *teamFactory) GetTeams() ([]Team, error) {
 	rows, err := psql.Select("id, name, admin, auth").
 		From("teams").
-		OrderBy("id ASC").
+		OrderBy("name ASC").
 		RunWith(factory.conn).
 		Query()
 	if err != nil {
