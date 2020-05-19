@@ -50,7 +50,9 @@ class Web {
 
   async waitForBackgroundColor(selector, backgroundColor, {timeout = 30000} = {}) {
     await this.page.waitFor(({expectedBackground, selector}) => {
-      const background = document.querySelector(selector).style.backgroundColor;
+      const elem = document.querySelector(selector);
+      if (elem === null) return false;
+      const background = elem.style.backgroundColor;
       return background === expectedBackground;
     }, {timeout}, {
       selector,
