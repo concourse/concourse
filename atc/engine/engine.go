@@ -234,6 +234,11 @@ func (b *engineBuild) Run(logger lager.Logger) {
 
 	case err = <-done:
 		logger.Debug("engine-build-done")
+		if err != nil {
+			if _, ok := err.(exec.Retriable); ok {
+				return
+			}
+		}
 		b.finish(logger.Session("finish"), err, step.Succeeded())
 	}
 }
