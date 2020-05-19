@@ -29,7 +29,7 @@ func newCandidateVersion(version db.ResourceVersion) *versionCandidate {
 
 type groupResolver struct {
 	vdb          db.VersionsDB
-	inputConfigs InputConfigs
+	inputConfigs db.InputConfigs
 
 	pins        []db.ResourceVersion
 	orderedJobs [][]int
@@ -40,7 +40,7 @@ type groupResolver struct {
 	lastUsedPassedBuilds map[int]db.BuildCursor
 }
 
-func NewGroupResolver(vdb db.VersionsDB, inputConfigs InputConfigs) Resolver {
+func NewGroupResolver(vdb db.VersionsDB, inputConfigs db.InputConfigs) Resolver {
 	return &groupResolver{
 		vdb:              vdb,
 		inputConfigs:     inputConfigs,
@@ -51,7 +51,7 @@ func NewGroupResolver(vdb db.VersionsDB, inputConfigs InputConfigs) Resolver {
 	}
 }
 
-func (r *groupResolver) InputConfigs() InputConfigs {
+func (r *groupResolver) InputConfigs() db.InputConfigs {
 	return r.inputConfigs
 }
 
@@ -335,7 +335,7 @@ func (r *groupResolver) candidatesAreDoomed() bool {
 	return true
 }
 
-func (r *groupResolver) paginatedBuilds(ctx context.Context, currentInputConfig InputConfig, currentCandidate *versionCandidate, currentJobID int, passedJobID int) (db.PaginatedBuilds, bool, error) {
+func (r *groupResolver) paginatedBuilds(ctx context.Context, currentInputConfig db.InputConfig, currentCandidate *versionCandidate, currentJobID int, passedJobID int) (db.PaginatedBuilds, bool, error) {
 	constraints := r.constrainingCandidates(passedJobID)
 
 	if currentInputConfig.UseEveryVersion {

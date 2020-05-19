@@ -404,10 +404,21 @@ files are created. This is to ensure that the migrations always run in order.
 There is a utility provided to generate migration files, located at
 `atc/db/migration/cli`.
 
-To generate a migration:
+To generate a migration, you have two options:
+
+#### The short way
+
+Use the `create-migration` script:
+
+```sh
+$ ./atc/scripts/create-migration my_migration_name
+# or if you want a go migration,
+$ ./atc/scripts/create-migration my_migration_name go
+```
+
+#### The long way
 
 1. Build the CLI:
-
 ```sh
 $ cd atc/db/migration
 $ go build -o mig ./cli

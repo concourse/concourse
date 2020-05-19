@@ -744,7 +744,7 @@ func increaseActiveTasks(
 	var existingContainer bool
 	defer release(activeTasksLock, err)
 
-	existingContainer, err = pool.ContainerInWorker(logger, owner, containerSpec, workerSpec)
+	existingContainer, err = pool.ContainerInWorker(logger, owner, workerSpec)
 	if err != nil {
 		return err
 	}

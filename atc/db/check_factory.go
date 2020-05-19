@@ -1,12 +1,14 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -45,8 +47,8 @@ type Checkable interface {
 type CheckFactory interface {
 	Check(int) (Check, bool, error)
 	StartedChecks() ([]Check, error)
-	CreateCheck(int, bool, atc.Plan, CheckMetadata) (Check, bool, error)
-	TryCreateCheck(lager.Logger, Checkable, ResourceTypes, atc.Version, bool) (Check, bool, error)
+	CreateCheck(int, bool, atc.Plan, CheckMetadata, SpanContext) (Check, bool, error)
+	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool) (Check, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
 	AcquireScanningLock(lager.Logger) (lock.Lock, bool, error)
@@ -135,7 +137,8 @@ func (c *checkFactory) StartedChecks() ([]Check, error) {
 	return checks, nil
 }
 
-func (c *checkFactory) TryCreateCheck(logger lager.Logger, checkable Checkable, resourceTypes ResourceTypes, fromVersion atc.Version, manuallyTriggered bool) (Check, bool, error) {
+func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, fromVersion atc.Version, manuallyTriggered bool) (Check, bool, error) {
+	logger := lagerctx.FromContext(ctx)
 
 	var err error
 
@@ -222,6 +225,7 @@ func (c *checkFactory) TryCreateCheck(logger lager.Logger, checkable Checkable, 
 		manuallyTriggered,
 		plan,
 		meta,
+		NewSpanContext(ctx),
 	)
 	if err != nil {
 		return nil, false, err
@@ -235,6 +239,7 @@ func (c *checkFactory) CreateCheck(
 	manuallyTriggered bool,
 	plan atc.Plan,
 	meta CheckMetadata,
+	sc SpanContext,
 ) (Check, bool, error) {
 	tx, err := c.conn.Begin()
 	if err != nil {
@@ -259,6 +264,11 @@ func (c *checkFactory) CreateCheck(
 		return nil, false, err
 	}
 
+	spanContext, err := json.Marshal(sc)
+	if err != nil {
+		return nil, false, err
+	}
+
 	var id int
 	var createTime time.Time
 	err = psql.Insert("checks").
@@ -270,6 +280,7 @@ func (c *checkFactory) CreateCheck(
 			"plan",
 			"nonce",
 			"metadata",
+			"span_context",
 		).
 		Values(
 			resourceConfigScopeID,
@@ -279,6 +290,7 @@ func (c *checkFactory) CreateCheck(
 			encryptedPayload,
 			nonce,
 			metadata,
+			spanContext,
 		).
 		Suffix(`
 			ON CONFLICT DO NOTHING
@@ -314,6 +326,8 @@ func (c *checkFactory) CreateCheck(
 			pipelineID:   meta.PipelineID,
 			pipelineName: meta.PipelineName,
 		},
+
+		spanContext: sc,
 	}, true, err
 }
 

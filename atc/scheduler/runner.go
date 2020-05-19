@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 //go:generate counterfeiter . BuildScheduler
@@ -18,10 +17,7 @@ type BuildScheduler interface {
 	Schedule(
 		ctx context.Context,
 		logger lager.Logger,
-		pipeline db.Pipeline,
-		job db.Job,
-		resources db.Resources,
-		relatedJobIDs algorithm.NameToIDMap,
+		job db.SchedulerJob,
 	) (bool, error)
 }
 
@@ -57,42 +53,7 @@ func (s *schedulerRunner) Run(ctx context.Context) error {
 		return fmt.Errorf("find jobs to schedule: %w", err)
 	}
 
-	pipelineIDToPipeline, pipelineIDToJobs, err := s.constructPipelineIDMaps(jobs)
-	if err != nil {
-		return err
-	}
-
-	for pipelineID, jobsToSchedule := range pipelineIDToJobs {
-		pipeline := pipelineIDToPipeline[pipelineID]
-
-		pLog := s.logger.Session("pipeline", lager.Data{"pipeline": pipeline.Name()})
-
-		err := s.schedulePipeline(ctx, pLog, pipeline, jobsToSchedule)
-		if err != nil {
-			pLog.Error("failed-to-schedule", err)
-		}
-	}
-
-	return nil
-}
-
-func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Logger, pipeline db.Pipeline, jobsToSchedule db.Jobs) error {
-	resources, err := pipeline.Resources()
-	if err != nil {
-		return fmt.Errorf("find resources: %w", err)
-	}
-
-	jobs, err := pipeline.Jobs()
-	if err != nil {
-		return fmt.Errorf("find jobs: %w", err)
-	}
-
-	jobsMap := map[string]int{}
-	for _, job := range jobs {
-		jobsMap[job.Name()] = job.ID()
-	}
-
-	for _, j := range jobsToSchedule {
+	for _, j := range jobs {
 		if _, exists := s.running.LoadOrStore(j.ID(), true); exists {
 			// already scheduling this job
 			continue
@@ -100,15 +61,15 @@ func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Log
 
 		s.guardJobScheduling <- struct{}{}
 
-		jLog := logger.Session("job", lager.Data{"job": j.Name()})
+		jLog := sLog.Session("job", lager.Data{"job": j.Name()})
 
-		go func(job db.Job) {
+		go func(job db.SchedulerJob) {
 			defer func() {
 				<-s.guardJobScheduling
 				s.running.Delete(job.ID())
 			}()
 
-			schedulingLock, acquired, err := job.AcquireSchedulingLock(logger)
+			schedulingLock, acquired, err := job.AcquireSchedulingLock(sLog)
 			if err != nil {
 				jLog.Error("failed-to-acquire-lock", err)
 				return
@@ -120,7 +81,7 @@ func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Log
 
 			defer schedulingLock.Release()
 
-			err = s.scheduleJob(ctx, logger, pipeline, job, resources, jobsMap)
+			err = s.scheduleJob(ctx, sLog, job)
 			if err != nil {
 				jLog.Error("failed-to-schedule-job", err)
 			}
@@ -130,7 +91,7 @@ func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Log
 	return nil
 }
 
-func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, pipeline db.Pipeline, job db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
+func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, job db.SchedulerJob) error {
 	metric.JobsScheduling.Inc()
 	defer metric.JobsScheduling.Dec()
 	defer metric.JobsScheduled.Inc()
@@ -159,10 +120,7 @@ func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, 
 	needsRetry, err := s.scheduler.Schedule(
 		ctx,
 		logger,
-		pipeline,
 		job,
-		resources,
-		jobs,
 	)
 	if err != nil {
 		return fmt.Errorf("schedule job: %w", err)
@@ -184,32 +142,4 @@ func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, 
 	}.Emit(logger)
 
 	return nil
-}
-
-func (s *schedulerRunner) constructPipelineIDMaps(jobs db.Jobs) (map[int]db.Pipeline, map[int]db.Jobs, error) {
-	pipelineIDToPipeline := make(map[int]db.Pipeline)
-	pipelineIDToJobs := make(map[int]db.Jobs)
-
-	for _, job := range jobs {
-		pipelineID := job.PipelineID()
-
-		_, found := pipelineIDToPipeline[pipelineID]
-		if !found {
-			pipeline, found, err := job.Pipeline()
-			if err != nil {
-				return nil, nil, fmt.Errorf("find pipeline for job: %w", err)
-			}
-
-			if !found {
-				s.logger.Info("could-not-find-pipeline-for-job", lager.Data{"job": job.Name()})
-				continue
-			}
-
-			pipelineIDToPipeline[pipelineID] = pipeline
-		}
-
-		pipelineIDToJobs[pipelineID] = append(pipelineIDToJobs[pipelineID], job)
-	}
-
-	return pipelineIDToPipeline, pipelineIDToJobs, nil
 }

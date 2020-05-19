@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -40,36 +39,6 @@ var _ = DescribeTable("Job Scheduling",
 		Result: Result{
 			StartedBuilds: []int{},
 			NeedsRetry:    false,
-		},
-	}),
-
-	Entry("one pending build that is owned by a paused pipeline", Example{
-		Job: DBJob{
-			PipelinePaused: true,
-
-			Builds: []DBBuild{
-				{ID: 1},
-			},
-		},
-
-		Result: Result{
-			StartedBuilds: []int{},
-			NeedsRetry:    true,
-		},
-	}),
-
-	Entry("one pending build that is owned by a paused job", Example{
-		Job: DBJob{
-			Paused: true,
-
-			Builds: []DBBuild{
-				{ID: 1},
-			},
-		},
-
-		Result: Result{
-			StartedBuilds: []int{},
-			NeedsRetry:    true,
 		},
 	}),
 
@@ -293,37 +262,9 @@ func (example Example) Run() {
 
 	buildStarter := scheduler.NewBuildStarter(fakeFactory, fakeAlgorithm)
 
-	fakeDBResourceType := new(dbfakes.FakeResourceType)
-	fakeDBResourceType.NameReturns("fake-resource-type")
-	fakeDBResourceType.TypeReturns("fake")
-	fakeDBResourceType.SourceReturns(atc.Source{"im": "fake"})
-	fakeDBResourceType.PrivilegedReturns(true)
-	fakeDBResourceType.VersionReturns(atc.Version{"version": "1.2.3"})
-
-	fakeResource := new(dbfakes.FakeResource)
-	fakeResource.NameReturns("fake-resource")
-	fakeResource.TypeReturns("fake-resource-type")
-	fakeResource.SourceReturns(atc.Source{"some": "source"})
-
-	fakePipeline := new(dbfakes.FakePipeline)
-	fakePipeline.NameReturns("some-pipeline")
-	fakePipeline.ResourceTypesReturns(db.ResourceTypes{fakeDBResourceType}, nil)
-
-	if example.Job.PipelinePaused {
-		fakePipeline.CheckPausedReturns(true, nil)
-	} else {
-		fakePipeline.CheckPausedReturns(false, nil)
-	}
-
 	fakeJob := new(dbfakes.FakeJob)
 	fakeJob.ConfigReturns(atc.JobConfig{}, nil)
 	fakeJob.SaveNextInputMappingReturns(nil)
-
-	if example.Job.Paused {
-		fakeJob.PausedReturns(true)
-	} else {
-		fakeJob.PausedReturns(false)
-	}
 
 	var expectedScheduledBuilds []*dbfakes.FakeBuild
 	var pendingBuilds []db.Build
@@ -343,9 +284,9 @@ func (example Example) Run() {
 		}
 
 		if build.ResourcesNotChecked {
-			fakeBuild.IsNewerThanLastCheckOfReturns(true)
+			fakeBuild.ResourcesCheckedReturns(false, nil)
 		} else {
-			fakeBuild.IsNewerThanLastCheckOfReturns(false)
+			fakeBuild.ResourcesCheckedReturns(true, nil)
 		}
 
 		if build.InputsNotDetermined {
@@ -374,13 +315,25 @@ func (example Example) Run() {
 
 	fakeJob.GetPendingBuildsReturns(pendingBuilds, nil)
 
-	jobInputs := []atc.JobInput{
+	jobInputs := db.InputConfigs{
 		{
-			Resource: "fake-resource",
+			Name: "fake-resource",
 		},
 	}
 
-	needsRetry, err := buildStarter.TryStartPendingBuildsForJob(lager.NewLogger("job-scheduling-tests"), fakePipeline, fakeJob, jobInputs, db.Resources{fakeResource}, algorithm.NameToIDMap{})
+	needsRetry, err := buildStarter.TryStartPendingBuildsForJob(lager.NewLogger("job-scheduling-tests"), db.SchedulerJob{
+		Job: fakeJob,
+		Resources: db.SchedulerResources{
+			{
+				Name: "fake-resource",
+				Type: "fake-resource-type",
+				Source: atc.Source{
+					"some": "source",
+				},
+			},
+		},
+	},
+		jobInputs)
 	if err != nil {
 		Expect(example.Result.Errored).To(BeTrue())
 	} else {

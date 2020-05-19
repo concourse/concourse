@@ -1975,57 +1975,6 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	Entry("resolves to the api pinned version when it exists", Example{
-		DB: DB{
-			Resources: []DBRow{
-				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2, Pinned: true},
-				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
-			},
-		},
-
-		Inputs: Inputs{
-			{
-				Name:     "resource-x",
-				Resource: "resource-x",
-			},
-		},
-
-		Result: Result{
-			OK: true,
-			Values: map[string]string{
-				"resource-x": "rxv2",
-			},
-		},
-	}),
-
-	Entry("resolves to the pinned version when both api pinned and get step pinned versions exists", Example{
-		DB: DB{
-			Resources: []DBRow{
-				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2, Pinned: true},
-				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
-			},
-		},
-
-		Inputs: Inputs{
-			{
-				Name:     "resource-x",
-				Resource: "resource-x",
-				Version:  Version{Pinned: "rxv1"},
-			},
-		},
-
-		Result: Result{
-			OK: true,
-			Values: map[string]string{
-				"resource-x": "rxv1",
-			},
-		},
-	}),
-
 	Entry("check orders take precedence over version ID", Example{
 		DB: DB{
 			Resources: []DBRow{
