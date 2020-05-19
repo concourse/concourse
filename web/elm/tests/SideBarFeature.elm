@@ -380,6 +380,17 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtThePipelineList
                 >> then_ iSeeTwoChildren
+        , test "pipeline star icon is clickable" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_
+                    (itIsClickable <|
+                        Message.SideBarStarIcon
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            }
+                    )
         , test "unfavorited pipeline has unfilled star icon" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -827,7 +838,7 @@ iAmLookingAtTheHamburgerMenu =
 itIsClickable domID =
     Expect.all
         [ Query.has [ style "cursor" "pointer" ]
-        , Event.simulate Event.click
+        , Event.simulate Common.leftClickEvent
             >> Event.expect
                 (TopLevelMessage.Update <|
                     Message.Click domID
@@ -1202,6 +1213,12 @@ iSeeItHasNarrowerLines =
 
 iAmLookingAtTheFirstPipelineIcon =
     iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.first
+
+
+iAmLookingAtTheFirstPipelineStar =
+    iAmLookingAtTheFirstPipeline
+        >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
+        >> Query.index 0
 
 
 iSeeAPipelineIcon =

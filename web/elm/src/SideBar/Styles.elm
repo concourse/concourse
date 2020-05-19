@@ -278,6 +278,7 @@ pipelineFavourite fav =
     , style "background-size" "contain"
     , style "margin-left" "28px"
     , style "flex-shrink" "0"
+    , style "cursor" "pointer"
     , opacityAttr fav.opacity
     , Attr.attribute "aria-label" "Favorite Icon"
     ]

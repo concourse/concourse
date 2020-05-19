@@ -6,6 +6,7 @@ module Common exposing
     , iOpenTheBuildPage
     , init
     , isColorWithStripes
+    , leftClickEvent
     , myBrowserFetchedTheBuild
     , notContains
     , pipelineRunningKeyframes
@@ -19,6 +20,7 @@ import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Expect exposing (Expectation)
 import Html
+import Json.Encode
 import List.Extra
 import Message.Callback as Callback
 import Message.Effects exposing (Effect)
@@ -63,6 +65,18 @@ notContains x xs =
 
     else
         Expect.pass
+
+
+leftClickEvent : ( String, Json.Encode.Value )
+leftClickEvent =
+    Event.custom "click" <|
+        Json.Encode.object
+            [ ( "ctrlKey", Json.Encode.bool False )
+            , ( "altKey", Json.Encode.bool False )
+            , ( "metaKey", Json.Encode.bool False )
+            , ( "shiftKey", Json.Encode.bool False )
+            , ( "button", Json.Encode.int 0 )
+            ]
 
 
 isColorWithStripes :

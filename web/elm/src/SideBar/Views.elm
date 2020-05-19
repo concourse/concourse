@@ -1,6 +1,7 @@
 module SideBar.Views exposing (Pipeline, Team, viewTeam)
 
 import Assets
+import Concourse exposing (PipelineIdentifier)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id)
@@ -8,6 +9,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import SideBar.Styles as Styles
+import StrictEvents exposing (onLeftClickStopPropagation)
 
 
 type alias Team =
@@ -71,6 +73,10 @@ type alias Pipeline =
         { opacity : Styles.Opacity
         , filled : Bool
         }
+    , id :
+        { teamName : String
+        , pipelineName : String
+        }
     }
 
 
@@ -90,5 +96,9 @@ viewPipeline p =
         , Html.div
             (Styles.pipelineName p.name)
             [ Html.text p.name.text ]
-        , Html.div (Styles.pipelineFavourite p.favIcon) []
+        , Html.div
+            (Styles.pipelineFavourite p.favIcon
+                ++ [ onLeftClickStopPropagation <| Click <| SideBarStarIcon p.id ]
+            )
+            []
         ]
