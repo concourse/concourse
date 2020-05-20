@@ -454,7 +454,11 @@ update msg ( model, effects ) =
             ( model, effects ++ [ NavigateTo <| Routes.toString <| route ] )
 
         Scrolled { scrollHeight, scrollTop, clientHeight } ->
-            ( { model | autoScroll = scrollHeight == scrollTop + clientHeight }
+            ( { model
+                | autoScroll =
+                    (scrollHeight == scrollTop + clientHeight)
+                        && not model.isScrollToIdInProgress
+              }
             , effects
             )
 
@@ -478,7 +482,7 @@ getScrollBehavior model =
                 NoScroll
 
         Routes.HighlightNothing ->
-            if model.autoScroll && not model.isScrollToIdInProgress then
+            if model.autoScroll then
                 if model.hasLoadedYet then
                     case model.status of
                         BuildStatusSucceeded ->

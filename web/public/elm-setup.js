@@ -205,7 +205,7 @@ app.ports.scrollToId.subscribe(function(params) {
       return;
     }
     parentElem.scrollTop = elem.offsetTop - padding;
-    app.ports.scrolledToId.send([parentId, toId]);
+    setTimeout(() => app.ports.scrolledToId.send([parentId, toId]), 50)
     clearInterval(interval);
   }, 20);
 });

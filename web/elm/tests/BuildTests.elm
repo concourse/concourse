@@ -491,7 +491,72 @@ all =
                         (EventsReceived <| Ok [])
                     |> Tuple.second
                     |> Common.notContains (Effects.Scroll ScrollDirection.ToBottom "build-body")
-        , test "auto-scroll allowed after scrolled to highlighted line" <|
+        , test "auto-scroll disallowed before scrolling away from highlighted line" <|
+            \_ ->
+                Application.init
+                    flags
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/jobs/j/builds/1"
+                    , query = Nothing
+                    , fragment = Just "Lstepid:1"
+                    }
+                    |> Tuple.first
+                    |> fetchBuild BuildStatusStarted
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.PlanAndResourcesFetched 1 <|
+                            Ok <|
+                                ( { id = "stepid"
+                                  , step =
+                                        Concourse.BuildStepTask
+                                            "step"
+                                  }
+                                , { inputs = [], outputs = [] }
+                                )
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (EventsReceived <|
+                            Ok <|
+                                [ { url = eventsUrl
+                                  , data =
+                                        STModels.StartTask
+                                            { source = "stdout"
+                                            , id = "stepid"
+                                            }
+                                            (Time.millisToPosix 0)
+                                  }
+                                , { url = eventsUrl
+                                  , data =
+                                        STModels.Log
+                                            { source = "stdout"
+                                            , id = "stepid"
+                                            }
+                                            "log message"
+                                            Nothing
+                                  }
+                                ]
+                        )
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.Update <|
+                            Message.Message.Scrolled
+                                { scrollHeight = 20
+                                , scrollTop = 10
+                                , clientHeight = 10
+                                }
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (Subscription.ScrolledToId ( "Lstepid:1", "build-body" ))
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (EventsReceived <| Ok [])
+                    |> Tuple.second
+                    |> Common.notContains (Effects.Scroll ScrollDirection.ToBottom "build-body")
+        , test "auto-scroll allowed after scrolling away from highlighted line" <|
             \_ ->
                 Application.init
                     flags
