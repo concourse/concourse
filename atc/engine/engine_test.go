@@ -259,6 +259,18 @@ var _ = Describe("Engine", func() {
 									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
 								})
 							})
+
+							Context("when the build finishes with a wrapped cancelled error", func() {
+								BeforeEach(func() {
+									fakeStep.RunReturns(fmt.Errorf("but im not a wrapper: %w", context.Canceled))
+								})
+
+								It("finishes the build", func() {
+									waitGroup.Wait()
+									Expect(fakeBuild.FinishCallCount()).To(Equal(1))
+									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
+								})
+							})
 						})
 
 						Context("when converting the plan to a step fails", func() {
