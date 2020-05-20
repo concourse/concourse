@@ -40,3 +40,8 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5604" href="#5604">:link:</a></sup></sub> fix
 
 * Previously, aborting a build could sometimes result in an `errored` status rather than an `aborted` status. This happened when step code wrapped the `err` return value, fooling our `==` check. We now use [`errors.Is`](https://golang.org/pkg/errors/#Is) (new in Go 1.13) to check for the error indicating the build has been aborted, so now the build should be correctly given the `aborted` status even if the step wraps the error. #5604
+
+
+#### <sub><sup><a name="5596" href="#5595">:link:</a></sup></sub> fix
+ 
+* @lbenedix and @shyamz-22 improved the way auth config for teams are validated. Now operators cannot start a web node with an empty `--main-team-config` file, and `fly set-team` will fail if it would result in a team with no possible members. This prevents scenarios where users can get [accidentally locked out](https://github.com/concourse/concourse/issues/5595) of concourse. #5596

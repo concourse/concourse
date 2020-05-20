@@ -1498,7 +1498,7 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 		return fmt.Errorf("default team auth not configured: %v", err)
 	}
 
-	err = team.UpdateProviderAuth(atc.TeamAuth(auth))
+	err = team.UpdateProviderAuth(auth)
 	if err != nil {
 		return err
 	}

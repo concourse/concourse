@@ -27,6 +27,13 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	if err := atcTeam.Validate(); err != nil {
+		hLog.Error("malformed-auth-config", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	atcTeam.Name = teamName
 	if !acc.IsAdmin() && !acc.IsAuthorized(teamName) {
 		hLog.Debug("not-allowed")
