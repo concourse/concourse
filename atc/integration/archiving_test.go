@@ -43,7 +43,7 @@ var _ = Describe("ATC Integration Test", func() {
 		_, err := client.Team("main").UnpausePipeline("pipeline")
 
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("archived pipelines cannot be unpaused"))
+		Expect(err.Error()).To(ContainSubstring("action not allowed for an archived pipeline"))
 	})
 
 	It("archived pipelines can have their name re-used", func() {
