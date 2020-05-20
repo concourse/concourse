@@ -14,7 +14,7 @@ You can set a static set of pipelines from another pipeline on the same team.
 resources:
   - name: concourse-examples
     type: git
-    icon: github-circle
+    icon: github
     source:
       uri: https://github.com/concourse/examples
 

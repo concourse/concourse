@@ -14,7 +14,7 @@ You can run the tests for a PHP application.
 resources:
   - name: laravel-websockets-git
     type: git
-    icon: github-circle
+    icon: github
     source:
       uri: https://github.com/beyondcode/laravel-websockets.git
 

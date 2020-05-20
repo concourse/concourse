@@ -14,7 +14,7 @@ You can run the tests for a Java application.
 resources:
   - name: apache-kafka-git
     type: git
-    icon: github-circle
+    icon: github
     source:
       uri: https://github.com/apache/kafka.git
 
