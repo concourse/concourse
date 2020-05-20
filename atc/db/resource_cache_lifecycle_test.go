@@ -146,6 +146,53 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 							Expect(countResourceCaches()).To(Equal(1))
 						})
+						It("does not remove the resource caches from other jobs", func() {
+							By("creating a second pipeline")
+							secondPipeline, _, err := defaultTeam.SavePipeline("second-pipeline", atc.Config{
+								Jobs: atc.JobConfigs{
+									{
+										Name: "some-job",
+									},
+								},
+								Resources: atc.ResourceConfigs{
+									{
+										Name: "some-resource",
+										Type: "some-base-resource-type",
+										Source: atc.Source{
+											"some": "source",
+										},
+									},
+								},
+								ResourceTypes: atc.ResourceTypes{
+									{
+										Name: "some-type",
+										Type: "some-base-resource-type",
+										Source: atc.Source{
+											"some-type": "source",
+										},
+									},
+								},
+							}, db.ConfigVersion(0), false)
+							Expect(err).NotTo(HaveOccurred())
+
+							By("creating an image resource cache tied to the job in the second pipeline")
+							job, _, err := secondPipeline.Job("some-job")
+							Expect(err).ToNot(HaveOccurred())
+							build, err := job.CreateBuild()
+							Expect(err).ToNot(HaveOccurred())
+							resourceCache := createResourceCacheWithUser(db.ForBuild(build.ID()))
+
+							err = build.SaveImageResourceVersion(resourceCache)
+							Expect(err).ToNot(HaveOccurred())
+
+							err = build.SetInterceptible(false)
+							Expect(err).ToNot(HaveOccurred())
+
+							By("creating an image resource cached in the default pipeline")
+							setBuildStatus(db.BuildStatusSucceeded)
+
+							Expect(countResourceCaches()).To(Equal(2))
+						})
 					})
 
 					Context("when build has not succeeded", func() {
