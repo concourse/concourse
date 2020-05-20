@@ -16,9 +16,6 @@ import (
 	"github.com/concourse/flag"
 )
 
-var ErrAuthNotConfiguredFromFlags = errors.New("ErrAuthNotConfiguredFromFlags")
-var ErrAuthNotConfiguredFromFile = errors.New("ErrAuthNotConfiguredFromFile")
-
 var connectors []*Connector
 
 func RegisterConnector(connector *Connector) {
@@ -58,7 +55,7 @@ type AuthTeamFlags struct {
 	Config     flag.File `short:"c" long:"config" description:"Configuration file for specifying team params"`
 }
 
-func (flag *AuthTeamFlags) Format() (AuthConfig, error) {
+func (flag *AuthTeamFlags) Format() (atc.TeamAuth, error) {
 
 	if path := flag.Config.Path(); path != "" {
 		return flag.formatFromFile()
@@ -77,7 +74,7 @@ func (flag *AuthTeamFlags) Format() (AuthConfig, error) {
 // The github connector has configuration for: users, teams, orgs
 // The cf conncetor has configuration for: users, orgs, spaces
 
-func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
+func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 
 	content, err := ioutil.ReadFile(flag.Config.Path())
 	if err != nil {
@@ -91,7 +88,7 @@ func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 		return nil, err
 	}
 
-	auth := AuthConfig{}
+	auth := atc.TeamAuth{}
 
 	for _, role := range data.Roles {
 		roleName := role["name"].(string)
@@ -146,8 +143,8 @@ func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 		}
 	}
 
-	if err := atc.TeamAuth(auth).Validate(); err != nil {
-		return nil, ErrAuthNotConfiguredFromFile
+	if err := auth.Validate(); err != nil {
+		return nil, err
 	}
 
 	return auth, nil
@@ -157,7 +154,7 @@ func (flag *AuthTeamFlags) formatFromFile() (AuthConfig, error) {
 // TeamConfig has already been populated by the flags library. All we need to
 // do is grab the teamConfig object and extract the users and groups.
 
-func (flag *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
+func (flag *AuthTeamFlags) formatFromFlags() (atc.TeamAuth, error) {
 
 	users := []string{}
 	groups := []string{}
@@ -186,10 +183,10 @@ func (flag *AuthTeamFlags) formatFromFlags() (AuthConfig, error) {
 	}
 
 	if len(users) == 0 && len(groups) == 0 {
-		return nil, ErrAuthNotConfiguredFromFlags
+		return nil, atc.ErrAuthConfigInvalid
 	}
 
-	return AuthConfig{
+	return atc.TeamAuth{
 		"owner": map[string][]string{
 			"users":  users,
 			"groups": groups,
@@ -245,5 +242,3 @@ func (con *Connector) newTeamConfig() (TeamConfig, error) {
 
 	return res, nil
 }
-
-type AuthConfig map[string]map[string][]string

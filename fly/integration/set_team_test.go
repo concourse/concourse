@@ -472,7 +472,7 @@ var _ = Describe("Fly CLI", func() {
 					It("returns an error", func() {
 						sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 						Expect(err).ToNot(HaveOccurred())
-						Eventually(sess.Err).Should(gbytes.Say("You have not provided users and groups for the specified team."))
+						Eventually(sess.Err).Should(gbytes.Say("auth config for the team does not have users and groups configured"))
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})
@@ -485,7 +485,7 @@ var _ = Describe("Fly CLI", func() {
 					It("returns an error", func() {
 						sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 						Expect(err).ToNot(HaveOccurred())
-						Eventually(sess.Err).Should(gbytes.Say("You have not provided users and groups for the specified team."))
+						Eventually(sess.Err).Should(gbytes.Say("auth config for the team does not have users and groups configured"))
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})
@@ -498,7 +498,7 @@ var _ = Describe("Fly CLI", func() {
 					It("returns an error", func() {
 						sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 						Expect(err).ToNot(HaveOccurred())
-						Eventually(sess.Err).Should(gbytes.Say("You have not provided a list of users and groups for one of the roles in your config yaml."))
+						Eventually(sess.Err).Should(gbytes.Say("auth config for the team must not be empty"))
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})

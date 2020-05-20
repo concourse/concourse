@@ -43,7 +43,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 	authRoles, err := command.AuthFlags.Format()
 	if err != nil {
-		command.ErrorAuthNotConfigured(err)
+		fmt.Fprintln(ui.Stderr, "error:", err)
 		os.Exit(1)
 	}
 
@@ -95,7 +95,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 		displayhelpers.Failf("bailing out")
 	}
 
-	team := atc.Team{Auth: atc.TeamAuth(authRoles)}
+	team := atc.Team{Auth: authRoles}
 
 	_, created, updated, err := target.Client().Team(teamName).CreateOrUpdate(team)
 	if err != nil {
@@ -109,17 +109,4 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 
 	return nil
-}
-
-func (command *SetTeamCommand) ErrorAuthNotConfigured(err error) {
-	switch err {
-	case skycmd.ErrAuthNotConfiguredFromFile:
-		fmt.Fprintln(ui.Stderr, "You have not provided a list of users and groups for one of the roles in your config yaml.")
-
-	case skycmd.ErrAuthNotConfiguredFromFlags:
-		fmt.Fprintln(ui.Stderr, "You have not provided users and groups for the specified team.")
-
-	default:
-		fmt.Fprintln(ui.Stderr, "error:", err)
-	}
 }

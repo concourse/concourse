@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	ErrAuthConfigEmpty = errors.New("auth config must not be empty")
-	ErrAuthConfigInvalid = errors.New("users and groups are not provided for a specified role")
+	ErrAuthConfigEmpty   = errors.New("auth config for the team must not be empty")
+	ErrAuthConfigInvalid = errors.New("auth config for the team does not have users and groups configured")
 )
 
 type Team struct {
