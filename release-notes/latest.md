@@ -37,6 +37,11 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 * Fix a bug where a Task's image or input volume(s) were redundantly streamed from another worker despite having a local copy. This would only occur if the image or input(s) were provided by a resource definition (eg. Get step).
 
+#### <sub><sup><a name="5604" href="#5604">:link:</a></sup></sub> fix
+
+* Previously, aborting a build could sometimes result in an `errored` status rather than an `aborted` status. This happened when step code wrapped the `err` return value, fooling our `==` check. We now use [`errors.Is`](https://golang.org/pkg/errors/#Is) (new in Go 1.13) to check for the error indicating the build has been aborted, so now the build should be correctly given the `aborted` status even if the step wraps the error. #5604
+
+
 #### <sub><sup><a name="5596" href="#5595">:link:</a></sup></sub> fix
  
 * @lbenedix and @shyamz-22 fixed overriding of the provider Auth when Team Auth is empty. This prevents the accidental locking out of users from `main` or other teams. #5596
