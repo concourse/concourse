@@ -9,8 +9,8 @@ import (
 )
 
 var _ = Describe("Migrate config pinned resources", func() {
-	const preMigrationVersion = 1583868323
-	const postMigrationVersion = 1585079293
+	const preMigrationVersion = 1588860260
+	const postMigrationVersion = 1589991895
 
 	var (
 		db *sql.DB
