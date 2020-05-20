@@ -1,20 +1,37 @@
-module Tooltip exposing (Model, handleCallback, view)
+module Tooltip exposing
+    ( Alignment(..)
+    , Direction(..)
+    , Model
+    , Tooltip
+    , handleCallback
+    , view
+    )
 
 import Browser.Dom
-import Build.Styles
-import Dashboard.Styles
 import EffectTransformer exposing (ET)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message as Message exposing (DomID(..))
-import SideBar.Styles
+import Message.Message exposing (DomID(..), Message)
 
 
 type alias Model m =
     { m | hovered : HoverState.HoverState }
+
+
+type alias Tooltip =
+    { body : Html Message
+    , arrow : Maybe Arrow
+    , attachPosition : AttachPosition
+    }
+
+
+type alias Arrow =
+    { size : Float
+    , color : String
+    }
 
 
 type TooltipCondition
@@ -35,7 +52,7 @@ type Direction
 
 type Alignment
     = Start
-    | Middle
+    | Middle Float
 
 
 policy : DomID -> TooltipCondition
@@ -51,61 +68,56 @@ policy domID =
             AlwaysShow
 
 
-position : AttachPosition -> Browser.Dom.Element -> Maybe Float -> Maybe Float -> List (Html.Attribute msg)
-position { direction, alignment } { element, viewport } w h =
+position : AttachPosition -> Browser.Dom.Element -> List (Html.Attribute msg)
+position { direction, alignment } { element, viewport } =
     let
         target =
             element
 
         vertical =
-            case ( direction, alignment, h ) of
-                ( Top, _, _ ) ->
+            case ( direction, alignment ) of
+                ( Top, _ ) ->
                     [ style "bottom" <| String.fromFloat (viewport.height - target.y) ++ "px" ]
 
-                ( Right, Start, _ ) ->
+                ( Right, Start ) ->
                     [ style "top" <| String.fromFloat target.y ++ "px" ]
 
-                ( Right, Middle, Just height ) ->
+                ( Right, Middle height ) ->
                     [ style "top" <| String.fromFloat (target.y + (target.height - height) / 2) ++ "px" ]
 
-                -- ( Right, End, _ ) ->
-                --     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
-                -- ( Bottom, _, _ ) ->
-                --     [ style "top" <| String.fromFloat (target.y + target.height) ++ "px" ]
-                -- ( Left, Start, _ ) ->
-                --     [ style "top" <| String.fromFloat target.y ++ "px" ]
-                -- ( Left, Middle, Just height ) ->
-                --     [ style "top" <| String.fromFloat (target.y + (target.height - height) / 2) ++ "px" ]
-                -- ( Left, End, _ ) ->
-                --     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
-                _ ->
-                    []
-
+        -- ( Right, End ) ->
+        --     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
+        -- ( Bottom, _ ) ->
+        --     [ style "top" <| String.fromFloat (target.y + target.height) ++ "px" ]
+        -- ( Left, Start ) ->
+        --     [ style "top" <| String.fromFloat target.y ++ "px" ]
+        -- ( Left, Middle height ) ->
+        --     [ style "top" <| String.fromFloat (target.y + (target.height - height) / 2) ++ "px" ]
+        -- ( Left, End ) ->
+        --     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
         horizontal =
-            case ( direction, alignment, w ) of
-                ( Top, Start, _ ) ->
+            case ( direction, alignment ) of
+                ( Top, Start ) ->
                     [ style "left" <| String.fromFloat target.x ++ "px" ]
 
-                ( Top, Middle, Just width ) ->
+                ( Top, Middle width ) ->
                     [ style "left" <| String.fromFloat (target.x + (target.width - width) / 2) ++ "px" ]
 
-                -- ( Top, End, _ ) ->
+                -- ( Top, End ) ->
                 --     [ style "right" <| String.fromFloat (target.x + target.width) ++ "px" ]
-                ( Right, _, _ ) ->
+                ( Right, _ ) ->
                     [ style "left" <| String.fromFloat (target.x + target.width) ++ "px" ]
 
-                -- ( Bottom, Start, _ ) ->
-                --     [ style "left" <| String.fromFloat target.x ++ "px" ]
-                -- ( Bottom, Middle, Just width ) ->
-                --     [ style "left" <| String.fromFloat (target.x + (target.width - width) / 2) ++ "px" ]
-                -- ( Bottom, End, _ ) ->
-                --     [ style "right" <| String.fromFloat (target.x + target.width) ++ "px" ]
-                -- ( Left, _, _ ) ->
-                --     [ style "right" <| String.fromFloat (viewport.width - target.x) ++ "px" ]
-                _ ->
-                    []
+        -- ( Bottom, Start ) ->
+        --     [ style "left" <| String.fromFloat target.x ++ "px" ]
+        -- ( Bottom, Middle width ) ->
+        --     [ style "left" <| String.fromFloat (target.x + (target.width - width) / 2) ++ "px" ]
+        -- ( Bottom, End ) ->
+        --     [ style "right" <| String.fromFloat (target.x + target.width) ++ "px" ]
+        -- ( Left, _ ) ->
+        --     [ style "right" <| String.fromFloat (viewport.width - target.x) ++ "px" ]
     in
-    style "position" "fixed" :: vertical ++ horizontal
+    [ style "position" "fixed", style "z-index" "100" ] ++ vertical ++ horizontal
 
 
 handleCallback : Callback -> ET (Model m)
@@ -142,47 +154,39 @@ handleCallback callback ( model, effects ) =
             ( model, effects )
 
 
-view : Model m -> Html msg
-view { hovered } =
-    case hovered of
-        HoverState.Tooltip (Message.FirstOccurrenceGetStepLabel _) target ->
-            Html.div []
-                [ Html.div
-                    (Build.Styles.firstOccurrenceTooltip
-                        ++ position { direction = Top, alignment = Start } target Nothing Nothing
-                    )
-                    [ Html.text "new version" ]
-                , Html.div
-                    (Build.Styles.firstOccurrenceTooltipArrow
-                        ++ position { direction = Top, alignment = Middle } target (Just 5) Nothing
-                    )
-                    []
+arrowView : AttachPosition -> Browser.Dom.Element -> Arrow -> Html Message
+arrowView { direction } target { size, color } =
+    Html.div
+        ((case direction of
+            Top ->
+                [ style "border-top" <| String.fromFloat size ++ "px solid " ++ color
+                , style "border-left" <| String.fromFloat size ++ "px solid transparent"
+                , style "border-right" <| String.fromFloat size ++ "px solid transparent"
+                , style "margin-bottom" <| "-" ++ String.fromFloat size ++ "px"
                 ]
 
-        HoverState.Tooltip (Message.SideBarTeam teamName) target ->
-            Html.div
-                (SideBar.Styles.tooltip
-                    ++ position { direction = Right, alignment = Middle } target Nothing (Just 30)
-                )
-                [ Html.div SideBar.Styles.tooltipArrow []
-                , Html.div SideBar.Styles.tooltipBody [ Html.text teamName ]
+            Right ->
+                [ style "border-right" <| String.fromFloat size ++ "px solid " ++ color
+                , style "border-top" <| String.fromFloat size ++ "px solid transparent"
+                , style "border-bottom" <| String.fromFloat size ++ "px solid transparent"
+                , style "margin-left" <| "-" ++ String.fromFloat size ++ "px"
                 ]
+         )
+            ++ position
+                { direction = direction, alignment = Middle (2 * size) }
+                target
+        )
+        []
 
-        HoverState.Tooltip (Message.SideBarPipeline pipelineID) target ->
-            Html.div
-                (SideBar.Styles.tooltip
-                    ++ position { direction = Right, alignment = Middle } target Nothing (Just 30)
-                )
-                [ Html.div SideBar.Styles.tooltipArrow []
-                , Html.div SideBar.Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
+
+view : Model m -> Tooltip -> Html Message
+view { hovered } { body, attachPosition, arrow } =
+    case ( hovered, arrow ) of
+        ( HoverState.Tooltip _ target, a ) ->
+            Html.div (position attachPosition target)
+                [ Maybe.map (arrowView attachPosition target) a |> Maybe.withDefault (Html.text "")
+                , body
                 ]
-
-        HoverState.Tooltip (Message.PipelineStatusIcon _) target ->
-            Html.div
-                (Dashboard.Styles.jobsDisabledTooltip
-                    ++ position { direction = Top, alignment = Start } target Nothing Nothing
-                )
-                [ Html.text "automatic job monitoring disabled" ]
 
         _ ->
             Html.text ""

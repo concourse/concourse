@@ -3,6 +3,7 @@ module NotFound.NotFound exposing
     , handleDelivery
     , init
     , subscriptions
+    , tooltip
     , view
     )
 
@@ -23,6 +24,7 @@ import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model exposing (Model)
 import Routes
 import SideBar.SideBar as SideBar
+import Tooltip
 import Views.Styles
 import Views.TopBar as TopBar
 
@@ -82,6 +84,11 @@ view session model =
                 ]
             ]
         ]
+
+
+tooltip : Model -> a -> Maybe Tooltip.Tooltip
+tooltip _ _ =
+    Nothing
 
 
 subscriptions : List Subscription

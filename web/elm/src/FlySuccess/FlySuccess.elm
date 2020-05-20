@@ -3,6 +3,7 @@ module FlySuccess.FlySuccess exposing
     , handleDelivery
     , init
     , subscriptions
+    , tooltip
     , update
     , view
     )
@@ -27,6 +28,7 @@ import Message.Subscription as Subscription
         )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Routes
+import Tooltip
 import UserState exposing (UserState)
 import Views.Icon as Icon
 import Views.Styles
@@ -152,6 +154,11 @@ view userState model =
                 ]
             ]
         ]
+
+
+tooltip : Model -> a -> Maybe Tooltip.Tooltip
+tooltip _ _ =
+    Nothing
 
 
 body : Model -> List (Html Message)

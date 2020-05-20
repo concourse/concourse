@@ -8,6 +8,7 @@ module Job.Job exposing
     , handleDelivery
     , init
     , subscriptions
+    , tooltip
     , update
     , view
     )
@@ -56,6 +57,7 @@ import Routes
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClick)
 import Time
+import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 import Views.BuildDuration as BuildDuration
 import Views.DictView as DictView
@@ -430,6 +432,11 @@ view session model =
             , viewMainJobsSection session model
             ]
         ]
+
+
+tooltip : Model -> a -> Maybe Tooltip.Tooltip
+tooltip _ _ =
+    Nothing
 
 
 viewMainJobsSection : Session -> Model -> Html Message

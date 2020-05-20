@@ -1296,6 +1296,60 @@ all =
                                 |> Tuple.second
                                 |> Common.contains
                                     (Effects.GetViewportOf domID)
+                    , test "hovering status icon shows tooltip" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Application.update
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.Hover <|
+                                            Just domID
+                                    )
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.GotViewport domID
+                                        (Ok
+                                            { scene =
+                                                { width = 1
+                                                , height = 0
+                                                }
+                                            , viewport =
+                                                { width = 1
+                                                , height = 0
+                                                , x = 0
+                                                , y = 0
+                                                }
+                                            }
+                                        )
+                                    )
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.GotElement <|
+                                        Ok
+                                            { scene =
+                                                { width = 0
+                                                , height = 0
+                                                }
+                                            , viewport =
+                                                { width = 0
+                                                , height = 0
+                                                , x = 0
+                                                , y = 0
+                                                }
+                                            , element =
+                                                { x = 0
+                                                , y = 0
+                                                , width = 1
+                                                , height = 1
+                                                }
+                                            }
+                                    )
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> Query.has
+                                    [ style "position" "fixed"
+                                    , containing [ text "automatic job monitoring disabled" ]
+                                    ]
                     , test "status text says 'no data'" <|
                         \_ ->
                             setup

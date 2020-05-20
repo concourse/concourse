@@ -4,6 +4,7 @@ module Dashboard.Dashboard exposing
     , handleDelivery
     , init
     , subscriptions
+    , tooltip
     , update
     , view
     )
@@ -73,6 +74,7 @@ import ScreenSize exposing (ScreenSize(..))
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onScroll)
 import Time
+import Tooltip
 import UserState
 import Views.Spinner as Spinner
 import Views.Styles
@@ -776,6 +778,23 @@ view session model =
             ]
         , Footer.view session model
         ]
+
+
+tooltip : Model -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip _ { hovered } =
+    case hovered of
+        HoverState.Tooltip (Message.PipelineStatusIcon _) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.jobsDisabledTooltip
+                        [ Html.text "automatic job monitoring disabled" ]
+                , attachPosition = { direction = Tooltip.Top, alignment = Tooltip.Start }
+                , arrow = Nothing
+                }
+
+        _ ->
+            Nothing
 
 
 topBar : Session -> Model -> Html Message

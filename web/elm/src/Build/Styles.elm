@@ -8,7 +8,6 @@ module Build.Styles exposing
     , durationTooltipArrow
     , errorLog
     , firstOccurrenceTooltip
-    , firstOccurrenceTooltipArrow
     , header
     , historyItem
     , metadataCell
@@ -239,19 +238,6 @@ firstOccurrenceTooltip =
     , style "pointer-events" "none"
     ]
         ++ Application.Styles.disableInteraction
-
-
-firstOccurrenceTooltipArrow : List (Html.Attribute msg)
-firstOccurrenceTooltipArrow =
-    [ style "margin-bottom" "-5px"
-    , style "margin-left" "-5px"
-    , style "width" "0"
-    , style "height" "0"
-    , style "border-top" <| "5px solid " ++ Colors.tooltipBackground
-    , style "border-left" "5px solid transparent"
-    , style "border-right" "5px solid transparent"
-    , style "z-index" "100"
-    ]
 
 
 durationTooltip : List (Html.Attribute msg)

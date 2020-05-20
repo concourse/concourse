@@ -3,11 +3,13 @@ module SideBar.SideBar exposing
     , hamburgerMenu
     , handleCallback
     , handleDelivery
+    , tooltip
     , update
     , view
     )
 
 import Assets
+import Colors
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
@@ -159,6 +161,27 @@ view model currentPipeline =
 
     else
         Html.text ""
+
+
+tooltip : Model m -> Maybe Tooltip.Tooltip
+tooltip { hovered } =
+    case hovered of
+        HoverState.Tooltip (SideBarTeam teamName) _ ->
+            Just
+                { body = Html.div Styles.tooltipBody [ Html.text teamName ]
+                , attachPosition = { direction = Tooltip.Right, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = Colors.frame }
+                }
+
+        HoverState.Tooltip (SideBarPipeline pipelineID) _ ->
+            Just
+                { body = Html.div Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
+                , attachPosition = { direction = Tooltip.Right, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = Colors.frame }
+                }
+
+        _ ->
+            Nothing
 
 
 hamburgerMenu :

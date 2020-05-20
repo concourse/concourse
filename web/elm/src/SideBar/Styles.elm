@@ -18,7 +18,6 @@ module SideBar.Styles exposing
     , teamIcon
     , teamName
     , tooltip
-    , tooltipArrow
     , tooltipBody
     )
 
@@ -258,14 +257,6 @@ tooltip =
     ]
 
 
-tooltipArrow : List (Html.Attribute msg)
-tooltipArrow =
-    [ style "border-right" <| "15px solid " ++ Colors.frame
-    , style "border-top" "15px solid transparent"
-    , style "border-bottom" "15px solid transparent"
-    ]
-
-
 tooltipBody : List (Html.Attribute msg)
 tooltipBody =
     [ style "background-color" Colors.frame
@@ -273,4 +264,5 @@ tooltipBody =
     , style "font-size" "12px"
     , style "display" "flex"
     , style "align-items" "center"
+    , style "height" "30px"
     ]

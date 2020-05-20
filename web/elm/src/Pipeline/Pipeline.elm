@@ -8,6 +8,7 @@ module Pipeline.Pipeline exposing
     , handleDelivery
     , init
     , subscriptions
+    , tooltip
     , update
     , view
     )
@@ -53,6 +54,7 @@ import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg
 import Svg.Attributes as SvgAttributes
+import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 import Views.PauseToggle as PauseToggle
 import Views.Styles
@@ -423,6 +425,11 @@ view session model =
                 ]
             ]
         ]
+
+
+tooltip : Model -> a -> Maybe Tooltip.Tooltip
+tooltip _ _ =
+    Nothing
 
 
 isPaused : WebData Concourse.Pipeline -> Bool

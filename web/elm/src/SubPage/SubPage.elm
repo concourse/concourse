@@ -5,6 +5,7 @@ module SubPage.SubPage exposing
     , handleNotFound
     , init
     , subscriptions
+    , tooltip
     , update
     , urlUpdate
     , view
@@ -34,6 +35,7 @@ import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
+import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -349,6 +351,31 @@ view ({ userState } as session) mdl =
             ( FlySuccess.documentTitle
             , FlySuccess.view userState model
             )
+
+
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
+tooltip mdl =
+    case mdl of
+        BuildModel model ->
+            Build.tooltip model
+
+        JobModel model ->
+            Job.tooltip model
+
+        PipelineModel model ->
+            Pipeline.tooltip model
+
+        ResourceModel model ->
+            Resource.tooltip model
+
+        DashboardModel model ->
+            Dashboard.tooltip model
+
+        NotFoundModel model ->
+            NotFound.tooltip model
+
+        FlySuccessModel model ->
+            FlySuccess.tooltip model
 
 
 subscriptions : Model -> List Subscription
