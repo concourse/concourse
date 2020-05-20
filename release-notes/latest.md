@@ -44,4 +44,4 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 #### <sub><sup><a name="5596" href="#5595">:link:</a></sup></sub> fix
  
-* @lbenedix and @shyamz-22 fixed overriding of the provider Auth when Team Auth is empty. This prevents the accidental locking out of users from `main` or other teams. #5596
+* @lbenedix and @shyamz-22 improved the way auth config for teams are validated. Now operators cannot start a web node with an empty `--main-team-config` file, and `fly set-team` will fail if it would result in a team with no possible members. This prevents scenarios where users can get [accidentally locked out](https://github.com/concourse/concourse/issues/5595) of concourse. #5596
