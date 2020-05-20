@@ -18,7 +18,7 @@ For these Docker images, defining them as \reference{resources} has two advantag
 resources:
   - name: golang-mock-git
     type: git
-    icon: github-circle
+    icon: github
     source:
       uri: https://github.com/golang/mock.git
 

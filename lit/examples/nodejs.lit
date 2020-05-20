@@ -14,7 +14,7 @@ You can run the tests for a Nodejs application.
 resources:
   - name: nodejs.org-git
     type: git
-    icon: github-circle
+    icon: github
     source:
       uri: https://github.com/nodejs/nodejs.org.git
 

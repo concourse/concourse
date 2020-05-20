@@ -14,7 +14,7 @@ The \resource{git} can be used to trigger a job.
 resources:
   - name: concourse-docs-git
     type: git
-    icon: github-circle
+    icon: github
     source:
       uri: https://github.com/concourse/docs
 

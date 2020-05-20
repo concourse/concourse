@@ -44,7 +44,7 @@ with the following schema.
   \optional-attribute{icon}{string}{
     The name of a \link{Material Design icon}{https://materialdesignicons.com/}
     to show next to the resource name in the web UI. For example,
-    \code{github-circle}.
+    \code{github}.
   }
 
   \optional-attribute{version}{version}{

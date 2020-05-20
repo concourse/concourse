@@ -14,7 +14,7 @@ You can run the tests for a Rails that requires a specific version of ruby and r
 resources:
   - name: rails-contributors-git
     type: git
-    icon: github-circle
+    icon: github
     source:
       uri: https://github.com/rails/rails-contributors.git
 
