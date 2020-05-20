@@ -375,6 +375,11 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 		return false, err
 	}
 
+	err = b.conn.Bus().Notify(atc.ComponentBuildTracker)
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
