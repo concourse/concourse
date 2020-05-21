@@ -71,7 +71,7 @@ as `booklit.yml`, [target your Concourse
 instance](https://concourse-ci.org/fly.html#fly-login), and then run:
 
 ```sh
-fly -t $target set-pipeline -p booklit -c booklit.yml
+fly -t ci set-pipeline -p booklit -c booklit.yml
 ```
 
 These pipeline files are self-contained, maximizing portability from one
