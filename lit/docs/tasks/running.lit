@@ -57,8 +57,8 @@ or \code{--privileged} flag.
   - name: stemcells
   }}
 
-  If you specify an input then the default input will no longer be added
-  automatically and you will need to explicitly list it (as with the
+  If you specify an input, then the default input will no longer be added
+  automatically, and you will need to explicitly list it (as with the
   \code{code} input above).
 
   This feature can be used to mimic other resources and try out combinations
