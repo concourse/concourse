@@ -39,7 +39,7 @@ A task's configuration specifies the following:
 
     Whenever the task runs, the anonymous resource will be \code{check}ed to
     discover the latest version available. The image will then be fetched onto
-    the worker if necessary just prior to running the task.
+    the worker, if necessary, just prior to running the task.
 
     To use an image provided by a previous step within your build plan, set
     \reference{schema.step.task-step.image} on the \reference{task-step}
