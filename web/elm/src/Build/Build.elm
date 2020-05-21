@@ -108,6 +108,7 @@ init flags =
           , status = BuildStatusPending
           , output = Empty
           , autoScroll = True
+          , isScrollToIdInProgress = False
           , previousKeyPress = Nothing
           , isTriggerBuildKeyDown = False
           , showHelp = False
@@ -141,6 +142,7 @@ subscriptions model =
     , OnKeyDown
     , OnKeyUp
     , OnElementVisible
+    , OnScrolledToId
     ]
         ++ (case buildEventsUrl of
                 Nothing ->
@@ -298,9 +300,6 @@ handleCallback action ( model, effects ) =
             -- https://github.com/concourse/concourse/issues/3201
             ( model, effects )
 
-        ScrollCompleted (ScrollDirection.ToId _) _ ->
-            ( { model | highlight = Routes.HighlightNothing }, effects )
-
         _ ->
             ( model, effects )
     )
@@ -355,28 +354,35 @@ handleDelivery session delivery ( model, effects ) =
                 ( newModel, newEffects ) =
                     updateOutput
                         (Build.Output.Output.handleEnvelopes envelopes)
-                        ( if eventSourceClosed && (envelopes |> List.map .data |> List.member STModels.NetworkError) then
-                            { model | authorized = False }
+                        (if eventSourceClosed && (envelopes |> List.map .data |> List.member STModels.NetworkError) then
+                            ( { model | authorized = False }, effects )
 
-                          else
-                            model
-                        , case getScrollBehavior model of
-                            ScrollWindow ->
-                                effects
-                                    ++ [ Effects.Scroll
-                                            ScrollDirection.ToBottom
-                                            bodyId
-                                       ]
+                         else
+                            case getScrollBehavior model of
+                                ScrollWindow ->
+                                    ( model
+                                    , effects
+                                        ++ [ Effects.Scroll
+                                                ScrollDirection.ToBottom
+                                                bodyId
+                                           ]
+                                    )
 
-                            ScrollToID id ->
-                                effects
-                                    ++ [ Effects.Scroll
-                                            (ScrollDirection.ToId id)
-                                            bodyId
-                                       ]
+                                ScrollToID id ->
+                                    ( { model
+                                        | highlight = Routes.HighlightNothing
+                                        , autoScroll = False
+                                        , isScrollToIdInProgress = True
+                                      }
+                                    , effects
+                                        ++ [ Effects.Scroll
+                                                (ScrollDirection.ToId id)
+                                                bodyId
+                                           ]
+                                    )
 
-                            NoScroll ->
-                                effects
+                                NoScroll ->
+                                    ( model, effects )
                         )
             in
             case ( model.hasLoadedYet, buildStatus ) of
@@ -391,6 +397,9 @@ handleDelivery session delivery ( model, effects ) =
 
                 _ ->
                     ( newModel, newEffects )
+
+        ScrolledToId _ ->
+            ( { model | isScrollToIdInProgress = False }, effects )
 
         _ ->
             ( model, effects )
@@ -445,7 +454,11 @@ update msg ( model, effects ) =
             ( model, effects ++ [ NavigateTo <| Routes.toString <| route ] )
 
         Scrolled { scrollHeight, scrollTop, clientHeight } ->
-            ( { model | autoScroll = scrollHeight == scrollTop + clientHeight }
+            ( { model
+                | autoScroll =
+                    (scrollHeight == scrollTop + clientHeight)
+                        && not model.isScrollToIdInProgress
+              }
             , effects
             )
 
