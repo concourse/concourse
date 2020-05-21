@@ -393,6 +393,7 @@ visibilityView { public, pipelineId, isClickable, isHovered, isVisibilityLoading
                 }
                 ++ [ onMouseEnter <| Hover <| Just <| VisibilityButton pipelineId
                    , onMouseLeave <| Hover Nothing
+                   , id <| Effects.toHtmlID <| VisibilityButton pipelineId
                    ]
                 ++ (if isClickable then
                         [ onClick <| Click <| VisibilityButton pipelineId ]
@@ -401,21 +402,7 @@ visibilityView { public, pipelineId, isClickable, isHovered, isVisibilityLoading
                         []
                    )
             )
-            (if isClickable && isHovered then
-                [ Html.div
-                    Styles.visibilityTooltip
-                    [ Html.text <|
-                        if public then
-                            "hide pipeline"
-
-                        else
-                            "expose pipeline"
-                    ]
-                ]
-
-             else
-                []
-            )
+            []
 
 
 sinceTransitionText : PipelineStatus.StatusDetails -> Time.Posix -> String

@@ -2,6 +2,7 @@ module TooltipTests exposing (all)
 
 import Browser.Dom
 import Common
+import Data
 import Expect
 import HoverState exposing (TooltipPosition(..))
 import Message.Callback as Callback
@@ -56,32 +57,11 @@ all =
             \_ ->
                 ( { hovered = HoverState.TooltipPending domID }, [] )
                     |> Tooltip.handleCallback
-                        (Callback.GotElement <| Ok elementPosition)
+                        (Callback.GotElement <| Ok Data.elementPosition)
                     |> Tuple.first
                     |> .hovered
-                    |> Expect.equal (HoverState.Tooltip domID elementPosition)
+                    |> Expect.equal (HoverState.Tooltip domID Data.elementPosition)
         ]
-
-
-elementPosition : Browser.Dom.Element
-elementPosition =
-    { scene =
-        { width = 0
-        , height = 0
-        }
-    , viewport =
-        { width = 0
-        , height = 0
-        , x = 0
-        , y = 0
-        }
-    , element =
-        { x = 0
-        , y = 0
-        , width = 1
-        , height = 1
-        }
-    }
 
 
 nonOverflowingViewport : Browser.Dom.Viewport

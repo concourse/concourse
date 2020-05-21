@@ -646,7 +646,13 @@ toHtmlID domId =
             Base64.encode p.teamName
                 ++ "_"
                 ++ Base64.encode p.pipelineName
-                ++ "_icon"
+                ++ "_status"
+
+        VisibilityButton p ->
+            Base64.encode p.teamName
+                ++ "_"
+                ++ Base64.encode p.pipelineName
+                ++ "_visibility"
 
         FirstOccurrenceGetStepLabel stepID ->
             stepID ++ "_first_occurrence"

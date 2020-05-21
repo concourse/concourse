@@ -1562,21 +1562,6 @@ all =
                                 }
                                 ++ [ style "background-size" "contain" ]
 
-                        tooltipAbove tooltipText =
-                            [ style "position" "relative"
-                            , containing
-                                [ tag "div"
-                                , containing [ text tooltipText ]
-                                , style "background-color" "#9b9b9b"
-                                , style "position" "absolute"
-                                , style "bottom" "100%"
-                                , style "white-space" "nowrap"
-                                , style "padding" "2.5px"
-                                , style "margin-bottom" "5px"
-                                , style "right" "-150%"
-                                ]
-                            ]
-
                         openEyeClickable setup =
                             [ defineHoverBehaviour
                                 { name = "open eye toggle"
@@ -1602,7 +1587,6 @@ all =
                                             ++ [ style "opacity" "1"
                                                , style "cursor" "pointer"
                                                ]
-                                            ++ tooltipAbove "hide pipeline"
                                     }
                                 }
                             , test "has click handler" <|
@@ -1798,7 +1782,6 @@ all =
                                             ++ [ style "opacity" "1"
                                                , style "cursor" "pointer"
                                                ]
-                                            ++ tooltipAbove "expose pipeline"
                                     }
                                 }
                             , test "has click handler" <|

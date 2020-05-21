@@ -53,6 +53,7 @@ type Direction
 type Alignment
     = Start
     | Middle Float
+    | End
 
 
 policy : DomID -> TooltipCondition
@@ -85,8 +86,9 @@ position { direction, alignment } { element, viewport } =
                 ( Right, Middle height ) ->
                     [ style "top" <| String.fromFloat (target.y + (target.height - height) / 2) ++ "px" ]
 
-        -- ( Right, End ) ->
-        --     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
+                ( Right, End ) ->
+                    [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
+
         -- ( Bottom, _ ) ->
         --     [ style "top" <| String.fromFloat (target.y + target.height) ++ "px" ]
         -- ( Left, Start ) ->
@@ -103,8 +105,9 @@ position { direction, alignment } { element, viewport } =
                 ( Top, Middle width ) ->
                     [ style "left" <| String.fromFloat (target.x + (target.width - width) / 2) ++ "px" ]
 
-                -- ( Top, End ) ->
-                --     [ style "right" <| String.fromFloat (target.x + target.width) ++ "px" ]
+                ( Top, End ) ->
+                    [ style "right" <| String.fromFloat (viewport.width - target.x - target.width) ++ "px" ]
+
                 ( Right, _ ) ->
                     [ style "left" <| String.fromFloat (target.x + target.width) ++ "px" ]
 

@@ -1,5 +1,7 @@
 module Data exposing
     ( check
+    , dashboardPipeline
+    , elementPosition
     , httpInternalServerError
     , httpNotFound
     , httpNotImplemented
@@ -22,8 +24,10 @@ module Data exposing
     , withPublic
     )
 
+import Browser.Dom
 import Concourse
 import Concourse.BuildStatus as BuildStatus
+import Dashboard.Group.Models
 import Dict exposing (Dict)
 import Http
 import Time
@@ -144,6 +148,21 @@ pipeline team id =
     }
 
 
+dashboardPipeline : Int -> Bool -> Dashboard.Group.Models.Pipeline
+dashboardPipeline id public =
+    { id = id
+    , name = pipelineName
+    , teamName = teamName
+    , public = public
+    , isToggleLoading = False
+    , isVisibilityLoading = False
+    , paused = False
+    , archived = False
+    , stale = False
+    , jobsDisabled = False
+    }
+
+
 withPaused : Bool -> { r | paused : Bool } -> { r | paused : Bool }
 withPaused paused p =
     { p | paused = paused }
@@ -245,4 +264,25 @@ jobBuild status =
                 Just <| Time.millisToPosix 0
         }
     , reapTime = Nothing
+    }
+
+
+elementPosition : Browser.Dom.Element
+elementPosition =
+    { scene =
+        { width = 0
+        , height = 0
+        }
+    , viewport =
+        { width = 0
+        , height = 0
+        , x = 0
+        , y = 0
+        }
+    , element =
+        { x = 0
+        , y = 0
+        , width = 1
+        , height = 1
+        }
     }
