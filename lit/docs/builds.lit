@@ -33,7 +33,7 @@ sure you intercept while it's running, if you want to debug.
   Rerun builds are ordered chronologically after the original build, rather
   than becoming a new "latest" build. Similarly, when the scheduler is
   resolving \reference{schema.step.get-step.passed}{\code{passed}} constraints
-  which reference a job which has rerun builds, those rerun builds are
+  that reference a job with rerun builds, those rerun builds are
   processed in this same order. This is so that the versions which made it
   through a rerun build do not become the new "latest versions" - instead, they
   act as if the original had succeeded at its point in the build history.
