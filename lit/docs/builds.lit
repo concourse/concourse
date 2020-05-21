@@ -190,8 +190,8 @@ sure you intercept while it's running, if you want to debug.
 
   By using the \code{--job} and \code{--build} flags you can pick out a
   specific build of a job to watch. For example, the following command will
-  either show the archived logs for an old build if it has finished running or
-  it will stream the current logs if the build is still in progress.
+  either show the archived logs for an old build, if it has finished running, or
+  it will stream the current logs, if the build is still in progress.
 
   \codeblock{bash}{{
   $ fly -t example watch --job my-pipeline/tests --build 52
