@@ -26,7 +26,7 @@ image (i.e. \code{ENV} rules from your \code{Dockerfile}).
 
 The user the command runs as is determined by the image. If you're using a
 Docker image, this will be the user set by a \code{USER} rule in your
-\code{Dockerfile}, or \code{root} if not specified.
+\code{Dockerfile}, or \code{root}, if not specified.
 
 Another relevant bit of configuration is \reference{schema.step.task-step.privileged},
 which determines whether the user the task runs as will have full privileges
