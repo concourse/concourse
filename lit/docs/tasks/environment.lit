@@ -31,8 +31,8 @@ Docker image, this will be the user set by a \code{USER} rule in your
 Another relevant bit of configuration is \reference{schema.step.task-step.privileged},
 which determines whether the user the task runs as will have full privileges
 (primarily when running as \code{root}). This is intentionally \italic{not}
-configurable by the task itself, to prevent privilege escalation by way of
-pull requests to repositories containing task configs.
+configurable by the task itself, to prevent privilege escalation by submitting
+pull requests to repositories that contain task configs.
 
 Putting all this together, the following task config:
 
