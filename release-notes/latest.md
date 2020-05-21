@@ -57,3 +57,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5622" href="#5622">:link:</a></sup></sub> fix
 
 * @evanchaoli enhanced to change the Web UI and `fly teams` to show teams ordering by team names, which allows users who are participated in many teams to find a specific team easily.
+
+#### <sub><sup><a name="5639" href="#5639">:link:</a></sup></sub> fix
+
+* Fix a bug that crashes web node when renaming a job with `old_name` equal to `name`. #5639

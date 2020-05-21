@@ -848,7 +848,7 @@ func (t *team) updateName(tx Tx, jobs []atc.JobConfig, pipelineID int) error {
 	jobsToUpdate := []UpdateName{}
 
 	for _, job := range jobs {
-		if job.OldName != "" {
+		if job.OldName != "" && job.OldName != job.Name {
 			var count int
 			err := psql.Select("COUNT(*) as count").
 				From("jobs").

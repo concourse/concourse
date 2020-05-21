@@ -2088,6 +2088,22 @@ var _ = Describe("Team", func() {
 				Expect(otherUpdatedJob.ID()).To(Equal(otherJob.ID()))
 			})
 
+			It("should handle when old job has the same name as new job", func() {
+				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				job, _, _ := pipeline.Job("some-job")
+
+				config.Jobs[0].Name = "some-job"
+				config.Jobs[0].OldName = "some-job"
+
+				updatedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				updatedJob, _, _ := updatedPipeline.Job("some-job")
+				Expect(updatedJob.ID()).To(Equal(job.ID()))
+			})
+
 			It("should return an error when there is a swap with job name", func() {
 				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
 				Expect(err).ToNot(HaveOccurred())
