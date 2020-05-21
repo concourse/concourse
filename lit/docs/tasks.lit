@@ -206,8 +206,9 @@ A task's configuration specifies the following:
       }
 
       \optional-attribute{args}{[string]}{
-        Arguments to pass to the command. Note that when executed with Fly, any
-        arguments passed to Fly are appended to this array.
+        Arguments to pass to the command. Note that when executed with
+        \reference{fly-cli}{Fly}, any arguments passed to \reference{fly-execute}
+        are appended to this array.
       }
 
       \optional-attribute{dir}{dir-path}{
