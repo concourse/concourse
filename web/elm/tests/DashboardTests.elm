@@ -249,6 +249,76 @@ all =
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.RedirectToLogin ]
+        , test "retries the request after 1 second if ListAllJobs call gives a 503" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 503
+                                        , message = "service unavailable"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked OneSecond <|
+                            Time.millisToPosix 1000
+                        )
+                    |> Tuple.second
+                    |> Expect.equal [ Effects.FetchAllJobs ]
+        , test "only retries the request once per 503 response" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 503
+                                        , message = "service unavailable"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked OneSecond <|
+                            Time.millisToPosix 1000
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked OneSecond <|
+                            Time.millisToPosix 1000
+                        )
+                    |> Tuple.second
+                    |> Expect.equal []
+        , test "does not show turbulence screen on 503" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 503
+                                        , message = "service unavailable"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
         , test "shows turbulence view if the all teams call gives a bad status error" <|
             \_ ->
                 Common.init "/"
