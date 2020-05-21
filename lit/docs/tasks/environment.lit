@@ -7,7 +7,7 @@ A task runs in a new container every time, using the image provided by
 
 The command specified by \reference{schema.task.run} will be executed in a working
 directory containing each of the \reference{schema.task.inputs}. If any input is
-missing the task will not run (and the container will not even be created).
+missing, the task will not run (and the container will not even be created).
 
 The working directory will also contain empty directories for each of the
 \reference{schema.task.outputs}. The task must place artifacts in the output
