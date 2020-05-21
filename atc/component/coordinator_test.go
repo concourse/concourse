@@ -142,14 +142,6 @@ func (s *CoordinatorSuite) TestRunPeriodically() {
 			Runs: false,
 		},
 		{
-			It: "does not run if acquiring the lock errors",
-
-			LockErr:         someErr,
-			IntervalElapsed: true,
-
-			Runs: false,
-		},
-		{
 			It: "does not run if the component disappears while reloading",
 
 			LockAvailable:   true,
