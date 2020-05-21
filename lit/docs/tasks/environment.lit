@@ -15,7 +15,7 @@ directories for them to be exported. This meshes well with build tools with
 configurable destination paths.
 
 \aside{
-  If your build tools don't support output paths you can configure an input and
+  If your build tools don't support output paths, you can configure an input and
   output with the same path. The directory will be populated by the input, and
   any changes made to the directory will propagate downstream as an output.
 }
