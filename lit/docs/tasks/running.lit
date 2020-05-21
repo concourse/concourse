@@ -28,7 +28,7 @@ in your current directory that would normally be ignored by your version control
 system. You can use the \code{--include-ignored} flag in order to send ignored
 files to Concourse along with those that are not ignored.
 
-If your task needs to run as \code{root} then you can specify the \code{-p}
+If your task needs to run as \code{root}, then you can specify the \code{-p}
 or \code{--privileged} flag.
 
 \example-toggle{Providing multiple inputs}{
