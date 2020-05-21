@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"go.opentelemetry.io/otel/api/propagators"
 )
 
 type FakeCheck struct {
@@ -206,6 +207,16 @@ type FakeCheck struct {
 	}
 	schemaReturnsOnCall map[int]struct {
 		result1 string
+	}
+	SpanContextStub        func() propagators.Supplier
+	spanContextMutex       sync.RWMutex
+	spanContextArgsForCall []struct {
+	}
+	spanContextReturns struct {
+		result1 propagators.Supplier
+	}
+	spanContextReturnsOnCall map[int]struct {
+		result1 propagators.Supplier
 	}
 	StartStub        func() error
 	startMutex       sync.RWMutex
@@ -1244,6 +1255,58 @@ func (fake *FakeCheck) SchemaReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeCheck) SpanContext() propagators.Supplier {
+	fake.spanContextMutex.Lock()
+	ret, specificReturn := fake.spanContextReturnsOnCall[len(fake.spanContextArgsForCall)]
+	fake.spanContextArgsForCall = append(fake.spanContextArgsForCall, struct {
+	}{})
+	fake.recordInvocation("SpanContext", []interface{}{})
+	fake.spanContextMutex.Unlock()
+	if fake.SpanContextStub != nil {
+		return fake.SpanContextStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.spanContextReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheck) SpanContextCallCount() int {
+	fake.spanContextMutex.RLock()
+	defer fake.spanContextMutex.RUnlock()
+	return len(fake.spanContextArgsForCall)
+}
+
+func (fake *FakeCheck) SpanContextCalls(stub func() propagators.Supplier) {
+	fake.spanContextMutex.Lock()
+	defer fake.spanContextMutex.Unlock()
+	fake.SpanContextStub = stub
+}
+
+func (fake *FakeCheck) SpanContextReturns(result1 propagators.Supplier) {
+	fake.spanContextMutex.Lock()
+	defer fake.spanContextMutex.Unlock()
+	fake.SpanContextStub = nil
+	fake.spanContextReturns = struct {
+		result1 propagators.Supplier
+	}{result1}
+}
+
+func (fake *FakeCheck) SpanContextReturnsOnCall(i int, result1 propagators.Supplier) {
+	fake.spanContextMutex.Lock()
+	defer fake.spanContextMutex.Unlock()
+	fake.SpanContextStub = nil
+	if fake.spanContextReturnsOnCall == nil {
+		fake.spanContextReturnsOnCall = make(map[int]struct {
+			result1 propagators.Supplier
+		})
+	}
+	fake.spanContextReturnsOnCall[i] = struct {
+		result1 propagators.Supplier
+	}{result1}
+}
+
 func (fake *FakeCheck) Start() error {
 	fake.startMutex.Lock()
 	ret, specificReturn := fake.startReturnsOnCall[len(fake.startArgsForCall)]
@@ -1543,6 +1606,8 @@ func (fake *FakeCheck) Invocations() map[string][][]interface{} {
 	defer fake.saveVersionsMutex.RUnlock()
 	fake.schemaMutex.RLock()
 	defer fake.schemaMutex.RUnlock()
+	fake.spanContextMutex.RLock()
+	defer fake.spanContextMutex.RUnlock()
 	fake.startMutex.RLock()
 	defer fake.startMutex.RUnlock()
 	fake.startTimeMutex.RLock()

@@ -600,10 +600,6 @@ func (p *pipeline) Pause() error {
 }
 
 func (p *pipeline) Unpause() error {
-	if p.Archived() {
-		return conflict("archived pipelines cannot be unpaused")
-	}
-
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return err
@@ -733,6 +729,8 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	defer tx.Rollback()
 
 	rows, err := psql.Select("v.id, v.check_order, r.id, v.resource_config_scope_id, o.build_id, b.job_id").
 		From("build_resource_config_version_outputs o").

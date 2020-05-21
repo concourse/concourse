@@ -6,7 +6,6 @@ import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
-import FetchResult exposing (FetchResult)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, download, href, id, style)
@@ -35,7 +34,7 @@ handleDelivery delivery ( model, effects ) =
                             | showHelp =
                                 if
                                     model.pipelines
-                                        |> FetchResult.withDefault []
+                                        |> Maybe.withDefault []
                                         |> List.isEmpty
                                 then
                                     False
@@ -128,7 +127,7 @@ infoBar :
     ->
         { b
             | highDensity : Bool
-            , pipelines : FetchResult (List Pipeline)
+            , pipelines : Maybe (List Pipeline)
         }
     -> Html Message
 infoBar session model =
@@ -148,7 +147,7 @@ legend :
     { a | screenSize : ScreenSize.ScreenSize }
     ->
         { b
-            | pipelines : FetchResult (List Pipeline)
+            | pipelines : Maybe (List Pipeline)
             , highDensity : Bool
         }
     -> Html Message
@@ -201,10 +200,10 @@ concourseInfo { hovered, version } =
         ]
 
 
-hideLegend : { a | pipelines : FetchResult (List Pipeline) } -> Bool
+hideLegend : { a | pipelines : Maybe (List Pipeline) } -> Bool
 hideLegend { pipelines } =
     pipelines
-        |> FetchResult.withDefault []
+        |> Maybe.withDefault []
         |> List.isEmpty
 
 

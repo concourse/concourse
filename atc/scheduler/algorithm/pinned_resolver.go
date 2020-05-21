@@ -11,18 +11,18 @@ import (
 
 type pinnedResolver struct {
 	vdb         db.VersionsDB
-	inputConfig InputConfig
+	inputConfig db.InputConfig
 }
 
-func NewPinnedResolver(vdb db.VersionsDB, inputConfig InputConfig) Resolver {
+func NewPinnedResolver(vdb db.VersionsDB, inputConfig db.InputConfig) Resolver {
 	return &pinnedResolver{
 		vdb:         vdb,
 		inputConfig: inputConfig,
 	}
 }
 
-func (r *pinnedResolver) InputConfigs() InputConfigs {
-	return InputConfigs{r.inputConfig}
+func (r *pinnedResolver) InputConfigs() db.InputConfigs {
+	return db.InputConfigs{r.inputConfig}
 }
 
 func (r *pinnedResolver) Resolve(ctx context.Context) (map[string]*versionCandidate, db.ResolutionFailure, error) {

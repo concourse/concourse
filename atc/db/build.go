@@ -119,6 +119,8 @@ type Build interface {
 
 	Reload() (bool, error)
 
+	ResourcesChecked() (bool, error)
+
 	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
 
 	Interceptible() (bool, error)
@@ -289,6 +291,29 @@ func (b *build) SetInterceptible(i bool) error {
 	return nil
 }
 
+func (b *build) ResourcesChecked() (bool, error) {
+	var notChecked bool
+	err := b.conn.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM resources r
+			JOIN job_inputs ji ON ji.resource_id = r.id
+			JOIN resource_config_scopes rs ON r.resource_config_scope_id = rs.id
+			WHERE ji.job_id = $1
+			AND rs.last_check_end_time < $2
+			AND NOT EXISTS (
+				SELECT
+				FROM resource_pins
+				WHERE resource_id = r.id
+			)
+		)`, b.jobID, b.createTime).Scan(&notChecked)
+	if err != nil {
+		return false, err
+	}
+
+	return !notChecked, nil
+}
+
 func (b *build) Start(plan atc.Plan) (bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
@@ -394,12 +419,16 @@ func (b *build) Finish(status BuildStatus) error {
 	}
 
 	if b.jobID != 0 && status == BuildStatusSucceeded {
-		_, err = psql.Delete("build_image_resource_caches birc USING builds b").
-			Where(sq.Expr("birc.build_id = b.id")).
-			Where(sq.Lt{"build_id": b.id}).
-			Where(sq.Eq{"b.job_id": b.jobID}).
-			RunWith(tx).
-			Exec()
+		_, err = tx.Exec(`WITH caches AS (
+			SELECT resource_cache_id, build_id
+			FROM build_image_resource_caches brc
+			JOIN builds b ON b.id = brc.build_id
+			WHERE b.job_id = $1
+		)
+		DELETE FROM build_image_resource_caches birc
+		USING caches c
+		WHERE c.build_id = birc.build_id AND birc.build_id < $2`,
+			b.jobID, b.id)
 		if err != nil {
 			return err
 		}

@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
 
 	"github.com/concourse/concourse/atc/db"
@@ -33,10 +32,6 @@ var _ = Describe("Runner", func() {
 		fakeJob1       *dbfakes.FakeJob
 		fakeJob2       *dbfakes.FakeJob
 		fakeJob3       *dbfakes.FakeJob
-		fakeResource1  *dbfakes.FakeResource
-		fakeResource2  *dbfakes.FakeResource
-
-		expectedJobsMap algorithm.NameToIDMap
 
 		job1RequestedTime time.Time
 		job2RequestedTime time.Time
@@ -50,21 +45,6 @@ var _ = Describe("Runner", func() {
 		fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
 		fakeJobFactory = new(dbfakes.FakeJobFactory)
 		maxInFlight = 1
-
-		expectedJobsMap = algorithm.NameToIDMap{
-			"some-job":        1,
-			"some-other-job":  2,
-			"unscheduled-job": 3,
-		}
-
-		fakeResource1 = new(dbfakes.FakeResource)
-		fakeResource1.NameReturns("some-resource")
-		fakeResource1.TypeReturns("git")
-		fakeResource1.SourceReturns(atc.Source{"uri": "git://some-resource"})
-		fakeResource2 = new(dbfakes.FakeResource)
-		fakeResource2.NameReturns("some-dependant-resource")
-		fakeResource2.TypeReturns("git")
-		fakeResource2.SourceReturns(atc.Source{"uri": "git://some-dependant-resource"})
 
 		lock = new(lockfakes.FakeLock)
 	})
@@ -107,400 +87,437 @@ var _ = Describe("Runner", func() {
 			fakeJob2.PipelineIDReturns(1)
 			fakeJob2.ScheduleRequestedTimeReturns(job2RequestedTime)
 
-			fakeJobFactory.JobsToScheduleReturns([]db.Job{fakeJob1, fakeJob2}, nil)
+			fakeJobFactory.JobsToScheduleReturns([]db.SchedulerJob{
+				{
+					Job: fakeJob1,
+					Resources: db.SchedulerResources{
+						{
+							Name:   "some-resource",
+							Type:   "git",
+							Source: atc.Source{"uri": "git://some-resource"},
+						},
+						{
+							Name:   "some-dependent-resource",
+							Type:   "git",
+							Source: atc.Source{"uri": "git://some-dependent-resource"},
+						},
+					},
+				},
+				{
+					Job: fakeJob2,
+					Resources: db.SchedulerResources{
+						{
+							Name:   "some-resource",
+							Type:   "git",
+							Source: atc.Source{"uri": "git://some-resource"},
+						},
+						{
+							Name:   "some-dependent-resource",
+							Type:   "git",
+							Source: atc.Source{"uri": "git://some-dependent-resource"},
+						},
+					},
+				},
+			}, nil)
 		})
 
-		It("finds corresponding pipeline for job", func() {
-			Eventually(fakeJob1.PipelineCallCount).Should(Equal(1))
+		It("tries to acquire the scheduling lock for each job", func() {
+			Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(Equal(1))
+			Eventually(fakeJob2.AcquireSchedulingLockCallCount).Should(Equal(1))
 		})
 
-		Context("when finding pipeline for job succeeds", func() {
+		Context("when it can't get the lock", func() {
 			BeforeEach(func() {
-				fakeJob1.PipelineReturns(fakePipeline, true, nil)
-				fakeJob2.PipelineReturns(fakePipeline, true, nil)
+				fakeJob1.AcquireSchedulingLockReturns(nil, false, nil)
 			})
 
-			It("loads up the jobs", func() {
-				Eventually(fakePipeline.JobsCallCount).Should(Equal(1))
+			It("does not do any scheduling", func() {
+				Expect(schedulerErr).ToNot(HaveOccurred())
+				Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(Equal(1))
+				Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
+				Eventually(fakeScheduler.ScheduleCallCount).Should(BeZero())
+			})
+		})
+
+		Context("when getting the lock blows up", func() {
+			BeforeEach(func() {
+				fakeJob1.AcquireSchedulingLockReturns(nil, false, errors.New(":3"))
 			})
 
-			Context("when the loading of jobs is successful", func() {
+			It("does not do any scheduling", func() {
+				Expect(schedulerErr).ToNot(HaveOccurred())
+				Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(Equal(1))
+				Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
+				Eventually(fakeScheduler.ScheduleCallCount).Should(BeZero())
+			})
+		})
+
+		Context("when getting both locks succeeds", func() {
+			BeforeEach(func() {
+				fakeJob1.AcquireSchedulingLockReturns(lock, true, nil)
+				fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
+			})
+
+			It("reloads the job", func() {
+				Eventually(fakeJob1.ReloadCallCount).Should(Equal(1))
+				Eventually(fakeJob2.ReloadCallCount).Should(Equal(1))
+			})
+
+			Context("when reloading the job succeeds", func() {
 				BeforeEach(func() {
-					fakeJob3 := new(dbfakes.FakeJob)
-					fakeJob3.IDReturns(3)
-					fakeJob3.NameReturns("unscheduled-job")
-
-					fakePipeline.JobsReturns([]db.Job{fakeJob1, fakeJob2, fakeJob3}, nil)
+					fakeJob1.ReloadReturns(true, nil)
+					fakeJob2.ReloadReturns(true, nil)
 				})
 
-				It("loads up the resourcevs", func() {
-					Eventually(fakePipeline.ResourcesCallCount).Should(Equal(1))
+				It("schedules pending builds", func() {
+					Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(2))
+
+					jobs := []string{}
+					_, _, job := fakeScheduler.ScheduleArgsForCall(0)
+					Expect(job.Resources).To(Equal(db.SchedulerResources{
+						{
+							Name:   "some-resource",
+							Type:   "git",
+							Source: atc.Source{"uri": "git://some-resource"},
+						},
+						{
+							Name:   "some-dependent-resource",
+							Type:   "git",
+							Source: atc.Source{"uri": "git://some-dependent-resource"},
+						},
+					}))
+					jobs = append(jobs, job.Name())
+
+					_, _, job = fakeScheduler.ScheduleArgsForCall(1)
+					Expect(job.Resources).To(Equal(db.SchedulerResources{
+						{
+							Name:   "some-resource",
+							Type:   "git",
+							Source: atc.Source{"uri": "git://some-resource"},
+						},
+						{
+							Name:   "some-dependent-resource",
+							Type:   "git",
+							Source: atc.Source{"uri": "git://some-dependent-resource"},
+						},
+					}))
+					jobs = append(jobs, job.Name())
+
+					Expect(jobs).To(ConsistOf([]string{"some-job", "some-other-job"}))
 				})
 
-				Context("when the loading of the resources is successful", func() {
+				Context("when all jobs scheduling succeeds", func() {
 					BeforeEach(func() {
-						fakePipeline.ResourcesReturns(db.Resources{fakeResource1, fakeResource2}, nil)
+						fakeScheduler.ScheduleReturns(false, nil)
 					})
 
-					Context("when there are multiple jobs", func() {
-						It("tries to acquire the scheduling lock for each job", func() {
-							Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(Equal(1))
-							Eventually(fakeJob2.AcquireSchedulingLockCallCount).Should(Equal(1))
-						})
+					It("updates last schedule", func() {
+						Expect(schedulerErr).ToNot(HaveOccurred())
 
-						Context("when it can't get the lock", func() {
-							BeforeEach(func() {
-								fakeJob1.AcquireSchedulingLockReturns(nil, false, nil)
-							})
-
-							It("does not do any scheduling", func() {
-								Expect(schedulerErr).ToNot(HaveOccurred())
-								Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(Equal(1))
-								Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-								Eventually(fakeScheduler.ScheduleCallCount).Should(BeZero())
-							})
-						})
-
-						Context("when getting the lock blows up", func() {
-							BeforeEach(func() {
-								fakeJob1.AcquireSchedulingLockReturns(nil, false, errors.New(":3"))
-							})
-
-							It("does not do any scheduling", func() {
-								Expect(schedulerErr).ToNot(HaveOccurred())
-								Eventually(fakeJob1.AcquireSchedulingLockCallCount).Should(Equal(1))
-								Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-								Eventually(fakeScheduler.ScheduleCallCount).Should(BeZero())
-							})
-						})
-
-						Context("when getting both locks succeeds", func() {
-							BeforeEach(func() {
-								fakeJob1.AcquireSchedulingLockReturns(lock, true, nil)
-								fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
-							})
-
-							It("reloads the job", func() {
-								Eventually(fakeJob1.ReloadCallCount).Should(Equal(1))
-								Eventually(fakeJob2.ReloadCallCount).Should(Equal(1))
-							})
-
-							Context("when reloading the job succeeds", func() {
-								BeforeEach(func() {
-									fakeJob1.ReloadReturns(true, nil)
-									fakeJob2.ReloadReturns(true, nil)
-								})
-
-								It("schedules pending builds", func() {
-									Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(2))
-
-									jobs := []string{}
-									_, _, pipeline, job, resources, jobsMap := fakeScheduler.ScheduleArgsForCall(0)
-									Expect(pipeline.Name()).To(Equal("fake-pipeline"))
-									Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
-									Expect(jobsMap).To(Equal(expectedJobsMap))
-									jobs = append(jobs, job.Name())
-
-									_, _, pipeline, job, resources, jobsMap = fakeScheduler.ScheduleArgsForCall(1)
-									Expect(pipeline.Name()).To(Equal("fake-pipeline"))
-									Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
-									Expect(jobsMap).To(Equal(expectedJobsMap))
-									jobs = append(jobs, job.Name())
-
-									Expect(jobs).To(ConsistOf([]string{"some-job", "some-other-job"}))
-								})
-
-								Context("when all jobs scheduling succeeds", func() {
-									BeforeEach(func() {
-										fakeScheduler.ScheduleReturns(false, nil)
-									})
-
-									It("updates last schedule", func() {
-										Expect(schedulerErr).ToNot(HaveOccurred())
-
-										Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(1))
-										Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
-										Expect(fakeJob1.UpdateLastScheduledArgsForCall(0)).To(Equal(job1RequestedTime))
-										Expect(fakeJob2.UpdateLastScheduledArgsForCall(0)).To(Equal(job2RequestedTime))
-									})
-								})
-
-								Context("when the same job is already being scheduled", func() {
-									var scheduleWg *sync.WaitGroup
-
-									BeforeEach(func() {
-										maxInFlight = 2
-
-										fakeJobFactory.JobsToScheduleReturns([]db.Job{fakeJob1, fakeJob1}, nil)
-
-										wg := new(sync.WaitGroup)
-										wg.Add(2)
-
-										scheduleWg = wg
-
-										fakeScheduler.ScheduleStub = func(
-											context.Context,
-											lager.Logger,
-											db.Pipeline,
-											db.Job,
-											db.Resources,
-											algorithm.NameToIDMap,
-										) (bool, error) {
-											wg.Done()
-											wg.Wait()
-											return false, nil
-										}
-									})
-
-									AfterEach(func() {
-										// release the waiting schedule call
-										scheduleWg.Done()
-									})
-
-									It("only schedules the job once", func() {
-										Eventually(fakeScheduler.ScheduleCallCount).ShouldNot(BeZero())
-										Consistently(fakeScheduler.ScheduleCallCount).Should(Equal(1))
-									})
-								})
-
-								Context("when job scheduling fails", func() {
-									BeforeEach(func() {
-										fakeScheduler.ScheduleReturnsOnCall(0, false, errors.New("error"))
-										fakeScheduler.ScheduleReturnsOnCall(1, false, nil)
-									})
-
-									It("does not update last scheduled", func() {
-										Expect(schedulerErr).ToNot(HaveOccurred())
-										Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
-										Consistently(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-									})
-								})
-
-								Context("when there is no error but needs retry", func() {
-									BeforeEach(func() {
-										fakeScheduler.ScheduleReturnsOnCall(0, true, nil)
-										fakeScheduler.ScheduleReturnsOnCall(1, false, nil)
-									})
-
-									It("does not update last scheduled for the job that needs retry", func() {
-										Expect(schedulerErr).ToNot(HaveOccurred())
-										Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-										Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
-									})
-								})
-							})
-
-							Context("when reloading the job fails", func() {
-								BeforeEach(func() {
-									fakeJob1.ReloadReturns(false, errors.New("disappointment"))
-								})
-
-								It("does not update last schedule", func() {
-									Expect(schedulerErr).ToNot(HaveOccurred())
-									Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
-									Consistently(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-								})
-							})
-
-							Context("when the job to reload is not found", func() {
-								BeforeEach(func() {
-									fakeJob1.ReloadReturns(false, nil)
-								})
-
-								It("does not update last schedule", func() {
-									Expect(schedulerErr).ToNot(HaveOccurred())
-									Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
-									Consistently(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-								})
-							})
-						})
-
-						Context("when acquiring one job lock succeeds", func() {
-							BeforeEach(func() {
-								fakeJob1.AcquireSchedulingLockReturns(nil, false, nil)
-								fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
-							})
-
-							It("schedules pending builds for one job", func() {
-								Expect(schedulerErr).ToNot(HaveOccurred())
-								Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(1))
-
-								_, _, pipeline, job, resources, jobIDs := fakeScheduler.ScheduleArgsForCall(0)
-								Expect(job).To(Equal(fakeJob2))
-								Expect(resources).To(Equal(db.Resources{fakeResource1, fakeResource2}))
-								Expect(pipeline).To(Equal(fakePipeline))
-								Expect(jobIDs).To(Equal(expectedJobsMap))
-							})
-						})
+						Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(1))
+						Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+						Expect(fakeJob1.UpdateLastScheduledArgsForCall(0)).To(Equal(job1RequestedTime))
+						Expect(fakeJob2.UpdateLastScheduledArgsForCall(0)).To(Equal(job2RequestedTime))
 					})
 				})
 
-				Context("when the loading of the resources fails", func() {
+				Context("when the same job is already being scheduled", func() {
+					var scheduleWg *sync.WaitGroup
+
 					BeforeEach(func() {
-						fakePipeline.ResourcesReturns(nil, errors.New("resources error"))
+						maxInFlight = 2
+
+						fakeJobFactory.JobsToScheduleReturns([]db.SchedulerJob{
+							{
+								Job: fakeJob1,
+								Resources: db.SchedulerResources{
+									{
+										Name:   "some-resource",
+										Type:   "git",
+										Source: atc.Source{"uri": "git://some-resource"},
+									},
+								},
+							},
+							{
+								Job: fakeJob1,
+								Resources: db.SchedulerResources{
+									{
+										Name:   "some-resource",
+										Type:   "git",
+										Source: atc.Source{"uri": "git://some-resource"},
+									},
+								},
+							},
+						}, nil)
+
+						wg := new(sync.WaitGroup)
+						wg.Add(2)
+
+						scheduleWg = wg
+
+						fakeScheduler.ScheduleStub = func(
+							context.Context,
+							lager.Logger,
+							db.SchedulerJob,
+						) (bool, error) {
+							wg.Done()
+							wg.Wait()
+							return false, nil
+						}
+					})
+
+					AfterEach(func() {
+						// release the waiting schedule call
+						scheduleWg.Done()
+					})
+
+					It("only schedules the job once", func() {
+						Eventually(fakeScheduler.ScheduleCallCount).ShouldNot(BeZero())
+						Consistently(fakeScheduler.ScheduleCallCount).Should(Equal(1))
+					})
+				})
+
+				Context("when job scheduling fails", func() {
+					BeforeEach(func() {
+						fakeScheduler.ScheduleReturnsOnCall(0, false, errors.New("error"))
+						fakeScheduler.ScheduleReturnsOnCall(1, false, nil)
 					})
 
 					It("does not update last scheduled", func() {
 						Expect(schedulerErr).ToNot(HaveOccurred())
+						Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+						Consistently(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
+					})
+				})
+
+				Context("when there is no error but needs retry", func() {
+					BeforeEach(func() {
+						fakeScheduler.ScheduleReturnsOnCall(0, true, nil)
+						fakeScheduler.ScheduleReturnsOnCall(1, false, nil)
+					})
+
+					It("does not update last scheduled for the job that needs retry", func() {
+						Expect(schedulerErr).ToNot(HaveOccurred())
 						Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-						Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(0))
-						Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(0))
+						Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
 					})
 				})
 			})
 
-			Context("when the loading of the jobs fails", func() {
+			Context("when reloading the job fails", func() {
 				BeforeEach(func() {
-					fakePipeline.JobsReturns(nil, errors.New("jobs error"))
+					fakeJob1.ReloadReturns(false, errors.New("disappointment"))
 				})
 
-				It("does not update last scheduled", func() {
+				It("does not update last schedule", func() {
 					Expect(schedulerErr).ToNot(HaveOccurred())
-					Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-					Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(0))
-					Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(0))
+					Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+					Consistently(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
+				})
+			})
+
+			Context("when the job to reload is not found", func() {
+				BeforeEach(func() {
+					fakeJob1.ReloadReturns(false, nil)
+				})
+
+				It("does not update last schedule", func() {
+					Expect(schedulerErr).ToNot(HaveOccurred())
+					Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+					Consistently(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
 				})
 			})
 		})
 
-		Context("when pipeline for job could not be found", func() {
+		Context("when acquiring one job lock succeeds", func() {
 			BeforeEach(func() {
-				fakeJob1.PipelineReturns(nil, false, nil)
+				fakeJob1.AcquireSchedulingLockReturns(nil, false, nil)
+				fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
 			})
 
-			It("should not error or update last scheduled", func() {
+			It("schedules pending builds for one job", func() {
 				Expect(schedulerErr).ToNot(HaveOccurred())
-				Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-				Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(0))
+				Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(1))
+
+				_, _, job := fakeScheduler.ScheduleArgsForCall(0)
+				Expect(job).To(Equal(db.SchedulerJob{
+					Job: fakeJob2,
+					Resources: db.SchedulerResources{
+						{
+							Name:   "some-resource",
+							Type:   "git",
+							Source: atc.Source{"uri": "git://some-resource"},
+						},
+						{
+							Name:   "some-dependent-resource",
+							Type:   "git",
+							Source: atc.Source{"uri": "git://some-dependent-resource"},
+						},
+					},
+				}))
+			})
+		})
+	})
+
+	Context("when there are multiple jobs and pipelines", func() {
+		var fakePipeline2 *dbfakes.FakePipeline
+
+		BeforeEach(func() {
+			fakePipeline = new(dbfakes.FakePipeline)
+			fakePipeline.NameReturns("fake-pipeline")
+			fakePipeline.IDReturns(1)
+			fakePipeline2 = new(dbfakes.FakePipeline)
+			fakePipeline2.NameReturns("another-fake-pipeline")
+			fakePipeline2.IDReturns(2)
+
+			job1RequestedTime = time.Now()
+			job2RequestedTime = time.Now().Add(time.Minute)
+			job3RequestedTime = time.Now().Add(2 * time.Minute)
+
+			fakeJob1 = new(dbfakes.FakeJob)
+			fakeJob1.IDReturns(1)
+			fakeJob1.NameReturns("some-job")
+			fakeJob1.ReloadReturns(true, nil)
+			fakeJob1.PipelineIDReturns(1)
+			fakeJob1.PipelineReturns(fakePipeline, true, nil)
+			fakeJob1.ScheduleRequestedTimeReturns(job1RequestedTime)
+			fakeJob2 = new(dbfakes.FakeJob)
+			fakeJob2.IDReturns(2)
+			fakeJob2.NameReturns("some-other-job")
+			fakeJob2.ReloadReturns(true, nil)
+			fakeJob2.PipelineIDReturns(2)
+			fakeJob2.PipelineReturns(fakePipeline2, true, nil)
+			fakeJob2.ScheduleRequestedTimeReturns(job2RequestedTime)
+			fakeJob3 = new(dbfakes.FakeJob)
+			fakeJob3.IDReturns(3)
+			fakeJob3.NameReturns("another-other-job")
+			fakeJob3.ReloadReturns(true, nil)
+			fakeJob3.PipelineIDReturns(2)
+			fakeJob3.PipelineReturns(fakePipeline2, true, nil)
+			fakeJob3.ScheduleRequestedTimeReturns(job3RequestedTime)
+
+			fakeScheduler.ScheduleReturns(false, nil)
+		})
+
+		Context("when both pipelines successfully schedule", func() {
+			BeforeEach(func() {
+				fakeJob4 := new(dbfakes.FakeJob)
+				fakeJob4.IDReturns(1)
+				fakeJob4.NameReturns("unscheduled-job")
+
+				fakeJob1.AcquireSchedulingLockReturns(lock, true, nil)
+				fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
+				fakeJob3.AcquireSchedulingLockReturns(lock, true, nil)
+
+				fakeJobFactory.JobsToScheduleReturns([]db.SchedulerJob{
+					{
+						Job: fakeJob1,
+						Resources: db.SchedulerResources{
+							{
+								Name:   "some-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-resource"},
+							},
+						},
+					},
+					{
+						Job: fakeJob2,
+						Resources: db.SchedulerResources{
+							{
+								Name:   "some-dependent-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-dependent-resource"},
+							},
+						},
+					},
+					{
+						Job: fakeJob3,
+						Resources: db.SchedulerResources{
+							{
+								Name:   "some-dependent-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-dependent-resource"},
+							},
+						},
+					},
+					{
+						Job: fakeJob4,
+						Resources: db.SchedulerResources{
+							{
+								Name:   "some-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-resource"},
+							},
+						},
+					},
+				}, nil)
+			})
+
+			It("all three jobs update the last scheduled", func() {
+				Expect(schedulerErr).ToNot(HaveOccurred())
+				Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(3))
+
+				Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(1))
+				Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+				Eventually(fakeJob3.UpdateLastScheduledCallCount).Should(Equal(1))
+
+				Eventually(fakeJob1.UpdateLastScheduledArgsForCall(0)).Should(Equal(job1RequestedTime))
+				Eventually(fakeJob2.UpdateLastScheduledArgsForCall(0)).Should(Equal(job2RequestedTime))
+				Eventually(fakeJob3.UpdateLastScheduledArgsForCall(0)).Should(Equal(job3RequestedTime))
 			})
 		})
 
-		Context("when finding pipeline fails", func() {
+		Context("when the two jobs fail to schedule", func() {
 			BeforeEach(func() {
-				fakeJob1.PipelineReturns(nil, false, errors.New("failed"))
+				fakePipeline.JobsReturns([]db.Job{fakeJob1}, nil)
+				fakeJob1.AcquireSchedulingLockReturns(lock, true, nil)
+				fakeJob1.ReloadReturns(false, errors.New("error-1"))
+
+				fakePipeline2.JobsReturns([]db.Job{fakeJob2, fakeJob3}, nil)
+				fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
+				fakeJob3.AcquireSchedulingLockReturns(lock, true, nil)
+				fakeJob3.ReloadReturns(false, errors.New("error-3"))
+
+				fakeJobFactory.JobsToScheduleReturns([]db.SchedulerJob{
+					{
+						Job: fakeJob1,
+						Resources: db.SchedulerResources{
+							{
+								Name:   "some-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-resource"},
+							},
+						},
+					},
+					{
+						Job: fakeJob2,
+						Resources: db.SchedulerResources{
+							{
+								Name:   "some-dependent-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-dependent-resource"},
+							},
+						},
+					},
+					{
+						Job: fakeJob3,
+						Resources: db.SchedulerResources{
+							{
+								Name:   "some-dependent-resource",
+								Type:   "git",
+								Source: atc.Source{"uri": "git://some-dependent-resource"},
+							},
+						},
+					},
+				}, nil)
 			})
 
-			It("return an error and not update last schedule", func() {
-				Expect(schedulerErr).To(HaveOccurred())
-				Expect(schedulerErr).To(Equal(fmt.Errorf("find pipeline for job: %w", errors.New("failed"))))
-
+			It("schedules the remaining job", func() {
+				Expect(schedulerErr).ToNot(HaveOccurred())
+				Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(1))
 				Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-				Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(0))
-			})
-		})
-
-		Context("when there are multiple jobs and pipelines", func() {
-			var fakePipeline2 *dbfakes.FakePipeline
-
-			BeforeEach(func() {
-				fakePipeline = new(dbfakes.FakePipeline)
-				fakePipeline.NameReturns("fake-pipeline")
-				fakePipeline.IDReturns(1)
-				fakePipeline2 = new(dbfakes.FakePipeline)
-				fakePipeline2.NameReturns("another-fake-pipeline")
-				fakePipeline2.IDReturns(2)
-
-				job1RequestedTime = time.Now()
-				job2RequestedTime = time.Now().Add(time.Minute)
-				job3RequestedTime = time.Now().Add(2 * time.Minute)
-
-				fakeJob1 = new(dbfakes.FakeJob)
-				fakeJob1.IDReturns(1)
-				fakeJob1.NameReturns("some-job")
-				fakeJob1.ReloadReturns(true, nil)
-				fakeJob1.PipelineIDReturns(1)
-				fakeJob1.PipelineReturns(fakePipeline, true, nil)
-				fakeJob1.ScheduleRequestedTimeReturns(job1RequestedTime)
-				fakeJob2 = new(dbfakes.FakeJob)
-				fakeJob2.IDReturns(2)
-				fakeJob2.NameReturns("some-other-job")
-				fakeJob2.ReloadReturns(true, nil)
-				fakeJob2.PipelineIDReturns(2)
-				fakeJob2.PipelineReturns(fakePipeline2, true, nil)
-				fakeJob2.ScheduleRequestedTimeReturns(job2RequestedTime)
-				fakeJob3 = new(dbfakes.FakeJob)
-				fakeJob3.IDReturns(3)
-				fakeJob3.NameReturns("another-other-job")
-				fakeJob3.ReloadReturns(true, nil)
-				fakeJob3.PipelineIDReturns(2)
-				fakeJob3.PipelineReturns(fakePipeline2, true, nil)
-				fakeJob3.ScheduleRequestedTimeReturns(job3RequestedTime)
-
-				fakeJobFactory.JobsToScheduleReturns([]db.Job{fakeJob1, fakeJob2, fakeJob3}, nil)
-
-				fakeScheduler.ScheduleReturns(false, nil)
-			})
-
-			Context("when both pipelines successfully schedule", func() {
-				BeforeEach(func() {
-					fakeJob4 := new(dbfakes.FakeJob)
-					fakeJob4.IDReturns(1)
-					fakeJob4.NameReturns("unscheduled-job")
-
-					fakePipeline.JobsReturns([]db.Job{fakeJob1, fakeJob4}, nil)
-					fakePipeline.ResourcesReturns(db.Resources{fakeResource1}, nil)
-					fakeJob1.AcquireSchedulingLockReturns(lock, true, nil)
-
-					fakePipeline2.JobsReturns([]db.Job{fakeJob2, fakeJob3}, nil)
-					fakePipeline2.ResourcesReturns(db.Resources{fakeResource2}, nil)
-					fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
-					fakeJob3.AcquireSchedulingLockReturns(lock, true, nil)
-				})
-
-				It("all three jobs update the last scheduled", func() {
-					Expect(schedulerErr).ToNot(HaveOccurred())
-					Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(3))
-
-					Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(1))
-					Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
-					Eventually(fakeJob3.UpdateLastScheduledCallCount).Should(Equal(1))
-
-					Eventually(fakeJob1.UpdateLastScheduledArgsForCall(0)).Should(Equal(job1RequestedTime))
-					Eventually(fakeJob2.UpdateLastScheduledArgsForCall(0)).Should(Equal(job2RequestedTime))
-					Eventually(fakeJob3.UpdateLastScheduledArgsForCall(0)).Should(Equal(job3RequestedTime))
-				})
-			})
-
-			Context("when the first pipeline fails to schedule", func() {
-				BeforeEach(func() {
-					fakePipeline.JobsReturns(nil, errors.New("error"))
-
-					fakePipeline2.JobsReturns([]db.Job{fakeJob2, fakeJob3}, nil)
-					fakePipeline2.ResourcesReturns(db.Resources{fakeResource2}, nil)
-					fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
-					fakeJob3.AcquireSchedulingLockReturns(lock, true, nil)
-				})
-
-				It("second pipeline still successfully schedules and updates last scheduled", func() {
-					Expect(schedulerErr).NotTo(HaveOccurred())
-					Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(2))
-					Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-					Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
-					Eventually(fakeJob3.UpdateLastScheduledCallCount).Should(Equal(1))
-				})
-			})
-
-			Context("when the two jobs fail to schedule", func() {
-				BeforeEach(func() {
-					fakePipeline.JobsReturns([]db.Job{fakeJob1}, nil)
-					fakePipeline.ResourcesReturns(db.Resources{fakeResource1}, nil)
-					fakeJob1.AcquireSchedulingLockReturns(lock, true, nil)
-					fakeJob1.ReloadReturns(false, errors.New("error-1"))
-
-					fakePipeline2.JobsReturns([]db.Job{fakeJob2, fakeJob3}, nil)
-					fakePipeline2.ResourcesReturns(db.Resources{fakeResource2}, nil)
-					fakeJob2.AcquireSchedulingLockReturns(lock, true, nil)
-					fakeJob3.AcquireSchedulingLockReturns(lock, true, nil)
-					fakeJob3.ReloadReturns(false, errors.New("error-3"))
-				})
-
-				It("schedules the remaining job", func() {
-					Expect(schedulerErr).ToNot(HaveOccurred())
-					Eventually(fakeScheduler.ScheduleCallCount).Should(Equal(1))
-					Eventually(fakeJob1.UpdateLastScheduledCallCount).Should(Equal(0))
-					Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
-					Eventually(fakeJob3.UpdateLastScheduledCallCount).Should(Equal(0))
-				})
+				Eventually(fakeJob2.UpdateLastScheduledCallCount).Should(Equal(1))
+				Eventually(fakeJob3.UpdateLastScheduledCallCount).Should(Equal(0))
 			})
 		})
 	})

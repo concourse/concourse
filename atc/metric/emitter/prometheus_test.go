@@ -1,13 +1,19 @@
 package emitter_test
 
 import (
-	"github.com/concourse/concourse/atc/metric/emitter"
-	"github.com/concourse/concourse/atc/metric/emitter/emitterfakes"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/metric/emitter"
+	"github.com/concourse/concourse/atc/metric/emitter/emitterfakes"
 )
 
 var _ = Describe("PrometheusEmitter garbage collector", func() {
@@ -158,5 +164,46 @@ var _ = Describe("PrometheusEmitter garbage collector", func() {
 		workerContainersLabels = map[string]map[string]prometheus.Labels{}
 		workerVolumesLabels = map[string]map[string]prometheus.Labels{}
 		workerTasksLabels = map[string]map[string]prometheus.Labels{}
+
+		prometheus.Unregister(workerContainers)
+		prometheus.Unregister(workerVolumes)
+		prometheus.Unregister(workerTasks)
+	})
+})
+
+var _ = Describe("PrometheusEmitter", func() {
+	var (
+		prometheusConfig  *emitter.PrometheusConfig
+		prometheusEmitter metric.Emitter
+		logger            *lagertest.TestLogger
+		err               error
+	)
+
+	BeforeEach(func() {
+		logger = lagertest.NewTestLogger("test")
+		prometheusConfig = &emitter.PrometheusConfig{
+			BindIP:   "localhost",
+			BindPort: "9090",
+		}
+	})
+
+
+	JustBeforeEach(func() {
+		prometheusEmitter, err = prometheusConfig.NewEmitter()
+	})
+
+	It("emits task waiting metric", func() {
+		prometheusEmitter.Emit(logger, metric.Event{
+			Name:  "tasks waiting",
+			Value: 4,
+		})
+
+		res, _ := http.Get(fmt.Sprintf("http://%s:%s/metrics", prometheusConfig.BindIP, prometheusConfig.BindPort))
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
+		Expect(string(body)).To(ContainSubstring("concourse_tasks_waiting 4"))
+		Expect(err).To(BeNil())
 	})
 })

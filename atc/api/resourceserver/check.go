@@ -1,10 +1,12 @@
 package resourceserver
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -45,7 +47,13 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		check, created, err := s.checkFactory.TryCreateCheck(logger, dbResource, dbResourceTypes, reqBody.From, true)
+		check, created, err := s.checkFactory.TryCreateCheck(
+			lagerctx.NewContext(context.Background(), logger),
+			dbResource,
+			dbResourceTypes,
+			reqBody.From,
+			true,
+		)
 		if err != nil {
 			s.logger.Error("failed-to-create-check", err)
 			w.WriteHeader(http.StatusInternalServerError)

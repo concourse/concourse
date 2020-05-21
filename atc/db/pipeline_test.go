@@ -279,14 +279,6 @@ var _ = Describe("Pipeline", func() {
 			}
 			Expect(resourceTypeConfigs).To(Equal(emptyResourceTypeConfigs))
 		})
-
-		Context("when the pipeline is unpaused", func() {
-			It("pauses the pipeline", func() {
-				err := pipeline.Unpause()
-				Expect(err.Error()).To(ContainSubstring("conflict error: archived pipelines cannot be unpaused"))
-				Expect(pipeline.Paused()).To(BeTrue(), "pipeline was not paused")
-			})
-		})
 	})
 
 	Describe("Unpause", func() {
@@ -305,20 +297,6 @@ var _ = Describe("Pipeline", func() {
 
 			It("unpauses the pipeline", func() {
 				Expect(pipeline.Paused()).To(BeFalse())
-			})
-		})
-
-		Context("when the pipeline is archived", func() {
-			BeforeEach(func() {
-				pipeline.Archive()
-			})
-
-			It("fails with an archive error", func() {
-				err := pipeline.Unpause()
-				Expect(err).To(HaveOccurred())
-				conflict, isConflict := err.(db.Conflict)
-				Expect(isConflict).To(BeTrue())
-				Expect(conflict.Conflict()).To(Equal("archived pipelines cannot be unpaused"))
 			})
 		})
 

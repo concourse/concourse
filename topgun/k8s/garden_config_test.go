@@ -7,6 +7,7 @@ import (
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Garden Config", func() {
@@ -25,12 +26,12 @@ var _ = Describe("Garden Config", func() {
 
 		waitAllPodsInNamespaceToBeReady(namespace)
 
-		pods := getPods(namespace, "--selector=app="+releaseName+"-worker")
+		pods := getPods(namespace, metav1.ListOptions{LabelSelector: "app=" + releaseName + "-worker"})
 		Expect(pods).To(HaveLen(1))
 
 		garden = endpointFactory.NewPodEndpoint(
 			namespace,
-			pods[0].Metadata.Name,
+			pods[0].ObjectMeta.Name,
 			"7777",
 		)
 	})

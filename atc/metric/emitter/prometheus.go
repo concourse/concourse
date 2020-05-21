@@ -27,6 +27,8 @@ type PrometheusEmitter struct {
 	concurrentRequestsLimitHit *prometheus.CounterVec
 	concurrentRequests         *prometheus.GaugeVec
 
+	tasksWaiting prometheus.Gauge
+
 	buildDurationsVec *prometheus.HistogramVec
 	buildsAborted     prometheus.Counter
 	buildsErrored     prometheus.Counter
@@ -168,6 +170,14 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Help:      "Number of concurrent requests being served by endpoints that have a specified limit of concurrent requests.",
 	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequests)
+
+	tasksWaiting := prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "concourse",
+		Subsystem: "tasks",
+		Name:      "waiting",
+		Help:      "Number of Concourse tasks currently waiting.",
+	})
+	prometheus.MustRegister(tasksWaiting)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
@@ -388,6 +398,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		concurrentRequestsLimitHit: concurrentRequestsLimitHit,
 		concurrentRequests:         concurrentRequests,
 
+		tasksWaiting: tasksWaiting,
+
 		buildDurationsVec: buildDurationsVec,
 		buildsAborted:     buildsAborted,
 		buildsErrored:     buildsErrored,
@@ -452,6 +464,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.concurrentRequestsLimitHit.WithLabelValues(event.Attributes["action"]).Add(event.Value)
 	case "concurrent requests":
 		emitter.concurrentRequests.WithLabelValues(event.Attributes["action"]).Set(event.Value)
+	case "tasks waiting":
+		emitter.tasksWaiting.Set(event.Value)
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
 	case "worker containers":

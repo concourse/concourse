@@ -2,6 +2,7 @@ module SubPageTests exposing (all)
 
 import Application.Application as Application
 import Common
+import Data
 import Dict exposing (Dict)
 import Expect
 import Http
@@ -11,17 +12,6 @@ import Routes
 import SubPage.SubPage exposing (..)
 import Test exposing (..)
 import Url
-
-
-notFoundResult : Result Http.Error a
-notFoundResult =
-    Err <|
-        Http.BadStatus
-            { url = ""
-            , status = { code = 404, message = "" }
-            , headers = Dict.empty
-            , body = ""
-            }
 
 
 all : Test
@@ -35,7 +25,7 @@ all =
             in
             [ test "JobNotFound" <|
                 init "/teams/t/pipelines/p/jobs/j"
-                    >> Application.handleCallback (JobFetched notFoundResult)
+                    >> Application.handleCallback (JobFetched Data.httpNotFound)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
@@ -55,7 +45,7 @@ all =
             , test "Resource not found" <|
                 init "/teams/t/pipelines/p/resources/r"
                     >> Application.handleCallback
-                        (ResourceFetched notFoundResult)
+                        (ResourceFetched Data.httpNotFound)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
@@ -74,7 +64,7 @@ all =
                         )
             , test "Build not found" <|
                 init "/builds/1"
-                    >> Application.handleCallback (BuildFetched notFoundResult)
+                    >> Application.handleCallback (BuildFetched Data.httpNotFound)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal
@@ -90,7 +80,7 @@ all =
             , test "Pipeline not found" <|
                 init "/teams/t/pipelines/p"
                     >> Application.handleCallback
-                        (PipelineFetched notFoundResult)
+                        (PipelineFetched Data.httpNotFound)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal

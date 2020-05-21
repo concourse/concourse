@@ -427,6 +427,18 @@ type FakeBuild struct {
 		result2 []db.BuildOutput
 		result3 error
 	}
+	ResourcesCheckedStub        func() (bool, error)
+	resourcesCheckedMutex       sync.RWMutex
+	resourcesCheckedArgsForCall []struct {
+	}
+	resourcesCheckedReturns struct {
+		result1 bool
+		result2 error
+	}
+	resourcesCheckedReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	SaveEventStub        func(atc.Event) error
 	saveEventMutex       sync.RWMutex
 	saveEventArgsForCall []struct {
@@ -2577,6 +2589,61 @@ func (fake *FakeBuild) ResourcesReturnsOnCall(i int, result1 []db.BuildInput, re
 	}{result1, result2, result3}
 }
 
+func (fake *FakeBuild) ResourcesChecked() (bool, error) {
+	fake.resourcesCheckedMutex.Lock()
+	ret, specificReturn := fake.resourcesCheckedReturnsOnCall[len(fake.resourcesCheckedArgsForCall)]
+	fake.resourcesCheckedArgsForCall = append(fake.resourcesCheckedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourcesChecked", []interface{}{})
+	fake.resourcesCheckedMutex.Unlock()
+	if fake.ResourcesCheckedStub != nil {
+		return fake.ResourcesCheckedStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.resourcesCheckedReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBuild) ResourcesCheckedCallCount() int {
+	fake.resourcesCheckedMutex.RLock()
+	defer fake.resourcesCheckedMutex.RUnlock()
+	return len(fake.resourcesCheckedArgsForCall)
+}
+
+func (fake *FakeBuild) ResourcesCheckedCalls(stub func() (bool, error)) {
+	fake.resourcesCheckedMutex.Lock()
+	defer fake.resourcesCheckedMutex.Unlock()
+	fake.ResourcesCheckedStub = stub
+}
+
+func (fake *FakeBuild) ResourcesCheckedReturns(result1 bool, result2 error) {
+	fake.resourcesCheckedMutex.Lock()
+	defer fake.resourcesCheckedMutex.Unlock()
+	fake.ResourcesCheckedStub = nil
+	fake.resourcesCheckedReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuild) ResourcesCheckedReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.resourcesCheckedMutex.Lock()
+	defer fake.resourcesCheckedMutex.Unlock()
+	fake.ResourcesCheckedStub = nil
+	if fake.resourcesCheckedReturnsOnCall == nil {
+		fake.resourcesCheckedReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.resourcesCheckedReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBuild) SaveEvent(arg1 atc.Event) error {
 	fake.saveEventMutex.Lock()
 	ret, specificReturn := fake.saveEventReturnsOnCall[len(fake.saveEventArgsForCall)]
@@ -3283,6 +3350,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.rerunOfNameMutex.RUnlock()
 	fake.resourcesMutex.RLock()
 	defer fake.resourcesMutex.RUnlock()
+	fake.resourcesCheckedMutex.RLock()
+	defer fake.resourcesCheckedMutex.RUnlock()
 	fake.saveEventMutex.RLock()
 	defer fake.saveEventMutex.RUnlock()
 	fake.saveImageResourceVersionMutex.RLock()

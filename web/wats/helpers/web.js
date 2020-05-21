@@ -48,6 +48,18 @@ class Web {
     }, text)
   }
 
+  async waitForBackgroundColor(selector, backgroundColor, {timeout = 30000} = {}) {
+    await this.page.waitFor(({expectedBackground, selector}) => {
+      const elem = document.querySelector(selector);
+      if (elem === null) return false;
+      const background = elem.style.backgroundColor;
+      return background === expectedBackground;
+    }, {timeout}, {
+      selector,
+      expectedBackground: backgroundColor.rgb().string(),
+    });
+  }
+
   async scrollIntoView(selector) {
     await this.page.waitFor(selector);
     await this.page.evaluate(selector => {

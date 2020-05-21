@@ -7,6 +7,7 @@ import Concourse exposing (Build, BuildId, Job)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..))
 import DashboardTests exposing (darkGrey, iconSelector, middleGrey)
+import Data
 import Dict
 import Expect exposing (..)
 import Html.Attributes as Attr
@@ -978,19 +979,7 @@ all =
                         { defaultModel | job = RemoteData.Success someJob }
                     <|
                         Tuple.first <|
-                            Job.handleCallback
-                                (PausedToggled <|
-                                    Err <|
-                                        Http.BadStatus
-                                            { url = "http://example.com"
-                                            , status =
-                                                { code = 401
-                                                , message = ""
-                                                }
-                                            , headers = Dict.empty
-                                            , body = ""
-                                            }
-                                )
+                            Job.handleCallback (PausedToggled <| Data.httpUnauthorized)
                                 ( { defaultModel | job = RemoteData.Success someJob }, [] )
             , test "page is subscribed to one and five second timers" <|
                 init { disabled = False, paused = False }

@@ -24,6 +24,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
+	"github.com/concourse/concourse/atc/api/pipelineserver"
 	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/compression"
@@ -92,6 +93,9 @@ var retryingDriverName = "too-many-connections-retrying"
 
 var flyClientID = "fly"
 var flyClientSecret = "Zmx5"
+
+var workerAvailabilityPollingInterval = 5 * time.Second
+var workerStatusPublishInterval = 1 * time.Minute
 
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
@@ -239,6 +243,8 @@ type RunCommand struct {
 	SystemClaimKey        string   `long:"system-claim-key" default:"aud" description:"The token claim key to use when matching system-claim-values"`
 	SystemClaimValues     []string `long:"system-claim-value" default:"concourse-worker" description:"Configure which token requests should be considered 'system' requests."`
 	EnableArchivePipeline bool     `long:"enable-archive-pipeline" description:"Enable /api/v1/teams/{team}/pipelines/{pipeline}/archive endpoint."`
+
+	EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears"`
 }
 
 type Migration struct {
@@ -643,7 +649,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider, compressionLib)
+	workerClient := worker.NewClient(pool, workerProvider, compressionLib, workerAvailabilityPollingInterval, workerStatusPublishInterval)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -871,7 +877,11 @@ func (cmd *RunCommand) constructBackendMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider, compressionLib)
+	workerClient := worker.NewClient(pool,
+		workerProvider,
+		compressionLib,
+		workerAvailabilityPollingInterval,
+		workerStatusPublishInterval)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -1489,7 +1499,7 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 		return fmt.Errorf("default team auth not configured: %v", err)
 	}
 
-	err = team.UpdateProviderAuth(atc.TeamAuth(auth))
+	err = team.UpdateProviderAuth(auth)
 	if err != nil {
 		return err
 	}
@@ -1578,6 +1588,7 @@ func (cmd *RunCommand) constructEngine(
 		defaultLimits,
 		strategy,
 		lockFactory,
+		cmd.EnableBuildRerunWhenWorkerDisappears,
 	)
 
 	stepBuilder := builder.NewStepBuilder(
@@ -1757,6 +1768,8 @@ func (cmd *RunCommand) constructAPIHandler(
 	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
+	rejectArchivedHandlerFactory := pipelineserver.NewRejectArchivedHandlerFactory(teamFactory)
+
 	aud := auditor.NewAuditor(
 		cmd.Auditor.EnableBuildAuditLog,
 		cmd.Auditor.EnableContainerAuditLog,
@@ -1802,6 +1815,7 @@ func (cmd *RunCommand) constructAPIHandler(
 			checkBuildWriteAccessHandlerFactory,
 			checkWorkerTeamAccessHandlerFactory,
 		),
+		wrappa.NewRejectArchivedWrappa(rejectArchivedHandlerFactory),
 		wrappa.NewConcourseVersionWrappa(concourse.Version),
 		wrappa.NewAccessorWrappa(
 			logger,

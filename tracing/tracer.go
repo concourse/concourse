@@ -6,6 +6,7 @@ import (
 
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/api/propagators"
 	"go.opentelemetry.io/otel/api/trace"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -69,6 +70,41 @@ func StartSpan(
 	ctx, span := global.TraceProvider().Tracer("concourse").Start(
 		ctx,
 		component,
+	)
+
+	if len(attrs) != 0 {
+		span.SetAttributes(keyValueSlice(attrs)...)
+	}
+
+	return ctx, span
+}
+
+func FromContext(ctx context.Context) trace.Span {
+	return trace.SpanFromContext(ctx)
+}
+
+func Inject(ctx context.Context, supplier propagators.Supplier) {
+	propagators.TraceContext{}.Inject(ctx, supplier)
+}
+
+type WithSpanContext interface {
+	SpanContext() propagators.Supplier
+}
+
+func StartSpanFollowing(following WithSpanContext, component string, attrs Attrs) (context.Context, trace.Span) {
+	if !Configured {
+		return context.Background(), trace.NoopSpan{}
+	}
+
+	spanContext, _ := propagators.TraceContext{}.Extract(
+		context.TODO(),
+		following.SpanContext(),
+	)
+
+	ctx, span := global.TraceProvider().Tracer("concourse").Start(
+		context.Background(),
+		component,
+		trace.FollowsFrom(spanContext),
 	)
 
 	if len(attrs) != 0 {

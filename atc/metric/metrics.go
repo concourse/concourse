@@ -30,6 +30,8 @@ var JobsScheduling = &Gauge{}
 var BuildsStarted = &Counter{}
 var BuildsRunning = &Gauge{}
 
+var TasksWaiting = &Gauge{}
+
 var ChecksFinishedWithError = &Counter{}
 var ChecksFinishedWithSuccess = &Counter{}
 var ChecksQueueSize = &Gauge{}

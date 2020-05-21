@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -45,8 +46,10 @@ var _ = Describe("Client", func() {
 		fakePool = new(workerfakes.FakePool)
 		fakeProvider = new(workerfakes.FakeWorkerProvider)
 		fakeCompression = new(compressionfakes.FakeCompression)
+		workerPolling := 1 * time.Second
+		workerStatus := 2 * time.Second
 
-		client = worker.NewClient(fakePool, fakeProvider, fakeCompression)
+		client = worker.NewClient(fakePool, fakeProvider, fakeCompression, workerPolling, workerStatus)
 	})
 
 	Describe("FindContainer", func() {
@@ -568,9 +571,11 @@ var _ = Describe("Client", func() {
 				ResourceTypes: atc.VersionedResourceTypes{},
 			}
 			fakeTaskProcessSpec = runtime.ProcessSpec{
-				Path: "/some/path",
-				Args: []string{"some", "args"},
-				Dir:  "/some/dir",
+				Path:         "/some/path",
+				Args:         []string{"some", "args"},
+				Dir:          "/some/dir",
+				StdoutWriter: new(bytes.Buffer),
+				StderrWriter: new(bytes.Buffer),
 			}
 			fakeContainer = new(workerfakes.FakeContainer)
 			fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
@@ -661,7 +666,7 @@ var _ = Describe("Client", func() {
 						cancel()
 					})
 					It("exits releasing the lock", func() {
-						Expect(err).To(Equal(context.Canceled))
+						Expect(err.Error()).To(ContainSubstring(context.Canceled.Error()))
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
 					})
 				})

@@ -2,13 +2,16 @@ package lidar
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/tracing"
 	"github.com/pkg/errors"
 )
 
@@ -41,7 +44,9 @@ type scanner struct {
 }
 
 func (s *scanner) Run(ctx context.Context) error {
+	spanCtx, span := tracing.StartSpan(ctx, "scanner.Run", nil)
 	s.logger.Info("start")
+	defer span.End()
 	defer s.logger.Info("end")
 
 	resources, err := s.checkFactory.Resources()
@@ -65,7 +70,7 @@ func (s *scanner) Run(ctx context.Context) error {
 		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
 			defer waitGroup.Done()
 
-			err := s.check(resource, resourceTypes, resourceTypesChecked)
+			err := s.check(spanCtx, resource, resourceTypes, resourceTypesChecked)
 			s.setCheckError(s.logger, resource, err)
 
 		}(resource, resourceTypes)
@@ -76,15 +81,24 @@ func (s *scanner) Run(ctx context.Context) error {
 	return s.checkFactory.NotifyChecker()
 }
 
-func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes, resourceTypesChecked *sync.Map) error {
+func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes, resourceTypesChecked *sync.Map) error {
 
 	var err error
+
+	spanCtx, span := tracing.StartSpan(ctx, "scanner.check", tracing.Attrs{
+		"team":                     checkable.TeamName(),
+		"pipeline":                 checkable.PipelineName(),
+		"resource":                 checkable.Name(),
+		"type":                     checkable.Type(),
+		"resource_config_scope_id": strconv.Itoa(checkable.ResourceConfigScopeID()),
+	})
+	defer span.End()
 
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
 		if _, exists := resourceTypesChecked.LoadOrStore(parentType.ID(), true); !exists {
 			// only create a check for resource type if it has not been checked yet
-			err = s.check(parentType, resourceTypes, resourceTypesChecked)
+			err = s.check(spanCtx, parentType, resourceTypes, resourceTypesChecked)
 			s.setCheckError(s.logger, parentType, err)
 
 			if err != nil {
@@ -113,7 +127,7 @@ func (s *scanner) check(checkable db.Checkable, resourceTypes db.ResourceTypes, 
 
 	version := checkable.CurrentPinnedVersion()
 
-	_, created, err := s.checkFactory.TryCreateCheck(s.logger, checkable, resourceTypes, version, false)
+	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, s.logger), checkable, resourceTypes, version, false)
 	if err != nil {
 		s.logger.Error("failed-to-create-check", err)
 		return err

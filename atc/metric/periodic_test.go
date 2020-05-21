@@ -140,4 +140,25 @@ var _ = Describe("Periodic emission of metrics", func() {
 			)
 		})
 	})
+
+	Context("limit-active-tasks metrics", func() {
+		BeforeEach(func() {
+			gauge := &metric.Gauge{}
+			gauge.Set(123)
+			metric.TasksWaiting = gauge
+		})
+		It("emits", func() {
+			Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
+			Expect(emitter.Invocations()["Emit"]).To(
+				ContainElement(
+					ContainElement(
+						MatchFields(IgnoreExtras, Fields{
+							"Name":  Equal("tasks waiting"),
+							"Value": Equal(float64(123)),
+						}),
+					),
+				),
+			)
+		})
+	})
 })

@@ -12,7 +12,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "ava"
+    "test": "ava --serial"
   },
   "repository": "git+https://github.com/concourse/concourse.git",
   "author": "",

@@ -37,23 +37,3 @@ func NewRunner(
 		},
 	)
 }
-
-func NewCheckerRunner(
-	logger lager.Logger,
-	clock clock.Clock,
-	checkRunner Runner,
-	runnerInterval time.Duration,
-	notifications Notifications,
-	lockFactory lock.LockFactory,
-	componentFactory db.ComponentFactory,
-) ifrit.Runner {
-	return grouper.NewParallel(
-		os.Interrupt,
-		[]grouper.Member{
-			{
-				Name:   atc.ComponentLidarChecker,
-				Runner: NewIntervalRunner(logger, clock, checkRunner, runnerInterval, notifications, atc.ComponentLidarChecker, lockFactory, componentFactory),
-			},
-		},
-	)
-}

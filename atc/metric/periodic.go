@@ -166,6 +166,14 @@ func tick(logger lager.Logger) {
 	}
 
 	emit(
+		logger.Session("tasks-waiting"),
+		Event{
+			Name:  "tasks waiting",
+			Value: TasksWaiting.Max(),
+		},
+	)
+
+	emit(
 		logger.Session("checks-finished-with-error"),
 		Event{
 			Name:  "checks finished",

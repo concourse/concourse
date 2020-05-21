@@ -158,20 +158,6 @@ failureRed =
     "#ed4b35"
 
 
-badResponse : Result Http.Error ()
-badResponse =
-    Err <|
-        Http.BadStatus
-            { url = ""
-            , status =
-                { code = 500
-                , message = "server error"
-                }
-            , headers = Dict.empty
-            , body = ""
-            }
-
-
 all : Test
 all =
     describe "resource page"
@@ -735,7 +721,12 @@ all =
                         |> givenResourcePinnedStatically
                         |> givenVersionsWithoutPagination
                         |> clickToDisable versionID
-                        |> Application.handleCallback (Callback.VersionToggled Message.Message.Disable versionID badResponse)
+                        |> Application.handleCallback
+                            (Callback.VersionToggled
+                                Message.Message.Disable
+                                versionID
+                                Data.httpInternalServerError
+                            )
                         |> Tuple.first
                         |> queryView
                         |> Query.find (versionSelector version)
@@ -811,7 +802,7 @@ all =
                             (Callback.VersionToggled
                                 Message.Message.Enable
                                 disabledVersionID
-                                badResponse
+                                Data.httpInternalServerError
                             )
                         |> Tuple.first
                         |> queryView
@@ -1237,7 +1228,8 @@ all =
                             |> givenResourcePinnedDynamically
                             |> givenVersionsWithoutPagination
                             |> clickToUnpin
-                            |> Application.handleCallback (Callback.VersionUnpinned badResponse)
+                            |> Application.handleCallback
+                                (Callback.VersionUnpinned Data.httpInternalServerError)
                             |> Tuple.first
                             |> queryView
                             |> pinBarHasPinnedState version
@@ -2291,7 +2283,8 @@ all =
                                     |> update
                                         (Message.Message.Click Message.Message.SaveCommentButton)
                                     |> Tuple.first
-                                    |> Application.handleCallback (CommentSet <| badResponse)
+                                    |> Application.handleCallback
+                                        (CommentSet <| Data.httpInternalServerError)
                                     |> Tuple.first
                                     |> iconContainer
                                     |> Query.has [ id "save-button" ]
@@ -2324,7 +2317,8 @@ all =
                                     |> update
                                         (Message.Message.Click Message.Message.SaveCommentButton)
                                     |> Tuple.first
-                                    |> Application.handleCallback (CommentSet <| badResponse)
+                                    |> Application.handleCallback
+                                        (CommentSet <| Data.httpInternalServerError)
                                     |> Tuple.second
                                     |> Common.contains
                                         (Effects.FetchResource
@@ -2632,7 +2626,7 @@ all =
                     , test "clicked button shows unpinned state when pinning fails" <|
                         afterClick
                             >> Application.handleCallback
-                                (Callback.VersionPinned badResponse)
+                                (Callback.VersionPinned Data.httpInternalServerError)
                             >> Tuple.first
                             >> queryView
                             >> Query.find (versionSelector version)
@@ -3169,18 +3163,7 @@ all =
                                 )
                             |> Tuple.first
                             |> Application.handleCallback
-                                (Callback.Checked <|
-                                    Err <|
-                                        Http.BadStatus
-                                            { url = ""
-                                            , status =
-                                                { code = 401
-                                                , message = "unauthorized"
-                                                }
-                                            , headers = Dict.empty
-                                            , body = ""
-                                            }
-                                )
+                                (Callback.Checked <| Data.httpUnauthorized)
                             |> Tuple.second
                             |> Expect.equal [ Effects.RedirectToLogin ]
                 ]

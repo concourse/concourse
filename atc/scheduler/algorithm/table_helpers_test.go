@@ -41,7 +41,6 @@ type DBRow struct {
 	Disabled              bool
 	FromBuildID           int
 	ToBuildID             int
-	Pinned                bool
 	RerunOfBuildID        int
 	BuildStatus           string
 	NoResourceConfigScope bool
@@ -153,7 +152,7 @@ func (example Example) Run() {
 		versionsDB = example.setupVersionsDB(ctx, setup, cache, resources)
 	}
 
-	inputConfigs := make(algorithm.InputConfigs, len(example.Inputs))
+	inputConfigs := make(db.InputConfigs, len(example.Inputs))
 	for i, input := range example.Inputs {
 		passed := db.JobSet{}
 		for _, jobName := range input.Passed {
@@ -161,7 +160,7 @@ func (example Example) Run() {
 			passed[setup.jobIDs.ID(jobName)] = true
 		}
 
-		inputConfigs[i] = algorithm.InputConfig{
+		inputConfigs[i] = db.InputConfig{
 			Name:            input.Name,
 			Passed:          passed,
 			ResourceID:      setup.resourceIDs.ID(input.Resource),
@@ -171,70 +170,12 @@ func (example Example) Run() {
 
 		if len(input.Version.Pinned) != 0 {
 			inputConfigs[i].PinnedVersion = atc.Version{"ver": input.Version.Pinned}
+
+			setup.insertPinned(setup.resourceIDs.ID(input.Resource), atc.Version{"ver": input.Version.Pinned})
 		}
-	}
-
-	var jobInputs []atc.JobInput
-	inputs := atc.PlanSequence{}
-	for _, input := range inputConfigs {
-		var version *atc.VersionConfig
-		if input.UseEveryVersion {
-			version = &atc.VersionConfig{Every: true}
-		} else if input.PinnedVersion != nil {
-			version = &atc.VersionConfig{Pinned: input.PinnedVersion}
-		} else {
-			version = &atc.VersionConfig{Latest: true}
-		}
-
-		passed := []string{}
-		for job, _ := range input.Passed {
-			passed = append(passed, setup.jobIDs.Name(job))
-		}
-
-		inputs = append(inputs, atc.PlanConfig{
-			Get:      input.Name,
-			Resource: setup.resourceIDs.Name(input.ResourceID),
-			Passed:   passed,
-			Version:  version,
-		})
-
-		jobInputs = append(jobInputs, atc.JobInput{
-			Name:     input.Name,
-			Resource: setup.resourceIDs.Name(input.ResourceID),
-			Passed:   passed,
-			Version:  version,
-		})
-	}
-
-	resourceConfigs := atc.ResourceConfigs{}
-	for _, resource := range resources {
-		resourceConfigs = append(resourceConfigs, resource)
-	}
-
-	jobs := atc.JobConfigs{}
-	for jobName, _ := range setup.jobIDs {
-		jobs = append(jobs, atc.JobConfig{
-			Name: jobName,
-			Plan: inputs,
-		})
 	}
 
 	setup.insertJob("current")
-
-	pipeline, _, err = team.SavePipeline("algorithm", atc.Config{
-		Jobs:      jobs,
-		Resources: resourceConfigs,
-	}, db.ConfigVersion(1), false)
-	Expect(err).NotTo(HaveOccurred())
-
-	dbResources := db.Resources{}
-	for name, _ := range setup.resourceIDs {
-		resource, found, err := pipeline.Resource(name)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue(), fmt.Sprintf("resource %s not found", name))
-
-		dbResources = append(dbResources, resource)
-	}
 
 	job, found, err := pipeline.Job("current")
 	Expect(err).ToNot(HaveOccurred())
@@ -248,7 +189,7 @@ func (example Example) Run() {
 	}
 
 	for i := 0; i < iterations; i++ {
-		example.assert(ctx, setup, alg, job, jobInputs, dbResources)
+		example.assert(ctx, setup, alg, job, inputConfigs)
 		cache.Flush()
 	}
 }
@@ -606,15 +547,14 @@ func (example Example) assert(
 	setup setupDB,
 	alg *algorithm.Algorithm,
 	job db.Job,
-	jobInputs []atc.JobInput,
-	resources db.Resources,
+	inputConfigs db.InputConfigs,
 ) {
 	ctx, span := tracing.StartSpan(ctx, "assert", tracing.Attrs{})
 	defer span.End()
 
 	span.SetAttributes(key.New("seed").Int64(ginkgo.GinkgoRandomSeed()))
 
-	resolved, ok, hasNext, resolvedErr := alg.Compute(ctx, job, jobInputs, resources, algorithm.NameToIDMap(setup.jobIDs))
+	resolved, ok, hasNext, resolvedErr := alg.Compute(ctx, job, inputConfigs)
 	if example.Error != nil {
 		Expect(resolvedErr).To(Equal(example.Error))
 	} else {
@@ -754,8 +694,8 @@ type setupDB struct {
 func (s setupDB) insertJob(jobName string) int {
 	id := s.jobIDs.ID(jobName)
 	_, err := s.psql.Insert("jobs").
-		Columns("id", "pipeline_id", "name", "config").
-		Values(id, s.pipelineID, jobName, "{}").
+		Columns("id", "pipeline_id", "name", "config", "active").
+		Values(id, s.pipelineID, jobName, "{}", true).
 		Suffix("ON CONFLICT DO NOTHING").
 		Exec()
 	Expect(err).ToNot(HaveOccurred())
@@ -845,15 +785,6 @@ func (s setupDB) insertRowVersion(resources map[string]atc.ResourceConfig, row D
 			Exec()
 		Expect(err).ToNot(HaveOccurred())
 	}
-
-	if row.Pinned {
-		_, err = s.psql.Insert("resource_pins").
-			Columns("resource_id", "version", "comment_text").
-			Values(resourceID, versionJSON, "").
-			Suffix("ON CONFLICT DO NOTHING").
-			Exec()
-		Expect(err).ToNot(HaveOccurred())
-	}
 }
 
 func (s setupDB) insertRowBuild(row DBRow, needsV6Migration bool) {
@@ -894,6 +825,18 @@ func (s setupDB) insertBuildPipe(row DBRow) {
 	_, err := s.psql.Insert("build_pipes").
 		Columns("from_build_id", "to_build_id").
 		Values(row.FromBuildID, row.ToBuildID).
+		Suffix("ON CONFLICT DO NOTHING").
+		Exec()
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s setupDB) insertPinned(resourceID int, version atc.Version) {
+	versionJSON, err := json.Marshal(version)
+	Expect(err).ToNot(HaveOccurred())
+
+	_, err = s.psql.Insert("resource_pins").
+		Columns("resource_id", "version", "comment_text").
+		Values(resourceID, versionJSON, "").
 		Suffix("ON CONFLICT DO NOTHING").
 		Exec()
 	Expect(err).ToNot(HaveOccurred())

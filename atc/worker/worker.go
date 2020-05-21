@@ -57,6 +57,7 @@ type Worker interface {
 	) (Container, error)
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
+	FindResourceCacheForVolume(volume Volume) (db.UsedResourceCache, bool, error)
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
 	Fetch(
 		context.Context,
@@ -83,9 +84,10 @@ type Worker interface {
 }
 
 type gardenWorker struct {
-	gardenClient gclient.Client
-	volumeClient VolumeClient
-	imageFactory ImageFactory
+	gardenClient         gclient.Client
+	volumeClient         VolumeClient
+	imageFactory         ImageFactory
+	resourceCacheFactory db.ResourceCacheFactory
 	Fetcher
 	dbWorker        db.Worker
 	buildContainers int
@@ -103,6 +105,7 @@ func NewGardenWorker(
 	fetcher Fetcher,
 	dbTeamFactory db.TeamFactory,
 	dbWorker db.Worker,
+	resourceCacheFactory db.ResourceCacheFactory,
 	numBuildContainers int,
 	// TODO: numBuildContainers is only needed for placement strategy but this
 	// method is called in ContainerProvider.FindOrCreateContainer as well and
@@ -117,13 +120,14 @@ func NewGardenWorker(
 	}
 
 	return &gardenWorker{
-		gardenClient:    gardenClient,
-		volumeClient:    volumeClient,
-		imageFactory:    imageFactory,
-		Fetcher:         fetcher,
-		dbWorker:        dbWorker,
-		buildContainers: numBuildContainers,
-		helper:          workerHelper,
+		gardenClient:         gardenClient,
+		volumeClient:         volumeClient,
+		imageFactory:         imageFactory,
+		Fetcher:              fetcher,
+		dbWorker:             dbWorker,
+		resourceCacheFactory: resourceCacheFactory,
+		buildContainers:      numBuildContainers,
+		helper:               workerHelper,
 	}
 }
 
@@ -175,6 +179,15 @@ func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResou
 
 func (worker *gardenWorker) FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error) {
 	return worker.volumeClient.FindVolumeForResourceCache(logger, resourceCache)
+}
+
+func (worker *gardenWorker) FindResourceCacheForVolume(volume Volume) (db.UsedResourceCache, bool, error) {
+	if volume.GetResourceCacheID() != 0 {
+		return worker.resourceCacheFactory.FindResourceCacheByID(volume.GetResourceCacheID())
+	} else {
+		return nil, false, nil
+	}
+
 }
 
 func (worker *gardenWorker) FindVolumeForTaskCache(logger lager.Logger, teamID int, jobID int, stepName string, path string) (Volume, bool, error) {
@@ -624,6 +637,10 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	}
 	if err := g.Wait(); err != nil {
 		return nil, err
+	}
+
+	if len(nonLocals) > 0 {
+		logger.Debug("streamed-non-local-volumes", lager.Data{"volumes-streamed": len(nonLocals)})
 	}
 
 	return mounts, nil

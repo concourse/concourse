@@ -1000,11 +1000,27 @@ func (t *team) saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) 
 		return 0, err
 	}
 
+	_, err = psql.Delete("resource_pins").
+		Where(sq.Eq{
+			"resource_id": resourceID,
+			"config":      true,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return 0, err
+	}
+
 	if resource.Version != nil {
-		_, err = psql.Delete("resource_pins").
-			Where(sq.Eq{
-				"resource_id": resourceID,
-			}).
+		version, err := json.Marshal(resource.Version)
+		if err != nil {
+			return 0, err
+		}
+
+		_, err = psql.Insert("resource_pins").
+			Columns("resource_id", "version", "comment_text", "config").
+			Values(resourceID, version, "", true).
+			Suffix("ON CONFLICT (resource_id) DO UPDATE SET version = EXCLUDED.version, comment_text = EXCLUDED.comment_text, config = true").
 			RunWith(tx).
 			Exec()
 		if err != nil {

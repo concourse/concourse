@@ -26,12 +26,15 @@ module Dashboard.Styles exposing
     , pipelineCard
     , pipelineCardBanner
     , pipelineCardBannerHd
+    , pipelineCardBannerStale
+    , pipelineCardBannerStaleHd
     , pipelineCardBody
     , pipelineCardBodyHd
     , pipelineCardFooter
     , pipelineCardHd
     , pipelineCardHeader
     , pipelineCardTransitionAge
+    , pipelineCardTransitionAgeStale
     , pipelineName
     , pipelinePreviewGrid
     , pipelineStatusIcon
@@ -118,6 +121,13 @@ pipelineCardBanner { status, pipelineRunningKeyframes } =
             Concourse.PipelineStatus.isRunning status
     in
     style "height" "7px" :: texture pipelineRunningKeyframes isRunning color
+
+
+pipelineCardBannerStale : List (Html.Attribute msg)
+pipelineCardBannerStale =
+    [ style "height" "7px"
+    , style "background-color" Colors.unknown
+    ]
 
 
 pipelineStatusIcon : List (Html.Attribute msg)
@@ -284,6 +294,13 @@ pipelineCardBannerHd { status, pipelineRunningKeyframes } =
     style "width" "8px" :: texture pipelineRunningKeyframes isRunning color
 
 
+pipelineCardBannerStaleHd : List (Html.Attribute msg)
+pipelineCardBannerStaleHd =
+    [ style "width" "8px"
+    , style "background-color" Colors.unknown
+    ]
+
+
 solid : String -> List (Html.Attribute msg)
 solid color =
     [ style "background-color" color ]
@@ -342,6 +359,16 @@ pipelineCardFooter =
 pipelineCardTransitionAge : PipelineStatus -> List (Html.Attribute msg)
 pipelineCardTransitionAge status =
     [ style "color" <| Colors.statusColor status
+    , style "font-size" "18px"
+    , style "line-height" "20px"
+    , style "letter-spacing" "0.05em"
+    , style "margin-left" "8px"
+    ]
+
+
+pipelineCardTransitionAgeStale : List (Html.Attribute msg)
+pipelineCardTransitionAgeStale =
+    [ style "color" Colors.unknown
     , style "font-size" "18px"
     , style "line-height" "20px"
     , style "letter-spacing" "0.05em"
