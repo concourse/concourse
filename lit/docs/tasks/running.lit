@@ -132,7 +132,7 @@ or \code{--privileged} flag.
 }
 
 \example-toggle{Taking artifacts from the build with \code{--output}}{
-  If a task specifies outputs then you're able to extract these back out of
+  If a task specifies outputs, then you're able to extract these back out of
   the build and back to your local system. For example:
 
   \codeblock{bash}{{
