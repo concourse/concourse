@@ -564,10 +564,10 @@ func (cmd *RunCommand) constructMembers(
 		return nil, err
 	}
 
-	// technically these could come from any conn; the choice of apiConn is
-	// arbitrary
-	bus := apiConn.Bus()
-	componentFactory := db.NewComponentFactory(apiConn)
+	// use backendConn so that the Component objects created by the factory uses
+	// the backend connection pool when reloading.
+	componentFactory := db.NewComponentFactory(backendConn)
+	bus := backendConn.Bus()
 
 	members := apiMembers
 	components := append(backendComponents, gcComponents...)
