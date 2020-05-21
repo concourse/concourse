@@ -61,8 +61,8 @@ or \code{--privileged} flag.
   automatically, and you will need to explicitly list it (as with the
   \code{code} input above).
 
-  This feature can be used to mimic other resources and try out combinations
-  of input that would normally not be possible in a pipeline.
+  This feature can be used to mimic other resources and try out input combinations
+  that would normally not be possible in a pipeline.
 }
 
 \example-toggle{Basing inputs on a job in your pipeline with \code{--inputs-from}}{
