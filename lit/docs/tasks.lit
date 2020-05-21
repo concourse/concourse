@@ -15,7 +15,7 @@ Once you have a running Concourse deployment, you can start configuring your
 tasks and executing them interactively from your terminal with the
 \reference{fly-cli}{Fly} commandline tool.
 
-Once you've figured out your tasks's configuration, you can reuse it for a
+Once you've figured out your task's configuration, you can reuse it for a
 \reference{jobs}{Job} in your \reference{pipelines}{Pipeline}.
 
 Conventionally a task's configuration is placed in the same repository as the
