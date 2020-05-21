@@ -142,7 +142,7 @@ or \code{--privileged} flag.
       --output stemcell=/tmp/stemcell
   }}
 
-  This would work together with a \code{build-stemcell.yml} if its
+  This would work together with a \code{build-stemcell.yml}, if its
   \code{outputs:} section was as follows:
 
   \codeblock{yaml}{{
