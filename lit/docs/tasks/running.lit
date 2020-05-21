@@ -19,14 +19,14 @@ working directory name will be used as the input name. If they do not match,
 you must specify \code{-i name=.} instead, where \code{name} is the input
 name from the task configuration.
 
-Fly will automatically capture \code{SIGINT} and \code{SIGTERM} and abort the
-build when received. This allows it to be transparently composed with other
-toolchains.
+\reference{fly-cli}{Fly} will automatically capture \code{SIGINT} and \code{SIGTERM}
+and abort the build when received. This allows it to be transparently composed
+with other toolchains.
 
-By default, Fly will not send extra files or large files in your current
-directory that would normally be ignored by your version control system. You
-can use the \code{--include-ignored} flags in order to send ignored files to
-Concourse along with those that are not ignored.
+By default, \reference{fly-execute} will not send extra files or large files
+in your current directory that would normally be ignored by your version control
+system. You can use the \code{--include-ignored} flags in order to send ignored
+files to Concourse along with those that are not ignored.
 
 If your task needs to run as \code{root} then you can specify the \code{-p}
 or \code{--privileged} flag.
