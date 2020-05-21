@@ -136,7 +136,7 @@ sure you intercept while it's running, if you want to debug.
   to \code{--build} which can be found on the build list page.
 
   The \code{--step} flag can also be omitted; this will let you pick the step
-  interactively if you don't know the exact name.
+  interactively, if you don't know the exact name.
 
   Resource checking containers can also be intercepted with \code{--check} or
   \code{-c}:
