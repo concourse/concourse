@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/builds"
+	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
@@ -104,4 +105,13 @@ func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {
 		s.Fail("another build was started!")
 	case <-time.After(100 * time.Millisecond):
 	}
+}
+
+func (s *TrackerSuite) TestTrackerDrainsEngine() {
+	var _ component.Drainable = s.tracker
+
+	ctx := context.TODO()
+	s.tracker.Drain(ctx)
+	s.Equal(1, s.fakeEngine.DrainCallCount())
+	s.Equal(ctx, s.fakeEngine.DrainArgsForCall(0))
 }

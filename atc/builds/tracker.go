@@ -69,3 +69,7 @@ func (bt *Tracker) Run(ctx context.Context) error {
 
 	return nil
 }
+
+func (bt *Tracker) Drain(ctx context.Context) {
+	bt.engine.Drain(ctx)
+}

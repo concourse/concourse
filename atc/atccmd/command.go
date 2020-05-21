@@ -594,12 +594,12 @@ func (cmd *RunCommand) constructMembers(
 			},
 		})
 
-		if c.Drainer != nil {
+		if drainable, ok := c.Runnable.(component.Drainable); ok {
 			members = append(members, grouper.Member{
 				Name: c.Component.Name + "-drainer",
 				Runner: drainRunner{
 					logger:  componentLogger.Session("drain"),
-					drainer: c.Drainer,
+					drainer: drainable,
 				},
 			})
 		}
@@ -1006,7 +1006,6 @@ func (cmd *RunCommand) backendComponents(
 				Interval: cmd.BuildTrackerInterval,
 			},
 			Runnable: builds.NewTracker(dbBuildFactory, engine),
-			Drainer:  engine,
 		},
 		{
 			Component: atc.Component{
@@ -1839,13 +1838,9 @@ func (cmd *RunCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
 }
 
-type Drainer interface {
-	Drain(context.Context)
-}
-
 type drainRunner struct {
 	logger  lager.Logger
-	drainer Drainer
+	drainer component.Drainable
 }
 
 func (runner drainRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -1858,5 +1853,4 @@ func (runner drainRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) e
 type RunnableComponent struct {
 	atc.Component
 	component.Runnable
-	Drainer
 }
