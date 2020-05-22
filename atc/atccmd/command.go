@@ -38,6 +38,7 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/concourse/atc/elasticsearch"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/gc"
@@ -515,7 +516,13 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		clock.NewClock(),
 	)
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
+	// backendConn is arbitrary
+	eventStore := constructEventStore(logger.Session("event-store"), backendConn)
+	if err := eventStore.Setup(context.TODO()); err != nil {
+		return nil, fmt.Errorf("failed to setup the event store: %w", err)
+	}
+
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager, eventStore)
 	if err != nil {
 		return nil, err
 	}
@@ -561,6 +568,7 @@ func (cmd *RunCommand) constructMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
+	eventStore db.EventStore,
 ) ([]grouper.Member, error) {
 	if cmd.TelemetryOptIn {
 		url := fmt.Sprintf("http://telemetry.concourse-ci.org/?version=%s", concourse.Version)
@@ -577,17 +585,17 @@ func (cmd *RunCommand) constructMembers(
 		return nil, err
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager, policyChecker)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager, policyChecker, eventStore)
 	if err != nil {
 		return nil, err
 	}
 
-	backendComponents, err := cmd.backendComponents(logger, backendConn, lockFactory, secretManager, policyChecker)
+	backendComponents, err := cmd.backendComponents(logger, backendConn, lockFactory, secretManager, policyChecker, eventStore)
 	if err != nil {
 		return nil, err
 	}
 
-	gcComponents, err := cmd.gcComponents(logger, gcConn, lockFactory)
+	gcComponents, err := cmd.gcComponents(logger, gcConn, lockFactory, eventStore)
 	if err != nil {
 		return nil, err
 	}
@@ -644,14 +652,13 @@ func (cmd *RunCommand) constructAPIMembers(
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
 	policyChecker *policy.Checker,
+	eventStore db.EventStore,
 ) ([]grouper.Member, error) {
 
 	httpClient, err := cmd.skyHttpClient()
 	if err != nil {
 		return nil, err
 	}
-
-	eventStore := constructEventStore(dbConn)
 
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory, eventStore)
 
@@ -880,6 +887,7 @@ func (cmd *RunCommand) backendComponents(
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
 	policyChecker *policy.Checker,
+	eventStore db.EventStore,
 ) ([]RunnableComponent, error) {
 
 	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
@@ -889,11 +897,6 @@ func (cmd *RunCommand) backendComponents(
 	syslogDrainConfigured := true
 	if cmd.Syslog.Address == "" {
 		syslogDrainConfigured = false
-	}
-
-	eventStore := constructEventStore(dbConn)
-	if err := eventStore.Setup(context.TODO()); err != nil {
-		return nil, fmt.Errorf("failed to setup the event store: %w", err)
 	}
 
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory, eventStore)
@@ -1097,6 +1100,7 @@ func (cmd *RunCommand) gcComponents(
 	logger lager.Logger,
 	gcConn db.Conn,
 	lockFactory lock.LockFactory,
+	eventStore db.EventStore,
 ) ([]RunnableComponent, error) {
 	dbWorkerLifecycle := db.NewWorkerLifecycle(gcConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
@@ -1104,7 +1108,6 @@ func (cmd *RunCommand) gcComponents(
 	dbArtifactLifecycle := db.NewArtifactLifecycle(gcConn)
 	dbCheckLifecycle := db.NewCheckLifecycle(gcConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
-	eventStore := constructEventStore(gcConn)
 	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, eventStore, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
 
@@ -1137,8 +1140,9 @@ func (cmd *RunCommand) gcComponents(
 	return components, nil
 }
 
-func constructEventStore(dbConn db.Conn) db.EventStore {
-	return db.NewBuildEventStore(dbConn)
+func constructEventStore(logger lager.Logger, dbConn db.Conn) db.EventStore {
+	//return db.NewBuildEventStore(dbConn)
+	return elasticsearch.NewEventStore(logger, "http://elasticsearch:9200")
 }
 
 func (cmd *RunCommand) validateCustomRoles() error {

@@ -1,0 +1,33 @@
+# elasticsearch.yml - a docker-compose override that adds elasticsearch and kibana
+#
+# once running, head to `localhost:5201` to get access to the Kibana UI.
+#
+# ref: https://docs.docker.com/compose/extends/
+#
+version: '3'
+
+volumes:
+  elasticsearch-data:
+services:
+  web:
+    depends_on: [db, elasticsearch]
+
+  elasticsearch:
+    image: elasticsearch:7.6.1
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    environment:
+      discovery.type: single-node
+      bootstrap.memory_lock: "true"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+
+  kibana:
+    depends_on: [elasticsearch]
+    image: kibana:7.6.1
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - '5601:5601'

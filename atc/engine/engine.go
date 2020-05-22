@@ -234,7 +234,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 func (b *engineBuild) finish(ctx context.Context, logger lager.Logger, err error, succeeded bool) {
 	if errors.Is(err, context.Canceled) {
-		b.saveStatus(ctx, logger, atc.StatusAborted)
+		b.saveStatus(context.TODO(), logger, atc.StatusAborted)
 		logger.Info("aborted")
 
 	} else if err != nil {
