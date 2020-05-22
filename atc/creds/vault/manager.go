@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -13,12 +14,14 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+
 type VaultManager struct {
 	URL string `mapstructure:"url" long:"url" description:"Vault server address used to access secrets."`
 
-	PathPrefix string `mapstructure:"path_prefix" long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
-	SharedPath string `mapstructure:"shared_path" long:"shared-path" description:"Path under which to lookup shared credentials."`
-	Namespace  string `mapstructure:"namespace" long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
+	PathPrefix      string `mapstructure:"path_prefix" long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	LookupTemplates []string `mapstructure:"lookup_templates" long:"lookup-templates" default:"/{{.Team}}/{{.Pipeline}}/{{.Secret}}" default:"/{{.Team}}/{{.Secret}}" description:"Path templates for credential lookup"`
+	SharedPath      string `mapstructure:"shared_path" long:"shared-path" description:"Path under which to lookup shared credentials."`
+	Namespace       string `mapstructure:"namespace" long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
 
 	TLS TLSConfig  `mapstructure:",squash"`
 	Auth AuthConfig `mapstructure:",squash"`
@@ -74,6 +77,7 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&map[string]interface{}{
 		"url":                manager.URL,
 		"path_prefix":        manager.PathPrefix,
+		"lookup_templates":   manager.LookupTemplates,
 		"shared_path":        manager.SharedPath,
 		"namespace":          manager.Namespace,
 		"ca_cert":            manager.TLS.CACert,
@@ -106,6 +110,16 @@ func (manager *VaultManager) Config(config map[string]interface{}) error {
 		return err
 	}
 
+	// Fill in default templates if not otherwise set (done here so
+	// that these are effective all together or not at all, rather
+	// than combining the defaults with a user's custom setting)
+	if _, setsTemplates := config["lookup_templates"]; !setsTemplates {
+		manager.LookupTemplates = []string{
+			"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
+			"/{{.Team}}/{{.Secret}}",
+		}
+	}
+
 	return nil
 }
 
@@ -121,6 +135,13 @@ func (manager VaultManager) Validate() error {
 
 	if manager.PathPrefix == "" {
 		return fmt.Errorf("path prefix must be a non-empty string")
+	}
+
+	for i, tmpl := range manager.LookupTemplates {
+		name := fmt.Sprintf("lookup-template-%d", i)
+		if _, err := creds.BuildSecretTemplate(name, manager.PathPrefix + tmpl); err != nil {
+			return err
+		}
 	}
 
 	if manager.Auth.ClientToken != "" {
@@ -151,6 +172,18 @@ func (manager VaultManager) Health() (*creds.HealthResponse, error) {
 
 func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
 	if manager.SecretFactory == nil {
+
+		templates := []*creds.SecretTemplate{}
+		for i, tmpl := range manager.LookupTemplates {
+			name := fmt.Sprintf("lookup-template-%d", i)
+			scopedTemplate := path.Join(manager.PathPrefix, tmpl)
+			if template, err := creds.BuildSecretTemplate(name, scopedTemplate); err != nil {
+				return nil, err
+			} else {
+				templates = append(templates, template)
+			}
+		}
+
 		manager.ReAuther = NewReAuther(
 			logger,
 			manager.Client,
@@ -163,6 +196,7 @@ func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.Secre
 			manager.Client,
 			manager.ReAuther.LoggedIn(),
 			manager.PathPrefix,
+			templates,
 			manager.SharedPath,
 		)
 	}

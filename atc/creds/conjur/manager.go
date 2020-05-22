@@ -2,9 +2,6 @@ package conjur
 
 import (
 	"errors"
-	"io/ioutil"
-	"text/template"
-	"text/template/parse"
 
 	"code.cloudfoundry.org/lager"
 
@@ -30,23 +27,6 @@ type Manager struct {
 	TeamSecretTemplate     string `long:"team-secret-template" description:"Conjur secret identifier template used for team specific parameter" default:"concourse/{{.Team}}/{{.Secret}}"`
 	SecretTemplate         string `long:"secret-template" description:"Conjur secret identifier template used for full path conjur secrets" default:"vaultName/{{.Secret}}"`
 	Conjur                 *Conjur
-}
-
-type Secret struct {
-	Team     string
-	Pipeline string
-	Secret   string
-}
-
-func buildSecretTemplate(name, tmpl string) (*template.Template, error) {
-	t, err := template.New(name).Option("missingkey=error").Parse(tmpl)
-	if err != nil {
-		return nil, err
-	}
-	if parse.IsEmptyTree(t.Root) {
-		return nil, errors.New("secret template should not be empty")
-	}
-	return t, nil
 }
 
 func newConjurClient(manager *Manager) (*conjurapi.Client, error) {
@@ -103,22 +83,15 @@ func (manager *Manager) IsConfigured() bool {
 }
 
 func (manager *Manager) Validate() error {
-	// Make sure that the template is valid
-	pipelineSecretTemplate, err := buildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate)
-	if err != nil {
-		return err
-	}
-	teamSecretTemplate, err := buildSecretTemplate("team-secret-template", manager.TeamSecretTemplate)
-	if err != nil {
+	if _, err := creds.BuildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate); err != nil {
 		return err
 	}
 
-	// Execute the templates on dummy data to verify that it does not expect additional data
-	dummy := Secret{Team: "team", Pipeline: "pipeline", Secret: "secret"}
-	if err = pipelineSecretTemplate.Execute(ioutil.Discard, &dummy); err != nil {
+	if _, err := creds.BuildSecretTemplate("team-secret-template", manager.TeamSecretTemplate); err != nil {
 		return err
 	}
-	if err = teamSecretTemplate.Execute(ioutil.Discard, &dummy); err != nil {
+
+	if _, err := creds.BuildSecretTemplate("secret-template", manager.SecretTemplate); err != nil {
 		return err
 	}
 
@@ -153,22 +126,22 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 		return nil, err
 	}
 
-	pipelineSecretTemplate, err := buildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate)
+	pipelineSecretTemplate, err := creds.BuildSecretTemplate("pipeline-secret-template", manager.PipelineSecretTemplate)
 	if err != nil {
 		return nil, err
 	}
 
-	teamSecretTemplate, err := buildSecretTemplate("team-secret-template", manager.TeamSecretTemplate)
+	teamSecretTemplate, err := creds.BuildSecretTemplate("team-secret-template", manager.TeamSecretTemplate)
 	if err != nil {
 		return nil, err
 	}
 
-	secretTemplate, err := buildSecretTemplate("secret-template", manager.SecretTemplate)
+	secretTemplate, err := creds.BuildSecretTemplate("secret-template", manager.SecretTemplate)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewConjurFactory(log, client, []*template.Template{pipelineSecretTemplate, teamSecretTemplate, secretTemplate}), nil
+	return NewConjurFactory(log, client, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate, secretTemplate}), nil
 }
 
 func (manager Manager) Close(logger lager.Logger) {

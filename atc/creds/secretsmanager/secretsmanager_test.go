@@ -3,7 +3,6 @@ package secretsmanager_test
 import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
-	"text/template"
 
 	"github.com/concourse/concourse/atc/creds"
 
@@ -45,13 +44,13 @@ var _ = Describe("SecretsManager", func() {
 
 	JustBeforeEach(func() {
 		varDef = vars.VariableDefinition{Name: "cheery"}
-		t1, err := template.New("test").Parse(DefaultPipelineSecretTemplate)
+		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		t2, err := template.New("test").Parse(DefaultTeamSecretTemplate)
+		t2, err := creds.BuildSecretTemplate("t2", DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		secretAccess = NewSecretsManager(lagertest.NewTestLogger("secretsmanager_test"), &mockService, []*template.Template{t1, t2})
+		secretAccess = NewSecretsManager(lagertest.NewTestLogger("secretsmanager_test"), &mockService, []*creds.SecretTemplate{t1, t2})
 		variables = creds.NewVariables(secretAccess, "alpha", "bogus", false)
 		Expect(secretAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (*secretsmanager.GetSecretValueOutput, error) {

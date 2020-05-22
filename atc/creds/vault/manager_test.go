@@ -45,6 +45,10 @@ var _ = Describe("VaultManager", func() {
 			Expect(err).To(BeNil())
 			Expect(manager.SharedPath).To(Equal(""))
 			Expect(manager.PathPrefix).To(Equal("/concourse"))
+			Expect(manager.LookupTemplates).To(Equal([]string{
+				"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
+				"/{{.Team}}/{{.Secret}}",
+			}))
 			Expect(manager.Namespace).To(Equal(""))
 		})
 
@@ -135,6 +139,10 @@ var _ = Describe("VaultManager", func() {
 			config = map[string]interface{}{
 				"url":                  fakeVault.URL,
 				"path_prefix":          "/path-prefix",
+				"lookup_templates": []string{
+					"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
+					"/thing/{{.Team}}/{{.Secret}}",
+				},
 				"shared_path":          "/shared-path",
 				"namespace":            "some-namespace",
 				"ca_cert":              string(caBytes),
@@ -177,6 +185,10 @@ var _ = Describe("VaultManager", func() {
 
 			Expect(manager.URL).To(Equal(fakeVault.URL))
 			Expect(manager.PathPrefix).To(Equal("/path-prefix"))
+			Expect(manager.LookupTemplates).To(Equal([]string{
+				"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
+				"/thing/{{.Team}}/{{.Secret}}",
+			}))
 			Expect(manager.SharedPath).To(Equal("/shared-path"))
 			Expect(manager.Namespace).To(Equal("some-namespace"))
 
@@ -198,6 +210,7 @@ var _ = Describe("VaultManager", func() {
 				delete(config, "path_prefix")
 				delete(config, "auth_retry_max")
 				delete(config, "auth_retry_initial")
+				delete(config, "lookup_templates")
 			})
 
 			It("has sane defaults", func() {
@@ -206,6 +219,10 @@ var _ = Describe("VaultManager", func() {
 				Expect(manager.PathPrefix).To(Equal("/concourse"))
 				Expect(manager.Auth.RetryMax).To(Equal(5 * time.Minute))
 				Expect(manager.Auth.RetryInitial).To(Equal(time.Second))
+				Expect(manager.LookupTemplates).To(Equal([]string{
+					"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
+					"/{{.Team}}/{{.Secret}}",
+				}))
 			})
 		})
 

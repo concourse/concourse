@@ -8,18 +8,20 @@ import (
 
 // The vaultFactory will return a vault implementation of vars.Variables.
 type vaultFactory struct {
-	sr         SecretReader
-	prefix     string
-	sharedPath string
-	loggedIn   <-chan struct{}
+	sr              SecretReader
+	prefix          string
+	sharedPath      string
+	lookupTemplates []*creds.SecretTemplate
+	loggedIn        <-chan struct{}
 }
 
-func NewVaultFactory(sr SecretReader, loggedIn <-chan struct{}, prefix string, sharedPath string) *vaultFactory {
+func NewVaultFactory(sr SecretReader, loggedIn <-chan struct{}, prefix string, lookupTemplates []*creds.SecretTemplate, sharedPath string) *vaultFactory {
 	factory := &vaultFactory{
-		sr:         sr,
-		prefix:     prefix,
-		sharedPath: sharedPath,
-		loggedIn:   loggedIn,
+		sr:               sr,
+		prefix:           prefix,
+		lookupTemplates: lookupTemplates,
+		sharedPath:       sharedPath,
+		loggedIn:         loggedIn,
 	}
 
 	return factory
@@ -33,8 +35,9 @@ func (factory *vaultFactory) NewSecrets() creds.Secrets {
 	}
 
 	return &Vault{
-		SecretReader: factory.sr,
-		Prefix:       factory.prefix,
-		SharedPath:   factory.sharedPath,
+		SecretReader:    factory.sr,
+		Prefix:          factory.prefix,
+		LookupTemplates: factory.lookupTemplates,
+		SharedPath:      factory.sharedPath,
 	}
 }

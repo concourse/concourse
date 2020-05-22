@@ -18,18 +18,20 @@ type SecretReader interface {
 // Vault converts a vault secret to our completely untyped secret
 // data.
 type Vault struct {
-	SecretReader SecretReader
-	Prefix       string
-	SharedPath   string
+	SecretReader    SecretReader
+	Prefix          string
+	LookupTemplates []*creds.SecretTemplate
+	SharedPath      string
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
 func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
-	if len(pipelineName) > 0 {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, teamName, pipelineName)+"/"))
+	for _, tmpl := range v.LookupTemplates {
+		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
+			lookupPaths = append(lookupPaths, lPath)
+		}
 	}
-	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, teamName)+"/"))
 	if v.SharedPath != "" {
 		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, v.SharedPath)+"/"))
 	}

@@ -48,6 +48,12 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
  
 * @lbenedix and @shyamz-22 improved the way auth config for teams are validated. Now operators cannot start a web node with an empty `--main-team-config` file, and `fly set-team` will fail if it would result in a team with no possible members. This prevents scenarios where users can get [accidentally locked out](https://github.com/concourse/concourse/issues/5595) of concourse. #5596
 
+#### <sub><sup><a name="5013" href="#5013">:link:</a></sup></sub> feature
+
+* Support path templating for secret lookups in Vault credential manager.
+
+  Previously, pipeline and team secrets would always be searched for under "/prefix/TEAM/PIPELINE/" or "/prefix/TEAM/", where you could customize the prefix but nothing else. Now you can supply your own templates if your secret collections are organized differently, including for use in `var_sources`. #5013
+
 #### <sub><sup><a name="5622" href="#5622">:link:</a></sup></sub> fix
 
 * @evanchaoli enhanced to change the Web UI and `fly teams` to show teams ordering by team names, which allows users who are participated in many teams to find a specific team easily.
