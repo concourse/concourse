@@ -93,8 +93,7 @@ var _ = Describe("Resource", func() {
 				case "some-resource":
 					Expect(r.Type()).To(Equal("registry-image"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "repository"}))
-					Expect(r.ConfigPinnedVersion()).To(Equal(atc.Version{"ref": "abcdef"}))
-					Expect(r.CurrentPinnedVersion()).To(Equal(r.ConfigPinnedVersion()))
+					Expect(r.PinnedVersion()).To(Equal(atc.Version{"ref": "abcdef"}))
 					Expect(r.HasWebhook()).To(BeTrue())
 				case "some-other-resource":
 					Expect(r.Type()).To(Equal("git"))
@@ -1480,6 +1479,7 @@ var _ = Describe("Resource", func() {
 			resource      db.Resource
 			resourceScope db.ResourceConfigScope
 			resID         int
+			version       atc.Version
 		)
 
 		BeforeEach(func() {
@@ -1510,7 +1510,8 @@ var _ = Describe("Resource", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			resConf, found, err := resourceScope.FindVersion(atc.Version{"version": "v1"})
+			version = atc.Version{"version": "v1"}
+			resConf, found, err := resourceScope.FindVersion(version)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			resID = resConf.ID()
@@ -1529,8 +1530,8 @@ var _ = Describe("Resource", func() {
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
-				pinnedVersion = resource.APIPinnedVersion()
+				pinnedVersion = version
+				Expect(resource.PinnedVersion()).To(Equal(pinnedVersion))
 			})
 
 			It("returns not found and does not update anything", func() {
@@ -1538,7 +1539,7 @@ var _ = Describe("Resource", func() {
 				Expect(found).To(BeFalse())
 				Expect(err).To(HaveOccurred())
 
-				Expect(resource.APIPinnedVersion()).To(Equal(pinnedVersion))
+				Expect(resource.PinnedVersion()).To(Equal(pinnedVersion))
 			})
 		})
 
@@ -1592,9 +1593,8 @@ var _ = Describe("Resource", func() {
 			})
 
 			Context("when the resource is not pinned", func() {
-				It("sets the api pinned version", func() {
-					Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
-					Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
+				It("sets the pinned version", func() {
+					Expect(resource.PinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
 				})
 			})
 
@@ -1615,8 +1615,7 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("switch the pin to given version", func() {
-					Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v3"}))
-					Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
+					Expect(resource.PinnedVersion()).To(Equal(atc.Version{"version": "v3"}))
 				})
 			})
 
@@ -1676,9 +1675,8 @@ var _ = Describe("Resource", func() {
 					Expect(err).ToNot(HaveOccurred())
 				})
 
-				It("sets the api pinned version to nil", func() {
-					Expect(resource.APIPinnedVersion()).To(BeNil())
-					Expect(resource.CurrentPinnedVersion()).To(BeNil())
+				It("sets the pinned version to nil", func() {
+					Expect(resource.PinnedVersion()).To(BeNil())
 				})
 
 				It("unsets the pin comment", func() {

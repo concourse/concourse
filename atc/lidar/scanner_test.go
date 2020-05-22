@@ -149,7 +149,7 @@ var _ = Describe("Scanner", func() {
 
 						Context("when the checkable has a pinned version", func() {
 							BeforeEach(func() {
-								fakeResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
+								fakeResource.PinnedVersionReturns(atc.Version{"some": "version"})
 							})
 
 							It("creates a check", func() {
@@ -170,7 +170,7 @@ var _ = Describe("Scanner", func() {
 
 						Context("when the checkable does not have a pinned version", func() {
 							BeforeEach(func() {
-								fakeResource.CurrentPinnedVersionReturns(nil)
+								fakeResource.PinnedVersionReturns(nil)
 							})
 
 							It("creates a check", func() {
@@ -316,7 +316,7 @@ var _ = Describe("Scanner", func() {
 
 				Context("last check is 9 minutes ago", func() {
 					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute*9))
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute * 9))
 					})
 
 					It("does not create a check", func() {
@@ -326,7 +326,7 @@ var _ = Describe("Scanner", func() {
 
 				Context("last check is 11 minutes ago", func() {
 					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute*11))
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute * 11))
 					})
 
 					It("does not create a check", func() {

@@ -1524,7 +1524,7 @@ var _ = Describe("Jobs API", func() {
 							BeforeEach(func() {
 								fakeResource = new(dbfakes.FakeResource)
 								fakeResource.NameReturns("some-input")
-								fakeResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
+								fakeResource.PinnedVersionReturns(atc.Version{"some": "version"})
 
 								fakePipeline.ResourcesReturns([]db.Resource{fakeResource}, nil)
 							})

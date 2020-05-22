@@ -37,8 +37,8 @@ type Resource interface {
 	CheckSetupError() error
 	CheckError() error
 	WebhookToken() string
-	ConfigPinnedVersion() atc.Version
-	APIPinnedVersion() atc.Version
+	PinnedInConfig() bool
+	PinnedVersion() atc.Version
 	PinComment() string
 	SetPinComment(string) error
 	ResourceConfigID() int
@@ -46,8 +46,6 @@ type Resource interface {
 	Icon() string
 
 	HasWebhook() bool
-
-	CurrentPinnedVersion() atc.Version
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
@@ -112,8 +110,8 @@ type resource struct {
 	checkSetupError       error
 	checkError            error
 	webhookToken          string
-	configPinnedVersion   atc.Version
-	apiPinnedVersion      atc.Version
+	pinnedInConfig        bool
+	pinnedVersion         atc.Version
 	pinComment            string
 	resourceConfigID      int
 	resourceConfigScopeID int
@@ -156,7 +154,7 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 			Source:       r.Source(),
 			CheckEvery:   r.CheckEvery(),
 			Tags:         r.Tags(),
-			Version:      r.ConfigPinnedVersion(),
+			Version:      r.PinnedVersion(),
 			Icon:         r.Icon(),
 		})
 	}
@@ -164,27 +162,27 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 	return configs
 }
 
-func (r *resource) ID() int                          { return r.id }
-func (r *resource) Name() string                     { return r.name }
-func (r *resource) Public() bool                     { return r.public }
-func (r *resource) TeamID() int                      { return r.teamID }
-func (r *resource) TeamName() string                 { return r.teamName }
-func (r *resource) Type() string                     { return r.type_ }
-func (r *resource) Source() atc.Source               { return r.source }
-func (r *resource) CheckEvery() string               { return r.checkEvery }
-func (r *resource) CheckTimeout() string             { return r.checkTimeout }
-func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
-func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }
-func (r *resource) Tags() atc.Tags                   { return r.tags }
-func (r *resource) CheckSetupError() error           { return r.checkSetupError }
-func (r *resource) CheckError() error                { return r.checkError }
-func (r *resource) WebhookToken() string             { return r.webhookToken }
-func (r *resource) ConfigPinnedVersion() atc.Version { return r.configPinnedVersion }
-func (r *resource) APIPinnedVersion() atc.Version    { return r.apiPinnedVersion }
-func (r *resource) PinComment() string               { return r.pinComment }
-func (r *resource) ResourceConfigID() int            { return r.resourceConfigID }
-func (r *resource) ResourceConfigScopeID() int       { return r.resourceConfigScopeID }
-func (r *resource) Icon() string                     { return r.icon }
+func (r *resource) ID() int                       { return r.id }
+func (r *resource) Name() string                  { return r.name }
+func (r *resource) Public() bool                  { return r.public }
+func (r *resource) TeamID() int                   { return r.teamID }
+func (r *resource) TeamName() string              { return r.teamName }
+func (r *resource) Type() string                  { return r.type_ }
+func (r *resource) Source() atc.Source            { return r.source }
+func (r *resource) CheckEvery() string            { return r.checkEvery }
+func (r *resource) CheckTimeout() string          { return r.checkTimeout }
+func (r *resource) LastCheckStartTime() time.Time { return r.lastCheckStartTime }
+func (r *resource) LastCheckEndTime() time.Time   { return r.lastCheckEndTime }
+func (r *resource) Tags() atc.Tags                { return r.tags }
+func (r *resource) CheckSetupError() error        { return r.checkSetupError }
+func (r *resource) CheckError() error             { return r.checkError }
+func (r *resource) WebhookToken() string          { return r.webhookToken }
+func (r *resource) PinnedInConfig() bool          { return r.pinnedInConfig }
+func (r *resource) PinnedVersion() atc.Version    { return r.pinnedVersion }
+func (r *resource) PinComment() string            { return r.pinComment }
+func (r *resource) ResourceConfigID() int         { return r.resourceConfigID }
+func (r *resource) ResourceConfigScopeID() int    { return r.resourceConfigScopeID }
+func (r *resource) Icon() string                  { return r.icon }
 
 func (r *resource) HasWebhook() bool { return r.WebhookToken() != "" }
 
@@ -385,15 +383,6 @@ func (r *resource) SetPinComment(comment string) error {
 	return err
 }
 
-func (r *resource) CurrentPinnedVersion() atc.Version {
-	if r.configPinnedVersion != nil {
-		return r.configPinnedVersion
-	} else if r.apiPinnedVersion != nil {
-		return r.apiPinnedVersion
-	}
-	return nil
-}
-
 func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
@@ -590,7 +579,7 @@ func (r *resource) PinVersion(rcvID int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	 defer Rollback(tx)
+	defer Rollback(tx)
 	var pinnedThroughConfig bool
 	err = tx.QueryRow(`
 		SELECT EXISTS (
@@ -735,10 +724,10 @@ func scanResource(r *resource, row scannable) error {
 		configBlob                                                               []byte
 		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
 		lastCheckStartTime, lastCheckEndTime                                     pq.NullTime
-		pinnedThroughConfig                                                      sql.NullBool
+		pinnedInConfig                                                           sql.NullBool
 	)
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedInConfig)
 	if err != nil {
 		return err
 	}
@@ -771,6 +760,7 @@ func scanResource(r *resource, row scannable) error {
 	r.tags = config.Tags
 	r.webhookToken = config.WebhookToken
 	r.icon = config.Icon
+	r.pinnedInConfig = pinnedInConfig.Valid && pinnedInConfig.Bool
 
 	if pinnedVersion.Valid {
 		var version atc.Version
@@ -778,17 +768,9 @@ func scanResource(r *resource, row scannable) error {
 		if err != nil {
 			return err
 		}
-
-		if pinnedThroughConfig.Valid && pinnedThroughConfig.Bool {
-			r.configPinnedVersion = version
-			r.apiPinnedVersion = nil
-		} else {
-			r.configPinnedVersion = nil
-			r.apiPinnedVersion = version
-		}
+		r.pinnedVersion = version
 	} else {
-		r.apiPinnedVersion = nil
-		r.configPinnedVersion = nil
+		r.pinnedVersion = nil
 	}
 
 	if pinComment.Valid {

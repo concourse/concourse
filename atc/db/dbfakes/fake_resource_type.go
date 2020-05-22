@@ -50,16 +50,6 @@ type FakeResourceType struct {
 	checkTimeoutReturnsOnCall map[int]struct {
 		result1 string
 	}
-	CurrentPinnedVersionStub        func() atc.Version
-	currentPinnedVersionMutex       sync.RWMutex
-	currentPinnedVersionArgsForCall []struct {
-	}
-	currentPinnedVersionReturns struct {
-		result1 atc.Version
-	}
-	currentPinnedVersionReturnsOnCall map[int]struct {
-		result1 atc.Version
-	}
 	HasWebhookStub        func() bool
 	hasWebhookMutex       sync.RWMutex
 	hasWebhookArgsForCall []struct {
@@ -119,6 +109,16 @@ type FakeResourceType struct {
 	}
 	paramsReturnsOnCall map[int]struct {
 		result1 atc.Params
+	}
+	PinnedVersionStub        func() atc.Version
+	pinnedVersionMutex       sync.RWMutex
+	pinnedVersionArgsForCall []struct {
+	}
+	pinnedVersionReturns struct {
+		result1 atc.Version
+	}
+	pinnedVersionReturnsOnCall map[int]struct {
+		result1 atc.Version
 	}
 	PipelineStub        func() (db.Pipeline, bool, error)
 	pipelineMutex       sync.RWMutex
@@ -493,58 +493,6 @@ func (fake *FakeResourceType) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) CurrentPinnedVersion() atc.Version {
-	fake.currentPinnedVersionMutex.Lock()
-	ret, specificReturn := fake.currentPinnedVersionReturnsOnCall[len(fake.currentPinnedVersionArgsForCall)]
-	fake.currentPinnedVersionArgsForCall = append(fake.currentPinnedVersionArgsForCall, struct {
-	}{})
-	fake.recordInvocation("CurrentPinnedVersion", []interface{}{})
-	fake.currentPinnedVersionMutex.Unlock()
-	if fake.CurrentPinnedVersionStub != nil {
-		return fake.CurrentPinnedVersionStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.currentPinnedVersionReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResourceType) CurrentPinnedVersionCallCount() int {
-	fake.currentPinnedVersionMutex.RLock()
-	defer fake.currentPinnedVersionMutex.RUnlock()
-	return len(fake.currentPinnedVersionArgsForCall)
-}
-
-func (fake *FakeResourceType) CurrentPinnedVersionCalls(stub func() atc.Version) {
-	fake.currentPinnedVersionMutex.Lock()
-	defer fake.currentPinnedVersionMutex.Unlock()
-	fake.CurrentPinnedVersionStub = stub
-}
-
-func (fake *FakeResourceType) CurrentPinnedVersionReturns(result1 atc.Version) {
-	fake.currentPinnedVersionMutex.Lock()
-	defer fake.currentPinnedVersionMutex.Unlock()
-	fake.CurrentPinnedVersionStub = nil
-	fake.currentPinnedVersionReturns = struct {
-		result1 atc.Version
-	}{result1}
-}
-
-func (fake *FakeResourceType) CurrentPinnedVersionReturnsOnCall(i int, result1 atc.Version) {
-	fake.currentPinnedVersionMutex.Lock()
-	defer fake.currentPinnedVersionMutex.Unlock()
-	fake.CurrentPinnedVersionStub = nil
-	if fake.currentPinnedVersionReturnsOnCall == nil {
-		fake.currentPinnedVersionReturnsOnCall = make(map[int]struct {
-			result1 atc.Version
-		})
-	}
-	fake.currentPinnedVersionReturnsOnCall[i] = struct {
-		result1 atc.Version
-	}{result1}
-}
-
 func (fake *FakeResourceType) HasWebhook() bool {
 	fake.hasWebhookMutex.Lock()
 	ret, specificReturn := fake.hasWebhookReturnsOnCall[len(fake.hasWebhookArgsForCall)]
@@ -854,6 +802,58 @@ func (fake *FakeResourceType) ParamsReturnsOnCall(i int, result1 atc.Params) {
 	}
 	fake.paramsReturnsOnCall[i] = struct {
 		result1 atc.Params
+	}{result1}
+}
+
+func (fake *FakeResourceType) PinnedVersion() atc.Version {
+	fake.pinnedVersionMutex.Lock()
+	ret, specificReturn := fake.pinnedVersionReturnsOnCall[len(fake.pinnedVersionArgsForCall)]
+	fake.pinnedVersionArgsForCall = append(fake.pinnedVersionArgsForCall, struct {
+	}{})
+	fake.recordInvocation("PinnedVersion", []interface{}{})
+	fake.pinnedVersionMutex.Unlock()
+	if fake.PinnedVersionStub != nil {
+		return fake.PinnedVersionStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.pinnedVersionReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceType) PinnedVersionCallCount() int {
+	fake.pinnedVersionMutex.RLock()
+	defer fake.pinnedVersionMutex.RUnlock()
+	return len(fake.pinnedVersionArgsForCall)
+}
+
+func (fake *FakeResourceType) PinnedVersionCalls(stub func() atc.Version) {
+	fake.pinnedVersionMutex.Lock()
+	defer fake.pinnedVersionMutex.Unlock()
+	fake.PinnedVersionStub = stub
+}
+
+func (fake *FakeResourceType) PinnedVersionReturns(result1 atc.Version) {
+	fake.pinnedVersionMutex.Lock()
+	defer fake.pinnedVersionMutex.Unlock()
+	fake.PinnedVersionStub = nil
+	fake.pinnedVersionReturns = struct {
+		result1 atc.Version
+	}{result1}
+}
+
+func (fake *FakeResourceType) PinnedVersionReturnsOnCall(i int, result1 atc.Version) {
+	fake.pinnedVersionMutex.Lock()
+	defer fake.pinnedVersionMutex.Unlock()
+	fake.PinnedVersionStub = nil
+	if fake.pinnedVersionReturnsOnCall == nil {
+		fake.pinnedVersionReturnsOnCall = make(map[int]struct {
+			result1 atc.Version
+		})
+	}
+	fake.pinnedVersionReturnsOnCall[i] = struct {
+		result1 atc.Version
 	}{result1}
 }
 
@@ -1677,8 +1677,6 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.checkSetupErrorMutex.RUnlock()
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
-	fake.currentPinnedVersionMutex.RLock()
-	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.hasWebhookMutex.RLock()
 	defer fake.hasWebhookMutex.RUnlock()
 	fake.iDMutex.RLock()
@@ -1691,6 +1689,8 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.nameMutex.RUnlock()
 	fake.paramsMutex.RLock()
 	defer fake.paramsMutex.RUnlock()
+	fake.pinnedVersionMutex.RLock()
+	defer fake.pinnedVersionMutex.RUnlock()
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
 	fake.pipelineIDMutex.RLock()

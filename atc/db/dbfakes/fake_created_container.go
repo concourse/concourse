@@ -21,18 +21,6 @@ type FakeCreatedContainer struct {
 		result1 db.DestroyingContainer
 		result2 error
 	}
-	DiscontinueStub        func() (db.DestroyingContainer, error)
-	discontinueMutex       sync.RWMutex
-	discontinueArgsForCall []struct {
-	}
-	discontinueReturns struct {
-		result1 db.DestroyingContainer
-		result2 error
-	}
-	discontinueReturnsOnCall map[int]struct {
-		result1 db.DestroyingContainer
-		result2 error
-	}
 	HandleStub        func() string
 	handleMutex       sync.RWMutex
 	handleArgsForCall []struct {
@@ -157,61 +145,6 @@ func (fake *FakeCreatedContainer) DestroyingReturnsOnCall(i int, result1 db.Dest
 		})
 	}
 	fake.destroyingReturnsOnCall[i] = struct {
-		result1 db.DestroyingContainer
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCreatedContainer) Discontinue() (db.DestroyingContainer, error) {
-	fake.discontinueMutex.Lock()
-	ret, specificReturn := fake.discontinueReturnsOnCall[len(fake.discontinueArgsForCall)]
-	fake.discontinueArgsForCall = append(fake.discontinueArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Discontinue", []interface{}{})
-	fake.discontinueMutex.Unlock()
-	if fake.DiscontinueStub != nil {
-		return fake.DiscontinueStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.discontinueReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeCreatedContainer) DiscontinueCallCount() int {
-	fake.discontinueMutex.RLock()
-	defer fake.discontinueMutex.RUnlock()
-	return len(fake.discontinueArgsForCall)
-}
-
-func (fake *FakeCreatedContainer) DiscontinueCalls(stub func() (db.DestroyingContainer, error)) {
-	fake.discontinueMutex.Lock()
-	defer fake.discontinueMutex.Unlock()
-	fake.DiscontinueStub = stub
-}
-
-func (fake *FakeCreatedContainer) DiscontinueReturns(result1 db.DestroyingContainer, result2 error) {
-	fake.discontinueMutex.Lock()
-	defer fake.discontinueMutex.Unlock()
-	fake.DiscontinueStub = nil
-	fake.discontinueReturns = struct {
-		result1 db.DestroyingContainer
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCreatedContainer) DiscontinueReturnsOnCall(i int, result1 db.DestroyingContainer, result2 error) {
-	fake.discontinueMutex.Lock()
-	defer fake.discontinueMutex.Unlock()
-	fake.DiscontinueStub = nil
-	if fake.discontinueReturnsOnCall == nil {
-		fake.discontinueReturnsOnCall = make(map[int]struct {
-			result1 db.DestroyingContainer
-			result2 error
-		})
-	}
-	fake.discontinueReturnsOnCall[i] = struct {
 		result1 db.DestroyingContainer
 		result2 error
 	}{result1, result2}
@@ -586,8 +519,6 @@ func (fake *FakeCreatedContainer) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.destroyingMutex.RLock()
 	defer fake.destroyingMutex.RUnlock()
-	fake.discontinueMutex.RLock()
-	defer fake.discontinueMutex.RUnlock()
 	fake.handleMutex.RLock()
 	defer fake.handleMutex.RUnlock()
 	fake.iDMutex.RLock()

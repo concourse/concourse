@@ -65,7 +65,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		for _, input := range inputs {
 			resource, found := resources.Lookup(input.Resource)
 			if found {
-				version := resource.CurrentPinnedVersion()
+				version := resource.PinnedVersion()
 				_, _, err := s.checkFactory.TryCreateCheck(
 					lagerctx.NewContext(context.Background(), logger),
 					resource,

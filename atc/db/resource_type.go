@@ -43,7 +43,7 @@ type ResourceType interface {
 	CheckSetupError() error
 	CheckError() error
 	UniqueVersionHistory() bool
-	CurrentPinnedVersion() atc.Version
+	PinnedVersion() atc.Version
 	ResourceConfigScopeID() int
 
 	HasWebhook() bool
@@ -196,7 +196,7 @@ func (t *resourceType) UniqueVersionHistory() bool    { return t.uniqueVersionHi
 func (t *resourceType) ResourceConfigScopeID() int    { return t.resourceConfigScopeID }
 
 func (t *resourceType) Version() atc.Version              { return t.version }
-func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
+func (t *resourceType) PinnedVersion() atc.Version { return nil }
 
 func (t *resourceType) HasWebhook() bool {
 	return false
