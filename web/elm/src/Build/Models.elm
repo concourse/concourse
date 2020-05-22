@@ -25,6 +25,7 @@ type alias Model =
             (ShortcutsModel
                 { shiftDown : Bool
                 , highlight : Highlight
+                , isScrollToIdInProgress : Bool
                 , authorized : Bool
                 , output : CurrentOutput
                 , prep : Maybe Concourse.BuildPrep

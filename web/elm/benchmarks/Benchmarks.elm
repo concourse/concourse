@@ -766,6 +766,7 @@ sampleModel =
             , highlight = Routes.HighlightNothing
             }
     , autoScroll = True
+    , isScrollToIdInProgress = False
     , previousKeyPress = Nothing
     , isTriggerBuildKeyDown = False
     , showHelp = False
