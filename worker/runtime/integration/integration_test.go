@@ -67,7 +67,7 @@ func (s *IntegrationSuite) SetupSuite() {
 	s.startContainerd()
 
 	retries := 0
-	for retries < 10 {
+	for retries < 100 {
 		c, err := containerd.New(s.containerdSocket(), containerd.WithTimeout(100*time.Millisecond))
 		if err != nil {
 			retries++
