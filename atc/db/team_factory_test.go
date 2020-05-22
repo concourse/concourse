@@ -149,10 +149,10 @@ var _ = Describe("Team Factory", func() {
 			It("returns both teams", func() {
 				Expect(teams).To(HaveLen(2))
 
-				Expect(teams[0].Name()).To(Equal(atcTeam.Name))
-				Expect(teams[0].Auth()).To(Equal(atcTeam.Auth))
+				Expect(teams[0].Name()).To(Equal("some-other-team"))
 
-				Expect(teams[1].Name()).To(Equal("some-other-team"))
+				Expect(teams[1].Name()).To(Equal(atcTeam.Name))
+				Expect(teams[1].Auth()).To(Equal(atcTeam.Auth))
 			})
 		})
 	})

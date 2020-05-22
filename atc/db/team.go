@@ -545,7 +545,7 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 			"team_id": t.id,
 			"public":  true,
 		}).
-		OrderBy("team_id ASC", "ordering ASC").
+		OrderBy("t.name ASC", "ordering ASC").
 		RunWith(t.conn).
 		Query()
 	if err != nil {
