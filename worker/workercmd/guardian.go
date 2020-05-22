@@ -1,17 +1,20 @@
+// +build linux
+
 package workercmd
 
 import (
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/localip"
 	"fmt"
-	concourseCmd "github.com/concourse/concourse/cmd"
-	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/grouper"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/localip"
+	concourseCmd "github.com/concourse/concourse/cmd"
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
 )
 
 // This runs Guardian using the gdn binary
