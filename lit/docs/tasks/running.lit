@@ -3,7 +3,7 @@
 \title{\aux{Running tasks with }\code{fly execute}}{running-tasks}{fly-execute}
 
 One of the most common use cases of \code{fly} is taking a local project on
-your computer and submitting it up with a task configuration to be run
+your computer and setting it up with a task configuration to be run
 inside a container in Concourse. This is useful to build Linux projects on
 OS X or to avoid all of those debugging commits when something is configured
 differently between your local and remote setup.
