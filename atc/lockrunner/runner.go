@@ -28,6 +28,13 @@ type runner struct {
 	interval         time.Duration
 }
 
+//go:generate counterfeiter . Notifications
+
+type Notifications interface {
+	Listen(string, db.NotificationQueueMode) (chan db.Notification, error)
+	Unlisten(string, chan db.Notification) error
+}
+
 func NewRunner(
 	logger lager.Logger,
 	task Task,
@@ -50,6 +57,13 @@ func NewRunner(
 
 func (r *runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	close(ready)
+
+	notifier, err := r.notifications.Listen(r.componentName, db.DontQueueNotifications)
+	if err != nil {
+		return err
+	}
+
+	defer r.notifications.Unlisten(r.componentName, notifier)
 
 	ticker := r.clock.NewTicker(r.interval)
 	defer ticker.Stop()

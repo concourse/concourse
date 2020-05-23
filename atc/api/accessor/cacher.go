@@ -12,8 +12,8 @@ import (
 //go:generate counterfeiter . Notifications
 
 type Notifications interface {
-	Listen(string) (chan bool, error)
-	Unlisten(string, chan bool) error
+	Listen(string, db.NotificationQueueMode) (chan db.Notification, error)
+	Unlisten(string, chan db.Notification) error
 }
 
 type cacher struct {
@@ -58,7 +58,7 @@ func (c *cacher) GetTeams() ([]db.Team, error) {
 }
 
 func (c *cacher) waitForNotifications() {
-	notifier, err := c.notifications.Listen(atc.TeamCacheChannel)
+	notifier, err := c.notifications.Listen(atc.TeamCacheChannel,db.DontQueueNotifications)
 	if err != nil {
 		c.logger.Error("failed-to-listen-for-team-cache", err)
 	}

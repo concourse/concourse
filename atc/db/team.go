@@ -714,7 +714,7 @@ func (t *team) CreateStartedBuild(ctx context.Context, plan atc.Plan) (Build, er
 		return nil, err
 	}
 
-	if err = t.conn.Bus().Notify(ctx, buildStartedChannel()); err != nil {
+	if err = t.conn.Bus().Notify(ctx, buildStartedChannel(), ""); err != nil {
 		return nil, err
 	}
 

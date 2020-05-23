@@ -160,11 +160,11 @@ func (factory *teamFactory) CreateDefaultTeamIfNotExists() (Team, error) {
 }
 
 func (factory *teamFactory) NotifyResourceScanner() error {
-	return factory.conn.Bus().Notify(context.TODO(), atc.ComponentLidarScanner)
+	return factory.conn.Bus().Notify(context.TODO(), atc.ComponentLidarScanner, "")
 }
 
 func (factory *teamFactory) NotifyCacher() error {
-	return factory.conn.Bus().Notify(context.TODO(), atc.TeamCacheChannel)
+	return factory.conn.Bus().Notify(context.TODO(), atc.TeamCacheChannel, "")
 }
 
 func (factory *teamFactory) scanTeam(t *team, rows scannable) error {

@@ -23,9 +23,9 @@ type BuildTracker interface {
 //go:generate counterfeiter . Notifications
 
 type Notifications interface {
-	Listen(channel string) (chan bool, error)
-	Unlisten(channel string, notifier chan bool) error
-	Notify(ctx context.Context, channel string) error
+	Listen(channel string, queueMode db.NotificationQueueMode) (chan db.Notification, error)
+	Unlisten(channel string, notifier chan db.Notification) error
+	Notify(ctx context.Context, channel string, payload string) error
 }
 
 func NewRunner(
@@ -63,7 +63,7 @@ type runner struct {
 func (r *runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	close(ready)
 
-	notifier, err := r.notifications.Listen(r.componentName)
+	notifier, err := r.notifications.Listen(r.componentName, db.DontQueueNotifications)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (r *runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 			r.logger.Info("releasing-tracker")
 			r.tracker.Release()
 			r.logger.Info("released-tracker")
-			return r.notifications.Notify(ctx, r.componentName)
+			return r.notifications.Notify(ctx, r.componentName, "")
 		}
 	}
 }

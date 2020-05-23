@@ -21,7 +21,7 @@ var _ = Describe("Cacher", func() {
 		fakeTeam          *dbfakes.FakeTeam
 
 		teamFetcher accessor.TeamFetcher
-		notifier    chan bool
+		notifier    chan db.Notification
 		teams       []db.Team
 		err         error
 	)
@@ -30,7 +30,7 @@ var _ = Describe("Cacher", func() {
 		fakeTeam = new(dbfakes.FakeTeam)
 		teams = []db.Team{fakeTeam}
 
-		notifier = make(chan bool, 1)
+		notifier = make(chan db.Notification, 1)
 		fakeNotifications = new(accessorfakes.FakeNotifications)
 		fakeNotifications.ListenReturns(notifier, nil)
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
@@ -64,7 +64,7 @@ var _ = Describe("Cacher", func() {
 
 	Context("when it receives a notification", func() {
 		JustBeforeEach(func() {
-			notifier <- true
+			notifier <- db.Notification{Healthy: true}
 			time.Sleep(time.Second)
 		})
 

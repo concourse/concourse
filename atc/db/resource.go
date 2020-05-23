@@ -728,7 +728,7 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 }
 
 func (r *resource) NotifyScan() error {
-	return r.conn.Bus().Notify(context.TODO(), fmt.Sprintf("resource_scan_%d", r.id))
+	return r.conn.Bus().Notify(context.TODO(), fmt.Sprintf("resource_scan_%d", r.id), "")
 }
 
 func scanResource(r *resource, row scannable) error {

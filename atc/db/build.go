@@ -628,7 +628,7 @@ func (b *build) MarkAsAborted() error {
 		return err
 	}
 
-	return b.conn.Bus().Notify(context.TODO(), buildAbortChannel(b.id))
+	return b.conn.Bus().Notify(context.TODO(), buildAbortChannel(b.id), "")
 }
 
 // AbortNotifier returns a Notifier that can be watched for when the build
@@ -878,7 +878,7 @@ func (b *build) SaveEvent(ctx context.Context, event atc.Event) error {
 	if err != nil {
 		return err
 	}
-	return b.conn.Bus().Notify(ctx, buildEventsNotificationChannel(b.ID()))
+	return b.conn.Bus().Notify(ctx, buildEventsNotificationChannel(b.ID()), "")
 }
 
 func buildEventsNotificationChannel(buildID int) string {

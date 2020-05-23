@@ -961,7 +961,7 @@ func (p *pipeline) CreateStartedBuild(ctx context.Context, plan atc.Plan) (Build
 		return nil, err
 	}
 
-	if err = p.conn.Bus().Notify(ctx, buildStartedChannel()); err != nil {
+	if err = p.conn.Bus().Notify(ctx, buildStartedChannel(), ""); err != nil {
 		return nil, err
 	}
 

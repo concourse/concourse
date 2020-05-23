@@ -29,7 +29,7 @@ type TeamFetcher interface {
 	GetTeams() ([]db.Team, error)
 }
 
-//go:generate coonuterfeiter UserTracker
+//go:generate counterfeiter . UserTracker
 
 type UserTracker interface {
 	CreateOrUpdateUser(username, connector, sub string) error
