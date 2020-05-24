@@ -38,9 +38,10 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
-	"github.com/concourse/concourse/atc/elasticsearch"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/builder"
+	"github.com/concourse/concourse/atc/events"
+	"github.com/concourse/concourse/atc/events/postgres"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/lidar"
 	"github.com/concourse/concourse/atc/metric"
@@ -90,6 +91,9 @@ import (
 	_ "github.com/concourse/concourse/atc/creds/secretsmanager"
 	_ "github.com/concourse/concourse/atc/creds/ssm"
 	_ "github.com/concourse/concourse/atc/creds/vault"
+
+	// dynamically registered event stores
+	_ "github.com/concourse/concourse/atc/events/elasticsearch"
 )
 
 const algorithmLimitRows = 100
@@ -138,6 +142,9 @@ type RunCommand struct {
 
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
+
+	EventStoreConfig struct{} `group:"Build Event Storage"`
+	EventStores      events.Stores
 
 	EncryptionKey    flag.Cipher `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
 	OldEncryptionKey flag.Cipher `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
@@ -349,6 +356,7 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 		policyChecksGroup *flags.Group
 		credsGroup        *flags.Group
 		authGroup         *flags.Group
+		eventStoresGroup  *flags.Group
 	)
 
 	groups := commandFlags.Groups()
@@ -371,7 +379,11 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 			authGroup = group
 		}
 
-		if metricsGroup != nil && credsGroup != nil && authGroup != nil && policyChecksGroup != nil {
+		if eventStoresGroup == nil && group.ShortDescription == "Build Event Storage" {
+			eventStoresGroup = group
+		}
+
+		if metricsGroup != nil && credsGroup != nil && authGroup != nil && policyChecksGroup != nil && eventStoresGroup != nil {
 			break
 		}
 
@@ -394,11 +406,20 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 		panic("could not find Authentication group for registering connectors")
 	}
 
-	managerConfigs := make(creds.Managers)
-	for name, p := range creds.ManagerFactories() {
-		managerConfigs[name] = p.AddConfig(credsGroup)
+	if eventStoresGroup == nil {
+		panic("could not find Build Event Storage group for registering external event stores")
 	}
-	cmd.CredentialManagers = managerConfigs
+
+	credsManagerConfigs := make(creds.Managers)
+	for name, p := range creds.ManagerFactories() {
+		credsManagerConfigs[name] = p.AddConfig(credsGroup)
+	}
+	cmd.CredentialManagers = credsManagerConfigs
+
+	cmd.EventStores = make(events.Stores)
+	for name, p := range events.StoreFactories {
+		cmd.EventStores[name] = p.AddConfig(eventStoresGroup)
+	}
 
 	metric.WireEmitters(metricsGroup)
 
@@ -516,13 +537,13 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		clock.NewClock(),
 	)
 
-	// backendConn is arbitrary
-	eventStore := constructEventStore(logger.Session("event-store"), backendConn)
-	if err := eventStore.Setup(context.TODO()); err != nil {
-		return nil, fmt.Errorf("failed to setup the event store: %w", err)
+	ctx := context.Background()
+	store, err := cmd.eventStore(ctx, logger, backendConn /* backendConn is arbitrary */)
+	if err != nil {
+		return nil, err
 	}
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager, eventStore)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager, store)
 	if err != nil {
 		return nil, err
 	}
@@ -551,6 +572,9 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	onExit := func() {
 		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage} {
 			closer.Close()
+		}
+		for _, closer := range []CloserContext{store} {
+			closer.Close(ctx)
 		}
 
 		cmd.varSourcePool.Close()
@@ -1140,9 +1164,34 @@ func (cmd *RunCommand) gcComponents(
 	return components, nil
 }
 
-func constructEventStore(logger lager.Logger, dbConn db.Conn) db.EventStore {
-	//return db.NewBuildEventStore(dbConn)
-	return elasticsearch.NewEventStore(logger, "http://elasticsearch:9200")
+func (cmd *RunCommand) eventStore(ctx context.Context, logger lager.Logger, dbConn db.Conn) (events.Store, error) {
+	var chosenStore events.Store
+	for name, store := range cmd.EventStores {
+		if !store.IsConfigured() {
+			continue
+		}
+
+		logger = logger.Session("event-store", lager.Data{
+			"name": name,
+		})
+
+		logger.Info("configured event store")
+
+		chosenStore = store
+		break
+	}
+
+	if chosenStore == nil {
+		logger.Info("defaulting to postgres event store")
+		chosenStore = &postgres.Store{Conn: dbConn}
+	}
+
+	ctx = lagerctx.NewContext(ctx, logger)
+	err := chosenStore.Setup(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return chosenStore, nil
 }
 
 func (cmd *RunCommand) validateCustomRoles() error {
@@ -1504,6 +1553,10 @@ func (cmd *RunCommand) constructDBConn(
 
 type Closer interface {
 	Close() error
+}
+
+type CloserContext interface {
+	Close(ctx context.Context) error
 }
 
 func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
@@ -57,34 +57,33 @@ func (k Key) GreaterThan(o db.EventKey) bool {
 	return k.Tiebreak > other.Tiebreak
 }
 
-type EventStore struct {
+type Store struct {
 	logger lager.Logger
 	client *elastic.Client
 
-	url string
+	URL string `long:"url" description:"URL of Elasticsearch cluster."`
 
 	counter int64
 }
 
-func NewEventStore(logger lager.Logger, url string) *EventStore {
-	rand.Seed(time.Now().UnixNano())
-
-	return &EventStore{
-		url:    url,
-		logger: logger,
-
-		counter: rand.Int63(),
-	}
+func (e *Store) IsConfigured() bool {
+	return e.URL != ""
 }
 
-func (e *EventStore) Setup(ctx context.Context) error {
-	e.logger.Debug("setup-event-store", lager.Data{"url": e.url})
+func (e *Store) Setup(ctx context.Context) error {
+	e.logger = lagerctx.FromContext(ctx)
+	if e.logger == nil {
+		return fmt.Errorf("missing logger in context")
+	}
+
+	e.logger.Debug("setup-event-store", lager.Data{"url": e.URL})
 	var err error
 	e.client, err = elastic.NewClient(
-		elastic.SetURL(e.url),
+		elastic.SetURL(e.URL),
+		elastic.SetHealthcheckTimeoutStartup(1 * time.Minute),
 	)
 	if err != nil {
-		e.logger.Error("connect-to-cluster-failed", err, lager.Data{"url": e.url})
+		e.logger.Error("connect-to-cluster-failed", err, lager.Data{"url": e.URL})
 		return fmt.Errorf("connect to cluster: %w", err)
 	}
 
@@ -114,7 +113,12 @@ func (e *EventStore) Setup(ctx context.Context) error {
 	return nil
 }
 
-func (e *EventStore) createIndexIfNotExists(ctx context.Context, name string, body string) error {
+func (e *Store) Close(ctx context.Context) error {
+	e.client.Stop()
+	return nil
+}
+
+func (e *Store) createIndexIfNotExists(ctx context.Context, name string, body string) error {
 	exists, err := e.client.IndexExists(name).Do(ctx)
 	if err != nil {
 		e.logger.Error("check-index-exists-failed", err, lager.Data{"name": name})
@@ -142,15 +146,15 @@ func isAlreadyExists(err error) bool {
 	return elasticErr.Status == http.StatusBadRequest && elasticErr.Details.Type == "index_already_exists_exception"
 }
 
-func (e *EventStore) Initialize(ctx context.Context, build db.Build) error {
+func (e *Store) Initialize(ctx context.Context, build db.Build) error {
 	return nil
 }
 
-func (e *EventStore) Finalize(ctx context.Context, build db.Build) error {
+func (e *Store) Finalize(ctx context.Context, build db.Build) error {
 	return nil
 }
 
-func (e *EventStore) Put(ctx context.Context, build db.Build, events []atc.Event) (db.EventKey, error) {
+func (e *Store) Put(ctx context.Context, build db.Build, events []atc.Event) (db.EventKey, error) {
 	if len(events) == 0 {
 		return nil, nil
 	}
@@ -196,7 +200,7 @@ func (e *EventStore) Put(ctx context.Context, build db.Build, events []atc.Event
 	return Key{TimeMillis: target.Time * 1000, Tiebreak: doc.Tiebreak}, nil
 }
 
-func (e *EventStore) Get(ctx context.Context, build db.Build, requested int, cursor *db.EventKey) ([]event.Envelope, error) {
+func (e *Store) Get(ctx context.Context, build db.Build, requested int, cursor *db.EventKey) ([]event.Envelope, error) {
 	offset, err := e.offset(cursor)
 	if err != nil {
 		e.logger.Error("offset-failed", err)
@@ -251,7 +255,7 @@ func (e *EventStore) Get(ctx context.Context, build db.Build, requested int, cur
 	return events, nil
 }
 
-func (e *EventStore) offset(cursor *db.EventKey) (Key, error) {
+func (e *Store) offset(cursor *db.EventKey) (Key, error) {
 	if cursor == nil || *cursor == nil {
 		return Key{}, nil
 	}
@@ -262,7 +266,7 @@ func (e *EventStore) offset(cursor *db.EventKey) (Key, error) {
 	return offset, nil
 }
 
-func (e *EventStore) Delete(ctx context.Context, builds []db.Build) error {
+func (e *Store) Delete(ctx context.Context, builds []db.Build) error {
 	buildIDs := make([]int, len(builds))
 	for i, build := range builds {
 		buildIDs[i] = build.ID()
@@ -275,7 +279,7 @@ func (e *EventStore) Delete(ctx context.Context, builds []db.Build) error {
 	return nil
 }
 
-func (e *EventStore) DeletePipeline(ctx context.Context, pipeline db.Pipeline) error {
+func (e *Store) DeletePipeline(ctx context.Context, pipeline db.Pipeline) error {
 	err := e.asyncDelete(ctx, elastic.NewTermQuery("pipeline_id", pipeline.ID()))
 	if err != nil {
 		e.logger.Error("delete-pipeline-failed", err, lager.Data{"pipeline_id": pipeline.ID()})
@@ -284,7 +288,7 @@ func (e *EventStore) DeletePipeline(ctx context.Context, pipeline db.Pipeline) e
 	return nil
 }
 
-func (e *EventStore) DeleteTeam(ctx context.Context, team db.Team) error {
+func (e *Store) DeleteTeam(ctx context.Context, team db.Team) error {
 	err := e.asyncDelete(ctx, elastic.NewTermQuery("team_id", team.ID()))
 	if err != nil {
 		e.logger.Error("delete-team-failed", err, lager.Data{"team_id": team.ID()})
@@ -293,14 +297,14 @@ func (e *EventStore) DeleteTeam(ctx context.Context, team db.Team) error {
 	return nil
 }
 
-func (e *EventStore) asyncDelete(ctx context.Context, query elastic.Query) error {
+func (e *Store) asyncDelete(ctx context.Context, query elastic.Query) error {
 	_, err := e.client.DeleteByQuery(indexPatternPrefix).
 		Query(query).
 		DoAsync(ctx)
 	return err
 }
 
-func (e *EventStore) UnmarshalKey(data []byte, key *db.EventKey) error {
+func (e *Store) UnmarshalKey(data []byte, key *db.EventKey) error {
 	var k Key
 	if err := json.Unmarshal(data, &k); err != nil {
 		return err

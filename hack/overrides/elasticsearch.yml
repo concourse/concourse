@@ -11,11 +11,11 @@ volumes:
 services:
   web:
     depends_on: [db, elasticsearch]
+    environment:
+      CONCOURSE_ELASTICSEARCH_URL: http://elasticsearch:9200
 
   elasticsearch:
     image: elasticsearch:7.6.1
-    volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
     ports:
       - '9200:9200'
       - '9300:9300'

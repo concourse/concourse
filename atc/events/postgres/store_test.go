@@ -1,36 +1,60 @@
-package db_test
+package postgres_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/events"
+	"github.com/concourse/concourse/atc/events/postgres"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("BuildEventStore", func() {
-	var eventStore db.EventStore
+var _ = Describe("Store", func() {
+	var (
+		eventStore events.Store
+
+		fakePipeline      *dbfakes.FakePipeline
+		fakeTeam          *dbfakes.FakeTeam
+		fakePipelineBuild *dbfakes.FakeBuild
+		fakeTeamBuild     *dbfakes.FakeBuild
+
+		ctx context.Context
+	)
 
 	BeforeEach(func() {
-		eventStore = db.NewBuildEventStore(dbConn)
+		eventStore = &postgres.Store{
+			Conn: dbConn,
+		}
+
+		fakePipeline = new(dbfakes.FakePipeline)
+		fakePipeline.IDReturns(2)
+		fakeTeam = new(dbfakes.FakeTeam)
+		fakeTeam.IDReturns(3)
+
+		fakePipelineBuild = new(dbfakes.FakeBuild)
+		fakePipelineBuild.IDReturns(1)
+		fakePipelineBuild.PipelineIDReturns(fakePipeline.ID())
+
+		fakeTeamBuild = new(dbfakes.FakeBuild)
+		fakeTeamBuild.IDReturns(2)
+		fakeTeamBuild.TeamIDReturns(fakeTeam.ID())
+
+		ctx = context.Background()
+	})
+
+	BeforeEach(func() {
+		err := eventStore.Setup(ctx)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("Setup", func() {
-		BeforeEach(func() {
-			_, err := dbConn.Exec(`
-				DROP SCHEMA public CASCADE;
-				CREATE SCHEMA public;
-			`)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = eventStore.Setup(context.TODO())
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		It("creates the build_events table", func() {
 			var exists bool
 			err := dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'build_events')").Scan(&exists)
@@ -74,7 +98,7 @@ var _ = Describe("BuildEventStore", func() {
 		})
 
 		It("doesn't error when run multiple times", func() {
-			err := eventStore.Setup(context.TODO())
+			err := eventStore.Setup(ctx)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -82,138 +106,115 @@ var _ = Describe("BuildEventStore", func() {
 	Describe("Initialize", func() {
 		var build db.Build
 
-		BeforeEach(func() {
-			err := eventStore.Setup(context.TODO())
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		JustBeforeEach(func() {
-			err := eventStore.Initialize(context.TODO(), build)
+			err := eventStore.Initialize(ctx, build)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("when the build is a pipeline build", func() {
 			BeforeEach(func() {
-				var err error
-				build, err = defaultPipeline.CreateOneOffBuild()
-				Expect(err).ToNot(HaveOccurred())
+				build = fakePipelineBuild
 			})
 
 			It("creates a pipeline build events table", func() {
-				tableName := fmt.Sprintf("pipeline_build_events_%d", defaultPipeline.ID())
+				tableName := fmt.Sprintf("pipeline_build_events_%d", fakePipeline.ID())
 
 				var exists bool
 				err := dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '" + tableName + "')").Scan(&exists)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(exists).To(BeTrue(), "didn't create '" + tableName + "' table")
+				Expect(exists).To(BeTrue(), "didn't create '"+tableName+"' table")
 			})
 
 			It("creates the required indexes", func() {
-				tableName := fmt.Sprintf("pipeline_build_events_%d", defaultPipeline.ID())
+				tableName := fmt.Sprintf("pipeline_build_events_%d", fakePipeline.ID())
 
 				var exists bool
 				err := dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = '" + tableName + "_build_id')").Scan(&exists)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(exists).To(BeTrue(), "didn't create '" + tableName + "_build_id' index")
+				Expect(exists).To(BeTrue(), "didn't create '"+tableName+"_build_id' index")
 
 				err = dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = '" + tableName + "_build_id_event_id')").Scan(&exists)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(exists).To(BeTrue(), "didn't create '" + tableName + "_build_id_event_id' index")
+				Expect(exists).To(BeTrue(), "didn't create '"+tableName+"_build_id_event_id' index")
 			})
 
 			It("creates an event id sequence", func() {
-				seqName := fmt.Sprintf("build_event_id_seq_%d", build.ID())
+				seqName := fmt.Sprintf("build_event_id_seq_%d", fakePipelineBuild.ID())
 				var exists bool
 				err := dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM pg_class WHERE relkind = 'S' AND relname = '" + seqName + "')").Scan(&exists)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(exists).To(BeTrue(), "didn't create '" + seqName + "' sequence")
+				Expect(exists).To(BeTrue(), "didn't create '"+seqName+"' sequence")
 			})
 
 			It("doesn't error when the pipeline build events table exists", func() {
-				otherBuild, err := defaultPipeline.CreateOneOffBuild()
-				Expect(err).ToNot(HaveOccurred())
+				otherBuild := new(dbfakes.FakeBuild)
+				otherBuild.PipelineIDReturns(fakePipeline.ID())
 
-				err = eventStore.Initialize(context.TODO(), otherBuild)
+				err := eventStore.Initialize(ctx, otherBuild)
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 
 		Context("when the build is a one-off build", func() {
 			BeforeEach(func() {
-				var err error
-				build, err = defaultTeam.CreateOneOffBuild()
-				Expect(err).ToNot(HaveOccurred())
+				build = fakeTeamBuild
 			})
 
 			It("creates a team build events table", func() {
-				tableName := fmt.Sprintf("team_build_events_%d", defaultTeam.ID())
+				tableName := fmt.Sprintf("team_build_events_%d", fakeTeam.ID())
 
 				var exists bool
 				err := dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '" + tableName + "')").Scan(&exists)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(exists).To(BeTrue(), "didn't create '" + tableName + "' table")
+				Expect(exists).To(BeTrue(), "didn't create '"+tableName+"' table")
 			})
 		})
 	})
 
 	Describe("Finalize", func() {
-		var build db.Build
-
-		BeforeEach(func() {
-			var err error
-			build, err = defaultTeam.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		It("drops the event id sequence", func() {
-			err := eventStore.Initialize(context.TODO(), build)
+			err := eventStore.Initialize(ctx, fakePipelineBuild)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Finalize(context.TODO(), build)
+			err = eventStore.Finalize(ctx, fakePipelineBuild)
 			Expect(err).ToNot(HaveOccurred())
 
-			seqName := fmt.Sprintf("build_event_id_seq_%d", build.ID())
+			seqName := fmt.Sprintf("build_event_id_seq_%d", fakePipelineBuild.ID())
 			var exists bool
 			err = dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM pg_class WHERE relkind = 'S' AND relname = '" + seqName + "')").Scan(&exists)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(exists).To(BeFalse(), "didn't delete '" + seqName + "' sequence")
+			Expect(exists).To(BeFalse(), "didn't delete '"+seqName+"' sequence")
 		})
 	})
 
 	Describe("Put/Get", func() {
-		var build db.Build
-
 		BeforeEach(func() {
-			var err error
-			build, err = defaultPipeline.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = eventStore.Initialize(context.TODO(), build)
+			err := eventStore.Initialize(ctx, fakePipelineBuild)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("Put returns the next event_id as the cursor", func() {
-			cursor, err := eventStore.Put(context.TODO(), build, []atc.Event{event.Start{}, event.Log{}})
+			cursor, err := eventStore.Put(ctx, fakePipelineBuild, []atc.Event{event.Start{}, event.Log{}})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cursor).To(Equal(db.EventID(2)))
+			Expect(cursor).To(Equal(postgres.EventID(2)))
 
-			cursor, err = eventStore.Put(context.TODO(), build, []atc.Event{event.Finish{}})
+			cursor, err = eventStore.Put(ctx, fakePipelineBuild, []atc.Event{event.Finish{}})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cursor).To(Equal(db.EventID(3)))
+			Expect(cursor).To(Equal(postgres.EventID(3)))
 		})
 
 		It("storing and retrieving single events", func() {
-			_, err := eventStore.Put(context.TODO(), build, []atc.Event{event.Start{}})
+			_, err := eventStore.Put(ctx, fakePipelineBuild, []atc.Event{event.Start{}})
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = eventStore.Put(context.TODO(), build, []atc.Event{
+			_, err = eventStore.Put(ctx, fakePipelineBuild, []atc.Event{
 				event.Log{Payload: "hello"},
 				event.Log{Payload: "world"},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
 			var cursor db.EventKey
-			events, err := eventStore.Get(context.TODO(), build, 3, &cursor)
+			events, err := eventStore.Get(ctx, fakePipelineBuild, 3, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(Equal([]event.Envelope{
 				envelope(event.Start{}),
@@ -223,7 +224,7 @@ var _ = Describe("BuildEventStore", func() {
 		})
 
 		It("supports pagination", func() {
-			_, err := eventStore.Put(context.TODO(), build, []atc.Event{
+			_, err := eventStore.Put(ctx, fakePipelineBuild, []atc.Event{
 				event.Log{Payload: "A"},
 				event.Log{Payload: "B"},
 				event.Log{Payload: "C"},
@@ -232,25 +233,25 @@ var _ = Describe("BuildEventStore", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Finalize(context.TODO(), build)
+			err = eventStore.Finalize(ctx, fakePipelineBuild)
 			Expect(err).ToNot(HaveOccurred())
 
 			var cursor db.EventKey
-			events, err := eventStore.Get(context.TODO(), build, 2, &cursor)
+			events, err := eventStore.Get(ctx, fakePipelineBuild, 2, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(Equal([]event.Envelope{
 				envelope(event.Log{Payload: "A"}),
 				envelope(event.Log{Payload: "B"}),
 			}))
 
-			events, err = eventStore.Get(context.TODO(), build, 2, &cursor)
+			events, err = eventStore.Get(ctx, fakePipelineBuild, 2, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(Equal([]event.Envelope{
 				envelope(event.Log{Payload: "C"}),
 				envelope(event.Log{Payload: "D"}),
 			}))
 
-			events, err = eventStore.Get(context.TODO(), build, 2, &cursor)
+			events, err = eventStore.Get(ctx, fakePipelineBuild, 2, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(Equal([]event.Envelope{
 				envelope(event.Log{Payload: "E"}),
@@ -259,121 +260,99 @@ var _ = Describe("BuildEventStore", func() {
 	})
 
 	Describe("Delete", func() {
-		var build1 db.Build
-		var build2 db.Build
-
 		BeforeEach(func() {
-			var err error
-			build1, err = defaultPipeline.CreateOneOffBuild()
+			err := eventStore.Initialize(ctx, fakePipelineBuild)
 			Expect(err).ToNot(HaveOccurred())
 
-			build2, err = defaultTeam.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = eventStore.Setup(context.TODO())
-			Expect(err).ToNot(HaveOccurred())
-
-			err = eventStore.Initialize(context.TODO(), build1)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = eventStore.Initialize(context.TODO(), build2)
+			err = eventStore.Initialize(ctx, fakeTeamBuild)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("deletes all events from the provided builds", func() {
-			_, err := eventStore.Put(context.TODO(), build1, []atc.Event{event.Start{}})
+			_, err := eventStore.Put(ctx, fakePipelineBuild, []atc.Event{event.Start{}})
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = eventStore.Put(context.TODO(), build2, []atc.Event{
+			_, err = eventStore.Put(ctx, fakeTeamBuild, []atc.Event{
 				event.Log{Payload: "hello"},
 				event.Log{Payload: "world"},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Delete(context.TODO(), []db.Build{build1, build2})
+			err = eventStore.Delete(ctx, []db.Build{fakePipelineBuild, fakeTeamBuild})
 			Expect(err).ToNot(HaveOccurred())
 
 			var cursor db.EventKey
-			events, err := eventStore.Get(context.TODO(), build1, 100, &cursor)
+			events, err := eventStore.Get(ctx, fakePipelineBuild, 100, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(BeEmpty())
 			Expect(cursor).To(BeNil())
 
-			events, err = eventStore.Get(context.TODO(), build2, 100, &cursor)
+			events, err = eventStore.Get(ctx, fakeTeamBuild, 100, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(BeEmpty())
 		})
 	})
 
 	Describe("DeletePipeline", func() {
-		var build db.Build
-
 		BeforeEach(func() {
-			var err error
-			build, err = defaultPipeline.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = eventStore.Setup(context.TODO())
-			Expect(err).ToNot(HaveOccurred())
-
-			err = eventStore.Initialize(context.TODO(), build)
+			err := eventStore.Initialize(ctx, fakePipelineBuild)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("drops the pipeline build events table", func() {
-			err := eventStore.DeletePipeline(context.TODO(), defaultPipeline)
+			err := eventStore.DeletePipeline(ctx, fakePipeline)
 			Expect(err).ToNot(HaveOccurred())
 
-			tableName := fmt.Sprintf("pipeline_build_events_%d", defaultPipeline.ID())
+			tableName := fmt.Sprintf("pipeline_build_events_%d", fakePipeline.ID())
 			var exists bool
 			err = dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '" + tableName + "')").Scan(&exists)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(exists).To(BeFalse(), "didn't drop '" + tableName + "' table")
+			Expect(exists).To(BeFalse(), "didn't drop '"+tableName+"' table")
 		})
 	})
 
 	Describe("DeleteTeam", func() {
-		var pipelineBuild db.Build
-		var teamBuild db.Build
-
 		BeforeEach(func() {
-			var err error
-			pipelineBuild, err = defaultPipeline.CreateOneOffBuild()
+			err := eventStore.Initialize(ctx, fakePipelineBuild)
 			Expect(err).ToNot(HaveOccurred())
 
-			teamBuild, err = defaultTeam.CreateOneOffBuild()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = eventStore.Setup(context.TODO())
-			Expect(err).ToNot(HaveOccurred())
-
-			err = eventStore.Initialize(context.TODO(), pipelineBuild)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = eventStore.Initialize(context.TODO(), teamBuild)
+			err = eventStore.Initialize(ctx, fakeTeamBuild)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("drops the team build events table", func() {
-			err := eventStore.DeleteTeam(context.TODO(), defaultTeam)
+			err := eventStore.DeleteTeam(ctx, fakeTeam)
 			Expect(err).ToNot(HaveOccurred())
 
-			tableName := fmt.Sprintf("team_build_events_%d", defaultTeam.ID())
+			tableName := fmt.Sprintf("team_build_events_%d", fakeTeam.ID())
 			var exists bool
 			err = dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '" + tableName + "')").Scan(&exists)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(exists).To(BeFalse(), "didn't drop '" + tableName + "' table")
+			Expect(exists).To(BeFalse(), "didn't drop '"+tableName+"' table")
 		})
 
 		It("drops the pipeline build events table for pipelines in that team", func() {
-			err := eventStore.DeleteTeam(context.TODO(), defaultTeam)
+			err := eventStore.DeleteTeam(ctx, fakeTeam)
 			Expect(err).ToNot(HaveOccurred())
 
-			tableName := fmt.Sprintf("pipeline_build_events_%d", defaultPipeline.ID())
+			tableName := "pipeline_build_events_1"
 			var exists bool
 			err = dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '" + tableName + "')").Scan(&exists)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(exists).To(BeFalse(), "didn't drop '" + tableName + "' table")
+			Expect(exists).To(BeFalse(), "didn't drop '"+tableName+"' table")
 		})
 	})
 })
+
+func envelope(ev atc.Event) event.Envelope {
+	payload, err := json.Marshal(ev)
+	Expect(err).ToNot(HaveOccurred())
+
+	data := json.RawMessage(payload)
+
+	return event.Envelope{
+		Event:   ev.EventType(),
+		Version: ev.Version(),
+		Data:    &data,
+	}
+}

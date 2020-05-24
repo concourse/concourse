@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/events/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
@@ -668,7 +669,7 @@ var _ = Describe("Build", func() {
 			notifs, err := dbConn.Bus().Listen(fmt.Sprintf("build_events_%d", build.ID()), db.QueueNotifications)
 			Expect(err).NotTo(HaveOccurred())
 
-			fakeEventStore.PutReturns(db.EventID(1), nil)
+			fakeEventStore.PutReturns(postgres.EventID(1), nil)
 
 			build.SaveEvent(context.TODO(), event.Log{
 				Payload: "hello",
