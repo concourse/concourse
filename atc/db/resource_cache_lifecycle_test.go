@@ -179,7 +179,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 							By("creating an image resource cache tied to the job in the second pipeline")
 							job, _, err := secondPipeline.Job("some-job")
 							Expect(err).ToNot(HaveOccurred())
-							build, err := job.CreateBuild()
+							build, err := job.CreateBuild(context.TODO())
 							Expect(err).ToNot(HaveOccurred())
 							resourceCache := createResourceCacheWithUser(db.ForBuild(build.ID()))
 

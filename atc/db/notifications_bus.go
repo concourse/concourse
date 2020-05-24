@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 
 	"github.com/lib/pq"
@@ -72,7 +73,7 @@ func (bus *notificationsBus) Notify(ctx context.Context, channel string, payload
 	if payload == "" {
 		_, err = bus.executor.ExecContext(ctx, "NOTIFY "+channel)
 	} else {
-		_, err = bus.executor.ExecContext(ctx, "NOTIFY "+channel+", $1", payload)
+		_, err = bus.executor.ExecContext(ctx, fmt.Sprintf("NOTIFY %s, %s", channel, pq.QuoteLiteral(payload)))
 	}
 	return err
 }

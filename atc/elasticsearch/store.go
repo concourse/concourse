@@ -32,8 +32,29 @@ type eventDoc struct {
 }
 
 type Key struct {
-	TimeMillis int64
-	Tiebreak   int64
+	TimeMillis int64 `json:"time"`
+	Tiebreak   int64 `json:"tiebreak"`
+}
+
+func (k Key) Marshal() ([]byte, error) {
+	return json.Marshal(k)
+}
+
+func (k Key) GreaterThan(o db.Key) bool {
+	if o == nil {
+		return true
+	}
+	other, ok := o.(Key)
+	if !ok {
+		return false
+	}
+	if k.TimeMillis > other.TimeMillis {
+		return true
+	}
+	if k.TimeMillis < other.TimeMillis {
+		return false
+	}
+	return k.Tiebreak > other.Tiebreak
 }
 
 type EventStore struct {
@@ -129,16 +150,20 @@ func (e *EventStore) Finalize(ctx context.Context, build db.Build) error {
 	return nil
 }
 
-func (e *EventStore) Put(ctx context.Context, build db.Build, events []atc.Event) error {
+func (e *EventStore) Put(ctx context.Context, build db.Build, events []atc.Event) (db.Key, error) {
+	if len(events) == 0 {
+		return nil, nil
+	}
 	bulkRequest := e.client.Bulk()
+	var doc eventDoc
 	for _, evt := range events {
 		payload, err := json.Marshal(evt)
 		if err != nil {
 			e.logger.Error("marshal-event-failed", err)
-			return fmt.Errorf("marshal event: %w", err)
+			return nil, fmt.Errorf("marshal event: %w", err)
 		}
 		data := json.RawMessage(payload)
-		doc := eventDoc{
+		doc = eventDoc{
 			BuildID:      build.ID(),
 			PipelineID:   build.PipelineID(),
 			PipelineName: build.PipelineName(),
@@ -155,13 +180,20 @@ func (e *EventStore) Put(ctx context.Context, build db.Build, events []atc.Event
 				Doc(doc),
 		)
 	}
-	// TODO: should not need to wait_for the index refresh interval, but also shouldn't force refresh
-	_, err := bulkRequest.Refresh("wait_for").Do(ctx)
+	_, err := bulkRequest.Do(ctx)
 	if err != nil {
 		e.logger.Error("bulk-put-failed", err)
-		return fmt.Errorf("bulk put: %w", err)
+		return nil, fmt.Errorf("bulk put: %w", err)
 	}
-	return nil
+
+	var target struct {
+		Time int64 `json:"time"`
+	}
+	if err = json.Unmarshal(*doc.Data, &target); err != nil {
+		return nil, err
+	}
+
+	return Key{TimeMillis: target.Time * 1000, Tiebreak: doc.Tiebreak}, nil
 }
 
 func (e *EventStore) Get(ctx context.Context, build db.Build, requested int, cursor *db.Key) ([]event.Envelope, error) {
@@ -266,4 +298,13 @@ func (e *EventStore) asyncDelete(ctx context.Context, query elastic.Query) error
 		Query(query).
 		DoAsync(ctx)
 	return err
+}
+
+func (e *EventStore) UnmarshalKey(data []byte, key *db.Key) error {
+	var k Key
+	if err := json.Unmarshal(data, &k); err != nil {
+		return err
+	}
+	*key = k
+	return nil
 }

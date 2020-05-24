@@ -1,6 +1,6 @@
 # elasticsearch.yml - a docker-compose override that adds elasticsearch and kibana
 #
-# once running, head to `localhost:5201` to get access to the Kibana UI.
+# once running, head to `localhost:5601` to get access to the Kibana UI.
 #
 # ref: https://docs.docker.com/compose/extends/
 #

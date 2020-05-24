@@ -192,11 +192,21 @@ var _ = Describe("BuildEventStore", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		It("Put returns the next event_id as the cursor", func() {
+			cursor, err := eventStore.Put(context.TODO(), build, []atc.Event{event.Start{}, event.Log{}})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cursor).To(Equal(db.EventID(2)))
+
+			cursor, err = eventStore.Put(context.TODO(), build, []atc.Event{event.Finish{}})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cursor).To(Equal(db.EventID(3)))
+		})
+
 		It("storing and retrieving single events", func() {
-			err := eventStore.Put(context.TODO(), build, []atc.Event{event.Start{}})
+			_, err := eventStore.Put(context.TODO(), build, []atc.Event{event.Start{}})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Put(context.TODO(), build, []atc.Event{
+			_, err = eventStore.Put(context.TODO(), build, []atc.Event{
 				event.Log{Payload: "hello"},
 				event.Log{Payload: "world"},
 			})
@@ -213,7 +223,7 @@ var _ = Describe("BuildEventStore", func() {
 		})
 
 		It("supports pagination", func() {
-			err := eventStore.Put(context.TODO(), build, []atc.Event{
+			_, err := eventStore.Put(context.TODO(), build, []atc.Event{
 				event.Log{Payload: "A"},
 				event.Log{Payload: "B"},
 				event.Log{Payload: "C"},
@@ -271,10 +281,10 @@ var _ = Describe("BuildEventStore", func() {
 		})
 
 		It("deletes all events from the provided builds", func() {
-			err := eventStore.Put(context.TODO(), build1, []atc.Event{event.Start{}})
+			_, err := eventStore.Put(context.TODO(), build1, []atc.Event{event.Start{}})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = eventStore.Put(context.TODO(), build2, []atc.Event{
+			_, err = eventStore.Put(context.TODO(), build2, []atc.Event{
 				event.Log{Payload: "hello"},
 				event.Log{Payload: "world"},
 			})

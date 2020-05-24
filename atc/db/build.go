@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -23,7 +22,6 @@ import (
 
 const schema = "exec.v2"
 
-var ErrAdoptRerunBuildHasNoInputs = errors.New("inputs not ready for build to rerun")
 var ErrSetByNewerBuild = errors.New("pipeline set by a newer build")
 
 type BuildInput struct {
@@ -393,7 +391,7 @@ func (b *build) Start(ctx context.Context, plan atc.Plan) (bool, error) {
 		return false, err
 	}
 
-	err = b.conn.Bus().Notify(ctx, atc.ComponentBuildTracker)
+	err = b.conn.Bus().Notify(ctx, atc.ComponentBuildTracker, "")
 	if err != nil {
 		return false, err
 	}
@@ -842,24 +840,8 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 	return buildPreparation, true, nil
 }
 
-func falseOnceThenTrueForever() func() (bool, error) {
-	var v int32
-	return func() (bool, error) {
-		return !atomic.CompareAndSwapInt32(&v, 0, 1), nil
-	}
-}
-
 func (b *build) Events(ctx context.Context) (EventSource, error) {
-	notifier, err := newConditionNotifier(
-		b.conn.Bus(),
-		buildEventsNotificationChannel(b.ID()),
-		// We want the first condition to be false since we don't want to notify right away.
-		// This is because we perform an `EventStore.Get` at the start. If we notify
-		// immediately, we'll always end up performing an unnecessary extra `Get`.
-		// That said, we want to perform a `Get` whenever we reconnect to the notification
-		// bus in case we missed anything, so return true forever after.
-		falseOnceThenTrueForever(),
-	)
+	notifications, err := b.conn.Bus().Listen(buildEventsNotificationChannel(b.ID()), QueueNotifications)
 	if err != nil {
 		return nil, err
 	}
@@ -869,16 +851,42 @@ func (b *build) Events(ctx context.Context) (EventSource, error) {
 		b,
 		b.conn,
 		b.eventStore,
-		notifier,
+		notifications,
 	), nil
 }
 
-func (b *build) SaveEvent(ctx context.Context, event atc.Event) error {
-	err := b.eventStore.Put(ctx, b, []atc.Event{event})
+func (b *build) SaveEvent(ctx context.Context, evt atc.Event) error {
+	key, err := b.eventStore.Put(ctx, b, []atc.Event{evt})
 	if err != nil {
 		return err
 	}
-	return b.conn.Bus().Notify(ctx, buildEventsNotificationChannel(b.ID()), "")
+
+	eventData, err := json.Marshal(evt)
+	if err != nil {
+		return err
+	}
+	var keyData []byte
+	// TODO: this guard is really just for tests - Put should never return a nil Key on success
+	if key != nil {
+		keyData, err = key.Marshal()
+		if err != nil {
+			return err
+		}
+	}
+	rawEventData := json.RawMessage(eventData)
+	payload, err := json.Marshal(EventNotification{
+		Event: event.Envelope{
+			Data:    &rawEventData,
+			Event:   evt.EventType(),
+			Version: evt.Version(),
+		},
+		Key: keyData,
+	})
+	if err != nil {
+		return err
+	}
+
+	return b.conn.Bus().Notify(ctx, buildEventsNotificationChannel(b.ID()), string(payload))
 }
 
 func buildEventsNotificationChannel(buildID int) string {

@@ -4,12 +4,32 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 )
 
 type Key interface {
+	Marshal() ([]byte, error)
+	GreaterThan(Key) bool
+}
+
+type EventID uint
+
+func (id EventID) Marshal() ([]byte, error) {
+	return json.Marshal(id)
+}
+
+func (id EventID) GreaterThan(o Key) bool {
+	if o == nil {
+		return true
+	}
+	other, ok := o.(EventID)
+	if !ok {
+		return false
+	}
+	return id > other
 }
 
 //go:generate counterfeiter . EventStore
@@ -21,12 +41,14 @@ type EventStore interface {
 	Initialize(ctx context.Context, build Build) error
 	Finalize(ctx context.Context, build Build) error
 
-	Put(ctx context.Context, build Build, event []atc.Event) error
+	Put(ctx context.Context, build Build, event []atc.Event) (Key, error)
 	Get(ctx context.Context, build Build, requested int, cursor *Key) ([]event.Envelope, error)
 
 	Delete(ctx context.Context, build []Build) error
 	DeletePipeline(ctx context.Context, pipeline Pipeline) error
 	DeleteTeam(ctx context.Context, team Team) error
+
+	UnmarshalKey(data []byte, key *Key) error
 }
 
 type buildEventStore struct {
@@ -123,29 +145,32 @@ func (s *buildEventStore) Finalize(ctx context.Context, build Build) error {
 	return tx.Commit()
 }
 
-func (s *buildEventStore) Put(ctx context.Context, build Build, events []atc.Event) error {
+func (s *buildEventStore) Put(ctx context.Context, build Build, events []atc.Event) (Key, error) {
+	if len(events) == 0 {
+		return nil, nil
+	}
 	tx, err := s.conn.Begin()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer Rollback(tx)
 
-	err = s.saveEvents(ctx, tx, build, events)
+	lastKey, err := s.saveEvents(ctx, tx, build, events)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return tx.Commit()
+	return lastKey, tx.Commit()
 }
 
-func (s *buildEventStore) saveEvents(ctx context.Context, tx Tx, build Build, events []atc.Event) error {
+func (s *buildEventStore) saveEvents(ctx context.Context, tx Tx, build Build, events []atc.Event) (Key, error) {
 	query := psql.Insert(buildEventsTable(build)).
 		Columns("event_id", "build_id", "type", "version", "payload")
 	for _, evt := range events {
 		payload, err := json.Marshal(evt)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		query = query.Values(
 			sq.Expr("nextval('" + buildEventsSeq(build.ID()) + "')"),
@@ -155,8 +180,19 @@ func (s *buildEventStore) saveEvents(ctx context.Context, tx Tx, build Build, ev
 			payload,
 		)
 	}
-	_, err := query.RunWith(tx).ExecContext(ctx)
-	return err
+	rows, err := query.Suffix("RETURNING event_id").RunWith(tx).QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer Close(rows)
+	var k EventID
+	for rows.Next() {
+		err = rows.Scan(&k)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return k + 1, err
 }
 
 func (s *buildEventStore) Get(ctx context.Context, build Build, requested int, cursor *Key) ([]event.Envelope, error) {
@@ -211,11 +247,11 @@ func (s *buildEventStore) Get(ctx context.Context, build Build, requested int, c
 	return events, nil
 }
 
-func (s *buildEventStore) offset(cursor *Key) (uint, error) {
+func (s *buildEventStore) offset(cursor *Key) (EventID, error) {
 	if cursor == nil || *cursor == nil {
 		return 0, nil
 	}
-	offset, ok := (*cursor).(uint)
+	offset, ok := (*cursor).(EventID)
 	if !ok {
 		return 0, fmt.Errorf("invalid Key type (expected uint, got %T)", *cursor)
 	}
@@ -289,6 +325,15 @@ func (s *buildEventStore) DeleteTeam(ctx context.Context, team Team) error {
 	}
 
 	return tx.Commit()
+}
+
+func (s *buildEventStore) UnmarshalKey(data []byte, key *Key) error {
+	var i uint
+	if err := json.Unmarshal(data, &i); err != nil {
+		return err
+	}
+	*key = EventID(i)
+	return nil
 }
 
 func dropTableIfExists(ctx context.Context, tx Tx, tableName string) error {

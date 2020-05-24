@@ -87,7 +87,7 @@ type FakeEventStore struct {
 	initializeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	PutStub        func(context.Context, db.Build, []atc.Event) error
+	PutStub        func(context.Context, db.Build, []atc.Event) (db.Key, error)
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 context.Context
@@ -95,10 +95,12 @@ type FakeEventStore struct {
 		arg3 []atc.Event
 	}
 	putReturns struct {
-		result1 error
+		result1 db.Key
+		result2 error
 	}
 	putReturnsOnCall map[int]struct {
-		result1 error
+		result1 db.Key
+		result2 error
 	}
 	SetupStub        func(context.Context) error
 	setupMutex       sync.RWMutex
@@ -109,6 +111,18 @@ type FakeEventStore struct {
 		result1 error
 	}
 	setupReturnsOnCall map[int]struct {
+		result1 error
+	}
+	UnmarshalKeyStub        func([]byte, *db.Key) error
+	unmarshalKeyMutex       sync.RWMutex
+	unmarshalKeyArgsForCall []struct {
+		arg1 []byte
+		arg2 *db.Key
+	}
+	unmarshalKeyReturns struct {
+		result1 error
+	}
+	unmarshalKeyReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -491,7 +505,7 @@ func (fake *FakeEventStore) InitializeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEventStore) Put(arg1 context.Context, arg2 db.Build, arg3 []atc.Event) error {
+func (fake *FakeEventStore) Put(arg1 context.Context, arg2 db.Build, arg3 []atc.Event) (db.Key, error) {
 	var arg3Copy []atc.Event
 	if arg3 != nil {
 		arg3Copy = make([]atc.Event, len(arg3))
@@ -510,10 +524,10 @@ func (fake *FakeEventStore) Put(arg1 context.Context, arg2 db.Build, arg3 []atc.
 		return fake.PutStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.putReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeEventStore) PutCallCount() int {
@@ -522,7 +536,7 @@ func (fake *FakeEventStore) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeEventStore) PutCalls(stub func(context.Context, db.Build, []atc.Event) error) {
+func (fake *FakeEventStore) PutCalls(stub func(context.Context, db.Build, []atc.Event) (db.Key, error)) {
 	fake.putMutex.Lock()
 	defer fake.putMutex.Unlock()
 	fake.PutStub = stub
@@ -535,27 +549,30 @@ func (fake *FakeEventStore) PutArgsForCall(i int) (context.Context, db.Build, []
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeEventStore) PutReturns(result1 error) {
+func (fake *FakeEventStore) PutReturns(result1 db.Key, result2 error) {
 	fake.putMutex.Lock()
 	defer fake.putMutex.Unlock()
 	fake.PutStub = nil
 	fake.putReturns = struct {
-		result1 error
-	}{result1}
+		result1 db.Key
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeEventStore) PutReturnsOnCall(i int, result1 error) {
+func (fake *FakeEventStore) PutReturnsOnCall(i int, result1 db.Key, result2 error) {
 	fake.putMutex.Lock()
 	defer fake.putMutex.Unlock()
 	fake.PutStub = nil
 	if fake.putReturnsOnCall == nil {
 		fake.putReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 db.Key
+			result2 error
 		})
 	}
 	fake.putReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 db.Key
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeEventStore) Setup(arg1 context.Context) error {
@@ -618,6 +635,72 @@ func (fake *FakeEventStore) SetupReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeEventStore) UnmarshalKey(arg1 []byte, arg2 *db.Key) error {
+	var arg1Copy []byte
+	if arg1 != nil {
+		arg1Copy = make([]byte, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	fake.unmarshalKeyMutex.Lock()
+	ret, specificReturn := fake.unmarshalKeyReturnsOnCall[len(fake.unmarshalKeyArgsForCall)]
+	fake.unmarshalKeyArgsForCall = append(fake.unmarshalKeyArgsForCall, struct {
+		arg1 []byte
+		arg2 *db.Key
+	}{arg1Copy, arg2})
+	fake.recordInvocation("UnmarshalKey", []interface{}{arg1Copy, arg2})
+	fake.unmarshalKeyMutex.Unlock()
+	if fake.UnmarshalKeyStub != nil {
+		return fake.UnmarshalKeyStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.unmarshalKeyReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeEventStore) UnmarshalKeyCallCount() int {
+	fake.unmarshalKeyMutex.RLock()
+	defer fake.unmarshalKeyMutex.RUnlock()
+	return len(fake.unmarshalKeyArgsForCall)
+}
+
+func (fake *FakeEventStore) UnmarshalKeyCalls(stub func([]byte, *db.Key) error) {
+	fake.unmarshalKeyMutex.Lock()
+	defer fake.unmarshalKeyMutex.Unlock()
+	fake.UnmarshalKeyStub = stub
+}
+
+func (fake *FakeEventStore) UnmarshalKeyArgsForCall(i int) ([]byte, *db.Key) {
+	fake.unmarshalKeyMutex.RLock()
+	defer fake.unmarshalKeyMutex.RUnlock()
+	argsForCall := fake.unmarshalKeyArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeEventStore) UnmarshalKeyReturns(result1 error) {
+	fake.unmarshalKeyMutex.Lock()
+	defer fake.unmarshalKeyMutex.Unlock()
+	fake.UnmarshalKeyStub = nil
+	fake.unmarshalKeyReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeEventStore) UnmarshalKeyReturnsOnCall(i int, result1 error) {
+	fake.unmarshalKeyMutex.Lock()
+	defer fake.unmarshalKeyMutex.Unlock()
+	fake.UnmarshalKeyStub = nil
+	if fake.unmarshalKeyReturnsOnCall == nil {
+		fake.unmarshalKeyReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.unmarshalKeyReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeEventStore) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -637,6 +720,8 @@ func (fake *FakeEventStore) Invocations() map[string][][]interface{} {
 	defer fake.putMutex.RUnlock()
 	fake.setupMutex.RLock()
 	defer fake.setupMutex.RUnlock()
+	fake.unmarshalKeyMutex.RLock()
+	defer fake.unmarshalKeyMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

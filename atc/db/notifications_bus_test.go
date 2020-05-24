@@ -51,14 +51,13 @@ var _ = Describe("NotificationBus", func() {
 
 		Context("when a payload is specified", func() {
 			BeforeEach(func() {
-				payload = "pay, load"
+				payload = `pay, 'load' \`
 			})
 
 			It("notifies the channel with that payload", func() {
 				Expect(fakeExecutor.ExecContextCallCount()).To(Equal(1))
-				_, msg, args := fakeExecutor.ExecContextArgsForCall(0)
-				Expect(msg).To(Equal("NOTIFY some-channel, $1"))
-				Expect(args).To(Equal([]interface{}{payload}))
+				_, msg, _ := fakeExecutor.ExecContextArgsForCall(0)
+				Expect(msg).To(Equal(`NOTIFY some-channel,  E'pay, ''load'' \\'`))
 			})
 
 		})
