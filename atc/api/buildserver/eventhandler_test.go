@@ -1,9 +1,9 @@
 package buildserver_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	. "github.com/concourse/concourse/atc/testhelpers"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/event"
+	. "github.com/concourse/concourse/atc/testhelpers"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"
@@ -68,12 +69,10 @@ var _ = Describe("Handler", func() {
 
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
-				build.EventsStub = func() (db.EventSource, error) {
+				build.EventsStub = func(context.Context) (db.EventSource, error) {
 					var from uint
 					fakeEventSource.NextStub = func() (event.Envelope, error) {
 						defer GinkgoRecover()
-
-						Expect(fakeEventSource.CloseCallCount()).To(Equal(0))
 
 						if from >= uint(len(returnedEvents)) {
 							return event.Envelope{}, db.ErrEndOfBuildEventStream
@@ -89,7 +88,8 @@ var _ = Describe("Handler", func() {
 			})
 
 			AfterEach(func() {
-				Eventually(fakeEventSource.CloseCallCount, 30*time.Second).Should(Equal(1))
+				ctx := build.EventsArgsForCall(0)
+				Eventually(ctx.Done(), 30*time.Second).Should(BeClosed())
 			})
 
 			JustBeforeEach(func() {
@@ -179,8 +179,6 @@ var _ = Describe("Handler", func() {
 				fakeEventSource.NextStub = func() (event.Envelope, error) {
 					defer GinkgoRecover()
 
-					Expect(fakeEventSource.CloseCallCount()).To(Equal(0))
-
 					from++
 
 					if from == 1 {
@@ -194,7 +192,8 @@ var _ = Describe("Handler", func() {
 			})
 
 			AfterEach(func() {
-				Eventually(fakeEventSource.CloseCallCount, 30*time.Second).Should(Equal(1))
+				ctx := build.EventsArgsForCall(0)
+				Eventually(ctx.Done(), 30*time.Second).Should(BeClosed())
 			})
 
 			JustBeforeEach(func() {
@@ -248,7 +247,6 @@ var _ = Describe("Handler", func() {
 				It("closes the event stream when connection is closed", func() {
 					err := response.Body.Close()
 					Expect(err).NotTo(HaveOccurred())
-					Eventually(fakeEventSource.CloseCallCount, 30*time.Second).Should(Equal(1))
 				})
 			})
 		})
