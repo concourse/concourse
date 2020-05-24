@@ -866,7 +866,7 @@ func (b *build) SaveEvent(ctx context.Context, evt atc.Event) error {
 		return err
 	}
 	var keyData []byte
-	// TODO: this guard is really just for tests - Put should never return a nil Key on success
+	// TODO: this guard is really just for tests - Put should never return a nil EventKey on success
 	if key != nil {
 		keyData, err = key.Marshal()
 		if err != nil {

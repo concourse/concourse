@@ -664,7 +664,7 @@ var _ = Describe("Build", func() {
 			}))
 		})
 
-		It("sends the event and corresponding Key along the notification bus", func() {
+		It("sends the event and corresponding EventKey along the notification bus", func() {
 			notifs, err := dbConn.Bus().Listen(fmt.Sprintf("build_events_%d", build.ID()), db.QueueNotifications)
 			Expect(err).NotTo(HaveOccurred())
 

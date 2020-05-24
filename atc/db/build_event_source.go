@@ -76,7 +76,7 @@ func (source *buildEventSource) Next() (event.Envelope, error) {
 func (source *buildEventSource) collectEvents(ctx context.Context) {
 	defer source.wg.Done()
 
-	var cursor Key
+	var cursor EventKey
 
 start:
 	if err := source.collectExistingEvents(ctx, &cursor); err != nil {
@@ -95,7 +95,7 @@ start:
 	}
 }
 
-func (source *buildEventSource) collectExistingEvents(ctx context.Context, cursor *Key) error {
+func (source *buildEventSource) collectExistingEvents(ctx context.Context, cursor *EventKey) error {
 	batchSize := cap(source.events)
 
 	for {
@@ -125,7 +125,7 @@ func (source *buildEventSource) collectExistingEvents(ctx context.Context, curso
 	}
 }
 
-func (source *buildEventSource) watchNotificationBus(ctx context.Context, cursor *Key) error {
+func (source *buildEventSource) watchNotificationBus(ctx context.Context, cursor *EventKey) error {
 	completedChan := make(chan struct{}, 1)
 	var completed bool
 	for {
@@ -160,7 +160,7 @@ func (source *buildEventSource) watchNotificationBus(ctx context.Context, cursor
 				// TODO: what to do in this case? should at least log it
 				continue
 			}
-			var incomingKey Key
+			var incomingKey EventKey
 			if err := source.eventStore.UnmarshalKey(eventNotif.Key, &incomingKey); err != nil {
 				// TODO: what to do in this case? should at least log it
 				continue

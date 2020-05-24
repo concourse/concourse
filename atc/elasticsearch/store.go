@@ -40,7 +40,7 @@ func (k Key) Marshal() ([]byte, error) {
 	return json.Marshal(k)
 }
 
-func (k Key) GreaterThan(o db.Key) bool {
+func (k Key) GreaterThan(o db.EventKey) bool {
 	if o == nil {
 		return true
 	}
@@ -150,7 +150,7 @@ func (e *EventStore) Finalize(ctx context.Context, build db.Build) error {
 	return nil
 }
 
-func (e *EventStore) Put(ctx context.Context, build db.Build, events []atc.Event) (db.Key, error) {
+func (e *EventStore) Put(ctx context.Context, build db.Build, events []atc.Event) (db.EventKey, error) {
 	if len(events) == 0 {
 		return nil, nil
 	}
@@ -196,7 +196,7 @@ func (e *EventStore) Put(ctx context.Context, build db.Build, events []atc.Event
 	return Key{TimeMillis: target.Time * 1000, Tiebreak: doc.Tiebreak}, nil
 }
 
-func (e *EventStore) Get(ctx context.Context, build db.Build, requested int, cursor *db.Key) ([]event.Envelope, error) {
+func (e *EventStore) Get(ctx context.Context, build db.Build, requested int, cursor *db.EventKey) ([]event.Envelope, error) {
 	offset, err := e.offset(cursor)
 	if err != nil {
 		e.logger.Error("offset-failed", err)
@@ -251,7 +251,7 @@ func (e *EventStore) Get(ctx context.Context, build db.Build, requested int, cur
 	return events, nil
 }
 
-func (e *EventStore) offset(cursor *db.Key) (Key, error) {
+func (e *EventStore) offset(cursor *db.EventKey) (Key, error) {
 	if cursor == nil || *cursor == nil {
 		return Key{}, nil
 	}
@@ -300,7 +300,7 @@ func (e *EventStore) asyncDelete(ctx context.Context, query elastic.Query) error
 	return err
 }
 
-func (e *EventStore) UnmarshalKey(data []byte, key *db.Key) error {
+func (e *EventStore) UnmarshalKey(data []byte, key *db.EventKey) error {
 	var k Key
 	if err := json.Unmarshal(data, &k); err != nil {
 		return err

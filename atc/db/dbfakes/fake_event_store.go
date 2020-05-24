@@ -59,13 +59,13 @@ type FakeEventStore struct {
 	finalizeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	GetStub        func(context.Context, db.Build, int, *db.Key) ([]event.Envelope, error)
+	GetStub        func(context.Context, db.Build, int, *db.EventKey) ([]event.Envelope, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 context.Context
 		arg2 db.Build
 		arg3 int
-		arg4 *db.Key
+		arg4 *db.EventKey
 	}
 	getReturns struct {
 		result1 []event.Envelope
@@ -87,7 +87,7 @@ type FakeEventStore struct {
 	initializeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	PutStub        func(context.Context, db.Build, []atc.Event) (db.Key, error)
+	PutStub        func(context.Context, db.Build, []atc.Event) (db.EventKey, error)
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 context.Context
@@ -95,11 +95,11 @@ type FakeEventStore struct {
 		arg3 []atc.Event
 	}
 	putReturns struct {
-		result1 db.Key
+		result1 db.EventKey
 		result2 error
 	}
 	putReturnsOnCall map[int]struct {
-		result1 db.Key
+		result1 db.EventKey
 		result2 error
 	}
 	SetupStub        func(context.Context) error
@@ -113,11 +113,11 @@ type FakeEventStore struct {
 	setupReturnsOnCall map[int]struct {
 		result1 error
 	}
-	UnmarshalKeyStub        func([]byte, *db.Key) error
+	UnmarshalKeyStub        func([]byte, *db.EventKey) error
 	unmarshalKeyMutex       sync.RWMutex
 	unmarshalKeyArgsForCall []struct {
 		arg1 []byte
-		arg2 *db.Key
+		arg2 *db.EventKey
 	}
 	unmarshalKeyReturns struct {
 		result1 error
@@ -378,14 +378,14 @@ func (fake *FakeEventStore) FinalizeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEventStore) Get(arg1 context.Context, arg2 db.Build, arg3 int, arg4 *db.Key) ([]event.Envelope, error) {
+func (fake *FakeEventStore) Get(arg1 context.Context, arg2 db.Build, arg3 int, arg4 *db.EventKey) ([]event.Envelope, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 context.Context
 		arg2 db.Build
 		arg3 int
-		arg4 *db.Key
+		arg4 *db.EventKey
 	}{arg1, arg2, arg3, arg4})
 	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4})
 	fake.getMutex.Unlock()
@@ -405,13 +405,13 @@ func (fake *FakeEventStore) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeEventStore) GetCalls(stub func(context.Context, db.Build, int, *db.Key) ([]event.Envelope, error)) {
+func (fake *FakeEventStore) GetCalls(stub func(context.Context, db.Build, int, *db.EventKey) ([]event.Envelope, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
 }
 
-func (fake *FakeEventStore) GetArgsForCall(i int) (context.Context, db.Build, int, *db.Key) {
+func (fake *FakeEventStore) GetArgsForCall(i int) (context.Context, db.Build, int, *db.EventKey) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	argsForCall := fake.getArgsForCall[i]
@@ -505,7 +505,7 @@ func (fake *FakeEventStore) InitializeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEventStore) Put(arg1 context.Context, arg2 db.Build, arg3 []atc.Event) (db.Key, error) {
+func (fake *FakeEventStore) Put(arg1 context.Context, arg2 db.Build, arg3 []atc.Event) (db.EventKey, error) {
 	var arg3Copy []atc.Event
 	if arg3 != nil {
 		arg3Copy = make([]atc.Event, len(arg3))
@@ -536,7 +536,7 @@ func (fake *FakeEventStore) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeEventStore) PutCalls(stub func(context.Context, db.Build, []atc.Event) (db.Key, error)) {
+func (fake *FakeEventStore) PutCalls(stub func(context.Context, db.Build, []atc.Event) (db.EventKey, error)) {
 	fake.putMutex.Lock()
 	defer fake.putMutex.Unlock()
 	fake.PutStub = stub
@@ -549,28 +549,28 @@ func (fake *FakeEventStore) PutArgsForCall(i int) (context.Context, db.Build, []
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeEventStore) PutReturns(result1 db.Key, result2 error) {
+func (fake *FakeEventStore) PutReturns(result1 db.EventKey, result2 error) {
 	fake.putMutex.Lock()
 	defer fake.putMutex.Unlock()
 	fake.PutStub = nil
 	fake.putReturns = struct {
-		result1 db.Key
+		result1 db.EventKey
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeEventStore) PutReturnsOnCall(i int, result1 db.Key, result2 error) {
+func (fake *FakeEventStore) PutReturnsOnCall(i int, result1 db.EventKey, result2 error) {
 	fake.putMutex.Lock()
 	defer fake.putMutex.Unlock()
 	fake.PutStub = nil
 	if fake.putReturnsOnCall == nil {
 		fake.putReturnsOnCall = make(map[int]struct {
-			result1 db.Key
+			result1 db.EventKey
 			result2 error
 		})
 	}
 	fake.putReturnsOnCall[i] = struct {
-		result1 db.Key
+		result1 db.EventKey
 		result2 error
 	}{result1, result2}
 }
@@ -635,7 +635,7 @@ func (fake *FakeEventStore) SetupReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEventStore) UnmarshalKey(arg1 []byte, arg2 *db.Key) error {
+func (fake *FakeEventStore) UnmarshalKey(arg1 []byte, arg2 *db.EventKey) error {
 	var arg1Copy []byte
 	if arg1 != nil {
 		arg1Copy = make([]byte, len(arg1))
@@ -645,7 +645,7 @@ func (fake *FakeEventStore) UnmarshalKey(arg1 []byte, arg2 *db.Key) error {
 	ret, specificReturn := fake.unmarshalKeyReturnsOnCall[len(fake.unmarshalKeyArgsForCall)]
 	fake.unmarshalKeyArgsForCall = append(fake.unmarshalKeyArgsForCall, struct {
 		arg1 []byte
-		arg2 *db.Key
+		arg2 *db.EventKey
 	}{arg1Copy, arg2})
 	fake.recordInvocation("UnmarshalKey", []interface{}{arg1Copy, arg2})
 	fake.unmarshalKeyMutex.Unlock()
@@ -665,13 +665,13 @@ func (fake *FakeEventStore) UnmarshalKeyCallCount() int {
 	return len(fake.unmarshalKeyArgsForCall)
 }
 
-func (fake *FakeEventStore) UnmarshalKeyCalls(stub func([]byte, *db.Key) error) {
+func (fake *FakeEventStore) UnmarshalKeyCalls(stub func([]byte, *db.EventKey) error) {
 	fake.unmarshalKeyMutex.Lock()
 	defer fake.unmarshalKeyMutex.Unlock()
 	fake.UnmarshalKeyStub = stub
 }
 
-func (fake *FakeEventStore) UnmarshalKeyArgsForCall(i int) ([]byte, *db.Key) {
+func (fake *FakeEventStore) UnmarshalKeyArgsForCall(i int) ([]byte, *db.EventKey) {
 	fake.unmarshalKeyMutex.RLock()
 	defer fake.unmarshalKeyMutex.RUnlock()
 	argsForCall := fake.unmarshalKeyArgsForCall[i]

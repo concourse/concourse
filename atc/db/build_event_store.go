@@ -10,28 +10,6 @@ import (
 	"github.com/concourse/concourse/atc/event"
 )
 
-type Key interface {
-	Marshal() ([]byte, error)
-	GreaterThan(Key) bool
-}
-
-type EventID uint
-
-func (id EventID) Marshal() ([]byte, error) {
-	return json.Marshal(id)
-}
-
-func (id EventID) GreaterThan(o Key) bool {
-	if o == nil {
-		return true
-	}
-	other, ok := o.(EventID)
-	if !ok {
-		return false
-	}
-	return id > other
-}
-
 //go:generate counterfeiter . EventStore
 
 type EventStore interface {
@@ -41,14 +19,36 @@ type EventStore interface {
 	Initialize(ctx context.Context, build Build) error
 	Finalize(ctx context.Context, build Build) error
 
-	Put(ctx context.Context, build Build, event []atc.Event) (Key, error)
-	Get(ctx context.Context, build Build, requested int, cursor *Key) ([]event.Envelope, error)
+	Put(ctx context.Context, build Build, event []atc.Event) (EventKey, error)
+	Get(ctx context.Context, build Build, requested int, cursor *EventKey) ([]event.Envelope, error)
 
 	Delete(ctx context.Context, build []Build) error
 	DeletePipeline(ctx context.Context, pipeline Pipeline) error
 	DeleteTeam(ctx context.Context, team Team) error
 
-	UnmarshalKey(data []byte, key *Key) error
+	UnmarshalKey(data []byte, key *EventKey) error
+}
+
+type EventKey interface {
+	Marshal() ([]byte, error)
+	GreaterThan(EventKey) bool
+}
+
+type EventID uint
+
+func (id EventID) Marshal() ([]byte, error) {
+	return json.Marshal(id)
+}
+
+func (id EventID) GreaterThan(o EventKey) bool {
+	if o == nil {
+		return true
+	}
+	other, ok := o.(EventID)
+	if !ok {
+		return false
+	}
+	return id > other
 }
 
 type buildEventStore struct {
@@ -145,7 +145,7 @@ func (s *buildEventStore) Finalize(ctx context.Context, build Build) error {
 	return tx.Commit()
 }
 
-func (s *buildEventStore) Put(ctx context.Context, build Build, events []atc.Event) (Key, error) {
+func (s *buildEventStore) Put(ctx context.Context, build Build, events []atc.Event) (EventKey, error) {
 	if len(events) == 0 {
 		return nil, nil
 	}
@@ -164,7 +164,7 @@ func (s *buildEventStore) Put(ctx context.Context, build Build, events []atc.Eve
 	return lastKey, tx.Commit()
 }
 
-func (s *buildEventStore) saveEvents(ctx context.Context, tx Tx, build Build, events []atc.Event) (Key, error) {
+func (s *buildEventStore) saveEvents(ctx context.Context, tx Tx, build Build, events []atc.Event) (EventKey, error) {
 	query := psql.Insert(buildEventsTable(build)).
 		Columns("event_id", "build_id", "type", "version", "payload")
 	for _, evt := range events {
@@ -195,7 +195,7 @@ func (s *buildEventStore) saveEvents(ctx context.Context, tx Tx, build Build, ev
 	return k + 1, err
 }
 
-func (s *buildEventStore) Get(ctx context.Context, build Build, requested int, cursor *Key) ([]event.Envelope, error) {
+func (s *buildEventStore) Get(ctx context.Context, build Build, requested int, cursor *EventKey) ([]event.Envelope, error) {
 	tx, err := s.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -247,7 +247,7 @@ func (s *buildEventStore) Get(ctx context.Context, build Build, requested int, c
 	return events, nil
 }
 
-func (s *buildEventStore) offset(cursor *Key) (EventID, error) {
+func (s *buildEventStore) offset(cursor *EventKey) (EventID, error) {
 	if cursor == nil || *cursor == nil {
 		return 0, nil
 	}
@@ -327,7 +327,7 @@ func (s *buildEventStore) DeleteTeam(ctx context.Context, team Team) error {
 	return tx.Commit()
 }
 
-func (s *buildEventStore) UnmarshalKey(data []byte, key *Key) error {
+func (s *buildEventStore) UnmarshalKey(data []byte, key *EventKey) error {
 	var i uint
 	if err := json.Unmarshal(data, &i); err != nil {
 		return err

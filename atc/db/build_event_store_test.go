@@ -212,7 +212,7 @@ var _ = Describe("BuildEventStore", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			var cursor db.Key
+			var cursor db.EventKey
 			events, err := eventStore.Get(context.TODO(), build, 3, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(Equal([]event.Envelope{
@@ -235,7 +235,7 @@ var _ = Describe("BuildEventStore", func() {
 			err = eventStore.Finalize(context.TODO(), build)
 			Expect(err).ToNot(HaveOccurred())
 
-			var cursor db.Key
+			var cursor db.EventKey
 			events, err := eventStore.Get(context.TODO(), build, 2, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(Equal([]event.Envelope{
@@ -293,7 +293,7 @@ var _ = Describe("BuildEventStore", func() {
 			err = eventStore.Delete(context.TODO(), []db.Build{build1, build2})
 			Expect(err).ToNot(HaveOccurred())
 
-			var cursor db.Key
+			var cursor db.EventKey
 			events, err := eventStore.Get(context.TODO(), build1, 100, &cursor)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(events).To(BeEmpty())
