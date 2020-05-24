@@ -78,20 +78,22 @@ func (source *buildEventSource) collectEvents(ctx context.Context) {
 
 	var cursor EventKey
 
-start:
-	if err := source.collectExistingEvents(ctx, &cursor); err != nil {
-		source.err = err
-		close(source.events)
-		return
-	}
-	if err := source.watchNotificationBus(ctx, &cursor); err != nil {
-		if errors.Is(err, errReconnectedToNotificationBus) {
-			// we may have missed a notification while reconnecting, so
-			// collect existing events from where we left off
-			goto start
+	for {
+		if err := source.collectExistingEvents(ctx, &cursor); err != nil {
+			source.err = err
+			close(source.events)
+			return
 		}
-		source.err = err
-		close(source.events)
+		if err := source.watchNotificationBus(ctx, &cursor); err != nil {
+			if errors.Is(err, errReconnectedToNotificationBus) {
+				// we may have missed a notification while reconnecting, so
+				// collect existing events from where we left off
+				continue
+			}
+			source.err = err
+			close(source.events)
+		}
+		return
 	}
 }
 
