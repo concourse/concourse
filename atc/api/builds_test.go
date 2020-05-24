@@ -121,7 +121,8 @@ var _ = Describe("Builds API", func() {
 
 					It("creates a started build", func() {
 						Expect(dbTeam.CreateStartedBuildCallCount()).To(Equal(1))
-						Expect(dbTeam.CreateStartedBuildArgsForCall(0)).To(Equal(plan))
+						_, actualPlan := dbTeam.CreateStartedBuildArgsForCall(0)
+						Expect(actualPlan).To(Equal(plan))
 					})
 
 					It("returns the created build", func() {

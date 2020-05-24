@@ -1900,7 +1900,8 @@ var _ = Describe("Pipelines API", func() {
 
 					It("creates a started build", func() {
 						Expect(dbPipeline.CreateStartedBuildCallCount()).To(Equal(1))
-						Expect(dbPipeline.CreateStartedBuildArgsForCall(0)).To(Equal(plan))
+						_, actualPlan := dbPipeline.CreateStartedBuildArgsForCall(0)
+						Expect(actualPlan).To(Equal(plan))
 					})
 
 					It("returns the created build", func() {
