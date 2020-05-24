@@ -618,7 +618,7 @@ var _ = Describe("BuildStarter", func() {
 
 										It("marked the right build as errored", func() {
 											Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
-											actualStatus := pendingBuild1.FinishArgsForCall(0)
+											_, actualStatus := pendingBuild1.FinishArgsForCall(0)
 											Expect(actualStatus).To(Equal(db.BuildStatusErrored))
 										})
 									})
@@ -711,7 +711,8 @@ var _ = Describe("BuildStarter", func() {
 
 										It("finishes the build with aborted status", func() {
 											Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
-											Expect(pendingBuild1.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
+											_, status := pendingBuild1.FinishArgsForCall(0)
+											Expect(status).To(Equal(db.BuildStatusAborted))
 										})
 
 										Context("when marking the build as errored fails", func() {
@@ -730,7 +731,7 @@ var _ = Describe("BuildStarter", func() {
 
 											It("marked the right build as errored", func() {
 												Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
-												actualStatus := pendingBuild1.FinishArgsForCall(0)
+												_, actualStatus := pendingBuild1.FinishArgsForCall(0)
 												Expect(actualStatus).To(Equal(db.BuildStatusAborted))
 											})
 										})
@@ -767,13 +768,17 @@ var _ = Describe("BuildStarter", func() {
 
 										It("starts the build with the right plan", func() {
 											Expect(pendingBuild1.StartCallCount()).To(Equal(1))
-											Expect(pendingBuild1.StartArgsForCall(0)).To(Equal(plannedPlan))
+
+											_, status := pendingBuild1.StartArgsForCall(0)
+											Expect(status).To(Equal(plannedPlan))
 
 											Expect(pendingBuild2.StartCallCount()).To(Equal(1))
-											Expect(pendingBuild2.StartArgsForCall(0)).To(Equal(plannedPlan))
+											_, status = pendingBuild2.StartArgsForCall(0)
+											Expect(status).To(Equal(plannedPlan))
 
 											Expect(rerunBuild.StartCallCount()).To(Equal(1))
-											Expect(rerunBuild.StartArgsForCall(0)).To(Equal(plannedPlan))
+											_, status = rerunBuild.StartArgsForCall(0)
+											Expect(status).To(Equal(plannedPlan))
 										})
 									})
 								})

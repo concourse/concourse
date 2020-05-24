@@ -75,6 +75,7 @@ func (r *runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 
 	for {
 		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
 		select {
 		case <-ticker.C():
@@ -84,7 +85,6 @@ func (r *runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 			r.run(ctx, true)
 
 		case <-signals:
-			cancel()
 			r.logger.Info("releasing-tracker")
 			r.tracker.Release()
 			r.logger.Info("released-tracker")

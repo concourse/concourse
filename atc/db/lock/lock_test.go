@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
@@ -44,7 +45,7 @@ var _ = Describe("Locks", func() {
 		lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
 
 		dbConn = postgresRunner.OpenConn()
-		teamFactory = db.NewTeamFactory(dbConn, lockFactory)
+		teamFactory = db.NewTeamFactory(dbConn, lockFactory, new(dbfakes.FakeEventStore))
 
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "team-name"})

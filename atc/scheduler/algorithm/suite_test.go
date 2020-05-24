@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -64,7 +65,7 @@ var _ = BeforeEach(func() {
 	dbConn = postgresRunner.OpenConn()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
-	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
+	teamFactory = db.NewTeamFactory(dbConn, lockFactory, new(dbfakes.FakeEventStore))
 })
 
 var _ = AfterEach(func() {

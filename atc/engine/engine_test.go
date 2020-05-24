@@ -220,7 +220,8 @@ var _ = Describe("Engine", func() {
 									It("finishes the build", func() {
 										waitGroup.Wait()
 										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusSucceeded))
+										_, status := fakeBuild.FinishArgsForCall(0)
+										Expect(status).To(Equal(db.BuildStatusSucceeded))
 									})
 								})
 
@@ -232,7 +233,8 @@ var _ = Describe("Engine", func() {
 									It("finishes the build", func() {
 										waitGroup.Wait()
 										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusFailed))
+										_, status := fakeBuild.FinishArgsForCall(0)
+										Expect(status).To(Equal(db.BuildStatusFailed))
 									})
 								})
 							})
@@ -245,7 +247,8 @@ var _ = Describe("Engine", func() {
 								It("finishes the build", func() {
 									waitGroup.Wait()
 									Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
+									_, status := fakeBuild.FinishArgsForCall(0)
+									Expect(status).To(Equal(db.BuildStatusErrored))
 								})
 							})
 
@@ -257,7 +260,8 @@ var _ = Describe("Engine", func() {
 								It("finishes the build", func() {
 									waitGroup.Wait()
 									Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
+									_, status := fakeBuild.FinishArgsForCall(0)
+									Expect(status).To(Equal(db.BuildStatusAborted))
 								})
 							})
 
@@ -269,7 +273,8 @@ var _ = Describe("Engine", func() {
 								It("finishes the build", func() {
 									waitGroup.Wait()
 									Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
+									_, status := fakeBuild.FinishArgsForCall(0)
+									Expect(status).To(Equal(db.BuildStatusAborted))
 								})
 							})
 						})
