@@ -28,7 +28,6 @@ func (tp *TestTraceProvider) Tracer(name string) trace.Tracer {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Tracer
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Provider
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Span
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/sdk/export/trace.SpanSyncer
 
 // Configured indicates whether tracing has been configured or not.
 //
