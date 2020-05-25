@@ -6,8 +6,8 @@ A task runs in a new container every time, using the image provided by
 \reference{schema.task.image_resource} as its base filesystem (i.e. \code{/}).
 
 The command specified by \reference{schema.task.run} will be executed in a working
-directory containing each of the \reference{schema.task.inputs}. If any inputs are
-missing the task will not run (and the container will not even be created).
+directory containing each of the \reference{schema.task.inputs}. If any input is
+missing, the task will not run (and the container will not even be created).
 
 The working directory will also contain empty directories for each of the
 \reference{schema.task.outputs}. The task must place artifacts in the output
@@ -15,7 +15,7 @@ directories for them to be exported. This meshes well with build tools with
 configurable destination paths.
 
 \aside{
-  If your build tools don't support output paths you can configure an input and
+  If your build tools don't support output paths, you can configure an input and
   output with the same path. The directory will be populated by the input, and
   any changes made to the directory will propagate downstream as an output.
 }
@@ -26,13 +26,13 @@ image (i.e. \code{ENV} rules from your \code{Dockerfile}).
 
 The user the command runs as is determined by the image. If you're using a
 Docker image, this will be the user set by a \code{USER} rule in your
-\code{Dockerfile}, or \code{root} if not specified.
+\code{Dockerfile}, or \code{root}, if not specified.
 
 Another relevant bit of configuration is \reference{schema.step.task-step.privileged},
 which determines whether the user the task runs as will have full privileges
 (primarily when running as \code{root}). This is intentionally \italic{not}
-configurable by the task itself, to prevent privilege escalation by way of
-pull requests to repositories containing task configs.
+configurable by the task itself, to prevent privilege escalation by submitting
+pull requests to repositories that contain task configs.
 
 Putting all this together, the following task config:
 

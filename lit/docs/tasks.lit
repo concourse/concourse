@@ -15,7 +15,7 @@ Once you have a running Concourse deployment, you can start configuring your
 tasks and executing them interactively from your terminal with the
 \reference{fly-cli}{Fly} commandline tool.
 
-Once you've figured out your tasks's configuration, you can reuse it for a
+Once you've figured out your task's configuration, you can reuse it for a
 \reference{jobs}{Job} in your \reference{pipelines}{Pipeline}.
 
 Conventionally a task's configuration is placed in the same repository as the
@@ -39,7 +39,7 @@ A task's configuration specifies the following:
 
     Whenever the task runs, the anonymous resource will be \code{check}ed to
     discover the latest version available. The image will then be fetched onto
-    the worker if necessary just prior to running the task.
+    the worker, if necessary, just prior to running the task.
 
     To use an image provided by a previous step within your build plan, set
     \reference{schema.step.task-step.image} on the \reference{task-step}
@@ -206,8 +206,9 @@ A task's configuration specifies the following:
       }
 
       \optional-attribute{args}{[string]}{
-        Arguments to pass to the command. Note that when executed with Fly, any
-        arguments passed to Fly are appended to this array.
+        Arguments to pass to the command. Note that when executed with
+        \reference{fly-cli}{Fly}, any arguments passed to \reference{fly-execute}
+        are appended to this array.
       }
 
       \optional-attribute{dir}{dir-path}{
