@@ -92,7 +92,7 @@ sure you intercept while it's running, if you want to debug.
   \title{\code{fly intercept}}{fly-intercept}
 
   Sometimes it's helpful to connect to the machine where tasks run. This way you
-  can either profile or inspect tasks, or see the state the machine at the
+  can either profile or inspect tasks, or see the state of the machine at the
   end of a run. Due to Concourse running tasks in containers on remote
   machines this would typically be hard to access.
 
