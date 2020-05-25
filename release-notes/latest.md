@@ -81,3 +81,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5576" href="#5576">:link:</a></sup></sub> fix
 
 * @dcsg added support for AWS SSM for `var_sources`
+
+#### <sub><sup><a name="5575" href="#5575">:link:</a></sup></sub> feature
+
+* Added tracing to the lidar component, where a single trace will be emitted for each run of the scanner and the consequential checking that happens from the checker. The traces will allow for more in depth monitoring of resource checking through describing how long each resource is taking to scan and check. #5575
