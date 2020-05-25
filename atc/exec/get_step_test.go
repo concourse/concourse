@@ -3,6 +3,8 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/tracing/tracingfakes"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -251,6 +253,22 @@ var _ = Describe("GetStep", func() {
 	It("calls RunGetStep with the correct Resource", func() {
 		_, _, _, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualResource).To(Equal(fakeResource))
+	})
+
+	Context("when tracing is enabled", func() {
+		BeforeEach(func() {
+			tracing.ConfigureTracer(new(tracingfakes.FakeSpanSyncer))
+		})
+
+		It("populates the TRACEPARENT env var", func() {
+			_, _, _, actualContainerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+
+			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+		})
+
+		AfterEach(func() {
+			tracing.Configured = false
+		})
 	})
 
 	Context("when Client.RunGetStep returns an err", func() {

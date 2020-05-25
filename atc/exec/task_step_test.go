@@ -15,6 +15,8 @@ import (
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/tracing/tracingfakes"
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
 
@@ -216,6 +218,21 @@ var _ = Describe("TaskStep", func() {
 				})
 			})
 
+			Context("when tracing is enabled", func() {
+				BeforeEach(func() {
+					tracing.ConfigureTracer(new(tracingfakes.FakeSpanSyncer))
+				})
+
+				It("populates the TRACEPARENT env var", func() {
+					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+
+					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+				})
+
+				AfterEach(func() {
+					tracing.Configured = false
+				})
+			})
 		})
 
 		It("secrets are tracked", func() {

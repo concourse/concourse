@@ -3,6 +3,8 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/tracing/tracingfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -313,6 +315,23 @@ var _ = Describe("PutStep", func() {
 			}))
 		Expect(actualEventDelegate).To(Equal(fakeDelegate))
 		Expect(actualResource).To(Equal(fakeResource))
+	})
+
+	Context("when tracing is enabled", func() {
+		BeforeEach(func() {
+			tracing.ConfigureTracer(new(tracingfakes.FakeSpanSyncer))
+		})
+
+		It("populates the TRACEPARENT env var", func() {
+			Expect(fakeClient.RunPutStepCallCount()).To(Equal(1))
+			_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+
+			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+		})
+
+		AfterEach(func() {
+			tracing.Configured = false
+		})
 	})
 
 	Context("when creds tracker can initialize the resource", func() {
