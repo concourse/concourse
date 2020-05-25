@@ -1097,6 +1097,7 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 	}
 
 	buildInputs := []BuildInput{}
+
 	for inputName, input := range inputs {
 		var versionBlob string
 
@@ -1111,6 +1112,19 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 			QueryRow().
 			Scan(&versionBlob)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+
+				_, err = psql.Update("next_build_inputs").
+					Set("resolve_error", fmt.Sprintf("chosen version of input %s not available", inputName)).
+					Where(sq.Eq{
+						"job_id":     b.jobID,
+						"input_name": inputName,
+					}).
+					RunWith(b.conn).
+					Exec()
+			}
+
 			return nil, false, err
 		}
 
@@ -1256,8 +1270,18 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 			Scan(&versionBlob)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				return nil, false, nil
+				tx.Rollback()
+
+				_, err = psql.Update("next_build_inputs").
+					Set("resolve_error", fmt.Sprintf("chosen version of input %s not available", inputName)).
+					Where(sq.Eq{
+						"job_id":     b.jobID,
+						"input_name": inputName,
+					}).
+					RunWith(b.conn).
+					Exec()
 			}
+
 			return nil, false, err
 		}
 
