@@ -13,6 +13,9 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"os/signal"
+	"syscall"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/skymarshal/token"
@@ -141,6 +144,46 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 		httpClient:        httpClient,
 		sessionTeam:       sessionAuthTeam,
 	}
+	// Starts a goroutine that his purpose is to basically listen to the
+	// SIGUSR1 syscall to then reload the config.
+	// For now it only reload the TSACommand.AuthorizedKeys but any
+	// other configuration could be added
+	go func() {
+		for {
+
+			// Set up channel on which to send signal notifications.
+			// We must use a buffered channel or risk missing the signal
+			// if we're not ready to receive when the signal is sent.
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, syscall.SIGUSR1)
+
+			// Block until a signal is received.
+			_ = <-c
+
+			logger.Info("reloading-config")
+
+			err := cmd.AuthorizedKeys.Reload()
+			if err != nil {
+				logger.Error("failed to reload authorized keys file : %s", err)
+				continue
+			}
+
+			teamAuthorizedKeys, err = cmd.loadTeamAuthorizedKeys()
+			if err != nil {
+				logger.Error("failed to load team authorized keys : %s", err)
+				continue
+			}
+
+			// compute again the config so it's updated
+			config, err := cmd.configureSSHServer(sessionAuthTeam, cmd.AuthorizedKeys.Keys, teamAuthorizedKeys)
+			if err != nil {
+				logger.Error("failed to configure SSH server: %s", err)
+				continue
+			}
+
+			server.config = config
+		}
+	}()
 
 	return serverRunner{logger, server, listenAddr}, nil
 }

@@ -121,6 +121,8 @@ github.com/concourse/dex v0.0.0-20200417202922-dcbe94f28c88/go.mod h1:7xVx6jMkg5
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/flag v1.0.0 h1:XG+A/Y+8kNdNDUC9T+SQ55dZ1+xYQN6LNVBg3cGJ080=
 github.com/concourse/flag v1.0.0/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
+github.com/concourse/flag v1.0.1-0.20200521134421-2be0b225f922 h1:TOZPFSUBiqxQg0C+RzMOZBnNd7r2plU1p19S7i8JJHs=
+github.com/concourse/flag v1.0.1-0.20200521134421-2be0b225f922/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/go-archive v0.0.0-20180803203406-784931698f4f/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv0NFwlpjf5CO8=
 github.com/concourse/go-archive v1.0.0/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv0NFwlpjf5CO8=
 github.com/concourse/go-archive v1.0.1 h1:6jQk0VDiE4G6lNJQ0mLZ7XmxbqI3spO4x0wgVwk4pfo=
