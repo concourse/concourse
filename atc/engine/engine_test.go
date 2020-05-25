@@ -69,7 +69,7 @@ var _ = Describe("Engine", func() {
 		})
 
 		JustBeforeEach(func() {
-			check = engine.NewCheck(fakeCheck)
+			check = engine.NewCheck(context.Background(), fakeCheck)
 		})
 
 		It("returns a build", func() {
