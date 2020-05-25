@@ -37,7 +37,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		build, err := job.CreateBuild(r.Context())
 		if err != nil {
 			logger.Error("failed-to-create-job-build", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 

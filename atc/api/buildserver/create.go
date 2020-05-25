@@ -25,7 +25,7 @@ func (s *Server) CreateBuild(team db.Team) http.Handler {
 		build, err := team.CreateStartedBuild(r.Context(), plan)
 		if err != nil {
 			hLog.Error("failed-to-create-one-off-build", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
