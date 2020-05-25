@@ -14,10 +14,19 @@ import (
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/lidar"
+	"github.com/concourse/concourse/tracing"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/testtrace"
 )
 
 type Checker interface {
 	Run(context.Context) error
+}
+
+type testTraceProvider struct{}
+
+func (ttp *testTraceProvider) Tracer(name string) trace.Tracer {
+	return testtrace.NewTracer()
 }
 
 var _ = Describe("Checker", func() {
@@ -59,6 +68,37 @@ var _ = Describe("Checker", func() {
 			})
 		})
 
+		Context("when tracing is configured", func() {
+			var scanSpan trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(&testTraceProvider{})
+				fakeCheck := new(dbfakes.FakeCheck)
+				fakeCheck.IDReturns(1)
+				var ctx context.Context
+				ctx, scanSpan = tracing.StartSpan(context.Background(), "fake-operation", nil)
+				fakeCheck.SpanContextReturns(db.NewSpanContext(ctx))
+
+				fakeCheckFactory.StartedChecksReturns([]db.Check{
+					fakeCheck,
+				}, nil)
+
+				fakeEngine.NewCheckReturns(new(enginefakes.FakeRunnable))
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context to check step", func() {
+				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(1))
+				ctx, _ := fakeEngine.NewCheckArgsForCall(0)
+				span, ok := tracing.FromContext(ctx).(*testtrace.Span)
+				Expect(ok).To(BeTrue(), "no testtrace.Span in context")
+				Expect(span.ParentSpanID()).To(Equal(scanSpan.SpanContext().SpanID))
+			})
+		})
+
 		Context("when retrieving checks succeeds", func() {
 
 			BeforeEach(func() {
@@ -75,7 +115,7 @@ var _ = Describe("Checker", func() {
 					fakeCheck3,
 				}, nil)
 
-				fakeEngine.NewCheckStub = func(build db.Check) engine.Runnable {
+				fakeEngine.NewCheckStub = func(ctx context.Context, build db.Check) engine.Runnable {
 					time.Sleep(time.Second)
 					return new(enginefakes.FakeRunnable)
 				}
@@ -96,7 +136,7 @@ var _ = Describe("Checker", func() {
 				fakeCheck := new(dbfakes.FakeCheck)
 				fakeCheck.IDReturns(1)
 
-				fakeEngine.NewCheckStub = func(build db.Check) engine.Runnable {
+				fakeEngine.NewCheckStub = func(ctx context.Context, build db.Check) engine.Runnable {
 					time.Sleep(time.Second)
 					return new(enginefakes.FakeRunnable)
 				}

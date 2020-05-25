@@ -2,6 +2,7 @@
 package enginefakes
 
 import (
+	"context"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -21,10 +22,11 @@ type FakeEngine struct {
 	newBuildReturnsOnCall map[int]struct {
 		result1 engine.Runnable
 	}
-	NewCheckStub        func(db.Check) engine.Runnable
+	NewCheckStub        func(context.Context, db.Check) engine.Runnable
 	newCheckMutex       sync.RWMutex
 	newCheckArgsForCall []struct {
-		arg1 db.Check
+		arg1 context.Context
+		arg2 db.Check
 	}
 	newCheckReturns struct {
 		result1 engine.Runnable
@@ -101,16 +103,17 @@ func (fake *FakeEngine) NewBuildReturnsOnCall(i int, result1 engine.Runnable) {
 	}{result1}
 }
 
-func (fake *FakeEngine) NewCheck(arg1 db.Check) engine.Runnable {
+func (fake *FakeEngine) NewCheck(arg1 context.Context, arg2 db.Check) engine.Runnable {
 	fake.newCheckMutex.Lock()
 	ret, specificReturn := fake.newCheckReturnsOnCall[len(fake.newCheckArgsForCall)]
 	fake.newCheckArgsForCall = append(fake.newCheckArgsForCall, struct {
-		arg1 db.Check
-	}{arg1})
-	fake.recordInvocation("NewCheck", []interface{}{arg1})
+		arg1 context.Context
+		arg2 db.Check
+	}{arg1, arg2})
+	fake.recordInvocation("NewCheck", []interface{}{arg1, arg2})
 	fake.newCheckMutex.Unlock()
 	if fake.NewCheckStub != nil {
-		return fake.NewCheckStub(arg1)
+		return fake.NewCheckStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -125,17 +128,17 @@ func (fake *FakeEngine) NewCheckCallCount() int {
 	return len(fake.newCheckArgsForCall)
 }
 
-func (fake *FakeEngine) NewCheckCalls(stub func(db.Check) engine.Runnable) {
+func (fake *FakeEngine) NewCheckCalls(stub func(context.Context, db.Check) engine.Runnable) {
 	fake.newCheckMutex.Lock()
 	defer fake.newCheckMutex.Unlock()
 	fake.NewCheckStub = stub
 }
 
-func (fake *FakeEngine) NewCheckArgsForCall(i int) db.Check {
+func (fake *FakeEngine) NewCheckArgsForCall(i int) (context.Context, db.Check) {
 	fake.newCheckMutex.RLock()
 	defer fake.newCheckMutex.RUnlock()
 	argsForCall := fake.newCheckArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeEngine) NewCheckReturns(result1 engine.Runnable) {
