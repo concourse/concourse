@@ -77,3 +77,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5549" href="#5549">:link:</a></sup></sub> fix
 
 * Added a new Wrappa that returns HTTP 409 for endpoints listed in concourse/rfc#33 when the requested pipeine is archived
+
+#### <sub><sup><a name="5576" href="#5576">:link:</a></sup></sub> fix
+
+* @dcsg added support for AWS SSM for `var_sources`
