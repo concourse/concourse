@@ -71,16 +71,17 @@ var _ = Describe("Handler", func() {
 
 				build.EventsStub = func(context.Context) (db.EventSource, error) {
 					var from uint
+					events := returnedEvents
 					fakeEventSource.NextStub = func() (event.Envelope, error) {
 						defer GinkgoRecover()
 
-						if from >= uint(len(returnedEvents)) {
+						if from >= uint(len(events)) {
 							return event.Envelope{}, db.ErrEndOfBuildEventStream
 						}
 
 						from++
 
-						return returnedEvents[from-1], nil
+						return events[from-1], nil
 					}
 
 					return fakeEventSource, nil
