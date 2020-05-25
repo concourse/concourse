@@ -73,3 +73,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5192" href="#5192">:link:</a></sup></sub> fix
 
 * @evanchaoli changed the behaviour of the web to retry individual build steps that fail when a worker disappears.
+
+#### <sub><sup><a name="5549" href="#5549">:link:</a></sup></sub> fix
+
+* Added a new Wrappa that returns HTTP 409 for endpoints listed in concourse/rfc#33 when the requested pipeine is archived
