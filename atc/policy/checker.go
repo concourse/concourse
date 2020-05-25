@@ -17,7 +17,7 @@ func (e PolicyCheckNotPass) Error() string {
 }
 
 type Filter struct {
-	HttpMethods   []string `long:"policy-check-filter-http-methods" description:"API http method to go through policy check"`
+	HttpMethods   []string `long:"policy-check-filter-http-method" description:"API http method to go through policy check"`
 	Actions       []string `long:"policy-check-filter-action" description:"Actions in the list will go through policy check"`
 	ActionsToSkip []string `long:"policy-check-filter-action-skip" default:"UsingImage" description:"Actions the list will not go through policy check"`
 }
