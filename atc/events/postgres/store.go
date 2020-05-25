@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"io"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 )
 
@@ -33,6 +36,9 @@ func (id EventID) GreaterThan(o db.EventKey) bool {
 
 type Store struct {
 	Conn db.Conn
+	LockFactory lock.LockFactory
+
+	logger lager.Logger
 }
 
 func (s *Store) IsConfigured() bool {
@@ -44,6 +50,24 @@ func (s *Store) IsConfigured() bool {
 }
 
 func (s *Store) Setup(ctx context.Context) error {
+	s.logger = lagerctx.FromContext(ctx)
+	if s.logger == nil {
+		return fmt.Errorf("missing logger in context")
+	}
+
+	l, acquired, err := s.LockFactory.Acquire(
+		s.logger.Session("acquire-setup-lock"),
+		lock.NewSetupEventStoreLockID(),
+	)
+	if err != nil {
+		return err
+	}
+	if !acquired {
+		// it's already being setup by another ATC
+		return nil
+	}
+	defer l.Release()
+
 	tx, err := s.Conn.Begin()
 	if err != nil {
 		return err
@@ -85,6 +109,36 @@ func (s *Store) Initialize(ctx context.Context, build db.Build) error {
 
 	defer Rollback(tx)
 
+	err = s.createBuildEventTable(ctx, tx, build)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
+		CREATE SEQUENCE %s MINVALUE 0
+	`, buildEventsSeq(build.ID())))
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *Store) createBuildEventTable(ctx context.Context, tx db.Tx, build db.Build) error {
+	l, acquired, err := s.LockFactory.Acquire(
+		s.logger.Session("acquire-initialize-lock"),
+		initializeBuildLockID(build),
+	)
+	if err != nil {
+		return err
+	}
+	if !acquired {
+		// it's already being initialized for another build
+		return nil
+	}
+	defer l.Release()
+
 	tableName := buildEventsTable(build)
 
 	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
@@ -108,11 +162,7 @@ func (s *Store) Initialize(ctx context.Context, build db.Build) error {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
-		CREATE SEQUENCE %s MINVALUE 0
-	`, buildEventsSeq(build.ID())))
-
-	return tx.Commit()
+	return nil
 }
 
 func (s *Store) Finalize(ctx context.Context, build db.Build) error {
@@ -336,6 +386,13 @@ func buildEventsTable(build db.Build) string {
 		return pipelineBuildEventsTable(build.PipelineID())
 	}
 	return teamBuildEventsTable(build.TeamID())
+}
+
+func initializeBuildLockID(build db.Build) lock.LockID {
+	if build.PipelineID() != 0 {
+		return lock.NewInitializePipelineBuildEventsLockID(build.PipelineID())
+	}
+	return lock.NewInitializeTeamBuildEventsLockID(build.TeamID())
 }
 
 func pipelineBuildEventsTable(pipelineID int) string {

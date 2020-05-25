@@ -5,9 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/events"
 	"github.com/concourse/concourse/atc/events/postgres"
@@ -20,6 +24,9 @@ var _ = Describe("Store", func() {
 	var (
 		eventStore events.Store
 
+		fakeLockFactory   *lockfakes.FakeLockFactory
+		fakeLock          *lockfakes.FakeLock
+
 		fakePipeline      *dbfakes.FakePipeline
 		fakeTeam          *dbfakes.FakeTeam
 		fakePipelineBuild *dbfakes.FakeBuild
@@ -29,8 +36,13 @@ var _ = Describe("Store", func() {
 	)
 
 	BeforeEach(func() {
+		fakeLockFactory = new(lockfakes.FakeLockFactory)
+		fakeLock = new(lockfakes.FakeLock)
+		fakeLockFactory.AcquireReturns(fakeLock, true, nil)
+
 		eventStore = &postgres.Store{
-			Conn: dbConn,
+			Conn:        dbConn,
+			LockFactory: fakeLockFactory,
 		}
 
 		fakePipeline = new(dbfakes.FakePipeline)
@@ -46,7 +58,7 @@ var _ = Describe("Store", func() {
 		fakeTeamBuild.IDReturns(2)
 		fakeTeamBuild.TeamIDReturns(fakeTeam.ID())
 
-		ctx = context.Background()
+		ctx = lagerctx.NewContext(context.Background(), lager.NewLogger("test"))
 	})
 
 	BeforeEach(func() {
@@ -55,6 +67,16 @@ var _ = Describe("Store", func() {
 	})
 
 	Describe("Setup", func() {
+		It("acquires a lock from the LockFactory", func() {
+			Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
+			_, lockID := fakeLockFactory.AcquireArgsForCall(0)
+			Expect(lockID).To(Equal(lock.NewSetupEventStoreLockID()))
+		})
+
+		It("releases the lock", func() {
+			Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+		})
+
 		It("creates the build_events table", func() {
 			var exists bool
 			err := dbConn.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'build_events')").Scan(&exists)
@@ -104,16 +126,20 @@ var _ = Describe("Store", func() {
 	})
 
 	Describe("Initialize", func() {
-		var build db.Build
-
-		JustBeforeEach(func() {
-			err := eventStore.Initialize(ctx, build)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		Context("when the build is a pipeline build", func() {
 			BeforeEach(func() {
-				build = fakePipelineBuild
+				err := eventStore.Initialize(ctx, fakePipelineBuild)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("acquires a lock from the LockFactory", func() {
+				Expect(fakeLockFactory.AcquireCallCount()).To(Equal(2))
+				_, lockID := fakeLockFactory.AcquireArgsForCall(1)
+				Expect(lockID).To(Equal(lock.NewInitializePipelineBuildEventsLockID(fakePipeline.ID())))
+			})
+
+			It("releases the lock", func() {
+				Expect(fakeLock.ReleaseCallCount()).To(Equal(2))
 			})
 
 			It("creates a pipeline build events table", func() {
@@ -157,7 +183,18 @@ var _ = Describe("Store", func() {
 
 		Context("when the build is a one-off build", func() {
 			BeforeEach(func() {
-				build = fakeTeamBuild
+				err := eventStore.Initialize(ctx, fakeTeamBuild)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("acquires a lock from the LockFactory", func() {
+				Expect(fakeLockFactory.AcquireCallCount()).To(Equal(2))
+				_, lockID := fakeLockFactory.AcquireArgsForCall(1)
+				Expect(lockID).To(Equal(lock.NewInitializeTeamBuildEventsLockID(fakeTeam.ID())))
+			})
+
+			It("releases the lock", func() {
+				Expect(fakeLock.ReleaseCallCount()).To(Equal(2))
 			})
 
 			It("creates a team build events table", func() {

@@ -22,6 +22,9 @@ const (
 	LockTypeActiveTasks
 	LockTypeResourceScanning
 	LockTypeJobScheduling
+	LockTypeSetupEventStore
+	LockTypeInitializePipelineBuildEvents
+	LockTypeInitializeTeamBuildEvents
 )
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
@@ -56,6 +59,18 @@ func NewResourceScanningLockID() LockID {
 
 func NewJobSchedulingLockID(jobID int) LockID {
 	return LockID{LockTypeJobScheduling, jobID}
+}
+
+func NewSetupEventStoreLockID() LockID {
+	return LockID{LockTypeSetupEventStore}
+}
+
+func NewInitializePipelineBuildEventsLockID(pipelineID int) LockID {
+	return LockID{LockTypeInitializePipelineBuildEvents, pipelineID}
+}
+
+func NewInitializeTeamBuildEventsLockID(teamID int) LockID {
+	return LockID{LockTypeInitializeTeamBuildEvents, teamID}
 }
 
 //go:generate counterfeiter . LockFactory
