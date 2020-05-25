@@ -145,7 +145,7 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 		sessionTeam:       sessionAuthTeam,
 	}
 	// Starts a goroutine that his purpose is to basically listen to the
-	// SIGUSR1 syscall to then reload the config.
+	// SIGHUP syscall to then reload the config.
 	// For now it only reload the TSACommand.AuthorizedKeys but any
 	// other configuration could be added
 	go func() {
@@ -155,7 +155,7 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 			// We must use a buffered channel or risk missing the signal
 			// if we're not ready to receive when the signal is sent.
 			c := make(chan os.Signal, 1)
-			signal.Notify(c, syscall.SIGUSR1)
+			signal.Notify(c, syscall.SIGHUP)
 
 			// Block until a signal is received.
 			_ = <-c
