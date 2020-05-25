@@ -12,7 +12,10 @@ import (
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars/varsfakes"
+	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/trace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -35,6 +38,7 @@ var _ = Describe("CheckStep", func() {
 		containerMetadata db.ContainerMetadata
 
 		err error
+		ctx context.Context
 	)
 
 	BeforeEach(func() {
@@ -50,6 +54,8 @@ var _ = Describe("CheckStep", func() {
 		containerMetadata = db.ContainerMetadata{}
 
 		fakeResourceFactory.NewResourceReturns(fakeResource)
+
+		ctx = context.Background()
 	})
 
 	JustBeforeEach(func() {
@@ -67,7 +73,7 @@ var _ = Describe("CheckStep", func() {
 			fakeClient,
 		)
 
-		err = checkStep.Run(context.Background(), fakeRunState)
+		err = checkStep.Run(ctx, fakeRunState)
 	})
 
 	Context("having credentials in the config", func() {
@@ -279,6 +285,26 @@ var _ = Describe("CheckStep", func() {
 		It("uses the resource created", func() {
 			_, _, _, _, _, _, _, _, _, resource := fakeClient.RunCheckStepArgsForCall(0)
 			Expect(resource).To(Equal(fakeResource))
+		})
+
+		Context("with tracing configured", func() {
+			var span trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context to delegate", func() {
+				spanContext, _ := fakeDelegate.SaveVersionsArgsForCall(0)
+				traceID := span.SpanContext().TraceIDString()
+				traceParent := spanContext.Get(propagators.TraceparentHeader)
+				Expect(traceParent).To(ContainSubstring(traceID))
+			})
 		})
 
 		Context("having RunCheckStep erroring", func() {

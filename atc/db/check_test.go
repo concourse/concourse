@@ -205,7 +205,7 @@ var _ = Describe("Check", func() {
 
 	Describe("SaveVersions", func() {
 		JustBeforeEach(func() {
-			err = check.SaveVersions([]atc.Version{{"some": "version"}})
+			err = check.SaveVersions(nil, []atc.Version{{"some": "version"}})
 		})
 
 		It("succeeds", func() {

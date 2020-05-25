@@ -187,10 +187,11 @@ type FakeCheck struct {
 	resourceConfigScopeIDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	SaveVersionsStub        func([]atc.Version) error
+	SaveVersionsStub        func(db.SpanContext, []atc.Version) error
 	saveVersionsMutex       sync.RWMutex
 	saveVersionsArgsForCall []struct {
-		arg1 []atc.Version
+		arg1 db.SpanContext
+		arg2 []atc.Version
 	}
 	saveVersionsReturns struct {
 		result1 error
@@ -1138,21 +1139,22 @@ func (fake *FakeCheck) ResourceConfigScopeIDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeCheck) SaveVersions(arg1 []atc.Version) error {
-	var arg1Copy []atc.Version
-	if arg1 != nil {
-		arg1Copy = make([]atc.Version, len(arg1))
-		copy(arg1Copy, arg1)
+func (fake *FakeCheck) SaveVersions(arg1 db.SpanContext, arg2 []atc.Version) error {
+	var arg2Copy []atc.Version
+	if arg2 != nil {
+		arg2Copy = make([]atc.Version, len(arg2))
+		copy(arg2Copy, arg2)
 	}
 	fake.saveVersionsMutex.Lock()
 	ret, specificReturn := fake.saveVersionsReturnsOnCall[len(fake.saveVersionsArgsForCall)]
 	fake.saveVersionsArgsForCall = append(fake.saveVersionsArgsForCall, struct {
-		arg1 []atc.Version
-	}{arg1Copy})
-	fake.recordInvocation("SaveVersions", []interface{}{arg1Copy})
+		arg1 db.SpanContext
+		arg2 []atc.Version
+	}{arg1, arg2Copy})
+	fake.recordInvocation("SaveVersions", []interface{}{arg1, arg2Copy})
 	fake.saveVersionsMutex.Unlock()
 	if fake.SaveVersionsStub != nil {
-		return fake.SaveVersionsStub(arg1)
+		return fake.SaveVersionsStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1167,17 +1169,17 @@ func (fake *FakeCheck) SaveVersionsCallCount() int {
 	return len(fake.saveVersionsArgsForCall)
 }
 
-func (fake *FakeCheck) SaveVersionsCalls(stub func([]atc.Version) error) {
+func (fake *FakeCheck) SaveVersionsCalls(stub func(db.SpanContext, []atc.Version) error) {
 	fake.saveVersionsMutex.Lock()
 	defer fake.saveVersionsMutex.Unlock()
 	fake.SaveVersionsStub = stub
 }
 
-func (fake *FakeCheck) SaveVersionsArgsForCall(i int) []atc.Version {
+func (fake *FakeCheck) SaveVersionsArgsForCall(i int) (db.SpanContext, []atc.Version) {
 	fake.saveVersionsMutex.RLock()
 	defer fake.saveVersionsMutex.RUnlock()
 	argsForCall := fake.saveVersionsArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeCheck) SaveVersionsReturns(result1 error) {

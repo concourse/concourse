@@ -45,7 +45,7 @@ type Check interface {
 	Finish() error
 	FinishWithError(err error) error
 
-	SaveVersions([]atc.Version) error
+	SaveVersions(SpanContext, []atc.Version) error
 	AllCheckables() ([]Checkable, error)
 	AcquireTrackingLock(lager.Logger) (lock.Lock, bool, error)
 	Reload() (bool, error)
@@ -323,7 +323,7 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 	return checkables, nil
 }
 
-func (c *check) SaveVersions(versions []atc.Version) error {
+func (c *check) SaveVersions(spanContext SpanContext, versions []atc.Version) error {
 	return saveVersions(c.conn, c.resourceConfigScopeID, versions)
 }
 
