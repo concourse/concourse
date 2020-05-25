@@ -96,6 +96,7 @@ var flyClientSecret = "Zmx5"
 
 var workerAvailabilityPollingInterval = 5 * time.Second
 var workerStatusPublishInterval = 1 * time.Minute
+var BatcherInterval = 15 * time.Second
 
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
@@ -1786,7 +1787,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	batcher := accessor.NewBatcher(
 		logger,
 		dbUserFactory,
-		15*time.Second,
+		BatcherInterval,
 		100,
 	)
 
