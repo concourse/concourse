@@ -45,8 +45,9 @@ var _ = BeforeSuite(func() {
 
 		exporter = spanSyncer.(*jaeger.Exporter)
 
-		err = tracing.ConfigureTracer(exporter)
+		tp, err := tracing.TraceProvider(exporter)
 		Expect(err).ToNot(HaveOccurred())
+		tracing.ConfigureTraceProvider(tp)
 	}
 
 	postgresRunner = postgresrunner.Runner{

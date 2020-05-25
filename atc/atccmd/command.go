@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	export "go.opentelemetry.io/otel/sdk/export/trace"
+
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse"
@@ -445,22 +447,21 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	// Prepare distributed tracing facilities
+	var exp export.SpanSyncer
 	switch {
 	case cmd.Tracing.Jaeger.IsConfigured():
-		exp, err := cmd.Tracing.Jaeger.Exporter()
-		if err != nil {
-			return nil, err
-		}
-
-		tracing.ConfigureTracer(exp)
+		exp, err = cmd.Tracing.Jaeger.Exporter()
 	case cmd.Tracing.Stackdriver.IsConfigured():
-		exp, err := cmd.Tracing.Stackdriver.Exporter()
-		if err != nil {
-			return nil, err
-		}
-
-		tracing.ConfigureTracer(exp)
+		exp, err = cmd.Tracing.Stackdriver.Exporter()
 	}
+	if err != nil {
+		return nil, err
+	}
+	tp, err := tracing.TraceProvider(exp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure trace provider: %w", err)
+	}
+	tracing.ConfigureTraceProvider(tp)
 
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
 		for _, stack := range db.GlobalConnectionTracker.Current() {
