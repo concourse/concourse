@@ -109,6 +109,10 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 			if err != nil {
 				return nil, err
 			}
+
+			logger.Info("warning-experiment-policy-check",
+				lager.Data{"rfc": "https://github.com/concourse/rfcs/pull/41"})
+
 			return &Checker{
 				filter: filter.normalize(),
 				agent:  agent,
