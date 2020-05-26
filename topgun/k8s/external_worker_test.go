@@ -37,7 +37,7 @@ var _ = Describe("external workers through separate deployments", func() {
 			"--set=postgresql.enabled=false",
 			"--set=web.enabled=false",
 			"--set=worker.replicas=1",
-			"--set=concourse.worker.tsa.hosts[0]="+releaseName+"-web-web."+releaseName+"-web.svc.cluster.local:"+tsaPort,
+			"--set=concourse.worker.tsa.hosts[0]="+releaseName+"-web-web-worker-gateway."+releaseName+"-web.svc.cluster.local:"+tsaPort,
 		)
 		deployConcourseChart(releaseName+"-worker", helmArgs...)
 
