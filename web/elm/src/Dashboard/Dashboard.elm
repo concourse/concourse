@@ -544,13 +544,13 @@ toConcoursePipeline p =
     }
 
 
-pipelinesChangedFrom : Maybe (List Pipeline) -> Maybe (List Pipeline) -> Bool
+pipelinesChangedFrom : FetchResult (List Pipeline) -> FetchResult (List Pipeline) -> Bool
 pipelinesChangedFrom ps qs =
     let
         project =
-            Maybe.map <| List.map (\x -> { x | stale = True })
+            FetchResult.map <| List.map (\x -> { x | stale = True })
     in
-    project ps /= project qs
+    changedFrom (project ps) (project qs)
 
 
 groupBy : (a -> comparable) -> List a -> Dict comparable (List a)
