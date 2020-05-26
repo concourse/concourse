@@ -45,8 +45,7 @@ var _ = BeforeSuite(func() {
 
 		exporter = spanSyncer.(*jaeger.Exporter)
 
-		tp, err := tracing.TraceProvider(exporter)
-		Expect(err).ToNot(HaveOccurred())
+		tp := tracing.TraceProvider(exporter)
 		tracing.ConfigureTraceProvider(tp)
 	}
 

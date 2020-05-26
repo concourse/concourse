@@ -76,4 +76,25 @@ var _ = Describe("Tracer", func() {
 
 	})
 
+	Describe("Prepare", func() {
+		BeforeEach(func() {
+			tracing.Configured = false
+		})
+
+		It("configures tracing if jaeger flags are provided", func() {
+			c := tracing.Config{
+				Jaeger: tracing.Jaeger{
+					Endpoint: "http://jaeger:14268/api/traces",
+				},
+			}
+			c.Prepare()
+			Expect(tracing.Configured).To(BeTrue())
+		})
+
+		It("does not configure tracing if no flags are provided", func() {
+			c := tracing.Config{}
+			c.Prepare()
+			Expect(tracing.Configured).To(BeFalse())
+		})
+	})
 })

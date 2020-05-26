@@ -30,29 +30,19 @@ type Config struct {
 }
 
 func (c Config) Prepare() error {
+	var exp export.SpanSyncer
+	var err error
 	switch {
 	case c.Jaeger.IsConfigured():
-		exp, err := c.Jaeger.Exporter()
-		if err != nil {
-			return err
-		}
-
-		tp, err := TraceProvider(exp)
-		if err != nil {
-			return err
-		}
-		ConfigureTraceProvider(tp)
+		exp, err = c.Jaeger.Exporter()
 	case c.Stackdriver.IsConfigured():
-		exp, err := c.Stackdriver.Exporter()
-		if err != nil {
-			return err
-		}
-
-		tp, err := TraceProvider(exp)
-		if err != nil {
-			return err
-		}
-		ConfigureTraceProvider(tp)
+		exp, err = c.Stackdriver.Exporter()
+	}
+	if err != nil {
+		return err
+	}
+	if exp != nil {
+		ConfigureTraceProvider(TraceProvider(exp))
 	}
 	return nil
 }
@@ -171,11 +161,14 @@ func ConfigureTraceProvider(tp trace.Provider) {
 	Configured = true
 }
 
-func TraceProvider(exporter export.SpanSyncer) (trace.Provider, error) {
-	return sdktrace.NewProvider(sdktrace.WithConfig(
+func TraceProvider(exporter export.SpanSyncer) trace.Provider {
+	// the only way NewProvider can error is if exporter is nil, but
+	// this method is never called in such circumstances.
+	provider, _ := sdktrace.NewProvider(sdktrace.WithConfig(
 		sdktrace.Config{
 			DefaultSampler: sdktrace.AlwaysSample(),
 		}),
 		sdktrace.WithSyncer(exporter),
 	)
+	return provider
 }
