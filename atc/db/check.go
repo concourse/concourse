@@ -324,7 +324,7 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 }
 
 func (c *check) SaveVersions(spanContext SpanContext, versions []atc.Version) error {
-	return saveVersions(c.conn, c.resourceConfigScopeID, versions)
+	return saveVersions(c.conn, c.resourceConfigScopeID, versions, spanContext)
 }
 
 func (c *check) SpanContext() propagators.Supplier {

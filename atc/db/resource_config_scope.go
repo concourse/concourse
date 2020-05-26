@@ -67,10 +67,10 @@ func (r *resourceConfigScope) CheckError() error              { return r.checkEr
 // that already exist in the DB will be re-ordered using
 // incrementCheckOrder to input the correct check order
 func (r *resourceConfigScope) SaveVersions(versions []atc.Version) error {
-	return saveVersions(r.conn, r.ID(), versions)
+	return saveVersions(r.conn, r.ID(), versions, nil)
 }
 
-func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
+func saveVersions(conn Conn, rcsID int, versions []atc.Version, spanContext SpanContext) error {
 	tx, err := conn.Begin()
 	if err != nil {
 		return err
@@ -80,7 +80,7 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version) error {
 
 	var containsNewVersion bool
 	for _, version := range versions {
-		newVersion, err := saveResourceVersion(tx, rcsID, version, nil)
+		newVersion, err := saveResourceVersion(tx, rcsID, version, nil, spanContext)
 		if err != nil {
 			return err
 		}
@@ -269,7 +269,7 @@ func (r *resourceConfigScope) UpdateLastCheckEndTime() (bool, error) {
 	return true, nil
 }
 
-func saveResourceVersion(tx Tx, rcsID int, version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
+func saveResourceVersion(tx Tx, rcsID int, version atc.Version, metadata ResourceConfigMetadataFields, spanContext SpanContext) (bool, error) {
 	versionJSON, err := json.Marshal(version)
 	if err != nil {
 		return false, err
@@ -280,14 +280,19 @@ func saveResourceVersion(tx Tx, rcsID int, version atc.Version, metadata Resourc
 		return false, err
 	}
 
+	spanContextJSON, err := json.Marshal(spanContext)
+	if err != nil {
+		return false, err
+	}
+
 	var checkOrder int
 	err = tx.QueryRow(`
-		INSERT INTO resource_config_versions (resource_config_scope_id, version, version_md5, metadata)
-		SELECT $1, $2, md5($3), $4
+		INSERT INTO resource_config_versions (resource_config_scope_id, version, version_md5, metadata, span_context)
+		SELECT $1, $2, md5($3), $4, $5
 		ON CONFLICT (resource_config_scope_id, version_md5)
 		DO UPDATE SET metadata = COALESCE(NULLIF(excluded.metadata, 'null'::jsonb), resource_config_versions.metadata)
 		RETURNING check_order
-		`, rcsID, string(versionJSON), string(versionJSON), string(metadataJSON)).Scan(&checkOrder)
+		`, rcsID, string(versionJSON), string(versionJSON), string(metadataJSON), string(spanContextJSON)).Scan(&checkOrder)
 	if err != nil {
 		return false, err
 	}

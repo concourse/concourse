@@ -985,7 +985,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata)
+	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata, nil)
 	if err != nil {
 		return err
 	}

@@ -205,7 +205,10 @@ var _ = Describe("Check", func() {
 
 	Describe("SaveVersions", func() {
 		JustBeforeEach(func() {
-			err = check.SaveVersions(nil, []atc.Version{{"some": "version"}})
+			err = check.SaveVersions(
+				map[string]string{"fake": "span"},
+				[]atc.Version{{"some": "version"}},
+			)
 		})
 
 		It("succeeds", func() {
@@ -217,6 +220,21 @@ var _ = Describe("Check", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(version.Version()).To(Equal(db.Version{"some": "version"}))
+		})
+
+		It("propagates span context", func() {
+			version, _, err := resourceConfigScope.LatestVersion()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(version.SpanContext()).To(HaveKeyWithValue("fake", Equal("span")))
+		})
+
+		It("does not update span context for pre-existing versions", func() {
+			err := check.SaveVersions(
+				map[string]string{"new": "span"},
+				[]atc.Version{{"some": "version"}},
+			)
+			version, _, err := resourceConfigScope.LatestVersion()
+			Expect(version.SpanContext()).To(HaveKeyWithValue("fake", Equal("span")))
 		})
 	})
 })
