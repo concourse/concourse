@@ -25,6 +25,31 @@ import (
 //
 var Configured bool
 
+type Config struct {
+	Jaeger      Jaeger
+	Stackdriver Stackdriver
+}
+
+func (c Config) Prepare() error {
+	switch {
+	case c.Jaeger.IsConfigured():
+		exp, err := c.Jaeger.Exporter()
+		if err != nil {
+			return err
+		}
+
+		ConfigureTracer(exp)
+	case c.Stackdriver.IsConfigured():
+		exp, err := c.Stackdriver.Exporter()
+		if err != nil {
+			return err
+		}
+
+		ConfigureTracer(exp)
+	}
+	return nil
+}
+
 // StartSpan creates a span, giving back a context that has itself added as the
 // parent span.
 //
