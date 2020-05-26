@@ -29,6 +29,8 @@ type BuildInput struct {
 
 	FirstOccurrence bool
 	ResolveError    string
+
+	SpanContext SpanContext
 }
 
 type BuildOutput struct {

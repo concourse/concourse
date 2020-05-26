@@ -1777,7 +1777,7 @@ var _ = Describe("Team", func() {
 			rc, err := resource.SetResourceConfig(atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = rc.SaveVersions([]atc.Version{
+			err = rc.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "v1"},
 				atc.Version{"version": "v2"},
 			})
@@ -1858,7 +1858,7 @@ var _ = Describe("Team", func() {
 			rc, err := resource.SetResourceConfig(atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = rc.SaveVersions([]atc.Version{
+			err = rc.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "v1"},
 				atc.Version{"version": "v2"},
 			})

@@ -371,7 +371,7 @@ var _ = Describe("ResourceType", func() {
 
 		Context("when the resource type has proper versions", func() {
 			BeforeEach(func() {
-				err := resourceTypeScope.SaveVersions([]atc.Version{
+				err := resourceTypeScope.SaveVersions(nil, []atc.Version{
 					atc.Version{"version": "1"},
 					atc.Version{"version": "2"},
 				})

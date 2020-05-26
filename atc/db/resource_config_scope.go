@@ -26,7 +26,7 @@ type ResourceConfigScope interface {
 	ResourceConfig() ResourceConfig
 	CheckError() error
 
-	SaveVersions(versions []atc.Version) error
+	SaveVersions(SpanContext, []atc.Version) error
 	FindVersion(atc.Version) (ResourceConfigVersion, bool, error)
 	LatestVersion() (ResourceConfigVersion, bool, error)
 
@@ -66,8 +66,8 @@ func (r *resourceConfigScope) CheckError() error              { return r.checkEr
 // In the case of a check resource from an older version, the versions
 // that already exist in the DB will be re-ordered using
 // incrementCheckOrder to input the correct check order
-func (r *resourceConfigScope) SaveVersions(versions []atc.Version) error {
-	return saveVersions(r.conn, r.ID(), versions, nil)
+func (r *resourceConfigScope) SaveVersions(spanContext SpanContext, versions []atc.Version) error {
+	return saveVersions(r.conn, r.ID(), versions, spanContext)
 }
 
 func saveVersions(conn Conn, rcsID int, versions []atc.Version, spanContext SpanContext) error {

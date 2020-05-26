@@ -214,7 +214,7 @@ var _ = Describe("Resource", func() {
 			resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = resourceScope.SaveVersions([]atc.Version{
+			err = resourceScope.SaveVersions(nil, []atc.Version{
 				{"disabled": "version"},
 			})
 			Expect(err).ToNot(HaveOccurred())
@@ -876,7 +876,7 @@ var _ = Describe("Resource", func() {
 				resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceScope.SaveVersions([]atc.Version{version})
+				err = resourceScope.SaveVersions(nil, []atc.Version{version})
 				Expect(err).ToNot(HaveOccurred())
 
 				var found bool
@@ -1003,7 +1003,7 @@ var _ = Describe("Resource", func() {
 					{"ref": "v2", "commit": "v2"},
 				}
 
-				err = resourceScope.SaveVersions(originalVersionSlice)
+				err = resourceScope.SaveVersions(nil, originalVersionSlice)
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceVersions = make([]atc.ResourceVersion, 0)
@@ -1124,7 +1124,7 @@ var _ = Describe("Resource", func() {
 					{"ref": "v9"},
 				}
 
-				err = resourceScope.SaveVersions(originalVersionSlice)
+				err = resourceScope.SaveVersions(nil, originalVersionSlice)
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceVersions = make([]atc.ResourceVersion, 0)
@@ -1242,7 +1242,7 @@ var _ = Describe("Resource", func() {
 					resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 
-					err = resourceScope.SaveVersions([]atc.Version{resourceVersions[9].Version})
+					err = resourceScope.SaveVersions(nil, []atc.Version{resourceVersions[9].Version})
 					Expect(err).ToNot(HaveOccurred())
 
 					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1}, atc.Version{})
@@ -1333,7 +1333,7 @@ var _ = Describe("Resource", func() {
 					{"ref": "v4"}, // id: 3, check_order: 3
 				}
 
-				err = resourceScope.SaveVersions(originalVersionSlice)
+				err = resourceScope.SaveVersions(nil, originalVersionSlice)
 				Expect(err).ToNot(HaveOccurred())
 
 				secondVersionSlice := []atc.Version{
@@ -1342,7 +1342,7 @@ var _ = Describe("Resource", func() {
 					{"ref": "v4"}, // id: 3, check_order: 6
 				}
 
-				err = resourceScope.SaveVersions(secondVersionSlice)
+				err = resourceScope.SaveVersions(nil, secondVersionSlice)
 				Expect(err).ToNot(HaveOccurred())
 
 				for i := 1; i < 5; i++ {
@@ -1503,7 +1503,7 @@ var _ = Describe("Resource", func() {
 			resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceScope.SaveVersions([]atc.Version{
+			err = resourceScope.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "v1"},
 				atc.Version{"version": "v2"},
 				atc.Version{"version": "v3"},
@@ -1711,7 +1711,7 @@ var _ = Describe("Resource", func() {
 				resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceScope.SaveVersions([]atc.Version{
+				err = resourceScope.SaveVersions(nil, []atc.Version{
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 					atc.Version{"version": "v3"},

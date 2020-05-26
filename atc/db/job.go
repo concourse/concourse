@@ -1266,7 +1266,7 @@ func (j *job) getNewRerunBuildName(tx Tx, buildID int) (string, int, error) {
 }
 
 func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
-	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version, i.resolve_error").
+	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version, i.resolve_error, v.span_context").
 		From("next_build_inputs i").
 		LeftJoin("resources r ON r.id = i.resource_id").
 		LeftJoin("resource_config_versions v ON v.version_md5 = i.version_md5 AND r.resource_config_scope_id = v.resource_config_scope_id").
@@ -1282,14 +1282,15 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 	buildInputs := []BuildInput{}
 	for rows.Next() {
 		var (
-			inputName   string
-			firstOcc    sql.NullBool
-			versionBlob sql.NullString
-			resID       sql.NullString
-			resolveErr  sql.NullString
+			inputName       string
+			firstOcc        sql.NullBool
+			versionBlob     sql.NullString
+			resID           sql.NullString
+			resolveErr      sql.NullString
+			spanContextJSON sql.NullString
 		)
 
-		err := rows.Scan(&inputName, &firstOcc, &resID, &versionBlob, &resolveErr)
+		err := rows.Scan(&inputName, &firstOcc, &resID, &versionBlob, &resolveErr, &spanContextJSON)
 		if err != nil {
 			return nil, err
 		}
@@ -1320,12 +1321,21 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 			resolveError = resolveErr.String
 		}
 
+		var spanContext SpanContext
+		if spanContextJSON.Valid {
+			err = json.Unmarshal([]byte(spanContextJSON.String), &spanContext)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		buildInputs = append(buildInputs, BuildInput{
 			Name:            inputName,
 			ResourceID:      resourceID,
 			Version:         version,
 			FirstOccurrence: firstOccurrence,
 			ResolveError:    resolveError,
+			SpanContext:     spanContext,
 		})
 	}
 

@@ -256,7 +256,7 @@ var _ = Describe("Build", func() {
 			resourceConfigScope1, err := resource1.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope1.SaveVersions([]atc.Version{
+			err = resourceConfigScope1.SaveVersions(nil, []atc.Version{
 				{"ver": "1"},
 				{"ver": "2"},
 			})
@@ -269,7 +269,7 @@ var _ = Describe("Build", func() {
 			resourceConfigScope2, err := resource2.SetResourceConfig(atc.Source{"some": "other-source"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope2.SaveVersions([]atc.Version{
+			err = resourceConfigScope2.SaveVersions(nil, []atc.Version{
 				{"ver": "1"},
 				{"ver": "2"},
 				{"ver": "3"},
@@ -869,7 +869,7 @@ var _ = Describe("Build", func() {
 			var rcv db.ResourceConfigVersion
 
 			BeforeEach(func() {
-				err := resourceConfigScope.SaveVersions([]atc.Version{{"some": "version"}})
+				err := resourceConfigScope.SaveVersions(nil, []atc.Version{{"some": "version"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				var found bool
@@ -1079,7 +1079,7 @@ var _ = Describe("Build", func() {
 			_, err = resource2.SetResourceConfig(atc.Source{"some": "source-2"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope1.SaveVersions([]atc.Version{
+			err = resourceConfigScope1.SaveVersions(nil, []atc.Version{
 				{"ver": "1"},
 				{"ver": "2"},
 			})
@@ -1436,7 +1436,7 @@ var _ = Describe("Build", func() {
 					resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceConfigScope.SaveVersions([]atc.Version{{"version": "v5"}})
+					err = resourceConfigScope.SaveVersions(nil, []atc.Version{{"version": "v5"}})
 					Expect(err).NotTo(HaveOccurred())
 
 					rcv, found, err = resourceConfigScope.FindVersion(atc.Version{"version": "v5"})
@@ -1826,7 +1826,7 @@ var _ = Describe("Build", func() {
 					resourceConfig1, err := resource1.SetResourceConfig(atc.Source{"some": "source-1"}, atc.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceConfig1.SaveVersions([]atc.Version{{"version": "v1"}})
+					err = resourceConfig1.SaveVersions(nil, []atc.Version{{"version": "v1"}})
 					Expect(err).NotTo(HaveOccurred())
 
 					version, found, err := resourceConfig1.FindVersion(atc.Version{"version": "v1"})
@@ -1968,7 +1968,7 @@ var _ = Describe("Build", func() {
 				resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceConfigScope.SaveVersions([]atc.Version{
+				err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 					{"version": "v1"},
 					{"version": "v2"},
 					{"version": "v3"},
@@ -1982,7 +1982,7 @@ var _ = Describe("Build", func() {
 				otherResourceConfigScope, err = otherResource.SetResourceConfig(atc.Source{"some": "other-source"}, atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = otherResourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "v1"}})
+				err = otherResourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"version": "v1"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				versions, _, found, err = resource.Versions(db.Page{Limit: 3}, nil)
@@ -2231,7 +2231,7 @@ var _ = Describe("Build", func() {
 				resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceConfigScope.SaveVersions([]atc.Version{
+				err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 					{"version": "v1"},
 					{"version": "v2"},
 					{"version": "v3"},
@@ -2245,7 +2245,7 @@ var _ = Describe("Build", func() {
 				otherResourceConfigScope, err = otherResource.SetResourceConfig(atc.Source{"some": "other-source"}, atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = otherResourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "v1"}})
+				err = otherResourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"version": "v1"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				versions, _, found, err = resource.Versions(db.Page{Limit: 3}, nil)
@@ -2507,7 +2507,7 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updated).To(BeTrue())
 
-				err = resourceConfigScope2.SaveVersions([]atc.Version{
+				err = resourceConfigScope2.SaveVersions(nil, []atc.Version{
 					{"ver": "1"},
 				})
 				Expect(err).ToNot(HaveOccurred())

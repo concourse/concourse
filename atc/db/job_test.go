@@ -1239,6 +1239,7 @@ var _ = Describe("Job", func() {
 			job                 db.Job
 			resourceConfigScope db.ResourceConfigScope
 			resource            db.Resource
+			spanContext         db.SpanContext
 		)
 
 		BeforeEach(func() {
@@ -1307,11 +1308,15 @@ var _ = Describe("Job", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{
-				{"version": "v1"},
-				{"version": "v2"},
-				{"version": "v3"},
-			})
+			spanContext = db.SpanContext{"fake": "version"}
+			err = resourceConfigScope.SaveVersions(
+				spanContext,
+				[]atc.Version{
+					{"version": "v1"},
+					{"version": "v2"},
+					{"version": "v3"},
+				},
+			)
 			Expect(err).NotTo(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
@@ -1388,18 +1393,21 @@ var _ = Describe("Job", func() {
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v1"},
 						FirstOccurrence: false,
+						SpanContext:     spanContext,
 					},
 					{
 						Name:            "some-input-2",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v2"},
 						FirstOccurrence: false,
+						SpanContext:     spanContext,
 					},
 					{
 						Name:            "some-input-3",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v3"},
 						FirstOccurrence: false,
+						SpanContext:     spanContext,
 					},
 				}
 
@@ -1446,7 +1454,7 @@ var _ = Describe("Job", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 				{"version": "v1"},
 				{"version": "v2"},
 				{"version": "v3"},
@@ -2255,7 +2263,7 @@ var _ = Describe("Job", func() {
 					resourceConfigScope, err := pinnedResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 
-					err = resourceConfigScope.SaveVersions([]atc.Version{
+					err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 						{"api": "pinned"},
 					})
 					Expect(err).NotTo(HaveOccurred())
@@ -2382,7 +2390,7 @@ var _ = Describe("Job", func() {
 				resourceConfigScope, err := pinnedResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceConfigScope.SaveVersions([]atc.Version{
+				err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 					{"some": "version"},
 				})
 				Expect(err).NotTo(HaveOccurred())

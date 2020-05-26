@@ -229,11 +229,11 @@ var _ = Describe("Check", func() {
 		})
 
 		It("does not update span context for pre-existing versions", func() {
-			err := check.SaveVersions(
+			check.SaveVersions(
 				map[string]string{"new": "span"},
 				[]atc.Version{{"some": "version"}},
 			)
-			version, _, err := resourceConfigScope.LatestVersion()
+			version, _, _ := resourceConfigScope.LatestVersion()
 			Expect(version.SpanContext()).To(HaveKeyWithValue("fake", Equal("span")))
 		})
 	})
