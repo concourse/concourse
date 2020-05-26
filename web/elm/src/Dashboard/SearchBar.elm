@@ -233,7 +233,7 @@ view :
             , dropdown : Dropdown
             , teams : FetchResult (List Concourse.Team)
             , highDensity : Bool
-            , pipelines : Maybe (List Pipeline)
+            , pipelines : FetchResult (List Pipeline)
         }
     -> Html Message
 view session ({ query, dropdown, pipelines } as params) =
@@ -246,7 +246,7 @@ view session ({ query, dropdown, pipelines } as params) =
 
         noPipelines =
             pipelines
-                |> Maybe.withDefault []
+                |> FetchResult.withDefault []
                 |> List.isEmpty
     in
     if noPipelines then
@@ -304,7 +304,7 @@ viewDropdownItems :
             | query : String
             , dropdown : Dropdown
             , teams : FetchResult (List Concourse.Team)
-            , pipelines : Maybe (List Pipeline)
+            , pipelines : FetchResult (List Pipeline)
         }
     -> List (Html Message)
 viewDropdownItems { screenSize } ({ dropdown } as model) =
@@ -328,7 +328,7 @@ viewDropdownItems { screenSize } ({ dropdown } as model) =
             ]
 
 
-dropdownOptions : { a | query : String, teams : FetchResult (List Concourse.Team), pipelines : Maybe (List Pipeline) } -> List String
+dropdownOptions : { a | query : String, teams : FetchResult (List Concourse.Team), pipelines : FetchResult (List Pipeline) } -> List String
 dropdownOptions { query, teams, pipelines } =
     case String.trim query of
         "" ->
@@ -352,7 +352,7 @@ dropdownOptions { query, teams, pipelines } =
                     |> Set.fromList
                 )
                 (pipelines
-                    |> Maybe.withDefault []
+                    |> FetchResult.withDefault []
                     |> List.map .teamName
                     |> Set.fromList
                 )

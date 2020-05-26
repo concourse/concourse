@@ -2,6 +2,7 @@ module FetchResult exposing
     ( FetchResult(..)
     , changedFrom
     , map
+    , value
     , withDefault
     )
 

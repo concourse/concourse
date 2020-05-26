@@ -70,7 +70,7 @@ type alias FooterModel r =
         | hideFooter : Bool
         , hideFooterCounter : Int
         , showHelp : Bool
-        , pipelines : Maybe (List Dashboard.Group.Models.Pipeline)
+        , pipelines : FetchResult (List Dashboard.Group.Models.Pipeline)
         , dropdown : Dropdown
         , highDensity : Bool
     }

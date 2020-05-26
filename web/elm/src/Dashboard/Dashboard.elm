@@ -90,7 +90,7 @@ init searchType =
       , query = Routes.extractQuery searchType
       , pipelinesWithResourceErrors = Dict.empty
       , jobs = None
-      , pipelines = Nothing
+      , pipelines = None
       , pipelineLayers = Dict.empty
       , teams = None
       , isUserMenuExpanded = False
@@ -267,7 +267,7 @@ handleCallback callback ( model, effects ) =
                                 , jobs = Fetched Dict.empty
                                 , pipelines =
                                     model.pipelines
-                                        |> Maybe.map
+                                        |> FetchResult.map
                                             (List.map
                                                 (\p ->
                                                     { p | jobsDisabled = True }
@@ -323,7 +323,7 @@ handleCallback callback ( model, effects ) =
                 newPipelines =
                     allPipelinesInEntireCluster
                         |> List.map (toDashboardPipeline False (model.jobsError == Just Disabled))
-                        |> Just
+                        |> Fetched
             in
             ( { model
                 | pipelines = newPipelines
@@ -431,7 +431,7 @@ updatePipeline updater pipelineId model =
     { model
         | pipelines =
             model.pipelines
-                |> Maybe.map
+                |> FetchResult.map
                     (List.Extra.updateIf
                         (\p ->
                             p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
@@ -466,7 +466,7 @@ handleDeliveryBody delivery ( model, effects ) =
                 newPipelines =
                     pipelines
                         |> List.map (toDashboardPipeline True (model.jobsError == Just Disabled))
-                        |> Just
+                        |> Cached
             in
             if newPipelines |> pipelinesChangedFrom model.pipelines then
                 ( { model | pipelines = newPipelines }, effects )
@@ -622,14 +622,14 @@ updateBody msg ( model, effects ) =
                     let
                         teamStartIndex =
                             model.pipelines
-                                |> Maybe.withDefault []
+                                |> FetchResult.withDefault []
                                 |> List.Extra.findIndex (\p -> p.teamName == teamName)
 
                         pipelines =
                             case teamStartIndex of
                                 Just teamStartIdx ->
                                     model.pipelines
-                                        |> Maybe.withDefault []
+                                        |> FetchResult.withDefault []
                                         |> Drag.drag
                                             (teamStartIdx + dragIdx)
                                             (teamStartIdx
@@ -643,10 +643,10 @@ updateBody msg ( model, effects ) =
                                             )
 
                                 _ ->
-                                    model.pipelines |> Maybe.withDefault []
+                                    model.pipelines |> FetchResult.withDefault []
                     in
                     ( { model
-                        | pipelines = Just pipelines
+                        | pipelines = Fetched pipelines
                         , dragState = NotDragging
                         , dropState = DroppingWhileApiRequestInFlight teamName
                       }
@@ -670,7 +670,7 @@ updateBody msg ( model, effects ) =
         Click LogoutButton ->
             ( { model
                 | teams = None
-                , pipelines = Nothing
+                , pipelines = None
                 , jobs = None
               }
             , effects
@@ -680,7 +680,7 @@ updateBody msg ( model, effects ) =
             let
                 isPaused =
                     model.pipelines
-                        |> Maybe.withDefault []
+                        |> FetchResult.withDefault []
                         |> List.Extra.find
                             (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
                         |> Maybe.map .paused
@@ -702,7 +702,7 @@ updateBody msg ( model, effects ) =
             let
                 isPublic =
                     model.pipelines
-                        |> Maybe.withDefault []
+                        |> FetchResult.withDefault []
                         |> List.Extra.find
                             (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
                         |> Maybe.map .public
@@ -902,7 +902,7 @@ dashboardView session model =
                 :: onScroll Scrolled
                 :: Styles.content model.highDensity
             )
-            (case model.pipelines of
+            (case FetchResult.value model.pipelines of
                 Nothing ->
                     [ loadingView ]
 
@@ -1035,7 +1035,7 @@ pipelinesView :
             , highDensity : Bool
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
-            , pipelines : Maybe (List Pipeline)
+            , pipelines : FetchResult (List Pipeline)
             , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
             , dragState : DragState
             , dropState : DropState
@@ -1050,7 +1050,7 @@ pipelinesView session params =
     let
         pipelines =
             params.pipelines
-                |> Maybe.withDefault []
+                |> FetchResult.withDefault []
                 |> List.filter (not << .archived)
 
         jobs =
@@ -1131,7 +1131,7 @@ pipelinesView session params =
                    )
     in
     if
-        (params.pipelines /= Nothing)
+        (params.pipelines /= None)
             && List.isEmpty groupViews
             && not (String.isEmpty params.query)
     then
