@@ -128,7 +128,7 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	fmt.Println("")
 
-	return command.saveTarget(
+	err = command.saveTarget(
 		client.URL(),
 		&rc.TargetToken{
 			Type:  tokenType,
@@ -136,6 +136,31 @@ func (command *LoginCommand) Execute(args []string) error {
 		},
 		target.CACert(),
 	)
+	if err != nil {
+		return err
+	}
+
+	authenticatedTarget, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
+	if err != nil {
+		return err
+	}
+
+	userInfo, err := authenticatedTarget.Client().UserInfo()
+	if err != nil {
+		return err
+	}
+
+	teams, ok := userInfo["teams"].(map[string]interface{})
+	if ok {
+		_, ok := teams[command.TeamName]
+		if !ok {
+			return errors.New("you are not a member of '" + command.TeamName + "' or the team does not exist")
+		}
+	} else {
+		return errors.New("unable to verify role on team")
+	}
+
+	return err
 }
 
 func (command *LoginCommand) passwordGrant(client concourse.Client, username, password string) (string, string, error) {
