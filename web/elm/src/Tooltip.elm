@@ -89,14 +89,6 @@ position { direction, alignment } { element, viewport } =
                 ( Right, End ) ->
                     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
 
-        -- ( Bottom, _ ) ->
-        --     [ style "top" <| String.fromFloat (target.y + target.height) ++ "px" ]
-        -- ( Left, Start ) ->
-        --     [ style "top" <| String.fromFloat target.y ++ "px" ]
-        -- ( Left, Middle height ) ->
-        --     [ style "top" <| String.fromFloat (target.y + (target.height - height) / 2) ++ "px" ]
-        -- ( Left, End ) ->
-        --     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
         horizontal =
             case ( direction, alignment ) of
                 ( Top, Start ) ->
@@ -110,15 +102,6 @@ position { direction, alignment } { element, viewport } =
 
                 ( Right, _ ) ->
                     [ style "left" <| String.fromFloat (target.x + target.width) ++ "px" ]
-
-        -- ( Bottom, Start ) ->
-        --     [ style "left" <| String.fromFloat target.x ++ "px" ]
-        -- ( Bottom, Middle width ) ->
-        --     [ style "left" <| String.fromFloat (target.x + (target.width - width) / 2) ++ "px" ]
-        -- ( Bottom, End ) ->
-        --     [ style "right" <| String.fromFloat (target.x + target.width) ++ "px" ]
-        -- ( Left, _ ) ->
-        --     [ style "right" <| String.fromFloat (viewport.width - target.x) ++ "px" ]
     in
     [ style "position" "fixed", style "z-index" "100" ] ++ vertical ++ horizontal
 
