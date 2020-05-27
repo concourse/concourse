@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 
+	"go.opentelemetry.io/otel/api/core"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/key"
 	"go.opentelemetry.io/otel/api/propagators"
@@ -13,10 +14,15 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-type TestTraceProvider struct{}
+type TestTraceProvider struct {
+	tracer *testtrace.Tracer
+}
 
 func (tp *TestTraceProvider) Tracer(name string) trace.Tracer {
-	return testtrace.NewTracer()
+	if tp.tracer == nil {
+		tp.tracer = testtrace.NewTracer()
+	}
+	return tp.tracer
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Tracer
@@ -92,20 +98,7 @@ func StartSpan(
 	component string,
 	attrs Attrs,
 ) (context.Context, trace.Span) {
-	if !Configured {
-		return ctx, trace.NoopSpan{}
-	}
-
-	ctx, span := global.TraceProvider().Tracer("concourse").Start(
-		ctx,
-		component,
-	)
-
-	if len(attrs) != 0 {
-		span.SetAttributes(keyValueSlice(attrs)...)
-	}
-
-	return ctx, span
+	return startSpan(ctx, component, attrs)
 }
 
 func FromContext(ctx context.Context) trace.Span {
@@ -120,20 +113,66 @@ type WithSpanContext interface {
 	SpanContext() propagators.Supplier
 }
 
-func StartSpanFollowing(following WithSpanContext, component string, attrs Attrs) (context.Context, trace.Span) {
-	if !Configured {
-		return context.Background(), trace.NoopSpan{}
+func StartSpanFollowing(
+	ctx context.Context,
+	following WithSpanContext,
+	component string,
+	attrs Attrs,
+) (context.Context, trace.Span) {
+	supplier := following.SpanContext()
+	var spanContext core.SpanContext
+	if supplier == nil {
+		spanContext = core.EmptySpanContext()
+	} else {
+		spanContext, _ = propagators.TraceContext{}.Extract(
+			context.TODO(),
+			following.SpanContext(),
+		)
 	}
 
-	spanContext, _ := propagators.TraceContext{}.Extract(
+	return startSpan(
+		ctx,
+		component,
+		attrs,
+		trace.FollowsFrom(spanContext),
+	)
+}
+
+func StartSpanLinkedToFollowing(
+	linked context.Context,
+	following WithSpanContext,
+	component string,
+	attrs Attrs,
+) (context.Context, trace.Span) {
+	followingSpanContext, _ := propagators.TraceContext{}.Extract(
 		context.TODO(),
 		following.SpanContext(),
 	)
+	linkedSpanContext := trace.SpanFromContext(linked).SpanContext()
 
-	ctx, span := global.TraceProvider().Tracer("concourse").Start(
+	return startSpan(
 		context.Background(),
 		component,
-		trace.FollowsFrom(spanContext),
+		attrs,
+		trace.FollowsFrom(followingSpanContext),
+		trace.LinkedTo(linkedSpanContext),
+	)
+}
+
+func startSpan(
+	ctx context.Context,
+	component string,
+	attrs Attrs,
+	opts ...trace.StartOption,
+) (context.Context, trace.Span) {
+	if !Configured {
+		return ctx, trace.NoopSpan{}
+	}
+
+	ctx, span := global.TraceProvider().Tracer("concourse").Start(
+		ctx,
+		component,
+		opts...,
 	)
 
 	if len(attrs) != 0 {

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -89,7 +90,7 @@ type Job interface {
 	Build(name string) (Build, bool, error)
 	FinishedAndNextBuild() (Build, Build, error)
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
-	EnsurePendingBuildExists() error
+	EnsurePendingBuildExists(context.Context) error
 	GetPendingBuilds() ([]Build, error)
 
 	GetNextBuildInputs() ([]BuildInput, error)
@@ -660,7 +661,13 @@ func (j *job) GetNextBuildInputs() ([]BuildInput, error) {
 	return buildInputs, nil
 }
 
-func (j *job) EnsurePendingBuildExists() error {
+func (j *job) EnsurePendingBuildExists(ctx context.Context) error {
+	defer tracing.FromContext(ctx).End()
+	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
+	if err != nil {
+		return err
+	}
+
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return err
@@ -674,12 +681,12 @@ func (j *job) EnsurePendingBuildExists() error {
 	}
 
 	rows, err := tx.Query(`
-		INSERT INTO builds (name, job_id, pipeline_id, team_id, status, needs_v6_migration)
-		SELECT $1, $2, $3, $4, 'pending', false
+		INSERT INTO builds (name, job_id, pipeline_id, team_id, status, needs_v6_migration, span_context)
+		SELECT $1, $2, $3, $4, 'pending', false, $5
 		WHERE NOT EXISTS
 			(SELECT id FROM builds WHERE job_id = $2 AND status = 'pending')
 		RETURNING id
-	`, buildName, j.id, j.pipelineID, j.teamID)
+	`, buildName, j.id, j.pipelineID, j.teamID, string(spanContextJSON))
 	if err != nil {
 		return err
 	}
@@ -1335,7 +1342,7 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 			Version:         version,
 			FirstOccurrence: firstOccurrence,
 			ResolveError:    resolveError,
-			SpanContext:     spanContext,
+			Context:         spanContext,
 		})
 	}
 

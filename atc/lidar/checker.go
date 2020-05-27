@@ -51,6 +51,7 @@ func (c *checker) Run(ctx context.Context) error {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
 			go func(check db.Check) {
 				spanCtx, span := tracing.StartSpanFollowing(
+					ctx,
 					check,
 					"checker.Run",
 					tracing.Attrs{

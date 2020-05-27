@@ -2,6 +2,7 @@
 package dbfakes
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -132,9 +133,10 @@ type FakeJob struct {
 	disableManualTriggerReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	EnsurePendingBuildExistsStub        func() error
+	EnsurePendingBuildExistsStub        func(context.Context) error
 	ensurePendingBuildExistsMutex       sync.RWMutex
 	ensurePendingBuildExistsArgsForCall []struct {
+		arg1 context.Context
 	}
 	ensurePendingBuildExistsReturns struct {
 		result1 error
@@ -1024,15 +1026,16 @@ func (fake *FakeJob) DisableManualTriggerReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeJob) EnsurePendingBuildExists() error {
+func (fake *FakeJob) EnsurePendingBuildExists(arg1 context.Context) error {
 	fake.ensurePendingBuildExistsMutex.Lock()
 	ret, specificReturn := fake.ensurePendingBuildExistsReturnsOnCall[len(fake.ensurePendingBuildExistsArgsForCall)]
 	fake.ensurePendingBuildExistsArgsForCall = append(fake.ensurePendingBuildExistsArgsForCall, struct {
-	}{})
-	fake.recordInvocation("EnsurePendingBuildExists", []interface{}{})
+		arg1 context.Context
+	}{arg1})
+	fake.recordInvocation("EnsurePendingBuildExists", []interface{}{arg1})
 	fake.ensurePendingBuildExistsMutex.Unlock()
 	if fake.EnsurePendingBuildExistsStub != nil {
-		return fake.EnsurePendingBuildExistsStub()
+		return fake.EnsurePendingBuildExistsStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1047,10 +1050,17 @@ func (fake *FakeJob) EnsurePendingBuildExistsCallCount() int {
 	return len(fake.ensurePendingBuildExistsArgsForCall)
 }
 
-func (fake *FakeJob) EnsurePendingBuildExistsCalls(stub func() error) {
+func (fake *FakeJob) EnsurePendingBuildExistsCalls(stub func(context.Context) error) {
 	fake.ensurePendingBuildExistsMutex.Lock()
 	defer fake.ensurePendingBuildExistsMutex.Unlock()
 	fake.EnsurePendingBuildExistsStub = stub
+}
+
+func (fake *FakeJob) EnsurePendingBuildExistsArgsForCall(i int) context.Context {
+	fake.ensurePendingBuildExistsMutex.RLock()
+	defer fake.ensurePendingBuildExistsMutex.RUnlock()
+	argsForCall := fake.ensurePendingBuildExistsArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeJob) EnsurePendingBuildExistsReturns(result1 error) {

@@ -11,8 +11,10 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/trace/testtrace"
 )
 
 var _ = Describe("Scheduler", func() {
@@ -23,6 +25,7 @@ var _ = Describe("Scheduler", func() {
 		scheduler *Scheduler
 
 		disaster error
+		ctx      context.Context
 	)
 
 	BeforeEach(func() {
@@ -48,13 +51,14 @@ var _ = Describe("Scheduler", func() {
 			fakeJob = new(dbfakes.FakeJob)
 			fakePipeline = new(dbfakes.FakePipeline)
 			fakePipeline.NameReturns("fake-pipeline")
+			ctx = context.Background()
 		})
 
 		JustBeforeEach(func() {
 			var waiter interface{ Wait() }
 
 			_, scheduleErr = scheduler.Schedule(
-				context.TODO(),
+				ctx,
 				lagertest.NewTestLogger("test"),
 				db.SchedulerJob{
 					Job: fakeJob,
@@ -402,6 +406,61 @@ var _ = Describe("Scheduler", func() {
 						Expect(fakeJob.SetHasNewInputsCallCount()).To(Equal(0))
 					})
 				})
+			})
+		})
+
+		Context("when multiple first occurrence inputs have trigger: true and tracing is configured", func() {
+			var inputCtx1, inputCtx2 context.Context
+
+			BeforeEach(func() {
+				fakeJob.NameReturns("some-job")
+				fakeJob.AlgorithmInputsReturns(db.InputConfigs{
+					{Name: "a", Trigger: true},
+					{Name: "b", Trigger: false},
+					{Name: "c", Trigger: true},
+				}, nil)
+				fakeBuildStarter.TryStartPendingBuildsForJobReturns(false, nil)
+				fakeJob.SaveNextInputMappingReturns(nil)
+
+				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+
+				ctx, _ = tracing.StartSpan(context.Background(), "scheduler.Run", nil)
+				inputCtx1, _ = tracing.StartSpan(context.Background(), "checker.Run", nil)
+				inputCtx2, _ = tracing.StartSpan(context.Background(), "checker.Run", nil)
+				fakeJob.GetFullNextBuildInputsReturns([]db.BuildInput{
+					{
+						Name:            "a",
+						Version:         atc.Version{"ref": "v1"},
+						ResourceID:      11,
+						FirstOccurrence: true,
+						Context:         db.NewSpanContext(inputCtx1),
+					},
+					{
+						Name:            "b",
+						Version:         atc.Version{"ref": "v2"},
+						ResourceID:      12,
+						FirstOccurrence: false,
+					},
+					{
+						Name:            "c",
+						Version:         atc.Version{"ref": "v3"},
+						ResourceID:      13,
+						FirstOccurrence: true,
+						Context:         db.NewSpanContext(inputCtx2),
+					},
+				}, true, nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("starts a linked span", func() {
+				pendingBuildCtx := fakeJob.EnsurePendingBuildExistsArgsForCall(0)
+				span := tracing.FromContext(pendingBuildCtx).(*testtrace.Span)
+				Expect(span.Links()).To(HaveLen(1))
+				Expect(span.Links()).To(HaveKey(tracing.FromContext(ctx).SpanContext()))
+				Expect(span.ParentSpanID()).To(Equal(tracing.FromContext(inputCtx1).SpanContext().SpanID))
 			})
 		})
 
