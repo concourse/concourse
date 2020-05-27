@@ -220,6 +220,77 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
+			Context("when --include-archived is specified", func() {
+				Context("when --all flag is given", func() {
+
+					It("includes archived pipelines in the output", func() {
+						flyCmd = exec.Command(flyPath, "-t", targetName, "pipelines", "--include-archived", "--all")
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+								ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+									{Name: "pipeline-1-longer", Paused: false, Public: false, TeamName: "test", LastUpdated: 1},
+									{Name: "archived-pipeline", Paused: true, Archived: true, Public: true, TeamName: "main", LastUpdated: 1},
+								}),
+							),
+						)
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess).Should(gexec.Exit(0))
+
+						Expect(sess.Out).To(PrintTable(ui.Table{
+							Headers: ui.TableRow{
+								{Contents: "name", Color: color.New(color.Bold)},
+								{Contents: "team", Color: color.New(color.Bold)},
+								{Contents: "paused", Color: color.New(color.Bold)},
+								{Contents: "public", Color: color.New(color.Bold)},
+								{Contents: "archived", Color: color.New(color.Bold)},
+								{Contents: "last updated", Color: color.New(color.Bold)},
+							},
+							Data: []ui.TableRow{
+								{{Contents: "pipeline-1-longer"}, {Contents: "test"}, {Contents: "no"}, {Contents: "no"}, {Contents: "no"}, {Contents: time.Unix(1, 0).String()}},
+								{{Contents: "archived-pipeline"}, {Contents: "main"}, {Contents: "yes"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "yes"}, {Contents: time.Unix(1, 0).String()}},
+							},
+						}))
+					})
+				})
+				Context("when no --all flag is given", func() {
+
+					It("includes archived pipelines in the output", func() {
+						flyCmd = exec.Command(flyPath, "-t", targetName, "pipelines", "--include-archived")
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+								ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+									{Name: "pipeline-1-longer", Paused: false, Public: false, TeamName: "main", LastUpdated: 1},
+									{Name: "archived-pipeline", Paused: true, Archived: true, Public: true, TeamName: "main", LastUpdated: 1},
+								}),
+							),
+						)
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(sess).Should(gexec.Exit(0))
+
+						Expect(sess.Out).To(PrintTable(ui.Table{
+							Headers: ui.TableRow{
+								{Contents: "name", Color: color.New(color.Bold)},
+								{Contents: "team", Color: color.New(color.Bold)},
+								{Contents: "paused", Color: color.New(color.Bold)},
+								{Contents: "public", Color: color.New(color.Bold)},
+								{Contents: "archived", Color: color.New(color.Bold)},
+								{Contents: "last updated", Color: color.New(color.Bold)},
+							},
+							Data: []ui.TableRow{
+								{{Contents: "pipeline-1-longer"}, {Contents: "no"}, {Contents: "no"}, {Contents: "no"}, {Contents: time.Unix(1, 0).String()}},
+								{{Contents: "archived-pipeline"}, {Contents: "yes"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "yes"}, {Contents: time.Unix(1, 0).String()}},
+							},
+						}))
+					})
+				})
+			})
+
 			Context("completion", func() {
 				BeforeEach(func() {
 					flyCmd = exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "some-")
