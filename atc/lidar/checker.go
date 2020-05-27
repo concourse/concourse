@@ -17,12 +17,15 @@ func NewChecker(
 	logger lager.Logger,
 	checkFactory db.CheckFactory,
 	engine engine.Engine,
+	resourceCheckingMaxInFlight uint64,
 ) *checker {
+	newGuardResourceChecking := make(chan struct{}, resourceCheckingMaxInFlight)
 	return &checker{
-		logger:       logger,
-		checkFactory: checkFactory,
-		engine:       engine,
-		running:      &sync.Map{},
+		logger:                logger,
+		checkFactory:          checkFactory,
+		engine:                engine,
+		running:               &sync.Map{},
+		guardResourceChecking: newGuardResourceChecking,
 	}
 }
 
@@ -32,7 +35,8 @@ type checker struct {
 	checkFactory db.CheckFactory
 	engine       engine.Engine
 
-	running *sync.Map
+	guardResourceChecking chan struct{}
+	running               *sync.Map
 }
 
 func (c *checker) Run(ctx context.Context) error {
@@ -49,7 +53,13 @@ func (c *checker) Run(ctx context.Context) error {
 
 	for _, ck := range checks {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
+			c.guardResourceChecking <- struct{}{}
+
 			go func(check db.Check) {
+				defer func() {
+					<-c.guardResourceChecking
+				}()
+
 				spanCtx, span := tracing.StartSpanFollowing(
 					check,
 					"checker.Run",
