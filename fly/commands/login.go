@@ -128,24 +128,21 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	fmt.Println("")
 
-	err = command.saveTarget(
+	verifyTarget, err := rc.NewAuthenticatedTarget("verify",
 		client.URL(),
+		command.TeamName,
+		command.Insecure,
 		&rc.TargetToken{
 			Type:  tokenType,
 			Value: tokenValue,
 		},
 		target.CACert(),
-	)
+		false)
 	if err != nil {
 		return err
 	}
 
-	authenticatedTarget, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
-	if err != nil {
-		return err
-	}
-
-	userInfo, err := authenticatedTarget.Client().UserInfo()
+	userInfo, err := verifyTarget.Client().UserInfo()
 	if err != nil {
 		return err
 	}
@@ -160,7 +157,14 @@ func (command *LoginCommand) Execute(args []string) error {
 		return errors.New("unable to verify role on team")
 	}
 
-	return err
+	return command.saveTarget(
+		client.URL(),
+		&rc.TargetToken{
+			Type:  tokenType,
+			Value: tokenValue,
+		},
+		target.CACert(),
+	)
 }
 
 func (command *LoginCommand) passwordGrant(client concourse.Client, username, password string) (string, string, error) {
