@@ -87,3 +87,84 @@ func (s *RootfsManagerSuite) TestSetupCwdWithoutIDMappings() {
 	s.Equal(expectedPath, path)
 	s.Equal(expectedMode, mode)
 }
+
+func (s *RootfsManagerSuite) TestLookupUserReturnsUserInfo() {
+	mgr := runtime.NewRootfsManager()
+	s.writeEtcPasswd(`
+		root:*:0:0:System Administrator:/var/root:/bin/sh
+		some_user_name:*:1:1:Some User:/var/root:/usr/bin/false
+	`)
+	actualUser, ok, err := mgr.LookupUser(s.baseSpec, "some_user_name")
+	s.NoError(err)
+
+	s.True(ok)
+	expectedUser := specs.User{
+		UID: 1,
+		GID: 1,
+	}
+	s.Equal(expectedUser, actualUser)
+}
+
+func (s *RootfsManagerSuite) TestLookupUserUsernameNotFound() {
+	mgr := runtime.NewRootfsManager()
+
+	s.writeEtcPasswd(`
+		root:*:0:0:System Administrator:/var/root:/bin/sh
+		some_user_name:*:1:1:Some User:/var/root:/usr/bin/false
+	`)
+
+	_, ok, err := mgr.LookupUser(s.baseSpec, "missing_username")
+	s.NoError(err)
+	s.False(ok)
+}
+
+func (s *RootfsManagerSuite) TestLookupUserInvalidUID() {
+	mgr := runtime.NewRootfsManager()
+
+	s.writeEtcPasswd(`
+		some_user_name:*:NaN:0:System Administrator:/var/root:/bin/sh
+	`)
+
+	_, _, err := mgr.LookupUser(s.baseSpec, "some_user_name")
+	s.Error(err)
+}
+
+func (s *RootfsManagerSuite) TestLookupUserInvalidGID() {
+	mgr := runtime.NewRootfsManager()
+
+	s.writeEtcPasswd(`
+		some_user_name:*:0:NaN:System Administrator:/var/root:/bin/sh
+	`)
+
+	_, _, err := mgr.LookupUser(s.baseSpec, "some_user_name")
+	s.Error(err)
+}
+
+func (s *RootfsManagerSuite) TestLookupUserEtcPasswdNotFound() {
+	mgr := runtime.NewRootfsManager()
+
+	_, _, err := mgr.LookupUser(s.baseSpec, "username")
+	s.Error(err)
+}
+
+func (s *RootfsManagerSuite) TestLookupUserIgnoreNonUserInfo() {
+	mgr := runtime.NewRootfsManager()
+	s.writeEtcPasswd(`
+		#This is etc passwd
+		root:*:0:0:System Administrator:/var/root:/bin/sh
+		some_user_name:*:1
+
+		some_user_name:*:1:1:Some User:/var/root:/usr/bin/false
+	`)
+	_, ok, err := mgr.LookupUser(s.baseSpec, "some_user_name")
+	s.NoError(err)
+	s.True(ok)
+}
+
+func (s *RootfsManagerSuite) writeEtcPasswd(contents string) {
+	err := os.MkdirAll(filepath.Join(s.rootfs, "etc"), 0755)
+	s.NoError(err)
+
+	err = ioutil.WriteFile(filepath.Join(s.rootfs, "etc", "passwd"), []byte(contents), 0755)
+	s.NoError(err)
+}
