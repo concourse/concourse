@@ -15,8 +15,6 @@ import (
 	"strings"
 	"time"
 
-	export "go.opentelemetry.io/otel/sdk/export/trace"
-
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse"

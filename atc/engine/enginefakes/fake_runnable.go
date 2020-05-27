@@ -2,31 +2,33 @@
 package enginefakes
 
 import (
+	"context"
 	"sync"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/engine"
 )
 
 type FakeRunnable struct {
-	RunStub        func(lager.Logger)
+	RunStub        func(context.Context, context.CancelFunc)
 	runMutex       sync.RWMutex
 	runArgsForCall []struct {
-		arg1 lager.Logger
+		arg1 context.Context
+		arg2 context.CancelFunc
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRunnable) Run(arg1 lager.Logger) {
+func (fake *FakeRunnable) Run(arg1 context.Context, arg2 context.CancelFunc) {
 	fake.runMutex.Lock()
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.recordInvocation("Run", []interface{}{arg1})
+		arg1 context.Context
+		arg2 context.CancelFunc
+	}{arg1, arg2})
+	fake.recordInvocation("Run", []interface{}{arg1, arg2})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
-		fake.RunStub(arg1)
+		fake.RunStub(arg1, arg2)
 	}
 }
 
@@ -36,17 +38,17 @@ func (fake *FakeRunnable) RunCallCount() int {
 	return len(fake.runArgsForCall)
 }
 
-func (fake *FakeRunnable) RunCalls(stub func(lager.Logger)) {
+func (fake *FakeRunnable) RunCalls(stub func(context.Context, context.CancelFunc)) {
 	fake.runMutex.Lock()
 	defer fake.runMutex.Unlock()
 	fake.RunStub = stub
 }
 
-func (fake *FakeRunnable) RunArgsForCall(i int) lager.Logger {
+func (fake *FakeRunnable) RunArgsForCall(i int) (context.Context, context.CancelFunc) {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
 	argsForCall := fake.runArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeRunnable) Invocations() map[string][][]interface{} {

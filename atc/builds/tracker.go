@@ -1,9 +1,11 @@
 package builds
 
 import (
+	"context"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/metric"
@@ -52,12 +54,18 @@ func (bt *Tracker) Track() error {
 				metric.BuildsRunning.Inc()
 				defer metric.BuildsRunning.Dec()
 
-				engineBuild := bt.engine.NewBuild(build)
-				engineBuild.Run(tLog.WithData(lager.Data{
-					"build":    build.ID(),
-					"pipeline": build.PipelineName(),
-					"job":      build.JobName(),
-				}))
+				ctx, cancel := context.WithCancel(context.Background())
+				bt.engine.NewBuild(build).Run(
+					lagerctx.NewContext(
+						ctx,
+						tLog.WithData(lager.Data{
+							"build":    build.ID(),
+							"pipeline": build.PipelineName(),
+							"job":      build.JobName(),
+						}),
+					),
+					cancel,
+				)
 			}(b)
 		}
 	}

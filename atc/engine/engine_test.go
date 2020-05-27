@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -69,7 +70,7 @@ var _ = Describe("Engine", func() {
 		})
 
 		JustBeforeEach(func() {
-			check = engine.NewCheck(context.Background(), fakeCheck)
+			check = engine.NewCheck(fakeCheck)
 		})
 
 		It("returns a build", func() {
@@ -81,21 +82,16 @@ var _ = Describe("Engine", func() {
 		var (
 			build     Runnable
 			release   chan bool
-			cancel    chan bool
 			waitGroup *sync.WaitGroup
 		)
 
 		BeforeEach(func() {
 
-			ctx := context.Background()
-			cancel = make(chan bool)
 			release = make(chan bool)
 			trackedStates := new(sync.Map)
 			waitGroup = new(sync.WaitGroup)
 
 			build = NewBuild(
-				ctx,
-				func() { cancel <- true },
 				fakeBuild,
 				fakeStepBuilder,
 				release,
@@ -105,14 +101,19 @@ var _ = Describe("Engine", func() {
 		})
 
 		Describe("Run", func() {
-			var logger lager.Logger
+			var (
+				logger lager.Logger
+				ctx    context.Context
+				cancel context.CancelFunc
+			)
 
 			BeforeEach(func() {
 				logger = lagertest.NewTestLogger("test")
+				ctx, cancel = context.WithCancel(context.TODO())
 			})
 
 			JustBeforeEach(func() {
-				build.Run(logger)
+				build.Run(lagerctx.NewContext(ctx, logger), cancel)
 			})
 
 			Context("when acquiring the lock succeeds", func() {
@@ -202,7 +203,7 @@ var _ = Describe("Engine", func() {
 
 								It("cancels the context", func() {
 									waitGroup.Wait()
-									Expect(<-cancel).To(BeTrue())
+									Expect(ctx.Done()).To(BeClosed())
 								})
 							})
 
@@ -363,21 +364,16 @@ var _ = Describe("Engine", func() {
 		var (
 			check     Runnable
 			release   chan bool
-			cancel    chan bool
 			waitGroup *sync.WaitGroup
 		)
 
 		BeforeEach(func() {
 
-			ctx := context.Background()
-			cancel = make(chan bool)
 			release = make(chan bool)
 			trackedStates := new(sync.Map)
 			waitGroup = new(sync.WaitGroup)
 
 			check = NewCheck(
-				ctx,
-				func() { cancel <- true },
 				fakeCheck,
 				fakeStepBuilder,
 				release,
@@ -399,7 +395,7 @@ var _ = Describe("Engine", func() {
 			})
 
 			JustBeforeEach(func() {
-				check.Run(logger)
+				check.Run(lagerctx.NewContext(context.TODO(), logger), func() {})
 			})
 
 			Context("when acquiring the lock succeeds", func() {

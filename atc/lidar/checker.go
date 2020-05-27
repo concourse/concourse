@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/metric"
@@ -49,7 +50,7 @@ func (c *checker) Run(ctx context.Context) error {
 	for _, ck := range checks {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
 			go func(check db.Check) {
-				ctx, span := tracing.StartSpanFollowing(
+				spanCtx, span := tracing.StartSpanFollowing(
 					check,
 					"checker.Run",
 					tracing.Attrs{
@@ -62,10 +63,16 @@ func (c *checker) Run(ctx context.Context) error {
 				defer span.End()
 				defer c.running.Delete(check.ID())
 
-				engineCheck := c.engine.NewCheck(ctx, check)
-				engineCheck.Run(c.logger.WithData(lager.Data{
-					"check": check.ID(),
-				}))
+				cancelCtx, cancel := context.WithCancel(spanCtx)
+				c.engine.NewCheck(check).Run(
+					lagerctx.NewContext(
+						cancelCtx,
+						c.logger.WithData(lager.Data{
+							"check": check.ID(),
+						}),
+					),
+					cancel,
+				)
 			}(ck)
 		}
 	}

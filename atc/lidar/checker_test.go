@@ -69,7 +69,10 @@ var _ = Describe("Checker", func() {
 		})
 
 		Context("when tracing is configured", func() {
-			var scanSpan trace.Span
+			var (
+				scanSpan     trace.Span
+				fakeRunnable *enginefakes.FakeRunnable
+			)
 
 			BeforeEach(func() {
 				tracing.ConfigureTraceProvider(&testTraceProvider{})
@@ -83,7 +86,8 @@ var _ = Describe("Checker", func() {
 					fakeCheck,
 				}, nil)
 
-				fakeEngine.NewCheckReturns(new(enginefakes.FakeRunnable))
+				fakeRunnable = new(enginefakes.FakeRunnable)
+				fakeEngine.NewCheckReturns(fakeRunnable)
 			})
 
 			AfterEach(func() {
@@ -91,8 +95,8 @@ var _ = Describe("Checker", func() {
 			})
 
 			It("propagates span context to check step", func() {
-				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(1))
-				ctx, _ := fakeEngine.NewCheckArgsForCall(0)
+				Eventually(fakeRunnable.RunCallCount).Should(Equal(1))
+				ctx, _ := fakeRunnable.RunArgsForCall(0)
 				span, ok := tracing.FromContext(ctx).(*testtrace.Span)
 				Expect(ok).To(BeTrue(), "no testtrace.Span in context")
 				Expect(span.ParentSpanID()).To(Equal(scanSpan.SpanContext().SpanID))
@@ -115,7 +119,7 @@ var _ = Describe("Checker", func() {
 					fakeCheck3,
 				}, nil)
 
-				fakeEngine.NewCheckStub = func(ctx context.Context, build db.Check) engine.Runnable {
+				fakeEngine.NewCheckStub = func(build db.Check) engine.Runnable {
 					time.Sleep(time.Second)
 					return new(enginefakes.FakeRunnable)
 				}
@@ -136,7 +140,7 @@ var _ = Describe("Checker", func() {
 				fakeCheck := new(dbfakes.FakeCheck)
 				fakeCheck.IDReturns(1)
 
-				fakeEngine.NewCheckStub = func(ctx context.Context, build db.Check) engine.Runnable {
+				fakeEngine.NewCheckStub = func(build db.Check) engine.Runnable {
 					time.Sleep(time.Second)
 					return new(enginefakes.FakeRunnable)
 				}
