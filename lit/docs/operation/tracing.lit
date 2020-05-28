@@ -8,7 +8,8 @@ Tracing in Concourse enables the delivery of traces related to the internal
 processes that go into running builds, and other internal operations, breaking
 them down by time, and component.
 
-It currently only integrates with \link{Jaeger}{https://www.jaegertracing.io/},
+It currently integrates with \link{Jaeger}{https://www.jaegertracing.io/} and
+\link{Google Cloud Trace}{https://cloud.google.com/trace} (Stackdriver),
 although support for other systems is planned to expand as the underlying SDK
 (\link{OpenTelemetry}{https://opentelemetry.io/}) evolves.
 
@@ -16,13 +17,21 @@ although support for other systems is planned to expand as the underlying SDK
 \section{
   \title{Configuring Tracing}
 
-  There's only one variable that is required to be set in order to leverage
-  Jaeger's integration with Concourse:
+  To export spans to Jaeger, specify the Thrift HTTP endpoint of the Jaeger
+  collector:
 
   \codeblock{bash}{{{
   CONCOURSE_TRACING_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
   }}}
 
-  This tells Concourse how to target Jaeger's Thrift HTTP endpoint to send the
-  traces to.
+  To export spans to Google Cloud Trace, specify the GCP Project ID:
+
+  \codeblock{bash}{{{
+  CONCOURSE_TRACING_STACKDRIVER_PROJECTID=your-gcp-project-id
+  }}}
+
+  Note that suitable GCP credentials must be available, via the usual
+  \link{\code{GOOGLE_APPLICATION_CREDENTIALS} environment variable}{https://cloud.google.com/docs/authentication/getting-started#setting_the_environment_variable},
+  the default location that the \code{gcloud} CLI expects, or from GCP's
+  metadata server (if Concourse is deployed on GCP).
 }
