@@ -6,6 +6,7 @@ resources:
     create_files:
       task.yml: ((task_content))
       task_unwrap.yml: ((task_unwrap_content))
+      foo.txt: bar
 
 jobs:
 - name: external-task-success
@@ -28,3 +29,16 @@ jobs:
     file: unwrapped-task-resource/task.yml
     vars:
       image_resource_type: mock
+
+- name: extarnal-task-vars-from-load-var
+  plan:
+  - get: some-resource
+  - load_var: foo
+    file: some-resource/foo.txt
+  - task: process-task-definition
+    file: some-resource/task_unwrap.yml
+  - task: run
+    file: unwrapped-task-resource/task.yml
+    vars:
+      image_resource_type: mock
+      echo_text: ((.:foo))

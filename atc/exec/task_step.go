@@ -157,8 +157,15 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		// external task - construct a source which reads it from file
 		taskConfigSource = FileConfigSource{ConfigPath: step.plan.ConfigPath, Client: step.workerClient}
 
-		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred variables
-		taskVars = []vars.Variables{vars.StaticVariables(step.plan.Vars), variables}
+		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred variables.
+		// this 2-phase strategy allows to interpolate 'vars' by cred variables.
+		if len(step.plan.Vars) > 0 {
+			taskConfigSource = InterpolateTemplateConfigSource{
+				ConfigSource: taskConfigSource,
+				Vars:         []vars.Variables{vars.StaticVariables(step.plan.Vars)},
+			}
+		}
+		taskVars = []vars.Variables{variables}
 	} else {
 		// embedded task - first we take it
 		taskConfigSource = StaticConfigSource{Config: step.plan.Config}

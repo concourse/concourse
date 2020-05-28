@@ -126,6 +126,13 @@ echo_text: Hello World From Command Line
 			})
 		})
 
+		Context("when vars are from load_var", func() {
+			It("successfully runs pipeline job with external task", func() {
+				execS := fly("trigger-job", "-w", "-j", pipelineName+"/extarnal-task-vars-from-load-var")
+				Expect(execS).To(gbytes.Say("bar"))
+			})
+		})
+
 	})
 
 })
