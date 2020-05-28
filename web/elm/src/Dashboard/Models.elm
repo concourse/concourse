@@ -10,9 +10,9 @@ module Dashboard.Models exposing
 import Concourse
 import Dashboard.Group.Models
 import Dict exposing (Dict)
-import Message.Effects exposing (Effect(..))
 import FetchResult exposing (FetchResult)
 import Login.Login as Login
+import Message.Effects exposing (Effect(..))
 import Time
 
 

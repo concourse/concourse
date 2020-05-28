@@ -28,6 +28,13 @@ type alias Tooltip =
     }
 
 
+
+-- Many tooltips, especially in crowded parts of the UI, have an extra
+-- triangular piece sticking out that points to the tooltip's target. Online
+-- this element is variously called a 'tail' or an 'arrow', with 'arrow'
+-- predominating.
+
+
 type alias Arrow =
     { size : Float
     , color : String
