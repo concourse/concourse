@@ -3,6 +3,7 @@ module DashboardTooltipTests exposing (all)
 import Dashboard.Dashboard as Dashboard
 import Data
 import Expect
+import FetchResult exposing (FetchResult(..))
 import HoverState exposing (HoverState(..))
 import Html
 import Message.Message exposing (DomID(..))
@@ -18,7 +19,7 @@ all =
             \_ ->
                 Dashboard.tooltip
                     { pipelines =
-                        Just
+                        Fetched
                             [ Data.dashboardPipeline 0 True ]
                     }
                     { hovered =
@@ -38,7 +39,7 @@ all =
             \_ ->
                 Dashboard.tooltip
                     { pipelines =
-                        Just
+                        Fetched
                             [ Data.dashboardPipeline 0 False ]
                     }
                     { hovered =
@@ -62,7 +63,7 @@ all =
                 in
                 Dashboard.tooltip
                     { pipelines =
-                        Just
+                        Fetched
                             [ { p | jobsDisabled = True } ]
                     }
                     { hovered =

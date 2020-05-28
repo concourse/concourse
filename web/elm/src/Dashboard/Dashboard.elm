@@ -780,7 +780,7 @@ view session model =
         ]
 
 
-tooltip : { a | pipelines : Maybe (List Pipeline) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip : { a | pipelines : FetchResult (List Pipeline) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
 tooltip model { hovered } =
     case hovered of
         HoverState.Tooltip (Message.PipelineStatusIcon _) _ ->
@@ -795,7 +795,7 @@ tooltip model { hovered } =
 
         HoverState.Tooltip (Message.VisibilityButton { teamName, pipelineName }) _ ->
             model.pipelines
-                |> Maybe.withDefault []
+                |> FetchResult.withDefault []
                 |> List.Extra.find
                     (\p ->
                         p.teamName == teamName && p.name == pipelineName
