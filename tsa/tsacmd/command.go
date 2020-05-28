@@ -149,13 +149,13 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 	// For now it only reload the TSACommand.AuthorizedKeys but any
 	// other configuration could be added
 	go func() {
+		// Set up channel on which to send signal notifications.
+		// We must use a buffered channel or risk missing the signal
+		// if we're not ready to receive when the signal is sent.
+		c := make(chan os.Signal, 1)
+		defer close(c)
+		signal.Notify(c, syscall.SIGHUP)
 		for {
-
-			// Set up channel on which to send signal notifications.
-			// We must use a buffered channel or risk missing the signal
-			// if we're not ready to receive when the signal is sent.
-			c := make(chan os.Signal, 1)
-			signal.Notify(c, syscall.SIGHUP)
 
 			// Block until a signal is received.
 			_ = <-c
