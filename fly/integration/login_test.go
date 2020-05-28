@@ -81,6 +81,7 @@ var _ = Describe("login Command", func() {
 			loginATCServer.AppendHandlers(
 				infoHandler(),
 				tokenHandler(),
+				userInfoHandler(),
 			)
 
 			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "user", "-p", "pass")
@@ -99,6 +100,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
+					userInfoHandler(),
 				)
 
 				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
@@ -110,6 +112,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
+					userInfoHandler(),
 				)
 
 				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-u", "user", "-p", "pass")
@@ -160,6 +163,7 @@ var _ = Describe("login Command", func() {
 			loginATCServer.AppendHandlers(
 				infoHandler(),
 				tokenHandler(),
+				userInfoHandler(),
 			)
 
 			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
@@ -178,6 +182,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
+					userInfoHandler(),
 				)
 
 				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
@@ -198,6 +203,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
+					userInfoHandler(),
 				)
 
 				flyCmd := exec.Command(flyPath, "--verbose", "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
@@ -217,6 +223,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
+					userInfoHandler(),
 				)
 
 				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "-u", "user", "-p", "pass")
@@ -228,6 +235,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
+					userInfoHandler(),
 				)
 
 				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-n", "some-other-team", "-u", "user", "-p", "pass")
@@ -264,6 +272,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
+					userInfoHandler(),
 				)
 
 				caCertFile, err := ioutil.TempFile("", "fly-login-test")
@@ -290,6 +299,7 @@ var _ = Describe("login Command", func() {
 					loginATCServer.AppendHandlers(
 						infoHandler(),
 						tokenHandler(),
+						userInfoHandler(),
 					)
 
 					flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-n", "some-team", "-u", "user", "-p", "pass")
@@ -321,6 +331,7 @@ var _ = Describe("login Command", func() {
 			BeforeEach(func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
+					userInfoHandler(),
 				)
 			})
 
@@ -433,6 +444,7 @@ var _ = Describe("login Command", func() {
 							"id_token":     "some-token",
 						}),
 					),
+					userInfoHandler(),
 				)
 			})
 
@@ -517,6 +529,7 @@ var _ = Describe("login Command", func() {
 									"id_token":     "some-new-id-token",
 								}),
 							),
+							userInfoHandler(),
 							infoHandler(),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
@@ -574,6 +587,7 @@ var _ = Describe("login Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
+					userInfoHandler(),
 				)
 			})
 
@@ -584,6 +598,60 @@ var _ = Describe("login Command", func() {
 				Eventually(sess).Should(gexec.Exit(0))
 				Expect(sess.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, atcVersion))
 				Expect(sess.Err).To(gbytes.Say(`fly.* -t some-target sync\n`))
+			})
+		})
+
+		Context("can successfully login", func() {
+			Context("team does not exist", func() {
+				It("returns a warning", func() {
+					loginATCServer.AppendHandlers(
+						infoHandler(),
+						tokenHandler(),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/user"),
+							ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+								"user_name": "user",
+								"teams": map[string][]string{
+									"other_team": {"owner"},
+								},
+							}),
+						),
+					)
+
+					flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "any-team", "-u", "user", "-p", "pass")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Err).Should(gbytes.Say("you are not a member of 'any-team' or the team does not exist"))
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(1))
+				})
+			})
+			Context("/api/v1/user returns garbage", func() {
+				It("returns a warning", func() {
+					loginATCServer.AppendHandlers(
+						infoHandler(),
+						tokenHandler(),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/user"),
+							ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+								"a-key": "a-value",
+							}),
+						),
+					)
+
+					flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "any-team", "-u", "user", "-p", "pass")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Err).Should(gbytes.Say("unable to verify role on team"))
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(1))
+				})
 			})
 		})
 	})

@@ -72,6 +72,20 @@ func tokenHandler() http.HandlerFunc {
 	)
 }
 
+func userInfoHandler() http.HandlerFunc {
+	return ghttp.CombineHandlers(
+		ghttp.VerifyRequest("GET", "/api/v1/user"),
+		ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+			"user_name": "user",
+			"teams": map[string][]string{
+				teamName:          {"owner"},
+				"some-team":       {"owner"},
+				"some-other-team": {"owner"},
+			},
+		}),
+	)
+}
+
 func token() map[string]string {
 	return map[string]string{
 		"token_type":   "Bearer",
@@ -86,6 +100,7 @@ var _ = BeforeEach(func() {
 	atcServer.AppendHandlers(
 		infoHandler(),
 		tokenHandler(),
+		userInfoHandler(),
 		infoHandler(),
 	)
 

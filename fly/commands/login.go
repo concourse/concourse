@@ -128,6 +128,35 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	fmt.Println("")
 
+	verifyTarget, err := rc.NewAuthenticatedTarget("verify",
+		client.URL(),
+		command.TeamName,
+		command.Insecure,
+		&rc.TargetToken{
+			Type:  tokenType,
+			Value: tokenValue,
+		},
+		target.CACert(),
+		false)
+	if err != nil {
+		return err
+	}
+
+	userInfo, err := verifyTarget.Client().UserInfo()
+	if err != nil {
+		return err
+	}
+
+	teams, ok := userInfo["teams"].(map[string]interface{})
+	if ok {
+		_, ok := teams[command.TeamName]
+		if !ok {
+			return errors.New("you are not a member of '" + command.TeamName + "' or the team does not exist")
+		}
+	} else {
+		return errors.New("unable to verify role on team")
+	}
+
 	return command.saveTarget(
 		client.URL(),
 		&rc.TargetToken{

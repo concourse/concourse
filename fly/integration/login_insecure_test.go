@@ -41,6 +41,7 @@ var _ = Describe("login -k Command", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
+					userInfoHandler(),
 				)
 
 				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-k", "-u", "some_user", "-p", "some_pass")
@@ -71,6 +72,7 @@ var _ = Describe("login -k Command", func() {
 					loginATCServer.AppendHandlers(
 						infoHandler(),
 						tokenHandler(),
+						userInfoHandler(),
 					)
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -161,6 +163,7 @@ var _ = Describe("login -k Command", func() {
 					loginATCServer.AppendHandlers(
 						infoHandler(),
 						tokenHandler(),
+						userInfoHandler(),
 					)
 
 					tmpDir, err = ioutil.TempDir("", "fly-test")
@@ -208,6 +211,7 @@ var _ = Describe("login -k Command", func() {
 						loginATCServer.AppendHandlers(
 							infoHandler(),
 							tokenHandler(),
+							userInfoHandler(),
 						)
 
 						flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-k", "-u", "some_user", "-p", "some_pass")
