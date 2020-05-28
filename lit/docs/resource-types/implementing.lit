@@ -13,7 +13,8 @@ A resource type is implemented by a container image with three scripts:
 }
 
 Distributing resource types as containers allows them to package their own
-dependencies. For example, the Git resource comes with \code{git} installed.
+dependencies. For example, the \code{git} resource comes with the \code{git}
+binary pre-installed.
 
 All resources must implement all three actions, though the actions can just be
 no-ops (which still must be correctly implemented as detailed below).
@@ -26,8 +27,8 @@ UI, so you should make your output pretty.
   \title{\code{check}\aux{: Check for new versions.}}{resource-check}
 
   A resource type's \code{check} script is invoked to detect new versions of
-  the resource. It is given the configured source and current version on stdin,
-  and must print the array of new versions, in chronological order, to stdout,
+  the resource. It is given the configured source and current version on \code{stdin},
+  and must print the array of new versions, in chronological order, to \code{stdout},
   including the requested version if it's still valid.
 
   The request body will have the following fields:
@@ -37,11 +38,11 @@ UI, so you should make your output pretty.
     the resource, including any credentials. This is passed verbatim from the
     \reference{resources}{resource configuration}.
 
-    For \code{git} this would be the repo URI, which branch, and a private key
-    if necessary.
+    For the \code{git} resource this would be the repo URI, the branch, and the
+    private key, if necessary.
   }{
     \code{version} is a JSON object with \code{string} fields, used to uniquely
-    identify an instance of the resource. For \code{git} this would be a commit
+    identify an instance of the resource. For \code{git} this would be the commit's
     SHA.
 
     This will be omitted from the first request, in which case the resource
@@ -49,7 +50,7 @@ UI, so you should make your output pretty.
     resource's inception).
   }
 
-  For example, here's what the input for a \code{git} resource may look like:
+  For example, here's what the input for the \code{git} resource may look like:
 
   \codeblock{json}{{{
   {
@@ -99,13 +100,13 @@ UI, so you should make your output pretty.
   \title{\code{in}\aux{: Fetch a given resource.}}{resource-in}
 
   The \code{in} script is passed a destination directory as command line argument \code{$1}, and
-  is given on stdin the configured source and a precise version of the resource
+  is given on \code{stdin} the configured source and a precise version of the resource
   to fetch.
 
   The script must fetch the resource and place it in the given directory.
 
   If the desired resource version is unavailable (for example, if it was
-  deleted), the script must error.
+  deleted), the script must exit with error.
 
   The script must emit the fetched version, and may emit metadata as a list of
   key-value pairs. This data is intended for public consumption and will make it
@@ -162,11 +163,11 @@ UI, so you should make your output pretty.
   \title{\code{out}\aux{: Update a resource.}}{resource-out}
 
   The \code{out} script is called with a path to the directory containing the
-  build's full set of sources as the first argument, and is given on stdin the
+  build's full set of sources as the first argument, and is given on \code{stdin} the
   configured params and the resource's source configuration.
 
   The script must emit the resulting version of the resource. For example, the
-  \code{git} resource emits the sha of the commit that it just pushed.
+  \code{git} resource emits the SHA of the commit that it has just pushed.
 
   Additionally, the script may emit metadata as a list of key-value pairs. This
   data is intended for public consumption and will make it upstream, intended to
@@ -225,8 +226,8 @@ UI, so you should make your output pretty.
 
   \definitions{
     \definition{\code{$BUILD_ID}}{
-      The internal identifier for the build. Right now this is numeric but it
-      may become a guid in the future. Treat it as an absolute reference to the
+      The internal identifier for the build. Right now this is numeric, but it
+      may become a UUID in the future. Treat it as an absolute reference to the
       build.
     }
   }{
@@ -254,11 +255,11 @@ UI, so you should make your output pretty.
   If the build is a one-off, \code{$BUILD_NAME}, \code{$BUILD_JOB_NAME}, and
   \code{$BUILD_PIPELINE_NAME} will not be set.
 
-  None of these variables are available to \code{/check}.
+  None of these variables are available to \reference{resource-check}.
 
   These variables should be used solely for annotating things with metadata for
   traceability, i.e. for linking to the build in an alert or annotating an
-  automated commit so its origin can be discovered.
+  automated commit to facilitate its origin discovery.
 
   They should \italic{not} be used to emulate versioning (e.g. by using the
   increasing build number). They are not provided to \reference{task-step}s
@@ -276,7 +277,7 @@ UI, so you should make your output pretty.
 
   The worker's certificate directory will then be always mounted at
   \code{/etc/ssl/certs}, read-only, in each resource container created on the
-  worker. There's no single standard path for this so we picked one that would
+  worker. There's no single standard path for this, so we picked one that would
   work out of the box in most cases.
 
   This approach to certificate configuration is similar in mindset to the
