@@ -69,3 +69,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5624" href="#5624">:link:</a></sup></sub> fix
 
 * Fixed a bug where fly would no longer tell you if the team you logged in with was invalid
+
+#### <sub><sup><a name="5669" href="#5669">:link:</a></sup></sub> fix
+
+* Fix an intermittent bug where some pipelines would not be immediately visible in the UI after first logging in. #5669
