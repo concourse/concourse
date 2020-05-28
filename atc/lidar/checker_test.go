@@ -14,10 +14,19 @@ import (
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/lidar"
+	"github.com/concourse/concourse/tracing"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/testtrace"
 )
 
 type Checker interface {
 	Run(context.Context) error
+}
+
+type testTraceProvider struct{}
+
+func (ttp *testTraceProvider) Tracer(name string) trace.Tracer {
+	return testtrace.NewTracer()
 }
 
 var _ = Describe("Checker", func() {
@@ -56,6 +65,41 @@ var _ = Describe("Checker", func() {
 
 			It("errors", func() {
 				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when tracing is configured", func() {
+			var (
+				scanSpan     trace.Span
+				fakeRunnable *enginefakes.FakeRunnable
+			)
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(&testTraceProvider{})
+				fakeCheck := new(dbfakes.FakeCheck)
+				fakeCheck.IDReturns(1)
+				var ctx context.Context
+				ctx, scanSpan = tracing.StartSpan(context.Background(), "fake-operation", nil)
+				fakeCheck.SpanContextReturns(db.NewSpanContext(ctx))
+
+				fakeCheckFactory.StartedChecksReturns([]db.Check{
+					fakeCheck,
+				}, nil)
+
+				fakeRunnable = new(enginefakes.FakeRunnable)
+				fakeEngine.NewCheckReturns(fakeRunnable)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context to check step", func() {
+				Eventually(fakeRunnable.RunCallCount).Should(Equal(1))
+				ctx, _ := fakeRunnable.RunArgsForCall(0)
+				span, ok := tracing.FromContext(ctx).(*testtrace.Span)
+				Expect(ok).To(BeTrue(), "no testtrace.Span in context")
+				Expect(span.ParentSpanID()).To(Equal(scanSpan.SpanContext().SpanID))
 			})
 		})
 

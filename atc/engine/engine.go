@@ -29,7 +29,7 @@ type Engine interface {
 //go:generate counterfeiter . Runnable
 
 type Runnable interface {
-	Run(logger lager.Logger)
+	Run(context.Context, context.CancelFunc)
 }
 
 //go:generate counterfeiter . StepBuilder
@@ -70,12 +70,7 @@ func (engine *engine) ReleaseAll(logger lager.Logger) {
 }
 
 func (engine *engine) NewBuild(build db.Build) Runnable {
-
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return NewBuild(
-		ctx,
-		cancel,
 		build,
 		engine.builder,
 		engine.release,
@@ -85,12 +80,7 @@ func (engine *engine) NewBuild(build db.Build) Runnable {
 }
 
 func (engine *engine) NewCheck(check db.Check) Runnable {
-
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return NewCheck(
-		ctx,
-		cancel,
 		check,
 		engine.builder,
 		engine.release,
@@ -100,8 +90,6 @@ func (engine *engine) NewCheck(check db.Check) Runnable {
 }
 
 func NewBuild(
-	ctx context.Context,
-	cancel func(),
 	build db.Build,
 	builder StepBuilder,
 	release chan bool,
@@ -109,9 +97,6 @@ func NewBuild(
 	waitGroup *sync.WaitGroup,
 ) Runnable {
 	return &engineBuild{
-		ctx:    ctx,
-		cancel: cancel,
-
 		build:   build,
 		builder: builder,
 
@@ -122,9 +107,6 @@ func NewBuild(
 }
 
 type engineBuild struct {
-	ctx    context.Context
-	cancel func()
-
 	build   db.Build
 	builder StepBuilder
 
@@ -135,11 +117,11 @@ type engineBuild struct {
 	pipelineCredMgrs []creds.Manager
 }
 
-func (b *engineBuild) Run(logger lager.Logger) {
+func (b *engineBuild) Run(ctx context.Context, cancel context.CancelFunc) {
 	b.waitGroup.Add(1)
 	defer b.waitGroup.Done()
 
-	logger = logger.WithData(lager.Data{
+	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
 		"build":    b.build.ID(),
 		"pipeline": b.build.PipelineName(),
 		"job":      b.build.JobName(),
@@ -182,7 +164,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 
 	defer notifier.Close()
 
-	ctx, span := tracing.StartSpan(b.ctx, "build", tracing.Attrs{
+	ctx, span := tracing.StartSpan(ctx, "build", tracing.Attrs{
 		"team":     b.build.TeamName(),
 		"pipeline": b.build.PipelineName(),
 		"job":      b.build.JobName(),
@@ -219,7 +201,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 		case <-noleak:
 		case <-notifier.Notify():
 			logger.Info("aborting")
-			b.cancel()
+			cancel()
 		}
 	}()
 
@@ -316,8 +298,6 @@ func (b *engineBuild) clearRunState() {
 }
 
 func NewCheck(
-	ctx context.Context,
-	cancel func(),
 	check db.Check,
 	builder StepBuilder,
 	release chan bool,
@@ -325,9 +305,6 @@ func NewCheck(
 	waitGroup *sync.WaitGroup,
 ) Runnable {
 	return &engineCheck{
-		ctx:    ctx,
-		cancel: cancel,
-
 		check:   check,
 		builder: builder,
 
@@ -338,9 +315,6 @@ func NewCheck(
 }
 
 type engineCheck struct {
-	ctx    context.Context
-	cancel func()
-
 	check   db.Check
 	builder StepBuilder
 
@@ -349,11 +323,11 @@ type engineCheck struct {
 	waitGroup     *sync.WaitGroup
 }
 
-func (c *engineCheck) Run(logger lager.Logger) {
+func (c *engineCheck) Run(ctx context.Context, cancel context.CancelFunc) {
 	c.waitGroup.Add(1)
 	defer c.waitGroup.Done()
 
-	logger = logger.WithData(lager.Data{
+	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
 		"check": c.check.ID(),
 	})
 
@@ -393,7 +367,7 @@ func (c *engineCheck) Run(logger lager.Logger) {
 
 	done := make(chan error)
 	go func() {
-		ctx := lagerctx.NewContext(c.ctx, logger)
+		ctx := lagerctx.NewContext(ctx, logger)
 		done <- step.Run(ctx, state)
 	}()
 

@@ -2,7 +2,6 @@ package tracing
 
 import (
 	"context"
-	"fmt"
 
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/key"
@@ -24,6 +23,29 @@ import (
 //
 //
 var Configured bool
+
+type Config struct {
+	Jaeger      Jaeger
+	Stackdriver Stackdriver
+}
+
+func (c Config) Prepare() error {
+	var exp export.SpanSyncer
+	var err error
+	switch {
+	case c.Jaeger.IsConfigured():
+		exp, err = c.Jaeger.Exporter()
+	case c.Stackdriver.IsConfigured():
+		exp, err = c.Stackdriver.Exporter()
+	}
+	if err != nil {
+		return err
+	}
+	if exp != nil {
+		ConfigureTraceProvider(TraceProvider(exp))
+	}
+	return nil
+}
 
 // StartSpan creates a span, giving back a context that has itself added as the
 // parent span.
@@ -129,24 +151,24 @@ func End(span trace.Span, err error) {
 	span.End()
 }
 
-// ConfigureTracer configures the sdk to use a given exporter.
+// ConfigureTraceProvider configures the sdk to use a given trace provider.
 //
 // By default, a noop tracer is registered, thus, it's safe to call StartSpan
 // and other related methods even before `ConfigureTracer` it called.
 //
-func ConfigureTracer(exporter export.SpanSyncer) error {
-	tp, err := sdktrace.NewProvider(sdktrace.WithConfig(
+func ConfigureTraceProvider(tp trace.Provider) {
+	global.SetTraceProvider(tp)
+	Configured = true
+}
+
+func TraceProvider(exporter export.SpanSyncer) trace.Provider {
+	// the only way NewProvider can error is if exporter is nil, but
+	// this method is never called in such circumstances.
+	provider, _ := sdktrace.NewProvider(sdktrace.WithConfig(
 		sdktrace.Config{
 			DefaultSampler: sdktrace.AlwaysSample(),
 		}),
 		sdktrace.WithSyncer(exporter),
 	)
-	if err != nil {
-		return fmt.Errorf("failed to configure trace provider: %w", err)
-	}
-
-	global.SetTraceProvider(tp)
-	Configured = true
-
-	return nil
+	return provider
 }

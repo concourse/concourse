@@ -172,10 +172,7 @@ type RunCommand struct {
 		CaptureErrorMetrics bool              `long:"capture-error-metrics" description:"Enable capturing of error log metrics"`
 	} `group:"Metrics & Diagnostics"`
 
-	Tracing struct {
-		Jaeger      tracing.Jaeger
-		Stackdriver tracing.Stackdriver
-	} `group:"Tracing" namespace:"tracing"`
+	Tracing tracing.Config `group:"Tracing" namespace:"tracing"`
 
 	Server struct {
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
@@ -445,22 +442,9 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		logger.RegisterSink(&errorSinkCollector)
 	}
 
-	// Prepare distributed tracing facilities
-	switch {
-	case cmd.Tracing.Jaeger.IsConfigured():
-		exp, err := cmd.Tracing.Jaeger.Exporter()
-		if err != nil {
-			return nil, err
-		}
-
-		tracing.ConfigureTracer(exp)
-	case cmd.Tracing.Stackdriver.IsConfigured():
-		exp, err := cmd.Tracing.Stackdriver.Exporter()
-		if err != nil {
-			return nil, err
-		}
-
-		tracing.ConfigureTracer(exp)
+	err = cmd.Tracing.Prepare()
+	if err != nil {
+		return nil, err
 	}
 
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
