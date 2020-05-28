@@ -26,32 +26,39 @@ quite involved.
 \section{
   \title{Credential lookup rules}{vault-credential-lookup-rules}
 
-  When resolving a parameter such as \code{((foo_param))}, Concourse will look
-  in the following paths, in order:
+  Vault lets you organize secrets into hierarchies, which is useful for when
+  they should be accessible for particular pipelines or teams. When you have
+  a parameter like \code{((foo))} in a pipeline definition, Concourse
+  will (by default) look for it in the following paths, in order:
 
   \list{
-    \code{/concourse/TEAM_NAME/PIPELINE_NAME/foo_param}
+    \code{/concourse/TEAM_NAME/PIPELINE_NAME/foo}
   }{
-    \code{/concourse/TEAM_NAME/foo_param}
+    \code{/concourse/TEAM_NAME/foo}
   }
 
   Vault credentials are actually key-value, so for \code{((foo))} Concourse will
   default to the field name \code{value}. You can specify the field to grab via
   \code{.} syntax, e.g. \code{((foo.bar))}.
 
-  If the action is being run in the context of a pipeline (e.g. a \code{check}
-  or a step in a build of a job), Concourse will first look in the pipeline
-  path. If it's not found there, it will look in the team path. This allows
-  credentials to be scoped widely if they're common across many pipelines.
+  When executing a one-off task, there is no pipeline: so in this case, only the
+  team path \code{/concourse/TEAM_NAME/foo} is searched.
 
-  If an action is being run in a one-off build, Concourse will only look in the
-  team path.
+  There are several ways to customize the lookup logic:
 
-  The leading \code{/concourse} can be changed by specifying the following:
+  \ordered-list{
+    Add a "shared path", for secrets common to all teams.
+  }{
+    Change the team- and pipeline-dependent path templates.
+  }{
+    Change the path prefix from \code{/concourse} to something else.
+  }{
+    Set a \link{Vault namespace}{https://www.vaultproject.io/docs/enterprise/namespaces/}
+    for isolation within a Vault Enterprise installation.
+  }
 
-  \codeblock{bash}{{{
-  CONCOURSE_VAULT_PATH_PREFIX=/some-other-prefix
-  }}}
+  Each of these can be controlled by Concourse command line flags, or
+  environment variables.
 
   \section{
     \title{Configuring a shared path}{vault-shared-path}
@@ -68,6 +75,64 @@ quite involved.
     configuration would correspond to \code{/concourse/some-shared-path} with
     the default \code{/concourse} prefix.
   }
+
+  \section{
+    \title{Changing the path templates}{vault-lookup-templates}
+
+    You can choose your own list of templates, which will expand to team-
+    or pipeline-specific paths. These are subject to the path prefix. By
+    default, the templates used are:
+
+    \codeblock{bash}{{{
+    CONCOURSE_VAULT_LOOKUP_TEMPLATES=/{{.Team}}/{{.Pipeline}}/{{.Secret}},/{{.Team}}/{{.Secret}}
+    }}}
+
+    When secrets are to be looked up, these are evaluated subject to the
+    configured path prefix, where \code{\{\{.Team\}\}} expands to the
+    current team, \code{\{\{.Pipeline\}\}} to the current pipeline (if any),
+    and \code{\{\{.Secret\}\}} to the name of the secret. So if the
+    settings are:
+
+    \codeblock{bash}{{{
+    CONCOURSE_VAULT_PATH_PREFIX=/secrets
+    CONCOURSE_VAULT_LOOKUP_TEMPLATES=/{{.Team}}/concourse/{{.Pipeline}}/{{.Secret}},/{{.Team}}/concourse/{{.Secret}},/common/{{.Secret}}
+    }}}
+
+    and \code{((password))} is used in team \code{myteam} and pipeline
+    \code{mypipeline}, Concourse will look for the following, in order:
+
+    \ordered-list{
+      \code{/secrets/myteam/concourse/mypipeline/password}
+    }{
+      \code{/secrets/myteam/concourse/password}
+    }{
+      \code{/secrets/common/password}
+    }
+  }
+
+  \section{
+    \title{Changing the path prefix}{vault-path-prefix}
+
+    The leading \code{/concourse} can be changed by specifying the following:
+
+    \codeblock{bash}{{{
+    CONCOURSE_VAULT_PATH_PREFIX=/some-other-prefix
+    }}}
+  }
+
+  \section{
+    \title{Using a Vault namespace}{vault-namespace}
+
+    If you are using Vault Enterprise, you can make secret lookups and
+    authentication happen under a namespace.
+
+    \codeblock{bash}{{{
+    CONCOURSE_VAULT_NAMESPACE=chosen/namespace/path
+    }}}
+
+    This setting applies to all teams equally.
+  }
+
 }
 
 \section{

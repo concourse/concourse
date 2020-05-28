@@ -361,8 +361,17 @@ configured multiple times with different parameters
                 \italic{Default \code{/concourse}.} A prefix under which to
                 look for all credential values.
 
-                See \reference{vault-credential-lookup-rules} for more information.
+                See \reference{vault-path-prefix} for more information.
               }
+
+							\optional-attribute{lookup_templates}{[string]}{
+								\italic{Default \code{{{["/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"]}}}.}
+
+								A list of path templates to be expanded in a team and pipeline context
+								subject to the \code{path_prefix} and \code{namespace}.
+
+								See \reference{vault-lookup-templates} for more information.
+							}
 
               \optional-attribute{shared_path}{string}{
                 An additional path under which credentials will be looked up.
