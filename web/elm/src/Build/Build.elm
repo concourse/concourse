@@ -8,6 +8,7 @@ module Build.Build exposing
     , handleDelivery
     , init
     , subscriptions
+    , tooltip
     , update
     , view
     )
@@ -24,6 +25,7 @@ import Build.Shortcuts as Shortcuts
 import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
+import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import DateFormat
@@ -47,7 +49,7 @@ import Http
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
 import Message.ScrollDirection as ScrollDirection
@@ -58,6 +60,7 @@ import SideBar.SideBar as SideBar
 import StrictEvents exposing (onScroll)
 import String
 import Time
+import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 import Views.Icon as Icon
 import Views.LoadingIndicator as LoadingIndicator
@@ -316,11 +319,10 @@ handleDelivery session delivery ( model, effects ) =
                         HoverState.Hovered (FirstOccurrenceGetStepLabel stepID) ->
                             [ GetViewportOf
                                 (FirstOccurrenceGetStepLabel stepID)
-                                AlwaysShow
                             ]
 
                         HoverState.Hovered (StepState stepID) ->
-                            [ GetViewportOf (StepState stepID) AlwaysShow ]
+                            [ GetViewportOf (StepState stepID) ]
 
                         _ ->
                             []
@@ -663,6 +665,26 @@ view session model =
             , viewBuildPage session model
             ]
         ]
+
+
+tooltip : Model -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip _ { hovered } =
+    case hovered of
+        HoverState.Tooltip (FirstOccurrenceGetStepLabel _) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.firstOccurrenceTooltip
+                        [ Html.text "new version" ]
+                , attachPosition =
+                    { direction = Tooltip.Top
+                    , alignment = Tooltip.Start
+                    }
+                , arrow = Just { size = 5, color = Colors.tooltipBackground }
+                }
+
+        _ ->
+            Nothing
 
 
 breadcrumbs : Model -> Html Message

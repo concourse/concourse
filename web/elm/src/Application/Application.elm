@@ -434,9 +434,15 @@ view model =
     in
     { title = title ++ " - Concourse"
     , body =
-        [ Tooltip.view model.session
-        , Html.map Update body
-        ]
+        List.map (Html.map Update)
+            [ SubPage.tooltip model.subModel model.session
+                |> Maybe.map (Tooltip.view model.session)
+                |> Maybe.withDefault (Html.text "")
+            , SideBar.tooltip model.session
+                |> Maybe.map (Tooltip.view model.session)
+                |> Maybe.withDefault (Html.text "")
+            , body
+            ]
     }
 
 

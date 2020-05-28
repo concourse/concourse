@@ -4,6 +4,7 @@ module Dashboard.Dashboard exposing
     , handleDelivery
     , init
     , subscriptions
+    , tooltip
     , update
     , view
     )
@@ -54,7 +55,7 @@ import Html.Events
 import Http
 import List.Extra
 import Login.Login as Login
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message
     exposing
@@ -73,6 +74,7 @@ import ScreenSize exposing (ScreenSize(..))
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onScroll)
 import Time
+import Tooltip
 import UserState
 import Views.Spinner as Spinner
 import Views.Styles
@@ -118,7 +120,7 @@ init searchType =
       , LoadCachedJobs
       , LoadCachedPipelines
       , LoadCachedTeams
-      , GetViewportOf Dashboard AlwaysShow
+      , GetViewportOf Dashboard
       ]
     )
 
@@ -405,7 +407,7 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        GotViewport Dashboard _ (Ok viewport) ->
+        GotViewport Dashboard (Ok viewport) ->
             ( { model
                 | viewportWidth = viewport.viewport.width
                 , viewportHeight = viewport.viewport.height
@@ -454,10 +456,10 @@ handleDeliveryBody delivery ( model, effects ) =
             ( { model | now = Just time, effectsToRetry = [] }, model.effectsToRetry )
 
         WindowResized _ _ ->
-            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+            ( model, effects ++ [ GetViewportOf Dashboard ] )
 
         SideBarStateReceived _ ->
-            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+            ( model, effects ++ [ GetViewportOf Dashboard ] )
 
         CachedPipelinesReceived (Ok pipelines) ->
             let
@@ -662,6 +664,9 @@ updateBody msg ( model, effects ) =
                 _ ->
                     ( model, effects )
 
+        Hover (Just domID) ->
+            ( model, effects ++ [ GetViewportOf domID ] )
+
         Click LogoutButton ->
             ( { model
                 | teams = None
@@ -721,7 +726,7 @@ updateBody msg ( model, effects ) =
                     ( model, effects )
 
         Click HamburgerMenu ->
-            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+            ( model, effects ++ [ GetViewportOf Dashboard ] )
 
         Scrolled scrollState ->
             ( { model | scrollTop = scrollState.scrollTop }, effects )
@@ -773,6 +778,50 @@ view session model =
             ]
         , Footer.view session model
         ]
+
+
+tooltip : { a | pipelines : Maybe (List Pipeline) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip model { hovered } =
+    case hovered of
+        HoverState.Tooltip (Message.PipelineStatusIcon _) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.jobsDisabledTooltip
+                        [ Html.text "automatic job monitoring disabled" ]
+                , attachPosition = { direction = Tooltip.Top, alignment = Tooltip.Start }
+                , arrow = Nothing
+                }
+
+        HoverState.Tooltip (Message.VisibilityButton { teamName, pipelineName }) _ ->
+            model.pipelines
+                |> Maybe.withDefault []
+                |> List.Extra.find
+                    (\p ->
+                        p.teamName == teamName && p.name == pipelineName
+                    )
+                |> Maybe.map
+                    (\p ->
+                        { body =
+                            Html.div
+                                Styles.visibilityTooltip
+                                [ Html.text <|
+                                    if p.public then
+                                        "hide pipeline"
+
+                                    else
+                                        "expose pipeline"
+                                ]
+                        , attachPosition =
+                            { direction = Tooltip.Top
+                            , alignment = Tooltip.End
+                            }
+                        , arrow = Nothing
+                        }
+                    )
+
+        _ ->
+            Nothing
 
 
 topBar : Session -> Model -> Html Message

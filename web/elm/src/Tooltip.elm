@@ -1,57 +1,142 @@
-module Tooltip exposing (Model, handleCallback, view)
+module Tooltip exposing
+    ( Alignment(..)
+    , Direction(..)
+    , Model
+    , Tooltip
+    , handleCallback
+    , view
+    )
 
-import Build.Styles
+import Browser.Dom
 import EffectTransformer exposing (ET)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Html.Attributes exposing (style)
+import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message as Message
-import SideBar.Styles
+import Message.Message exposing (DomID(..), Message)
 
 
 type alias Model m =
     { m | hovered : HoverState.HoverState }
 
 
+type alias Tooltip =
+    { body : Html Message
+    , arrow : Maybe Arrow
+    , attachPosition : AttachPosition
+    }
+
+
+
+-- Many tooltips, especially in crowded parts of the UI, have an extra
+-- triangular piece sticking out that points to the tooltip's target. Online
+-- this element is variously called a 'tail' or an 'arrow', with 'arrow'
+-- predominating.
+
+
+type alias Arrow =
+    { size : Float
+    , color : String
+    }
+
+
+type TooltipCondition
+    = AlwaysShow
+    | OnlyShowWhenOverflowing
+
+
+type alias AttachPosition =
+    { direction : Direction
+    , alignment : Alignment
+    }
+
+
+type Direction
+    = Top
+    | Right
+
+
+type Alignment
+    = Start
+    | Middle Float
+    | End
+
+
+policy : DomID -> TooltipCondition
+policy domID =
+    case domID of
+        SideBarPipeline _ ->
+            OnlyShowWhenOverflowing
+
+        SideBarTeam _ ->
+            OnlyShowWhenOverflowing
+
+        _ ->
+            AlwaysShow
+
+
+position : AttachPosition -> Browser.Dom.Element -> List (Html.Attribute msg)
+position { direction, alignment } { element, viewport } =
+    let
+        target =
+            element
+
+        vertical =
+            case ( direction, alignment ) of
+                ( Top, _ ) ->
+                    [ style "bottom" <| String.fromFloat (viewport.height - target.y) ++ "px" ]
+
+                ( Right, Start ) ->
+                    [ style "top" <| String.fromFloat target.y ++ "px" ]
+
+                ( Right, Middle height ) ->
+                    [ style "top" <| String.fromFloat (target.y + (target.height - height) / 2) ++ "px" ]
+
+                ( Right, End ) ->
+                    [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
+
+        horizontal =
+            case ( direction, alignment ) of
+                ( Top, Start ) ->
+                    [ style "left" <| String.fromFloat target.x ++ "px" ]
+
+                ( Top, Middle width ) ->
+                    [ style "left" <| String.fromFloat (target.x + (target.width - width) / 2) ++ "px" ]
+
+                ( Top, End ) ->
+                    [ style "right" <| String.fromFloat (viewport.width - target.x - target.width) ++ "px" ]
+
+                ( Right, _ ) ->
+                    [ style "left" <| String.fromFloat (target.x + target.width) ++ "px" ]
+    in
+    [ style "position" "fixed", style "z-index" "100" ] ++ vertical ++ horizontal
+
+
 handleCallback : Callback -> ET (Model m)
 handleCallback callback ( model, effects ) =
     case callback of
-        GotViewport _ policy (Ok { scene, viewport }) ->
+        GotViewport _ (Ok { scene, viewport }) ->
             case model.hovered of
                 HoverState.Hovered domID ->
-                    if policy == OnlyShowWhenOverflowing && viewport.width >= scene.width then
+                    if policy domID == OnlyShowWhenOverflowing && viewport.width >= scene.width then
                         ( model, effects )
 
                     else
-                        ( { model | hovered = HoverState.TooltipPending domID }
+                        ( { model
+                            | hovered =
+                                HoverState.TooltipPending domID
+                          }
                         , effects ++ [ Effects.GetElement domID ]
                         )
 
                 _ ->
                     ( model, effects )
 
-        GotElement (Ok { element, viewport }) ->
+        GotElement (Ok element) ->
             case model.hovered of
-                HoverState.TooltipPending (Message.FirstOccurrenceGetStepLabel stepID) ->
-                    ( { model
-                        | hovered =
-                            HoverState.Tooltip (Message.FirstOccurrenceGetStepLabel stepID) <|
-                                Bottom
-                                    (viewport.height - element.y)
-                                    element.x
-                                    element.width
-                      }
-                    , effects
-                    )
-
                 HoverState.TooltipPending domID ->
-                    ( { model
-                        | hovered =
-                            HoverState.Tooltip domID <|
-                                Top (element.y + (element.height / 2))
-                                    (element.x + element.width)
-                      }
+                    ( { model | hovered = HoverState.Tooltip domID element }
                     , effects
                     )
 
@@ -62,31 +147,38 @@ handleCallback callback ( model, effects ) =
             ( model, effects )
 
 
-view : Model m -> Html msg
-view { hovered } =
-    case hovered of
-        HoverState.Tooltip (Message.FirstOccurrenceGetStepLabel _) (Bottom b l w) ->
-            Html.div []
-                [ Html.div
-                    (Build.Styles.firstOccurrenceTooltip b l)
-                    [ Html.text "new version" ]
-                , Html.div
-                    (Build.Styles.firstOccurrenceTooltipArrow b l w)
-                    []
+arrowView : AttachPosition -> Browser.Dom.Element -> Arrow -> Html Message
+arrowView { direction } target { size, color } =
+    Html.div
+        ((case direction of
+            Top ->
+                [ style "border-top" <| String.fromFloat size ++ "px solid " ++ color
+                , style "border-left" <| String.fromFloat size ++ "px solid transparent"
+                , style "border-right" <| String.fromFloat size ++ "px solid transparent"
+                , style "margin-bottom" <| "-" ++ String.fromFloat size ++ "px"
                 ]
 
-        HoverState.Tooltip (Message.SideBarTeam teamName) (Top t l) ->
-            Html.div
-                (SideBar.Styles.tooltip t l)
-                [ Html.div SideBar.Styles.tooltipArrow []
-                , Html.div SideBar.Styles.tooltipBody [ Html.text teamName ]
+            Right ->
+                [ style "border-right" <| String.fromFloat size ++ "px solid " ++ color
+                , style "border-top" <| String.fromFloat size ++ "px solid transparent"
+                , style "border-bottom" <| String.fromFloat size ++ "px solid transparent"
+                , style "margin-left" <| "-" ++ String.fromFloat size ++ "px"
                 ]
+         )
+            ++ position
+                { direction = direction, alignment = Middle (2 * size) }
+                target
+        )
+        []
 
-        HoverState.Tooltip (Message.SideBarPipeline { pipelineName }) (Top t l) ->
-            Html.div
-                (SideBar.Styles.tooltip t l)
-                [ Html.div SideBar.Styles.tooltipArrow []
-                , Html.div SideBar.Styles.tooltipBody [ Html.text pipelineName ]
+
+view : Model m -> Tooltip -> Html Message
+view { hovered } { body, attachPosition, arrow } =
+    case ( hovered, arrow ) of
+        ( HoverState.Tooltip _ target, a ) ->
+            Html.div (position attachPosition target)
+                [ Maybe.map (arrowView attachPosition target) a |> Maybe.withDefault (Html.text "")
+                , body
                 ]
 
         _ ->

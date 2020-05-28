@@ -18,7 +18,6 @@ module SideBar.Styles exposing
     , teamIcon
     , teamName
     , tooltip
-    , tooltipArrow
     , tooltipBody
     )
 
@@ -251,22 +250,10 @@ pipelineIcon opacity =
     ]
 
 
-tooltip : Float -> Float -> List (Html.Attribute msg)
-tooltip top left =
-    [ style "position" "fixed"
-    , style "left" <| String.fromFloat left ++ "px"
-    , style "top" <| String.fromFloat top ++ "px"
-    , style "margin-top" "-15px"
-    , style "z-index" "1"
+tooltip : List (Html.Attribute msg)
+tooltip =
+    [ style "z-index" "1"
     , style "display" "flex"
-    ]
-
-
-tooltipArrow : List (Html.Attribute msg)
-tooltipArrow =
-    [ style "border-right" <| "15px solid " ++ Colors.frame
-    , style "border-top" "15px solid transparent"
-    , style "border-bottom" "15px solid transparent"
     ]
 
 
@@ -277,4 +264,5 @@ tooltipBody =
     , style "font-size" "12px"
     , style "display" "flex"
     , style "align-items" "center"
+    , style "height" "30px"
     ]

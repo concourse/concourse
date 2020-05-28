@@ -3,11 +3,13 @@ module SideBar.SideBar exposing
     , hamburgerMenu
     , handleCallback
     , handleDelivery
+    , tooltip
     , update
     , view
     )
 
 import Assets
+import Colors
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
@@ -15,7 +17,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
@@ -70,7 +72,6 @@ update message model =
             ( model
             , [ Effects.GetViewportOf
                     (SideBarPipeline pipelineID)
-                    OnlyShowWhenOverflowing
               ]
             )
 
@@ -78,7 +79,6 @@ update message model =
             ( model
             , [ Effects.GetViewportOf
                     (SideBarTeam teamName)
-                    OnlyShowWhenOverflowing
               ]
             )
 
@@ -161,6 +161,27 @@ view model currentPipeline =
 
     else
         Html.text ""
+
+
+tooltip : Model m -> Maybe Tooltip.Tooltip
+tooltip { hovered } =
+    case hovered of
+        HoverState.Tooltip (SideBarTeam teamName) _ ->
+            Just
+                { body = Html.div Styles.tooltipBody [ Html.text teamName ]
+                , attachPosition = { direction = Tooltip.Right, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = Colors.frame }
+                }
+
+        HoverState.Tooltip (SideBarPipeline pipelineID) _ ->
+            Just
+                { body = Html.div Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
+                , attachPosition = { direction = Tooltip.Right, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = Colors.frame }
+                }
+
+        _ ->
+            Nothing
 
 
 hamburgerMenu :

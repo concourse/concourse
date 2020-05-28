@@ -1250,6 +1250,12 @@ all =
                                     (Callback.AllJobsFetched <|
                                         Data.httpNotImplemented
                                     )
+
+                        domID =
+                            Msgs.PipelineStatusIcon
+                                { teamName = "team"
+                                , pipelineName = "pipeline-0"
+                                }
                     in
                     [ test "status icon is faded sync" <|
                         \_ ->
@@ -1266,6 +1272,84 @@ all =
                                            , style "opacity" "0.5"
                                            ]
                                     )
+                    , test "status icon is hoverable" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> findStatusIcon
+                                |> Event.simulate Event.mouseEnter
+                                |> Event.expect
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.Hover <|
+                                            Just domID
+                                    )
+                    , test "hovering status icon sends location request" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Application.update
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.Hover <|
+                                            Just domID
+                                    )
+                                |> Tuple.second
+                                |> Common.contains
+                                    (Effects.GetViewportOf domID)
+                    , test "hovering status icon shows tooltip" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Application.update
+                                    (ApplicationMsgs.Update <|
+                                        Msgs.Hover <|
+                                            Just domID
+                                    )
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.GotViewport domID
+                                        (Ok
+                                            { scene =
+                                                { width = 1
+                                                , height = 0
+                                                }
+                                            , viewport =
+                                                { width = 1
+                                                , height = 0
+                                                , x = 0
+                                                , y = 0
+                                                }
+                                            }
+                                        )
+                                    )
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.GotElement <|
+                                        Ok
+                                            { scene =
+                                                { width = 0
+                                                , height = 0
+                                                }
+                                            , viewport =
+                                                { width = 0
+                                                , height = 0
+                                                , x = 0
+                                                , y = 0
+                                                }
+                                            , element =
+                                                { x = 0
+                                                , y = 0
+                                                , width = 1
+                                                , height = 1
+                                                }
+                                            }
+                                    )
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> Query.has
+                                    [ style "position" "fixed"
+                                    , containing [ text "automatic job monitoring disabled" ]
+                                    ]
                     , test "status text says 'no data'" <|
                         \_ ->
                             setup
@@ -1478,21 +1562,6 @@ all =
                                 }
                                 ++ [ style "background-size" "contain" ]
 
-                        tooltipAbove tooltipText =
-                            [ style "position" "relative"
-                            , containing
-                                [ tag "div"
-                                , containing [ text tooltipText ]
-                                , style "background-color" "#9b9b9b"
-                                , style "position" "absolute"
-                                , style "bottom" "100%"
-                                , style "white-space" "nowrap"
-                                , style "padding" "2.5px"
-                                , style "margin-bottom" "5px"
-                                , style "right" "-150%"
-                                ]
-                            ]
-
                         openEyeClickable setup =
                             [ defineHoverBehaviour
                                 { name = "open eye toggle"
@@ -1518,7 +1587,6 @@ all =
                                             ++ [ style "opacity" "1"
                                                , style "cursor" "pointer"
                                                ]
-                                            ++ tooltipAbove "hide pipeline"
                                     }
                                 }
                             , test "has click handler" <|
@@ -1714,7 +1782,6 @@ all =
                                             ++ [ style "opacity" "1"
                                                , style "cursor" "pointer"
                                                ]
-                                            ++ tooltipAbove "expose pipeline"
                                     }
                                 }
                             , test "has click handler" <|

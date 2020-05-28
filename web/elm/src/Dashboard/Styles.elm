@@ -14,6 +14,7 @@ module Dashboard.Styles exposing
     , infoItem
     , jobPreview
     , jobPreviewLink
+    , jobsDisabledTooltip
     , legend
     , legendItem
     , legendSeparator
@@ -758,13 +759,16 @@ visibilityToggle { public, isClickable, isHovered } =
 
 visibilityTooltip : List (Html.Attribute msg)
 visibilityTooltip =
-    [ style "position" "absolute"
-    , style "background-color" Colors.tooltipBackground
-    , style "bottom" "100%"
+    [ style "background-color" Colors.tooltipBackground
     , style "white-space" "nowrap"
     , style "padding" "2.5px"
-    , style "margin-bottom" "5px"
-    , style "right" "-150%"
+    ]
+
+
+jobsDisabledTooltip : List (Html.Attribute msg)
+jobsDisabledTooltip =
+    [ style "background-color" Colors.tooltipBackground
+    , style "padding" "2.5px"
     ]
 
 

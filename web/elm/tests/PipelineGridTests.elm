@@ -88,26 +88,26 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
+                    |> Common.contains (GetViewportOf Dashboard)
         , test "fetches the viewport of the scrollable area when the window is resized" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleDelivery
                         (Subscription.WindowResized 800 600)
                     |> Tuple.second
-                    |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
+                    |> Common.contains (GetViewportOf Dashboard)
         , test "fetches the viewport of the scrollable area when the sidebar is opened" <|
             \_ ->
                 Common.init "/"
                     |> Application.update (Update <| Click HamburgerMenu)
                     |> Tuple.second
-                    |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
+                    |> Common.contains (GetViewportOf Dashboard)
         , test "fetches the viewport of the scrollable area when the sidebar state is loaded" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleDelivery (SideBarStateReceived (Ok True))
                     |> Tuple.second
-                    |> Common.contains (GetViewportOf Dashboard Callback.AlwaysShow)
+                    |> Common.contains (GetViewportOf Dashboard)
         , test "renders pipeline cards in a single column grid when the viewport is narrow" <|
             \_ ->
                 Common.init "/"
@@ -117,7 +117,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 300 600
                         )
@@ -149,7 +149,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 650 200
                         )
@@ -181,13 +181,13 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 650 200
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport LoginButton Callback.AlwaysShow <|
+                        (Callback.GotViewport LoginButton <|
                             Ok <|
                                 viewportWithSize 100 50
                         )
@@ -225,7 +225,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 600 300
                         )
@@ -264,7 +264,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 950 300
                         )
@@ -296,7 +296,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 600 500
                         )
@@ -336,7 +336,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 300 600
                         )
@@ -352,7 +352,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 300 200
                         )
@@ -399,7 +399,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 600 250
                         )
@@ -431,7 +431,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 600 250
                         )
@@ -457,7 +457,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 300 200
                         )
@@ -474,7 +474,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleCallback
-                        (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                        (Callback.GotViewport Dashboard <|
                             Ok <|
                                 viewportWithSize 300 200
                         )
@@ -574,7 +574,7 @@ all =
                             )
                         |> Tuple.first
                         |> Application.handleCallback
-                            (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                            (Callback.GotViewport Dashboard <|
                                 Ok <|
                                     viewportWithSize 600 500
                             )
@@ -614,7 +614,7 @@ all =
                             )
                         |> Tuple.first
                         |> Application.handleCallback
-                            (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                            (Callback.GotViewport Dashboard <|
                                 Ok <|
                                     viewportWithSize 300 200
                             )
@@ -638,7 +638,7 @@ all =
                             )
                         |> Tuple.first
                         |> Application.handleCallback
-                            (Callback.GotViewport Dashboard Callback.AlwaysShow <|
+                            (Callback.GotViewport Dashboard <|
                                 Ok <|
                                     viewportWithSize 600 500
                             )

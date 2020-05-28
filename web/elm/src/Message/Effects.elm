@@ -19,7 +19,7 @@ import Concourse.Pagination exposing (Page)
 import Json.Decode
 import Json.Encode
 import Maybe exposing (Maybe)
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback exposing (Callback(..))
 import Message.Message
     exposing
         ( DomID(..)
@@ -182,7 +182,7 @@ type Effect
     | SaveCachedTeams (List Concourse.Team)
     | LoadCachedTeams
     | DeleteCachedTeams
-    | GetViewportOf DomID TooltipPolicy
+    | GetViewportOf DomID
     | GetElement DomID
     | SyncTextareaHeight DomID
 
@@ -621,9 +621,9 @@ runEffect effect key csrfToken =
         DeleteCachedTeams ->
             deleteFromLocalStorage teamsKey
 
-        GetViewportOf domID tooltipPolicy ->
+        GetViewportOf domID ->
             Browser.Dom.getViewportOf (toHtmlID domID)
-                |> Task.attempt (GotViewport domID tooltipPolicy)
+                |> Task.attempt (GotViewport domID)
 
         GetElement domID ->
             Browser.Dom.getElement (toHtmlID domID)
@@ -641,6 +641,18 @@ toHtmlID domId =
 
         SideBarPipeline p ->
             Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+
+        PipelineStatusIcon p ->
+            Base64.encode p.teamName
+                ++ "_"
+                ++ Base64.encode p.pipelineName
+                ++ "_status"
+
+        VisibilityButton p ->
+            Base64.encode p.teamName
+                ++ "_"
+                ++ Base64.encode p.pipelineName
+                ++ "_visibility"
 
         FirstOccurrenceGetStepLabel stepID ->
             stepID ++ "_first_occurrence"

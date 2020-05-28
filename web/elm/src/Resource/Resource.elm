@@ -7,6 +7,7 @@ module Resource.Resource exposing
     , handleDelivery
     , init
     , subscriptions
+    , tooltip
     , update
     , versions
     , view
@@ -84,6 +85,7 @@ import StrictEvents
 import Svg
 import Svg.Attributes as SvgAttributes
 import Time
+import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 import UserState exposing (UserState(..))
 import Views.DictView as DictView
@@ -881,6 +883,11 @@ view session model =
                     ]
             ]
         ]
+
+
+tooltip : Model -> a -> Maybe Tooltip.Tooltip
+tooltip _ _ =
+    Nothing
 
 
 header : Session -> Model -> Html Message
