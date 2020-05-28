@@ -78,7 +78,7 @@ func (c *Container) Run(
 	procSpec := containerSpec.Process
 	setupContainerdProcSpec(spec, procSpec)
 
-	err = c.rootfsManager.SetupCwd(containerSpec, procSpec.Cwd)
+	err = c.rootfsManager.SetupCwd(containerSpec.Root.Path, procSpec.Cwd)
 	if err != nil {
 		return nil, fmt.Errorf("setup cwd: %w", err)
 	}

@@ -15,27 +15,18 @@ type RootfsManagerSuite struct {
 	suite.Suite
 	*require.Assertions
 
-	rootfs              string
-	baseSpec            *specs.Spec
-	specWithUIDMappings *specs.Spec
+	rootfsPath string
 }
 
 func (s *RootfsManagerSuite) SetupTest() {
 	var err error
 
-	s.rootfs, err = ioutil.TempDir("", "rootfs-mgr")
+	s.rootfsPath, err = ioutil.TempDir("", "rootfs-mgr")
 	s.NoError(err)
-
-	s.baseSpec = &specs.Spec{
-		Root: &specs.Root{
-			Path: s.rootfs,
-		},
-		Linux: &specs.Linux{},
-	}
 }
 
 func (s *RootfsManagerSuite) TearDownTest() {
-	os.RemoveAll(s.rootfs)
+	os.RemoveAll(s.rootfsPath)
 }
 
 func (s *RootfsManagerSuite) TestSetupCwdDirAlreadyExists() {
@@ -47,11 +38,11 @@ func (s *RootfsManagerSuite) TestSetupCwdDirAlreadyExists() {
 		}),
 	)
 
-	path := filepath.Join(s.rootfs, "dir")
+	path := filepath.Join(s.rootfsPath, "dir")
 	err := os.MkdirAll(path, 0755)
 	s.NoError(err)
 
-	err = mgr.SetupCwd(s.baseSpec, "dir")
+	err = mgr.SetupCwd(s.rootfsPath, "dir")
 	s.NoError(err)
 	s.False(mkdirCalled, "does not call mkdir")
 }
@@ -59,17 +50,17 @@ func (s *RootfsManagerSuite) TestSetupCwdDirAlreadyExists() {
 func (s *RootfsManagerSuite) TestSetupCwdCreatePathsRecursivelyByDefault() {
 	mgr := runtime.NewRootfsManager()
 
-	err := mgr.SetupCwd(s.baseSpec, "/this/that")
+	err := mgr.SetupCwd(s.rootfsPath, "/this/that")
 	s.NoError(err)
 
-	finfo, err := os.Stat(filepath.Join(s.rootfs, "this", "that"))
+	finfo, err := os.Stat(filepath.Join(s.rootfsPath, "this", "that"))
 	s.NoError(err)
 	s.True(finfo.IsDir())
 }
 
 func (s *RootfsManagerSuite) TestSetupCwdWithoutIDMappings() {
 	var (
-		path, expectedPath             = "", filepath.Join(s.rootfs, "dir")
+		path, expectedPath             = "", filepath.Join(s.rootfsPath, "dir")
 		mode, expectedMode os.FileMode = 0000, 0777
 	)
 
@@ -81,7 +72,7 @@ func (s *RootfsManagerSuite) TestSetupCwdWithoutIDMappings() {
 		}),
 	)
 
-	err := mgr.SetupCwd(s.baseSpec, "dir")
+	err := mgr.SetupCwd(s.rootfsPath, "dir")
 	s.NoError(err)
 
 	s.Equal(expectedPath, path)
@@ -94,7 +85,7 @@ func (s *RootfsManagerSuite) TestLookupUserReturnsUserInfo() {
 		root:*:0:0:System Administrator:/var/root:/bin/sh
 		some_user_name:*:1:1:Some User:/var/root:/usr/bin/false
 	`)
-	actualUser, ok, err := mgr.LookupUser(s.baseSpec, "some_user_name")
+	actualUser, ok, err := mgr.LookupUser(s.rootfsPath, "some_user_name")
 	s.NoError(err)
 
 	s.True(ok)
@@ -113,7 +104,7 @@ func (s *RootfsManagerSuite) TestLookupUserUsernameNotFound() {
 		some_user_name:*:1:1:Some User:/var/root:/usr/bin/false
 	`)
 
-	_, ok, err := mgr.LookupUser(s.baseSpec, "missing_username")
+	_, ok, err := mgr.LookupUser(s.rootfsPath, "missing_username")
 	s.NoError(err)
 	s.False(ok)
 }
@@ -125,7 +116,7 @@ func (s *RootfsManagerSuite) TestLookupUserInvalidUID() {
 		some_user_name:*:NaN:0:System Administrator:/var/root:/bin/sh
 	`)
 
-	_, _, err := mgr.LookupUser(s.baseSpec, "some_user_name")
+	_, _, err := mgr.LookupUser(s.rootfsPath, "some_user_name")
 	s.Error(err)
 }
 
@@ -136,14 +127,14 @@ func (s *RootfsManagerSuite) TestLookupUserInvalidGID() {
 		some_user_name:*:0:NaN:System Administrator:/var/root:/bin/sh
 	`)
 
-	_, _, err := mgr.LookupUser(s.baseSpec, "some_user_name")
+	_, _, err := mgr.LookupUser(s.rootfsPath, "some_user_name")
 	s.Error(err)
 }
 
 func (s *RootfsManagerSuite) TestLookupUserEtcPasswdNotFound() {
 	mgr := runtime.NewRootfsManager()
 
-	_, _, err := mgr.LookupUser(s.baseSpec, "username")
+	_, _, err := mgr.LookupUser(s.rootfsPath, "username")
 	s.Error(err)
 }
 
@@ -156,15 +147,15 @@ func (s *RootfsManagerSuite) TestLookupUserIgnoreNonUserInfo() {
 
 		some_user_name:*:1:1:Some User:/var/root:/usr/bin/false
 	`)
-	_, ok, err := mgr.LookupUser(s.baseSpec, "some_user_name")
+	_, ok, err := mgr.LookupUser(s.rootfsPath, "some_user_name")
 	s.NoError(err)
 	s.True(ok)
 }
 
 func (s *RootfsManagerSuite) writeEtcPasswd(contents string) {
-	err := os.MkdirAll(filepath.Join(s.rootfs, "etc"), 0755)
+	err := os.MkdirAll(filepath.Join(s.rootfsPath, "etc"), 0755)
 	s.NoError(err)
 
-	err = ioutil.WriteFile(filepath.Join(s.rootfs, "etc", "passwd"), []byte(contents), 0755)
+	err = ioutil.WriteFile(filepath.Join(s.rootfsPath, "etc", "passwd"), []byte(contents), 0755)
 	s.NoError(err)
 }

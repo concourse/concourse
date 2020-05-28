@@ -13,13 +13,19 @@ import (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . RootfsManager
 
-// RootfsManager is responsible for mutating the rootfs of a container.
+// RootfsManager is responsible for mutating and reading from the rootfs of a
+// container.
 //
 type RootfsManager interface {
 	// SetupCwd mutates the root filesystem to guarantee the presence of a
 	// directory to be used as `cwd`.
 	//
-	SetupCwd(containerSpec *specs.Spec, cwd string) (err error)
+	SetupCwd(rootfsPath string, cwd string) (err error)
+
+	// LookupUser scans the /etc/passwd file from the root filesystem for the
+	// UID and GID of the specified username.
+	//
+	LookupUser(rootfsPath string, username string) (specs.User, bool, error)
 }
 
 // RootfsManagerOpt defines a functional option that when applied, modifies the
@@ -56,8 +62,8 @@ func NewRootfsManager(opts ...RootfsManagerOpt) *rootfsManager {
 	return m
 }
 
-func (r rootfsManager) SetupCwd(containerSpec *specs.Spec, cwd string) error {
-	abs := filepath.Join(containerSpec.Root.Path, cwd)
+func (r rootfsManager) SetupCwd(rootfsPath string, cwd string) error {
+	abs := filepath.Join(rootfsPath, cwd)
 
 	_, err := os.Stat(abs)
 	if err == nil { // exists
@@ -74,8 +80,8 @@ func (r rootfsManager) SetupCwd(containerSpec *specs.Spec, cwd string) error {
 
 // Mostly copied from Go's `os/user` package
 // https://github.com/golang/go/blob/f296b7a6f045325a230f77e9bda1470b1270f817/src/os/user/lookup_unix.go#L35
-func (r rootfsManager) LookupUser(containerSpec *specs.Spec, username string) (specs.User, bool, error) {
-	path := filepath.Join(containerSpec.Root.Path, "etc", "passwd")
+func (r rootfsManager) LookupUser(rootfsPath string, username string) (specs.User, bool, error) {
+	path := filepath.Join(rootfsPath, "etc", "passwd")
 	file, err := os.Open(path)
 	if err != nil {
 		return specs.User{}, false, err
