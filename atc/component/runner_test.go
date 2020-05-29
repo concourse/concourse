@@ -82,7 +82,7 @@ func (s *RunnerSuite) TestEndToEnd() {
 			s.Failf("process exited early", "error: %s", err)
 		}
 
-		mockBus.AssertCalled(s.T(), "Listen", componentName)
+		mockBus.AssertCalled(s.T(), "Listen", componentName, db.DontQueueNotifications)
 	})
 
 	defer func() {
