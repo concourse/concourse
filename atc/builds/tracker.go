@@ -51,17 +51,15 @@ func (bt *Tracker) Run(ctx context.Context) error {
 				metric.BuildsRunning.Inc()
 				defer metric.BuildsRunning.Dec()
 
-				ctx, cancel := context.WithCancel(context.Background())
 				bt.engine.NewBuild(build).Run(
 					lagerctx.NewContext(
-						ctx,
+						context.Background(),
 						logger.Session("run", lager.Data{
 							"build":    build.ID(),
 							"pipeline": build.PipelineName(),
 							"job":      build.JobName(),
 						}),
 					),
-					cancel,
 				)
 			}(b)
 		}

@@ -30,7 +30,7 @@ type Engine interface {
 //go:generate counterfeiter . Runnable
 
 type Runnable interface {
-	Run(context.Context, context.CancelFunc)
+	Run(context.Context)
 }
 
 //go:generate counterfeiter . StepBuilder
@@ -119,7 +119,7 @@ type engineBuild struct {
 	pipelineCredMgrs []creds.Manager
 }
 
-func (b *engineBuild) Run(ctx context.Context, cancel context.CancelFunc) {
+func (b *engineBuild) Run(ctx context.Context) {
 	b.waitGroup.Add(1)
 	defer b.waitGroup.Done()
 
@@ -195,6 +195,8 @@ func (b *engineBuild) Run(ctx context.Context, cancel context.CancelFunc) {
 	state := b.runState()
 	defer b.clearRunState()
 
+	ctx, cancel := context.WithCancel(ctx)
+
 	noleak := make(chan bool)
 	defer close(noleak)
 
@@ -209,8 +211,7 @@ func (b *engineBuild) Run(ctx context.Context, cancel context.CancelFunc) {
 
 	done := make(chan error)
 	go func() {
-		ctx := lagerctx.NewContext(ctx, logger)
-		done <- step.Run(ctx, state)
+		done <- step.Run(lagerctx.NewContext(ctx, logger), state)
 	}()
 
 	select {
@@ -325,7 +326,7 @@ type engineCheck struct {
 	waitGroup     *sync.WaitGroup
 }
 
-func (c *engineCheck) Run(ctx context.Context, cancel context.CancelFunc) {
+func (c *engineCheck) Run(ctx context.Context) {
 	c.waitGroup.Add(1)
 	defer c.waitGroup.Done()
 

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/db"
@@ -55,7 +54,7 @@ func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 	running := make(chan db.Build, 3)
 	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
 		engineBuild := new(enginefakes.FakeRunnable)
-		engineBuild.RunStub = func(lager.Logger) {
+		engineBuild.RunStub = func(context.Context) {
 			running <- build
 		}
 
@@ -84,7 +83,7 @@ func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {
 	running := make(chan db.Build, 3)
 	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
 		engineBuild := new(enginefakes.FakeRunnable)
-		engineBuild.RunStub = func(lager.Logger) {
+		engineBuild.RunStub = func(context.Context) {
 			running <- build
 			<-wait
 		}

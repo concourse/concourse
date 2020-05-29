@@ -104,16 +104,15 @@ var _ = Describe("Engine", func() {
 			var (
 				logger lager.Logger
 				ctx    context.Context
-				cancel context.CancelFunc
 			)
 
 			BeforeEach(func() {
 				logger = lagertest.NewTestLogger("test")
-				ctx, cancel = context.WithCancel(context.TODO())
+				ctx = context.Background()
 			})
 
 			JustBeforeEach(func() {
-				build.Run(lagerctx.NewContext(ctx, logger), cancel)
+				build.Run(lagerctx.NewContext(ctx, logger))
 			})
 
 			Context("when acquiring the lock succeeds", func() {
@@ -201,9 +200,10 @@ var _ = Describe("Engine", func() {
 									}
 								})
 
-								It("cancels the context", func() {
+								It("cancels the context given to the step", func() {
 									waitGroup.Wait()
-									Expect(ctx.Done()).To(BeClosed())
+									stepCtx, _ := fakeStep.RunArgsForCall(0)
+									Expect(stepCtx.Done()).To(BeClosed())
 								})
 							})
 
@@ -395,7 +395,7 @@ var _ = Describe("Engine", func() {
 			})
 
 			JustBeforeEach(func() {
-				check.Run(lagerctx.NewContext(context.TODO(), logger), func() {})
+				check.Run(lagerctx.NewContext(context.TODO(), logger))
 			})
 
 			Context("when acquiring the lock succeeds", func() {

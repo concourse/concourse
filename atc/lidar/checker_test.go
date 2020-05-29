@@ -96,7 +96,7 @@ var _ = Describe("Checker", func() {
 
 			It("propagates span context to check step", func() {
 				Eventually(fakeRunnable.RunCallCount).Should(Equal(1))
-				ctx, _ := fakeRunnable.RunArgsForCall(0)
+				ctx := fakeRunnable.RunArgsForCall(0)
 				span, ok := tracing.FromContext(ctx).(*testtrace.Span)
 				Expect(ok).To(BeTrue(), "no testtrace.Span in context")
 				Expect(span.ParentSpanID()).To(Equal(scanSpan.SpanContext().SpanID))
