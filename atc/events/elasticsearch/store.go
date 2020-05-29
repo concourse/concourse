@@ -169,6 +169,9 @@ func (e *Store) Put(ctx context.Context, build db.Build, events []atc.Event) (db
 		data := json.RawMessage(payload)
 		doc = eventDoc{
 			BuildID:      build.ID(),
+			BuildName:    build.Name(),
+			JobID:        build.JobID(),
+			JobName:      build.JobName(),
 			PipelineID:   build.PipelineID(),
 			PipelineName: build.PipelineName(),
 			TeamID:       build.TeamID(),
