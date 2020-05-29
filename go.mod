@@ -67,8 +67,8 @@ require (
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v1.3.0
-	github.com/mattn/go-colorable v0.1.4
-	github.com/mattn/go-isatty v0.0.10
+	github.com/mattn/go-colorable v0.1.6
+	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.2
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b

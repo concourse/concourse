@@ -12,13 +12,10 @@ import (
 )
 
 func NewTracker(
-	logger lager.Logger,
-
 	buildFactory db.BuildFactory,
 	engine engine.Engine,
 ) *Tracker {
 	return &Tracker{
-		logger:       logger,
 		buildFactory: buildFactory,
 		engine:       engine,
 		running:      &sync.Map{},
@@ -34,15 +31,15 @@ type Tracker struct {
 	running *sync.Map
 }
 
-func (bt *Tracker) Track() error {
-	tLog := bt.logger.Session("track")
+func (bt *Tracker) Run(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx)
 
-	tLog.Debug("start")
-	defer tLog.Debug("done")
+	logger.Debug("start")
+	defer logger.Debug("done")
 
 	builds, err := bt.buildFactory.GetAllStartedBuilds()
 	if err != nil {
-		tLog.Error("failed-to-lookup-started-builds", err)
+		logger.Error("failed-to-lookup-started-builds", err)
 		return err
 	}
 
@@ -54,17 +51,15 @@ func (bt *Tracker) Track() error {
 				metric.BuildsRunning.Inc()
 				defer metric.BuildsRunning.Dec()
 
-				ctx, cancel := context.WithCancel(context.Background())
 				bt.engine.NewBuild(build).Run(
 					lagerctx.NewContext(
-						ctx,
-						tLog.WithData(lager.Data{
+						context.Background(),
+						logger.Session("run", lager.Data{
 							"build":    build.ID(),
 							"pipeline": build.PipelineName(),
 							"job":      build.JobName(),
 						}),
 					),
-					cancel,
 				)
 			}(b)
 		}
@@ -73,10 +68,6 @@ func (bt *Tracker) Track() error {
 	return nil
 }
 
-func (bt *Tracker) Release() {
-	rLog := bt.logger.Session("release")
-	rLog.Debug("start")
-	defer rLog.Debug("done")
-
-	bt.engine.ReleaseAll(rLog)
+func (bt *Tracker) Drain(ctx context.Context) {
+	bt.engine.Drain(ctx)
 }
