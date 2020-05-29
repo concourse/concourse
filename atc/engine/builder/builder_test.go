@@ -51,6 +51,7 @@ var _ = Describe("Builder", func() {
 				fakeSecretManager,
 				fakeVarSourcePool,
 				false,
+				atc.UnsafeWorkerOverrides{},
 			)
 
 			planFactory = atc.NewPlanFactory(123)
@@ -829,6 +830,7 @@ var _ = Describe("Builder", func() {
 				fakeSecretManager,
 				fakeVarSourcePool,
 				false,
+				atc.UnsafeWorkerOverrides{},
 			)
 
 			planFactory = atc.NewPlanFactory(123)

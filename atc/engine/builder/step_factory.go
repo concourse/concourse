@@ -134,6 +134,7 @@ func (factory *stepFactory) TaskStep(
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	delegate exec.TaskDelegate,
+	workerOverrides atc.UnsafeWorkerOverrides,
 ) exec.Step {
 	sum := sha1.Sum([]byte(plan.Task.Name))
 	containerMetadata.WorkingDirectory = filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
@@ -148,6 +149,7 @@ func (factory *stepFactory) TaskStep(
 		factory.client,
 		delegate,
 		factory.lockFactory,
+		workerOverrides,
 	)
 
 	taskStep = exec.LogError(taskStep, delegate)

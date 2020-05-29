@@ -1,11 +1,12 @@
 package builder
 
 import (
-	"code.cloudfoundry.org/lager"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -21,7 +22,7 @@ const supportedSchema = "exec.v2"
 type StepFactory interface {
 	GetStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) exec.Step
 	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) exec.Step
-	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step
+	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate, atc.UnsafeWorkerOverrides) exec.Step
 	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.CheckDelegate) exec.Step
 	SetPipelineStep(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
 	LoadVarStep(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
@@ -46,6 +47,7 @@ func NewStepBuilder(
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	redactSecrets bool,
+	workerOverrides atc.UnsafeWorkerOverrides,
 ) *stepBuilder {
 	return &stepBuilder{
 		stepFactory:     stepFactory,
@@ -54,6 +56,7 @@ func NewStepBuilder(
 		globalSecrets:   secrets,
 		varSourcePool:   varSourcePool,
 		redactSecrets:   redactSecrets,
+		workerOverrides: workerOverrides,
 	}
 }
 
@@ -64,6 +67,7 @@ type stepBuilder struct {
 	globalSecrets   creds.Secrets
 	varSourcePool   creds.VarSourcePool
 	redactSecrets   bool
+	workerOverrides atc.UnsafeWorkerOverrides
 }
 
 func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {
@@ -401,6 +405,7 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan, credVar
 		stepMetadata,
 		containerMetadata,
 		builder.delegateFactory.TaskDelegate(build, plan.ID, credVarsTracker),
+		builder.workerOverrides,
 	)
 }
 

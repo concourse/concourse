@@ -12,6 +12,7 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -243,6 +244,10 @@ type RunCommand struct {
 	EnableArchivePipeline bool     `long:"enable-archive-pipeline" description:"Enable /api/v1/teams/{team}/pipelines/{pipeline}/archive endpoint."`
 
 	EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears"`
+
+	Unsafe struct {
+		MountHolepunches map[string]string `long:"mount-holepunch" description:"Binds a path on all workers into each task step. Can be specified multiple times." value-name:"FROM-PATH:TO-PATH"`
+	} `group:"Unsafe options (optional)"`
 }
 
 type Migration struct {
@@ -878,6 +883,11 @@ func (cmd *RunCommand) constructBackendMembers(
 		return nil, err
 	}
 
+	workerOverrides, err := cmd.parseUnsafeOverrides()
+	if err != nil {
+		return nil, err
+	}
+
 	engine := cmd.constructEngine(
 		pool,
 		workerClient,
@@ -889,6 +899,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		defaultLimits,
 		buildContainerStrategy,
 		lockFactory,
+		workerOverrides,
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
@@ -1447,6 +1458,18 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
+func (cmd *RunCommand) parseUnsafeOverrides() (atc.UnsafeWorkerOverrides, error) {
+	for fromPath, toPath := range cmd.Unsafe.MountHolepunches {
+		if !filepath.IsAbs(fromPath) {
+			return atc.UnsafeWorkerOverrides{}, fmt.Errorf("mount-holepunch source must be an an absolute path")
+		}
+		if !filepath.IsAbs(toPath) {
+			return atc.UnsafeWorkerOverrides{}, fmt.Errorf("mount-holepunch destination must be an an absolute path")
+		}
+	}
+	return atc.UnsafeWorkerOverrides{BindMounts: cmd.Unsafe.MountHolepunches}, nil
+}
+
 func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
 	var strategy worker.ContainerPlacementStrategy
 	if cmd.ContainerPlacementStrategy != "limit-active-tasks" && cmd.MaxActiveTasksPerWorker != 0 {
@@ -1561,6 +1584,7 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
+	workerOverrides atc.UnsafeWorkerOverrides,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1583,6 +1607,7 @@ func (cmd *RunCommand) constructEngine(
 		secretManager,
 		cmd.varSourcePool,
 		cmd.EnableRedactSecrets,
+		workerOverrides,
 	)
 
 	return engine.NewEngine(stepBuilder)

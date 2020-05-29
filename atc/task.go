@@ -43,6 +43,12 @@ type ContainerLimits struct {
 	Memory *uint64 `json:"memory,omitempty"`
 }
 
+// UnsafeWorkerOverrides encapsulates configuration applied to all workers,
+// which breaks the isolation between workload and worker.
+type UnsafeWorkerOverrides struct {
+	BindMounts map[string]string `json:"bind-mounts,omitempty"`
+}
+
 type ImageResource struct {
 	Type   string `json:"type"`
 	Source Source `json:"source"`

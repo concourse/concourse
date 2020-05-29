@@ -81,6 +81,7 @@ type TaskStep struct {
 	delegate          TaskDelegate
 	lockFactory       lock.LockFactory
 	succeeded         bool
+	workerOverrides   atc.UnsafeWorkerOverrides
 }
 
 func NewTaskStep(
@@ -93,6 +94,7 @@ func NewTaskStep(
 	workerClient worker.Client,
 	delegate TaskDelegate,
 	lockFactory lock.LockFactory,
+	workerOverrides atc.UnsafeWorkerOverrides,
 ) Step {
 	return &TaskStep{
 		planID:            planID,
@@ -104,6 +106,7 @@ func NewTaskStep(
 		workerClient:      workerClient,
 		delegate:          delegate,
 		lockFactory:       lockFactory,
+		workerOverrides:   workerOverrides,
 	}
 }
 
@@ -211,7 +214,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	containerSpec, err := step.containerSpec(logger, repository, config, step.containerMetadata)
+	containerSpec, err := step.containerSpec(logger, repository, config, step.containerMetadata, step.workerOverrides)
 	if err != nil {
 		return err
 	}
@@ -352,7 +355,7 @@ func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Rep
 	return inputs, nil
 }
 
-func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) (worker.ContainerSpec, error) {
+func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata, workerOverrides atc.UnsafeWorkerOverrides) (worker.ContainerSpec, error) {
 	imageSpec, err := step.imageSpec(logger, repository, config)
 	if err != nil {
 		return worker.ContainerSpec{}, err
@@ -368,8 +371,7 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 		Dir:       metadata.WorkingDirectory,
 		Env:       config.Params.Env(),
 		Type:      metadata.Type,
-
-		Outputs: worker.OutputPaths{},
+		Outputs:   worker.OutputPaths{},
 	}
 
 	containerSpec.ArtifactByPath, err = step.containerInputs(logger, repository, config, metadata)
@@ -380,6 +382,13 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 	for _, output := range config.Outputs {
 		path := artifactsPath(output, metadata.WorkingDirectory)
 		containerSpec.Outputs[output.Name] = path
+	}
+
+	for fromPath, toPath := range workerOverrides.BindMounts {
+		containerSpec.BindMounts = append(containerSpec.BindMounts, &worker.HolepunchMount{
+			FromPath: fromPath,
+			ToPath:   toPath,
+		})
 	}
 
 	return containerSpec, nil
