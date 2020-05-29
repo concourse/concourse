@@ -145,7 +145,7 @@ type RunCommand struct {
 
 	ComponentRunnerInterval time.Duration `long:"component-runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
 
-	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
+	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"10s" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
 	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
 	ResourceCheckingMaxInFlight uint64 `long:"resource-checking-max-in-flight" default:"32" description:"Maximum number of resources to be checked at the same time"`
