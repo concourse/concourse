@@ -3,8 +3,10 @@ package lidar_test
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,8 +35,9 @@ var _ = Describe("Checker", func() {
 	var (
 		err error
 
-		fakeCheckFactory *dbfakes.FakeCheckFactory
-		fakeEngine       *enginefakes.FakeEngine
+		fakeCheckFactory  *dbfakes.FakeCheckFactory
+		fakeEngine        *enginefakes.FakeEngine
+		maxChecksInFlight uint64
 
 		checker Checker
 		logger  *lagertest.TestLogger
@@ -43,17 +46,19 @@ var _ = Describe("Checker", func() {
 	BeforeEach(func() {
 		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
+		maxChecksInFlight = 10
 
 		logger = lagertest.NewTestLogger("test")
+	})
+
+	JustBeforeEach(func() {
 		checker = lidar.NewChecker(
 			logger,
 			fakeCheckFactory,
 			fakeEngine,
-			10,
+			maxChecksInFlight,
 		)
-	})
 
-	JustBeforeEach(func() {
 		err = checker.Run(context.TODO())
 	})
 
@@ -105,7 +110,6 @@ var _ = Describe("Checker", func() {
 		})
 
 		Context("when retrieving checks succeeds", func() {
-
 			BeforeEach(func() {
 				fakeCheck1 := new(dbfakes.FakeCheck)
 				fakeCheck1.IDReturns(1)
@@ -120,7 +124,7 @@ var _ = Describe("Checker", func() {
 					fakeCheck3,
 				}, nil)
 
-				fakeEngine.NewCheckStub = func(build db.Check) engine.Runnable {
+				fakeEngine.NewCheckStub = func(check db.Check) engine.Runnable {
 					time.Sleep(time.Second)
 					return new(enginefakes.FakeRunnable)
 				}
@@ -133,6 +137,7 @@ var _ = Describe("Checker", func() {
 			It("runs all pending checks", func() {
 				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(3))
 			})
+
 		})
 
 		Context("when a check is already running", func() {
@@ -158,6 +163,42 @@ var _ = Describe("Checker", func() {
 
 			It("runs only one pending check", func() {
 				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(1))
+			})
+		})
+
+		Context("when the maximum number of checks are reached", func() {
+			BeforeEach(func() {
+				var checks []db.Check
+
+				for i := 1; i <= 10; i++ {
+					fakeCheck := new(dbfakes.FakeCheck)
+					fakeCheck.IDReturns(i)
+					checks = append(checks, fakeCheck)
+				}
+
+				fakeCheckFactory.StartedChecksReturns(checks, nil)
+
+				var inFlight int64
+				inFlight = 0
+
+				fakeRunnable := new(enginefakes.FakeRunnable)
+				fakeEngine.NewCheckReturns(fakeRunnable)
+				fakeRunnable.RunStub = func(logger lager.Logger) {
+					defer GinkgoRecover()
+					num := atomic.AddInt64(&inFlight, 1)
+					defer atomic.AddInt64(&inFlight, -1)
+
+					Expect(num).To(BeNumerically("<=", 5))
+
+					time.Sleep(100 * time.Millisecond)
+				}
+
+				maxChecksInFlight = 5
+			})
+
+			It("runs all the checks within the max in flight", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(10))
 			})
 		})
 	})
