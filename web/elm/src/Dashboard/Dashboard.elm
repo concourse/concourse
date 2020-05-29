@@ -460,14 +460,19 @@ handleDeliveryBody delivery ( model, effects ) =
             ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
 
         CachedPipelinesReceived (Ok pipelines) ->
-            let
-                newPipelines =
-                    pipelines
-                        |> List.map (toDashboardPipeline True (model.jobsError == Just Disabled))
-                        |> Just
-            in
-            if newPipelines |> pipelinesChangedFrom model.pipelines then
-                ( { model | pipelines = newPipelines }, effects )
+            if model.pipelines == Nothing then
+                ( { model
+                    | pipelines =
+                        pipelines
+                            |> List.map
+                                (toDashboardPipeline
+                                    True
+                                    (model.jobsError == Just Disabled)
+                                )
+                            |> Just
+                  }
+                , effects
+                )
 
             else
                 ( model, effects )
