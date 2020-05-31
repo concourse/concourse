@@ -51,9 +51,6 @@ func (s *Store) IsConfigured() bool {
 
 func (s *Store) Setup(ctx context.Context) error {
 	s.logger = lagerctx.FromContext(ctx)
-	if s.logger == nil {
-		return fmt.Errorf("missing logger in context")
-	}
 
 	l, acquired, err := s.LockFactory.Acquire(
 		s.logger.Session("acquire-setup-lock"),

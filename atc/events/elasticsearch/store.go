@@ -72,9 +72,6 @@ func (e *Store) IsConfigured() bool {
 
 func (e *Store) Setup(ctx context.Context) error {
 	e.logger = lagerctx.FromContext(ctx)
-	if e.logger == nil {
-		return fmt.Errorf("missing logger in context")
-	}
 
 	e.logger.Debug("setup-event-store", lager.Data{"url": e.URL})
 	var err error
