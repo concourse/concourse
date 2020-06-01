@@ -15,6 +15,14 @@ import (
 
 const GraceTimeKey = "garden.grace-time"
 
+type UserNotFoundError struct {
+	User string
+}
+
+func (u UserNotFoundError) Error() string {
+	return fmt.Sprintf("user '%s' not found", u.User)
+}
+
 type Container struct {
 	container     containerd.Container
 	killer        Killer
@@ -75,8 +83,10 @@ func (c *Container) Run(
 		return nil, fmt.Errorf("container spec: %w", err)
 	}
 
-	procSpec := containerSpec.Process
-	setupContainerdProcSpec(spec, procSpec)
+	procSpec, err := c.setupContainerdProcSpec(spec, *containerSpec)
+	if err != nil {
+		return nil, err
+	}
 
 	err = c.rootfsManager.SetupCwd(containerSpec.Root.Path, procSpec.Cwd)
 	if err != nil {
@@ -91,7 +101,7 @@ func (c *Container) Run(
 	id := procID(spec)
 	cioOpts := containerdCIO(processIO, spec.TTY != nil)
 
-	proc, err := task.Exec(ctx, id, procSpec, cio.NewCreator(cioOpts...))
+	proc, err := task.Exec(ctx, id, &procSpec, cio.NewCreator(cioOpts...))
 	if err != nil {
 		return nil, fmt.Errorf("task exec: %w", err)
 	}
@@ -325,7 +335,9 @@ func procID(gdnProcSpec garden.ProcessSpec) string {
 	return id
 }
 
-func setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, procSpec *specs.Process) {
+func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, containerSpec specs.Spec) (specs.Process, error) {
+	procSpec := containerSpec.Process
+
 	procSpec.Args = append([]string{gdnProcSpec.Path}, gdnProcSpec.Args...)
 	procSpec.Env = append(procSpec.Env, gdnProcSpec.Env...)
 
@@ -346,6 +358,20 @@ func setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, procSpec *specs.Pro
 			}
 		}
 	}
+
+
+	if gdnProcSpec.User != "" {
+		var ok bool
+		var err error
+		procSpec.User, ok, err = c.rootfsManager.LookupUser(containerSpec.Root.Path, gdnProcSpec.User)
+		if err != nil {
+			return specs.Process{}, fmt.Errorf("lookup user: %w", err)
+		}
+		if !ok {
+			return specs.Process{}, UserNotFoundError{User: gdnProcSpec.User}
+		}
+	}
+	return *procSpec, nil
 }
 
 func containerdCIO(gdnProcIO garden.ProcessIO, tty bool) []cio.Opt {

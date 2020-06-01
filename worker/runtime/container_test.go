@@ -191,6 +191,56 @@ func (s *ContainerSuite) TestRunProcCloseIOWithStdin() {
 	s.True(obj.Stdin)
 }
 
+func (s *ContainerSuite) TestRunWithUserLookupSucceeds() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	expectedUser := specs.User{UID: 1, GID: 2, Username: "some_user"}
+	s.rootfsManager.LookupUserReturns(expectedUser, true, nil)
+
+	_, err := s.container.Run(garden.ProcessSpec{User: "some_user"}, garden.ProcessIO{})
+	s.NoError(err)
+
+	_, _, procSpec, _ := s.containerdTask.ExecArgsForCall(0)
+	s.Equal(expectedUser, procSpec.User)
+}
+
+func (s *ContainerSuite) TestRunWithUserLookupErrors() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	expectedErr := errors.New("lookup error")
+	s.rootfsManager.LookupUserReturns(specs.User{}, false, expectedErr)
+
+	_, err := s.container.Run(garden.ProcessSpec{User: "some_user"}, garden.ProcessIO{})
+	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ContainerSuite) TestRunWithUserLookupNotFound() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	s.rootfsManager.LookupUserReturns(specs.User{}, false, nil)
+
+	_, err := s.container.Run(garden.ProcessSpec{User: "some_invalid_user"}, garden.ProcessIO{})
+	s.True(errors.Is(err, runtime.UserNotFoundError{User: "some_invalid_user"}))
+}
+
 func (s *ContainerSuite) TestSetGraceTimeSetLabelsFails() {
 	expectedErr := errors.New("set-label-error")
 	s.containerdContainer.SetLabelsReturns(nil, expectedErr)
