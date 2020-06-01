@@ -61,7 +61,7 @@ func (config *NewRelicConfig) IsConfigured() bool {
 
 func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
 	client := &http.Client{
-		Transport: &http.Transport{},
+		Transport: &http.Transport{ Proxy: http.ProxyFromEnvironment },
 		Timeout:   time.Minute,
 	}
 
@@ -72,6 +72,7 @@ func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
 		prefix:             config.ServicePrefix,
 		containers:         new(stats),
 		volumes:            new(stats),
+		checks:             new(stats),
 		BatchSize:          int(config.BatchSize),
 		BatchDuration:      config.BatchDuration,
 		DisableCompression: config.DisableCompression,
