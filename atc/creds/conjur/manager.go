@@ -20,6 +20,7 @@ type Manager struct {
 	ConjurApplianceUrl     string `long:"appliance-url" description:"URL of the conjur instance"`
 	ConjurAccount          string `long:"account" description:"Conjur Account"`
 	ConjurCertFile         string `long:"cert-file" description:"Cert file used if conjur instance is using a self signed cert. E.g. /path/to/conjur.pem"`
+	SSLCertificate         string `long:"ssl-certificate" description:"Cert content. This is used when deploying from bosh"`
 	ConjurAuthnLogin       string `long:"authn-login" description:"Host username. E.g host/concourse"`
 	ConjurAuthnApiKey      string `long:"authn-api-key" description:"Api key related to the host"`
 	ConjurAuthnTokenFile   string `long:"authn-token-file" description:"Token file used if conjur instance is running in k8s or iam. E.g. /path/to/token_file"`
@@ -34,6 +35,7 @@ func newConjurClient(manager *Manager) (*conjurapi.Client, error) {
 		Account:      manager.ConjurAccount,
 		ApplianceURL: manager.ConjurApplianceUrl,
 		SSLCertPath:  manager.ConjurCertFile,
+		SSLCert:      manager.SSLCertificate,
 	}
 
 	if manager.ConjurAuthnTokenFile != "" {
