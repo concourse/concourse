@@ -136,7 +136,7 @@ type job struct {
 	disableManualTrigger  bool
 
 	config    *atc.JobConfig
-	rawConfig []byte
+	rawConfig *string
 	nonce     *string
 }
 
@@ -203,7 +203,11 @@ func (j *job) Config() (atc.JobConfig, error) {
 
 	es := j.conn.EncryptionStrategy()
 
-	decryptedConfig, err := es.Decrypt(string(j.rawConfig), j.nonce)
+	if j.rawConfig == nil {
+		return atc.JobConfig{}, nil
+	}
+
+	decryptedConfig, err := es.Decrypt(*j.rawConfig, j.nonce)
 	if err != nil {
 		return atc.JobConfig{}, err
 	}
@@ -1353,16 +1357,21 @@ func (j *job) isPipelineOrJobPaused(tx Tx) (bool, error) {
 
 func scanJob(j *job, row scannable) error {
 	var (
-		nonce sql.NullString
+		config sql.NullString
+		nonce  sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &j.rawConfig, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
+	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
 	if err != nil {
 		return err
 	}
 
 	if nonce.Valid {
 		j.nonce = &nonce.String
+	}
+
+	if config.Valid {
+		j.rawConfig = &config.String
 	}
 
 	return nil

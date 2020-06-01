@@ -285,7 +285,7 @@ func (t *resourceType) SetCheckSetupError(cause error) error {
 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
-		configJSON                                   []byte
+		configJSON                                   sql.NullString
 		checkErr, rcsCheckErr, rcsID, version, nonce sql.NullString
 		lastCheckStartTime, lastCheckEndTime         pq.NullTime
 	)
@@ -312,15 +312,19 @@ func scanResourceType(t *resourceType, row scannable) error {
 		noncense = &nonce.String
 	}
 
-	decryptedConfig, err := es.Decrypt(string(configJSON), noncense)
-	if err != nil {
-		return err
-	}
-
 	var config atc.ResourceType
-	err = json.Unmarshal(decryptedConfig, &config)
-	if err != nil {
-		return err
+	if configJSON.Valid {
+		decryptedConfig, err := es.Decrypt(configJSON.String, noncense)
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(decryptedConfig, &config)
+		if err != nil {
+			return err
+		}
+	} else {
+		config = atc.ResourceType{}
 	}
 
 	t.source = config.Source
