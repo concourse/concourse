@@ -60,7 +60,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 #### <sub><sup><a name="5622" href="#5622">:link:</a></sup></sub> fix
 
-* @evanchaoli enhanced to change the Web UI and `fly teams` to show teams ordering by team names, which allows users who are participated in many teams to find a specific team easily.
+* @evanchaoli enhanced to change the Web UI and `fly teams` to show teams ordering by team names, which allows users who are participated in many teams to find a specific team easily. #5622
 
 #### <sub><sup><a name="5639" href="#5639">:link:</a></sup></sub> fix
 
@@ -85,3 +85,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5572" href="#5572">:link:</a></sup></sub> feature
 
 * Add tracing to allow users and developers to observe volume streaming from source to destination volumes.  #5579
+
+#### <sub><sup><a name="5706" href="#5706">:link:</a></sup></sub> fix
+
+* Steps `load_var` and `set_pipeline` missed tracing, @evanchaoli added tracing to these steps. #5706
