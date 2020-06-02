@@ -23,14 +23,15 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5082" href="#5082">:link:</a></sup></sub> fix
 
 * Close Worker's registration connection to the TSA on application level keepalive failure
-* Add 5 second timeout for keepalive operation
+* Add 5 second timeout for keepalive operation. #5802
+
 #### <sub><sup><a name="5457" href="#5457">:link:</a></sup></sub> fix
 
 * Improve consistency of auto-scrolling to highlighted logs. #5457
 
 #### <sub><sup><a name="5452" href="#4081">:link:</a></sup></sub> fix
 
-* @shyamz-22 added ability to configure NewRelic insights endpoint which allows us to use EU or US data centers
+* @shyamz-22 added ability to configure NewRelic insights endpoint which allows us to use EU or US data centers. #5452
 
 #### <sub><sup><a name="5520" href="#5520">:link:</a></sup></sub> fix
 
@@ -38,7 +39,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 #### <sub><sup><a name="5485" href="#5485">:link:</a></sup></sub> fix
 
-* Fix a bug where a Task's image or input volume(s) were redundantly streamed from another worker despite having a local copy. This would only occur if the image or input(s) were provided by a resource definition (eg. Get step).
+* Fix a bug where a Task's image or input volume(s) were redundantly streamed from another worker despite having a local copy. This would only occur if the image or input(s) were provided by a resource definition (eg. Get step). #5485
 
 #### <sub><sup><a name="5604" href="#5604">:link:</a></sup></sub> fix
 
@@ -56,7 +57,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 #### <sub><sup><a name="5622" href="#5622">:link:</a></sup></sub> fix
 
-* @evanchaoli enhanced to change the Web UI and `fly teams` to show teams ordering by team names, which allows users who are participated in many teams to find a specific team easily.
+* @evanchaoli enhanced to change the Web UI and `fly teams` to show teams ordering by team names, which allows users who are participated in many teams to find a specific team easily. #5622
 
 #### <sub><sup><a name="5639" href="#5639">:link:</a></sup></sub> fix
 
@@ -68,19 +69,19 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 #### <sub><sup><a name="5624" href="#5624">:link:</a></sup></sub> fix
 
-* Fixed a bug where fly would no longer tell you if the team you logged in with was invalid
+* Fixed a bug where fly would no longer tell you if the team you logged in with was invalid. #5624
 
 #### <sub><sup><a name="5192" href="#5192">:link:</a></sup></sub> fix
 
-* @evanchaoli changed the behaviour of the web to retry individual build steps that fail when a worker disappears.
+* @evanchaoli changed the behaviour of the web to retry individual build steps that fail when a worker disappears. #5192
 
 #### <sub><sup><a name="5549" href="#5549">:link:</a></sup></sub> fix
 
-* Added a new Wrappa that returns HTTP 409 for endpoints listed in concourse/rfc#33 when the requested pipeine is archived
+* Added a new Wrappa that returns HTTP 409 for endpoints listed in concourse/rfc#33 when the requested pipeine is archived. #5549
 
 #### <sub><sup><a name="5576" href="#5576">:link:</a></sup></sub> fix
 
-* @dcsg added support for AWS SSM for `var_sources`
+* @dcsg added support for AWS SSM for `var_sources`. #5576
 
 #### <sub><sup><a name="5575" href="#5575">:link:</a></sup></sub> feature
 
@@ -88,4 +89,4 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 #### <sub><sup><a name="5617" href="#5617">:link:</a></sup></sub> fix
 
-* @ozzywalsh added the `--team` flag to the `fly unpause-pipeline` command
+* @ozzywalsh added the `--team` flag to the `fly unpause-pipeline` command. #5617
