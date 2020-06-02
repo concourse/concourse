@@ -40,7 +40,7 @@ although support for other systems is planned to expand as the underlying SDK
   \title{What's emitted?}
 
   Below is a summary of the various operations that Concourse currently traces.
-  They are arranged like a call tree, so that for operation described, its
+  They are arranged like a call tree, so that for each operation described, its
   sub-operations are described indented immediately below.
 
   \list{
