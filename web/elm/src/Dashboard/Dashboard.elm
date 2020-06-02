@@ -80,8 +80,13 @@ import Views.Spinner as Spinner
 import Views.Styles
 
 
-init : Routes.SearchType -> ( Model, List Effect )
-init searchType =
+type alias Flags =
+    { searchType : Routes.SearchType
+    }
+
+
+init : Flags -> ( Model, List Effect )
+init { searchType } =
     ( { now = Nothing
       , hideFooter = False
       , hideFooterCounter = 0
