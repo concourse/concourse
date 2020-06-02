@@ -70,23 +70,6 @@ although support for other systems is planned to expand as the underlying SDK
           \code{groupResolver.Resolve} -- This is the juicy part of the algorithm,
           which deals with
           \reference{schema.step.get-step.passed}{\code{passed}} constraints.
-          \list{
-            \code{groupResolver.tryResolve}
-            \list{
-              \code{groupResolver.trySatisfyPassedConstraintsForInput}
-              \list{
-                \code{groupResolver.tryJobBuilds}
-                \list{
-                  \code{PaginatedBuilds.migrateLimit}
-                }{
-                  \code{groupResolver.tryBuildOutputs}
-                  \list{
-                    \code{VersionsDB.migrateSingle}
-                  }
-                }
-              }
-            }
-          }
         }{
           \code{pinnedResolver.Resolve} -- This operation is used to determine
           inputs when \reference{version-pinning} is at play.
