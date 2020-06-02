@@ -590,7 +590,7 @@ func (r *resource) PinVersion(rcvID int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	 defer Rollback(tx)
+	defer Rollback(tx)
 	var pinnedThroughConfig bool
 	err = tx.QueryRow(`
 		SELECT EXISTS (
@@ -732,7 +732,7 @@ func (r *resource) NotifyScan() error {
 
 func scanResource(r *resource, row scannable) error {
 	var (
-		configBlob                                                               []byte
+		configBlob                                                               sql.NullString
 		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
 		lastCheckStartTime, lastCheckEndTime                                     pq.NullTime
 		pinnedThroughConfig                                                      sql.NullBool
@@ -753,15 +753,19 @@ func scanResource(r *resource, row scannable) error {
 		noncense = &nonce.String
 	}
 
-	decryptedConfig, err := es.Decrypt(string(configBlob), noncense)
-	if err != nil {
-		return err
-	}
-
 	var config atc.ResourceConfig
-	err = json.Unmarshal(decryptedConfig, &config)
-	if err != nil {
-		return err
+	if configBlob.Valid {
+		decryptedConfig, err := es.Decrypt(configBlob.String, noncense)
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(decryptedConfig, &config)
+		if err != nil {
+			return err
+		}
+	} else {
+		config = atc.ResourceConfig{}
 	}
 
 	r.public = config.Public

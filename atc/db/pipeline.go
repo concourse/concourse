@@ -1218,48 +1218,23 @@ func requestScheduleForJobsInPipeline(tx Tx, pipelineID int) error {
 }
 
 func (p *pipeline) clearConfigForJobsInPipeline(tx Tx) error {
-	var emptyConfig atc.JobConfig
-
-	es := p.conn.EncryptionStrategy()
-
-	configPayload, err := json.Marshal(emptyConfig)
-	if err != nil {
-		return err
-	}
-	encryptedPayload, nonce, err := es.Encrypt(configPayload)
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Update("jobs").
-		Set("config", encryptedPayload).
-		Set("nonce", nonce).
+	_, err := psql.Update("jobs").
+		Set("config", nil).
+		Set("nonce", nil).
 		Where(sq.Eq{"pipeline_id": p.id}).
 		RunWith(tx).
 		Exec()
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
 func (p *pipeline) clearConfigForResourcesInPipeline(tx Tx) error {
-	var emptyConfig atc.ResourceConfig
-
-	es := p.conn.EncryptionStrategy()
-
-	configPayload, err := json.Marshal(emptyConfig)
-	if err != nil {
-		return err
-	}
-	encryptedPayload, nonce, err := es.Encrypt(configPayload)
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Update("resources").
-		Set("config", encryptedPayload).
-		Set("nonce", nonce).
+	_, err := psql.Update("resources").
+		Set("config", nil).
+		Set("nonce", nil).
 		Where(sq.Eq{"pipeline_id": p.id}).
 		RunWith(tx).
 		Exec()
@@ -1271,23 +1246,9 @@ func (p *pipeline) clearConfigForResourcesInPipeline(tx Tx) error {
 }
 
 func (p *pipeline) clearConfigForResourceTypesInPipeline(tx Tx) error {
-	var emptyResourceType atc.ResourceType
-
-	es := p.conn.EncryptionStrategy()
-
-	configPayload, err := json.Marshal(emptyResourceType)
-	if err != nil {
-		return err
-	}
-
-	encryptedPayload, nonce, err := es.Encrypt(configPayload)
-	if err != nil {
-		return err
-	}
-
-	_, err = psql.Update("resource_types").
-		Set("config", encryptedPayload).
-		Set("nonce", nonce).
+	_, err := psql.Update("resource_types").
+		Set("config", nil).
+		Set("nonce", nil).
 		Where(sq.Eq{"pipeline_id": p.id}).
 		RunWith(tx).
 		Exec()
