@@ -21,6 +21,30 @@ all =
                     }
                     |> Expect.equal
                         (Just (Routes.Dashboard (Routes.Normal (Just "asdf sd"))))
+        , test "parses dashboard without search" <|
+            \_ ->
+                Routes.parsePath
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Expect.equal
+                        (Just (Routes.Dashboard (Routes.Normal Nothing)))
+        , test "parses dashboard in hd view" <|
+            \_ ->
+                Routes.parsePath
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/hd"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Expect.equal
+                        (Just (Routes.Dashboard Routes.HighDensity))
         , test "fly success has noop parameter" <|
             \_ ->
                 Routes.parsePath

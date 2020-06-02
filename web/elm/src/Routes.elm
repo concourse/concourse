@@ -201,16 +201,16 @@ pipeline =
 
 dashboard : Parser (Route -> a) a
 dashboard =
-    oneOf
-        [ map
-            (Maybe.map (String.replace "+" " ")
-                -- https://github.com/elm/url/issues/32
-                >> Normal
-                >> Dashboard
-            )
-            (top <?> Query.string "search")
-        , map (Dashboard HighDensity) (s "hd")
-        ]
+    map Dashboard <|
+        oneOf
+            [ (top <?> Query.string "search")
+                |> map
+                    (Maybe.map (String.replace "+" " ")
+                        -- https://github.com/elm/url/issues/32
+                        >> Normal
+                    )
+            , s "hd" |> map HighDensity
+            ]
 
 
 flySuccess : Parser (Route -> a) a
