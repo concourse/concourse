@@ -1037,7 +1037,7 @@ iToggledToHighDensity =
         >> Application.update
             (TopLevelMessage.DeliveryReceived <|
                 Subscription.RouteChanged <|
-                    Routes.Dashboard Routes.HighDensity
+                    Routes.Dashboard { searchType = Routes.HighDensity }
             )
 
 
@@ -1460,7 +1460,7 @@ iNavigateToTheDashboard =
         >> Application.update
             (TopLevelMessage.DeliveryReceived <|
                 Subscription.RouteChanged <|
-                    Routes.Dashboard (Routes.Normal Nothing)
+                    Routes.Dashboard { searchType = Routes.Normal Nothing }
             )
 
 

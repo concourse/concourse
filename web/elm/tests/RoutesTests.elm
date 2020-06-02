@@ -20,7 +20,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Expect.equal
-                        (Just (Routes.Dashboard (Routes.Normal (Just "asdf sd"))))
+                        (Just (Routes.Dashboard { searchType = Routes.Normal (Just "asdf sd") }))
         , test "parses dashboard without search" <|
             \_ ->
                 Routes.parsePath
@@ -32,7 +32,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Expect.equal
-                        (Just (Routes.Dashboard (Routes.Normal Nothing)))
+                        (Just (Routes.Dashboard { searchType = Routes.Normal Nothing }))
         , test "parses dashboard in hd view" <|
             \_ ->
                 Routes.parsePath
@@ -44,7 +44,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Expect.equal
-                        (Just (Routes.Dashboard Routes.HighDensity))
+                        (Just (Routes.Dashboard { searchType = Routes.HighDensity }))
         , test "fly success has noop parameter" <|
             \_ ->
                 Routes.parsePath

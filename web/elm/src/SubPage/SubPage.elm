@@ -90,8 +90,10 @@ init session route =
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard searchType ->
-            Dashboard.init searchType
+        Routes.Dashboard { searchType } ->
+            Dashboard.init
+                { searchType = searchType
+                }
                 |> Tuple.mapFirst DashboardModel
 
         Routes.FlySuccess noop flyPort ->
@@ -303,9 +305,9 @@ urlUpdate routes =
                 identity
         )
         (case routes.to of
-            Routes.Dashboard st ->
+            Routes.Dashboard { searchType } ->
                 Tuple.mapFirst
-                    (\dm -> { dm | highDensity = st == Routes.HighDensity })
+                    (\dm -> { dm | highDensity = searchType == Routes.HighDensity })
 
             _ ->
                 identity

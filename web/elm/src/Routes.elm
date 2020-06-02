@@ -45,7 +45,7 @@ type Route
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
-    | Dashboard SearchType
+    | Dashboard { searchType : SearchType }
     | FlySuccess Bool (Maybe Int)
 
 
@@ -201,7 +201,7 @@ pipeline =
 
 dashboard : Parser (Route -> a) a
 dashboard =
-    map Dashboard <|
+    map (\st -> Dashboard { searchType = st }) <|
         oneOf
             [ (top <?> Query.string "search")
                 |> map
@@ -264,10 +264,10 @@ pipelineRoute p =
 dashboardRoute : Bool -> Route
 dashboardRoute isHd =
     if isHd then
-        Dashboard HighDensity
+        Dashboard { searchType = HighDensity }
 
     else
-        Dashboard (Normal Nothing)
+        Dashboard { searchType = Normal Nothing }
 
 
 showHighlight : Highlight -> String
@@ -425,14 +425,25 @@ toString route =
                 ]
                 (groups |> List.map (Builder.string "group"))
 
-        Dashboard (Normal (Just search)) ->
-            Builder.absolute [] [ Builder.string "search" search ]
+        Dashboard { searchType } ->
+            let
+                path =
+                    case searchType of
+                        Normal _ ->
+                            []
 
-        Dashboard (Normal Nothing) ->
-            Builder.absolute [] []
+                        HighDensity ->
+                            [ "hd" ]
 
-        Dashboard HighDensity ->
-            Builder.absolute [ "hd" ] []
+                queryParams =
+                    case searchType of
+                        Normal (Just query) ->
+                            [ Builder.string "search" query ]
+
+                        _ ->
+                            []
+            in
+            Builder.absolute path queryParams
 
         FlySuccess noop flyPort ->
             Builder.absolute [ "fly_success" ] <|
