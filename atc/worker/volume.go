@@ -91,8 +91,11 @@ func (v *volume) StreamIn(ctx context.Context, path string, encoding baggageclai
 		"destination-volume": v.Handle(),
 		"destination-worker": v.WorkerName(),
 	})
-	defer span.End()
-	return v.bcVolume.StreamIn(ctx, path, encoding, tarStream)
+
+	err := v.bcVolume.StreamIn(ctx, path, encoding, tarStream)
+	tracing.End(span, err)
+
+	return err
 }
 
 func (v *volume) StreamOut(ctx context.Context, path string, encoding baggageclaim.Encoding) (io.ReadCloser, error) {

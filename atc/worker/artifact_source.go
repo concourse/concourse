@@ -70,17 +70,17 @@ func (source *artifactSource) StreamTo(
 	})
 	defer outSpan.End()
 	out, err := source.volume.StreamOut(ctx, ".", source.compression.Encoding())
+
 	if err != nil {
+		tracing.End(outSpan, err)
 		return err
 	}
 
 	defer out.Close()
 
 	err = destination.StreamIn(ctx, ".", source.compression.Encoding(), out)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 // TODO: figure out if we want logging before and after streams, I remove logger from private methods
