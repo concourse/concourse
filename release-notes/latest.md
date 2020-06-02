@@ -69,3 +69,11 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5624" href="#5624">:link:</a></sup></sub> fix
 
 * Fixed a bug where fly would no longer tell you if the team you logged in with was invalid
+
+#### <sub><sup><a name="newrelic-checks-fix" href="#newrelic-checks-fix">:link:</a></sup></sub> fix
+
+* Fixed a bug "invalid memory address or nil pointer dereference" in NewRelic emitter
+
+#### <sub><sup><a name="5222" href="#5222">:link:</a></sup></sub> feature
+
+* Proxy support for NewRelic emitter
