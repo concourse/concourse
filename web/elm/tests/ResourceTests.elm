@@ -199,7 +199,9 @@ all =
                         [ Effects.NavigateTo <|
                             Routes.toString <|
                                 Routes.Dashboard <|
-                                    { searchType = Routes.Normal "" }
+                                    { searchType = Routes.Normal ""
+                                    , dashboardView = Routes.ViewNonArchivedPipelines
+                                    }
                         ]
             ]
         , test "has title with resource name" <|

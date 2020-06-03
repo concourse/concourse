@@ -60,7 +60,12 @@ init flags url =
     let
         route =
             Routes.parsePath url
-                |> Maybe.withDefault (Routes.Dashboard { searchType = Routes.Normal "" })
+                |> Maybe.withDefault
+                    (Routes.Dashboard
+                        { searchType = Routes.Normal ""
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
+                    )
 
         session =
             { userState = UserStateUnknown

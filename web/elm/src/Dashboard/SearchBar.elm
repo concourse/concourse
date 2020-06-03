@@ -48,7 +48,10 @@ update session msg ( model, effects ) =
                 ++ [ Focus searchInputId
                    , ModifyUrl <|
                         Routes.toString <|
-                            Routes.Dashboard { searchType = Routes.Normal "" }
+                            Routes.Dashboard
+                                { searchType = Routes.Normal ""
+                                , dashboardView = model.dashboardView
+                                }
                    ]
             )
 
@@ -58,7 +61,10 @@ update session msg ( model, effects ) =
                 ++ [ Focus searchInputId
                    , ModifyUrl <|
                         Routes.toString <|
-                            Routes.Dashboard { searchType = Routes.Normal query }
+                            Routes.Dashboard
+                                { searchType = Routes.Normal query
+                                , dashboardView = model.dashboardView
+                                }
                    ]
             )
 
@@ -156,7 +162,10 @@ handleDelivery delivery ( model, effects ) =
                               }
                             , [ ModifyUrl <|
                                     Routes.toString <|
-                                        Routes.Dashboard { searchType = Routes.Normal selectedItem }
+                                        Routes.Dashboard
+                                            { searchType = Routes.Normal selectedItem
+                                            , dashboardView = model.dashboardView
+                                            }
                               ]
                             )
 

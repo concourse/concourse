@@ -83,17 +83,19 @@ import Views.Toggle as Toggle
 
 type alias Flags =
     { searchType : Routes.SearchType
+    , dashboardView : Routes.DashboardView
     }
 
 
 init : Flags -> ( Model, List Effect )
-init { searchType } =
+init f =
     ( { now = Nothing
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
-      , highDensity = searchType == Routes.HighDensity
-      , query = Routes.extractQuery searchType
+      , highDensity = f.searchType == Routes.HighDensity
+      , query = Routes.extractQuery f.searchType
+      , dashboardView = f.dashboardView
       , pipelinesWithResourceErrors = Dict.empty
       , jobs = None
       , pipelines = Nothing
@@ -366,8 +368,15 @@ handleCallback callback ( model, effects ) =
             , effects
                 ++ [ NavigateTo <|
                         Routes.toString <|
-                            Routes.dashboardRoute <|
-                                model.highDensity
+                            Routes.Dashboard
+                                { searchType =
+                                    if model.highDensity then
+                                        Routes.HighDensity
+
+                                    else
+                                        Routes.Normal model.query
+                                , dashboardView = model.dashboardView
+                                }
                    , FetchAllTeams
                    , FetchAllResources
                    , FetchAllJobs
@@ -902,7 +911,11 @@ showArchivedToggleView { pipelines } =
     else
         Toggle.toggleSwitch
             { ariaLabel = ""
-            , hrefRoute = Routes.dashboardRoute False
+            , hrefRoute =
+                Routes.Dashboard
+                    { searchType = Routes.Normal ""
+                    , dashboardView = Routes.ViewNonArchivedPipelines
+                    }
             , text = "show archived"
             , textDirection = Toggle.Left
             , on = False

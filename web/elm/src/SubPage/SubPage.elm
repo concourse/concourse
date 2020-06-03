@@ -90,9 +90,10 @@ init session route =
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard { searchType } ->
+        Routes.Dashboard { searchType, dashboardView } ->
             Dashboard.init
                 { searchType = searchType
+                , dashboardView = dashboardView
                 }
                 |> Tuple.mapFirst DashboardModel
 
@@ -207,7 +208,14 @@ handleCallback callback session =
 handleLoggedOut : ET { a | isUserMenuExpanded : Bool }
 handleLoggedOut ( m, effs ) =
     ( { m | isUserMenuExpanded = False }
-    , effs ++ [ NavigateTo <| Routes.toString <| Routes.dashboardRoute False ]
+    , effs
+        ++ [ NavigateTo <|
+                Routes.toString <|
+                    Routes.Dashboard
+                        { searchType = Routes.Normal ""
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
+           ]
     )
 
 
