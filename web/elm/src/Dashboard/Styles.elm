@@ -47,6 +47,7 @@ module Dashboard.Styles exposing
     , showSearchContainer
     , striped
     , teamNameHd
+    , topBarContent
     , topCliIcon
     , visibilityToggle
     , visibilityTooltip
@@ -556,6 +557,14 @@ noResults =
     [ style "text-align" "center"
     , style "font-size" "13px"
     , style "margin-top" "20px"
+    ]
+
+
+topBarContent : List (Html.Attribute msg)
+topBarContent =
+    [ style "display" "flex"
+    , style "flex-grow" "1"
+    , style "justify-content" "center"
     ]
 
 
