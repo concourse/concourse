@@ -886,7 +886,7 @@ topBar session model =
 topBarContent : List (Html Message) -> Html Message
 topBarContent content =
     Html.div
-        ([ id "top-bar-content" ] ++ Styles.topBarContent)
+        (id "top-bar-content" :: Styles.topBarContent)
         content
 
 
@@ -1110,6 +1110,7 @@ pipelinesView :
             | teams : FetchResult (List Concourse.Team)
             , query : String
             , highDensity : Bool
+            , dashboardView : Routes.DashboardView
             , pipelinesWithResourceErrors : Dict ( String, String ) Bool
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
             , pipelines : Maybe (List Pipeline)
@@ -1128,7 +1129,6 @@ pipelinesView session params =
         pipelines =
             params.pipelines
                 |> Maybe.withDefault []
-                |> List.filter (not << .archived)
 
         jobs =
             params.jobs
@@ -1145,6 +1145,7 @@ pipelinesView session params =
                 , query = params.query
                 , teams = teams
                 , pipelines = pipelines
+                , dashboardView = params.dashboardView
                 }
                 |> List.sortWith (Group.ordering session)
 

@@ -25,21 +25,7 @@ all =
                     ]
 
                 setupQuery path query =
-                    Application.init
-                        { turbulenceImgSrc = ""
-                        , notFoundImgSrc = "notfound.svg"
-                        , csrfToken = "csrf_token"
-                        , authToken = ""
-                        , pipelineRunningKeyframes = "pipeline-running"
-                        }
-                        { protocol = Url.Http
-                        , host = ""
-                        , port_ = Nothing
-                        , path = path
-                        , query = query
-                        , fragment = Nothing
-                        }
-                        |> Tuple.first
+                    init path query
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <| Ok [ Data.pipeline "team" 1 ])
                         |> Tuple.first
@@ -157,21 +143,58 @@ all =
                                 ]
                 ]
             ]
-        , test "archived pipelines are not rendered" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <|
-                            Ok
-                                [ Data.pipeline "team" 1
-                                    |> Data.withName "archived-pipeline"
-                                    |> Data.withArchived True
-                                ]
-                        )
-                    |> Tuple.first
-                    |> Common.queryView
-                    |> Query.hasNot [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+        , describe "when viewing only non-archived pipelines"
+            [ test "archived pipelines are not rendered" <|
+                \_ ->
+                    init "/" Nothing
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ Data.pipeline "team" 1
+                                        |> Data.withName "archived-pipeline"
+                                        |> Data.withArchived True
+                                    ]
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.hasNot [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+            ]
+        , describe "when viewing all pipelines"
+            [ test "archived pipelines are rendered" <|
+                \_ ->
+                    init "/" (Just "view=all")
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ Data.pipeline "team" 1
+                                        |> Data.withName "archived-pipeline"
+                                        |> Data.withArchived True
+                                    ]
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.has [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+            ]
         ]
+
+
+init : String -> Maybe String -> Application.Model
+init path query =
+    Application.init
+        { turbulenceImgSrc = ""
+        , notFoundImgSrc = "notfound.svg"
+        , csrfToken = "csrf_token"
+        , authToken = ""
+        , pipelineRunningKeyframes = "pipeline-running"
+        }
+        { protocol = Url.Http
+        , host = ""
+        , port_ = Nothing
+        , path = path
+        , query = query
+        , fragment = Nothing
+        }
+        |> Tuple.first
 
 
 routeHref : Routes.Route -> Test.Html.Selector.Selector
