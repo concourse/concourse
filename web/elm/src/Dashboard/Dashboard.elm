@@ -78,6 +78,7 @@ import Tooltip
 import UserState
 import Views.Spinner as Spinner
 import Views.Styles
+import Views.Toggle as Toggle
 
 
 type alias Flags =
@@ -861,11 +862,13 @@ topBar session model =
 
                 else if not model.highDensity then
                     [ topBarContent [ SearchBar.view session model ]
+                    , showArchivedToggleView model
                     , Login.view session.userState model False
                     ]
 
                 else
                     [ topBarContent []
+                    , showArchivedToggleView model
                     , Login.view session.userState model False
                     ]
                )
@@ -883,6 +886,27 @@ clusterNameView session =
     Html.div
         Styles.clusterName
         [ Html.text session.clusterName ]
+
+
+showArchivedToggleView : { a | pipelines : Maybe (List Pipeline) } -> Html Message
+showArchivedToggleView { pipelines } =
+    let
+        noPipelines =
+            pipelines
+                |> Maybe.withDefault []
+                |> List.isEmpty
+    in
+    if noPipelines then
+        Html.text ""
+
+    else
+        Toggle.toggleSwitch
+            { ariaLabel = ""
+            , hrefRoute = Routes.dashboardRoute False
+            , text = "show archived"
+            , on = False
+            , styles = []
+            }
 
 
 showTurbulence :
