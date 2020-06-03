@@ -316,8 +316,8 @@ type checkDelegate struct {
 	clock       clock.Clock
 }
 
-func (d *checkDelegate) SaveVersions(versions []atc.Version) error {
-	return d.check.SaveVersions(versions)
+func (d *checkDelegate) SaveVersions(spanContext db.SpanContext, versions []atc.Version) error {
+	return d.check.SaveVersions(spanContext, versions)
 }
 
 type discardCloser struct {

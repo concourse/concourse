@@ -32,7 +32,7 @@ type CheckStep struct {
 type CheckDelegate interface {
 	BuildStepDelegate
 
-	SaveVersions([]atc.Version) error
+	SaveVersions(db.SpanContext, []atc.Version) error
 }
 
 func NewCheckStep(
@@ -136,7 +136,7 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("run check step: %w", err)
 	}
 
-	err = step.delegate.SaveVersions(result.Versions)
+	err = step.delegate.SaveVersions(db.NewSpanContext(ctx), result.Versions)
 	if err != nil {
 		return fmt.Errorf("save versions: %w", err)
 	}

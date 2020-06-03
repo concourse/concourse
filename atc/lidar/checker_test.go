@@ -23,12 +23,6 @@ type Checker interface {
 	Run(context.Context) error
 }
 
-type testTraceProvider struct{}
-
-func (ttp *testTraceProvider) Tracer(name string) trace.Tracer {
-	return testtrace.NewTracer()
-}
-
 var _ = Describe("Checker", func() {
 	var (
 		err error
@@ -75,7 +69,7 @@ var _ = Describe("Checker", func() {
 			)
 
 			BeforeEach(func() {
-				tracing.ConfigureTraceProvider(&testTraceProvider{})
+				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
 				fakeCheck := new(dbfakes.FakeCheck)
 				fakeCheck.IDReturns(1)
 				var ctx context.Context

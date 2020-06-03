@@ -1,13 +1,16 @@
 package db_test
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/propagators"
 )
 
 var _ = Describe("Job", func() {
@@ -1239,6 +1242,7 @@ var _ = Describe("Job", func() {
 			job                 db.Job
 			resourceConfigScope db.ResourceConfigScope
 			resource            db.Resource
+			spanContext         db.SpanContext
 		)
 
 		BeforeEach(func() {
@@ -1307,11 +1311,15 @@ var _ = Describe("Job", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{
-				{"version": "v1"},
-				{"version": "v2"},
-				{"version": "v3"},
-			})
+			spanContext = db.SpanContext{"fake": "version"}
+			err = resourceConfigScope.SaveVersions(
+				spanContext,
+				[]atc.Version{
+					{"version": "v1"},
+					{"version": "v2"},
+					{"version": "v3"},
+				},
+			)
 			Expect(err).NotTo(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
@@ -1388,18 +1396,21 @@ var _ = Describe("Job", func() {
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v1"},
 						FirstOccurrence: false,
+						Context:         spanContext,
 					},
 					{
 						Name:            "some-input-2",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v2"},
 						FirstOccurrence: false,
+						Context:         spanContext,
 					},
 					{
 						Name:            "some-input-3",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v3"},
 						FirstOccurrence: false,
+						Context:         spanContext,
 					},
 				}
 
@@ -1446,7 +1457,7 @@ var _ = Describe("Job", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 				{"version": "v1"},
 				{"version": "v2"},
 				{"version": "v3"},
@@ -1909,7 +1920,7 @@ var _ = Describe("Job", func() {
 	Describe("EnsurePendingBuildExists", func() {
 		Context("when only a started build exists", func() {
 			It("creates a build and updates the next build for the job", func() {
-				err := job.EnsurePendingBuildExists()
+				err := job.EnsurePendingBuildExists(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				pendingBuilds, err := job.GetPendingBuilds()
@@ -1921,11 +1932,33 @@ var _ = Describe("Job", func() {
 				Expect(pendingBuilds[0].ID()).To(Equal(nextBuild.ID()))
 			})
 
+			Context("when tracing is configured", func() {
+				BeforeEach(func() {
+					tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+				})
+
+				AfterEach(func() {
+					tracing.Configured = false
+				})
+
+				It("propagates span context", func() {
+					ctx, span := tracing.StartSpan(context.Background(), "fake-operation", nil)
+					traceID := span.SpanContext().TraceIDString()
+
+					job.EnsurePendingBuildExists(ctx)
+
+					pendingBuilds, _ := job.GetPendingBuilds()
+					spanContext := pendingBuilds[0].SpanContext()
+					traceParent := spanContext.Get(propagators.TraceparentHeader)
+					Expect(traceParent).To(ContainSubstring(traceID))
+				})
+			})
+
 			It("doesn't create another build the second time it's called", func() {
-				err := job.EnsurePendingBuildExists()
+				err := job.EnsurePendingBuildExists(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
-				err = job.EnsurePendingBuildExists()
+				err = job.EnsurePendingBuildExists(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				builds2, err := job.GetPendingBuilds()
@@ -2255,7 +2288,7 @@ var _ = Describe("Job", func() {
 					resourceConfigScope, err := pinnedResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 
-					err = resourceConfigScope.SaveVersions([]atc.Version{
+					err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 						{"api": "pinned"},
 					})
 					Expect(err).NotTo(HaveOccurred())
@@ -2382,7 +2415,7 @@ var _ = Describe("Job", func() {
 				resourceConfigScope, err := pinnedResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceConfigScope.SaveVersions([]atc.Version{
+				err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 					{"some": "version"},
 				})
 				Expect(err).NotTo(HaveOccurred())

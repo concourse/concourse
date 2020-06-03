@@ -20,6 +20,10 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
  
 * @shyamz-22, @HannesHasselbring and @tenjaa added a metric for the amount of tasks that are currently waiting to be scheduled when using the `limit-active-tasks` placement strategy. #5448
 
+#### <sub><sup><a name="5659" href="#5659">:link:</a></sup></sub> feature
+
+* When [distributed tracing](https://concourse-ci.org/tracing.html) is configured, Concourse will now emit spans for several of its backend operations, including resource scanning, check execution, and job scheduling. These spans will be appropriately linked when viewed in a tracing tool like Jaeger, allowing operators to better observe the events that occur between resource checking and build execution. #5659
+
 #### <sub><sup><a name="5082" href="#5082">:link:</a></sup></sub> fix
 
 * Close Worker's registration connection to the TSA on application level keepalive failure

@@ -2,10 +2,12 @@ package scheduler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
 )
 
 //go:generate counterfeiter . Algorithm
@@ -50,7 +52,7 @@ func (s *Scheduler) Schedule(
 		return false, fmt.Errorf("save next input mapping: %w", err)
 	}
 
-	err = s.ensurePendingBuildExists(logger, job, jobInputs)
+	err = s.ensurePendingBuildExists(ctx, logger, job, jobInputs)
 	if err != nil {
 		return false, err
 	}
@@ -59,6 +61,7 @@ func (s *Scheduler) Schedule(
 }
 
 func (s *Scheduler) ensurePendingBuildExists(
+	ctx context.Context,
 	logger lager.Logger,
 	job db.SchedulerJob,
 	jobInputs db.InputConfigs,
@@ -86,7 +89,20 @@ func (s *Scheduler) ensurePendingBuildExists(
 		if ok && inputSource.FirstOccurrence {
 			hasNewInputs = true
 			if inputConfig.Trigger {
-				err := job.EnsurePendingBuildExists()
+				version, _ := json.Marshal(inputSource.Version)
+				spanCtx, _ := tracing.StartSpanLinkedToFollowing(
+					ctx,
+					inputSource,
+					"job.EnsurePendingBuildExists",
+					tracing.Attrs{
+						"team":     job.TeamName(),
+						"pipeline": job.PipelineName(),
+						"job":      job.Name(),
+						"input":    inputSource.Name,
+						"version":  string(version),
+					},
+				)
+				err := job.EnsurePendingBuildExists(spanCtx)
 				if err != nil {
 					return fmt.Errorf("ensure pending build exists: %w", err)
 				}

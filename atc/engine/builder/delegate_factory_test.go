@@ -306,12 +306,12 @@ var _ = Describe("DelegateFactory", func() {
 
 		Describe("SaveVersions", func() {
 			JustBeforeEach(func() {
-				Expect(delegate.SaveVersions(versions)).To(Succeed())
+				Expect(delegate.SaveVersions(nil, versions)).To(Succeed())
 			})
 
 			It("saves an event", func() {
 				Expect(fakeCheck.SaveVersionsCallCount()).To(Equal(1))
-				actualVersions := fakeCheck.SaveVersionsArgsForCall(0)
+				_, actualVersions := fakeCheck.SaveVersionsArgsForCall(0)
 				Expect(actualVersions).To(Equal(versions))
 			})
 		})

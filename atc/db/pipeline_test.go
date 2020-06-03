@@ -707,14 +707,14 @@ var _ = Describe("Pipeline", func() {
 				Expect(found).To(BeFalse())
 
 				By("including saved versioned resources of the current pipeline")
-				err = resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "1"}})
+				err = resourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"version": "1"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				savedVR1, found, err := resourceConfigScope.LatestVersion()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				err = resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "2"}})
+				err = resourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"version": "2"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				savedVR2, found, err := resourceConfigScope.LatestVersion()
@@ -759,7 +759,7 @@ var _ = Describe("Pipeline", func() {
 				}))
 
 				By("not including saved versioned resources of other pipelines")
-				err = otherPipelineResourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "1"}})
+				err = otherPipelineResourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"version": "1"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				_, found, err = otherPipelineResourceConfigScope.LatestVersion()
@@ -1072,14 +1072,14 @@ var _ = Describe("Pipeline", func() {
 			Expect(found).To(BeFalse())
 
 			By("including saved versioned resources of the current pipeline")
-			err = resourceConfigScope.SaveVersions([]atc.Version{{"version": "1"}})
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{{"version": "1"}})
 			Expect(err).ToNot(HaveOccurred())
 
 			savedVR1, found, err := resourceConfigScope.LatestVersion()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{{"version": "2"}})
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{{"version": "2"}})
 			Expect(err).ToNot(HaveOccurred())
 
 			savedVR2, found, err := resourceConfigScope.LatestVersion()
@@ -1093,7 +1093,7 @@ var _ = Describe("Pipeline", func() {
 			_, _, err = otherDBPipeline.Resource("some-other-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			err = otherPipelineResourceConfigScope.SaveVersions([]atc.Version{{"version": "1"}, {"version": "2"}, {"version": "3"}})
+			err = otherPipelineResourceConfigScope.SaveVersions(nil, []atc.Version{{"version": "1"}, {"version": "2"}, {"version": "3"}})
 			Expect(err).ToNot(HaveOccurred())
 
 			otherPipelineSavedVR, found, err := otherPipelineResourceConfigScope.LatestVersion()
@@ -1137,7 +1137,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("populating resource versions")
-			err = resourceConfigScope.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 				{
 					"key": "value",
 				},
@@ -1504,7 +1504,7 @@ var _ = Describe("Pipeline", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "v1"}})
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"version": "v1"}})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = job.SaveNextInputMapping(db.InputMapping{
@@ -1528,7 +1528,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 				{"version": "v2"},
 				{"version": "v3"},
 				{"version": "v4"},
@@ -1656,7 +1656,7 @@ var _ = Describe("Pipeline", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 				{"version": "v3"},
 				{"version": "v4"},
 			})
@@ -1864,7 +1864,7 @@ var _ = Describe("Pipeline", func() {
 			resourceTypeScope, err := resourceType.SetResourceConfig(atc.Source{"some": "type-source"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceTypeScope.SaveVersions([]atc.Version{
+			err = resourceTypeScope.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "1"},
 				atc.Version{"version": "2"},
 			})
@@ -1873,12 +1873,12 @@ var _ = Describe("Pipeline", func() {
 			otherResourceTypeScope, err := otherResourceType.SetResourceConfig(atc.Source{"some": "other-type-source"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = otherResourceTypeScope.SaveVersions([]atc.Version{
+			err = otherResourceTypeScope.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "3"},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = otherResourceTypeScope.SaveVersions([]atc.Version{
+			err = otherResourceTypeScope.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "3"},
 				atc.Version{"version": "5"},
 			})
@@ -1916,7 +1916,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			version := atc.Version{"version": "1"}
-			err = resourceConfig.SaveVersions([]atc.Version{
+			err = resourceConfig.SaveVersions(nil, []atc.Version{
 				version,
 			})
 			Expect(err).ToNot(HaveOccurred())

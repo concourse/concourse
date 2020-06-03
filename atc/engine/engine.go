@@ -166,7 +166,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	defer notifier.Close()
 
-	ctx, span := tracing.StartSpan(ctx, "build", tracing.Attrs{
+	ctx, span := tracing.StartSpanFollowing(ctx, b.build, "build", tracing.Attrs{
 		"team":     b.build.TeamName(),
 		"pipeline": b.build.PipelineName(),
 		"job":      b.build.JobName(),
