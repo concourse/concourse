@@ -897,28 +897,48 @@ clusterNameView session =
         [ Html.text session.clusterName ]
 
 
-showArchivedToggleView : { a | pipelines : Maybe (List Pipeline) } -> Html Message
-showArchivedToggleView { pipelines } =
+showArchivedToggleView :
+    { a
+        | pipelines : Maybe (List Pipeline)
+        , query : String
+        , highDensity : Bool
+        , dashboardView : Routes.DashboardView
+    }
+    -> Html Message
+showArchivedToggleView model =
     let
         noPipelines =
-            pipelines
+            model.pipelines
                 |> Maybe.withDefault []
                 |> List.isEmpty
+
+        on =
+            model.dashboardView == Routes.ViewAllPipelines
     in
     if noPipelines then
         Html.text ""
 
     else
         Toggle.toggleSwitch
-            { ariaLabel = ""
+            { ariaLabel = "Toggle whether archived pipelines are displayed"
             , hrefRoute =
                 Routes.Dashboard
-                    { searchType = Routes.Normal ""
-                    , dashboardView = Routes.ViewNonArchivedPipelines
+                    { searchType =
+                        if model.highDensity then
+                            Routes.HighDensity
+
+                        else
+                            Routes.Normal model.query
+                    , dashboardView =
+                        if on then
+                            Routes.ViewNonArchivedPipelines
+
+                        else
+                            Routes.ViewAllPipelines
                     }
             , text = "show archived"
             , textDirection = Toggle.Left
-            , on = False
+            , on = on
             , styles = Styles.showArchivedToggle
             }
 

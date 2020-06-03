@@ -313,9 +313,14 @@ urlUpdate routes =
                 identity
         )
         (case routes.to of
-            Routes.Dashboard { searchType } ->
+            Routes.Dashboard { searchType, dashboardView } ->
                 Tuple.mapFirst
-                    (\dm -> { dm | highDensity = searchType == Routes.HighDensity })
+                    (\dm ->
+                        { dm
+                            | highDensity = searchType == Routes.HighDensity
+                            , dashboardView = dashboardView
+                        }
+                    )
 
             _ ->
                 identity

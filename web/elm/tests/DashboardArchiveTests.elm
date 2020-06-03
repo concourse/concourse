@@ -1,13 +1,17 @@
 module DashboardArchiveTests exposing (all)
 
 import Application.Application as Application
+import Assets
 import Colors
 import Common
 import Data
+import Html.Attributes as Attr
 import Message.Callback as Callback
+import Routes
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (class, containing, style, tag, text)
+import Test.Html.Selector exposing (attribute, class, containing, style, tag, text)
+import Url
 
 
 all : Test
@@ -20,12 +24,29 @@ all =
                     , containing [ text "show archived" ]
                     ]
 
-                setup path =
-                    Common.init path
+                setupQuery path query =
+                    Application.init
+                        { turbulenceImgSrc = ""
+                        , notFoundImgSrc = "notfound.svg"
+                        , csrfToken = "csrf_token"
+                        , authToken = ""
+                        , pipelineRunningKeyframes = "pipeline-running"
+                        }
+                        { protocol = Url.Http
+                        , host = ""
+                        , port_ = Nothing
+                        , path = path
+                        , query = query
+                        , fragment = Nothing
+                        }
+                        |> Tuple.first
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <| Ok [ Data.pipeline "team" 1 ])
                         |> Tuple.first
                         |> Common.queryView
+
+                setup path =
+                    setupQuery path Nothing
             in
             [ test "exists on the normal view" <|
                 \_ ->
@@ -65,6 +86,76 @@ all =
                             [ style "border-left" <| "1px solid " ++ Colors.background
                             , style "padding-left" "10px"
                             ]
+            , describe "when not enabled" <|
+                [ test "links to 'view all pipelines' route" <|
+                    \_ ->
+                        setup "/"
+                            |> Query.find toggleSwitch
+                            |> Query.has
+                                [ routeHref <|
+                                    Routes.Dashboard
+                                        { searchType = Routes.Normal ""
+                                        , dashboardView = Routes.ViewAllPipelines
+                                        }
+                                ]
+                , test "displays the off state" <|
+                    \_ ->
+                        setup "/"
+                            |> Query.find toggleSwitch
+                            |> Query.has
+                                [ style "background-image" <|
+                                    Assets.backgroundImage <|
+                                        Just (Assets.ToggleSwitch False)
+                                ]
+                ]
+            , describe "when enabled" <|
+                [ test "links to 'view non-archived pipelines' route" <|
+                    \_ ->
+                        setupQuery "/" (Just "view=all")
+                            |> Query.find toggleSwitch
+                            |> Query.has
+                                [ routeHref <|
+                                    Routes.Dashboard
+                                        { searchType = Routes.Normal ""
+                                        , dashboardView = Routes.ViewNonArchivedPipelines
+                                        }
+                                ]
+                , test "displays the on state" <|
+                    \_ ->
+                        setupQuery "/" (Just "view=all")
+                            |> Query.find toggleSwitch
+                            |> Query.has
+                                [ style "background-image" <|
+                                    Assets.backgroundImage <|
+                                        Just (Assets.ToggleSwitch True)
+                                ]
+                ]
+            , describe "when a search query is entered" <|
+                [ test "does not clear the query" <|
+                    \_ ->
+                        setupQuery "/" (Just "search=test")
+                            |> Query.find toggleSwitch
+                            |> Query.has
+                                [ routeHref <|
+                                    Routes.Dashboard
+                                        { searchType = Routes.Normal "test"
+                                        , dashboardView = Routes.ViewAllPipelines
+                                        }
+                                ]
+                ]
+            , describe "on the HD view" <|
+                [ test "stays in the HD view" <|
+                    \_ ->
+                        setup "/hd"
+                            |> Query.find toggleSwitch
+                            |> Query.has
+                                [ routeHref <|
+                                    Routes.Dashboard
+                                        { searchType = Routes.HighDensity
+                                        , dashboardView = Routes.ViewAllPipelines
+                                        }
+                                ]
+                ]
             ]
         , test "archived pipelines are not rendered" <|
             \_ ->
@@ -81,3 +172,8 @@ all =
                     |> Common.queryView
                     |> Query.hasNot [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
         ]
+
+
+routeHref : Routes.Route -> Test.Html.Selector.Selector
+routeHref =
+    Routes.toString >> Attr.href >> attribute
