@@ -860,13 +860,22 @@ topBar session model =
                     [ SearchBar.view session model ]
 
                 else if not model.highDensity then
-                    [ SearchBar.view session model
+                    [ topBarContent [ SearchBar.view session model ]
                     , Login.view session.userState model False
                     ]
 
                 else
-                    [ Login.view session.userState model False ]
+                    [ topBarContent []
+                    , Login.view session.userState model False
+                    ]
                )
+
+
+topBarContent : List (Html Message) -> Html Message
+topBarContent content =
+    Html.div
+        ([ id "top-bar-content" ] ++ Styles.topBarContent)
+        content
 
 
 clusterNameView : Session -> Html Message
