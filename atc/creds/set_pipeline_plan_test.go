@@ -33,7 +33,7 @@ var _ = Describe("Evaluate", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result).To(Equal(atc.SetPipelinePlan{
-				Name:     "some-pn-is-ok",
+				Name:     "some-((pipeline-name))-ok", // Name should not be interpolated.
 				File:     "some-fn-is-ok",
 				VarFiles: []string{"some-vf-is-ok"},
 				Vars:     map[string]interface{}{"age": "18"},
