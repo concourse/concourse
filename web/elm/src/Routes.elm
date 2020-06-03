@@ -1,11 +1,11 @@
 module Routes exposing
-    ( Highlight(..)
+    ( DashboardView(..)
+    , Highlight(..)
     , Route(..)
     , SearchType(..)
     , StepID
     , Transition
     , buildRoute
-    , dashboardRoute
     , extractPid
     , extractQuery
     , jobRoute
@@ -18,6 +18,7 @@ module Routes exposing
 
 import Concourse
 import Concourse.Pagination as Pagination exposing (Direction(..))
+import Dict
 import Maybe.Extra
 import Url
 import Url.Builder as Builder
@@ -45,13 +46,33 @@ type Route
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
-    | Dashboard { searchType : SearchType }
+    | Dashboard { searchType : SearchType, dashboardView : DashboardView }
     | FlySuccess Bool (Maybe Int)
 
 
 type SearchType
     = HighDensity
     | Normal String
+
+
+type DashboardView
+    = ViewNonArchivedPipelines
+    | ViewAllPipelines
+
+
+dashboardViews : List DashboardView
+dashboardViews =
+    [ ViewNonArchivedPipelines, ViewAllPipelines ]
+
+
+dashboardViewName : DashboardView -> String
+dashboardViewName view =
+    case view of
+        ViewAllPipelines ->
+            "all"
+
+        ViewNonArchivedPipelines ->
+            "non_archived"
 
 
 type Highlight
@@ -201,7 +222,7 @@ pipeline =
 
 dashboard : Parser (Route -> a) a
 dashboard =
-    map (\st -> Dashboard { searchType = st }) <|
+    map (\st view -> Dashboard { searchType = st, dashboardView = view }) <|
         oneOf
             [ (top <?> Query.string "search")
                 |> map
@@ -212,6 +233,18 @@ dashboard =
                     )
             , s "hd" |> map HighDensity
             ]
+            <?> dashboardViewQuery
+
+
+dashboardViewQuery : Query.Parser DashboardView
+dashboardViewQuery =
+    (Query.enum "view" <|
+        Dict.fromList
+            (dashboardViews
+                |> List.map (\v -> ( dashboardViewName v, v ))
+            )
+    )
+        |> Query.map (Maybe.withDefault ViewNonArchivedPipelines)
 
 
 flySuccess : Parser (Route -> a) a
@@ -260,15 +293,6 @@ jobRoute j =
 pipelineRoute : { a | name : String, teamName : String } -> Route
 pipelineRoute p =
     Pipeline { id = { teamName = p.teamName, pipelineName = p.name }, groups = [] }
-
-
-dashboardRoute : Bool -> Route
-dashboardRoute isHd =
-    if isHd then
-        Dashboard { searchType = HighDensity }
-
-    else
-        Dashboard { searchType = Normal "" }
 
 
 showHighlight : Highlight -> String
@@ -426,7 +450,7 @@ toString route =
                 ]
                 (groups |> List.map (Builder.string "group"))
 
-        Dashboard { searchType } ->
+        Dashboard { searchType, dashboardView } ->
             let
                 path =
                     case searchType of
@@ -437,7 +461,7 @@ toString route =
                             [ "hd" ]
 
                 queryParams =
-                    case searchType of
+                    (case searchType of
                         Normal "" ->
                             []
 
@@ -446,6 +470,14 @@ toString route =
 
                         _ ->
                             []
+                    )
+                        ++ (case dashboardView of
+                                ViewNonArchivedPipelines ->
+                                    []
+
+                                _ ->
+                                    [ Builder.string "view" <| dashboardViewName dashboardView ]
+                           )
             in
             Builder.absolute path queryParams
 

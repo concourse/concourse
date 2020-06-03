@@ -1098,7 +1098,10 @@ iToggledToHighDensity =
         >> Application.update
             (TopLevelMessage.DeliveryReceived <|
                 Subscription.RouteChanged <|
-                    Routes.Dashboard { searchType = Routes.HighDensity }
+                    Routes.Dashboard
+                        { searchType = Routes.HighDensity
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
             )
 
 
@@ -1516,7 +1519,10 @@ iNavigateToTheDashboard =
         >> Application.update
             (TopLevelMessage.DeliveryReceived <|
                 Subscription.RouteChanged <|
-                    Routes.Dashboard { searchType = Routes.Normal "" }
+                    Routes.Dashboard
+                        { searchType = Routes.Normal ""
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
             )
 
 

@@ -128,6 +128,7 @@ infoBar :
     ->
         { b
             | highDensity : Bool
+            , dashboardView : Routes.DashboardView
             , pipelines : Maybe (List Pipeline)
         }
     -> Html Message
@@ -150,6 +151,7 @@ legend :
         { b
             | pipelines : Maybe (List Pipeline)
             , highDensity : Bool
+            , dashboardView : Routes.DashboardView
         }
     -> Html Message
 legend session model =
@@ -181,7 +183,7 @@ legend session model =
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
                 ++ legendSeparator session.screenSize
-                ++ [ toggleView model.highDensity ]
+                ++ [ toggleView model ]
 
 
 concourseInfo :
@@ -220,11 +222,25 @@ legendItem status =
         ]
 
 
-toggleView : Bool -> Html Message
-toggleView highDensity =
+toggleView :
+    { r
+        | highDensity : Bool
+        , dashboardView : Routes.DashboardView
+    }
+    -> Html Message
+toggleView { highDensity, dashboardView } =
     Toggle.toggleSwitch
         { ariaLabel = "Toggle high-density view"
-        , hrefRoute = Routes.dashboardRoute (not highDensity)
+        , hrefRoute =
+            Routes.Dashboard
+                { searchType =
+                    if highDensity then
+                        Routes.Normal ""
+
+                    else
+                        Routes.HighDensity
+                , dashboardView = dashboardView
+                }
         , text = "high-density"
         , textDirection = Toggle.Right
         , on = highDensity

@@ -13,6 +13,7 @@ import Dict exposing (Dict)
 import FetchResult exposing (FetchResult)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
+import Routes
 import Time
 
 
@@ -73,6 +74,7 @@ type alias FooterModel r =
         , pipelines : Maybe (List Dashboard.Group.Models.Pipeline)
         , dropdown : Dropdown
         , highDensity : Bool
+        , dashboardView : Routes.DashboardView
     }
 
 
