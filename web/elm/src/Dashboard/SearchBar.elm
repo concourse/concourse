@@ -48,7 +48,7 @@ update session msg ( model, effects ) =
                 ++ [ Focus searchInputId
                    , ModifyUrl <|
                         Routes.toString <|
-                            Routes.Dashboard { searchType = Routes.Normal Nothing }
+                            Routes.Dashboard { searchType = Routes.Normal "" }
                    ]
             )
 
@@ -58,7 +58,7 @@ update session msg ( model, effects ) =
                 ++ [ Focus searchInputId
                    , ModifyUrl <|
                         Routes.toString <|
-                            Routes.Dashboard { searchType = Routes.Normal (Just query) }
+                            Routes.Dashboard { searchType = Routes.Normal query }
                    ]
             )
 
@@ -156,7 +156,7 @@ handleDelivery delivery ( model, effects ) =
                               }
                             , [ ModifyUrl <|
                                     Routes.toString <|
-                                        Routes.Dashboard { searchType = Routes.Normal (Just selectedItem) }
+                                        Routes.Dashboard { searchType = Routes.Normal selectedItem }
                               ]
                             )
 

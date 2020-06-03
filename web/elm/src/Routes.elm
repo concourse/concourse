@@ -51,7 +51,7 @@ type Route
 
 type SearchType
     = HighDensity
-    | Normal (Maybe String)
+    | Normal String
 
 
 type Highlight
@@ -207,6 +207,7 @@ dashboard =
                 |> map
                     (Maybe.map (String.replace "+" " ")
                         -- https://github.com/elm/url/issues/32
+                        >> Maybe.withDefault ""
                         >> Normal
                     )
             , s "hd" |> map HighDensity
@@ -267,7 +268,7 @@ dashboardRoute isHd =
         Dashboard { searchType = HighDensity }
 
     else
-        Dashboard { searchType = Normal Nothing }
+        Dashboard { searchType = Normal "" }
 
 
 showHighlight : Highlight -> String
@@ -437,7 +438,10 @@ toString route =
 
                 queryParams =
                     case searchType of
-                        Normal (Just query) ->
+                        Normal "" ->
+                            []
+
+                        Normal query ->
                             [ Builder.string "search" query ]
 
                         _ ->
@@ -490,7 +494,7 @@ extractPid route =
 extractQuery : SearchType -> String
 extractQuery route =
     case route of
-        Normal (Just q) ->
+        Normal q ->
             q
 
         _ ->

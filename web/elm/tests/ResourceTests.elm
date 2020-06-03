@@ -199,7 +199,7 @@ all =
                         [ Effects.NavigateTo <|
                             Routes.toString <|
                                 Routes.Dashboard <|
-                                    { searchType = Routes.Normal Nothing }
+                                    { searchType = Routes.Normal "" }
                         ]
             ]
         , test "has title with resource name" <|

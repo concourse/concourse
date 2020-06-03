@@ -1460,7 +1460,7 @@ iNavigateToTheDashboard =
         >> Application.update
             (TopLevelMessage.DeliveryReceived <|
                 Subscription.RouteChanged <|
-                    Routes.Dashboard { searchType = Routes.Normal Nothing }
+                    Routes.Dashboard { searchType = Routes.Normal "" }
             )
 
 
