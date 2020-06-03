@@ -226,6 +226,7 @@ toggleView highDensity =
         { ariaLabel = "Toggle high-density view"
         , hrefRoute = Routes.dashboardRoute (not highDensity)
         , text = "high-density"
+        , textDirection = Toggle.Right
         , on = highDensity
         , styles = Styles.highDensityToggle
         }
