@@ -8,7 +8,8 @@ Tracing in Concourse enables the delivery of traces related to the internal
 processes that go into running builds, and other internal operations, breaking
 them down by time, and component.
 
-It currently only integrates with \link{Jaeger}{https://www.jaegertracing.io/},
+It currently integrates with \link{Jaeger}{https://www.jaegertracing.io/} and
+\link{Google Cloud Trace}{https://cloud.google.com/trace} (Stackdriver),
 although support for other systems is planned to expand as the underlying SDK
 (\link{OpenTelemetry}{https://opentelemetry.io/}) evolves.
 
@@ -16,13 +17,82 @@ although support for other systems is planned to expand as the underlying SDK
 \section{
   \title{Configuring Tracing}
 
-  There's only one variable that is required to be set in order to leverage
-  Jaeger's integration with Concourse:
+  To export spans to Jaeger, specify the Thrift HTTP endpoint of the Jaeger
+  collector:
 
   \codeblock{bash}{{{
   CONCOURSE_TRACING_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
   }}}
 
-  This tells Concourse how to target Jaeger's Thrift HTTP endpoint to send the
-  traces to.
+  To export spans to Google Cloud Trace, specify the GCP Project ID:
+
+  \codeblock{bash}{{{
+  CONCOURSE_TRACING_STACKDRIVER_PROJECTID=your-gcp-project-id
+  }}}
+
+  Note that suitable GCP credentials must be available, via the usual
+  \link{\code{GOOGLE_APPLICATION_CREDENTIALS} environment variable}{https://cloud.google.com/docs/authentication/getting-started#setting_the_environment_variable},
+  the default location that the \code{gcloud} CLI expects, or from GCP's
+  metadata server (if Concourse is deployed on GCP).
+}
+
+\section{
+  \title{What's emitted?}
+
+  Below is a summary of the various operations that Concourse currently traces.
+  They are arranged like a call tree, so that for each operation described, its
+  sub-operations are described indented immediately below.
+
+  \list{
+    \code{scanner.Run} -- One of the \reference{resource-checker-components}
+    responsible for determining which checks need to be run.
+    \list{
+      \code{scanner.check} -- This operation simply represents inserting the
+      check in the database.
+    }
+  }{
+    \code{checker.Run} -- follows from \code{scanner.check} above and will
+    appear under the same trace. This is where the \reference{checker} is
+    actually executing a \reference{resource-check} script.
+  }{
+    \code{scheduler.Run} -- This represents one tick of the \reference{scheduler}.
+    \list{
+      \code{schedule-job} -- this is the same operation scoped to a single job.
+        \list{
+        \code{Algorithm.Compute} -- this is where the \reference{algorithm}
+        determines inputs for a job. Each of the resolvers below describes a
+        different strategy for determining inputs, depending on the job's config.
+        \list{
+          \code{individualResolver.Resolve} -- This is used to determine versions
+          input to a \reference{get-step} without
+          \reference{schema.step.get-step.passed}{\code{passed}} constraints.
+        }{
+          \code{groupResolver.Resolve} -- This is the juicy part of the algorithm,
+          which deals with
+          \reference{schema.step.get-step.passed}{\code{passed}} constraints.
+        }{
+          \code{pinnedResolver.Resolve} -- This operation is used to determine
+          inputs when \reference{version-pinning} is at play.
+        }
+      }{
+        \code{job.EnsurePendingBuildExists} -- This is where a new build, if
+        deemed necessary by scheduling constraints, will be inserted into the
+        database. This operation follows from \code{checker.Run} above and will
+        appear under the same trace as the check which produced the resource
+        version responsible for triggering the new build.
+      }
+    }
+  }{
+    \code{build} -- this is the primary operation performed by the
+    \reference{build-tracker}. When a build is automatically triggered, this
+    span follows from the \code{job.EnsurePendingBuildExists} operation which
+    created the build, appearing in the same trace.
+    \list{
+      \code{get} -- this tracks the execution of a \reference{get-step}.
+    }{
+      \code{put} -- this tracks the execution of a \reference{put-step}.
+    }{
+      \code{task} -- this tracks the execution of a \reference{task-step}.
+    }
+  }
 }
