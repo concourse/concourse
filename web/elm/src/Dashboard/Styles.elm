@@ -44,6 +44,7 @@ module Dashboard.Styles exposing
     , searchClearButton
     , searchContainer
     , searchInput
+    , showArchivedToggle
     , showSearchContainer
     , striped
     , teamNameHd
@@ -440,6 +441,14 @@ highDensityToggle =
     [ style "color" Colors.bottomBarText
     , style "margin-right" "20px"
     , style "text-transform" "uppercase"
+    ]
+
+
+showArchivedToggle : List (Html.Attribute msg)
+showArchivedToggle =
+    [ style "margin-right" "10px"
+    , style "padding-left" "10px"
+    , style "border-left" <| "1px solid " ++ Colors.background
     ]
 
 

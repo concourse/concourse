@@ -904,8 +904,9 @@ showArchivedToggleView { pipelines } =
             { ariaLabel = ""
             , hrefRoute = Routes.dashboardRoute False
             , text = "show archived"
+            , textDirection = Toggle.Left
             , on = False
-            , styles = []
+            , styles = Styles.showArchivedToggle
             }
 
 

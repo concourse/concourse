@@ -1498,6 +1498,10 @@ all =
                             hdToggle
                                 |> Query.has
                                     [ style "text-transform" "uppercase" ]
+                    , test "displays label on the right" <|
+                        \_ ->
+                            hdToggle
+                                |> Query.has [ style "flex-direction" "row" ]
                     , test "links to HD view" <|
                         \_ ->
                             hdToggle
