@@ -1510,7 +1510,7 @@ all =
                                 |> Query.has
                                     [ style "background-image" <|
                                         Assets.backgroundImage <|
-                                            Just (Assets.HighDensityIcon False)
+                                            Just (Assets.ToggleSwitch False)
                                     , style "background-size" "contain"
                                     , style "height" "20px"
                                     , style "width" "35px"
@@ -1542,7 +1542,7 @@ all =
                                 |> Query.has
                                     [ style "background-image" <|
                                         Assets.backgroundImage <|
-                                            Just (Assets.HighDensityIcon True)
+                                            Just (Assets.ToggleSwitch True)
                                     , style "background-size" "contain"
                                     , style "height" "20px"
                                     , style "width" "35px"

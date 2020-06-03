@@ -16,7 +16,7 @@ type Asset
     = CliIcon Cli
     | ChevronLeft
     | ChevronRight
-    | HighDensityIcon Bool
+    | ToggleSwitch Bool
     | VisibilityToggleIcon Bool
     | BuildFavicon (Maybe BuildStatus)
     | PinIconWhite
@@ -111,7 +111,7 @@ toPath asset =
         ChevronRight ->
             basePath ++ [ "baseline-chevron-right.svg" ]
 
-        HighDensityIcon on ->
+        ToggleSwitch on ->
             let
                 imageName =
                     if on then
@@ -120,7 +120,7 @@ toPath asset =
                     else
                         "off"
             in
-            basePath ++ [ "ic-hd-" ++ imageName ++ ".svg" ]
+            basePath ++ [ "ic-toggle-" ++ imageName ++ ".svg" ]
 
         VisibilityToggleIcon visible ->
             let

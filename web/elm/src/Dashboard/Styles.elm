@@ -6,7 +6,6 @@ module Dashboard.Styles exposing
     , content
     , dropdownContainer
     , dropdownItem
-    , highDensityIcon
     , highDensityToggle
     , info
     , infoBar
@@ -439,22 +438,7 @@ highDensityToggle : List (Html.Attribute msg)
 highDensityToggle =
     [ style "color" Colors.bottomBarText
     , style "margin-right" "20px"
-    , style "display" "flex"
     , style "text-transform" "uppercase"
-    , style "align-items" "center"
-    ]
-
-
-highDensityIcon : Bool -> List (Html.Attribute msg)
-highDensityIcon highDensity =
-    [ style "background-image" <|
-        Assets.backgroundImage <|
-            Just (Assets.HighDensityIcon highDensity)
-    , style "background-size" "contain"
-    , style "height" "20px"
-    , style "width" "35px"
-    , style "flex-shrink" "0"
-    , style "margin-right" "10px"
     ]
 
 
