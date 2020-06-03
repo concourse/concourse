@@ -17,6 +17,7 @@ import Message.Subscription exposing (Delivery(..), Interval(..))
 import Routes
 import ScreenSize
 import Views.Icon as Icon
+import Views.Toggle as Toggle
 
 
 handleDelivery :
@@ -221,15 +222,13 @@ legendItem status =
 
 toggleView : Bool -> Html Message
 toggleView highDensity =
-    Html.a
-        ([ href <| Routes.toString <| Routes.dashboardRoute (not highDensity)
-         , attribute "aria-label" "Toggle high-density view"
-         ]
-            ++ Styles.highDensityToggle
-        )
-        [ Html.div (Styles.highDensityIcon highDensity) []
-        , Html.text "high-density"
-        ]
+    Toggle.toggleSwitch
+        { ariaLabel = "Toggle high-density view"
+        , hrefRoute = Routes.dashboardRoute (not highDensity)
+        , text = "high-density"
+        , on = highDensity
+        , styles = Styles.highDensityToggle
+        }
 
 
 legendSeparator : ScreenSize.ScreenSize -> List (Html Message)
