@@ -81,3 +81,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 #### <sub><sup><a name="5222" href="#5222">:link:</a></sup></sub> feature
 
 * Proxy support for NewRelic emitter
+
+#### <sub><sup><a name="5572" href="#5572">:link:</a></sup></sub> feature
+
+* Add tracing to allow users and developers to observe volume streaming from source to destination volumes.  #5579

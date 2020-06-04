@@ -190,7 +190,7 @@ func End(span trace.Span, err error) {
 	if err != nil {
 		span.SetStatus(codes.Internal)
 		span.SetAttributes(
-			key.New("error").String(err.Error()),
+			key.New("error-message").String(err.Error()),
 		)
 	}
 
