@@ -363,7 +363,7 @@ func (command *HijackCommand) chooseContainer(target rc.Target, team concourse.T
 
 	start := time.Now()
 	currentTime := start
-	for currentTime.Sub(start).Seconds() < timeout.Seconds() {
+	for currentTime.Sub(start).Seconds() <= timeout.Seconds() {
 		if command.Handle != "" {
 			chosenContainer, err = team.GetContainer(command.Handle)
 			if err == nil {
