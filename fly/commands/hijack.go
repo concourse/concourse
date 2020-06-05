@@ -31,7 +31,7 @@ type HijackCommand struct {
 	StepName       string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
 	StepType       string                   `          long:"step-type"                         description:"Type of step to hijack (e.g. get, put, task)"`
 	Attempt        string                   `short:"a" long:"attempt" value-name:"N[,N,...]"    description:"Attempt number of step to hijack."`
-	TimeOut        string                   `short:"o" long:"timeout"                           description:"Time to wait for container."`
+	Timeout        time.Duration            `short:"o" long:"timeout"                           description:"Time to wait for container."`
 	PositionalArgs struct {
 		Command []string `positional-arg-name:"command" description:"The command to run in the container (default: bash)"`
 	} `positional-args:"yes"`
@@ -359,10 +359,7 @@ func locateContainer(client concourse.Client, fingerprint *containerFingerprint)
 func (command *HijackCommand) chooseContainer(target rc.Target, team concourse.Team) (atc.Container, error) {
 	var err error
 	chosenContainer := atc.Container{}
-	timeout, err := time.ParseDuration(fmt.Sprintf("%s", command.TimeOut))
-	if err != nil {
-		return chosenContainer, err
-	}
+	timeout := command.Timeout
 
 	start := time.Now()
 	currentTime := start
@@ -397,7 +394,7 @@ func (command *HijackCommand) chooseContainer(target rc.Target, team concourse.T
 			} else if len(hijackableContainers) > 1 {
 
 				// timeout flag was set, assume container selection criteria is concise enough for 1 container
-				if command.TimeOut != "" {
+				if command.Timeout != time.Duration(0) {
 					currentTime = time.Now()
 					continue
 				}
