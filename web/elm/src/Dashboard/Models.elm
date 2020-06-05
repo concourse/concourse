@@ -14,6 +14,7 @@ import FetchResult exposing (FetchResult)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
 import Routes
+import Set exposing (Set)
 import Time
 
 
@@ -23,7 +24,7 @@ type alias Model =
             { now : Maybe Time.Posix
             , highDensity : Bool
             , query : String
-            , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+            , pipelinesWithResourceErrors : Set ( String, String )
             , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
             , teams : FetchResult (List Concourse.Team)
