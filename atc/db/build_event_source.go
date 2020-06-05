@@ -17,7 +17,7 @@ var errReconnectedToNotificationBus = errors.New("reconnected to notification bu
 
 type EventNotification struct {
 	Event event.Envelope `json:"event"`
-	Key   []byte         `json:"key"`
+	Key   EventKey       `json:"key"`
 }
 
 //go:generate counterfeiter . EventSource
@@ -162,18 +162,13 @@ func (source *buildEventSource) watchNotificationBus(ctx context.Context, cursor
 				// TODO: what to do in this case? should at least log it
 				continue
 			}
-			var incomingKey EventKey
-			if err := source.eventStore.UnmarshalKey(eventNotif.Key, &incomingKey); err != nil {
-				// TODO: what to do in this case? should at least log it
-				continue
-			}
-			if incomingKey != nil && !incomingKey.GreaterThan(*cursor) {
+			if eventNotif.Key <= *cursor {
 				// This can happen if we reconnected to the notification bus, so we called "Get" on the
 				// EventStore in case we missed anything - and we did miss events, but they were already
 				// queued on the notification bus. Don't want to send them twice!
 				continue
 			}
-			*cursor = incomingKey
+			*cursor = eventNotif.Key
 			source.events <- eventNotif.Event
 		case <-ctx.Done():
 			return ErrBuildEventStreamClosed

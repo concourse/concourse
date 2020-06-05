@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -17,6 +16,7 @@ import (
 )
 
 type eventDoc struct {
+	EventID      db.EventKey      `json:"event_id"`
 	BuildID      int              `json:"build_id"`
 	BuildName    string           `json:"build_name"`
 	JobID        int              `json:"job_id"`
@@ -28,49 +28,22 @@ type eventDoc struct {
 	EventType    atc.EventType    `json:"event"`
 	Version      atc.EventVersion `json:"version"`
 	Data         *json.RawMessage `json:"data"`
-	Tiebreak     int64            `json:"tiebreak"`
-}
-
-type Key struct {
-	TimeMillis int64 `json:"time"`
-	Tiebreak   int64 `json:"tiebreak"`
-}
-
-func (k Key) Marshal() ([]byte, error) {
-	return json.Marshal(k)
-}
-
-func (k Key) GreaterThan(o db.EventKey) bool {
-	if o == nil {
-		return true
-	}
-	other, ok := o.(Key)
-	if !ok {
-		return false
-	}
-	if k.TimeMillis > other.TimeMillis {
-		return true
-	}
-	if k.TimeMillis < other.TimeMillis {
-		return false
-	}
-	return k.Tiebreak > other.Tiebreak
 }
 
 type Store struct {
 	logger lager.Logger
 	client *elastic.Client
 
-	URL string `long:"url" description:"URL of Elasticsearch cluster."`
+	eventIDAllocator db.BuildEventIDAllocator
 
-	counter int64
+	URL string `long:"url" description:"URL of Elasticsearch cluster."`
 }
 
 func (e *Store) IsConfigured() bool {
 	return e.URL != ""
 }
 
-func (e *Store) Setup(ctx context.Context) error {
+func (e *Store) Setup(ctx context.Context, conn db.Conn) error {
 	e.logger = lagerctx.FromContext(ctx)
 
 	e.logger.Debug("setup-event-store", lager.Data{"url": e.URL})
@@ -106,6 +79,8 @@ func (e *Store) Setup(ctx context.Context) error {
 		e.logger.Error("create-initial-index-failed", err, lager.Data{"name": initialIndexName, "json": initialIndexJSON})
 		return fmt.Errorf("create initial index: %w", err)
 	}
+
+	e.eventIDAllocator = db.NewBuildEventIDAllocator(conn)
 
 	return nil
 }
@@ -144,27 +119,41 @@ func isAlreadyExists(err error) bool {
 }
 
 func (e *Store) Initialize(ctx context.Context, build db.Build) error {
-	return nil
+	return e.eventIDAllocator.Initialize(ctx, build.ID())
 }
 
 func (e *Store) Finalize(ctx context.Context, build db.Build) error {
-	return nil
+	return e.eventIDAllocator.Finalize(ctx, build.ID())
 }
 
 func (e *Store) Put(ctx context.Context, build db.Build, events []atc.Event) (db.EventKey, error) {
 	if len(events) == 0 {
-		return nil, nil
+		return 0, nil
+	}
+	idBlock, err := e.eventIDAllocator.Allocate(ctx, build.ID(), len(events))
+	if err != nil {
+		e.logger.Error("allocate-ids", err)
+		return 0, fmt.Errorf("allocate ids: %w", err)
 	}
 	bulkRequest := e.client.Bulk()
 	var doc eventDoc
+	var eventID db.EventKey
 	for _, evt := range events {
+		var ok bool
+		eventID, ok = idBlock.Next()
+		if !ok {
+			err := fmt.Errorf("not enough event ids allocated")
+			e.logger.Error("not-enough-event-ids-allocated", err)
+			return 0, err
+		}
 		payload, err := json.Marshal(evt)
 		if err != nil {
 			e.logger.Error("marshal-event-failed", err)
-			return nil, fmt.Errorf("marshal event: %w", err)
+			return 0, fmt.Errorf("marshal event: %w", err)
 		}
 		data := json.RawMessage(payload)
 		doc = eventDoc{
+			EventID:      eventID,
 			BuildID:      build.ID(),
 			BuildName:    build.Name(),
 			JobID:        build.JobID(),
@@ -176,7 +165,6 @@ func (e *Store) Put(ctx context.Context, build db.Build, events []atc.Event) (db
 			EventType:    evt.EventType(),
 			Version:      evt.Version(),
 			Data:         &data,
-			Tiebreak:     atomic.AddInt64(&e.counter, 1),
 		}
 		bulkRequest = bulkRequest.Add(
 			elastic.NewBulkIndexRequest().
@@ -184,36 +172,22 @@ func (e *Store) Put(ctx context.Context, build db.Build, events []atc.Event) (db
 				Doc(doc),
 		)
 	}
-	_, err := bulkRequest.Do(ctx)
+	_, err = bulkRequest.Do(ctx)
 	if err != nil {
 		e.logger.Error("bulk-put-failed", err)
-		return nil, fmt.Errorf("bulk put: %w", err)
+		return 0, fmt.Errorf("bulk put: %w", err)
 	}
 
-	var target struct {
-		Time int64 `json:"time"`
-	}
-	if err = json.Unmarshal(*doc.Data, &target); err != nil {
-		return nil, err
-	}
-
-	return Key{TimeMillis: target.Time * 1000, Tiebreak: doc.Tiebreak}, nil
+	return eventID, nil
 }
 
 func (e *Store) Get(ctx context.Context, build db.Build, requested int, cursor *db.EventKey) ([]event.Envelope, error) {
-	offset, err := e.offset(cursor)
-	if err != nil {
-		e.logger.Error("offset-failed", err)
-		return nil, err
-	}
-
 	req := e.client.Search(indexPatternPrefix).
 		Query(elastic.NewTermQuery("build_id", build.ID())).
-		Sort("data.time", true).
-		Sort("tiebreak", true).
+		Sort("event_id", true).
 		Size(requested)
-	if offset.TimeMillis > 0 {
-		req = req.SearchAfter(offset.TimeMillis, offset.Tiebreak)
+	if *cursor != 0 {
+		req = req.SearchAfter(*cursor)
 	}
 
 	searchResult, err := req.Do(ctx)
@@ -238,32 +212,15 @@ func (e *Store) Get(ctx context.Context, build db.Build, requested int, cursor *
 
 	lastHit := searchResult.Hits.Hits[numHits-1]
 	var target struct {
-		Tiebreak int64 `json:"tiebreak"`
-		Data     struct {
-			Time int64 `json:"time"`
-		} `json:"data"`
+		EventID db.EventKey `json:"event_id"`
 	}
 	if err = json.Unmarshal(lastHit.Source, &target); err != nil {
 		e.logger.Error("unmarshal-last-hit-failed", err)
 		return nil, fmt.Errorf("unmarshal last hit: %w", err)
 	}
-	*cursor = Key{
-		TimeMillis: target.Data.Time * 1000,
-		Tiebreak:   target.Tiebreak,
-	}
+	*cursor = target.EventID
 
 	return events, nil
-}
-
-func (e *Store) offset(cursor *db.EventKey) (Key, error) {
-	if cursor == nil || *cursor == nil {
-		return Key{}, nil
-	}
-	offset, ok := (*cursor).(Key)
-	if !ok {
-		return Key{}, fmt.Errorf("invalid Key type (expected elasticsearch.Key, got %T)", *cursor)
-	}
-	return offset, nil
 }
 
 func (e *Store) Delete(ctx context.Context, builds []db.Build) error {
@@ -302,13 +259,4 @@ func (e *Store) asyncDelete(ctx context.Context, query elastic.Query) error {
 		Query(query).
 		DoAsync(ctx)
 	return err
-}
-
-func (e *Store) UnmarshalKey(data []byte, key *db.EventKey) error {
-	var k Key
-	if err := json.Unmarshal(data, &k); err != nil {
-		return err
-	}
-	*key = k
-	return nil
 }

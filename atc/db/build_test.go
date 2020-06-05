@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/atc/events/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
@@ -168,7 +167,7 @@ var _ = Describe("Build", func() {
 
 		Context("when saving to the EventStore fails", func() {
 			BeforeEach(func() {
-				fakeEventStore.PutReturns(nil, errors.New("put error"))
+				fakeEventStore.PutReturns(0, errors.New("put error"))
 			})
 
 			It("errors", func() {
@@ -406,7 +405,7 @@ var _ = Describe("Build", func() {
 
 		Context("when saving to the EventStore fails", func() {
 			BeforeEach(func() {
-				fakeEventStore.PutReturns(nil, errors.New("put error"))
+				fakeEventStore.PutReturns(0, errors.New("put error"))
 			})
 
 			It("errors", func() {
@@ -669,7 +668,7 @@ var _ = Describe("Build", func() {
 			notifs, err := dbConn.Bus().Listen(fmt.Sprintf("build_events_%d", build.ID()), db.QueueNotifications)
 			Expect(err).NotTo(HaveOccurred())
 
-			fakeEventStore.PutReturns(postgres.EventID(1), nil)
+			fakeEventStore.PutReturns(1, nil)
 
 			build.SaveEvent(context.TODO(), event.Log{
 				Payload: "hello",
@@ -683,12 +682,12 @@ var _ = Describe("Build", func() {
 			Expect(n.Event).To(Equal(envelope(event.Log{
 				Payload: "hello",
 			})))
-			Expect(n.Key).To(Equal([]byte("1")))
+			Expect(n.Key).To(Equal(db.EventKey(1)))
 		})
 
 		Context("when Put errors", func() {
 			BeforeEach(func() {
-				fakeEventStore.PutReturns(nil, errors.New("put error"))
+				fakeEventStore.PutReturns(0, errors.New("put error"))
 			})
 
 			It("errors", func() {
@@ -729,7 +728,7 @@ var _ = Describe("Build", func() {
 			_, getBuild, requested, cursor := fakeEventStore.GetArgsForCall(0)
 			Expect(getBuild).To(BeIdenticalTo(build))
 			Expect(requested).To(Equal(2000))
-			Expect(*cursor).To(BeNil())
+			Expect(*cursor).To(BeZero())
 
 			Consistently(fakeEventStore.GetCallCount).Should(Equal(1))
 		})
@@ -765,6 +764,8 @@ var _ = Describe("Build", func() {
 
 		Context("when we save an event", func() {
 			It("returns the event", func() {
+				fakeEventStore.PutReturns(1, nil)
+
 				err := build.SaveEvent(context.TODO(), event.Start{})
 				Expect(err).NotTo(HaveOccurred())
 

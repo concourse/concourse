@@ -19,11 +19,6 @@ type EventStore interface {
 	Delete(ctx context.Context, build []Build) error
 	DeletePipeline(ctx context.Context, pipeline Pipeline) error
 	DeleteTeam(ctx context.Context, team Team) error
-
-	UnmarshalKey(data []byte, key *EventKey) error
 }
 
-type EventKey interface {
-	Marshal() ([]byte, error)
-	GreaterThan(EventKey) bool
-}
+type EventKey uint

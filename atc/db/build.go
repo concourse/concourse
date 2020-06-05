@@ -865,14 +865,6 @@ func (b *build) SaveEvent(ctx context.Context, evt atc.Event) error {
 	if err != nil {
 		return err
 	}
-	var keyData []byte
-	// TODO: this guard is really just for tests - Put should never return a nil EventKey on success
-	if key != nil {
-		keyData, err = key.Marshal()
-		if err != nil {
-			return err
-		}
-	}
 	rawEventData := json.RawMessage(eventData)
 	payload, err := json.Marshal(EventNotification{
 		Event: event.Envelope{
@@ -880,7 +872,7 @@ func (b *build) SaveEvent(ctx context.Context, evt atc.Event) error {
 			Event:   evt.EventType(),
 			Version: evt.Version(),
 		},
-		Key: keyData,
+		Key: key,
 	})
 	if err != nil {
 		return err

@@ -1187,7 +1187,7 @@ func (cmd *RunCommand) eventStore(ctx context.Context, logger lager.Logger, dbCo
 	}
 
 	ctx = lagerctx.NewContext(ctx, logger)
-	err := chosenStore.Setup(ctx)
+	err := chosenStore.Setup(ctx, dbConn)
 	if err != nil {
 		return nil, err
 	}

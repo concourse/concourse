@@ -24,8 +24,8 @@ var _ = Describe("Store", func() {
 	var (
 		eventStore events.Store
 
-		fakeLockFactory   *lockfakes.FakeLockFactory
-		fakeLock          *lockfakes.FakeLock
+		fakeLockFactory *lockfakes.FakeLockFactory
+		fakeLock        *lockfakes.FakeLock
 
 		fakePipeline      *dbfakes.FakePipeline
 		fakeTeam          *dbfakes.FakeTeam
@@ -62,7 +62,7 @@ var _ = Describe("Store", func() {
 	})
 
 	BeforeEach(func() {
-		err := eventStore.Setup(ctx)
+		err := eventStore.Setup(ctx, dbConn)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -120,7 +120,7 @@ var _ = Describe("Store", func() {
 		})
 
 		It("doesn't error when run multiple times", func() {
-			err := eventStore.Setup(ctx)
+			err := eventStore.Setup(ctx, dbConn)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -233,11 +233,11 @@ var _ = Describe("Store", func() {
 		It("Put returns the next event_id as the cursor", func() {
 			cursor, err := eventStore.Put(ctx, fakePipelineBuild, []atc.Event{event.Start{}, event.Log{}})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cursor).To(Equal(postgres.EventID(2)))
+			Expect(cursor).To(Equal(db.EventKey(2)))
 
 			cursor, err = eventStore.Put(ctx, fakePipelineBuild, []atc.Event{event.Finish{}})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cursor).To(Equal(postgres.EventID(3)))
+			Expect(cursor).To(Equal(db.EventKey(3)))
 		})
 
 		It("storing and retrieving single events", func() {

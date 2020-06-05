@@ -10,7 +10,7 @@ import (
 type Store interface {
 	IsConfigured() bool
 
-	Setup(ctx context.Context) error
+	Setup(ctx context.Context, conn db.Conn) error
 	Close(ctx context.Context) error
 
 	db.EventStore

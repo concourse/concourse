@@ -15,6 +15,9 @@ const indexTemplateJSON = `{
   },
   "mappings":{
     "properties":{
+      "event_id":{
+        "type":"integer"
+      },
       "build_id":{
         "type":"integer"
       },
@@ -50,9 +53,6 @@ const indexTemplateJSON = `{
       "version":{
         "type": "keyword",
         "ignore_above": 256
-      },
-      "tiebreak":{
-        "type":"long"
       },
       "data":{
         "properties": {

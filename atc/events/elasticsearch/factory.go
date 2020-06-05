@@ -1,9 +1,6 @@
 package elasticsearch
 
 import (
-	"math/rand"
-	"time"
-
 	"github.com/concourse/concourse/atc/events"
 	"github.com/jessevdk/go-flags"
 )
@@ -16,8 +13,7 @@ type StoreFactory struct {
 }
 
 func (s StoreFactory) AddConfig(group *flags.Group) events.Store {
-	rand.Seed(time.Now().UnixNano())
-	store := &Store{counter: rand.Int63()}
+	store := &Store{}
 
 	subGroup, err := group.AddGroup("Elasticsearch Event Store", "", store)
 	if err != nil {

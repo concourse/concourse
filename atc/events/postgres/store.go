@@ -17,25 +17,8 @@ import (
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
-type EventID uint
-
-func (id EventID) Marshal() ([]byte, error) {
-	return json.Marshal(id)
-}
-
-func (id EventID) GreaterThan(o db.EventKey) bool {
-	if o == nil {
-		return true
-	}
-	other, ok := o.(EventID)
-	if !ok {
-		return false
-	}
-	return id > other
-}
-
 type Store struct {
-	Conn db.Conn
+	Conn        db.Conn
 	LockFactory lock.LockFactory
 
 	logger lager.Logger
@@ -49,7 +32,7 @@ func (s *Store) IsConfigured() bool {
 	return false
 }
 
-func (s *Store) Setup(ctx context.Context) error {
+func (s *Store) Setup(ctx context.Context, _ db.Conn) error {
 	s.logger = lagerctx.FromContext(ctx)
 
 	l, acquired, err := s.LockFactory.Acquire(
@@ -182,18 +165,18 @@ func (s *Store) Finalize(ctx context.Context, build db.Build) error {
 
 func (s *Store) Put(ctx context.Context, build db.Build, events []atc.Event) (db.EventKey, error) {
 	if len(events) == 0 {
-		return nil, nil
+		return 0, nil
 	}
 	tx, err := s.Conn.Begin()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	defer Rollback(tx)
 
 	lastKey, err := s.saveEvents(ctx, tx, build, events)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	return lastKey, tx.Commit()
@@ -205,10 +188,10 @@ func (s *Store) saveEvents(ctx context.Context, tx db.Tx, build db.Build, events
 	for _, evt := range events {
 		payload, err := json.Marshal(evt)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 		query = query.Values(
-			sq.Expr("nextval('" + buildEventsSeq(build.ID()) + "')"),
+			sq.Expr("nextval('"+buildEventsSeq(build.ID())+"')"),
 			build.ID(),
 			string(evt.EventType()),
 			string(evt.Version()),
@@ -217,14 +200,14 @@ func (s *Store) saveEvents(ctx context.Context, tx db.Tx, build db.Build, events
 	}
 	rows, err := query.Suffix("RETURNING event_id").RunWith(tx).QueryContext(ctx)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	defer Close(rows)
-	var k EventID
+	var k db.EventKey
 	for rows.Next() {
 		err = rows.Scan(&k)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 	}
 	return k + 1, err
@@ -237,16 +220,11 @@ func (s *Store) Get(ctx context.Context, build db.Build, requested int, cursor *
 	}
 	defer Rollback(tx)
 
-	offset, err := s.offset(cursor)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := psql.Select("type", "version", "payload").
+	rows, err := psql.Select("event_id", "type", "version", "payload").
 		From(buildEventsTable(build)).
 		Where(sq.Eq{"build_id": build.ID()}).
 		OrderBy("event_id ASC").
-		Offset(uint64(offset)).
+		Offset(uint64(*cursor)).
 		Limit(uint64(requested)).
 		RunWith(tx).
 		QueryContext(ctx)
@@ -257,8 +235,9 @@ func (s *Store) Get(ctx context.Context, build db.Build, requested int, cursor *
 
 	var events []event.Envelope
 	for rows.Next() {
+		var eventID db.EventKey
 		var t, v, p string
-		err := rows.Scan(&t, &v, &p)
+		err := rows.Scan(&eventID, &t, &v, &p)
 		if err != nil {
 			return nil, err
 		}
@@ -271,8 +250,7 @@ func (s *Store) Get(ctx context.Context, build db.Build, requested int, cursor *
 			Version: atc.EventVersion(v),
 		})
 
-		*cursor = offset
-		offset++
+		*cursor = eventID + 1
 	}
 
 	err = tx.Commit()
@@ -280,17 +258,6 @@ func (s *Store) Get(ctx context.Context, build db.Build, requested int, cursor *
 		return nil, err
 	}
 	return events, nil
-}
-
-func (s *Store) offset(cursor *db.EventKey) (EventID, error) {
-	if cursor == nil || *cursor == nil {
-		return 0, nil
-	}
-	offset, ok := (*cursor).(EventID)
-	if !ok {
-		return 0, fmt.Errorf("invalid Key type (expected uint, got %T)", *cursor)
-	}
-	return offset + 1, nil
 }
 
 func (s *Store) Delete(ctx context.Context, builds []db.Build) error {
@@ -360,15 +327,6 @@ func (s *Store) DeleteTeam(ctx context.Context, team db.Team) error {
 	}
 
 	return tx.Commit()
-}
-
-func (s *Store) UnmarshalKey(data []byte, key *db.EventKey) error {
-	var i uint
-	if err := json.Unmarshal(data, &i); err != nil {
-		return err
-	}
-	*key = EventID(i)
-	return nil
 }
 
 func dropTableIfExists(ctx context.Context, tx db.Tx, tableName string) error {
