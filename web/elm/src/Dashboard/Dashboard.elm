@@ -71,6 +71,7 @@ import Message.Subscription
         )
 import Routes
 import ScreenSize exposing (ScreenSize(..))
+import Set exposing (Set)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onScroll)
 import Time
@@ -96,7 +97,7 @@ init f =
       , highDensity = f.searchType == Routes.HighDensity
       , query = Routes.extractQuery f.searchType
       , dashboardView = f.dashboardView
-      , pipelinesWithResourceErrors = Dict.empty
+      , pipelinesWithResourceErrors = Set.empty
       , jobs = None
       , pipelines = Nothing
       , pipelineLayers = Dict.empty
@@ -309,15 +310,9 @@ handleCallback callback ( model, effects ) =
             ( { model
                 | pipelinesWithResourceErrors =
                     resources
-                        |> List.foldr
-                            (\r ->
-                                Dict.update ( r.teamName, r.pipelineName )
-                                    (Maybe.withDefault False
-                                        >> (||) r.failingToCheck
-                                        >> Just
-                                    )
-                            )
-                            model.pipelinesWithResourceErrors
+                        |> List.filter .failingToCheck
+                        |> List.map (\r -> ( r.teamName, r.pipelineName ))
+                        |> Set.fromList
                 , resourcesError = Nothing
               }
             , effects
@@ -1111,7 +1106,7 @@ pipelinesView :
             , query : String
             , highDensity : Bool
             , dashboardView : Routes.DashboardView
-            , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+            , pipelinesWithResourceErrors : Set ( String, String )
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
             , pipelines : Maybe (List Pipeline)
             , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)

@@ -25,6 +25,7 @@ import Maybe.Extra
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Ordering exposing (Ordering)
+import Set exposing (Set)
 import Time
 import UserState exposing (UserState(..))
 import Views.Spinner as Spinner
@@ -49,7 +50,7 @@ view :
         , now : Maybe Time.Posix
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
-        , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+        , pipelinesWithResourceErrors : Set ( String, String )
         , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
         , query : String
         , pipelineCards : List PipelineGrid.PipelineCard
@@ -133,7 +134,7 @@ tag { userState } g =
 
 hdView :
     { pipelineRunningKeyframes : String
-    , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+    , pipelinesWithResourceErrors : Set ( String, String )
     , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
     , jobs : Dict ( String, String, String ) Concourse.Job
     }
@@ -164,8 +165,7 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jo
                                 , pipelineRunningKeyframes = pipelineRunningKeyframes
                                 , resourceError =
                                     pipelinesWithResourceErrors
-                                        |> Dict.get ( p.teamName, p.name )
-                                        |> Maybe.withDefault False
+                                        |> Set.member ( p.teamName, p.name )
                                 , existingJobs =
                                     pipelineJobs
                                         |> Dict.get ( p.teamName, p.name )
@@ -215,7 +215,7 @@ pipelineCardView :
             , now : Maybe Time.Posix
             , hovered : HoverState.HoverState
             , pipelineRunningKeyframes : String
-            , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+            , pipelinesWithResourceErrors : Set ( String, String )
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
             , query : String
             , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
@@ -324,8 +324,7 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
                 , pipeline = pipeline
                 , resourceError =
                     params.pipelinesWithResourceErrors
-                        |> Dict.get ( pipeline.teamName, pipeline.name )
-                        |> Maybe.withDefault False
+                        |> Set.member ( pipeline.teamName, pipeline.name )
                 , existingJobs =
                     params.pipelineJobs
                         |> Dict.get ( pipeline.teamName, pipeline.name )
