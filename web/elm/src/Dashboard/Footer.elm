@@ -6,6 +6,7 @@ import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
+import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, download, href, id, style)
@@ -35,8 +36,9 @@ handleDelivery delivery ( model, effects ) =
                             | showHelp =
                                 if
                                     model.pipelines
-                                        |> Maybe.withDefault []
-                                        |> List.isEmpty
+                                        |> Maybe.withDefault Dict.empty
+                                        |> Dict.values
+                                        |> List.all List.isEmpty
                                 then
                                     False
 
@@ -129,7 +131,7 @@ infoBar :
         { b
             | highDensity : Bool
             , dashboardView : Routes.DashboardView
-            , pipelines : Maybe (List Pipeline)
+            , pipelines : Maybe (Dict String (List Pipeline))
         }
     -> Html Message
 infoBar session model =
@@ -149,7 +151,7 @@ legend :
     { a | screenSize : ScreenSize.ScreenSize }
     ->
         { b
-            | pipelines : Maybe (List Pipeline)
+            | pipelines : Maybe (Dict String (List Pipeline))
             , highDensity : Bool
             , dashboardView : Routes.DashboardView
         }
@@ -203,11 +205,12 @@ concourseInfo { hovered, version } =
         ]
 
 
-hideLegend : { a | pipelines : Maybe (List Pipeline) } -> Bool
+hideLegend : { a | pipelines : Maybe (Dict String (List Pipeline)) } -> Bool
 hideLegend { pipelines } =
     pipelines
-        |> Maybe.withDefault []
-        |> List.isEmpty
+        |> Maybe.withDefault Dict.empty
+        |> Dict.values
+        |> List.all List.isEmpty
 
 
 legendItem : PipelineStatus -> Html Message
