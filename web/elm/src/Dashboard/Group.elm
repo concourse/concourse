@@ -23,7 +23,7 @@ import Html.Keyed
 import Json.Decode
 import Maybe.Extra
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), DropTarget(..), Message(..))
 import Ordering exposing (Ordering)
 import Set exposing (Set)
 import Time
@@ -69,10 +69,10 @@ view session params g =
             else
                 params.pipelineCards
                     |> List.map
-                        (\{ bounds, pipeline, index } ->
+                        (\{ bounds, pipeline } ->
                             pipelineCardView session
                                 params
-                                { bounds = bounds, pipeline = pipeline, index = index }
+                                { bounds = bounds, pipeline = pipeline }
                                 g.teamName
                                 |> (\html -> ( String.fromInt pipeline.id, html ))
                         )
@@ -80,8 +80,8 @@ view session params g =
         dropAreaViews =
             params.dropAreas
                 |> List.map
-                    (\{ bounds, index } ->
-                        pipelineDropAreaView params.dragState g.teamName bounds index
+                    (\{ bounds, target } ->
+                        pipelineDropAreaView params.dragState g.teamName bounds target
                     )
     in
     Html.div
@@ -221,11 +221,10 @@ pipelineCardView :
     ->
         { bounds : PipelineGrid.Bounds
         , pipeline : Pipeline
-        , index : Int
         }
     -> String
     -> Html Message
-pipelineCardView session params { bounds, pipeline, index } teamName =
+pipelineCardView session params { bounds, pipeline } teamName =
     Html.div
         ([ class "pipeline-wrapper"
          , style "position" "absolute"
@@ -293,14 +292,14 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart pipeline.teamName index))
+                            (Json.Decode.succeed (DragStart pipeline.teamName pipeline.name))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging pipeline.teamName index then
+                ++ (if params.dragState == Dragging pipeline.teamName pipeline.name then
                         [ style "width" "0"
                         , style "margin" "0 12.5px"
                         , style "overflow" "hidden"
@@ -341,8 +340,8 @@ pipelineCardView session params { bounds, pipeline, index } teamName =
         ]
 
 
-pipelineDropAreaView : DragState -> String -> PipelineGrid.Bounds -> Int -> Html Message
-pipelineDropAreaView dragState name { x, y, width, height } index =
+pipelineDropAreaView : DragState -> String -> PipelineGrid.Bounds -> DropTarget -> Html Message
+pipelineDropAreaView dragState name { x, y, width, height } target =
     let
         active =
             case dragState of
@@ -366,11 +365,11 @@ pipelineDropAreaView dragState name { x, y, width, height } index =
                 ++ "px)"
         , style "width" <| String.fromFloat width ++ "px"
         , style "height" <| String.fromFloat height ++ "px"
-        , on "dragenter" (Json.Decode.succeed (DragOver name index))
+        , on "dragenter" (Json.Decode.succeed (DragOver target))
 
         -- preventDefault is required so that the card will not appear to
         -- "float" or "snap" back to its original position when dropped.
-        , preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver name index, True ))
+        , preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver target, True ))
         , stopPropagationOn "drop" (Json.Decode.succeed ( DragEnd, True ))
         ]
         []

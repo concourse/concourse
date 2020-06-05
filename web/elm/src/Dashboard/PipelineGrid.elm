@@ -6,13 +6,13 @@ module Dashboard.PipelineGrid exposing
     )
 
 import Concourse
-import Dashboard.Drag exposing (drag)
+import Dashboard.Drag exposing (dragPipeline)
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.PipelineGrid.Constants exposing (cardHeight, cardWidth, padding)
 import Dashboard.PipelineGrid.Layout as Layout
 import Dict exposing (Dict)
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), DropTarget(..), Message(..))
 import UserState exposing (UserState(..))
 
 
@@ -27,13 +27,12 @@ type alias Bounds =
 type alias PipelineCard =
     { bounds : Bounds
     , pipeline : Pipeline
-    , index : Int
     }
 
 
 type alias DropArea =
     { bounds : Bounds
-    , index : Int
+    , target : DropTarget
     }
 
 
@@ -53,23 +52,17 @@ computeLayout :
         }
 computeLayout params g =
     let
-        ( dragTeam, fromIndex, toIndex ) =
+        orderedPipelines =
             case ( params.dragState, params.dropState ) of
-                ( Dragging team fromIdx, NotDropping ) ->
-                    ( team, fromIdx, fromIdx + 1 )
+                ( Dragging team pipeline, Dropping target ) ->
+                    if g.teamName == team then
+                        dragPipeline pipeline target g.pipelines
 
-                ( Dragging team fromIdx, Dropping toIdx ) ->
-                    ( team, fromIdx, toIdx )
+                    else
+                        g.pipelines
 
                 _ ->
-                    ( "", -1, -1 )
-
-        orderedPipelines =
-            if (g.teamName == dragTeam) && (fromIndex >= 0) then
-                drag fromIndex toIndex g.pipelines
-
-            else
-                g.pipelines
+                    g.pipelines
 
         numColumns =
             max 1 (floor (params.viewportWidth / (cardWidth + padding)))
@@ -130,10 +123,10 @@ computeLayout params g =
 
         dropAreas =
             (prevAndCurrentCards
-                |> List.indexedMap Tuple.pair
+                |> List.map2 Tuple.pair g.pipelines
                 |> List.filter (\( _, ( _, card ) ) -> isVisible card)
                 |> List.map
-                    (\( i, ( prevCard, card ) ) ->
+                    (\( pipeline, ( prevCard, card ) ) ->
                         let
                             cardBounds =
                                 { x = (toFloat card.column - 1) * (cardWidth + padding)
@@ -164,11 +157,11 @@ computeLayout params g =
                                     Nothing ->
                                         cardBounds
                         in
-                        { bounds = bounds, index = i + 1 }
+                        { bounds = bounds, target = Before pipeline.name }
                     )
             )
-                ++ (case List.head (List.reverse cards) of
-                        Just lastCard ->
+                ++ (case List.head (List.reverse (List.map2 Tuple.pair cards g.pipelines)) of
+                        Just ( lastCard, lastPipeline ) ->
                             if not (isVisible lastCard) then
                                 []
 
@@ -179,7 +172,7 @@ computeLayout params g =
                                         , width = cardWidth + padding
                                         , height = cardHeight
                                         }
-                                  , index = List.length cards + 1
+                                  , target = After lastPipeline.name
                                   }
                                 ]
 
@@ -189,16 +182,16 @@ computeLayout params g =
 
         pipelineCards =
             g.pipelines
-                |> List.indexedMap
-                    (\i pipeline ->
+                |> List.map
+                    (\pipeline ->
                         cardLookup
                             |> Dict.get pipeline.id
                             |> Maybe.withDefault { row = 0, column = 0, width = 0, height = 0 }
-                            |> (\card -> ( i, pipeline, card ))
+                            |> (\card -> ( pipeline, card ))
                     )
-                |> List.filter (\( _, _, card ) -> isVisible card)
+                |> List.filter (\( _, card ) -> isVisible card)
                 |> List.map
-                    (\( i, pipeline, card ) ->
+                    (\( pipeline, card ) ->
                         { pipeline = pipeline
                         , bounds =
                             { x = (toFloat card.column - 1) * (cardWidth + padding) + padding
@@ -214,7 +207,6 @@ computeLayout params g =
                                     + padding
                                     * (toFloat card.height - 1)
                             }
-                        , index = i
                         }
                     )
     in
