@@ -277,9 +277,13 @@ handleCallback callback ( model, effects ) =
                                 , pipelines =
                                     model.pipelines
                                         |> Maybe.map
-                                            (List.map
-                                                (\p ->
-                                                    { p | jobsDisabled = True }
+                                            (Dict.map
+                                                (\_ l ->
+                                                    List.map
+                                                        (\p ->
+                                                            { p | jobsDisabled = True }
+                                                        )
+                                                        l
                                                 )
                                             )
                               }
@@ -326,6 +330,7 @@ handleCallback callback ( model, effects ) =
                 newPipelines =
                     allPipelinesInEntireCluster
                         |> List.map (toDashboardPipeline False (model.jobsError == Just Disabled))
+                        |> groupBy .teamName
                         |> Just
             in
             ( { model
@@ -442,13 +447,22 @@ updatePipeline updater pipelineId model =
         | pipelines =
             model.pipelines
                 |> Maybe.map
-                    (List.Extra.updateIf
-                        (\p ->
-                            p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
+                    (Dict.update pipelineId.teamName
+                        (Maybe.map
+                            (List.Extra.updateIf
+                                (\p -> p.name == pipelineId.pipelineName)
+                                updater
+                            )
                         )
-                        updater
                     )
     }
+
+
+findPipeline : Concourse.PipelineIdentifier -> Maybe (Dict String (List Pipeline)) -> Maybe Pipeline
+findPipeline pipelineId pipelines =
+    pipelines
+        |> Maybe.andThen (Dict.get pipelineId.teamName)
+        |> Maybe.andThen (List.Extra.find (.name >> (==) pipelineId.pipelineName))
 
 
 handleDelivery : Delivery -> ET Model
@@ -481,6 +495,7 @@ handleDeliveryBody delivery ( model, effects ) =
                                     True
                                     (model.jobsError == Just Disabled)
                                 )
+                            |> groupBy .teamName
                             |> Just
                   }
                 , effects
@@ -559,11 +574,17 @@ toConcoursePipeline p =
     }
 
 
-pipelinesChangedFrom : Maybe (List Pipeline) -> Maybe (List Pipeline) -> Bool
+pipelinesChangedFrom :
+    Maybe (Dict String (List Pipeline))
+    -> Maybe (Dict String (List Pipeline))
+    -> Bool
 pipelinesChangedFrom ps qs =
     let
         project =
-            Maybe.map <| List.map (\x -> { x | stale = True })
+            Maybe.map <|
+                Dict.values
+                    >> List.concat
+                    >> List.map (\x -> { x | stale = True })
     in
     project ps /= project qs
 
@@ -635,30 +656,24 @@ updateBody msg ( model, effects ) =
             case model.dragState of
                 Dragging teamName dragIdx ->
                     let
-                        teamStartIndex =
+                        teamPipelines =
                             model.pipelines
+                                |> Maybe.andThen (Dict.get teamName)
                                 |> Maybe.withDefault []
-                                |> List.Extra.findIndex (\p -> p.teamName == teamName)
+                                |> Drag.drag
+                                    dragIdx
+                                    (case model.dropState of
+                                        Dropping dropIdx ->
+                                            dropIdx
+
+                                        _ ->
+                                            dragIdx + 1
+                                    )
 
                         pipelines =
-                            case teamStartIndex of
-                                Just teamStartIdx ->
-                                    model.pipelines
-                                        |> Maybe.withDefault []
-                                        |> Drag.drag
-                                            (teamStartIdx + dragIdx)
-                                            (teamStartIdx
-                                                + (case model.dropState of
-                                                    Dropping dropIdx ->
-                                                        dropIdx
-
-                                                    _ ->
-                                                        dragIdx + 1
-                                                  )
-                                            )
-
-                                _ ->
-                                    model.pipelines |> Maybe.withDefault []
+                            model.pipelines
+                                |> Maybe.withDefault Dict.empty
+                                |> Dict.update teamName (always <| Just teamPipelines)
                     in
                     ( { model
                         | pipelines = Just pipelines
@@ -666,11 +681,12 @@ updateBody msg ( model, effects ) =
                         , dropState = DroppingWhileApiRequestInFlight teamName
                       }
                     , effects
-                        ++ [ pipelines
-                                |> List.filter (.teamName >> (==) teamName)
+                        ++ [ teamPipelines
                                 |> List.map .name
                                 |> SendOrderPipelinesRequest teamName
                            , pipelines
+                                |> Dict.values
+                                |> List.concat
                                 |> List.map toConcoursePipeline
                                 |> SaveCachedPipelines
                            ]
@@ -695,9 +711,7 @@ updateBody msg ( model, effects ) =
             let
                 isPaused =
                     model.pipelines
-                        |> Maybe.withDefault []
-                        |> List.Extra.find
-                            (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
+                        |> findPipeline pipelineId
                         |> Maybe.map .paused
             in
             case isPaused of
@@ -717,9 +731,7 @@ updateBody msg ( model, effects ) =
             let
                 isPublic =
                     model.pipelines
-                        |> Maybe.withDefault []
-                        |> List.Extra.find
-                            (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
+                        |> findPipeline pipelineId
                         |> Maybe.map .public
             in
             case isPublic of
@@ -795,7 +807,7 @@ view session model =
         ]
 
 
-tooltip : { a | pipelines : Maybe (List Pipeline) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip : { a | pipelines : Maybe (Dict String (List Pipeline)) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
 tooltip model { hovered } =
     case hovered of
         HoverState.Tooltip (Message.PipelineStatusIcon _) _ ->
@@ -808,13 +820,9 @@ tooltip model { hovered } =
                 , arrow = Nothing
                 }
 
-        HoverState.Tooltip (Message.VisibilityButton { teamName, pipelineName }) _ ->
+        HoverState.Tooltip (Message.VisibilityButton pipelineId) _ ->
             model.pipelines
-                |> Maybe.withDefault []
-                |> List.Extra.find
-                    (\p ->
-                        p.teamName == teamName && p.name == pipelineName
-                    )
+                |> findPipeline pipelineId
                 |> Maybe.map
                     (\p ->
                         { body =
@@ -894,7 +902,7 @@ clusterNameView session =
 
 showArchivedToggleView :
     { a
-        | pipelines : Maybe (List Pipeline)
+        | pipelines : Maybe (Dict String (List Pipeline))
         , query : String
         , highDensity : Bool
         , dashboardView : Routes.DashboardView
@@ -904,8 +912,9 @@ showArchivedToggleView model =
     let
         noPipelines =
             model.pipelines
-                |> Maybe.withDefault []
-                |> List.isEmpty
+                |> Maybe.withDefault Dict.empty
+                |> Dict.values
+                |> List.all List.isEmpty
 
         on =
             model.dashboardView == Routes.ViewAllPipelines
@@ -978,11 +987,12 @@ dashboardView session model =
                 Nothing ->
                     [ loadingView ]
 
-                Just [] ->
-                    welcomeCard session :: pipelinesView session model
+                Just pipelines ->
+                    if pipelines |> Dict.values |> List.all List.isEmpty then
+                        welcomeCard session :: pipelinesView session model
 
-                Just _ ->
-                    Html.text "" :: pipelinesView session model
+                    else
+                        Html.text "" :: pipelinesView session model
             )
 
 
@@ -1108,7 +1118,7 @@ pipelinesView :
             , dashboardView : Routes.DashboardView
             , pipelinesWithResourceErrors : Set ( String, String )
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
-            , pipelines : Maybe (List Pipeline)
+            , pipelines : Maybe (Dict String (List Pipeline))
             , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
             , dragState : DragState
             , dropState : DropState
@@ -1123,7 +1133,7 @@ pipelinesView session params =
     let
         pipelines =
             params.pipelines
-                |> Maybe.withDefault []
+                |> Maybe.withDefault Dict.empty
 
         jobs =
             params.jobs

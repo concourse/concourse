@@ -72,7 +72,7 @@ type alias FooterModel r =
         | hideFooter : Bool
         , hideFooterCounter : Int
         , showHelp : Bool
-        , pipelines : Maybe (List Dashboard.Group.Models.Pipeline)
+        , pipelines : Maybe (Dict String (List Dashboard.Group.Models.Pipeline))
         , dropdown : Dropdown
         , highDensity : Bool
         , dashboardView : Routes.DashboardView

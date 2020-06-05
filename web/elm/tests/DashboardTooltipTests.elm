@@ -2,6 +2,7 @@ module DashboardTooltipTests exposing (all)
 
 import Dashboard.Dashboard as Dashboard
 import Data
+import Dict
 import Expect
 import HoverState exposing (HoverState(..))
 import Html
@@ -18,8 +19,9 @@ all =
             \_ ->
                 Dashboard.tooltip
                     { pipelines =
-                        Just
-                            [ Data.dashboardPipeline 0 True ]
+                        Just <|
+                            Dict.fromList
+                                [ ( "team", [ Data.dashboardPipeline 0 True ] ) ]
                     }
                     { hovered =
                         Tooltip
@@ -38,8 +40,9 @@ all =
             \_ ->
                 Dashboard.tooltip
                     { pipelines =
-                        Just
-                            [ Data.dashboardPipeline 0 False ]
+                        Just <|
+                            Dict.fromList
+                                [ ( "team", [ Data.dashboardPipeline 0 False ] ) ]
                     }
                     { hovered =
                         Tooltip
@@ -62,8 +65,9 @@ all =
                 in
                 Dashboard.tooltip
                     { pipelines =
-                        Just
-                            [ { p | jobsDisabled = True } ]
+                        Just <|
+                            Dict.fromList
+                                [ ( "team", [ { p | jobsDisabled = True } ] ) ]
                     }
                     { hovered =
                         Tooltip

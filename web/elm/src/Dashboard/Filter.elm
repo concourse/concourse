@@ -45,29 +45,24 @@ filterGroups :
     , jobs : Dict ( String, String, String ) Concourse.Job
     , query : String
     , teams : List Concourse.Team
-    , pipelines : List Pipeline
+    , pipelines : Dict String (List Pipeline)
     , dashboardView : Routes.DashboardView
     }
     -> List Group
 filterGroups { pipelineJobs, jobs, query, teams, pipelines, dashboardView } =
     let
         groupsToFilter =
-            pipelines
-                |> List.filter (prefilter dashboardView)
-                |> List.foldr
-                    (\p ->
-                        Dict.update p.teamName
-                            (Maybe.withDefault []
-                                >> (::) p
-                                >> Just
-                            )
-                    )
-                    (teams
-                        |> List.map (\team -> ( team.name, [] ))
-                        |> Dict.fromList
-                    )
+            teams
+                |> List.map (\t -> ( t.name, [] ))
+                |> Dict.fromList
+                |> Dict.union pipelines
                 |> Dict.toList
-                |> List.map (\( k, v ) -> { teamName = k, pipelines = v })
+                |> List.map
+                    (\( t, p ) ->
+                        { teamName = t
+                        , pipelines = List.filter (prefilter dashboardView) p
+                        }
+                    )
     in
     parseFilters query |> List.foldr (runFilter jobs pipelineJobs) groupsToFilter
 
