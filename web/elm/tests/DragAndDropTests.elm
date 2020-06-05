@@ -9,7 +9,7 @@ import Http
 import Json.Encode as Encode
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message as Message
+import Message.Message as Message exposing (DropTarget(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as TopLevelMessage exposing (TopLevelMessage)
 import Test exposing (Test, describe, test)
@@ -234,13 +234,13 @@ itListensForDragStart : Query.Single TopLevelMessage -> Expectation
 itListensForDragStart =
     Event.simulate (Event.custom "dragstart" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragStart "team" 0)
+            (TopLevelMessage.Update <| Message.DragStart "team" "pipeline")
 
 
 iAmDraggingTheFirstPipelineCard =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragStart "team" 0)
+            (TopLevelMessage.Update <| Message.DragStart "team" "pipeline")
 
 
 itIsInvisible =
@@ -281,7 +281,7 @@ iAmLookingAtTheFinalDropArea =
 itListensForDragEnter =
     Event.simulate (Event.custom "dragenter" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver "team" 2)
+            (TopLevelMessage.Update <| Message.DragOver <| After "pipeline")
 
 
 
@@ -295,19 +295,13 @@ itListensForDragEnter =
 itListensForDragOverPreventingDefault =
     Event.simulate (Event.custom "dragover" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver "team" 2)
-
-
-iAmDraggingOverTheSecondDropArea =
-    Tuple.first
-        >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver "team" 2)
+            (TopLevelMessage.Update <| Message.DragOver <| After "pipeline")
 
 
 iAmDraggingOverTheThirdDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver "team" 3)
+            (TopLevelMessage.Update <| Message.DragOver <| After "other-pipeline")
 
 
 iAmLookingAtTheTeamHeader =

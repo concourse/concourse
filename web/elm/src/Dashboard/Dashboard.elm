@@ -640,11 +640,11 @@ update session msg =
 updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
-        DragStart teamName index ->
-            ( { model | dragState = Models.Dragging teamName index }, effects )
+        DragStart teamName pipelineName ->
+            ( { model | dragState = Models.Dragging teamName pipelineName }, effects )
 
-        DragOver _ index ->
-            ( { model | dropState = Models.Dropping index }, effects )
+        DragOver target ->
+            ( { model | dropState = Models.Dropping target }, effects )
 
         TooltipHd pipelineName teamName ->
             ( model, effects ++ [ ShowTooltipHd ( pipelineName, teamName ) ] )
@@ -653,22 +653,14 @@ updateBody msg ( model, effects ) =
             ( model, effects ++ [ ShowTooltip ( pipelineName, teamName ) ] )
 
         DragEnd ->
-            case model.dragState of
-                Dragging teamName dragIdx ->
+            case ( model.dragState, model.dropState ) of
+                ( Dragging teamName pipelineName, Dropping target ) ->
                     let
                         teamPipelines =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
                                 |> Maybe.withDefault []
-                                |> Drag.drag
-                                    dragIdx
-                                    (case model.dropState of
-                                        Dropping dropIdx ->
-                                            dropIdx
-
-                                        _ ->
-                                            dragIdx + 1
-                                    )
+                                |> Drag.dragPipeline pipelineName target
 
                         pipelines =
                             model.pipelines
@@ -693,7 +685,12 @@ updateBody msg ( model, effects ) =
                     )
 
                 _ ->
-                    ( model, effects )
+                    ( { model
+                        | dragState = NotDragging
+                        , dropState = NotDropping
+                      }
+                    , effects
+                    )
 
         Hover (Just domID) ->
             ( model, effects ++ [ GetViewportOf domID ] )

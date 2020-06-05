@@ -1914,7 +1914,7 @@ all =
                         (Callback.AllJobsFetched <| Ok [])
                     |> Tuple.first
                     |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.DragStart "team" 0)
+                        (ApplicationMsgs.Update <| Msgs.DragStart "team" "pipeline")
                     |> Tuple.first
                     |> Application.handleDelivery
                         (ClockTicked FiveSeconds <|
