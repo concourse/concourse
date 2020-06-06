@@ -40,7 +40,12 @@ pipeline session p =
             HoverState.isHovered (SideBarPipeline pipelineId) session.hovered
     in
     { icon =
-        { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
+        { asset =
+            if p.archived then
+                Assets.ArchivedPipelineIcon
+
+            else
+                Assets.BreadcrumbIcon Assets.PipelineComponent
         , opacity =
             if isCurrent || isHovered then
                 Styles.Bright
