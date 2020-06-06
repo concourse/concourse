@@ -1,5 +1,6 @@
 module SideBar.PipelineTests exposing (all)
 
+import Assets
 import Colors
 import Common
 import Data
@@ -30,7 +31,10 @@ all =
                     \_ ->
                         pipeline { active = True, hovered = True }
                             |> .icon
-                            |> Expect.equal Styles.Bright
+                            |> Expect.equal
+                                { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
+                                , opacity = Styles.Bright
+                                }
                 ]
             , describe "when unhovered"
                 [ test "pipeline name background is dark with bright border" <|
@@ -43,7 +47,10 @@ all =
                     \_ ->
                         pipeline { active = True, hovered = False }
                             |> .icon
-                            |> Expect.equal Styles.Bright
+                            |> Expect.equal
+                                { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
+                                , opacity = Styles.Bright
+                                }
                 ]
             ]
         , describe "when inactive"
@@ -58,7 +65,10 @@ all =
                     \_ ->
                         pipeline { active = False, hovered = True }
                             |> .icon
-                            |> Expect.equal Styles.Bright
+                            |> Expect.equal
+                                { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
+                                , opacity = Styles.Bright
+                                }
                 ]
             , describe "when unhovered"
                 [ test "pipeline name is dim" <|
@@ -77,7 +87,10 @@ all =
                     \_ ->
                         pipeline { active = False, hovered = False }
                             |> .icon
-                            |> Expect.equal Styles.Dim
+                            |> Expect.equal
+                                { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
+                                , opacity = Styles.Dim
+                                }
                 ]
             ]
         ]
