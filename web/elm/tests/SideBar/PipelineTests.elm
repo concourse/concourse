@@ -3,6 +3,7 @@ module SideBar.PipelineTests exposing (all)
 import Assets
 import Colors
 import Common
+import Concourse
 import Data
 import Expect
 import HoverState exposing (TooltipPosition(..))
@@ -23,13 +24,15 @@ all =
             [ describe "when hovered"
                 [ test "pipeline name background is dark with bright border" <|
                     \_ ->
-                        pipeline { active = True, hovered = True }
+                        pipeline
+                            |> viewPipeline { active = True, hovered = True }
                             |> .link
                             |> .rectangle
                             |> Expect.equal Styles.Dark
                 , test "pipeline icon is bright" <|
                     \_ ->
-                        pipeline { active = True, hovered = True }
+                        pipeline
+                            |> viewPipeline { active = True, hovered = True }
                             |> .icon
                             |> Expect.equal
                                 { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
@@ -39,13 +42,15 @@ all =
             , describe "when unhovered"
                 [ test "pipeline name background is dark with bright border" <|
                     \_ ->
-                        pipeline { active = True, hovered = False }
+                        pipeline
+                            |> viewPipeline { active = True, hovered = False }
                             |> .link
                             |> .rectangle
                             |> Expect.equal Styles.Dark
                 , test "pipeline icon is bright" <|
                     \_ ->
-                        pipeline { active = True, hovered = False }
+                        pipeline
+                            |> viewPipeline { active = True, hovered = False }
                             |> .icon
                             |> Expect.equal
                                 { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
@@ -57,13 +62,15 @@ all =
             [ describe "when hovered"
                 [ test "pipeline name background is bright" <|
                     \_ ->
-                        pipeline { active = False, hovered = True }
+                        pipeline
+                            |> viewPipeline { active = False, hovered = True }
                             |> .link
                             |> .rectangle
                             |> Expect.equal Styles.Light
                 , test "pipeline icon is bright" <|
                     \_ ->
-                        pipeline { active = False, hovered = True }
+                        pipeline
+                            |> viewPipeline { active = False, hovered = True }
                             |> .icon
                             |> Expect.equal
                                 { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
@@ -73,19 +80,22 @@ all =
             , describe "when unhovered"
                 [ test "pipeline name is dim" <|
                     \_ ->
-                        pipeline { active = False, hovered = False }
+                        pipeline
+                            |> viewPipeline { active = False, hovered = False }
                             |> .link
                             |> .opacity
                             |> Expect.equal Styles.Dim
                 , test "pipeline name has invisible border" <|
                     \_ ->
-                        pipeline { active = False, hovered = False }
+                        pipeline
+                            |> viewPipeline { active = False, hovered = False }
                             |> .link
                             |> .rectangle
                             |> Expect.equal Styles.PipelineInvisible
                 , test "pipeline icon is dim" <|
                     \_ ->
-                        pipeline { active = False, hovered = False }
+                        pipeline
+                            |> viewPipeline { active = False, hovered = False }
                             |> .icon
                             |> Expect.equal
                                 { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
@@ -96,8 +106,8 @@ all =
         ]
 
 
-pipeline : { active : Bool, hovered : Bool } -> Views.Pipeline
-pipeline { active, hovered } =
+viewPipeline : { active : Bool, hovered : Bool } -> Concourse.Pipeline -> Views.Pipeline
+viewPipeline { active, hovered } =
     let
         pipelineIdentifier =
             { teamName = "team"
@@ -122,10 +132,9 @@ pipeline { active, hovered } =
         { hovered = hoveredDomId
         , currentPipeline = activePipeline
         }
-        singlePipeline
 
 
-singlePipeline =
+pipeline =
     Data.pipeline "team" 0 |> Data.withName "pipeline"
 
 
