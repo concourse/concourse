@@ -1,9 +1,8 @@
 module SideBar.Styles exposing
-    ( Arrow(..)
-    , Opacity(..)
+    ( Opacity(..)
     , PipelineBackingRectangle(..)
     , TeamBackingRectangle(..)
-    , arrow
+    , collapseIcon
     , column
     , hamburgerIcon
     , hamburgerMenu
@@ -96,29 +95,18 @@ teamIcon opacity =
         { sizePx = 20
         , image = Assets.PeopleIcon
         }
-        [ style "margin-left" "10px"
+        [ style "margin-left" "8px"
         , style "background-size" "contain"
         , style "flex-shrink" "0"
         , opacityAttr opacity
         ]
 
 
-type Arrow
-    = Right
-    | Down
-
-
-arrow : { opacity : Opacity, icon : Arrow } -> Html.Html msg
-arrow { opacity, icon } =
+collapseIcon : { opacity : Opacity, asset : Assets.Asset } -> Html.Html msg
+collapseIcon { opacity, asset } =
     Icon.icon
-        { sizePx = 12
-        , image =
-            case icon of
-                Right ->
-                    Assets.KeyboardArrowRight
-
-                Down ->
-                    Assets.KeyboardArrowDown
+        { sizePx = 10
+        , image = asset
         }
         [ style "margin-left" "10px"
         , style "flex-shrink" "0"
@@ -136,7 +124,7 @@ teamName :
     -> List (Html.Attribute msg)
 teamName { opacity, rectangle } =
     [ style "font-size" "14px"
-    , style "padding" "2.5px"
+    , style "padding" "5px 2.5px"
     , style "margin-left" "7.5px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
@@ -170,7 +158,8 @@ pipelineLink { opacity, rectangle } =
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
-    , style "padding" "2.5px"
+    , style "padding" "5px 2.5px"
+    , style "margin-left" "7.5px"
     , style "flex-grow" "1"
     , opacityAttr opacity
     ]
@@ -240,9 +229,10 @@ pipelineIcon { asset, opacity } =
         Assets.backgroundImage <|
             Just asset
     , style "background-repeat" "no-repeat"
-    , style "height" "16px"
-    , style "width" "32px"
+    , style "height" "20px"
+    , style "width" "20px"
     , style "background-size" "contain"
+    , style "background-position" "center"
     , style "margin-left" "28px"
     , style "flex-shrink" "0"
     , opacityAttr opacity

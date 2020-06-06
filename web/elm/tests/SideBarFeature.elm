@@ -288,13 +288,13 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamIcon
                 >> then_ iSeeItDoesNotShrink
-        , test "arrow is pointing right" <|
+        , test "team has a plus icon" <|
             given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheArrow
-                >> then_ iSeeARightPointingArrow
-        , test "arrow does not shrink" <|
+                >> when iAmLookingAtThePlusMinusIcon
+                >> then_ iSeeAPlusIcon
+        , test "plus icon does not shrink" <|
             given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheArrow
+                >> when iAmLookingAtThePlusMinusIcon
                 >> then_ iSeeItDoesNotShrink
         , test "team name has text content of team's name" <|
             given iHaveAnOpenSideBar_
@@ -304,10 +304,10 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
                 >> then_ iSeeMediumFont
-        , test "team name has padding and margin" <|
+        , test "team name has padding" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
-                >> then_ iSeeItHas2Point5PxPadding
+                >> then_ iSeeItHasProperPadding
         , test "team name stretches" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
@@ -324,17 +324,17 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamHeader
                 >> then_ (itIsClickable <| Message.SideBarTeam "team")
-        , test "arrow points down when group is clicked" <|
+        , test "there is a minus icon when group is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
-                >> when iAmLookingAtTheArrow
-                >> then_ iSeeADownPointingArrow
-        , test "arrow still points down after data refreshes" <|
+                >> when iAmLookingAtThePlusMinusIcon
+                >> then_ iSeeAMinusIcon
+        , test "it's still a minus icon after data refreshes" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given dataRefreshes
-                >> when iAmLookingAtTheArrow
-                >> then_ iSeeADownPointingArrow
+                >> when iAmLookingAtThePlusMinusIcon
+                >> then_ iSeeAMinusIcon
         , test "pipeline list expands when header is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -365,11 +365,11 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipeline
                 >> then_ iSeeItCentersContents
-        , test "pipeline has 2.5px padding" <|
+        , test "pipeline has padding" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipeline
-                >> then_ iSeeItHas2Point5PxPadding
+                >> then_ iSeeItHasProperPadding
         , test "pipeline has icon on the left" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -390,11 +390,11 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineIcon
                 >> then_ iSeeItIsDim
-        , test "pipeline link has 2.5px padding" <|
+        , test "pipeline link has padding" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
-                >> then_ iSeeItHas2Point5PxPadding
+                >> then_ iSeeItHasProperPadding
         , test "first pipeline link contains text of pipeline name" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -873,7 +873,7 @@ iSeeItIsAsWideAsTheHamburgerIcon =
 
 
 iAmLookingAtTheTeamIcon =
-    iAmLookingAtTheTeamHeader >> Query.children [] >> Query.first
+    iAmLookingAtTheTeamHeader >> Query.children [] >> Query.index 1
 
 
 iSeeAPictureOfTwoPeople =
@@ -885,15 +885,15 @@ iSeeAPictureOfTwoPeople =
         )
 
 
-iAmLookingAtTheArrow =
-    iAmLookingAtTheTeamHeader >> Query.children [] >> Query.index 1
+iAmLookingAtThePlusMinusIcon =
+    iAmLookingAtTheTeamHeader >> Query.children [] >> Query.index 0
 
 
-iSeeARightPointingArrow =
+iSeeAPlusIcon =
     Query.has
         (DashboardTests.iconSelector
-            { size = "12px"
-            , image = Assets.KeyboardArrowRight
+            { size = "10px"
+            , image = Assets.PlusIcon
             }
         )
 
@@ -969,11 +969,11 @@ iClickedThePipelineGroup =
             (TopLevelMessage.Update <| Message.Click <| Message.SideBarTeam "team")
 
 
-iSeeADownPointingArrow =
+iSeeAMinusIcon =
     Query.has
         (DashboardTests.iconSelector
-            { size = "12px"
-            , image = Assets.KeyboardArrowDown
+            { size = "10px"
+            , image = Assets.MinusIcon
             }
         )
 
@@ -1098,9 +1098,10 @@ iSeeAPipelineIcon =
             Assets.backgroundImage <|
                 Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
         , style "background-repeat" "no-repeat"
-        , style "height" "16px"
-        , style "width" "32px"
+        , style "height" "20px"
+        , style "width" "20px"
         , style "background-size" "contain"
+        , style "background-position" "center"
         ]
 
 
@@ -1112,8 +1113,8 @@ iSeeItHasLeftMargin =
     Query.has [ style "margin-left" "28px" ]
 
 
-iSeeItHas2Point5PxPadding =
-    Query.has [ style "padding" "2.5px" ]
+iSeeItHasProperPadding =
+    Query.has [ style "padding" "5px 2.5px" ]
 
 
 iSeeASideBar =
@@ -1314,10 +1315,6 @@ myBrowserFetchedNoPipelines =
 
 iHaveAnExpandedPipelineGroup =
     iHaveAnOpenSideBar >> iClickedThePipelineGroup
-
-
-iAmLookingAtTheExpandedArrow =
-    iAmLookingAtTheArrow
 
 
 iHoveredThePipelineGroup =
