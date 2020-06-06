@@ -103,6 +103,16 @@ all =
                                 }
                 ]
             ]
+        , describe "when archived"
+            [ test "pipeline icon is archived" <|
+                \_ ->
+                    pipeline
+                        |> Data.withArchived True
+                        |> viewPipeline { active = True, hovered = True }
+                        |> .icon
+                        |> .asset
+                        |> Expect.equal Assets.ArchivedPipelineIcon
+            ]
         ]
 
 

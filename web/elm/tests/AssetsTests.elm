@@ -138,6 +138,11 @@ toStringTests =
                         |> toString
                         |> Expect.equal "/public/images/ic-breadcrumb-resource.svg"
             ]
+        , test "ArchivedPipelineIcon" <|
+            \_ ->
+                ArchivedPipelineIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-archived-pipeline.svg"
         , test "PassportOfficerIcon" <|
             \_ ->
                 PassportOfficerIcon
