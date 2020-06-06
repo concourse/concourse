@@ -46,8 +46,8 @@ type Asset
     | MessageIcon
     | HamburgerMenuIcon
     | PeopleIcon
-    | KeyboardArrowDown
-    | KeyboardArrowRight
+    | PlusIcon
+    | MinusIcon
     | PlayIcon
     | PauseIcon
     | PencilIcon
@@ -279,11 +279,11 @@ toPath asset =
         PeopleIcon ->
             basePath ++ [ "baseline-people.svg" ]
 
-        KeyboardArrowDown ->
-            basePath ++ [ "baseline-keyboard-arrow-down.svg" ]
+        PlusIcon ->
+            basePath ++ [ "ic-plus.svg" ]
 
-        KeyboardArrowRight ->
-            basePath ++ [ "baseline-keyboard-arrow-right.svg" ]
+        MinusIcon ->
+            basePath ++ [ "ic-minus.svg" ]
 
         PlayIcon ->
             basePath ++ [ "ic-play-white.svg" ]

@@ -20,14 +20,14 @@ all =
         [ describe "when active"
             [ describe "when expanded"
                 [ describe "when hovered"
-                    [ test "arrow is bright" <|
+                    [ test "collapse icon is bright" <|
                         \_ ->
                             team
                                 { active = True
                                 , expanded = True
                                 , hovered = True
                                 }
-                                |> .arrow
+                                |> .collapseIcon
                                 |> .opacity
                                 |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
@@ -61,14 +61,14 @@ all =
                                 |> Expect.equal Styles.Bright
                     ]
                 , describe "when unhovered"
-                    [ test "arrow is bright" <|
+                    [ test "collapse icon is bright" <|
                         \_ ->
                             team
                                 { active = True
                                 , expanded = True
                                 , hovered = False
                                 }
-                                |> .arrow
+                                |> .collapseIcon
                                 |> .opacity
                                 |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
@@ -94,14 +94,14 @@ all =
                 ]
             , describe "when collapsed"
                 [ describe "when hovered"
-                    [ test "arrow is bright" <|
+                    [ test "collapse icon is bright" <|
                         \_ ->
                             team
                                 { active = True
                                 , expanded = False
                                 , hovered = True
                                 }
-                                |> .arrow
+                                |> .collapseIcon
                                 |> .opacity
                                 |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
@@ -125,14 +125,14 @@ all =
                                 |> Expect.equal Styles.Bright
                     ]
                 , describe "when unhovered"
-                    [ test "arrow is bright" <|
+                    [ test "collapse icon is bright" <|
                         \_ ->
                             team
                                 { active = True
                                 , expanded = False
                                 , hovered = False
                                 }
-                                |> .arrow
+                                |> .collapseIcon
                                 |> .opacity
                                 |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
@@ -160,14 +160,14 @@ all =
         , describe "when inactive"
             [ describe "when expanded"
                 [ describe "when hovered"
-                    [ test "arrow is greyed out" <|
+                    [ test "collapse icon is greyed out" <|
                         \_ ->
                             team
                                 { active = False
                                 , expanded = True
                                 , hovered = True
                                 }
-                                |> .arrow
+                                |> .collapseIcon
                                 |> .opacity
                                 |> Expect.equal Styles.GreyedOut
                     , test "team name is bright" <|
@@ -191,14 +191,14 @@ all =
                                 |> Expect.equal Styles.GreyedOut
                     ]
                 , describe "when unhovered"
-                    [ test "arrow is greyed out" <|
+                    [ test "collapse icon is greyed out" <|
                         \_ ->
                             team
                                 { active = False
                                 , expanded = True
                                 , hovered = False
                                 }
-                                |> .arrow
+                                |> .collapseIcon
                                 |> .opacity
                                 |> Expect.equal Styles.GreyedOut
                     , test "team name is greyed out" <|
@@ -224,14 +224,14 @@ all =
                 ]
             , describe "when collapsed"
                 [ describe "when hovered"
-                    [ test "arrow is dim" <|
+                    [ test "collapse icon is dim" <|
                         \_ ->
                             team
                                 { active = False
                                 , expanded = False
                                 , hovered = True
                                 }
-                                |> .arrow
+                                |> .collapseIcon
                                 |> .opacity
                                 |> Expect.equal Styles.Dim
                     , test "team name is bright" <|
@@ -255,14 +255,14 @@ all =
                                 |> Expect.equal Styles.GreyedOut
                     ]
                 , describe "when unhovered"
-                    [ test "arrow is dim" <|
+                    [ test "collapse icon is dim" <|
                         \_ ->
                             team
                                 { active = False
                                 , expanded = False
                                 , hovered = False
                                 }
-                                |> .arrow
+                                |> .collapseIcon
                                 |> .opacity
                                 |> Expect.equal Styles.Dim
                     , test "team name is greyed out" <|
@@ -318,30 +318,3 @@ team { active, expanded, hovered } =
         { name = "team"
         , isExpanded = expanded
         }
-
-
-teamIcon : Html Message -> Query.Single Message
-teamIcon =
-    Query.fromHtml
-        >> Query.children []
-        >> Query.first
-        >> Query.children []
-        >> Query.index 0
-
-
-arrow : Html Message -> Query.Single Message
-arrow =
-    Query.fromHtml
-        >> Query.children []
-        >> Query.first
-        >> Query.children []
-        >> Query.index 1
-
-
-teamName : Html Message -> Query.Single Message
-teamName =
-    Query.fromHtml
-        >> Query.children []
-        >> Query.first
-        >> Query.children []
-        >> Query.index 2
