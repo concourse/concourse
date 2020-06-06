@@ -1,5 +1,6 @@
 module SideBar.Views exposing (Pipeline, Team, viewTeam)
 
+import Assets
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Html.Attributes exposing (href, id)
@@ -54,7 +55,10 @@ viewTeam team =
 
 
 type alias Pipeline =
-    { icon : Styles.Opacity
+    { icon :
+        { asset : Assets.Asset
+        , opacity : Styles.Opacity
+        }
     , link :
         { opacity : Styles.Opacity
         , rectangle : Styles.PipelineBackingRectangle

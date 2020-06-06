@@ -234,12 +234,11 @@ pipeline =
     ]
 
 
-pipelineIcon : Opacity -> List (Html.Attribute msg)
-pipelineIcon opacity =
+pipelineIcon : { asset : Assets.Asset, opacity : Opacity } -> List (Html.Attribute msg)
+pipelineIcon { asset, opacity } =
     [ style "background-image" <|
         Assets.backgroundImage <|
-            Just <|
-                Assets.BreadcrumbIcon Assets.PipelineComponent
+            Just asset
     , style "background-repeat" "no-repeat"
     , style "height" "16px"
     , style "width" "32px"
