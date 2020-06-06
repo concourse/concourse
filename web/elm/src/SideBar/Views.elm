@@ -12,8 +12,8 @@ import SideBar.Styles as Styles
 
 type alias Team =
     { icon : Styles.Opacity
-    , arrow :
-        { icon : Styles.Arrow
+    , collapseIcon :
+        { asset : Assets.Asset
         , opacity : Styles.Opacity
         }
     , name :
@@ -38,8 +38,8 @@ viewTeam team =
                    , onMouseLeave <| Hover Nothing
                    ]
             )
-            [ Styles.teamIcon team.icon
-            , Styles.arrow team.arrow
+            [ Styles.collapseIcon team.collapseIcon
+            , Styles.teamIcon team.icon
             , Html.div
                 (Styles.teamName team.name
                     ++ [ id <| toHtmlID team.name.domID ]
