@@ -1,7 +1,7 @@
 package atc
 
 type Plan struct {
-	ID       PlanID `json:"id,omitempty"` // not optional, but omitempty for tests
+	ID       PlanID `json:"id"`
 	Attempts []int  `json:"attempts,omitempty"`
 
 	Get         *GetPlan         `json:"get,omitempty"`
