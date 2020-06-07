@@ -25,6 +25,8 @@ module Dashboard.Styles exposing
     , noResults
     , pipelineCard
     , pipelineCardBanner
+    , pipelineCardBannerArchived
+    , pipelineCardBannerArchivedHd
     , pipelineCardBannerHd
     , pipelineCardBannerStale
     , pipelineCardBannerStaleHd
@@ -129,6 +131,13 @@ pipelineCardBannerStale : List (Html.Attribute msg)
 pipelineCardBannerStale =
     [ style "height" "7px"
     , style "background-color" Colors.unknown
+    ]
+
+
+pipelineCardBannerArchived : List (Html.Attribute msg)
+pipelineCardBannerArchived =
+    [ style "height" "7px"
+    , style "background-color" Colors.backgroundDark
     ]
 
 
@@ -300,6 +309,13 @@ pipelineCardBannerStaleHd : List (Html.Attribute msg)
 pipelineCardBannerStaleHd =
     [ style "width" "8px"
     , style "background-color" Colors.unknown
+    ]
+
+
+pipelineCardBannerArchivedHd : List (Html.Attribute msg)
+pipelineCardBannerArchivedHd =
+    [ style "width" "8px"
+    , style "background-color" Colors.backgroundDark
     ]
 
 

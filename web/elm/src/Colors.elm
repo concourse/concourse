@@ -3,6 +3,7 @@ module Colors exposing
     , abortedFaded
     , asciiArt
     , background
+    , backgroundDark
     , bottomBarText
     , buildStatusColor
     , buildTooltipText
@@ -105,6 +106,11 @@ white =
 background : String
 background =
     "#3d3c3c"
+
+
+backgroundDark : String
+backgroundDark =
+    "#323232"
 
 
 started : String

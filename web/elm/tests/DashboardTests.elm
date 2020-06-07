@@ -23,6 +23,7 @@ module DashboardTests exposing
     , running
     , userWithRoles
     , whenOnDashboard
+    , whenOnDashboardViewingAllPipelines
     , white
     )
 
@@ -49,6 +50,7 @@ import Message.Effects as Effects
 import Message.Message as Msgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
+import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -2037,6 +2039,24 @@ whenOnDashboard { highDensity } =
 
         else
             "/"
+
+
+whenOnDashboardViewingAllPipelines : { highDensity : Bool } -> Application.Model
+whenOnDashboardViewingAllPipelines { highDensity } =
+    whenOnDashboard { highDensity = highDensity }
+        |> Application.handleDelivery
+            (RouteChanged <|
+                Routes.Dashboard
+                    { searchType =
+                        if highDensity then
+                            Routes.HighDensity
+
+                        else
+                            Routes.Normal ""
+                    , dashboardView = Routes.ViewAllPipelines
+                    }
+            )
+        |> Tuple.first
 
 
 givenDataAndUser :
