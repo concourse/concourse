@@ -613,6 +613,7 @@ searchInput screenSize =
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "30px"
+    , style "min-height" "30px"
     , style "padding" "0 42px"
     , style "border" <| "1px solid " ++ Colors.inputOutline
     , style "color" Colors.dashboardText
