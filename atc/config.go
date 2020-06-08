@@ -433,6 +433,8 @@ type PlanConfig struct {
 	// name of 'set_pipeline'
 	SetPipeline string   `json:"set_pipeline,omitempty"`
 	VarFiles    []string `json:"var_files,omitempty"`
+	// team of 'set_pipeline', only valid for main team
+	Team string `json:"team,omitempty"`
 
 	// config path, e.g. foo/build.yml. Multiple steps might have this field, e.g. Task step and SetPipeline step.
 	File string `json:"file,omitempty"`
