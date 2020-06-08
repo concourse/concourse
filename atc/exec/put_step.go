@@ -147,9 +147,8 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.plan.Type,
 		},
-		Tags:     step.plan.Tags,
-		TeamID:   step.metadata.TeamID,
-		TeamName: step.metadata.TeamName,
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
 
 		Dir: step.containerMetadata.WorkingDirectory,
 

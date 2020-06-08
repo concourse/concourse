@@ -90,7 +90,6 @@ func NewGetStep(
 		workerClient:         client,
 	}
 }
-
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
 	ctx, span := tracing.StartSpan(ctx, "get", tracing.Attrs{
 		"team":     step.metadata.TeamName,
@@ -142,9 +141,8 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.plan.Type,
 		},
-		TeamID:   step.metadata.TeamID,
-		TeamName: step.metadata.TeamName,
-		Env:      step.metadata.Env(),
+		TeamID: step.metadata.TeamID,
+		Env:    step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
 

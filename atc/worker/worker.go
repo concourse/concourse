@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/policy"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -17,15 +16,17 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
+	"github.com/cppforlife/go-semi-semantic/version"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/concourse/concourse/tracing"
-	"github.com/cppforlife/go-semi-semantic/version"
-	"golang.org/x/sync/errgroup"
 )
 
 const userPropertyName = "user"
@@ -230,7 +231,7 @@ func secureImageSource(source atc.Source) atc.Source {
 	return secureSource
 }
 
-func (worker *gardenWorker) imagePolicyCheck(metadata db.ContainerMetadata, containerSpec ContainerSpec, resourceTypes atc.VersionedResourceTypes) (bool, error) {
+func (worker *gardenWorker) imagePolicyCheck(ctx context.Context, metadata db.ContainerMetadata, containerSpec ContainerSpec, resourceTypes atc.VersionedResourceTypes) (bool, error) {
 	if worker.policyChecker == nil {
 		return true, nil
 	}
@@ -269,7 +270,7 @@ func (worker *gardenWorker) imagePolicyCheck(metadata db.ContainerMetadata, cont
 
 	input := policy.PolicyCheckInput{
 		Action:   policy.ActionUsingImage,
-		Team:     containerSpec.TeamName,
+		Team:     policy.TeamFromContext(ctx),
 		Pipeline: metadata.PipelineName,
 		Data:     imageInfo,
 	}
@@ -295,7 +296,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		err               error
 	)
 
-	pass, err := worker.imagePolicyCheck(metadata, containerSpec, resourceTypes)
+	pass, err := worker.imagePolicyCheck(ctx, metadata, containerSpec, resourceTypes)
 	if err != nil {
 		return nil, err
 	}

@@ -178,7 +178,7 @@ type RunCommand struct {
 
 	PolicyCheckers struct {
 		Filter policy.Filter
-	} `group:"Policy Check"`
+	} `group:"Policy Checking"`
 
 	Server struct {
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
@@ -362,7 +362,7 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 			metricsGroup = group
 		}
 
-		if policyChecksGroup == nil && group.ShortDescription == "Policy Check" {
+		if policyChecksGroup == nil && group.ShortDescription == "Policy Checking" {
 			policyChecksGroup = group
 		}
 
@@ -382,7 +382,7 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	}
 
 	if policyChecksGroup == nil {
-		panic("could not find Policy Check group for registering policy checkers")
+		panic("could not find Policy Checking group for registering policy checkers")
 	}
 
 	if credsGroup == nil {

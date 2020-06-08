@@ -105,10 +105,9 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		BindMounts: []worker.BindMountSource{
 			&worker.CertsVolumeMount{Logger: logger},
 		},
-		Tags:     step.plan.Tags,
-		TeamID:   step.metadata.TeamID,
-		TeamName: step.metadata.TeamName,
-		Env:      step.metadata.Env(),
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+		Env:    step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
 

@@ -372,7 +372,6 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 		Platform:  config.Platform,
 		Tags:      step.plan.Tags,
 		TeamID:    step.metadata.TeamID,
-		TeamName:  step.metadata.TeamName,
 		ImageSpec: imageSpec,
 		Limits:    limits,
 		User:      config.Run.User,
