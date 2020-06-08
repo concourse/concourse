@@ -26,7 +26,7 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 #### <sub><sup><a name="5653" href="#5653">:link:</a></sup></sub> feature
 
-* When [distributed tracing](https://concourse-ci.org/tracing.html) is configured, all check, get, put, and task containers will be run with the `TRACEPARENT` environment variable, which contains information of the parent span following the [w3c recommendation format](https://www.w3.org/TR/trace-context/#traceparent-header):
+* When [distributed tracing](https://concourse-ci.org/tracing.html) is configured, all check, get, put, and task containers will be run with the `TRACEPARENT` environment variable set, which contains information about the parent span following the [w3c trace context format](https://www.w3.org/TR/trace-context/#traceparent-header):
 
   ```
   TRACEPARENT=version-trace_id-parent_id-trace_flags
