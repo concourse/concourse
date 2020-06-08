@@ -23,7 +23,7 @@ func parseFlags() flyCommand {
 	}()
 
 	var fly flyCommand
-	parser := flags.NewParser(&fly, flags.HelpFlag|flags.PassDoubleDash)
+	parser := flags.NewParser(&fly, flags.HelpFlag|flags.PassDoubleDash|flags.IgnoreUnknown)
 	parser.NamespaceDelimiter = "-"
 	parser.Parse()
 

@@ -109,8 +109,9 @@ func (command *PipelinesCommand) buildHeader() []string {
 	}
 
 	if command.IncludeArchived {
-		headers = append(headers, "archived", "last updated")
+		headers = append(headers, "archived")
 	}
+	headers = append(headers, "last updated")
 
 	return headers
 }
