@@ -11,32 +11,38 @@ import (
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/tracing"
+	"golang.org/x/time/rate"
 )
+
+//go:generate counterfeiter . RateCalculator
+
+type RateCalculator interface {
+	RateLimit() (rate.Limit, error)
+}
 
 func NewChecker(
 	logger lager.Logger,
 	checkFactory db.CheckFactory,
 	engine engine.Engine,
-	resourceCheckingMaxInFlight uint64,
+	checkRateCalculator RateCalculator,
 ) *checker {
-	newGuardResourceChecking := make(chan struct{}, resourceCheckingMaxInFlight)
 	return &checker{
-		logger:                logger,
-		checkFactory:          checkFactory,
-		engine:                engine,
-		running:               &sync.Map{},
-		guardResourceChecking: newGuardResourceChecking,
+		logger:              logger,
+		checkFactory:        checkFactory,
+		engine:              engine,
+		running:             &sync.Map{},
+		checkRateCalculator: checkRateCalculator,
 	}
 }
 
 type checker struct {
 	logger lager.Logger
 
-	checkFactory db.CheckFactory
-	engine       engine.Engine
+	checkFactory        db.CheckFactory
+	engine              engine.Engine
+	checkRateCalculator RateCalculator
 
-	guardResourceChecking chan struct{}
-	running               *sync.Map
+	running *sync.Map
 }
 
 func (c *checker) Run(ctx context.Context) error {
@@ -51,15 +57,21 @@ func (c *checker) Run(ctx context.Context) error {
 
 	metric.ChecksQueueSize.Set(int64(len(checks)))
 
+	if len(checks) == 0 {
+		return nil
+	}
+
+	rateLimit, err := c.checkRateCalculator.RateLimit()
+	if err != nil {
+		return err
+	}
+
+	limiter := rate.NewLimiter(rateLimit, 1)
+
 	for _, ck := range checks {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
-			c.guardResourceChecking <- struct{}{}
 
 			go func(check db.Check) {
-				defer func() {
-					<-c.guardResourceChecking
-				}()
-
 				spanCtx, span := tracing.StartSpanFollowing(
 					check,
 					"checker.Run",
@@ -72,6 +84,12 @@ func (c *checker) Run(ctx context.Context) error {
 				)
 				defer span.End()
 				defer c.running.Delete(check.ID())
+
+				err := limiter.Wait(spanCtx)
+				if err != nil {
+					c.logger.Error("failed-to-wait-for-limiter", err)
+					return
+				}
 
 				c.engine.NewCheck(check).Run(
 					lagerctx.NewContext(

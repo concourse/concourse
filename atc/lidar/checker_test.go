@@ -3,19 +3,19 @@ package lidar_test
 import (
 	"context"
 	"errors"
-	"sync/atomic"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"golang.org/x/time/rate"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/lidar"
+	"github.com/concourse/concourse/atc/lidar/lidarfakes"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
@@ -35,9 +35,9 @@ var _ = Describe("Checker", func() {
 	var (
 		err error
 
-		fakeCheckFactory  *dbfakes.FakeCheckFactory
-		fakeEngine        *enginefakes.FakeEngine
-		maxChecksInFlight uint64
+		fakeCheckFactory   *dbfakes.FakeCheckFactory
+		fakeEngine         *enginefakes.FakeEngine
+		fakeRateCalculator *lidarfakes.FakeRateCalculator
 
 		checker Checker
 		logger  *lagertest.TestLogger
@@ -46,7 +46,7 @@ var _ = Describe("Checker", func() {
 	BeforeEach(func() {
 		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
-		maxChecksInFlight = 10
+		fakeRateCalculator = new(lidarfakes.FakeRateCalculator)
 
 		logger = lagertest.NewTestLogger("test")
 	})
@@ -56,7 +56,7 @@ var _ = Describe("Checker", func() {
 			logger,
 			fakeCheckFactory,
 			fakeEngine,
-			maxChecksInFlight,
+			fakeRateCalculator,
 		)
 
 		err = checker.Run(context.TODO())
@@ -130,14 +130,33 @@ var _ = Describe("Checker", func() {
 				}
 			})
 
-			It("succeeds", func() {
-				Expect(err).NotTo(HaveOccurred())
+			It("tries to calculate the rate limit", func() {
+				Expect(fakeRateCalculator.RateLimitCallCount()).To(Equal(1))
 			})
 
-			It("runs all pending checks", func() {
-				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(3))
+			Context("when the rate limit is calculated successfully", func() {
+				BeforeEach(func() {
+					fakeRateCalculator.RateLimitReturns(rate.Limit(3), nil)
+				})
+
+				It("succeeds", func() {
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("runs all pending checks", func() {
+					Eventually(fakeEngine.NewCheckCallCount).Should(Equal(3))
+				})
 			})
 
+			Context("when calculating the rate limit fails", func() {
+				BeforeEach(func() {
+					fakeRateCalculator.RateLimitReturns(0, errors.New("disaster"))
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
 		})
 
 		Context("when a check is already running", func() {
@@ -163,42 +182,6 @@ var _ = Describe("Checker", func() {
 
 			It("runs only one pending check", func() {
 				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(1))
-			})
-		})
-
-		Context("when the maximum number of checks are reached", func() {
-			BeforeEach(func() {
-				var checks []db.Check
-
-				for i := 1; i <= 10; i++ {
-					fakeCheck := new(dbfakes.FakeCheck)
-					fakeCheck.IDReturns(i)
-					checks = append(checks, fakeCheck)
-				}
-
-				fakeCheckFactory.StartedChecksReturns(checks, nil)
-
-				var inFlight int64
-				inFlight = 0
-
-				fakeRunnable := new(enginefakes.FakeRunnable)
-				fakeEngine.NewCheckReturns(fakeRunnable)
-				fakeRunnable.RunStub = func(logger lager.Logger) {
-					defer GinkgoRecover()
-					num := atomic.AddInt64(&inFlight, 1)
-					defer atomic.AddInt64(&inFlight, -1)
-
-					Expect(num).To(BeNumerically("<=", 5))
-
-					time.Sleep(100 * time.Millisecond)
-				}
-
-				maxChecksInFlight = 5
-			})
-
-			It("runs all the checks within the max in flight", func() {
-				Expect(err).NotTo(HaveOccurred())
-				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(10))
 			})
 		})
 	})
