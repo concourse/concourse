@@ -208,6 +208,17 @@ func (s *ContainerSuite) TestRunWithUserLookupSucceeds() {
 
 	_, _, procSpec, _ := s.containerdTask.ExecArgsForCall(0)
 	s.Equal(expectedUser, procSpec.User)
+
+	userEnvVarSet := false
+	expectedEnvVar := "USER=some_user"
+
+	for _, envVar := range procSpec.Env {
+		if envVar == expectedEnvVar {
+			userEnvVarSet = true
+			break
+		}
+	}
+	s.True(userEnvVarSet)
 }
 
 func (s *ContainerSuite) TestRunWithUserLookupErrors() {

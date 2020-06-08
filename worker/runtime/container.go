@@ -370,6 +370,9 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 		if !ok {
 			return specs.Process{}, UserNotFoundError{User: gdnProcSpec.User}
 		}
+
+		setUserEnv := fmt.Sprintf("USER=%s", gdnProcSpec.User)
+		procSpec.Env = append(procSpec.Env, setUserEnv)
 	}
 	return *procSpec, nil
 }
