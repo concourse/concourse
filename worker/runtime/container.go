@@ -20,7 +20,7 @@ type UserNotFoundError struct {
 }
 
 func (u UserNotFoundError) Error() string {
-	return fmt.Sprintf("user '%s' not found", u.User)
+	return fmt.Sprintf("user '%s' not found: no matching entries in /etc/passwd", u.User)
 }
 
 type Container struct {
