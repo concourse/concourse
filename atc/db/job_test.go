@@ -33,7 +33,7 @@ var _ = Describe("Job", func() {
 
 					Public: true,
 
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Put: "some-resource",
 							Params: atc.Params{
@@ -658,7 +658,7 @@ var _ = Describe("Job", func() {
 
 							RawMaxInFlight: 2,
 
-							Plan: atc.PlanSequence{
+							PlanSequence: atc.PlanSequence{
 								{
 									Put: "some-resource",
 									Params: atc.Params{
@@ -735,7 +735,7 @@ var _ = Describe("Job", func() {
 
 							RawMaxInFlight: 2,
 
-							Plan: atc.PlanSequence{
+							PlanSequence: atc.PlanSequence{
 								{
 									Put: "some-resource",
 									Params: atc.Params{
@@ -1262,7 +1262,7 @@ var _ = Describe("Job", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get:      "some-input",
 								Resource: "some-resource",
@@ -2157,7 +2157,7 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							Plan: atc.PlanSequence{
+							PlanSequence: atc.PlanSequence{
 								{
 									Get:      "some-input",
 									Resource: "some-resource",
@@ -2228,7 +2228,7 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							Plan: atc.PlanSequence{
+							PlanSequence: atc.PlanSequence{
 								{
 									Get:      "some-pinned-input",
 									Resource: "some-resource",
@@ -2326,7 +2326,7 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							Plan: atc.PlanSequence{
+							PlanSequence: atc.PlanSequence{
 								{
 									Get:      "some-pinned-input",
 									Resource: "some-resource",
@@ -2374,7 +2374,7 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							Plan: atc.PlanSequence{
+							PlanSequence: atc.PlanSequence{
 								{
 									Get:      "some-pinned-input",
 									Resource: "some-resource",
@@ -2452,7 +2452,7 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							Plan: atc.PlanSequence{
+							PlanSequence: atc.PlanSequence{
 								{
 									Get:      "some-input",
 									Resource: "some-resource",
@@ -2471,7 +2471,7 @@ var _ = Describe("Job", func() {
 						},
 						{
 							Name: "some-other-job",
-							Plan: atc.PlanSequence{
+							PlanSequence: atc.PlanSequence{
 								{
 									Get:      "other-job-resource",
 									Resource: "some-resource",
@@ -2537,7 +2537,7 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							Plan: atc.PlanSequence{
+							PlanSequence: atc.PlanSequence{
 								{
 									Put: "some-resource",
 								},
@@ -2594,7 +2594,7 @@ var _ = Describe("Job", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Put: "some-resource",
 							},
@@ -2633,7 +2633,7 @@ var _ = Describe("Job", func() {
 					},
 					{
 						Name: "some-other-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get:      "other-job-resource",
 								Resource: "some-resource",
@@ -2705,7 +2705,7 @@ var _ = Describe("Job", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Put: "some-other-resource",
 							},
@@ -2732,7 +2732,7 @@ var _ = Describe("Job", func() {
 					},
 					{
 						Name: "some-other-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Put:      "other-job-resource",
 								Resource: "some-resource",

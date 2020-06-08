@@ -197,6 +197,9 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		return err
 	}
 
+	if config.Limits == nil {
+		config.Limits = &atc.ContainerLimits{}
+	}
 	if config.Limits.CPU == nil {
 		config.Limits.CPU = step.defaultLimits.CPU
 	}
@@ -358,12 +361,18 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 		return worker.ContainerSpec{}, err
 	}
 
+	var limits worker.ContainerLimits
+	if config.Limits != nil {
+		limits.CPU = config.Limits.CPU
+		limits.Memory = config.Limits.Memory
+	}
+
 	containerSpec := worker.ContainerSpec{
 		Platform:  config.Platform,
 		Tags:      step.plan.Tags,
 		TeamID:    step.metadata.TeamID,
 		ImageSpec: imageSpec,
-		Limits:    worker.ContainerLimits(config.Limits),
+		Limits:    limits,
 		User:      config.Run.User,
 		Dir:       metadata.WorkingDirectory,
 		Env:       config.Params.Env(),

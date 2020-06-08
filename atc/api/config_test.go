@@ -76,7 +76,7 @@ var _ = Describe("Config API", func() {
 					Name:   "some-job",
 					Public: true,
 					Serial: true,
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Get:      "some-input",
 							Resource: "some-resource",
@@ -545,7 +545,7 @@ jobs:
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",
-											Plan: atc.PlanSequence{
+											PlanSequence: atc.PlanSequence{
 												{
 													Get: "some-resource",
 												},
@@ -722,6 +722,31 @@ jobs:
 								ExpectCredsValidationPass()
 								ExpectCredsValidationFail()
 							})
+
+							Context("when it contains nested task that uses external config file and params in task vars", func() {
+								BeforeEach(func() {
+									payload = `---
+resources:
+- name: some-resource
+  type: some-type
+  check_every: 10s
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource
+  - do:
+    - task: some-task
+      file: some-resource/config.yml
+      vars:
+        FOO: ((BAR))`
+
+									request.Header.Set("Content-Type", "application/x-yaml")
+									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+								})
+
+								ExpectCredsValidationPass()
+								ExpectCredsValidationFail()
+							})
 						})
 
 						Context("when it contains credentials to be interpolated", func() {
@@ -758,7 +783,7 @@ jobs:
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",
-											Plan: atc.PlanSequence{
+											PlanSequence: atc.PlanSequence{
 												{
 													Get: "some-resource",
 												},
@@ -971,9 +996,9 @@ jobs:
 						Expect(savedConfig).To(Equal(atc.Config{
 							Jobs: atc.JobConfigs{
 								{
-									Name:   "some-job",
-									Public: true,
-									Plan:   atc.PlanSequence{},
+									Name:         "some-job",
+									Public:       true,
+									PlanSequence: atc.PlanSequence{},
 								},
 							},
 						}))

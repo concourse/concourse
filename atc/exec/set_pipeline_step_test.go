@@ -7,10 +7,11 @@ import (
 
 	"context"
 	"errors"
+	"io"
+
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/onsi/gomega/gbytes"
-	"io"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -51,7 +52,7 @@ jobs:
 		Jobs: atc.JobConfigs{
 			{
 				Name: "some-job",
-				Plan: atc.PlanSequence{
+				PlanSequence: atc.PlanSequence{
 					{
 						Task: "some-task",
 						TaskConfig: &atc.TaskConfig{
@@ -266,7 +267,7 @@ jobs:
 
 				Context("when there are some diff", func() {
 					BeforeEach(func() {
-						pipelineObject.Jobs[0].Plan[0].TaskConfig.Run.Args = []string{"hello world"}
+						pipelineObject.Jobs[0].PlanSequence[0].TaskConfig.Run.Args = []string{"hello world"}
 						fakePipeline.ConfigReturns(pipelineObject, nil)
 					})
 

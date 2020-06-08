@@ -147,7 +147,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 	}
 
 	for _, job := range config.Jobs {
-		for _, plan := range job.Plan {
+		for _, plan := range job.Plans() {
 			_, err := creds.NewParams(credMgrVars, plan.Params).Evaluate()
 			if err != nil {
 				errs = multierror.Append(errs, err)
