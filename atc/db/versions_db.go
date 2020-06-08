@@ -212,6 +212,24 @@ func (versions VersionsDB) SuccessfulBuildOutputs(ctx context.Context, buildID i
 	return algorithmOutputs, nil
 }
 
+func (versions VersionsDB) VersionExists(ctx context.Context, resourceID int, versionMD5 ResourceVersion) (bool, error) {
+	var exists bool
+	err := versions.conn.QueryRowContext(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM resource_config_versions v
+			JOIN resources r ON r.resource_config_scope_id = v.resource_config_scope_id
+			WHERE r.id = $1
+			AND v.version_md5 = $2
+		)`, resourceID, versionMD5).
+		Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
 func (versions VersionsDB) FindVersionOfResource(ctx context.Context, resourceID int, v atc.Version) (ResourceVersion, bool, error) {
 	versionJSON, err := json.Marshal(v)
 	if err != nil {

@@ -44,6 +44,7 @@ type DBRow struct {
 	RerunOfBuildID        int
 	BuildStatus           string
 	NoResourceConfigScope bool
+	DoNotInsertVersion    bool
 }
 
 type Example struct {
@@ -762,7 +763,7 @@ func (s setupDB) insertRowVersion(resources map[string]atc.ResourceConfig, row D
 		},
 	}
 
-	if row.NoResourceConfigScope {
+	if row.NoResourceConfigScope || row.DoNotInsertVersion {
 		// there's no version to insert if it has no scope
 		return
 	}

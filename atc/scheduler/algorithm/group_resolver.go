@@ -256,6 +256,18 @@ outputs:
 				continue
 			}
 
+			if candidate == nil {
+				exists, err := r.vdb.VersionExists(ctx, output.ResourceID, output.Version)
+				if err != nil {
+					tracing.End(span, err)
+					return false, err
+				}
+
+				if !exists {
+					break outputs
+				}
+			}
+
 			// if this doesn't work out, restore it to either nil or the
 			// candidate *without* the job vouching for it
 			restore[c] = candidate
