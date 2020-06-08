@@ -5,52 +5,45 @@ import (
 	"github.com/concourse/concourse/atc/policy"
 )
 
-//go:generate counterfeiter . PolicyChecker
+//go:generate counterfeiter . ImagePolicyChecker
 
-type PolicyChecker interface {
-	Check(teamName, pipelineName, step string, imageSource atc.Source) (bool, error)
+type ImagePolicyChecker interface {
+	Check(teamName, pipelineName, step string, imageSourceType string, imageSource atc.Source) (bool, error)
 }
 
 type checker struct {
 	policyChecker *policy.Checker
 }
 
-func NewImagePolicyChecker(policyChecker *policy.Checker) PolicyChecker {
+func NewImagePolicyChecker(policyChecker *policy.Checker) ImagePolicyChecker {
 	if policyChecker == nil {
 		return nil
 	}
 	return &checker{policyChecker: policyChecker}
 }
 
-func (c *checker) Check(teamName, pipelineName, step string, imageSource atc.Source) (bool, error) {
+func (c *checker) Check(teamName, pipelineName, step string, imageSourceType string, imageSource atc.Source) (bool, error) {
 
 	// Actions in skip list will not go through policy check.
 	if c.policyChecker.ShouldSkipAction(policy.ActionUsingImage) {
 		return true, nil
 	}
 
-	imageInfo := map[string]string{
-		"step": step,
+	if _, ok := imageSource["password"]; ok {
+		delete(imageSource, "password")
 	}
 
-	if repository, ok := imageSource["repository"].(string); ok {
-		imageInfo["repository"] = repository
-	} else {
-		// If imageSource doesn't have repository defined, then skip policy check.
-		return true, nil
-	}
-
-	if tag, ok := imageSource["tag"].(string); ok {
-		imageInfo["tag"] = tag
-	} else {
-		imageInfo["tag"] = "latest"
+	imageInfo := map[string]interface{}{
+		"step":              step,
+		"image_source_type": imageSourceType,
+		"image_source":      imageSource,
 	}
 
 	input := policy.PolicyCheckInput{
-		Action:         policy.ActionUsingImage,
-		Team:           teamName,
-		Pipeline:       pipelineName,
-		Data:           imageInfo,
+		Action:   policy.ActionUsingImage,
+		Team:     teamName,
+		Pipeline: pipelineName,
+		Data:     imageInfo,
 	}
 
 	return c.policyChecker.Check(input)

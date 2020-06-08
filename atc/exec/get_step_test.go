@@ -43,7 +43,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCache        *dbfakes.FakeUsedResourceCache
 
 		fakeDelegate      *execfakes.FakeGetDelegate
-		fakePolicyChecker *execfakes.FakePolicyChecker
+		fakePolicyChecker *execfakes.FakeImagePolicyChecker
 
 		getPlan *atc.GetPlan
 
@@ -88,7 +88,7 @@ var _ = Describe("GetStep", func() {
 		fakeResource = new(resourcefakes.FakeResource)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
-		fakePolicyChecker = new(execfakes.FakePolicyChecker)
+		fakePolicyChecker = new(execfakes.FakeImagePolicyChecker)
 
 		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
 		credVarsTracker = vars.NewCredVarsTracker(credVars, true)

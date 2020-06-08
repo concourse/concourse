@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("PolicyChecker", func() {
+var _ = Describe("ImagePolicyChecker", func() {
 	var (
 		policyFilter policy.Filter
 		pass         bool
@@ -33,7 +33,7 @@ var _ = Describe("PolicyChecker", func() {
 		policyCheck, err := policy.Initialize(testLogger, "some-cluster", "some-version", policyFilter)
 		Expect(err).ToNot(HaveOccurred())
 		pass, checkErr = exec.NewImagePolicyChecker(policyCheck).Check(
-			"some-team", "some-pipeline", "get", atc.Source{"repository": "some-image", "tag": "some-tag"})
+			"some-team", "some-pipeline", "get", "registry-image", atc.Source{"repository": "some-image", "tag": "some-tag"})
 	})
 
 	Context("when the action should be skipped", func() {
@@ -58,7 +58,7 @@ var _ = Describe("PolicyChecker", func() {
 		It("should not error", func() {
 			Expect(checkErr).ToNot(HaveOccurred())
 		})
-		It("agent check should be called", func(){
+		It("agent check should be called", func() {
 			Expect(fakePolicyAgent.CheckCallCount()).To(Equal(1))
 		})
 		It("agent should take correct input", func() {
@@ -69,10 +69,13 @@ var _ = Describe("PolicyChecker", func() {
 				Action:         policy.ActionUsingImage,
 				Team:           "some-team",
 				Pipeline:       "some-pipeline",
-				Data: map[string]string{
-					"tag":        "some-tag",
-					"step":       "get",
-					"repository": "some-image",
+				Data: map[string]interface{}{
+					"image_source": atc.Source{
+						"tag":        "some-tag",
+						"repository": "some-image",
+					},
+					"step":              "get",
+					"image_source_type": "registry-image",
 				},
 			}))
 		})

@@ -39,7 +39,7 @@ var _ = Describe("PutStep", func() {
 		fakeResource              *resourcefakes.FakeResource
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeDelegate              *execfakes.FakePutDelegate
-		fakePolicyChecker         *execfakes.FakePolicyChecker
+		fakePolicyChecker         *execfakes.FakeImagePolicyChecker
 		putPlan                   *atc.PutPlan
 
 		fakeArtifact        *runtimefakes.FakeArtifact
@@ -91,7 +91,7 @@ var _ = Describe("PutStep", func() {
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
-		fakePolicyChecker = new(execfakes.FakePolicyChecker)
+		fakePolicyChecker = new(execfakes.FakeImagePolicyChecker)
 
 		credVars := vars.StaticVariables{"custom-param": "source", "source-param": "super-secret-source"}
 		credVarsTracker = vars.NewCredVarsTracker(credVars, true)

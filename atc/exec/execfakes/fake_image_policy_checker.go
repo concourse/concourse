@@ -8,14 +8,15 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 )
 
-type FakePolicyChecker struct {
-	CheckStub        func(string, string, string, atc.Source) (bool, error)
+type FakeImagePolicyChecker struct {
+	CheckStub        func(string, string, string, string, atc.Source) (bool, error)
 	checkMutex       sync.RWMutex
 	checkArgsForCall []struct {
 		arg1 string
 		arg2 string
 		arg3 string
-		arg4 atc.Source
+		arg4 string
+		arg5 atc.Source
 	}
 	checkReturns struct {
 		result1 bool
@@ -29,19 +30,20 @@ type FakePolicyChecker struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePolicyChecker) Check(arg1 string, arg2 string, arg3 string, arg4 atc.Source) (bool, error) {
+func (fake *FakeImagePolicyChecker) Check(arg1 string, arg2 string, arg3 string, arg4 string, arg5 atc.Source) (bool, error) {
 	fake.checkMutex.Lock()
 	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
 		arg1 string
 		arg2 string
 		arg3 string
-		arg4 atc.Source
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3, arg4})
+		arg4 string
+		arg5 atc.Source
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.checkMutex.Unlock()
 	if fake.CheckStub != nil {
-		return fake.CheckStub(arg1, arg2, arg3, arg4)
+		return fake.CheckStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -50,26 +52,26 @@ func (fake *FakePolicyChecker) Check(arg1 string, arg2 string, arg3 string, arg4
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakePolicyChecker) CheckCallCount() int {
+func (fake *FakeImagePolicyChecker) CheckCallCount() int {
 	fake.checkMutex.RLock()
 	defer fake.checkMutex.RUnlock()
 	return len(fake.checkArgsForCall)
 }
 
-func (fake *FakePolicyChecker) CheckCalls(stub func(string, string, string, atc.Source) (bool, error)) {
+func (fake *FakeImagePolicyChecker) CheckCalls(stub func(string, string, string, string, atc.Source) (bool, error)) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = stub
 }
 
-func (fake *FakePolicyChecker) CheckArgsForCall(i int) (string, string, string, atc.Source) {
+func (fake *FakeImagePolicyChecker) CheckArgsForCall(i int) (string, string, string, string, atc.Source) {
 	fake.checkMutex.RLock()
 	defer fake.checkMutex.RUnlock()
 	argsForCall := fake.checkArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
-func (fake *FakePolicyChecker) CheckReturns(result1 bool, result2 error) {
+func (fake *FakeImagePolicyChecker) CheckReturns(result1 bool, result2 error) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
@@ -79,7 +81,7 @@ func (fake *FakePolicyChecker) CheckReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakePolicyChecker) CheckReturnsOnCall(i int, result1 bool, result2 error) {
+func (fake *FakeImagePolicyChecker) CheckReturnsOnCall(i int, result1 bool, result2 error) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
@@ -95,7 +97,7 @@ func (fake *FakePolicyChecker) CheckReturnsOnCall(i int, result1 bool, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakePolicyChecker) Invocations() map[string][][]interface{} {
+func (fake *FakeImagePolicyChecker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.checkMutex.RLock()
@@ -107,7 +109,7 @@ func (fake *FakePolicyChecker) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakePolicyChecker) recordInvocation(key string, args []interface{}) {
+func (fake *FakeImagePolicyChecker) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -119,4 +121,4 @@ func (fake *FakePolicyChecker) recordInvocation(key string, args []interface{}) 
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ exec.PolicyChecker = new(FakePolicyChecker)
+var _ exec.ImagePolicyChecker = new(FakeImagePolicyChecker)

@@ -38,7 +38,7 @@ var _ = Describe("TaskStep", func() {
 		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
 
 		fakeLockFactory   *lockfakes.FakeLockFactory
-		fakePolicyChecker *execfakes.FakePolicyChecker
+		fakePolicyChecker *execfakes.FakeImagePolicyChecker
 		fakeDelegate      *execfakes.FakeTaskDelegate
 		taskPlan          *atc.TaskPlan
 
@@ -75,7 +75,7 @@ var _ = Describe("TaskStep", func() {
 
 		fakeClient = new(workerfakes.FakeClient)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
-		fakePolicyChecker = new(execfakes.FakePolicyChecker)
+		fakePolicyChecker = new(execfakes.FakeImagePolicyChecker)
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
 		credVars := vars.StaticVariables{"source-param": "super-secret-source"}

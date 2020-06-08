@@ -24,7 +24,7 @@ type CheckStep struct {
 	resourceFactory   resource.ResourceFactory
 	strategy          worker.ContainerPlacementStrategy
 	pool              worker.Pool
-	policyChecker     PolicyChecker
+	policyChecker     ImagePolicyChecker
 	delegate          CheckDelegate
 	succeeded         bool
 	workerClient      worker.Client
@@ -46,7 +46,7 @@ func NewCheckStep(
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
-	policyChecker PolicyChecker,
+	policyChecker ImagePolicyChecker,
 	delegate CheckDelegate,
 	client worker.Client,
 ) *CheckStep {
@@ -108,6 +108,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 				step.metadata.TeamName,
 				step.metadata.PipelineName,
 				"check",
+				resourceType.Type,
 				resourceType.Source)
 			if err != nil {
 				return err

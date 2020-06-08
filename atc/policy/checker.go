@@ -13,29 +13,13 @@ const ActionUsingImage = "UsingImage"
 type PolicyCheckNotPass struct{}
 
 func (e PolicyCheckNotPass) Error() string {
-	return "policy check not pass"
+	return "policy check rejected"
 }
 
 type Filter struct {
 	HttpMethods   []string `long:"policy-check-filter-http-method" description:"API http method to go through policy check"`
 	Actions       []string `long:"policy-check-filter-action" description:"Actions in the list will go through policy check"`
 	ActionsToSkip []string `long:"policy-check-filter-action-skip" default:"UsingImage" description:"Actions the list will not go through policy check"`
-}
-
-func (f Filter) normalize() Filter {
-	if len(f.HttpMethods) == 1 {
-		f.HttpMethods = strings.Split(f.HttpMethods[0], ",")
-	}
-
-	if len(f.Actions) == 1 {
-		f.Actions = strings.Split(f.Actions[0], ",")
-	}
-
-	if len(f.ActionsToSkip) == 1 {
-		f.ActionsToSkip = strings.Split(f.ActionsToSkip[0], ",")
-	}
-
-	return f
 }
 
 type PolicyCheckInput struct {
@@ -114,7 +98,7 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 				lager.Data{"rfc": "https://github.com/concourse/rfcs/pull/41"})
 
 			return &Checker{
-				filter: filter.normalize(),
+				filter: filter,
 				agent:  agent,
 			}, nil
 		}

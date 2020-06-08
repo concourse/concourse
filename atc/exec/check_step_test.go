@@ -36,7 +36,7 @@ var _ = Describe("CheckStep", func() {
 		fakeStrategy        *workerfakes.FakeContainerPlacementStrategy
 		fakeDelegate        *execfakes.FakeCheckDelegate
 		fakeClient          *workerfakes.FakeClient
-		fakePolicyChecker   *execfakes.FakePolicyChecker
+		fakePolicyChecker   *execfakes.FakeImagePolicyChecker
 
 		stepMetadata      exec.StepMetadata
 		checkStep         *exec.CheckStep
@@ -56,7 +56,7 @@ var _ = Describe("CheckStep", func() {
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeDelegate = new(execfakes.FakeCheckDelegate)
 		fakeClient = new(workerfakes.FakeClient)
-		fakePolicyChecker = new(execfakes.FakePolicyChecker)
+		fakePolicyChecker = new(execfakes.FakeImagePolicyChecker)
 
 		stepMetadata = exec.StepMetadata{}
 		containerMetadata = db.ContainerMetadata{}

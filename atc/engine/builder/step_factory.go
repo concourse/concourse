@@ -22,7 +22,7 @@ type stepFactory struct {
 	resourceConfigFactory           db.ResourceConfigFactory
 	defaultLimits                   atc.ContainerLimits
 	strategy                        worker.ContainerPlacementStrategy
-	policyChecker                   exec.PolicyChecker
+	policyChecker                   exec.ImagePolicyChecker
 	lockFactory                     lock.LockFactory
 	enableRerunWhenWorkerDisappears bool
 }
@@ -36,7 +36,7 @@ func NewStepFactory(
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
-	policyChecker exec.PolicyChecker,
+	policyChecker exec.ImagePolicyChecker,
 	lockFactory lock.LockFactory,
 	enableRerunWhenWorkerDisappears bool,
 ) *stepFactory {

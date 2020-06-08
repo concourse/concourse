@@ -20,9 +20,9 @@ var _ = Describe("Policy checker", func() {
 
 	BeforeEach(func() {
 		filter = policy.Filter{
-			HttpMethods:   []string{"POST,PUT"},
-			Actions:       []string{"do_1,do_2"},
-			ActionsToSkip: []string{"skip_1,skip_2"},
+			HttpMethods:   []string{"POST", "PUT"},
+			Actions:       []string{"do_1", "do_2"},
+			ActionsToSkip: []string{"skip_1", "skip_2"},
 		}
 
 		fakeAgent = new(policyfakes.FakeAgent)

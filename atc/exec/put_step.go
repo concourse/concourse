@@ -46,7 +46,7 @@ type PutStep struct {
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
 	workerClient          worker.Client
-	policyChecker         PolicyChecker
+	policyChecker         ImagePolicyChecker
 	delegate              PutDelegate
 	succeeded             bool
 }
@@ -60,7 +60,7 @@ func NewPutStep(
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
-	policyChecker PolicyChecker,
+	policyChecker ImagePolicyChecker,
 	delegate PutDelegate,
 ) Step {
 	return &PutStep{
@@ -133,6 +133,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 				step.metadata.TeamName,
 				step.metadata.PipelineName,
 				"put",
+				resourceType.Type,
 				resourceType.Source)
 			if err != nil {
 				return err
