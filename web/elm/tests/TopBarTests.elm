@@ -331,11 +331,32 @@ all =
                 [ it "has blue background" <|
                     Query.has [ style "background-color" pausedBlue ]
                 , it "draws almost-white line to the left of login container" <|
-                    Query.children []
-                        >> Query.index -1
-                        >> Query.find [ id "login-container" ]
+                    Query.find [ id "login-container" ]
                         >> Query.has
                             [ style "border-left" <| "1px solid " ++ almostWhite ]
+                ]
+            , context "when pipeline is archived"
+                (Application.handleCallback
+                    (Callback.PipelineFetched <|
+                        Ok <|
+                            (Data.pipeline "t" 0
+                                |> Data.withName "p"
+                                |> Data.withPaused True
+                                |> Data.withArchived True
+                            )
+                    )
+                    >> Tuple.first
+                    >> Application.handleCallback
+                        (Callback.UserFetched <| Ok sampleUser)
+                    >> Tuple.first
+                    >> queryView
+                )
+                [ it "does not render pause toggle" <|
+                    Query.hasNot [ id "top-bar-pause-toggle" ]
+                , it "draws uses the normal border colour for the login container" <|
+                    Query.find [ id "login-container" ]
+                        >> Query.has
+                            [ style "border-left" <| "1px solid " ++ borderGrey ]
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
