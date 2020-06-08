@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
@@ -64,7 +63,6 @@ type GetStep struct {
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
-	policyChecker        ImagePolicyChecker
 	delegate             GetDelegate
 	succeeded            bool
 }
@@ -77,7 +75,6 @@ func NewGetStep(
 	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
-	policyChecker ImagePolicyChecker,
 	delegate GetDelegate,
 	client worker.Client,
 ) Step {
@@ -89,7 +86,6 @@ func NewGetStep(
 		resourceFactory:      resourceFactory,
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
-		policyChecker:        policyChecker,
 		delegate:             delegate,
 		workerClient:         client,
 	}
@@ -142,29 +138,13 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	if step.policyChecker != nil {
-		for _, resourceType := range resourceTypes {
-			pass, err := step.policyChecker.Check(
-				step.metadata.TeamName,
-				step.metadata.PipelineName,
-				"get",
-				resourceType.Type,
-				resourceType.Source)
-			if err != nil {
-				return err
-			}
-			if !pass {
-				return policy.PolicyCheckNotPass{}
-			}
-		}
-	}
-
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.plan.Type,
 		},
-		TeamID: step.metadata.TeamID,
-		Env:    step.metadata.Env(),
+		TeamID:   step.metadata.TeamID,
+		TeamName: step.metadata.TeamName,
+		Env:      step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
 

@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -36,7 +35,6 @@ var _ = Describe("CheckStep", func() {
 		fakeStrategy        *workerfakes.FakeContainerPlacementStrategy
 		fakeDelegate        *execfakes.FakeCheckDelegate
 		fakeClient          *workerfakes.FakeClient
-		fakePolicyChecker   *execfakes.FakeImagePolicyChecker
 
 		stepMetadata      exec.StepMetadata
 		checkStep         *exec.CheckStep
@@ -56,13 +54,11 @@ var _ = Describe("CheckStep", func() {
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeDelegate = new(execfakes.FakeCheckDelegate)
 		fakeClient = new(workerfakes.FakeClient)
-		fakePolicyChecker = new(execfakes.FakeImagePolicyChecker)
 
 		stepMetadata = exec.StepMetadata{}
 		containerMetadata = db.ContainerMetadata{}
 
 		fakeResourceFactory.NewResourceReturns(fakeResource)
-		fakePolicyChecker.CheckReturns(true, nil)
 	})
 
 	AfterEach(func() {
@@ -80,7 +76,6 @@ var _ = Describe("CheckStep", func() {
 			containerMetadata,
 			fakeStrategy,
 			fakePool,
-			fakePolicyChecker,
 			fakeDelegate,
 			fakeClient,
 		)
@@ -369,26 +364,6 @@ var _ = Describe("CheckStep", func() {
 			It("errors", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(errors.Is(err, expectedErr)).To(BeTrue())
-			})
-		})
-
-		Context("with policy checker", func() {
-			Context("when policy check not pass", func() {
-				BeforeEach(func() {
-					fakePolicyChecker.CheckReturns(false, nil)
-				})
-				It("should raise an error of policy not pass", func() {
-					Expect(err).To(Equal(policy.PolicyCheckNotPass{}))
-				})
-			})
-
-			Context("when policy check failed", func() {
-				BeforeEach(func() {
-					fakePolicyChecker.CheckReturns(false, errors.New("some-error"))
-				})
-				It("should propagate", func() {
-					Expect(err).To(Equal(errors.New("some-error")))
-				})
 			})
 		})
 	})

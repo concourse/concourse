@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
@@ -42,8 +41,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeResourceCache        *dbfakes.FakeUsedResourceCache
 
-		fakeDelegate      *execfakes.FakeGetDelegate
-		fakePolicyChecker *execfakes.FakeImagePolicyChecker
+		fakeDelegate *execfakes.FakeGetDelegate
 
 		getPlan *atc.GetPlan
 
@@ -88,7 +86,6 @@ var _ = Describe("GetStep", func() {
 		fakeResource = new(resourcefakes.FakeResource)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
-		fakePolicyChecker = new(execfakes.FakeImagePolicyChecker)
 
 		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
 		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
@@ -104,7 +101,6 @@ var _ = Describe("GetStep", func() {
 		fakeDelegate.VariablesReturns(credVarsTracker)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
-		fakePolicyChecker.CheckReturns(true, nil)
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -160,7 +156,6 @@ var _ = Describe("GetStep", func() {
 			fakeResourceFactory,
 			fakeResourceCacheFactory,
 			fakeStrategy,
-			fakePolicyChecker,
 			fakeDelegate,
 			fakeClient,
 		)
@@ -189,8 +184,9 @@ var _ = Describe("GetStep", func() {
 				ImageSpec: worker.ImageSpec{
 					ResourceType: "some-resource-type",
 				},
-				TeamID: stepMetadata.TeamID,
-				Env:    stepMetadata.Env(),
+				TeamID:   stepMetadata.TeamID,
+				TeamName: stepMetadata.TeamName,
+				Env:      stepMetadata.Env(),
 			},
 		))
 	})
@@ -384,31 +380,5 @@ var _ = Describe("GetStep", func() {
 			Expect(getStepErr).ToNot(HaveOccurred())
 		})
 
-	})
-
-	Context("with policy checker", func() {
-		Context("when policy check not pass", func() {
-			BeforeEach(func() {
-				fakePolicyChecker.CheckReturns(false, nil)
-			})
-			It("should raise an error of policy not pass", func() {
-				Expect(getStepErr).To(Equal(policy.PolicyCheckNotPass{}))
-			})
-			It("does NOT mark the step as succeeded", func() {
-				Expect(getStep.Succeeded()).To(BeFalse())
-			})
-		})
-
-		Context("when policy check failed", func() {
-			BeforeEach(func() {
-				fakePolicyChecker.CheckReturns(false, errors.New("some-error"))
-			})
-			It("should propagate", func() {
-				Expect(getStepErr).To(Equal(errors.New("some-error")))
-			})
-			It("does NOT mark the step as succeeded", func() {
-				Expect(getStep.Succeeded()).To(BeFalse())
-			})
-		})
 	})
 })

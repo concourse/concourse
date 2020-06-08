@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"github.com/concourse/concourse/atc/policy"
 	"net/http"
 	"time"
 
@@ -31,6 +32,7 @@ type dbWorkerProvider struct {
 	workerVersion                     version.Version
 	baggageclaimResponseHeaderTimeout time.Duration
 	gardenRequestTimeout              time.Duration
+	policyChecker *policy.Checker
 }
 
 func NewDBWorkerProvider(
@@ -48,6 +50,7 @@ func NewDBWorkerProvider(
 	workerFactory db.WorkerFactory,
 	workerVersion version.Version,
 	baggageclaimResponseHeaderTimeout, gardenRequestTimeout time.Duration,
+	policyChecker *policy.Checker,
 ) WorkerProvider {
 	return &dbWorkerProvider{
 		lockFactory:                       lockFactory,
@@ -65,6 +68,7 @@ func NewDBWorkerProvider(
 		workerVersion:                     workerVersion,
 		baggageclaimResponseHeaderTimeout: baggageclaimResponseHeaderTimeout,
 		gardenRequestTimeout:              gardenRequestTimeout,
+		policyChecker: policyChecker,
 	}
 }
 
@@ -214,5 +218,6 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, savedWork
 		savedWorker,
 		provider.dbResourceCacheFactory,
 		buildContainersCount,
+		provider.policyChecker,
 	)
 }

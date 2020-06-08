@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
@@ -46,7 +45,6 @@ type PutStep struct {
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
 	workerClient          worker.Client
-	policyChecker         ImagePolicyChecker
 	delegate              PutDelegate
 	succeeded             bool
 }
@@ -60,7 +58,6 @@ func NewPutStep(
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
-	policyChecker ImagePolicyChecker,
 	delegate PutDelegate,
 ) Step {
 	return &PutStep{
@@ -72,7 +69,6 @@ func NewPutStep(
 		resourceConfigFactory: resourceConfigFactory,
 		workerClient:          workerClient,
 		strategy:              strategy,
-		policyChecker:         policyChecker,
 		delegate:              delegate,
 	}
 }
@@ -127,23 +123,6 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	if step.policyChecker != nil {
-		for _, resourceType := range resourceTypes {
-			pass, err := step.policyChecker.Check(
-				step.metadata.TeamName,
-				step.metadata.PipelineName,
-				"put",
-				resourceType.Type,
-				resourceType.Source)
-			if err != nil {
-				return err
-			}
-			if !pass {
-				return policy.PolicyCheckNotPass{}
-			}
-		}
-	}
-
 	var putInputs PutInputs
 	if step.plan.Inputs == nil {
 		// Put step defaults to all inputs if not specified
@@ -168,8 +147,9 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.plan.Type,
 		},
-		Tags:   step.plan.Tags,
-		TeamID: step.metadata.TeamID,
+		Tags:     step.plan.Tags,
+		TeamID:   step.metadata.TeamID,
+		TeamName: step.metadata.TeamName,
 
 		Dir: step.containerMetadata.WorkingDirectory,
 

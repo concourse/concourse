@@ -28,7 +28,7 @@ type PolicyCheckInput struct {
 	ClusterVersion string      `json:"cluster_version"`
 	HttpMethod     string      `json:"http_method,omitempty"`
 	Action         string      `json:"action"`
-	User           string      `json:"user"`
+	User           string      `json:"user,omitempty"`
 	Team           string      `json:"team,omitempty"`
 	Pipeline       string      `json:"pipeline,omitempty"`
 	Data           interface{} `json:"data,omitempty"`

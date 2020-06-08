@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/concourse/concourse/atc/policy"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -93,6 +94,7 @@ type gardenWorker struct {
 	dbWorker        db.Worker
 	buildContainers int
 	helper          workerHelper
+	policyChecker   *policy.Checker
 }
 
 // NewGardenWorker constructs a Worker using the gardenWorker runtime implementation and allows container and volume
@@ -108,6 +110,7 @@ func NewGardenWorker(
 	dbWorker db.Worker,
 	resourceCacheFactory db.ResourceCacheFactory,
 	numBuildContainers int,
+	policyChecker *policy.Checker,
 	// TODO: numBuildContainers is only needed for placement strategy but this
 	// method is called in ContainerProvider.FindOrCreateContainer as well and
 	// hence we pass in 0 values for numBuildContainers everywhere.
@@ -129,6 +132,7 @@ func NewGardenWorker(
 		resourceCacheFactory: resourceCacheFactory,
 		buildContainers:      numBuildContainers,
 		helper:               workerHelper,
+		policyChecker:        policyChecker,
 	}
 }
 
@@ -207,6 +211,72 @@ func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Vo
 	return worker.volumeClient.LookupVolume(logger, handle)
 }
 
+var sensitiveKeys = []string{"password", "key", "token"}
+
+func secureImageSource(source atc.Source) atc.Source {
+	secureSource := atc.Source{}
+	for key, value := range source {
+		secure := true
+		for _, sensitiveWord := range sensitiveKeys {
+			if strings.Index(key, sensitiveWord) > 0 {
+				secure = false
+				break
+			}
+		}
+		if secure {
+			secureSource[key] = value
+		}
+	}
+	return secureSource
+}
+
+func (worker *gardenWorker) imagePolicyCheck(metadata db.ContainerMetadata, containerSpec ContainerSpec, resourceTypes atc.VersionedResourceTypes) (bool, error) {
+	if worker.policyChecker == nil {
+		return true, nil
+	}
+
+	// Actions in skip list will not go through policy check.
+	if worker.policyChecker.ShouldSkipAction(policy.ActionUsingImage) {
+		return true, nil
+	}
+
+	imageSpec := containerSpec.ImageSpec
+
+	imageInfo := map[string]interface{}{
+		"privileged": imageSpec.Privileged,
+	}
+
+	if imageSpec.ImageResource != nil {
+		imageInfo["image_source_type"] = imageSpec.ImageResource.Type
+		imageInfo["image_source"] = secureImageSource(imageSpec.ImageResource.Source)
+	} else if imageSpec.ResourceType != "" {
+		for _, rt := range resourceTypes {
+			if rt.Name == imageSpec.ResourceType {
+				imageInfo["image_source_type"] = rt.Type
+				imageInfo["image_source"] = secureImageSource(rt.Source)
+			}
+		}
+
+		// If resource type not found, then it should be a built-in resource
+		// type, and could skip policy check.
+		if _, ok := imageInfo["image_source_type"]; !ok {
+			return true, nil
+		}
+	} else {
+		// Ignore other images as policy checker cannot do much on them.
+		return true, nil
+	}
+
+	input := policy.PolicyCheckInput{
+		Action:   policy.ActionUsingImage,
+		Team:     containerSpec.TeamName,
+		Pipeline: metadata.PipelineName,
+		Data:     imageInfo,
+	}
+
+	return worker.policyChecker.Check(input)
+}
+
 func (worker *gardenWorker) FindOrCreateContainer(
 	ctx context.Context,
 	logger lager.Logger,
@@ -224,6 +294,14 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		containerHandle   string
 		err               error
 	)
+
+	pass, err := worker.imagePolicyCheck(metadata, containerSpec, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+	if !pass {
+		return nil, policy.PolicyCheckNotPass{}
+	}
 
 	// ensure either creatingContainer or createdContainer exists
 	creatingContainer, createdContainer, err = worker.dbWorker.FindContainer(owner)

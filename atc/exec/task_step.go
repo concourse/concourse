@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
@@ -79,7 +78,6 @@ type TaskStep struct {
 	containerMetadata db.ContainerMetadata
 	strategy          worker.ContainerPlacementStrategy
 	workerClient      worker.Client
-	policyChecker     ImagePolicyChecker
 	delegate          TaskDelegate
 	lockFactory       lock.LockFactory
 	succeeded         bool
@@ -93,7 +91,6 @@ func NewTaskStep(
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
-	policyChecker ImagePolicyChecker,
 	delegate TaskDelegate,
 	lockFactory lock.LockFactory,
 ) Step {
@@ -105,7 +102,6 @@ func NewTaskStep(
 		containerMetadata: containerMetadata,
 		strategy:          strategy,
 		workerClient:      workerClient,
-		policyChecker:     policyChecker,
 		delegate:          delegate,
 		lockFactory:       lockFactory,
 	}
@@ -212,21 +208,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	}
 
 	step.delegate.Initializing(logger)
-
-	if step.policyChecker != nil && config.ImageResource != nil {
-		pass, err := step.policyChecker.Check(
-			step.metadata.TeamName,
-			step.metadata.PipelineName,
-			"task",
-			config.ImageResource.Type,
-			config.ImageResource.Source)
-		if err != nil {
-			return err
-		}
-		if !pass {
-			return policy.PolicyCheckNotPass{}
-		}
-	}
 
 	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)
 	if err != nil {
@@ -391,6 +372,7 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 		Platform:  config.Platform,
 		Tags:      step.plan.Tags,
 		TeamID:    step.metadata.TeamID,
+		TeamName:  step.metadata.TeamName,
 		ImageSpec: imageSpec,
 		Limits:    limits,
 		User:      config.Run.User,

@@ -40,7 +40,6 @@ import (
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/builder"
-	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/lidar"
 	"github.com/concourse/concourse/atc/metric"
@@ -705,6 +704,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
 		cmd.GardenRequestTimeout,
+		policyChecker,
 	)
 
 	pool := worker.NewPool(workerProvider)
@@ -935,6 +935,7 @@ func (cmd *RunCommand) backendComponents(
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
 		cmd.GardenRequestTimeout,
+		policyChecker,
 	)
 
 	pool := worker.NewPool(workerProvider)
@@ -965,7 +966,6 @@ func (cmd *RunCommand) backendComponents(
 		defaultLimits,
 		buildContainerStrategy,
 		lockFactory,
-		policyChecker,
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
@@ -1552,7 +1552,6 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
-	policyChecker *policy.Checker,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1564,7 +1563,6 @@ func (cmd *RunCommand) constructEngine(
 		resourceConfigFactory,
 		defaultLimits,
 		strategy,
-		exec.NewImagePolicyChecker(policyChecker),
 		lockFactory,
 		cmd.EnableBuildRerunWhenWorkerDisappears,
 	)

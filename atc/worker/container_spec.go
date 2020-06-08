@@ -22,6 +22,7 @@ type ContainerSpec struct {
 	Platform  string
 	Tags      []string
 	TeamID    int
+	TeamName  string
 	ImageSpec ImageSpec
 	Env       []string
 	Type      db.ContainerType
