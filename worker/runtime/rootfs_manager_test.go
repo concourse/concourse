@@ -1,6 +1,7 @@
 package runtime_test
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -117,7 +118,7 @@ func (s *RootfsManagerSuite) TestLookupUserInvalidUID() {
 	`)
 
 	_, _, err := mgr.LookupUser(s.rootfsPath, "some_user_name")
-	s.Error(err)
+	s.True(errors.Is(err, runtime.InvalidUidError{UID: "NaN"}))
 }
 
 func (s *RootfsManagerSuite) TestLookupUserInvalidGID() {
@@ -128,7 +129,7 @@ func (s *RootfsManagerSuite) TestLookupUserInvalidGID() {
 	`)
 
 	_, _, err := mgr.LookupUser(s.rootfsPath, "some_user_name")
-	s.Error(err)
+	s.True(errors.Is(err, runtime.InvalidGidError{GID: "NaN"}))
 }
 
 func (s *RootfsManagerSuite) TestLookupUserEtcPasswdNotFound() {

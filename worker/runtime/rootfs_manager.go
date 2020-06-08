@@ -13,6 +13,21 @@ import (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . RootfsManager
 
+type InvalidUidError struct{
+	UID string
+}
+type InvalidGidError struct{
+	GID string
+}
+
+func (e InvalidUidError) Error() string {
+	return fmt.Sprintf("invalid uid: %s", e.UID)
+}
+
+func (e InvalidGidError) Error() string {
+	return fmt.Sprintf("invalid gid: %s", e.GID)
+}
+
 // RootfsManager is responsible for mutating and reading from the rootfs of a
 // container.
 //
@@ -111,10 +126,10 @@ func (r rootfsManager) LookupUser(rootfsPath string, username string) (specs.Use
 			gid int
 		)
 		if uid, err = strconv.Atoi(parts[2]); err != nil {
-			return specs.User{}, false, fmt.Errorf("invalid uid: %w", err)
+			return specs.User{}, false, InvalidUidError{UID: parts[2]}
 		}
 		if gid, err = strconv.Atoi(parts[3]); err != nil {
-			return specs.User{}, false, fmt.Errorf("invalid gid: %w", err)
+			return specs.User{}, false, InvalidGidError{GID: parts[3]}
 		}
 		return specs.User{UID: uint32(uid), GID: uint32(gid)}, true, nil
 	}
