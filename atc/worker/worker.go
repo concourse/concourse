@@ -212,26 +212,18 @@ func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Vo
 	return worker.volumeClient.LookupVolume(logger, handle)
 }
 
-var sensitiveKeys = []string{"password", "key", "token"}
-
-func secureImageSource(source atc.Source) atc.Source {
-	secureSource := atc.Source{}
-	for key, value := range source {
-		secure := true
-		for _, sensitiveWord := range sensitiveKeys {
-			if strings.Index(key, sensitiveWord) > 0 {
-				secure = false
-				break
-			}
-		}
-		if secure {
-			secureSource[key] = value
-		}
-	}
-	return secureSource
+func secureImageSource(delegate ImageFetchingDelegate, source atc.Source) atc.Source {
+	newSource, _ := delegate.ImageSourceRedaction(source)
+	return newSource
 }
 
-func (worker *gardenWorker) imagePolicyCheck(ctx context.Context, metadata db.ContainerMetadata, containerSpec ContainerSpec, resourceTypes atc.VersionedResourceTypes) (bool, error) {
+func (worker *gardenWorker) imagePolicyCheck(
+	ctx context.Context,
+	delegate ImageFetchingDelegate,
+	metadata db.ContainerMetadata,
+	containerSpec ContainerSpec,
+	resourceTypes atc.VersionedResourceTypes,
+) (bool, error) {
 	if worker.policyChecker == nil {
 		return true, nil
 	}
@@ -249,12 +241,12 @@ func (worker *gardenWorker) imagePolicyCheck(ctx context.Context, metadata db.Co
 
 	if imageSpec.ImageResource != nil {
 		imageInfo["image_source_type"] = imageSpec.ImageResource.Type
-		imageInfo["image_source"] = secureImageSource(imageSpec.ImageResource.Source)
+		imageInfo["image_source"] = secureImageSource(delegate, imageSpec.ImageResource.Source)
 	} else if imageSpec.ResourceType != "" {
 		for _, rt := range resourceTypes {
 			if rt.Name == imageSpec.ResourceType {
 				imageInfo["image_source_type"] = rt.Type
-				imageInfo["image_source"] = secureImageSource(rt.Source)
+				imageInfo["image_source"] = secureImageSource(delegate, rt.Source)
 			}
 		}
 
@@ -296,7 +288,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		err               error
 	)
 
-	pass, err := worker.imagePolicyCheck(ctx, metadata, containerSpec, resourceTypes)
+	pass, err := worker.imagePolicyCheck(ctx, delegate, metadata, containerSpec, resourceTypes)
 	if err != nil {
 		return nil, err
 	}

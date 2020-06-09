@@ -300,10 +300,10 @@ var _ = Describe("CheckStep", func() {
 		})
 
 		It("uses interpolated resource types", func() {
-			_, _, _, _, _, _, _, resourceTypes, _, _ := fakeClient.RunCheckStepArgsForCall(0)
+			_, _, _, _, _, _, _, imageSpec, _, _ := fakeClient.RunCheckStepArgsForCall(0)
 
-			Expect(resourceTypes).To(HaveLen(1))
-			interpolatedResourceType := resourceTypes[0]
+			Expect(imageSpec.ResourceTypes).To(HaveLen(1))
+			interpolatedResourceType := imageSpec.ResourceTypes[0]
 
 			Expect(interpolatedResourceType.Source).To(Equal(atc.Source{"foo": "caz"}))
 		})

@@ -46,7 +46,8 @@ type Client interface {
 		workerSpec WorkerSpec,
 		strategy ContainerPlacementStrategy,
 		containerMetadata db.ContainerMetadata,
-		resourceTypes atc.VersionedResourceTypes,
+		imageFetcherSpec ImageFetcherSpec,
+		//resourceTypes atc.VersionedResourceTypes,
 		timeout time.Duration,
 		checkable resource.Resource,
 	) (CheckResult, error)
@@ -202,7 +203,7 @@ func (client *client) RunCheckStep(
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 	containerMetadata db.ContainerMetadata,
-	resourceTypes atc.VersionedResourceTypes,
+	imageFetcherSpec ImageFetcherSpec,
 	timeout time.Duration,
 	checkable resource.Resource,
 ) (CheckResult, error) {
@@ -221,11 +222,11 @@ func (client *client) RunCheckStep(
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
 		logger,
-		&NoopImageFetchingDelegate{},
+		imageFetcherSpec.Delegate,
 		owner,
 		containerMetadata,
 		containerSpec,
-		resourceTypes,
+		imageFetcherSpec.ResourceTypes,
 	)
 	if err != nil {
 		return CheckResult{}, fmt.Errorf("find or create container: %w", err)
