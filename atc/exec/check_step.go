@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/tracing"
 )
 
 type CheckStep struct {
@@ -60,6 +61,21 @@ func NewCheckStep(
 }
 
 func (step *CheckStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "check", tracing.Attrs{
+		"team":     step.metadata.TeamName,
+		"pipeline": step.metadata.PipelineName,
+		"job":      step.metadata.JobName,
+		"build":    step.metadata.BuildName,
+		"name":     step.plan.Name,
+	})
+
+	err := step.run(ctx, state)
+	tracing.End(span, err)
+
+	return err
+}
+
+func (step *CheckStep) run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("check-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -93,6 +109,7 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 		TeamID: step.metadata.TeamID,
 		Env:    step.metadata.Env(),
 	}
+	tracing.Inject(ctx, &containerSpec)
 
 	workerSpec := worker.WorkerSpec{
 		ResourceType:  step.plan.Type,
