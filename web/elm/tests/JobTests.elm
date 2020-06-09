@@ -444,6 +444,36 @@ all =
                     }
                 , hoverable = Message.Message.TriggerBuildButton
                 }
+            , describe "archived pipelines" <|
+                let
+                    initWithArchivedPipeline =
+                        init { paused = False, disabled = False }
+                            >> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0
+                                            |> Data.withName "pipeline"
+                                            |> Data.withArchived True
+                                        ]
+                                )
+                            >> Tuple.first
+                in
+                [ test "play/pause button not displayed" <|
+                    initWithArchivedPipeline
+                        >> queryView
+                        >> Query.find [ class "build-header" ]
+                        >> Query.hasNot [ id "pause-toggle" ]
+                , test "header still includes job name" <|
+                    initWithArchivedPipeline
+                        >> queryView
+                        >> Query.find [ class "build-header" ]
+                        >> Query.has [ text "job" ]
+                , test "trigger build button not displayed" <|
+                    initWithArchivedPipeline
+                        >> queryView
+                        >> Query.find [ class "build-header" ]
+                        >> Query.hasNot [ class "trigger-build" ]
+                ]
             , test "page below top bar fills height without scrolling" <|
                 init { disabled = False, paused = False }
                     >> queryView
