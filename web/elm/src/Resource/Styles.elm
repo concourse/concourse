@@ -61,14 +61,14 @@ pinBar isPinned =
 
 
 pinIcon :
-    { isPinnedDynamically : Bool
+    { clickable : Bool
     , hover : Bool
     }
     -> List (Html.Attribute msg)
-pinIcon { isPinnedDynamically, hover } =
+pinIcon { clickable, hover } =
     let
         cursorType =
-            if isPinnedDynamically then
+            if clickable then
                 "pointer"
 
             else
