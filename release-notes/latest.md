@@ -86,6 +86,6 @@ Currently the only API action that can be limited in this way is `ListAllJobs` -
 
 * Add tracing to allow users and developers to observe volume streaming from source to destination volumes.  #5579
 
-#### <sub><sup><a name="5706" href="#5706">:link:</a></sup></sub> fix
+#### <sub><sup><a name="5706" href="#5706">:link:</a></sup></sub> feature
 
-* Steps `load_var` and `set_pipeline` missed tracing, @evanchaoli added tracing to these steps. #5706
+* @evanchaoli added spans for the `load_var` and `set_pipeline` steps when [distributed tracing](https://concourse-ci.org/tracing.html) is enabled. #5706
