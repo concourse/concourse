@@ -93,6 +93,10 @@ although support for other systems is planned to expand as the underlying SDK
       \code{put} -- this tracks the execution of a \reference{put-step}.
     }{
       \code{task} -- this tracks the execution of a \reference{task-step}.
+    }{
+      \code{set_pipeline} -- this tracks the execution of a \reference{set-pipeline-step}.
+    }{
+      \code{load_var} -- this tracks the execution of a \reference{load-var-step}.
     }
   }
 }
