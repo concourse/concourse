@@ -2346,7 +2346,7 @@ var _ = Describe("Build", func() {
 
 			Context("when version history is reset", func() {
 				BeforeEach(func() {
-					_, err = resource.SetResourceConfig(atc.Source{"some": "some-other-source"}, atc.VersionedResourceTypes{})
+					_, err = otherResource.SetResourceConfig(atc.Source{"some": "some-other-source"}, atc.VersionedResourceTypes{})
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -2357,7 +2357,13 @@ var _ = Describe("Build", func() {
 					nextBuildInputs, err := job.GetNextBuildInputs()
 					Expect(err).ToNot(HaveOccurred())
 					Expect(len(nextBuildInputs)).To(Equal(3))
-					Expect(nextBuildInputs[2].ResolveError).To(Equal("chosen version of input some-input-1 not available"))
+					Expect(nextBuildInputs).To(ContainElements(db.BuildInput{
+						Name:            "some-input-3",
+						ResourceID:      otherResource.ID(),
+						Version:         nil,
+						FirstOccurrence: true,
+						ResolveError:    "chosen version of input some-input-3 not available",
+					}))
 				})
 			})
 
