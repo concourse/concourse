@@ -32,6 +32,7 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
+import RemoteData exposing (WebData)
 import Routes
 import StrictEvents exposing (DeltaMode(..))
 import Time
@@ -49,76 +50,97 @@ header session model =
         , Views.Duration (duration session model)
         ]
     , rightWidgets =
-        [ Views.Button
-            (if Concourse.BuildStatus.isRunning model.status then
-                Just
-                    { type_ = Views.Abort
-                    , isClickable = True
-                    , backgroundShade =
-                        if
+        if isPipelineArchived session.pipelines model.job then
+            []
+
+        else
+            [ Views.Button
+                (if Concourse.BuildStatus.isRunning model.status then
+                    Just
+                        { type_ = Views.Abort
+                        , isClickable = True
+                        , backgroundShade =
+                            if
+                                HoverState.isHovered
+                                    AbortBuildButton
+                                    session.hovered
+                            then
+                                Views.Dark
+
+                            else
+                                Views.Light
+                        , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
+                        , tooltip = False
+                        }
+
+                 else if model.job /= Nothing then
+                    let
+                        isHovered =
                             HoverState.isHovered
-                                AbortBuildButton
+                                RerunBuildButton
                                 session.hovered
-                        then
-                            Views.Dark
+                    in
+                    Just
+                        { type_ = Views.Rerun
+                        , isClickable = True
+                        , backgroundShade =
+                            if isHovered then
+                                Views.Dark
 
-                        else
-                            Views.Light
-                    , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
-                    , tooltip = False
-                    }
+                            else
+                                Views.Light
+                        , backgroundColor = model.status
+                        , tooltip = isHovered
+                        }
 
-             else if model.job /= Nothing then
-                let
-                    isHovered =
-                        HoverState.isHovered
-                            RerunBuildButton
-                            session.hovered
-                in
-                Just
-                    { type_ = Views.Rerun
-                    , isClickable = True
-                    , backgroundShade =
-                        if isHovered then
-                            Views.Dark
+                 else
+                    Nothing
+                )
+            , Views.Button
+                (if model.job /= Nothing then
+                    let
+                        isHovered =
+                            HoverState.isHovered
+                                TriggerBuildButton
+                                session.hovered
+                    in
+                    Just
+                        { type_ = Views.Trigger
+                        , isClickable = not model.disableManualTrigger
+                        , backgroundShade =
+                            if isHovered then
+                                Views.Dark
 
-                        else
-                            Views.Light
-                    , backgroundColor = model.status
-                    , tooltip = isHovered
-                    }
+                            else
+                                Views.Light
+                        , backgroundColor = model.status
+                        , tooltip = isHovered && model.disableManualTrigger
+                        }
 
-             else
-                Nothing
-            )
-        , Views.Button
-            (if model.job /= Nothing then
-                let
-                    isHovered =
-                        HoverState.isHovered
-                            TriggerBuildButton
-                            session.hovered
-                in
-                Just
-                    { type_ = Views.Trigger
-                    , isClickable = not model.disableManualTrigger
-                    , backgroundShade =
-                        if isHovered then
-                            Views.Dark
-
-                        else
-                            Views.Light
-                    , backgroundColor = model.status
-                    , tooltip = isHovered && model.disableManualTrigger
-                    }
-
-             else
-                Nothing
-            )
-        ]
+                 else
+                    Nothing
+                )
+            ]
     , backgroundColor = model.status
     , tabs = tabs model
     }
+
+
+isPipelineArchived :
+    WebData (List Concourse.Pipeline)
+    -> Maybe Concourse.JobIdentifier
+    -> Bool
+isPipelineArchived pipelines jobId =
+    case jobId of
+        Just { pipelineName, teamName } ->
+            pipelines
+                |> RemoteData.withDefault []
+                |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
+                |> Maybe.map .archived
+                |> Maybe.withDefault False
+
+        Nothing ->
+            False
 
 
 tabs : Model r -> List Views.BuildTab
