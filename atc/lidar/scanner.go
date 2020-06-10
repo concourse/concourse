@@ -121,7 +121,6 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	}
 
 	if time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
-		s.logger.Debug("interval-not-reached", lager.Data{"interval": interval})
 		return nil
 	}
 

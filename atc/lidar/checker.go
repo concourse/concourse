@@ -13,24 +13,33 @@ import (
 	"github.com/concourse/concourse/tracing"
 )
 
+//go:generate counterfeiter . RateCalculator
+
+type RateCalculator interface {
+	RateLimiter() (Limiter, error)
+}
+
 func NewChecker(
 	logger lager.Logger,
 	checkFactory db.CheckFactory,
 	engine engine.Engine,
+	checkRateCalculator RateCalculator,
 ) *checker {
 	return &checker{
-		logger:       logger,
-		checkFactory: checkFactory,
-		engine:       engine,
-		running:      &sync.Map{},
+		logger:              logger,
+		checkFactory:        checkFactory,
+		engine:              engine,
+		running:             &sync.Map{},
+		checkRateCalculator: checkRateCalculator,
 	}
 }
 
 type checker struct {
 	logger lager.Logger
 
-	checkFactory db.CheckFactory
-	engine       engine.Engine
+	checkFactory        db.CheckFactory
+	engine              engine.Engine
+	checkRateCalculator RateCalculator
 
 	running *sync.Map
 }
@@ -47,8 +56,25 @@ func (c *checker) Run(ctx context.Context) error {
 
 	metric.ChecksQueueSize.Set(int64(len(checks)))
 
+	if len(checks) == 0 {
+		return nil
+	}
+
+	limiter, err := c.checkRateCalculator.RateLimiter()
+	if err != nil {
+		return err
+	}
+
 	for _, ck := range checks {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
+			if !ck.ManuallyTriggered() {
+				err := limiter.Wait(ctx)
+				if err != nil {
+					c.logger.Error("failed-to-wait-for-limiter", err)
+					continue
+				}
+			}
+
 			go func(check db.Check) {
 				spanCtx, span := tracing.StartSpanFollowing(
 					ctx,

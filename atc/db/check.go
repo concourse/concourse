@@ -40,6 +40,7 @@ type Check interface {
 	EndTime() time.Time
 	Status() CheckStatus
 	CheckError() error
+	ManuallyTriggered() bool
 
 	Start() error
 	Finish() error
@@ -66,6 +67,7 @@ var checksQuery = psql.Select(
 	"c.check_error",
 	"c.metadata",
 	"c.span_context",
+	"c.manually_triggered",
 ).
 	From("checks c")
 
@@ -75,6 +77,7 @@ type check struct {
 	id                    int
 	resourceConfigScopeID int
 	metadata              CheckMetadata
+	manuallyTriggered     bool
 
 	status     CheckStatus
 	schema     string
@@ -110,6 +113,7 @@ func (c *check) CreateTime() time.Time      { return c.createTime }
 func (c *check) StartTime() time.Time       { return c.startTime }
 func (c *check) EndTime() time.Time         { return c.endTime }
 func (c *check) CheckError() error          { return c.checkError }
+func (c *check) ManuallyTriggered() bool    { return c.manuallyTriggered }
 
 func (c *check) TeamID() int {
 	return c.metadata.TeamID
@@ -352,6 +356,7 @@ func scanCheck(c *check, row scannable) error {
 		&checkError,
 		&metadata,
 		&spanContext,
+		&c.manuallyTriggered,
 	)
 	if err != nil {
 		return err
