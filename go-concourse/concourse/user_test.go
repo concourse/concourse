@@ -3,6 +3,7 @@ package concourse_test
 import (
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -11,19 +12,18 @@ import (
 
 var _ = Describe("Skymarshal Handler User", func() {
 	Describe("UserInfo", func() {
-		var expectedUserInfo map[string]interface{}
+		var expectedUserInfo atc.UserInfo
 
 		BeforeEach(func() {
 			expectedURL := "/api/v1/user"
 
-			expectedUserInfo = map[string]interface{}{
-				"email":     "test@test.com",
-				"teams":     map[string][]string{"test_team": {"owner", "viewer"}},
-				"user_id":   "test_user_id",
-				"user_name": "test_user_name",
-				"name":      "test_name",
-				"is_admin":  false,
-				"exp":       1123123,
+			expectedUserInfo = atc.UserInfo{
+				Email:    "test@test.com",
+				Teams:    map[string][]string{"test_team": {"owner", "viewer"}},
+				UserId:   "test_user_id",
+				UserName: "test_user_name",
+				Name:     "test_name",
+				IsAdmin:  false,
 			}
 
 			atcServer.AppendHandlers(
@@ -37,14 +37,13 @@ var _ = Describe("Skymarshal Handler User", func() {
 		It("returns user info", func() {
 			result, err := client.UserInfo()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result["user_id"]).To(Equal("test_user_id"))
-			Expect(result["user_name"]).To(Equal("test_user_name"))
-			Expect(result["name"]).To(Equal("test_name"))
-			Expect(result["is_admin"]).To(Equal(false))
-			Expect(result["exp"]).To(BeNumerically("==", 1123123))
-			Expect(result["email"]).To(Equal(expectedUserInfo["email"]))
-			Expect(result["teams"]).To(HaveKeyWithValue("test_team", ContainElement("owner")))
-			Expect(result["teams"]).To(HaveKeyWithValue("test_team", ContainElement("viewer")))
+			Expect(result.UserId).To(Equal("test_user_id"))
+			Expect(result.UserName).To(Equal("test_user_name"))
+			Expect(result.Name).To(Equal("test_name"))
+			Expect(result.IsAdmin).To(Equal(false))
+			Expect(result.Email).To(Equal(expectedUserInfo.Email))
+			Expect(result.Teams).To(HaveKeyWithValue("test_team", ContainElement("owner")))
+			Expect(result.Teams).To(HaveKeyWithValue("test_team", ContainElement("viewer")))
 		})
 	})
 })

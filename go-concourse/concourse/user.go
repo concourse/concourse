@@ -3,18 +3,19 @@ package concourse
 import (
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 )
 
-func (client *client) UserInfo() (map[string]interface{}, error) {
+func (client *client) UserInfo() (atc.UserInfo, error) {
 	var connection = client.connection
 
 	req, err := http.NewRequest("GET", connection.URL()+"/api/v1/user", nil)
 	if err != nil {
-		return nil, err
+		return atc.UserInfo{}, err
 	}
 
-	var userInfo map[string]interface{}
+	var userInfo atc.UserInfo
 	err = connection.SendHTTPRequest(req, false, &internal.Response{
 		Result: &userInfo,
 	})

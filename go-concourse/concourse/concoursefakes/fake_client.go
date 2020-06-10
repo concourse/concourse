@@ -281,16 +281,16 @@ type FakeClient struct {
 	uRLReturnsOnCall map[int]struct {
 		result1 string
 	}
-	UserInfoStub        func() (map[string]interface{}, error)
+	UserInfoStub        func() (atc.UserInfo, error)
 	userInfoMutex       sync.RWMutex
 	userInfoArgsForCall []struct {
 	}
 	userInfoReturns struct {
-		result1 map[string]interface{}
+		result1 atc.UserInfo
 		result2 error
 	}
 	userInfoReturnsOnCall map[int]struct {
-		result1 map[string]interface{}
+		result1 atc.UserInfo
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -1574,7 +1574,7 @@ func (fake *FakeClient) URLReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeClient) UserInfo() (map[string]interface{}, error) {
+func (fake *FakeClient) UserInfo() (atc.UserInfo, error) {
 	fake.userInfoMutex.Lock()
 	ret, specificReturn := fake.userInfoReturnsOnCall[len(fake.userInfoArgsForCall)]
 	fake.userInfoArgsForCall = append(fake.userInfoArgsForCall, struct {
@@ -1597,34 +1597,34 @@ func (fake *FakeClient) UserInfoCallCount() int {
 	return len(fake.userInfoArgsForCall)
 }
 
-func (fake *FakeClient) UserInfoCalls(stub func() (map[string]interface{}, error)) {
+func (fake *FakeClient) UserInfoCalls(stub func() (atc.UserInfo, error)) {
 	fake.userInfoMutex.Lock()
 	defer fake.userInfoMutex.Unlock()
 	fake.UserInfoStub = stub
 }
 
-func (fake *FakeClient) UserInfoReturns(result1 map[string]interface{}, result2 error) {
+func (fake *FakeClient) UserInfoReturns(result1 atc.UserInfo, result2 error) {
 	fake.userInfoMutex.Lock()
 	defer fake.userInfoMutex.Unlock()
 	fake.UserInfoStub = nil
 	fake.userInfoReturns = struct {
-		result1 map[string]interface{}
+		result1 atc.UserInfo
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeClient) UserInfoReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
+func (fake *FakeClient) UserInfoReturnsOnCall(i int, result1 atc.UserInfo, result2 error) {
 	fake.userInfoMutex.Lock()
 	defer fake.userInfoMutex.Unlock()
 	fake.UserInfoStub = nil
 	if fake.userInfoReturnsOnCall == nil {
 		fake.userInfoReturnsOnCall = make(map[int]struct {
-			result1 map[string]interface{}
+			result1 atc.UserInfo
 			result2 error
 		})
 	}
 	fake.userInfoReturnsOnCall[i] = struct {
-		result1 map[string]interface{}
+		result1 atc.UserInfo
 		result2 error
 	}{result1, result2}
 }
