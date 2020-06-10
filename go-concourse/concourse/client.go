@@ -31,7 +31,7 @@ type Client interface {
 	ListTeams() ([]atc.Team, error)
 	FindTeam(teamName string) (Team, error)
 	Team(teamName string) Team
-	UserInfo() (map[string]interface{}, error)
+	UserInfo() (atc.UserInfo, error)
 	ListActiveUsersSince(since time.Time) ([]atc.User, error)
 	Check(checkID string) (atc.Check, bool, error)
 }

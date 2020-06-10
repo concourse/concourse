@@ -46,18 +46,17 @@ func (command *UserinfoCommand) Execute([]string) error {
 
 	table := ui.Table{Headers: headers}
 
-	teams := userinfo["teams"].(map[string]interface{})
 	var teamRoles []string
-	for team, roles := range teams {
-		for _, role := range roles.([]interface{}) {
-			teamRoles = append(teamRoles, team+"/"+role.(string))
+	for team, roles := range userinfo.Teams {
+		for _, role := range roles {
+			teamRoles = append(teamRoles, team+"/"+role)
 		}
 	}
 
 	sort.Strings(teamRoles)
 
 	row := ui.TableRow{
-		{Contents: userinfo["user_name"].(string)},
+		{Contents: userinfo.UserName},
 		{Contents: strings.Join(teamRoles, ",")},
 	}
 

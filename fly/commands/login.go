@@ -147,14 +147,15 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	teams, ok := userInfo["teams"].(map[string]interface{})
-	if ok {
-		_, ok := teams[command.TeamName]
-		if !ok {
-			return errors.New("you are not a member of '" + command.TeamName + "' or the team does not exist")
+	if !userInfo.IsAdmin {
+		if userInfo.Teams != nil {
+			_, ok := userInfo.Teams[command.TeamName]
+			if !ok {
+				return errors.New("you are not a member of '" + command.TeamName + "' or the team does not exist")
+			}
+		} else {
+			return errors.New("unable to verify role on team")
 		}
-	} else {
-		return errors.New("unable to verify role on team")
 	}
 
 	return command.saveTarget(

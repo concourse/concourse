@@ -601,7 +601,7 @@ var _ = Describe("login Command", func() {
 			})
 		})
 
-		Context("can successfully login", func() {
+		Context("cannot successfully login", func() {
 			Context("team does not exist", func() {
 				It("returns a warning", func() {
 					loginATCServer.AppendHandlers(
@@ -652,6 +652,32 @@ var _ = Describe("login Command", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 				})
+			})
+		})
+
+		Context("when logging in as an admin user", func() {
+			It("can login to any team", func() {
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					tokenHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/user"),
+						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+							"user_name": "admin_user",
+							"is_admin":  true,
+						}),
+					),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "any-team", "-u", "admin_user", "-p", "pass")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("target saved"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
 			})
 		})
 	})
