@@ -5,8 +5,8 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
+	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/containerd/containerd"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
@@ -78,6 +78,7 @@ func (s *ContainerSuite) TestRunContainerSpecErr() {
 func (s *ContainerSuite) TestRunWithNonRootCwdSetupCwdFails() {
 	s.containerdContainer.SpecReturns(&specs.Spec{
 		Process: &specs.Process{},
+		Root:    &specs.Root{},
 	}, nil)
 
 	expectedErr := errors.New("setup-cwd-err")
@@ -90,6 +91,7 @@ func (s *ContainerSuite) TestRunWithNonRootCwdSetupCwdFails() {
 func (s *ContainerSuite) TestRunTaskError() {
 	s.containerdContainer.SpecReturns(&specs.Spec{
 		Process: &specs.Process{},
+		Root:    &specs.Root{},
 	}, nil)
 
 	expectedErr := errors.New("task-err")
@@ -102,6 +104,7 @@ func (s *ContainerSuite) TestRunTaskError() {
 func (s *ContainerSuite) TestRunTaskExecError() {
 	s.containerdContainer.SpecReturns(&specs.Spec{
 		Process: &specs.Process{},
+		Root:    &specs.Root{},
 	}, nil)
 
 	s.containerdContainer.TaskReturns(s.containerdTask, nil)
@@ -116,6 +119,7 @@ func (s *ContainerSuite) TestRunTaskExecError() {
 func (s *ContainerSuite) TestRunProcWaitError() {
 	s.containerdContainer.SpecReturns(&specs.Spec{
 		Process: &specs.Process{},
+		Root:    &specs.Root{},
 	}, nil)
 
 	s.containerdContainer.TaskReturns(s.containerdTask, nil)
@@ -131,6 +135,7 @@ func (s *ContainerSuite) TestRunProcWaitError() {
 func (s *ContainerSuite) TestRunProcStartError() {
 	s.containerdContainer.SpecReturns(&specs.Spec{
 		Process: &specs.Process{},
+		Root:    &specs.Root{},
 	}, nil)
 
 	s.containerdContainer.TaskReturns(s.containerdTask, nil)
@@ -146,6 +151,7 @@ func (s *ContainerSuite) TestRunProcStartError() {
 func (s *ContainerSuite) TestRunProcCloseIOError() {
 	s.containerdContainer.SpecReturns(&specs.Spec{
 		Process: &specs.Process{},
+		Root:    &specs.Root{},
 	}, nil)
 
 	s.containerdContainer.TaskReturns(s.containerdTask, nil)
@@ -161,6 +167,7 @@ func (s *ContainerSuite) TestRunProcCloseIOError() {
 func (s *ContainerSuite) TestRunProcCloseIOWithStdin() {
 	s.containerdContainer.SpecReturns(&specs.Spec{
 		Process: &specs.Process{},
+		Root:    &specs.Root{},
 	}, nil)
 
 	s.containerdContainer.TaskReturns(s.containerdTask, nil)
@@ -182,6 +189,67 @@ func (s *ContainerSuite) TestRunProcCloseIOWithStdin() {
 	// we want to make sure that we're passing an opt that sets `Stdin` to
 	// true on an `IOCloseInfo`.
 	s.True(obj.Stdin)
+}
+
+func (s *ContainerSuite) TestRunWithUserLookupSucceeds() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	expectedUser := specs.User{UID: 1, GID: 2, Username: "some_user"}
+	s.rootfsManager.LookupUserReturns(expectedUser, true, nil)
+
+	_, err := s.container.Run(garden.ProcessSpec{User: "some_user"}, garden.ProcessIO{})
+	s.NoError(err)
+
+	_, _, procSpec, _ := s.containerdTask.ExecArgsForCall(0)
+	s.Equal(expectedUser, procSpec.User)
+
+	userEnvVarSet := false
+	expectedEnvVar := "USER=some_user"
+
+	for _, envVar := range procSpec.Env {
+		if envVar == expectedEnvVar {
+			userEnvVarSet = true
+			break
+		}
+	}
+	s.True(userEnvVarSet)
+}
+
+func (s *ContainerSuite) TestRunWithUserLookupErrors() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	expectedErr := errors.New("lookup error")
+	s.rootfsManager.LookupUserReturns(specs.User{}, false, expectedErr)
+
+	_, err := s.container.Run(garden.ProcessSpec{User: "some_user"}, garden.ProcessIO{})
+	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ContainerSuite) TestRunWithUserLookupNotFound() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	s.rootfsManager.LookupUserReturns(specs.User{}, false, nil)
+
+	_, err := s.container.Run(garden.ProcessSpec{User: "some_invalid_user"}, garden.ProcessIO{})
+	s.True(errors.Is(err, runtime.UserNotFoundError{User: "some_invalid_user"}))
 }
 
 func (s *ContainerSuite) TestSetGraceTimeSetLabelsFails() {

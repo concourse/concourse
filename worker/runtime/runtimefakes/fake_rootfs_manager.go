@@ -9,10 +9,26 @@ import (
 )
 
 type FakeRootfsManager struct {
-	SetupCwdStub        func(*specs.Spec, string) error
+	LookupUserStub        func(string, string) (specs.User, bool, error)
+	lookupUserMutex       sync.RWMutex
+	lookupUserArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	lookupUserReturns struct {
+		result1 specs.User
+		result2 bool
+		result3 error
+	}
+	lookupUserReturnsOnCall map[int]struct {
+		result1 specs.User
+		result2 bool
+		result3 error
+	}
+	SetupCwdStub        func(string, string) error
 	setupCwdMutex       sync.RWMutex
 	setupCwdArgsForCall []struct {
-		arg1 *specs.Spec
+		arg1 string
 		arg2 string
 	}
 	setupCwdReturns struct {
@@ -25,11 +41,78 @@ type FakeRootfsManager struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRootfsManager) SetupCwd(arg1 *specs.Spec, arg2 string) error {
+func (fake *FakeRootfsManager) LookupUser(arg1 string, arg2 string) (specs.User, bool, error) {
+	fake.lookupUserMutex.Lock()
+	ret, specificReturn := fake.lookupUserReturnsOnCall[len(fake.lookupUserArgsForCall)]
+	fake.lookupUserArgsForCall = append(fake.lookupUserArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("LookupUser", []interface{}{arg1, arg2})
+	fake.lookupUserMutex.Unlock()
+	if fake.LookupUserStub != nil {
+		return fake.LookupUserStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.lookupUserReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeRootfsManager) LookupUserCallCount() int {
+	fake.lookupUserMutex.RLock()
+	defer fake.lookupUserMutex.RUnlock()
+	return len(fake.lookupUserArgsForCall)
+}
+
+func (fake *FakeRootfsManager) LookupUserCalls(stub func(string, string) (specs.User, bool, error)) {
+	fake.lookupUserMutex.Lock()
+	defer fake.lookupUserMutex.Unlock()
+	fake.LookupUserStub = stub
+}
+
+func (fake *FakeRootfsManager) LookupUserArgsForCall(i int) (string, string) {
+	fake.lookupUserMutex.RLock()
+	defer fake.lookupUserMutex.RUnlock()
+	argsForCall := fake.lookupUserArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeRootfsManager) LookupUserReturns(result1 specs.User, result2 bool, result3 error) {
+	fake.lookupUserMutex.Lock()
+	defer fake.lookupUserMutex.Unlock()
+	fake.LookupUserStub = nil
+	fake.lookupUserReturns = struct {
+		result1 specs.User
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeRootfsManager) LookupUserReturnsOnCall(i int, result1 specs.User, result2 bool, result3 error) {
+	fake.lookupUserMutex.Lock()
+	defer fake.lookupUserMutex.Unlock()
+	fake.LookupUserStub = nil
+	if fake.lookupUserReturnsOnCall == nil {
+		fake.lookupUserReturnsOnCall = make(map[int]struct {
+			result1 specs.User
+			result2 bool
+			result3 error
+		})
+	}
+	fake.lookupUserReturnsOnCall[i] = struct {
+		result1 specs.User
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeRootfsManager) SetupCwd(arg1 string, arg2 string) error {
 	fake.setupCwdMutex.Lock()
 	ret, specificReturn := fake.setupCwdReturnsOnCall[len(fake.setupCwdArgsForCall)]
 	fake.setupCwdArgsForCall = append(fake.setupCwdArgsForCall, struct {
-		arg1 *specs.Spec
+		arg1 string
 		arg2 string
 	}{arg1, arg2})
 	fake.recordInvocation("SetupCwd", []interface{}{arg1, arg2})
@@ -50,13 +133,13 @@ func (fake *FakeRootfsManager) SetupCwdCallCount() int {
 	return len(fake.setupCwdArgsForCall)
 }
 
-func (fake *FakeRootfsManager) SetupCwdCalls(stub func(*specs.Spec, string) error) {
+func (fake *FakeRootfsManager) SetupCwdCalls(stub func(string, string) error) {
 	fake.setupCwdMutex.Lock()
 	defer fake.setupCwdMutex.Unlock()
 	fake.SetupCwdStub = stub
 }
 
-func (fake *FakeRootfsManager) SetupCwdArgsForCall(i int) (*specs.Spec, string) {
+func (fake *FakeRootfsManager) SetupCwdArgsForCall(i int) (string, string) {
 	fake.setupCwdMutex.RLock()
 	defer fake.setupCwdMutex.RUnlock()
 	argsForCall := fake.setupCwdArgsForCall[i]
@@ -89,6 +172,8 @@ func (fake *FakeRootfsManager) SetupCwdReturnsOnCall(i int, result1 error) {
 func (fake *FakeRootfsManager) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.lookupUserMutex.RLock()
+	defer fake.lookupUserMutex.RUnlock()
 	fake.setupCwdMutex.RLock()
 	defer fake.setupCwdMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
