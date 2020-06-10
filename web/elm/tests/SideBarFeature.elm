@@ -879,7 +879,7 @@ iAmLookingAtTheTeamIcon =
 iSeeAPictureOfTwoPeople =
     Query.has
         (DashboardTests.iconSelector
-            { size = "20px"
+            { size = "18px"
             , image = Assets.PeopleIcon
             }
         )
@@ -1098,8 +1098,8 @@ iSeeAPipelineIcon =
             Assets.backgroundImage <|
                 Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
         , style "background-repeat" "no-repeat"
-        , style "height" "20px"
-        , style "width" "20px"
+        , style "height" "18px"
+        , style "width" "18px"
         , style "background-size" "contain"
         , style "background-position" "center"
         ]

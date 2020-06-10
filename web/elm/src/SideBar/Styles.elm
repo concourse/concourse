@@ -92,7 +92,7 @@ opacityAttr opacity =
 teamIcon : Opacity -> Html.Html msg
 teamIcon opacity =
     Icon.icon
-        { sizePx = 20
+        { sizePx = 18
         , image = Assets.PeopleIcon
         }
         [ style "margin-left" "8px"
@@ -125,7 +125,7 @@ teamName :
 teamName { opacity, rectangle } =
     [ style "font-size" "14px"
     , style "padding" "5px 2.5px"
-    , style "margin-left" "7.5px"
+    , style "margin-left" "5px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
@@ -159,7 +159,7 @@ pipelineLink { opacity, rectangle } =
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
     , style "padding" "5px 2.5px"
-    , style "margin-left" "7.5px"
+    , style "margin-left" "5px"
     , style "flex-grow" "1"
     , opacityAttr opacity
     ]
@@ -230,8 +230,8 @@ pipelineIcon opacity =
             Just <|
                 Assets.BreadcrumbIcon Assets.PipelineComponent
     , style "background-repeat" "no-repeat"
-    , style "height" "20px"
-    , style "width" "20px"
+    , style "height" "18px"
+    , style "width" "18px"
     , style "background-size" "contain"
     , style "background-position" "center"
     , style "margin-left" "28px"
