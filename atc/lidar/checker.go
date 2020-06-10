@@ -70,6 +70,11 @@ func (c *checker) Run(ctx context.Context) error {
 
 	for _, ck := range checks {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
+			err := limiter.Wait(ctx)
+			if err != nil {
+				c.logger.Error("failed-to-wait-for-limiter", err)
+				continue
+			}
 
 			go func(check db.Check) {
 				spanCtx, span := tracing.StartSpanFollowing(
@@ -84,12 +89,6 @@ func (c *checker) Run(ctx context.Context) error {
 				)
 				defer span.End()
 				defer c.running.Delete(check.ID())
-
-				err := limiter.Wait(spanCtx)
-				if err != nil {
-					c.logger.Error("failed-to-wait-for-limiter", err)
-					return
-				}
 
 				c.engine.NewCheck(check).Run(
 					lagerctx.NewContext(
