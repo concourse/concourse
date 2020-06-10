@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
@@ -37,7 +38,7 @@ var _ = Describe("Runner", func() {
 		job2RequestedTime time.Time
 		job3RequestedTime time.Time
 
-		schedulerRunner Runner
+		schedulerRunner component.Runnable
 		schedulerErr    error
 	)
 

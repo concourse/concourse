@@ -20,7 +20,7 @@ type JobConfig struct {
 	Ensure  *PlanConfig `json:"ensure,omitempty"`
 	Success *PlanConfig `json:"on_success,omitempty"`
 
-	Plan PlanSequence `json:"plan"`
+	PlanSequence PlanSequence `json:"plan"`
 }
 
 type BuildLogRetention struct {
@@ -29,14 +29,19 @@ type BuildLogRetention struct {
 	Days                   int `json:"days,omitempty"`
 }
 
-func (config JobConfig) Hooks() Hooks {
-	return Hooks{
+func (config JobConfig) Plan() PlanConfig {
+	return PlanConfig{
+		Do:      &config.PlanSequence,
 		Abort:   config.Abort,
 		Error:   config.Error,
 		Failure: config.Failure,
 		Ensure:  config.Ensure,
 		Success: config.Success,
 	}
+}
+
+func (config JobConfig) Plans() []PlanConfig {
+	return collectPlans(config.Plan())
 }
 
 func (config JobConfig) MaxInFlight() int {
@@ -49,19 +54,6 @@ func (config JobConfig) MaxInFlight() int {
 	}
 
 	return 0
-}
-
-func (config JobConfig) Plans() []PlanConfig {
-	plan := collectPlans(PlanConfig{
-		Do:      &config.Plan,
-		Abort:   config.Abort,
-		Error:   config.Error,
-		Ensure:  config.Ensure,
-		Failure: config.Failure,
-		Success: config.Success,
-	})
-
-	return plan
 }
 
 func collectPlans(plan PlanConfig) []PlanConfig {

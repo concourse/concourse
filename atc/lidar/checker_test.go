@@ -23,12 +23,6 @@ type Checker interface {
 	Run(context.Context) error
 }
 
-type testTraceProvider struct{}
-
-func (ttp *testTraceProvider) Tracer(name string) trace.Tracer {
-	return testtrace.NewTracer()
-}
-
 var _ = Describe("Checker", func() {
 	var (
 		err error
@@ -75,7 +69,7 @@ var _ = Describe("Checker", func() {
 			)
 
 			BeforeEach(func() {
-				tracing.ConfigureTraceProvider(&testTraceProvider{})
+				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
 				fakeCheck := new(dbfakes.FakeCheck)
 				fakeCheck.IDReturns(1)
 				var ctx context.Context
@@ -96,7 +90,7 @@ var _ = Describe("Checker", func() {
 
 			It("propagates span context to check step", func() {
 				Eventually(fakeRunnable.RunCallCount).Should(Equal(1))
-				ctx, _ := fakeRunnable.RunArgsForCall(0)
+				ctx := fakeRunnable.RunArgsForCall(0)
 				span, ok := tracing.FromContext(ctx).(*testtrace.Span)
 				Expect(ok).To(BeTrue(), "no testtrace.Span in context")
 				Expect(span.ParentSpanID()).To(Equal(scanSpan.SpanContext().SpanID))

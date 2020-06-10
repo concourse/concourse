@@ -1,12 +1,12 @@
 package creds_test
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/gc"
-	"time"
 
 	// load dummy credential manager
 	_ "github.com/concourse/concourse/atc/creds/dummy"
@@ -41,7 +41,11 @@ var _ = Context("pool", func() {
 
 	Context("FindOrCreate", func() {
 		BeforeEach(func() {
-			varSourcePool = creds.NewVarSourcePool(5*time.Minute, fakeClock)
+			varSourcePool = creds.NewVarSourcePool(logger, 5*time.Minute, time.Minute, fakeClock)
+		})
+
+		AfterEach(func() {
+			varSourcePool.Close()
 		})
 
 		Context("add 1 config", func() {
@@ -164,31 +168,54 @@ var _ = Context("pool", func() {
 		})
 	})
 
-	Context("Collect", func() {
+	Describe("Close", func() {
 		var err error
 
 		BeforeEach(func() {
-			varSourcePool = creds.NewVarSourcePool(7*time.Second, fakeClock)
+			varSourcePool = creds.NewVarSourcePool(logger, 7*time.Second, 1*time.Second, fakeClock)
 		})
+
+		It("cleans up all var sources", func() {
+			_, err = varSourcePool.FindOrCreate(logger, config1, factory)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(varSourcePool.Size()).To(Equal(1))
+
+			fakeClock.WaitForWatcherAndIncrement(4 * time.Second)
+			_, err = varSourcePool.FindOrCreate(logger, config2, factory)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(varSourcePool.Size()).To(Equal(2))
+
+			varSourcePool.Close()
+			Eventually(varSourcePool.Size).Should(Equal(0))
+		})
+	})
+
+	Describe("Garbage Collection", func() {
+		var err error
+
+		BeforeEach(func() {
+			varSourcePool = creds.NewVarSourcePool(logger, 7*time.Second, 1*time.Second, fakeClock)
+		})
+
+		AfterEach(func() {
+			varSourcePool.Close()
+		})
+
 		It("should clean up once ttl expires", func() {
 			_, err = varSourcePool.FindOrCreate(logger, config1, factory)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(1))
 
-			fakeClock.IncrementBySeconds(4)
+			fakeClock.WaitForWatcherAndIncrement(4 * time.Second)
 			_, err = varSourcePool.FindOrCreate(logger, config2, factory)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(2))
 
-			fakeClock.IncrementBySeconds(4)
-			err = varSourcePool.(gc.Collector).Collect(logger)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(varSourcePool.Size()).To(Equal(1))
+			fakeClock.WaitForWatcherAndIncrement(4 * time.Second)
+			Eventually(varSourcePool.Size).Should(Equal(1))
 
-			fakeClock.IncrementBySeconds(4)
-			err = varSourcePool.(gc.Collector).Collect(logger)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(varSourcePool.Size()).To(Equal(0))
+			fakeClock.WaitForWatcherAndIncrement(4 * time.Second)
+			Eventually(varSourcePool.Size).Should(Equal(0))
 		})
 	})
 })

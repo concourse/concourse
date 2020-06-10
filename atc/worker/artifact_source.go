@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/tracing"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -60,18 +61,26 @@ func (source *artifactSource) StreamTo(
 	logger lager.Logger,
 	destination ArtifactDestination,
 ) error {
+	ctx, span := tracing.StartSpan(ctx, "artifactSource.StreamTo", nil)
+	defer span.End()
+
+	_, outSpan := tracing.StartSpan(ctx, "volume.StreamOut", tracing.Attrs{
+		"origin-volume": source.volume.Handle(),
+		"origin-worker": source.volume.WorkerName(),
+	})
+	defer outSpan.End()
 	out, err := source.volume.StreamOut(ctx, ".", source.compression.Encoding())
+
 	if err != nil {
+		tracing.End(outSpan, err)
 		return err
 	}
 
 	defer out.Close()
 
 	err = destination.StreamIn(ctx, ".", source.compression.Encoding(), out)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 // TODO: figure out if we want logging before and after streams, I remove logger from private methods

@@ -20,10 +20,10 @@ type BuildStarter interface {
 	) (bool, error)
 }
 
-//go:generate counterfeiter . BuildFactory
+//go:generate counterfeiter . BuildPlanner
 
-type BuildFactory interface {
-	Create(atc.JobConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+type BuildPlanner interface {
+	Create(atc.PlanConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type Build interface {
@@ -34,17 +34,17 @@ type Build interface {
 }
 
 func NewBuildStarter(
-	factory BuildFactory,
+	planner BuildPlanner,
 	algorithm Algorithm,
 ) BuildStarter {
 	return &buildStarter{
-		factory:   factory,
+		planner:   planner,
 		algorithm: algorithm,
 	}
 }
 
 type buildStarter struct {
-	factory   BuildFactory
+	planner   BuildPlanner
 	algorithm Algorithm
 }
 
@@ -198,7 +198,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return startResults{}, fmt.Errorf("config: %w", err)
 	}
 
-	plan, err := s.factory.Create(config, job.Resources, job.ResourceTypes, buildInputs)
+	plan, err := s.planner.Create(config.Plan(), job.Resources, job.ResourceTypes, buildInputs)
 	if err != nil {
 		logger.Error("failed-to-create-build-plan", err)
 

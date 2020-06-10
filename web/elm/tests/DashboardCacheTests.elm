@@ -211,6 +211,23 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains (SaveCachedPipelines [ Data.pipeline "team" 0 ])
+        , test "ignores cached pipelines if we've already fetched from network" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (AllPipelinesFetched <|
+                            Ok <|
+                                [ Data.pipeline "team" 0 ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (CachedPipelinesReceived <|
+                            Ok <|
+                                []
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
         , test "does not save pipelines to cache when fetched with no change" <|
             \_ ->
                 Common.init "/"

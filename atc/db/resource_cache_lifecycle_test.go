@@ -358,7 +358,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 
 				_ = createResourceCacheWithUser(db.ForContainer(container.ID()))
 
-				err = resourceConfigScope.SaveVersions([]atc.Version{{"some": "version"}})
+				err = resourceConfigScope.SaveVersions(nil, []atc.Version{{"some": "version"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				resourceConfigVersion, found, err := resourceConfigScope.FindVersion(atc.Version{"some": "version"})

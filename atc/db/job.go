@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -89,7 +90,7 @@ type Job interface {
 	Build(name string) (Build, bool, error)
 	FinishedAndNextBuild() (Build, Build, error)
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
-	EnsurePendingBuildExists() error
+	EnsurePendingBuildExists(context.Context) error
 	GetPendingBuilds() ([]Build, error)
 
 	GetNextBuildInputs() ([]BuildInput, error)
@@ -136,7 +137,7 @@ type job struct {
 	disableManualTrigger  bool
 
 	config    *atc.JobConfig
-	rawConfig []byte
+	rawConfig *string
 	nonce     *string
 }
 
@@ -203,7 +204,11 @@ func (j *job) Config() (atc.JobConfig, error) {
 
 	es := j.conn.EncryptionStrategy()
 
-	decryptedConfig, err := es.Decrypt(string(j.rawConfig), j.nonce)
+	if j.rawConfig == nil {
+		return atc.JobConfig{}, nil
+	}
+
+	decryptedConfig, err := es.Decrypt(*j.rawConfig, j.nonce)
 	if err != nil {
 		return atc.JobConfig{}, err
 	}
@@ -660,7 +665,13 @@ func (j *job) GetNextBuildInputs() ([]BuildInput, error) {
 	return buildInputs, nil
 }
 
-func (j *job) EnsurePendingBuildExists() error {
+func (j *job) EnsurePendingBuildExists(ctx context.Context) error {
+	defer tracing.FromContext(ctx).End()
+	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
+	if err != nil {
+		return err
+	}
+
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return err
@@ -674,12 +685,12 @@ func (j *job) EnsurePendingBuildExists() error {
 	}
 
 	rows, err := tx.Query(`
-		INSERT INTO builds (name, job_id, pipeline_id, team_id, status, needs_v6_migration)
-		SELECT $1, $2, $3, $4, 'pending', false
+		INSERT INTO builds (name, job_id, pipeline_id, team_id, status, needs_v6_migration, span_context)
+		SELECT $1, $2, $3, $4, 'pending', false, $5
 		WHERE NOT EXISTS
 			(SELECT id FROM builds WHERE job_id = $2 AND status = 'pending')
 		RETURNING id
-	`, buildName, j.id, j.pipelineID, j.teamID)
+	`, buildName, j.id, j.pipelineID, j.teamID, string(spanContextJSON))
 	if err != nil {
 		return err
 	}
@@ -1266,7 +1277,7 @@ func (j *job) getNewRerunBuildName(tx Tx, buildID int) (string, int, error) {
 }
 
 func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
-	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version, i.resolve_error").
+	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version, i.resolve_error, v.span_context").
 		From("next_build_inputs i").
 		LeftJoin("resources r ON r.id = i.resource_id").
 		LeftJoin("resource_config_versions v ON v.version_md5 = i.version_md5 AND r.resource_config_scope_id = v.resource_config_scope_id").
@@ -1282,14 +1293,15 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 	buildInputs := []BuildInput{}
 	for rows.Next() {
 		var (
-			inputName   string
-			firstOcc    sql.NullBool
-			versionBlob sql.NullString
-			resID       sql.NullString
-			resolveErr  sql.NullString
+			inputName       string
+			firstOcc        sql.NullBool
+			versionBlob     sql.NullString
+			resID           sql.NullString
+			resolveErr      sql.NullString
+			spanContextJSON sql.NullString
 		)
 
-		err := rows.Scan(&inputName, &firstOcc, &resID, &versionBlob, &resolveErr)
+		err := rows.Scan(&inputName, &firstOcc, &resID, &versionBlob, &resolveErr, &spanContextJSON)
 		if err != nil {
 			return nil, err
 		}
@@ -1320,12 +1332,21 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 			resolveError = resolveErr.String
 		}
 
+		var spanContext SpanContext
+		if spanContextJSON.Valid {
+			err = json.Unmarshal([]byte(spanContextJSON.String), &spanContext)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		buildInputs = append(buildInputs, BuildInput{
 			Name:            inputName,
 			ResourceID:      resourceID,
 			Version:         version,
 			FirstOccurrence: firstOccurrence,
 			ResolveError:    resolveError,
+			Context:         spanContext,
 		})
 	}
 
@@ -1353,16 +1374,21 @@ func (j *job) isPipelineOrJobPaused(tx Tx) (bool, error) {
 
 func scanJob(j *job, row scannable) error {
 	var (
-		nonce sql.NullString
+		config sql.NullString
+		nonce  sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &j.rawConfig, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
+	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
 	if err != nil {
 		return err
 	}
 
 	if nonce.Valid {
 		j.nonce = &nonce.String
+	}
+
+	if config.Valid {
+		j.rawConfig = &config.String
 	}
 
 	return nil

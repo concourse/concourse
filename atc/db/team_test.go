@@ -1572,7 +1572,7 @@ var _ = Describe("Team", func() {
 						Serial:       true,
 						SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get:      "some-input",
 								Resource: "some-resource",
@@ -1777,7 +1777,7 @@ var _ = Describe("Team", func() {
 			rc, err := resource.SetResourceConfig(atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = rc.SaveVersions([]atc.Version{
+			err = rc.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "v1"},
 				atc.Version{"version": "v2"},
 			})
@@ -1858,7 +1858,7 @@ var _ = Describe("Team", func() {
 			rc, err := resource.SetResourceConfig(atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = rc.SaveVersions([]atc.Version{
+			err = rc.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "v1"},
 				atc.Version{"version": "v2"},
 			})
@@ -1900,7 +1900,7 @@ var _ = Describe("Team", func() {
 					Serial:       true,
 					SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Task:       "some-task",
 							Privileged: true,
@@ -2035,7 +2035,7 @@ var _ = Describe("Team", func() {
 					Serial:       true,
 					SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Get:      "some-input",
 							Resource: "some-resource",
@@ -2046,17 +2046,21 @@ var _ = Describe("Team", func() {
 							Trigger: true,
 						},
 						{
-							Task:       "some-task",
-							Privileged: true,
-							File:       "some/config/path.yml",
-							TaskConfig: &atc.TaskConfig{
-								RootfsURI: "some-image",
-							},
+							Task: "some-task",
+							File: "some/config/path.yml",
 						},
 						{
 							Put: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
+							},
+						},
+						{
+							Do: &atc.PlanSequence{
+								{
+									Task: "some-nested-task",
+									File: "some/config/path.yml",
+								},
 							},
 						},
 					},
@@ -2152,12 +2156,23 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
+			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-nested-task", "some-path")
+			Expect(err).ToNot(HaveOccurred())
+
+			_, found, err = taskCacheFactory.Find(job.ID(), "some-nested-task", "some-path")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
 			config.Jobs = []atc.JobConfig{}
 
 			_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err = taskCacheFactory.Find(job.ID(), "some-task", "some-path")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			_, found, err = taskCacheFactory.Find(job.ID(), "some-nested-task", "some-path")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -2177,10 +2192,17 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
+			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-nested-task", "some-path")
+			Expect(err).ToNot(HaveOccurred())
+
+			_, found, err = taskCacheFactory.Find(job.ID(), "some-nested-task", "some-path")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
 			config.Jobs = []atc.JobConfig{
 				{
 					Name: "some-job",
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Task: "some-other-task",
 							File: "some/config/path.yml",
@@ -2193,6 +2215,10 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err = taskCacheFactory.Find(job.ID(), "some-task", "some-path")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			_, found, err = taskCacheFactory.Find(job.ID(), "some-nested-task", "some-path")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -2229,7 +2255,7 @@ var _ = Describe("Team", func() {
 			config.Jobs = []atc.JobConfig{
 				{
 					Name: "some-job",
-					Plan: atc.PlanSequence{
+					PlanSequence: atc.PlanSequence{
 						{
 							Task: "some-other-task",
 							File: "some/config/path.yml",
@@ -2365,7 +2391,7 @@ var _ = Describe("Team", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "job-1",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get: "some-resource",
 							},
@@ -2373,7 +2399,7 @@ var _ = Describe("Team", func() {
 					},
 					{
 						Name: "job-2",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get: "some-resource",
 							},
@@ -2387,7 +2413,7 @@ var _ = Describe("Team", func() {
 						Serial:       true,
 						SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Do: &atc.PlanSequence{
 									{
@@ -2529,7 +2555,7 @@ var _ = Describe("Team", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "job-2",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get: "some-resource",
 							},
@@ -2543,7 +2569,7 @@ var _ = Describe("Team", func() {
 						Serial:       true,
 						SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get:      "some-input",
 								Resource: "some-resource",
@@ -2780,7 +2806,7 @@ var _ = Describe("Team", func() {
 
 			updatedConfig.Jobs = append(config.Jobs, atc.JobConfig{
 				Name: "new-job",
-				Plan: atc.PlanSequence{
+				PlanSequence: atc.PlanSequence{
 					{
 						Get:      "new-input",
 						Resource: "new-resource",

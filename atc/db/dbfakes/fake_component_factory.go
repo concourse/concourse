@@ -9,6 +9,19 @@ import (
 )
 
 type FakeComponentFactory struct {
+	CreateOrUpdateStub        func(atc.Component) (db.Component, error)
+	createOrUpdateMutex       sync.RWMutex
+	createOrUpdateArgsForCall []struct {
+		arg1 atc.Component
+	}
+	createOrUpdateReturns struct {
+		result1 db.Component
+		result2 error
+	}
+	createOrUpdateReturnsOnCall map[int]struct {
+		result1 db.Component
+		result2 error
+	}
 	FindStub        func(string) (db.Component, bool, error)
 	findMutex       sync.RWMutex
 	findArgsForCall []struct {
@@ -24,19 +37,71 @@ type FakeComponentFactory struct {
 		result2 bool
 		result3 error
 	}
-	UpdateIntervalsStub        func([]atc.Component) error
-	updateIntervalsMutex       sync.RWMutex
-	updateIntervalsArgsForCall []struct {
-		arg1 []atc.Component
-	}
-	updateIntervalsReturns struct {
-		result1 error
-	}
-	updateIntervalsReturnsOnCall map[int]struct {
-		result1 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeComponentFactory) CreateOrUpdate(arg1 atc.Component) (db.Component, error) {
+	fake.createOrUpdateMutex.Lock()
+	ret, specificReturn := fake.createOrUpdateReturnsOnCall[len(fake.createOrUpdateArgsForCall)]
+	fake.createOrUpdateArgsForCall = append(fake.createOrUpdateArgsForCall, struct {
+		arg1 atc.Component
+	}{arg1})
+	fake.recordInvocation("CreateOrUpdate", []interface{}{arg1})
+	fake.createOrUpdateMutex.Unlock()
+	if fake.CreateOrUpdateStub != nil {
+		return fake.CreateOrUpdateStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.createOrUpdateReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeComponentFactory) CreateOrUpdateCallCount() int {
+	fake.createOrUpdateMutex.RLock()
+	defer fake.createOrUpdateMutex.RUnlock()
+	return len(fake.createOrUpdateArgsForCall)
+}
+
+func (fake *FakeComponentFactory) CreateOrUpdateCalls(stub func(atc.Component) (db.Component, error)) {
+	fake.createOrUpdateMutex.Lock()
+	defer fake.createOrUpdateMutex.Unlock()
+	fake.CreateOrUpdateStub = stub
+}
+
+func (fake *FakeComponentFactory) CreateOrUpdateArgsForCall(i int) atc.Component {
+	fake.createOrUpdateMutex.RLock()
+	defer fake.createOrUpdateMutex.RUnlock()
+	argsForCall := fake.createOrUpdateArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeComponentFactory) CreateOrUpdateReturns(result1 db.Component, result2 error) {
+	fake.createOrUpdateMutex.Lock()
+	defer fake.createOrUpdateMutex.Unlock()
+	fake.CreateOrUpdateStub = nil
+	fake.createOrUpdateReturns = struct {
+		result1 db.Component
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeComponentFactory) CreateOrUpdateReturnsOnCall(i int, result1 db.Component, result2 error) {
+	fake.createOrUpdateMutex.Lock()
+	defer fake.createOrUpdateMutex.Unlock()
+	fake.CreateOrUpdateStub = nil
+	if fake.createOrUpdateReturnsOnCall == nil {
+		fake.createOrUpdateReturnsOnCall = make(map[int]struct {
+			result1 db.Component
+			result2 error
+		})
+	}
+	fake.createOrUpdateReturnsOnCall[i] = struct {
+		result1 db.Component
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeComponentFactory) Find(arg1 string) (db.Component, bool, error) {
@@ -105,78 +170,13 @@ func (fake *FakeComponentFactory) FindReturnsOnCall(i int, result1 db.Component,
 	}{result1, result2, result3}
 }
 
-func (fake *FakeComponentFactory) UpdateIntervals(arg1 []atc.Component) error {
-	var arg1Copy []atc.Component
-	if arg1 != nil {
-		arg1Copy = make([]atc.Component, len(arg1))
-		copy(arg1Copy, arg1)
-	}
-	fake.updateIntervalsMutex.Lock()
-	ret, specificReturn := fake.updateIntervalsReturnsOnCall[len(fake.updateIntervalsArgsForCall)]
-	fake.updateIntervalsArgsForCall = append(fake.updateIntervalsArgsForCall, struct {
-		arg1 []atc.Component
-	}{arg1Copy})
-	fake.recordInvocation("UpdateIntervals", []interface{}{arg1Copy})
-	fake.updateIntervalsMutex.Unlock()
-	if fake.UpdateIntervalsStub != nil {
-		return fake.UpdateIntervalsStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.updateIntervalsReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeComponentFactory) UpdateIntervalsCallCount() int {
-	fake.updateIntervalsMutex.RLock()
-	defer fake.updateIntervalsMutex.RUnlock()
-	return len(fake.updateIntervalsArgsForCall)
-}
-
-func (fake *FakeComponentFactory) UpdateIntervalsCalls(stub func([]atc.Component) error) {
-	fake.updateIntervalsMutex.Lock()
-	defer fake.updateIntervalsMutex.Unlock()
-	fake.UpdateIntervalsStub = stub
-}
-
-func (fake *FakeComponentFactory) UpdateIntervalsArgsForCall(i int) []atc.Component {
-	fake.updateIntervalsMutex.RLock()
-	defer fake.updateIntervalsMutex.RUnlock()
-	argsForCall := fake.updateIntervalsArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeComponentFactory) UpdateIntervalsReturns(result1 error) {
-	fake.updateIntervalsMutex.Lock()
-	defer fake.updateIntervalsMutex.Unlock()
-	fake.UpdateIntervalsStub = nil
-	fake.updateIntervalsReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeComponentFactory) UpdateIntervalsReturnsOnCall(i int, result1 error) {
-	fake.updateIntervalsMutex.Lock()
-	defer fake.updateIntervalsMutex.Unlock()
-	fake.UpdateIntervalsStub = nil
-	if fake.updateIntervalsReturnsOnCall == nil {
-		fake.updateIntervalsReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.updateIntervalsReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeComponentFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.createOrUpdateMutex.RLock()
+	defer fake.createOrUpdateMutex.RUnlock()
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
-	fake.updateIntervalsMutex.RLock()
-	defer fake.updateIntervalsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -22,6 +22,7 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gclient"
+	"github.com/concourse/concourse/tracing"
 	"github.com/cppforlife/go-semi-semantic/version"
 	"golang.org/x/sync/errgroup"
 )
@@ -595,7 +596,15 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	container db.CreatingContainer,
 	nonLocals []mountableRemoteInput,
 ) ([]VolumeMount, error) {
+
 	mounts := make([]VolumeMount, len(nonLocals))
+	if len(nonLocals) <= 0 {
+		return mounts, nil
+	}
+
+	ctx, span := tracing.StartSpan(ctx, "worker.cloneRemoteVolumes", tracing.Attrs{"container_id": container.Handle()})
+	defer span.End()
+
 	g, groupCtx := errgroup.WithContext(ctx)
 
 	for i, nonLocalInput := range nonLocals {
@@ -615,8 +624,8 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 			return []VolumeMount{}, err
 		}
 		destData := lager.Data{
-			"dest-volume": inputVolume.Handle(),
-			"dest-worker": inputVolume.WorkerName(),
+			"destination-volume": inputVolume.Handle(),
+			"destination-worker": inputVolume.WorkerName(),
 		}
 
 		g.Go(func() error {
@@ -639,9 +648,7 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 		return nil, err
 	}
 
-	if len(nonLocals) > 0 {
-		logger.Debug("streamed-non-local-volumes", lager.Data{"volumes-streamed": len(nonLocals)})
-	}
+	logger.Debug("streamed-non-local-volumes", lager.Data{"volumes-streamed": len(nonLocals)})
 
 	return mounts, nil
 }

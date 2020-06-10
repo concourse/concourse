@@ -15,8 +15,11 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/testtrace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -251,6 +254,32 @@ var _ = Describe("GetStep", func() {
 	It("calls RunGetStep with the correct Resource", func() {
 		_, _, _, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualResource).To(Equal(fakeResource))
+	})
+
+	Context("when tracing is enabled", func() {
+		var buildSpan trace.Span
+
+		BeforeEach(func() {
+			tracing.ConfigureTraceProvider(testTraceProvider{})
+			ctx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+		})
+
+		It("propagates span context to the worker client", func() {
+			ctx, _, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+			span, ok := tracing.FromContext(ctx).(*testtrace.Span)
+			Expect(ok).To(BeTrue(), "no testtrace.Span in context")
+			Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
+		})
+
+		It("populates the TRACEPARENT env var", func() {
+			_, _, _, actualContainerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+
+			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+		})
+
+		AfterEach(func() {
+			tracing.Configured = false
+		})
 	})
 
 	Context("when Client.RunGetStep returns an err", func() {

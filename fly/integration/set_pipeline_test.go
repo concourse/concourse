@@ -107,7 +107,7 @@ var _ = Describe("Fly CLI", func() {
 					},
 					{
 						Name: "pinned-resource-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: atc.PlanSequence{
 							{
 								Get: "some-resource",
 								Version: &atc.VersionConfig{
@@ -398,7 +398,7 @@ this is super secure
 						Jobs: atc.JobConfigs{
 							{
 								Name: "some-job",
-								Plan: atc.PlanSequence{
+								PlanSequence: atc.PlanSequence{
 									{
 										Get: "some-resource",
 									},
@@ -475,7 +475,7 @@ this is super secure
 						Jobs: atc.JobConfigs{
 							{
 								Name: "some-job",
-								Plan: atc.PlanSequence{
+								PlanSequence: atc.PlanSequence{
 									{
 										Get: "some-resource",
 									},
@@ -554,7 +554,7 @@ this is super secure
 						Jobs: atc.JobConfigs{
 							{
 								Name: "some-job",
-								Plan: atc.PlanSequence{
+								PlanSequence: atc.PlanSequence{
 									{
 										Get: "some-resource",
 									},

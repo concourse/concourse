@@ -6,6 +6,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"go.opentelemetry.io/otel/api/propagators"
 )
 
 //go:generate counterfeiter . ResourceConfigVersion
@@ -16,6 +17,7 @@ type ResourceConfigVersion interface {
 	Metadata() ResourceConfigMetadataFields
 	CheckOrder() int
 	ResourceConfigScope() ResourceConfigScope
+	SpanContext() propagators.Supplier
 
 	Reload() (bool, error)
 }
@@ -56,10 +58,11 @@ func (rmf ResourceConfigMetadataFields) ToATCMetadata() []atc.MetadataField {
 type Version map[string]string
 
 type resourceConfigVersion struct {
-	id         int
-	version    Version
-	metadata   ResourceConfigMetadataFields
-	checkOrder int
+	id          int
+	version     Version
+	metadata    ResourceConfigMetadataFields
+	checkOrder  int
+	spanContext SpanContext
 
 	resourceConfigScope ResourceConfigScope
 
@@ -70,7 +73,8 @@ var resourceConfigVersionQuery = psql.Select(`
 	v.id,
 	v.version,
 	v.metadata,
-	v.check_order
+	v.check_order,
+	v.span_context
 `).
 	From("resource_config_versions v").
 	Where(sq.NotEq{
@@ -83,6 +87,9 @@ func (r *resourceConfigVersion) Metadata() ResourceConfigMetadataFields { return
 func (r *resourceConfigVersion) CheckOrder() int                        { return r.checkOrder }
 func (r *resourceConfigVersion) ResourceConfigScope() ResourceConfigScope {
 	return r.resourceConfigScope
+}
+func (r *resourceConfigVersion) SpanContext() propagators.Supplier {
+	return r.spanContext
 }
 
 func (r *resourceConfigVersion) Reload() (bool, error) {
@@ -102,9 +109,9 @@ func (r *resourceConfigVersion) Reload() (bool, error) {
 }
 
 func scanResourceConfigVersion(r *resourceConfigVersion, scan scannable) error {
-	var version, metadata sql.NullString
+	var version, metadata, spanContext sql.NullString
 
-	err := scan.Scan(&r.id, &version, &metadata, &r.checkOrder)
+	err := scan.Scan(&r.id, &version, &metadata, &r.checkOrder, &spanContext)
 	if err != nil {
 		return err
 	}
@@ -118,6 +125,13 @@ func scanResourceConfigVersion(r *resourceConfigVersion, scan scannable) error {
 
 	if metadata.Valid {
 		err = json.Unmarshal([]byte(metadata.String), &r.metadata)
+		if err != nil {
+			return err
+		}
+	}
+
+	if spanContext.Valid {
+		err = json.Unmarshal([]byte(spanContext.String), &r.spanContext)
 		if err != nil {
 			return err
 		}

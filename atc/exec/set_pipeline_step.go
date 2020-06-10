@@ -15,10 +15,12 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -53,6 +55,22 @@ func NewSetPipelineStep(
 }
 
 func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "set_pipeline", tracing.Attrs{
+		"team":     step.metadata.TeamName,
+		"pipeline": step.metadata.PipelineName,
+		"job":      step.metadata.JobName,
+		"build":    step.metadata.BuildName,
+		"name":     step.plan.Name,
+		"file":     step.plan.File,
+	})
+
+	err := step.run(ctx, state)
+	tracing.End(span, err)
+
+	return err
+}
+
+func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("set-pipeline-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -60,6 +78,13 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 	})
 
 	step.delegate.Initializing(logger)
+
+	variables := step.delegate.Variables()
+	interpolatedPlan, err := creds.NewSetPipelinePlan(variables, step.plan).Evaluate()
+	if err != nil {
+		return err
+	}
+	step.plan = interpolatedPlan
 
 	stdout := step.delegate.Stdout()
 	stderr := step.delegate.Stderr()
@@ -77,7 +102,7 @@ func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
 		client: step.client,
 	}
 
-	err := source.Validate()
+	err = source.Validate()
 	if err != nil {
 		return err
 	}

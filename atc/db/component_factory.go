@@ -10,8 +10,8 @@ import (
 //go:generate counterfeiter . ComponentFactory
 
 type ComponentFactory interface {
+	CreateOrUpdate(atc.Component) (Component, error)
 	Find(string) (Component, bool, error)
-	UpdateIntervals([]atc.Component) error
 }
 
 type componentFactory struct {
@@ -45,43 +45,40 @@ func (f *componentFactory) Find(componentName string) (Component, bool, error) {
 	return component, true, nil
 }
 
-func (f *componentFactory) UpdateIntervals(components []atc.Component) error {
+func (f *componentFactory) CreateOrUpdate(c atc.Component) (Component, error) {
 	tx, err := f.conn.Begin()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer Rollback(tx)
 
-	for _, component := range components {
-		err := f.updateInterval(tx, component)
-		if err != nil {
-			return err
-		}
+	obj := &component{
+		conn: f.conn,
 	}
 
-	return tx.Commit()
-}
-
-func (f *componentFactory) updateInterval(tx Tx, component atc.Component) error {
-	result, err := psql.Insert("components").
+	row := psql.Insert("components").
 		Columns("name", "interval").
-		Values(component.Name, component.Interval.String()).
-		Suffix("ON CONFLICT (name) DO UPDATE SET interval=EXCLUDED.interval").
+		Values(c.Name, c.Interval.String()).
+		Suffix(`
+			ON CONFLICT (name) DO UPDATE SET interval=EXCLUDED.interval
+			RETURNING id, name, interval, last_ran, paused
+		`).
 		RunWith(tx).
-		Exec()
+		QueryRow()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	err = scanComponent(obj, row)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if rowsAffected != 1 {
-		return NonOneRowAffectedError{rowsAffected}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return obj, nil
 }

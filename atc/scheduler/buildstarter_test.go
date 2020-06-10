@@ -18,7 +18,7 @@ import (
 var _ = Describe("BuildStarter", func() {
 	var (
 		fakePipeline  *dbfakes.FakePipeline
-		fakeFactory   *schedulerfakes.FakeBuildFactory
+		fakePlanner   *schedulerfakes.FakeBuildPlanner
 		pendingBuilds []db.Build
 		fakeAlgorithm *schedulerfakes.FakeAlgorithm
 
@@ -31,10 +31,10 @@ var _ = Describe("BuildStarter", func() {
 
 	BeforeEach(func() {
 		fakePipeline = new(dbfakes.FakePipeline)
-		fakeFactory = new(schedulerfakes.FakeBuildFactory)
+		fakePlanner = new(schedulerfakes.FakeBuildPlanner)
 		fakeAlgorithm = new(schedulerfakes.FakeAlgorithm)
 
-		buildStarter = scheduler.NewBuildStarter(fakeFactory, fakeAlgorithm)
+		buildStarter = scheduler.NewBuildStarter(fakePlanner, fakeAlgorithm)
 
 		disaster = errors.New("bad thing")
 	})
@@ -74,7 +74,7 @@ var _ = Describe("BuildStarter", func() {
 				job.GetPendingBuildsReturns(pendingBuilds, nil)
 				job.NameReturns("some-job")
 				job.IDReturns(1)
-				job.ConfigReturns(atc.JobConfig{Plan: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}}, nil)
+				job.ConfigReturns(atc.JobConfig{PlanSequence: atc.PlanSequence{{Get: "input-1", Resource: "some-resource"}, {Get: "input-2", Resource: "some-resource"}}}, nil)
 
 				jobInputs = db.InputConfigs{
 					{
@@ -395,10 +395,24 @@ var _ = Describe("BuildStarter", func() {
 				var pendingBuild2 *dbfakes.FakeBuild
 				var rerunBuild *dbfakes.FakeBuild
 
+				var jobConfig = atc.JobConfig{
+					Name: "some-job",
+					PlanSequence: atc.PlanSequence{
+						{Get: "some-input"},
+					},
+				}
+
+				var plannedPlan = atc.Plan{
+					Get: &atc.GetPlan{
+						Name:     "some-input",
+						Resource: "some-input",
+					},
+				}
+
 				BeforeEach(func() {
 					job.NameReturns("some-job")
 					job.IDReturns(1)
-					job.ConfigReturns(atc.JobConfig{Name: "some-job"}, nil)
+					job.ConfigReturns(jobConfig, nil)
 					createdBuild.IsManuallyTriggeredReturns(false)
 
 					jobInputs = db.InputConfigs{}
@@ -559,16 +573,11 @@ var _ = Describe("BuildStarter", func() {
 							Context("when the resource types are successfully fetched", func() {
 								Context("when creating the build plan fails for the rerun build and the scheduler builds", func() {
 									BeforeEach(func() {
-										fakeFactory.CreateReturns(atc.Plan{}, disaster)
+										fakePlanner.CreateReturns(atc.Plan{}, disaster)
 									})
 
 									It("keeps going after failing to create", func() {
-										Expect(fakeFactory.CreateCallCount()).To(Equal(3))
-										actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
-										Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
-										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
-										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
-										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
+										Expect(fakePlanner.CreateCallCount()).To(Equal(3))
 
 										Expect(rerunBuild.FinishCallCount()).To(Equal(1))
 										Expect(pendingBuild1.FinishCallCount()).To(Equal(1))
@@ -614,7 +623,7 @@ var _ = Describe("BuildStarter", func() {
 
 								Context("when creating the build plan succeeds", func() {
 									BeforeEach(func() {
-										fakeFactory.CreateReturns(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}, nil)
+										fakePlanner.CreateReturns(plannedPlan, nil)
 										pendingBuild1.StartReturns(true, nil)
 										pendingBuild2.StartReturns(true, nil)
 										rerunBuild.StartReturns(true, nil)
@@ -632,21 +641,22 @@ var _ = Describe("BuildStarter", func() {
 									})
 
 									It("creates build plans for all builds", func() {
-										Expect(fakeFactory.CreateCallCount()).To(Equal(3))
-										actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakeFactory.CreateArgsForCall(0)
-										Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+										Expect(fakePlanner.CreateCallCount()).To(Equal(3))
+
+										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs := fakePlanner.CreateArgsForCall(0)
+										Expect(actualPlanConfig).To(Equal(atc.PlanConfig{Do: &jobConfig.PlanSequence}))
 										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
 										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
-										actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(1)
-										Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakePlanner.CreateArgsForCall(1)
+										Expect(actualPlanConfig).To(Equal(atc.PlanConfig{Do: &jobConfig.PlanSequence}))
 										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
 										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 
-										actualJobConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakeFactory.CreateArgsForCall(2)
-										Expect(actualJobConfig).To(Equal(atc.JobConfig{Name: "some-job"}))
+										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualBuildInputs = fakePlanner.CreateArgsForCall(2)
+										Expect(actualPlanConfig).To(Equal(atc.PlanConfig{Do: &jobConfig.PlanSequence}))
 										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
 										Expect(actualResourceTypes).To(Equal(versionedResourceTypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
@@ -739,13 +749,13 @@ var _ = Describe("BuildStarter", func() {
 
 										It("starts the build with the right plan", func() {
 											Expect(pendingBuild1.StartCallCount()).To(Equal(1))
-											Expect(pendingBuild1.StartArgsForCall(0)).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
+											Expect(pendingBuild1.StartArgsForCall(0)).To(Equal(plannedPlan))
 
 											Expect(pendingBuild2.StartCallCount()).To(Equal(1))
-											Expect(pendingBuild2.StartArgsForCall(0)).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
+											Expect(pendingBuild2.StartArgsForCall(0)).To(Equal(plannedPlan))
 
 											Expect(rerunBuild.StartCallCount()).To(Equal(1))
-											Expect(rerunBuild.StartArgsForCall(0)).To(Equal(atc.Plan{Task: &atc.TaskPlan{ConfigPath: "some-task-1.yml"}}))
+											Expect(rerunBuild.StartArgsForCall(0)).To(Equal(plannedPlan))
 										})
 									})
 								})

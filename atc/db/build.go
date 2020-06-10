@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
+	"go.opentelemetry.io/otel/api/propagators"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/encryption"
@@ -29,6 +30,12 @@ type BuildInput struct {
 
 	FirstOccurrence bool
 	ResolveError    string
+
+	Context SpanContext
+}
+
+func (bi BuildInput) SpanContext() propagators.Supplier {
+	return bi.Context
 }
 
 type BuildOutput struct {
@@ -73,7 +80,8 @@ var buildsQuery = psql.Select(`
 		b.inputs_ready,
 		b.rerun_of,
 		r.name,
-		b.rerun_number
+		b.rerun_number,
+		b.span_context
 	`).
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
@@ -151,6 +159,8 @@ type Build interface {
 
 	IsDrained() bool
 	SetDrained(bool) error
+
+	SpanContext() propagators.Supplier
 }
 
 type build struct {
@@ -186,6 +196,8 @@ type build struct {
 	drained   bool
 	aborted   bool
 	completed bool
+
+	spanContext SpanContext
 }
 
 func newEmptyBuild(conn Conn, lockFactory lock.LockFactory) *build {
@@ -371,6 +383,11 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 	}
 
 	err = b.conn.Bus().Notify(buildEventsChannel(b.id))
+	if err != nil {
+		return false, err
+	}
+
+	err = b.conn.Bus().Notify(atc.ComponentBuildTracker)
 	if err != nil {
 		return false, err
 	}
@@ -980,7 +997,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata)
+	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata, nil)
 	if err != nil {
 		return err
 	}
@@ -1097,6 +1114,7 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 	}
 
 	buildInputs := []BuildInput{}
+
 	for inputName, input := range inputs {
 		var versionBlob string
 
@@ -1111,6 +1129,19 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 			QueryRow().
 			Scan(&versionBlob)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+
+				_, err = psql.Update("next_build_inputs").
+					Set("resolve_error", fmt.Sprintf("chosen version of input %s not available", inputName)).
+					Where(sq.Eq{
+						"job_id":     b.jobID,
+						"input_name": inputName,
+					}).
+					RunWith(b.conn).
+					Exec()
+			}
+
 			return nil, false, err
 		}
 
@@ -1256,8 +1287,18 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 			Scan(&versionBlob)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				return nil, false, nil
+				tx.Rollback()
+
+				_, err = psql.Update("next_build_inputs").
+					Set("resolve_error", fmt.Sprintf("chosen version of input %s not available", inputName)).
+					Where(sq.Eq{
+						"job_id":     b.jobID,
+						"input_name": inputName,
+					}).
+					RunWith(b.conn).
+					Exec()
 			}
+
 			return nil, false, err
 		}
 
@@ -1434,6 +1475,10 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	return inputs, outputs, nil
 }
 
+func (b *build) SpanContext() propagators.Supplier {
+	return b.spanContext
+}
+
 func createBuildEventSeq(tx Tx, buildid int) error {
 	_, err := tx.Exec(fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
@@ -1450,7 +1495,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		jobID, pipelineID, rerunOf, rerunNumber                             sql.NullInt64
 		schema, privatePlan, jobName, pipelineName, publicPlan, rerunOfName sql.NullString
 		createTime, startTime, endTime, reapTime                            pq.NullTime
-		nonce                                                               sql.NullString
+		nonce, spanContext                                                  sql.NullString
 		drained, aborted, completed                                         bool
 		status                                                              string
 	)
@@ -1482,6 +1527,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&rerunOf,
 		&rerunOfName,
 		&rerunNumber,
+		&spanContext,
 	)
 	if err != nil {
 		return err
@@ -1528,6 +1574,13 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 
 	if publicPlan.Valid {
 		err = json.Unmarshal([]byte(publicPlan.String), &b.publicPlan)
+		if err != nil {
+			return err
+		}
+	}
+
+	if spanContext.Valid {
+		err = json.Unmarshal([]byte(spanContext.String), &b.spanContext)
 		if err != nil {
 			return err
 		}

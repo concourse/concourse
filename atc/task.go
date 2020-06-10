@@ -20,7 +20,7 @@ type TaskConfig struct {
 	ImageResource *ImageResource `json:"image_resource,omitempty"`
 
 	// Limits to set on the Task Container
-	Limits ContainerLimits `json:"container_limits,omitempty"`
+	Limits *ContainerLimits `json:"container_limits,omitempty"`
 
 	// Parameters to pass to the task via environment variables.
 	Params TaskEnv `json:"params,omitempty"`

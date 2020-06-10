@@ -9,6 +9,10 @@ import (
 )
 
 type FakeVarSourcePool struct {
+	CloseStub        func()
+	closeMutex       sync.RWMutex
+	closeArgsForCall []struct {
+	}
 	FindOrCreateStub        func(lager.Logger, map[string]interface{}, creds.ManagerFactory) (creds.Secrets, error)
 	findOrCreateMutex       sync.RWMutex
 	findOrCreateArgsForCall []struct {
@@ -36,6 +40,29 @@ type FakeVarSourcePool struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeVarSourcePool) Close() {
+	fake.closeMutex.Lock()
+	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Close", []interface{}{})
+	fake.closeMutex.Unlock()
+	if fake.CloseStub != nil {
+		fake.CloseStub()
+	}
+}
+
+func (fake *FakeVarSourcePool) CloseCallCount() int {
+	fake.closeMutex.RLock()
+	defer fake.closeMutex.RUnlock()
+	return len(fake.closeArgsForCall)
+}
+
+func (fake *FakeVarSourcePool) CloseCalls(stub func()) {
+	fake.closeMutex.Lock()
+	defer fake.closeMutex.Unlock()
+	fake.CloseStub = stub
 }
 
 func (fake *FakeVarSourcePool) FindOrCreate(arg1 lager.Logger, arg2 map[string]interface{}, arg3 creds.ManagerFactory) (creds.Secrets, error) {
@@ -158,6 +185,8 @@ func (fake *FakeVarSourcePool) SizeReturnsOnCall(i int, result1 int) {
 func (fake *FakeVarSourcePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.closeMutex.RLock()
+	defer fake.closeMutex.RUnlock()
 	fake.findOrCreateMutex.RLock()
 	defer fake.findOrCreateMutex.RUnlock()
 	fake.sizeMutex.RLock()

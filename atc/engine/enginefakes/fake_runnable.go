@@ -9,26 +9,24 @@ import (
 )
 
 type FakeRunnable struct {
-	RunStub        func(context.Context, context.CancelFunc)
+	RunStub        func(context.Context)
 	runMutex       sync.RWMutex
 	runArgsForCall []struct {
 		arg1 context.Context
-		arg2 context.CancelFunc
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRunnable) Run(arg1 context.Context, arg2 context.CancelFunc) {
+func (fake *FakeRunnable) Run(arg1 context.Context) {
 	fake.runMutex.Lock()
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
 		arg1 context.Context
-		arg2 context.CancelFunc
-	}{arg1, arg2})
-	fake.recordInvocation("Run", []interface{}{arg1, arg2})
+	}{arg1})
+	fake.recordInvocation("Run", []interface{}{arg1})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
-		fake.RunStub(arg1, arg2)
+		fake.RunStub(arg1)
 	}
 }
 
@@ -38,17 +36,17 @@ func (fake *FakeRunnable) RunCallCount() int {
 	return len(fake.runArgsForCall)
 }
 
-func (fake *FakeRunnable) RunCalls(stub func(context.Context, context.CancelFunc)) {
+func (fake *FakeRunnable) RunCalls(stub func(context.Context)) {
 	fake.runMutex.Lock()
 	defer fake.runMutex.Unlock()
 	fake.RunStub = stub
 }
 
-func (fake *FakeRunnable) RunArgsForCall(i int) (context.Context, context.CancelFunc) {
+func (fake *FakeRunnable) RunArgsForCall(i int) context.Context {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
 	argsForCall := fake.runArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeRunnable) Invocations() map[string][][]interface{} {

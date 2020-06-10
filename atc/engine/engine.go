@@ -23,13 +23,14 @@ import (
 type Engine interface {
 	NewBuild(db.Build) Runnable
 	NewCheck(db.Check) Runnable
-	ReleaseAll(lager.Logger)
+
+	Drain(context.Context)
 }
 
 //go:generate counterfeiter . Runnable
 
 type Runnable interface {
-	Run(context.Context, context.CancelFunc)
+	Run(context.Context)
 }
 
 //go:generate counterfeiter . StepBuilder
@@ -57,16 +58,17 @@ type engine struct {
 	waitGroup     *sync.WaitGroup
 }
 
-func (engine *engine) ReleaseAll(logger lager.Logger) {
-	logger.Info("calling-release-on-builds")
+func (engine *engine) Drain(ctx context.Context) {
+	logger := lagerctx.FromContext(ctx)
+
+	logger.Info("start")
+	defer logger.Info("done")
 
 	close(engine.release)
 
-	logger.Info("waiting-on-builds")
+	logger.Info("waiting")
 
 	engine.waitGroup.Wait()
-
-	logger.Info("finished-waiting-on-builds")
 }
 
 func (engine *engine) NewBuild(build db.Build) Runnable {
@@ -117,7 +119,7 @@ type engineBuild struct {
 	pipelineCredMgrs []creds.Manager
 }
 
-func (b *engineBuild) Run(ctx context.Context, cancel context.CancelFunc) {
+func (b *engineBuild) Run(ctx context.Context) {
 	b.waitGroup.Add(1)
 	defer b.waitGroup.Done()
 
@@ -164,7 +166,7 @@ func (b *engineBuild) Run(ctx context.Context, cancel context.CancelFunc) {
 
 	defer notifier.Close()
 
-	ctx, span := tracing.StartSpan(ctx, "build", tracing.Attrs{
+	ctx, span := tracing.StartSpanFollowing(ctx, b.build, "build", tracing.Attrs{
 		"team":     b.build.TeamName(),
 		"pipeline": b.build.PipelineName(),
 		"job":      b.build.JobName(),
@@ -193,6 +195,8 @@ func (b *engineBuild) Run(ctx context.Context, cancel context.CancelFunc) {
 	state := b.runState()
 	defer b.clearRunState()
 
+	ctx, cancel := context.WithCancel(ctx)
+
 	noleak := make(chan bool)
 	defer close(noleak)
 
@@ -207,8 +211,7 @@ func (b *engineBuild) Run(ctx context.Context, cancel context.CancelFunc) {
 
 	done := make(chan error)
 	go func() {
-		ctx := lagerctx.NewContext(ctx, logger)
-		done <- step.Run(ctx, state)
+		done <- step.Run(lagerctx.NewContext(ctx, logger), state)
 	}()
 
 	select {
@@ -323,7 +326,7 @@ type engineCheck struct {
 	waitGroup     *sync.WaitGroup
 }
 
-func (c *engineCheck) Run(ctx context.Context, cancel context.CancelFunc) {
+func (c *engineCheck) Run(ctx context.Context) {
 	c.waitGroup.Add(1)
 	defer c.waitGroup.Done()
 

@@ -51,6 +51,7 @@ func (c *checker) Run(ctx context.Context) error {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
 			go func(check db.Check) {
 				spanCtx, span := tracing.StartSpanFollowing(
+					ctx,
 					check,
 					"checker.Run",
 					tracing.Attrs{
@@ -63,15 +64,13 @@ func (c *checker) Run(ctx context.Context) error {
 				defer span.End()
 				defer c.running.Delete(check.ID())
 
-				cancelCtx, cancel := context.WithCancel(spanCtx)
 				c.engine.NewCheck(check).Run(
 					lagerctx.NewContext(
-						cancelCtx,
+						spanCtx,
 						c.logger.WithData(lager.Data{
 							"check": check.ID(),
 						}),
 					),
-					cancel,
 				)
 			}(ck)
 		}

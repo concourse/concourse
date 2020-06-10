@@ -9,11 +9,11 @@ import (
 	"github.com/concourse/concourse/atc/scheduler"
 )
 
-type FakeBuildFactory struct {
-	CreateStub        func(atc.JobConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+type FakeBuildPlanner struct {
+	CreateStub        func(atc.PlanConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
-		arg1 atc.JobConfig
+		arg1 atc.PlanConfig
 		arg2 db.SchedulerResources
 		arg3 atc.VersionedResourceTypes
 		arg4 []db.BuildInput
@@ -30,7 +30,7 @@ type FakeBuildFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 db.SchedulerResources, arg3 atc.VersionedResourceTypes, arg4 []db.BuildInput) (atc.Plan, error) {
+func (fake *FakeBuildPlanner) Create(arg1 atc.PlanConfig, arg2 db.SchedulerResources, arg3 atc.VersionedResourceTypes, arg4 []db.BuildInput) (atc.Plan, error) {
 	var arg4Copy []db.BuildInput
 	if arg4 != nil {
 		arg4Copy = make([]db.BuildInput, len(arg4))
@@ -39,7 +39,7 @@ func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 db.SchedulerResour
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		arg1 atc.JobConfig
+		arg1 atc.PlanConfig
 		arg2 db.SchedulerResources
 		arg3 atc.VersionedResourceTypes
 		arg4 []db.BuildInput
@@ -56,26 +56,26 @@ func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 db.SchedulerResour
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeBuildFactory) CreateCallCount() int {
+func (fake *FakeBuildPlanner) CreateCallCount() int {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeBuildFactory) CreateCalls(stub func(atc.JobConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)) {
+func (fake *FakeBuildPlanner) CreateCalls(stub func(atc.PlanConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
 }
 
-func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) {
+func (fake *FakeBuildPlanner) CreateArgsForCall(i int) (atc.PlanConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	argsForCall := fake.createArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeBuildFactory) CreateReturns(result1 atc.Plan, result2 error) {
+func (fake *FakeBuildPlanner) CreateReturns(result1 atc.Plan, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
@@ -85,7 +85,7 @@ func (fake *FakeBuildFactory) CreateReturns(result1 atc.Plan, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeBuildFactory) CreateReturnsOnCall(i int, result1 atc.Plan, result2 error) {
+func (fake *FakeBuildPlanner) CreateReturnsOnCall(i int, result1 atc.Plan, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
@@ -101,7 +101,7 @@ func (fake *FakeBuildFactory) CreateReturnsOnCall(i int, result1 atc.Plan, resul
 	}{result1, result2}
 }
 
-func (fake *FakeBuildFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeBuildPlanner) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createMutex.RLock()
@@ -113,7 +113,7 @@ func (fake *FakeBuildFactory) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeBuildFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeBuildPlanner) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -125,4 +125,4 @@ func (fake *FakeBuildFactory) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ scheduler.BuildFactory = new(FakeBuildFactory)
+var _ scheduler.BuildPlanner = new(FakeBuildPlanner)

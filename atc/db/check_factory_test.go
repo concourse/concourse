@@ -235,7 +235,7 @@ var _ = Describe("CheckFactory", func() {
 								Context("when fetching the latest version returns a version", func() {
 
 									BeforeEach(func() {
-										err = resourceConfigScope.SaveVersions([]atc.Version{{"some": "version"}})
+										err = resourceConfigScope.SaveVersions(nil, []atc.Version{{"some": "version"}})
 										Expect(err).NotTo(HaveOccurred())
 									})
 
@@ -449,7 +449,7 @@ var _ = Describe("CheckFactory", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							Plan: atc.PlanSequence{
+							PlanSequence: atc.PlanSequence{
 								atc.PlanConfig{Get: "some-resource"},
 								atc.PlanConfig{Put: "some-resource-put-only"},
 							},

@@ -12,7 +12,11 @@ import (
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars/varsfakes"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/trace/testtrace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,6 +25,9 @@ import (
 var _ = Describe("CheckStep", func() {
 
 	var (
+		ctx context.Context
+		cancel context.CancelFunc
+
 		fakeRunState        *execfakes.FakeRunState
 		fakeResourceFactory *resourcefakes.FakeResourceFactory
 		fakeResource        *resourcefakes.FakeResource
@@ -38,6 +45,8 @@ var _ = Describe("CheckStep", func() {
 	)
 
 	BeforeEach(func() {
+		ctx, cancel = context.WithCancel(context.Background())
+
 		fakeRunState = new(execfakes.FakeRunState)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResource = new(resourcefakes.FakeResource)
@@ -50,6 +59,10 @@ var _ = Describe("CheckStep", func() {
 		containerMetadata = db.ContainerMetadata{}
 
 		fakeResourceFactory.NewResourceReturns(fakeResource)
+	})
+
+	AfterEach(func() {
+		cancel()
 	})
 
 	JustBeforeEach(func() {
@@ -67,7 +80,7 @@ var _ = Describe("CheckStep", func() {
 			fakeClient,
 		)
 
-		err = checkStep.Run(context.Background(), fakeRunState)
+		err = checkStep.Run(ctx, fakeRunState)
 	})
 
 	Context("having credentials in the config", func() {
@@ -223,6 +236,30 @@ var _ = Describe("CheckStep", func() {
 			It("with env vars", func() {
 				Expect(containerSpec.Env).To(ContainElement("BUILD_TEAM_ID=345"))
 			})
+
+			Context("when tracing is enabled", func() {
+				var buildSpan trace.Span
+
+				BeforeEach(func() {
+					tracing.ConfigureTraceProvider(testTraceProvider{})
+					ctx, buildSpan = tracing.StartSpan(ctx, "lidar", nil)
+				})
+
+				It("propagates span context to the worker client", func() {
+					ctx, _, _, _, _, _, _, _, _, _ := fakeClient.RunCheckStepArgsForCall(0)
+					span, ok := tracing.FromContext(ctx).(*testtrace.Span)
+					Expect(ok).To(BeTrue(), "no testtrace.Span in context")
+					Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
+				})
+
+				It("populates the TRACEPARENT env var", func() {
+					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+				})
+
+				AfterEach(func() {
+					tracing.Configured = false
+				})
+			})
 		})
 
 		Context("uses workerspec", func() {
@@ -279,6 +316,26 @@ var _ = Describe("CheckStep", func() {
 		It("uses the resource created", func() {
 			_, _, _, _, _, _, _, _, _, resource := fakeClient.RunCheckStepArgsForCall(0)
 			Expect(resource).To(Equal(fakeResource))
+		})
+
+		Context("with tracing configured", func() {
+			var span trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context to delegate", func() {
+				spanContext, _ := fakeDelegate.SaveVersionsArgsForCall(0)
+				traceID := span.SpanContext().TraceIDString()
+				traceParent := spanContext.Get(propagators.TraceparentHeader)
+				Expect(traceParent).To(ContainSubstring(traceID))
+			})
 		})
 
 		Context("having RunCheckStep erroring", func() {
