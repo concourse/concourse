@@ -111,6 +111,16 @@ type FakeCheck struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
+	ManuallyTriggeredStub        func() bool
+	manuallyTriggeredMutex       sync.RWMutex
+	manuallyTriggeredArgsForCall []struct {
+	}
+	manuallyTriggeredReturns struct {
+		result1 bool
+	}
+	manuallyTriggeredReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	PipelineStub        func() (db.Pipeline, bool, error)
 	pipelineMutex       sync.RWMutex
 	pipelineArgsForCall []struct {
@@ -762,6 +772,58 @@ func (fake *FakeCheck) IDReturnsOnCall(i int, result1 int) {
 	}
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakeCheck) ManuallyTriggered() bool {
+	fake.manuallyTriggeredMutex.Lock()
+	ret, specificReturn := fake.manuallyTriggeredReturnsOnCall[len(fake.manuallyTriggeredArgsForCall)]
+	fake.manuallyTriggeredArgsForCall = append(fake.manuallyTriggeredArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ManuallyTriggered", []interface{}{})
+	fake.manuallyTriggeredMutex.Unlock()
+	if fake.ManuallyTriggeredStub != nil {
+		return fake.ManuallyTriggeredStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.manuallyTriggeredReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheck) ManuallyTriggeredCallCount() int {
+	fake.manuallyTriggeredMutex.RLock()
+	defer fake.manuallyTriggeredMutex.RUnlock()
+	return len(fake.manuallyTriggeredArgsForCall)
+}
+
+func (fake *FakeCheck) ManuallyTriggeredCalls(stub func() bool) {
+	fake.manuallyTriggeredMutex.Lock()
+	defer fake.manuallyTriggeredMutex.Unlock()
+	fake.ManuallyTriggeredStub = stub
+}
+
+func (fake *FakeCheck) ManuallyTriggeredReturns(result1 bool) {
+	fake.manuallyTriggeredMutex.Lock()
+	defer fake.manuallyTriggeredMutex.Unlock()
+	fake.ManuallyTriggeredStub = nil
+	fake.manuallyTriggeredReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeCheck) ManuallyTriggeredReturnsOnCall(i int, result1 bool) {
+	fake.manuallyTriggeredMutex.Lock()
+	defer fake.manuallyTriggeredMutex.Unlock()
+	fake.ManuallyTriggeredStub = nil
+	if fake.manuallyTriggeredReturnsOnCall == nil {
+		fake.manuallyTriggeredReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.manuallyTriggeredReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
@@ -1588,6 +1650,8 @@ func (fake *FakeCheck) Invocations() map[string][][]interface{} {
 	defer fake.finishWithErrorMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.manuallyTriggeredMutex.RLock()
+	defer fake.manuallyTriggeredMutex.RUnlock()
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
 	fake.pipelineIDMutex.RLock()

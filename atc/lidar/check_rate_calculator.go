@@ -1,10 +1,17 @@
 package lidar
 
 import (
+	"context"
 	"time"
 
 	"golang.org/x/time/rate"
 )
+
+//go:generate counterfeiter . Limiter
+
+type Limiter interface {
+	Wait(context.Context) error
+}
 
 //go:generate counterfeiter . CheckableCounter
 
@@ -19,7 +26,8 @@ type CheckRateCalculator struct {
 	CheckableCounter CheckableCounter
 }
 
-// RateLimit determines the rate at which the checks should be limited to per second.
+// RateLimiter determines the rate at which the checks should be limited to per
+// second.
 //
 // It is dependent on the max checks per second configuration, where if it is
 // configured to -1 then it there is no limit, if it is > 0 then it is set to
@@ -31,7 +39,7 @@ type CheckRateCalculator struct {
 // the resource checking interval. By enforcing that ideal rate of checks, it
 // will help spread out the number of checks that are started within the same
 // interval.
-func (c CheckRateCalculator) RateLimit() (rate.Limit, error) {
+func (c CheckRateCalculator) RateLimiter() (Limiter, error) {
 	var rateOfChecks rate.Limit
 	if c.MaxChecksPerSecond == -1 {
 		// UNLIMITED POWER
@@ -40,7 +48,7 @@ func (c CheckRateCalculator) RateLimit() (rate.Limit, error) {
 		// Fetch the number of checkables (resource config scopes) in the database
 		checkableCount, err := c.CheckableCounter.CheckableCount()
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 
 		// Calculate the number of checks that need to be run per second in order
@@ -52,5 +60,5 @@ func (c CheckRateCalculator) RateLimit() (rate.Limit, error) {
 		rateOfChecks = rate.Limit(c.MaxChecksPerSecond)
 	}
 
-	return rateOfChecks, nil
+	return rate.NewLimiter(rateOfChecks, 1), nil
 }

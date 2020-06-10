@@ -17,7 +17,7 @@ var _ = Describe("CheckRateCalculator", func() {
 		resourceCheckingInterval time.Duration
 		fakeCheckableCounter     *lidarfakes.FakeCheckableCounter
 		checkRateCalculator      lidar.CheckRateCalculator
-		rateLimit                rate.Limit
+		rateLimit                lidar.Limiter
 		calcErr                  error
 	)
 
@@ -34,7 +34,7 @@ var _ = Describe("CheckRateCalculator", func() {
 			CheckableCounter:         fakeCheckableCounter,
 		}
 
-		rateLimit, calcErr = checkRateCalculator.RateLimit()
+		rateLimit, calcErr = checkRateCalculator.RateLimiter()
 	})
 
 	Context("when max checks per second is -1", func() {
@@ -44,7 +44,7 @@ var _ = Describe("CheckRateCalculator", func() {
 
 		It("returns unlimited checks per second", func() {
 			Expect(calcErr).ToNot(HaveOccurred())
-			Expect(rateLimit).To(Equal(rate.Inf))
+			Expect(rateLimit).To(Equal(rate.NewLimiter(rate.Inf, 1)))
 		})
 	})
 
@@ -55,7 +55,7 @@ var _ = Describe("CheckRateCalculator", func() {
 
 		It("calulates rate limit using the number of checkables and resource checking interval", func() {
 			Expect(calcErr).ToNot(HaveOccurred())
-			Expect(rateLimit).To(Equal(rate.Limit(10)))
+			Expect(rateLimit).To(Equal(rate.NewLimiter(rate.Limit(10), 1)))
 		})
 
 		Context("when fetching the checkable count errors", func() {
@@ -77,7 +77,7 @@ var _ = Describe("CheckRateCalculator", func() {
 
 		It("sets the rate limit to the max checks per second", func() {
 			Expect(calcErr).ToNot(HaveOccurred())
-			Expect(rateLimit).To(Equal(rate.Limit(2)))
+			Expect(rateLimit).To(Equal(rate.NewLimiter(rate.Limit(2), 1)))
 		})
 	})
 })

@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/time/rate"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -38,6 +37,7 @@ var _ = Describe("Checker", func() {
 		fakeCheckFactory   *dbfakes.FakeCheckFactory
 		fakeEngine         *enginefakes.FakeEngine
 		fakeRateCalculator *lidarfakes.FakeRateCalculator
+		fakeLimiter        *lidarfakes.FakeLimiter
 
 		checker Checker
 		logger  *lagertest.TestLogger
@@ -47,6 +47,7 @@ var _ = Describe("Checker", func() {
 		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
 		fakeRateCalculator = new(lidarfakes.FakeRateCalculator)
+		fakeLimiter = new(lidarfakes.FakeLimiter)
 
 		logger = lagertest.NewTestLogger("test")
 	})
@@ -63,7 +64,6 @@ var _ = Describe("Checker", func() {
 	})
 
 	Describe("Run", func() {
-
 		Context("when retrieving checks fails", func() {
 			BeforeEach(func() {
 				fakeCheckFactory.StartedChecksReturns(nil, errors.New("nope"))
@@ -92,6 +92,9 @@ var _ = Describe("Checker", func() {
 					fakeCheck,
 				}, nil)
 
+				fakeLimiter.WaitReturns(nil)
+				fakeRateCalculator.RateLimiterReturns(fakeLimiter, nil)
+
 				fakeRunnable = new(enginefakes.FakeRunnable)
 				fakeEngine.NewCheckReturns(fakeRunnable)
 			})
@@ -110,12 +113,14 @@ var _ = Describe("Checker", func() {
 		})
 
 		Context("when retrieving checks succeeds", func() {
+			var fakeCheck1, fakeCheck2, fakeCheck3 *dbfakes.FakeCheck
+
 			BeforeEach(func() {
-				fakeCheck1 := new(dbfakes.FakeCheck)
+				fakeCheck1 = new(dbfakes.FakeCheck)
 				fakeCheck1.IDReturns(1)
-				fakeCheck2 := new(dbfakes.FakeCheck)
+				fakeCheck2 = new(dbfakes.FakeCheck)
 				fakeCheck2.IDReturns(2)
-				fakeCheck3 := new(dbfakes.FakeCheck)
+				fakeCheck3 = new(dbfakes.FakeCheck)
 				fakeCheck3.IDReturns(3)
 
 				fakeCheckFactory.StartedChecksReturns([]db.Check{
@@ -130,13 +135,10 @@ var _ = Describe("Checker", func() {
 				}
 			})
 
-			It("tries to calculate the rate limit", func() {
-				Expect(fakeRateCalculator.RateLimitCallCount()).To(Equal(1))
-			})
-
-			Context("when the rate limit is calculated successfully", func() {
+			Context("when the rate limiter is fetched correctly", func() {
 				BeforeEach(func() {
-					fakeRateCalculator.RateLimitReturns(rate.Limit(3), nil)
+					fakeLimiter.WaitReturns(nil)
+					fakeRateCalculator.RateLimiterReturns(fakeLimiter, nil)
 				})
 
 				It("succeeds", func() {
@@ -146,11 +148,28 @@ var _ = Describe("Checker", func() {
 				It("runs all pending checks", func() {
 					Eventually(fakeEngine.NewCheckCallCount).Should(Equal(3))
 				})
+
+				It("rate limits all the checks", func() {
+					Eventually(fakeLimiter.WaitCallCount()).Should(Equal(3))
+				})
+
+				Context("when there is a manually triggered check and the rate limiter is not allowing any checks to run", func() {
+					BeforeEach(func() {
+						fakeCheck1.ManuallyTriggeredReturns(true)
+
+						fakeLimiter.WaitReturns(errors.New("not-allowed"))
+					})
+
+					It("runs the manually triggered check", func() {
+						Eventually(fakeEngine.NewCheckCallCount).Should(Equal(1))
+						Expect(fakeEngine.NewCheckArgsForCall(0).ID()).To(Equal(fakeCheck1.ID()))
+					})
+				})
 			})
 
 			Context("when calculating the rate limit fails", func() {
 				BeforeEach(func() {
-					fakeRateCalculator.RateLimitReturns(0, errors.New("disaster"))
+					fakeRateCalculator.RateLimiterReturns(nil, errors.New("disaster"))
 				})
 
 				It("errors", func() {
@@ -160,7 +179,6 @@ var _ = Describe("Checker", func() {
 		})
 
 		Context("when a check is already running", func() {
-
 			BeforeEach(func() {
 				fakeCheck := new(dbfakes.FakeCheck)
 				fakeCheck.IDReturns(1)
@@ -174,6 +192,9 @@ var _ = Describe("Checker", func() {
 					fakeCheck,
 					fakeCheck,
 				}, nil)
+
+				fakeLimiter.WaitReturns(nil)
+				fakeRateCalculator.RateLimiterReturns(fakeLimiter, nil)
 			})
 
 			It("succeeds", func() {

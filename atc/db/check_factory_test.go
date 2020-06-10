@@ -424,6 +424,73 @@ var _ = Describe("CheckFactory", func() {
 				Expect(checks[0]).To(Equal(check))
 			})
 		})
+
+		Context("when there are manually triggered checks and non manually triggered checks", func() {
+			var nonManuallyTriggeredCheck, manuallyTriggeredCheck db.Check
+
+			BeforeEach(func() {
+				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-base-resource-type",
+							Source: atc.Source{
+								"some": "source",
+							},
+						},
+						{
+							Name: "some-other-resource",
+							Type: "some-base-resource-type",
+							Source: atc.Source{
+								"some": "other-source",
+							},
+						},
+					},
+				}, db.ConfigVersion(1), false)
+				Expect(err).NotTo(HaveOccurred())
+
+				resource, found, err := defaultPipeline.Resource("some-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				otherResource, found, err := defaultPipeline.Resource("some-other-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				resourceConfigScope, err := resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
+				Expect(err).NotTo(HaveOccurred())
+
+				otherResourceConfigScope, err := otherResource.SetResourceConfig(atc.Source{"some": "other-source"}, atc.VersionedResourceTypes{})
+				Expect(err).NotTo(HaveOccurred())
+
+				var created bool
+				nonManuallyTriggeredCheck, created, err = checkFactory.CreateCheck(
+					resourceConfigScope.ID(),
+					false,
+					atc.Plan{},
+					metadata,
+					map[string]string{"fake": "span"},
+				)
+				Expect(created).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				manuallyTriggeredCheck, created, err = checkFactory.CreateCheck(
+					otherResourceConfigScope.ID(),
+					true,
+					atc.Plan{},
+					metadata,
+					map[string]string{"fake": "span"},
+				)
+				Expect(created).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns the manually triggered checks first", func() {
+				Expect(checks).To(HaveLen(2))
+				Expect(checks[0].ID()).To(Equal(manuallyTriggeredCheck.ID()))
+				Expect(checks[1].ID()).To(Equal(nonManuallyTriggeredCheck.ID()))
+			})
+		})
 	})
 
 	Describe("Resources", func() {

@@ -115,7 +115,7 @@ func (c *checkFactory) Check(id int) (Check, bool, error) {
 func (c *checkFactory) StartedChecks() ([]Check, error) {
 	rows, err := checksQuery.
 		Where(sq.Eq{"status": CheckStatusStarted}).
-		OrderBy("c.id").
+		OrderBy("c.manually_triggered DESC, c.id").
 		RunWith(c.conn).
 		Query()
 	if err != nil {

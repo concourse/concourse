@@ -5,77 +5,76 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc/lidar"
-	"golang.org/x/time/rate"
 )
 
 type FakeRateCalculator struct {
-	RateLimitStub        func() (rate.Limit, error)
-	rateLimitMutex       sync.RWMutex
-	rateLimitArgsForCall []struct {
+	RateLimiterStub        func() (lidar.Limiter, error)
+	rateLimiterMutex       sync.RWMutex
+	rateLimiterArgsForCall []struct {
 	}
-	rateLimitReturns struct {
-		result1 rate.Limit
+	rateLimiterReturns struct {
+		result1 lidar.Limiter
 		result2 error
 	}
-	rateLimitReturnsOnCall map[int]struct {
-		result1 rate.Limit
+	rateLimiterReturnsOnCall map[int]struct {
+		result1 lidar.Limiter
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRateCalculator) RateLimit() (rate.Limit, error) {
-	fake.rateLimitMutex.Lock()
-	ret, specificReturn := fake.rateLimitReturnsOnCall[len(fake.rateLimitArgsForCall)]
-	fake.rateLimitArgsForCall = append(fake.rateLimitArgsForCall, struct {
+func (fake *FakeRateCalculator) RateLimiter() (lidar.Limiter, error) {
+	fake.rateLimiterMutex.Lock()
+	ret, specificReturn := fake.rateLimiterReturnsOnCall[len(fake.rateLimiterArgsForCall)]
+	fake.rateLimiterArgsForCall = append(fake.rateLimiterArgsForCall, struct {
 	}{})
-	fake.recordInvocation("RateLimit", []interface{}{})
-	fake.rateLimitMutex.Unlock()
-	if fake.RateLimitStub != nil {
-		return fake.RateLimitStub()
+	fake.recordInvocation("RateLimiter", []interface{}{})
+	fake.rateLimiterMutex.Unlock()
+	if fake.RateLimiterStub != nil {
+		return fake.RateLimiterStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.rateLimitReturns
+	fakeReturns := fake.rateLimiterReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeRateCalculator) RateLimitCallCount() int {
-	fake.rateLimitMutex.RLock()
-	defer fake.rateLimitMutex.RUnlock()
-	return len(fake.rateLimitArgsForCall)
+func (fake *FakeRateCalculator) RateLimiterCallCount() int {
+	fake.rateLimiterMutex.RLock()
+	defer fake.rateLimiterMutex.RUnlock()
+	return len(fake.rateLimiterArgsForCall)
 }
 
-func (fake *FakeRateCalculator) RateLimitCalls(stub func() (rate.Limit, error)) {
-	fake.rateLimitMutex.Lock()
-	defer fake.rateLimitMutex.Unlock()
-	fake.RateLimitStub = stub
+func (fake *FakeRateCalculator) RateLimiterCalls(stub func() (lidar.Limiter, error)) {
+	fake.rateLimiterMutex.Lock()
+	defer fake.rateLimiterMutex.Unlock()
+	fake.RateLimiterStub = stub
 }
 
-func (fake *FakeRateCalculator) RateLimitReturns(result1 rate.Limit, result2 error) {
-	fake.rateLimitMutex.Lock()
-	defer fake.rateLimitMutex.Unlock()
-	fake.RateLimitStub = nil
-	fake.rateLimitReturns = struct {
-		result1 rate.Limit
+func (fake *FakeRateCalculator) RateLimiterReturns(result1 lidar.Limiter, result2 error) {
+	fake.rateLimiterMutex.Lock()
+	defer fake.rateLimiterMutex.Unlock()
+	fake.RateLimiterStub = nil
+	fake.rateLimiterReturns = struct {
+		result1 lidar.Limiter
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeRateCalculator) RateLimitReturnsOnCall(i int, result1 rate.Limit, result2 error) {
-	fake.rateLimitMutex.Lock()
-	defer fake.rateLimitMutex.Unlock()
-	fake.RateLimitStub = nil
-	if fake.rateLimitReturnsOnCall == nil {
-		fake.rateLimitReturnsOnCall = make(map[int]struct {
-			result1 rate.Limit
+func (fake *FakeRateCalculator) RateLimiterReturnsOnCall(i int, result1 lidar.Limiter, result2 error) {
+	fake.rateLimiterMutex.Lock()
+	defer fake.rateLimiterMutex.Unlock()
+	fake.RateLimiterStub = nil
+	if fake.rateLimiterReturnsOnCall == nil {
+		fake.rateLimiterReturnsOnCall = make(map[int]struct {
+			result1 lidar.Limiter
 			result2 error
 		})
 	}
-	fake.rateLimitReturnsOnCall[i] = struct {
-		result1 rate.Limit
+	fake.rateLimiterReturnsOnCall[i] = struct {
+		result1 lidar.Limiter
 		result2 error
 	}{result1, result2}
 }
@@ -83,8 +82,8 @@ func (fake *FakeRateCalculator) RateLimitReturnsOnCall(i int, result1 rate.Limit
 func (fake *FakeRateCalculator) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.rateLimitMutex.RLock()
-	defer fake.rateLimitMutex.RUnlock()
+	fake.rateLimiterMutex.RLock()
+	defer fake.rateLimiterMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

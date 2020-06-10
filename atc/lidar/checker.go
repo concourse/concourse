@@ -11,13 +11,12 @@ import (
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/tracing"
-	"golang.org/x/time/rate"
 )
 
 //go:generate counterfeiter . RateCalculator
 
 type RateCalculator interface {
-	RateLimit() (rate.Limit, error)
+	RateLimiter() (Limiter, error)
 }
 
 func NewChecker(
@@ -61,19 +60,19 @@ func (c *checker) Run(ctx context.Context) error {
 		return nil
 	}
 
-	rateLimit, err := c.checkRateCalculator.RateLimit()
+	limiter, err := c.checkRateCalculator.RateLimiter()
 	if err != nil {
 		return err
 	}
 
-	limiter := rate.NewLimiter(rateLimit, 1)
-
 	for _, ck := range checks {
 		if _, exists := c.running.LoadOrStore(ck.ID(), true); !exists {
-			err := limiter.Wait(ctx)
-			if err != nil {
-				c.logger.Error("failed-to-wait-for-limiter", err)
-				continue
+			if !ck.ManuallyTriggered() {
+				err := limiter.Wait(ctx)
+				if err != nil {
+					c.logger.Error("failed-to-wait-for-limiter", err)
+					continue
+				}
 			}
 
 			go func(check db.Check) {
