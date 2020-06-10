@@ -97,6 +97,15 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 	fmt.Fprintln(stderr, "\x1b[33mfollow RFC #31 for updates: https://github.com/concourse/rfcs/pull/31\x1b[0m")
 	fmt.Fprintln(stderr, "")
 
+	if step.plan.Name == "self" {
+		fmt.Fprintln(stderr, "\x1b[1;33mWARNING: 'set_pipeline: self' is experimental and subject to change!\x1b[0m")
+		fmt.Fprintln(stderr, "")
+		fmt.Fprintln(stderr, "\x1b[33mcontribute to discussion #5732 with feedback: https://github.com/concourse/concourse/discussions/5732\x1b[0m")
+		fmt.Fprintln(stderr, "")
+
+		step.plan.Name = step.metadata.PipelineName
+	}
+
 	source := setPipelineSource{
 		ctx:    ctx,
 		logger: logger,
