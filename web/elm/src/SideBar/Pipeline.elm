@@ -53,26 +53,26 @@ pipeline session p =
             else
                 Styles.Dim
         }
-    , link =
+    , name =
         { opacity =
             if isCurrent || isHovered then
                 Styles.Bright
 
             else
                 Styles.Dim
-        , rectangle =
-            if isCurrent then
-                Styles.Dark
-
-            else if isHovered then
-                Styles.Light
-
-            else
-                Styles.PipelineInvisible
-        , href =
-            Routes.toString <|
-                Routes.Pipeline { id = pipelineId, groups = [] }
         , text = p.name
-        , domID = SideBarPipeline pipelineId
         }
+    , background =
+        if isCurrent then
+            Styles.Dark
+
+        else if isHovered then
+            Styles.Light
+
+        else
+            Styles.Invisible
+    , href =
+        Routes.toString <|
+            Routes.Pipeline { id = pipelineId, groups = [] }
+    , domID = SideBarPipeline pipelineId
     }

@@ -43,6 +43,7 @@ module Colors exposing
     , sectionHeader
     , sideBar
     , sideBarActive
+    , sideBarHovered
     , started
     , startedFaded
     , statusColor
@@ -296,6 +297,11 @@ sideBar =
 sideBarActive : String
 sideBarActive =
     "#272727"
+
+
+sideBarHovered : String
+sideBarHovered =
+    "#444444"
 
 
 errorLog : String

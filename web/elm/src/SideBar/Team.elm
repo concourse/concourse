@@ -66,14 +66,14 @@ team session t =
 
             else
                 Styles.GreyedOut
-        , rectangle =
-            if isHovered then
-                Styles.GreyWithLightBorder
-
-            else
-                Styles.TeamInvisible
         , domID = SideBarTeam t.name
         }
     , isExpanded = t.isExpanded
     , pipelines = List.map (Pipeline.pipeline session) session.pipelines
+    , background =
+        if isHovered then
+            Styles.Light
+
+        else
+            Styles.Invisible
     }
