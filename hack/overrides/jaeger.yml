@@ -13,7 +13,14 @@ services:
   web:
     environment:
       CONCOURSE_TRACING_JAEGER_COMPONENT: atc
-      CONCOURSE_TRACING_JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      CONCOURSE_TRACING_JAEGER_ENDPOINT: http://oc-agent:14268/api/traces
+
+  oc-agent:
+    image: omnition/opencensus-agent:0.1.11
+    volumes:
+    - ./hack/oc-agent:/etc/config
+    command:
+      - --config=/etc/config/config.yml
 
   jaeger:
     image: jaegertracing/all-in-one:1.14
