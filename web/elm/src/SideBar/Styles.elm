@@ -1,7 +1,6 @@
 module SideBar.Styles exposing
-    ( Opacity(..)
-    , PipelineBackingRectangle(..)
-    , TeamBackingRectangle(..)
+    ( Background(..)
+    , Opacity(..)
     , collapseIcon
     , column
     , hamburgerIcon
@@ -10,7 +9,7 @@ module SideBar.Styles exposing
     , opacityAttr
     , pipeline
     , pipelineIcon
-    , pipelineLink
+    , pipelineName
     , sideBar
     , team
     , teamHeader
@@ -35,7 +34,6 @@ sideBar =
     , style "overflow-y" "auto"
     , style "height" "100%"
     , style "flex-shrink" "0"
-    , style "padding-right" "10px"
     , style "box-sizing" "border-box"
     , style "padding-bottom" "10px"
     , style "-webkit-overflow-scrolling" "touch"
@@ -49,11 +47,12 @@ column =
     ]
 
 
-teamHeader : List (Html.Attribute msg)
-teamHeader =
+teamHeader : { a | background : Background } -> List (Html.Attribute msg)
+teamHeader { background } =
     [ style "display" "flex"
     , style "cursor" "pointer"
     , style "align-items" "center"
+    , backgroundAttr background
     ]
 
 
@@ -114,15 +113,10 @@ collapseIcon { opacity, asset } =
         ]
 
 
-type TeamBackingRectangle
-    = TeamInvisible
-    | GreyWithLightBorder
-
-
 teamName :
-    { a | opacity : Opacity, rectangle : TeamBackingRectangle }
+    { a | opacity : Opacity }
     -> List (Html.Attribute msg)
-teamName { opacity, rectangle } =
+teamName { opacity } =
     [ style "font-size" "14px"
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
@@ -132,28 +126,32 @@ teamName { opacity, rectangle } =
     , style "flex-grow" "1"
     , opacityAttr opacity
     ]
-        ++ (case rectangle of
-                TeamInvisible ->
-                    [ style "border" <| "1px solid " ++ Colors.sideBar
-                    ]
-
-                GreyWithLightBorder ->
-                    [ style "border" "1px solid #525151"
-                    , style "background-color" "#3A3A3A"
-                    ]
-           )
 
 
-type PipelineBackingRectangle
+type Background
     = Dark
     | Light
-    | PipelineInvisible
+    | Invisible
 
 
-pipelineLink :
-    { a | opacity : Opacity, rectangle : PipelineBackingRectangle }
+backgroundAttr : Background -> Html.Attribute msg
+backgroundAttr background =
+    style "background-color" <|
+        case background of
+            Dark ->
+                Colors.sideBarActive
+
+            Light ->
+                Colors.sideBarHovered
+
+            Invisible ->
+                "inherit"
+
+
+pipelineName :
+    { a | opacity : Opacity }
     -> List (Html.Attribute msg)
-pipelineLink { opacity, rectangle } =
+pipelineName { opacity } =
     [ style "font-size" "14px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
@@ -163,20 +161,6 @@ pipelineLink { opacity, rectangle } =
     , style "flex-grow" "1"
     , opacityAttr opacity
     ]
-        ++ (case rectangle of
-                Dark ->
-                    [ style "border" <| "1px solid " ++ Colors.groupBorderSelected
-                    , style "background-color" Colors.sideBarActive
-                    ]
-
-                Light ->
-                    [ style "border" "1px solid #525151"
-                    , style "background-color" "#3A3A3A"
-                    ]
-
-                PipelineInvisible ->
-                    [ style "border" <| "1px solid " ++ Colors.sideBar ]
-           )
 
 
 hamburgerMenu :
@@ -216,10 +200,12 @@ team =
     [ style "padding-top" "5px", style "line-height" "1.2" ] ++ column
 
 
-pipeline : List (Html.Attribute msg)
-pipeline =
+pipeline : { a | background : Background } -> List (Html.Attribute msg)
+pipeline { background } =
     [ style "display" "flex"
     , style "align-items" "center"
+    , style "margin-top" "2px"
+    , backgroundAttr background
     ]
 
 

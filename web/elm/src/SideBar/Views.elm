@@ -19,11 +19,11 @@ type alias Team =
     , name :
         { text : String
         , opacity : Styles.Opacity
-        , rectangle : Styles.TeamBackingRectangle
         , domID : DomID
         }
     , isExpanded : Bool
     , pipelines : List Pipeline
+    , background : Styles.Background
     }
 
 
@@ -32,7 +32,7 @@ viewTeam team =
     Html.div
         Styles.team
         [ Html.div
-            (Styles.teamHeader
+            (Styles.teamHeader team
                 ++ [ onClick <| Click <| SideBarTeam team.name.text
                    , onMouseEnter <| Hover <| Just <| SideBarTeam team.name.text
                    , onMouseLeave <| Hover Nothing
@@ -56,29 +56,30 @@ viewTeam team =
 
 type alias Pipeline =
     { icon : Styles.Opacity
-    , link :
+    , name :
         { opacity : Styles.Opacity
-        , rectangle : Styles.PipelineBackingRectangle
         , text : String
-        , href : String
-        , domID : DomID
         }
+    , background : Styles.Background
+    , href : String
+    , domID : DomID
     }
 
 
 viewPipeline : Pipeline -> Html Message
 viewPipeline p =
-    Html.div Styles.pipeline
+    Html.a
+        (Styles.pipeline p
+            ++ [ href <| p.href
+               , onMouseEnter <| Hover <| Just <| p.domID
+               , onMouseLeave <| Hover Nothing
+               , id <| toHtmlID p.domID
+               ]
+        )
         [ Html.div
             (Styles.pipelineIcon p.icon)
             []
-        , Html.a
-            (Styles.pipelineLink p.link
-                ++ [ href <| p.link.href
-                   , onMouseEnter <| Hover <| Just <| p.link.domID
-                   , onMouseLeave <| Hover Nothing
-                   , id <| toHtmlID p.link.domID
-                   ]
-            )
-            [ Html.text p.link.text ]
+        , Html.div
+            (Styles.pipelineName p.name)
+            [ Html.text p.name.text ]
         ]

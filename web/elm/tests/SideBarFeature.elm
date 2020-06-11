@@ -233,10 +233,6 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItIs275PxWide
-        , test "sidebar has right padding" <|
-            given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheSideBar
-                >> then_ iSeeItHasRightPadding
         , test "sidebar has bottom padding" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
@@ -403,7 +399,7 @@ hasSideBar iAmLookingAtThePage =
         , test "pipeline link is a link to the pipeline" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
-                >> when iAmLookingAtTheFirstPipelineLink
+                >> when iAmLookingAtTheFirstPipeline
                 >> then_ iSeeItIsALinkToTheFirstPipeline
         , test "pipeline link has large font" <|
             given iHaveAnOpenSideBar_
@@ -420,10 +416,10 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
                 >> then_ iSeeItEllipsizesLongText
-        , test "pipeline link will have a valid id" <|
+        , test "pipeline will have a valid id" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
-                >> when iAmLookingAtTheFirstPipelineLink
+                >> when iAmLookingAtTheFirstPipeline
                 >> then_ iSeeItHasAValidPipelineId
         , test "pipeline icon is bright when pipeline link is hovered" <|
             given iHaveAnOpenSideBar_
@@ -432,19 +428,17 @@ hasSideBar iAmLookingAtThePage =
                 >> when iAmLookingAtTheFirstPipelineIcon
                 >> then_ iSeeItIsBright
         , defineHoverBehaviour
-            { name = "pipeline link"
+            { name = "pipeline"
             , setup =
                 iAmViewingTheDashboardOnANonPhoneScreen ()
                     |> iClickedTheHamburgerIcon
                     |> iClickedThePipelineGroup
                     |> Tuple.first
-            , query = (\a -> ( a, [] )) >> iAmLookingAtTheFirstPipelineLink
+            , query = (\a -> ( a, [] )) >> iAmLookingAtTheFirstPipeline
             , unhoveredSelector =
                 { description = "grey"
                 , selector =
-                    [ style "opacity" "0.3"
-                    , style "border" <| "1px solid " ++ Colors.sideBar
-                    ]
+                    [ style "opacity" "0.3" ]
                 }
             , hoverable =
                 Message.SideBarPipeline
@@ -452,11 +446,10 @@ hasSideBar iAmLookingAtThePage =
                     , teamName = "team"
                     }
             , hoveredSelector =
-                { description = "white with grey square highlight"
+                { description = "light background"
                 , selector =
                     [ style "opacity" "1"
-                    , style "border" "1px solid #525151"
-                    , style "background-color" "#3A3A3A"
+                    , style "background-color" Colors.sideBarHovered
                     ]
                 }
             }
@@ -527,19 +520,12 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iClickedTheOtherPipelineGroup
             >> when iAmLookingAtTheOtherTeamName
             >> then_ iSeeItIsBright
-    , test "current pipeline name has a grey border" <|
-        given iAmLookingAtThePage
-            >> given iAmOnANonPhoneScreen
-            >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtTheOtherPipelineName
-            >> then_ iSeeAGreyBorder
     , test "current pipeline name has grey background" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtTheOtherPipelineName
+            >> when iAmLookingAtTheOtherPipeline
             >> then_ iSeeADarkGreyBackground
     , test "current pipeline has bright pipeline icon" <|
         given iAmLookingAtThePage
@@ -553,7 +539,7 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtTheOtherPipelineName
+            >> when iAmLookingAtTheOtherPipeline
             >> then_ iSeeItIsBright
     , test "pipeline with same name on other team has invisible border" <|
         given iAmLookingAtThePage
@@ -562,7 +548,7 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iClickedTheHamburgerIcon
             >> given iClickedThePipelineGroup
             >> when iAmLookingAtThePipelineWithTheSameName
-            >> then_ iSeeAnInvisibleBorder
+            >> then_ iSeeAnInvisibleBackground
     ]
 
 
@@ -1406,12 +1392,10 @@ iAmLookingAtTheOtherTeamIcon =
         >> Query.first
 
 
-iAmLookingAtTheOtherPipelineName =
+iAmLookingAtTheOtherPipeline =
     iAmLookingAtTheOtherPipelineList
         >> Query.children []
         >> Query.first
-        >> Query.children []
-        >> Query.index 1
 
 
 iAmLookingAtTheOtherPipelineIcon =
@@ -1480,12 +1464,8 @@ iNavigateBackToThePipelinePage =
             )
 
 
-iSeeAGreyBorder =
-    Query.has [ style "border" <| "1px solid " ++ Colors.groupBorderSelected ]
-
-
-iSeeAnInvisibleBorder =
-    Query.has [ style "border" <| "1px solid " ++ Colors.sideBar ]
+iSeeAnInvisibleBackground =
+    Query.has [ style "background-color" "inherit" ]
 
 
 iAmLookingAtThePipelineWithTheSameName =
