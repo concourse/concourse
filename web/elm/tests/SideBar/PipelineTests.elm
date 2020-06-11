@@ -22,12 +22,11 @@ all =
     describe "sidebar pipeline"
         [ describe "when active"
             [ describe "when hovered"
-                [ test "pipeline name background is dark with bright border" <|
+                [ test "pipeline background is dark with bright border" <|
                     \_ ->
                         pipeline
                             |> viewPipeline { active = True, hovered = True }
-                            |> .link
-                            |> .rectangle
+                            |> .background
                             |> Expect.equal Styles.Dark
                 , test "pipeline icon is bright" <|
                     \_ ->
@@ -40,12 +39,11 @@ all =
                                 }
                 ]
             , describe "when unhovered"
-                [ test "pipeline name background is dark with bright border" <|
+                [ test "pipeline background is dark" <|
                     \_ ->
                         pipeline
                             |> viewPipeline { active = True, hovered = False }
-                            |> .link
-                            |> .rectangle
+                            |> .background
                             |> Expect.equal Styles.Dark
                 , test "pipeline icon is bright" <|
                     \_ ->
@@ -60,12 +58,11 @@ all =
             ]
         , describe "when inactive"
             [ describe "when hovered"
-                [ test "pipeline name background is bright" <|
+                [ test "pipeline background is light" <|
                     \_ ->
                         pipeline
                             |> viewPipeline { active = False, hovered = True }
-                            |> .link
-                            |> .rectangle
+                            |> .background
                             |> Expect.equal Styles.Light
                 , test "pipeline icon is bright" <|
                     \_ ->
@@ -82,16 +79,15 @@ all =
                     \_ ->
                         pipeline
                             |> viewPipeline { active = False, hovered = False }
-                            |> .link
+                            |> .name
                             |> .opacity
                             |> Expect.equal Styles.Dim
-                , test "pipeline name has invisible border" <|
+                , test "pipeline has no background" <|
                     \_ ->
                         pipeline
                             |> viewPipeline { active = False, hovered = False }
-                            |> .link
-                            |> .rectangle
-                            |> Expect.equal Styles.PipelineInvisible
+                            |> .background
+                            |> Expect.equal Styles.Invisible
                 , test "pipeline icon is dim" <|
                     \_ ->
                         pipeline

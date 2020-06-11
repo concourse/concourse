@@ -40,16 +40,15 @@ all =
                                 |> .name
                                 |> .opacity
                                 |> Expect.equal Styles.Bright
-                    , test "team name has light rectangle" <|
+                    , test "team has a light background" <|
                         \_ ->
                             team
                                 { active = True
                                 , expanded = True
                                 , hovered = True
                                 }
-                                |> .name
-                                |> .rectangle
-                                |> Expect.equal Styles.GreyWithLightBorder
+                                |> .background
+                                |> Expect.equal Styles.Light
                     , test "team icon is bright" <|
                         \_ ->
                             team
