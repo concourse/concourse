@@ -146,16 +146,16 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 	// Starts a goroutine whose purpose is to listen to the
 	// SIGHUP syscall and reload configuration upon receiving the signal.
- 	// For now it only reloads the TSACommand.AuthorizedKeys but
+	// For now it only reloads the TSACommand.AuthorizedKeys but
 	// other configuration can potentially be added.
 	go func() {
 		reloadWorkerKeys := make(chan os.Signal, 1)
-		defer close(c)
-		signal.Notify(c, syscall.SIGHUP)
+		defer close(reloadWorkerKeys)
+		signal.Notify(reloadWorkerKeys, syscall.SIGHUP)
 		for {
 
 			// Block until a signal is received.
-			<-c
+			<-reloadWorkerKeys
 
 			logger.Info("reloading-config")
 
