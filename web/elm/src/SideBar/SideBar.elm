@@ -1,6 +1,5 @@
 module SideBar.SideBar exposing
     ( Model
-    , ViewOption(..)
     , hamburgerMenu
     , handleCallback
     , handleDelivery
@@ -15,7 +14,7 @@ import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (id)
+import Html.Attributes exposing (href, id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
@@ -23,18 +22,16 @@ import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
+import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
 import SideBar.Styles as Styles
 import SideBar.Team as Team
+import SideBar.ViewOption as ViewOption
+import SideBar.ViewOptionType exposing (ViewOption(..), viewOptions)
 import SideBar.Views as Views
 import Tooltip
 import Views.Icon as Icon
-
-
-type ViewOption
-    = ViewNonArchivedPipelines
-    | ViewArchivedPipelines
 
 
 type alias Model m =
@@ -72,6 +69,11 @@ update message model =
                     else
                         Set.insert teamName model.expandedTeams
               }
+            , []
+            )
+
+        Click (SideBarViewOption viewOption) ->
+            ( { model | viewOption = viewOption }
             , []
             )
 
@@ -149,25 +151,58 @@ view model currentPipeline =
     then
         Html.div
             (id "side-bar" :: Styles.sideBar)
-            (model.pipelines
-                |> RemoteData.withDefault []
-                |> List.Extra.gatherEqualsBy .teamName
-                |> List.map
-                    (\( p, ps ) ->
-                        Team.team
-                            { hovered = model.hovered
-                            , pipelines = p :: ps
-                            , currentPipeline = currentPipeline
-                            }
-                            { name = p.teamName
-                            , isExpanded = Set.member p.teamName model.expandedTeams
-                            }
-                            |> Views.viewTeam
-                    )
+            (viewSelector model
+                :: Styles.separator
+                :: viewOptionTitle model.viewOption
+                :: (model.pipelines
+                        |> RemoteData.withDefault []
+                        |> List.Extra.gatherEqualsBy .teamName
+                        |> List.map
+                            (\( p, ps ) ->
+                                Team.team
+                                    { hovered = model.hovered
+                                    , pipelines = p :: ps
+                                    , currentPipeline = currentPipeline
+                                    }
+                                    { name = p.teamName
+                                    , isExpanded = Set.member p.teamName model.expandedTeams
+                                    }
+                                    |> Views.viewTeam
+                            )
+                   )
             )
 
     else
         Html.text ""
+
+
+viewSelector : Model m -> Html Message
+viewSelector model =
+    Html.div
+        (id "view-selector" :: Styles.viewSelector)
+        ([ Html.div Styles.viewSelectorTitle [ Html.text "Select View" ] ]
+            ++ (viewOptions
+                    |> List.map
+                        (\v ->
+                            ViewOption.viewOption model v
+                                |> Views.viewOption
+                        )
+               )
+        )
+
+
+viewOptionTitle : ViewOption -> Html Message
+viewOptionTitle v =
+    Html.div
+        (id "view-option-title" :: Styles.viewOptionTitle)
+        [ Html.text <|
+            case v of
+                ViewNonArchivedPipelines ->
+                    "Active/Paused Pipelines"
+
+                ViewArchivedPipelines ->
+                    "Archived Pipelines"
+        ]
 
 
 tooltip : Model m -> Maybe Tooltip.Tooltip

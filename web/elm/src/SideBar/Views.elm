@@ -1,9 +1,9 @@
-module SideBar.Views exposing (Pipeline, Team, viewTeam)
+module SideBar.Views exposing (Pipeline, Team, ViewOption, viewOption, viewTeam)
 
 import Assets
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
-import Html.Attributes exposing (href, id)
+import Html.Attributes exposing (class, href, id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
@@ -30,7 +30,7 @@ type alias Team =
 viewTeam : Team -> Html Message
 viewTeam team =
     Html.div
-        Styles.team
+        (class "side-bar-team" :: Styles.team)
         [ Html.div
             (Styles.teamHeader team
                 ++ [ onClick <| Click <| SideBarTeam team.name.text
@@ -82,4 +82,39 @@ viewPipeline p =
         , Html.div
             (Styles.pipelineName p.name)
             [ Html.text p.name.text ]
+        ]
+
+
+type alias ViewOption =
+    { icon :
+        { opacity : Styles.Opacity
+        , asset : Assets.Asset
+        }
+    , name :
+        { opacity : Styles.Opacity
+        , text : String
+        }
+    , background : Styles.Background
+    , domID : DomID
+    }
+
+
+viewOption : ViewOption -> Html Message
+viewOption v =
+    Html.div
+        ((class "side-bar-view-option" :: Styles.viewOption v)
+            ++ [ onMouseEnter <| Hover <| Just <| v.domID
+               , onMouseLeave <| Hover Nothing
+               , onClick <| Click <| v.domID
+               , id <| toHtmlID v.domID
+               ]
+        )
+        [ Styles.viewOptionIcon v.icon
+        , Html.span
+            (Styles.viewOptionName v.name)
+            [ Html.text v.name.text ]
+        , Html.span
+            Styles.viewOptionBadge
+            -- TODO
+            [ Html.text "123" ]
         ]

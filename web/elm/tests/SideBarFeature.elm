@@ -27,6 +27,7 @@ import Message.Message as Message
 import Message.Subscription as Subscription
 import Message.TopLevelMessage as TopLevelMessage
 import Routes
+import SideBar.ViewOptionType exposing (ViewOption(..), viewOptions)
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -242,6 +243,63 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedTheHamburgerIcon
                 >> when iAmLookingAtThePageBelowTheTopBar
                 >> then_ iSeeNoSideBar
+        ]
+    , describe "view selector" <|
+        [ test "sidebar has a view selector" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeAViewSelector
+        , test "has a title" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheViewSelector
+                >> then_ iSeeATitle
+        , test "has the correct number of view options" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheViewSelector
+                >> then_ iSeeTheCorrectNumberOfViewOptions
+        , test "view option has an icon" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheFirstViewOption
+                >> then_ iSeeAPipelineIcon
+        , test "view option has a name" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheFirstViewOption
+                >> then_ iSeeItsName
+        , test "sidebar has a view option title" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeTheViewOptionTitle
+        , defineHoverBehaviour
+            { name = "view option"
+            , setup = iHaveAnOpenSideBar_ () |> Tuple.first
+            , query = (\a -> ( a, [] )) >> iAmLookingAtTheSecondViewOption
+            , unhoveredSelector =
+                { description = "grey"
+                , selector =
+                    [ style "opacity" "0.3" ]
+                }
+            , hoverable = Message.SideBarViewOption ViewArchivedPipelines
+            , hoveredSelector =
+                { description = "light background"
+                , selector =
+                    [ style "opacity" "1"
+                    , style "background-color" Colors.sideBarHovered
+                    ]
+                }
+            }
+        , test "first view option is active" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheFirstViewOption
+                >> then_ iSeeItIsActive
+        , test "view option is clickable" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheFirstViewOption
+                >> then_ (itIsClickable <| Message.SideBarViewOption ViewNonArchivedPipelines)
+        , test "clicking a view option makes it active" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedTheSecondViewOption
+                >> when iAmLookingAtTheSecondViewOption
+                >> then_ iSeeItIsActive
         ]
     , describe "teams list" <|
         let
@@ -467,7 +525,7 @@ hasSideBar iAmLookingAtThePage =
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
                 >> given iClickedTheHamburgerIcon
                 >> when iAmLookingAtTheSideBar
-                >> then_ iSeeTwoChildren
+                >> then_ iSeeTwoTeams
         , test "sidebar has text content of second team's name" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
@@ -804,6 +862,19 @@ iSeeTwoChildren =
     Query.children [] >> Query.count (Expect.equal 2)
 
 
+iSeeTheCorrectNumberOfViewOptions =
+    Query.children [ class "side-bar-view-option" ]
+        >> Query.count (Expect.equal (List.length viewOptions))
+
+
+iSeeTheViewOptionTitle =
+    Query.has [ id "view-option-title" ]
+
+
+iSeeTwoTeams =
+    Query.children [ class "side-bar-team" ] >> Query.count (Expect.equal 2)
+
+
 iAmLookingAtThePageBelowTheTopBar =
     Tuple.first
         >> Common.queryView
@@ -860,6 +931,10 @@ iSeeItIsAsWideAsTheHamburgerIcon =
 
 iAmLookingAtTheTeamIcon =
     iAmLookingAtTheTeamHeader >> Query.children [] >> Query.index 1
+
+
+iSeeATitle =
+    Query.has [ text "Select View" ]
 
 
 iSeeAPictureOfTwoPeople =
@@ -953,6 +1028,12 @@ iClickedThePipelineGroup =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <| Message.Click <| Message.SideBarTeam "team")
+
+
+iClickedTheSecondViewOption =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <| Message.Click <| Message.SideBarViewOption ViewArchivedPipelines)
 
 
 iSeeAMinusIcon =
@@ -1083,11 +1164,6 @@ iSeeAPipelineIcon =
         [ style "background-image" <|
             Assets.backgroundImage <|
                 Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
-        , style "background-repeat" "no-repeat"
-        , style "height" "18px"
-        , style "width" "18px"
-        , style "background-size" "contain"
-        , style "background-position" "center"
         ]
 
 
@@ -1273,6 +1349,34 @@ myBrowserFailsToFetchPipelines =
 
 iSeeSomeChildren =
     Query.children [] >> Query.count (Expect.greaterThan 0)
+
+
+iSeeAViewSelector =
+    Query.has [ id "view-selector" ]
+
+
+iSeeItsName =
+    Query.has [ text "Active/Paused" ]
+
+
+iSeeItIsActive =
+    Query.has [ style "background-color" "#272727" ]
+
+
+iAmLookingAtTheViewSelector =
+    iAmLookingAtTheSideBar >> Query.find [ id "view-selector" ]
+
+
+iAmLookingAtTheFirstViewOption =
+    iAmLookingAtTheViewSelector
+        >> Query.children [ class "side-bar-view-option" ]
+        >> Query.first
+
+
+iAmLookingAtTheSecondViewOption =
+    iAmLookingAtTheViewSelector
+        >> Query.children [ class "side-bar-view-option" ]
+        >> Query.index 1
 
 
 iAmLookingAtThePipelineGroup =

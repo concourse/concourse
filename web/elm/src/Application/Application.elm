@@ -32,6 +32,7 @@ import Routes
 import ScreenSize
 import Set
 import SideBar.SideBar as SideBar
+import SideBar.ViewOptionType exposing (ViewOption(..))
 import SubPage.SubPage as SubPage
 import Time
 import Tooltip
@@ -75,7 +76,7 @@ init flags url =
             , expandedTeams = Set.empty
             , pipelines = RemoteData.NotAsked
             , isSideBarOpen = False
-            , viewOption = SideBar.ViewNonArchivedPipelines
+            , viewOption = ViewNonArchivedPipelines
             , screenSize = ScreenSize.Desktop
             , timeZone = Time.utc
             }

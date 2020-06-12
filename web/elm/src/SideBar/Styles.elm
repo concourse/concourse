@@ -10,6 +10,7 @@ module SideBar.Styles exposing
     , pipeline
     , pipelineIcon
     , pipelineName
+    , separator
     , sideBar
     , team
     , teamHeader
@@ -17,6 +18,13 @@ module SideBar.Styles exposing
     , teamName
     , tooltip
     , tooltipBody
+    , viewOption
+    , viewOptionBadge
+    , viewOptionIcon
+    , viewOptionName
+    , viewOptionTitle
+    , viewSelector
+    , viewSelectorTitle
     )
 
 import Assets
@@ -197,7 +205,10 @@ hamburgerIcon { isHovered, isActive } =
 
 team : List (Html.Attribute msg)
 team =
-    [ style "padding-top" "5px", style "line-height" "1.2" ] ++ column
+    [ style "padding-top" "5px"
+    , style "line-height" "1.2"
+    ]
+        ++ column
 
 
 pipeline : { a | background : Background } -> List (Html.Attribute msg)
@@ -242,3 +253,75 @@ tooltipBody =
     , style "align-items" "center"
     , style "height" "30px"
     ]
+
+
+viewSelector : List (Html.Attribute msg)
+viewSelector =
+    [ style "display" "flex"
+    , style "flex-direction" "column"
+    ]
+
+
+viewSelectorTitle : List (Html.Attribute msg)
+viewSelectorTitle =
+    [ style "margin" "10px 0 5px 12px"
+    , style "text-transform" "lowercase"
+    ]
+
+
+viewOptionTitle : List (Html.Attribute msg)
+viewOptionTitle =
+    [ style "margin" "10px 0 0 12px"
+    , style "text-transform" "lowercase"
+    ]
+
+
+viewOption : { a | background : Background } -> List (Html.Attribute msg)
+viewOption { background } =
+    [ style "padding-left" "28px"
+    , style "padding-right" "10px"
+    , style "display" "flex"
+    , style "justify-content" "space-between"
+    , style "align-items" "center"
+    , style "cursor" "pointer"
+    , backgroundAttr background
+    ]
+
+
+viewOptionIcon : { asset : Assets.Asset, opacity : Opacity } -> Html.Html msg
+viewOptionIcon { asset, opacity } =
+    Icon.icon
+        { sizePx = 18
+        , image = asset
+        }
+        [ style "background-size" "contain"
+        , opacityAttr opacity
+        ]
+
+
+viewOptionName : { a | opacity : Opacity } -> List (Html.Attribute msg)
+viewOptionName { opacity } =
+    [ style "font-size" "14px"
+    , style "padding" "5px 2.5px"
+    , style "margin-left" "5px"
+    , style "text-transform" "lowercase"
+    , style "flex-grow" "1"
+    , opacityAttr opacity
+    ]
+
+
+viewOptionBadge : List (Html.Attribute msg)
+viewOptionBadge =
+    [ style "padding" "1px 5px"
+    , style "background-color" "#1E1D1D"
+    , style "border-radius" "6px"
+    ]
+
+
+separator : Html.Html msg
+separator =
+    Html.div
+        [ style "border-bottom" "1px solid black"
+        , style "margin" "5px 0"
+        ]
+        []

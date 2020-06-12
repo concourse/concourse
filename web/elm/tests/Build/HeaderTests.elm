@@ -20,7 +20,7 @@ import Message.Subscription as Subscription
 import RemoteData
 import ScreenSize
 import Set
-import SideBar.SideBar as SideBar
+import SideBar.ViewOptionType exposing (ViewOption(..))
 import Test exposing (Test, describe, test)
 import Time
 import UserState
@@ -350,7 +350,7 @@ session =
     , pipelines = RemoteData.NotAsked
     , hovered = HoverState.NoHover
     , isSideBarOpen = False
-    , viewOption = SideBar.ViewNonArchivedPipelines
+    , viewOption = ViewNonArchivedPipelines
     , screenSize = ScreenSize.Desktop
     , userState = UserState.UserStateLoggedOut
     , clusterName = ""

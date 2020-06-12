@@ -11,6 +11,7 @@ import RemoteData
 import ScreenSize
 import Set
 import SideBar.SideBar as SideBar
+import SideBar.ViewOptionType exposing (ViewOption(..))
 import Test exposing (Test, describe, test)
 
 
@@ -43,7 +44,7 @@ model =
             [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
     , hovered = HoverState.NoHover
     , isSideBarOpen = True
-    , viewOption = SideBar.ViewNonArchivedPipelines
+    , viewOption = ViewNonArchivedPipelines
     , screenSize = ScreenSize.Desktop
     }
 

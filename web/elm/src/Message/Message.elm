@@ -10,6 +10,7 @@ import Concourse
 import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page)
 import Routes exposing (StepID)
+import SideBar.ViewOptionType exposing (ViewOption)
 import StrictEvents
 
 
@@ -84,6 +85,7 @@ type DomID
     | HamburgerMenu
     | SideBarTeam String
     | SideBarPipeline Concourse.PipelineIdentifier
+    | SideBarViewOption ViewOption
     | Dashboard
     | DashboardGroup String
 

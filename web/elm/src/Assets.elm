@@ -23,6 +23,7 @@ type Asset
     | PinIconGrey
     | CheckmarkIcon
     | BreadcrumbIcon ComponentType
+    | ArchivedPipelineIcon
     | PassportOfficerIcon
     | ConcourseLogoWhite
     | CircleOutlineIcon CircleOutlineIcon
@@ -173,6 +174,9 @@ toPath asset =
                             "resource"
             in
             basePath ++ [ "ic-breadcrumb-" ++ imageName ++ ".svg" ]
+
+        ArchivedPipelineIcon ->
+            basePath ++ [ "ic-archived-pipeline.svg" ]
 
         PassportOfficerIcon ->
             basePath ++ [ "passport-officer-ic.svg" ]
