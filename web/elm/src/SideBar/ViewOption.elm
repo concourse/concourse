@@ -1,8 +1,10 @@
-module SideBar.ViewOption exposing (viewOption)
+module SideBar.ViewOption exposing (filterFn, viewOption)
 
 import Assets
+import Concourse
 import HoverState
 import Message.Message exposing (DomID(..), Message(..))
+import RemoteData exposing (WebData)
 import Routes
 import SideBar.Styles as Styles
 import SideBar.ViewOptionType exposing (ViewOption(..))
@@ -13,6 +15,7 @@ viewOption :
     { a
         | hovered : HoverState.HoverState
         , viewOption : ViewOption
+        , pipelines : WebData (List Concourse.Pipeline)
     }
     -> ViewOption
     -> Views.ViewOption
@@ -52,6 +55,11 @@ viewOption session v =
         else
             Styles.Invisible
     , domID = SideBarViewOption v
+    , numPipelines =
+        session.pipelines
+            |> RemoteData.withDefault []
+            |> List.filter (filterFn v)
+            |> List.length
     }
 
 
@@ -73,3 +81,13 @@ title v =
 
         ViewArchivedPipelines ->
             "Archived"
+
+
+filterFn : ViewOption -> Concourse.Pipeline -> Bool
+filterFn v =
+    case v of
+        ViewNonArchivedPipelines ->
+            not << .archived
+
+        ViewArchivedPipelines ->
+            .archived

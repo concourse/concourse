@@ -95,6 +95,7 @@ type alias ViewOption =
         , text : String
         }
     , background : Styles.Background
+    , numPipelines : Int
     , domID : DomID
     }
 
@@ -115,6 +116,5 @@ viewOption v =
             [ Html.text v.name.text ]
         , Html.span
             Styles.viewOptionBadge
-            -- TODO
-            [ Html.text "123" ]
+            [ Html.text <| String.fromInt v.numPipelines ]
         ]

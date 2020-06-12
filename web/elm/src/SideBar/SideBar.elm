@@ -156,6 +156,7 @@ view model currentPipeline =
                 :: viewOptionTitle model.viewOption
                 :: (model.pipelines
                         |> RemoteData.withDefault []
+                        |> List.filter (ViewOption.filterFn model.viewOption)
                         |> List.Extra.gatherEqualsBy .teamName
                         |> List.map
                             (\( p, ps ) ->

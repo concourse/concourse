@@ -300,6 +300,16 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedTheSecondViewOption
                 >> when iAmLookingAtTheSecondViewOption
                 >> then_ iSeeItIsActive
+        , test "filters out archived pipelines by default" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedPipelinesIncludingArchived
+                >> given iClickedThePipelineGroup
+                >> when iAmLookingAtTheTeam
+                >> then_ iDontSeeTheArchivedPipeline
+        , test "view option has a badge containing the number of pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheFirstViewOption
+                >> then_ iSeeTheNumberOfPipelines
         ]
     , describe "teams list" <|
         let
@@ -1327,6 +1337,24 @@ myBrowserFetchedPipelines =
             )
 
 
+iSeeTheNumberOfPipelines =
+    Query.has [ text "2" ]
+
+
+myBrowserFetchedPipelinesIncludingArchived =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok
+                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
+                    , Data.pipeline "team" 2
+                        |> Data.withName "archived-pipeline"
+                        |> Data.withArchived True
+                    ]
+            )
+
+
 itIsNotClickable =
     Expect.all
         [ Query.has [ style "cursor" "default" ]
@@ -1349,6 +1377,10 @@ myBrowserFailsToFetchPipelines =
 
 iSeeSomeChildren =
     Query.children [] >> Query.count (Expect.greaterThan 0)
+
+
+iDontSeeTheArchivedPipeline =
+    Query.hasNot [ text "archived-pipeline" ]
 
 
 iSeeAViewSelector =

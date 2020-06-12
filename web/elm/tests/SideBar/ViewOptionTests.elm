@@ -112,6 +112,40 @@ all =
                         |> .asset
                         |> Expect.equal Assets.ArchivedPipelineIcon
             ]
+        , describe "filtering"
+            [ test "ViewNonArchivedPipelines" <|
+                \_ ->
+                    viewOptionWithPipelines
+                        [ Data.pipeline "team" 0
+                        , Data.pipeline "team" 1
+                        , Data.pipeline "team" 2
+                        , Data.pipeline "team" 3 |> Data.withArchived True
+                        , Data.pipeline "other-team" 4
+                        , Data.pipeline "other-team" 5 |> Data.withArchived True
+                        ]
+                        { active = False
+                        , hovered = False
+                        , v = ViewNonArchivedPipelines
+                        }
+                        |> .numPipelines
+                        |> Expect.equal 4
+            , test "ViewArchivedPipelines" <|
+                \_ ->
+                    viewOptionWithPipelines
+                        [ Data.pipeline "team" 0
+                        , Data.pipeline "team" 1
+                        , Data.pipeline "team" 2
+                        , Data.pipeline "team" 3 |> Data.withArchived True
+                        , Data.pipeline "other-team" 4
+                        , Data.pipeline "other-team" 5 |> Data.withArchived True
+                        ]
+                        { active = False
+                        , hovered = False
+                        , v = ViewArchivedPipelines
+                        }
+                        |> .numPipelines
+                        |> Expect.equal 2
+            ]
         ]
 
 
