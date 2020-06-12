@@ -37,6 +37,7 @@ import Resource.Resource as Resource
 import Routes
 import ScreenSize
 import Set
+import SideBar.SideBar as SideBar
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -3897,6 +3898,7 @@ session =
     , expandedTeams = Set.empty
     , pipelines = RemoteData.NotAsked
     , isSideBarOpen = False
+    , viewOption = SideBar.ViewNonArchivedPipelines
     , screenSize = ScreenSize.Desktop
     , timeZone = Time.utc
     }

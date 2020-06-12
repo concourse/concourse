@@ -1,5 +1,6 @@
 module SideBar.SideBar exposing
     ( Model
+    , ViewOption(..)
     , hamburgerMenu
     , handleCallback
     , handleDelivery
@@ -31,11 +32,17 @@ import Tooltip
 import Views.Icon as Icon
 
 
+type ViewOption
+    = ViewNonArchivedPipelines
+    | ViewArchivedPipelines
+
+
 type alias Model m =
     Tooltip.Model
         { m
             | expandedTeams : Set String
             , pipelines : WebData (List Concourse.Pipeline)
+            , viewOption : ViewOption
             , isSideBarOpen : Bool
             , screenSize : ScreenSize.ScreenSize
         }

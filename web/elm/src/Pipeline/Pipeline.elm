@@ -413,14 +413,7 @@ view session model =
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
               <|
-                [ SideBar.view
-                    { expandedTeams = session.expandedTeams
-                    , pipelines = session.pipelines
-                    , hovered = session.hovered
-                    , isSideBarOpen = session.isSideBarOpen
-                    , screenSize = session.screenSize
-                    }
-                    (Just model.pipelineLocator)
+                [ SideBar.view session (Just model.pipelineLocator)
                 , viewSubPage session model
                 ]
             ]

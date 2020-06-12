@@ -75,6 +75,7 @@ init flags url =
             , expandedTeams = Set.empty
             , pipelines = RemoteData.NotAsked
             , isSideBarOpen = False
+            , viewOption = SideBar.ViewNonArchivedPipelines
             , screenSize = ScreenSize.Desktop
             , timeZone = Time.utc
             }

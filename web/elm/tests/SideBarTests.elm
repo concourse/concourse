@@ -43,6 +43,7 @@ model =
             [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
     , hovered = HoverState.NoHover
     , isSideBarOpen = True
+    , viewOption = SideBar.ViewNonArchivedPipelines
     , screenSize = ScreenSize.Desktop
     }
 
