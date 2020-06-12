@@ -1,6 +1,7 @@
 module SideBar.Styles exposing
     ( Background(..)
     , Opacity(..)
+    , badge
     , collapseIcon
     , column
     , hamburgerIcon
@@ -19,7 +20,6 @@ module SideBar.Styles exposing
     , tooltip
     , tooltipBody
     , viewOption
-    , viewOptionBadge
     , viewOptionIcon
     , viewOptionName
     , viewOptionTitle
@@ -60,6 +60,7 @@ teamHeader { background } =
     [ style "display" "flex"
     , style "cursor" "pointer"
     , style "align-items" "center"
+    , style "padding-right" "10px"
     , backgroundAttr background
     ]
 
@@ -310,8 +311,8 @@ viewOptionName { opacity } =
     ]
 
 
-viewOptionBadge : List (Html.Attribute msg)
-viewOptionBadge =
+badge : List (Html.Attribute msg)
+badge =
     [ style "padding" "1px 5px"
     , style "background-color" "#1E1D1D"
     , style "border-radius" "6px"

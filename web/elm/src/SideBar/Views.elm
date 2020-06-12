@@ -45,6 +45,9 @@ viewTeam team =
                     ++ [ id <| toHtmlID team.name.domID ]
                 )
                 [ Html.text team.name.text ]
+            , Html.span
+                Styles.badge
+                [ Html.text <| String.fromInt <| List.length team.pipelines ]
             ]
         , if team.isExpanded then
             Html.div Styles.column <| List.map viewPipeline team.pipelines
@@ -115,6 +118,6 @@ viewOption v =
             (Styles.viewOptionName v.name)
             [ Html.text v.name.text ]
         , Html.span
-            Styles.viewOptionBadge
+            Styles.badge
             [ Html.text <| String.fromInt v.numPipelines ]
         ]

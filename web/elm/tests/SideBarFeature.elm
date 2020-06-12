@@ -328,6 +328,10 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamHeader
                 >> then_ iSeeItCentersContents
+        , test "team header has a badge containing the number of pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheTeamHeader
+                >> then_ iSeeTheNumberOfPipelines
         , test "team lays out vertically" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeam
