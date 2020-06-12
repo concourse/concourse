@@ -161,8 +161,9 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		// this 2-phase strategy allows to interpolate 'vars' by cred variables.
 		if len(step.plan.Vars) > 0 {
 			taskConfigSource = InterpolateTemplateConfigSource{
-				ConfigSource: taskConfigSource,
-				Vars:         []vars.Variables{vars.StaticVariables(step.plan.Vars)},
+				ConfigSource:  taskConfigSource,
+				Vars:          []vars.Variables{vars.StaticVariables(step.plan.Vars)},
+				ExpectAllKeys: false,
 			}
 		}
 		taskVars = []vars.Variables{variables}
@@ -178,7 +179,11 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	taskConfigSource = &OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: step.plan.Params}
 
 	// interpolate template vars
-	taskConfigSource = InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: taskVars}
+	taskConfigSource = InterpolateTemplateConfigSource{
+		ConfigSource:  taskConfigSource,
+		Vars:          taskVars,
+		ExpectAllKeys: true,
+	}
 
 	// validate
 	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
