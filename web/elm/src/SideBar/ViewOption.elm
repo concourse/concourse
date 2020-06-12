@@ -5,7 +5,6 @@ import Concourse
 import HoverState
 import Message.Message exposing (DomID(..), Message(..))
 import RemoteData exposing (WebData)
-import Routes
 import SideBar.Styles as Styles
 import SideBar.ViewOptionType exposing (ViewOption(..))
 import SideBar.Views as Views

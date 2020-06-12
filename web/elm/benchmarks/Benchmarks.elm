@@ -43,6 +43,7 @@ import Routes exposing (Highlight)
 import ScreenSize
 import Set
 import SideBar.SideBar as SideBar
+import SideBar.ViewOptionType exposing (ViewOption(..))
 import StrictEvents exposing (onLeftClick, onScroll, onWheel)
 import Time
 import UserState
@@ -138,13 +139,7 @@ buildView session model =
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-            [ SideBar.view
-                { expandedTeams = session.expandedTeams
-                , pipelines = session.pipelines
-                , hovered = session.hovered
-                , isSideBarOpen = session.isSideBarOpen
-                , screenSize = session.screenSize
-                }
+            [ SideBar.view session
                 (currentJob model
                     |> Maybe.map
                         (\j ->
@@ -689,6 +684,7 @@ sampleSession =
     , expandedTeams = Set.empty
     , hovered = HoverState.NoHover
     , isSideBarOpen = False
+    , viewOption = ViewNonArchivedPipelines
     , notFoundImgSrc = ""
     , pipelineRunningKeyframes = ""
     , pipelines = RemoteData.NotAsked
