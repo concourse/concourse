@@ -246,6 +246,10 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItHasBottomPadding
+        , test "sidebar has a resize handle" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasAResizeHandle
         , test "toggles away" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -479,7 +483,7 @@ hasSideBar iAmLookingAtThePage =
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
                 >> given iClickedTheHamburgerIcon
                 >> when iAmLookingAtTheSideBar
-                >> then_ iSeeTwoChildren
+                >> then_ iSeeTwoTeams
         , test "sidebar has text content of second team's name" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
@@ -823,6 +827,10 @@ iSeeTwoChildren =
     Query.children [] >> Query.count (Expect.equal 2)
 
 
+iSeeTwoTeams =
+    Query.children [ class "side-bar-team" ] >> Query.count (Expect.equal 2)
+
+
 iAmLookingAtThePageBelowTheTopBar =
     Tuple.first
         >> Common.queryView
@@ -970,6 +978,10 @@ iSeeItHasRightPadding =
 
 iSeeItHasBottomPadding =
     Query.has [ style "padding-bottom" "10px" ]
+
+
+iSeeItHasAResizeHandle =
+    Query.has [ style "cursor" "ew-resize" ]
 
 
 iClickedThePipelineGroup =

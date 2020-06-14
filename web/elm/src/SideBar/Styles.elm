@@ -13,6 +13,7 @@ module SideBar.Styles exposing
     , pipelineIcon
     , pipelineLink
     , sideBar
+    , sideBarHandle
     , team
     , teamHeader
     , teamIcon
@@ -40,6 +41,19 @@ sideBar { width } =
     , style "box-sizing" "border-box"
     , style "padding-bottom" "10px"
     , style "-webkit-overflow-scrolling" "touch"
+    , style "position" "relative"
+    ]
+
+
+sideBarHandle : { r | width : Float } -> List (Html.Attribute msg)
+sideBarHandle { width } =
+    [ style "position" "fixed"
+    , style "width" "10px"
+    , style "height" "100%"
+    , style "top" "0"
+    , style "left" <| String.fromFloat (width - 5) ++ "px"
+    , style "z-index" "2"
+    , style "cursor" "ew-resize"
     ]
 
 

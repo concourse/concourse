@@ -150,7 +150,7 @@ view model currentPipeline =
     then
         Html.div
             (id "side-bar" :: Styles.sideBar model.sideBarState)
-            (model.pipelines
+            ((model.pipelines
                 |> RemoteData.withDefault []
                 |> List.Extra.gatherEqualsBy .teamName
                 |> List.map
@@ -165,6 +165,8 @@ view model currentPipeline =
                             }
                             |> Views.viewTeam
                     )
+             )
+                ++ [ Html.div (Styles.sideBarHandle model.sideBarState) [] ]
             )
 
     else
