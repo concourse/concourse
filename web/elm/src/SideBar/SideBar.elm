@@ -149,7 +149,7 @@ view model currentPipeline =
             && (model.screenSize /= ScreenSize.Mobile)
     then
         Html.div
-            (id "side-bar" :: Styles.sideBar)
+            (id "side-bar" :: Styles.sideBar model.sideBarState)
             (model.pipelines
                 |> RemoteData.withDefault []
                 |> List.Extra.gatherEqualsBy .teamName

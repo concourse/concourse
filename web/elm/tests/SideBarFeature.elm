@@ -149,7 +149,7 @@ hasSideBar iAmLookingAtThePage =
             }
         , test "browser saves sidebar state on click" <|
             when iHaveAnOpenSideBar_
-                >> then_ myBrowserSavesSideBarState { isOpen = True }
+                >> then_ myBrowserSavesSideBarState { isOpen = True, width = 275 }
         , test "background becomes lighter on click" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheHamburgerMenu
@@ -161,7 +161,7 @@ hasSideBar iAmLookingAtThePage =
         , test "browser toggles sidebar state on click" <|
             when iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
-                >> then_ myBrowserSavesSideBarState { isOpen = False }
+                >> then_ myBrowserSavesSideBarState { isOpen = False, width = 275 }
         , test "background toggles back to dark" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -229,10 +229,15 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItScrollsIndependently
-        , test "sidebar is 275px wide" <|
+        , test "sidebar is 275px wide by default" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItIs275PxWide
+        , test "sidebar width is determined by sidebar state" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserReceives400PxWideSideBarState
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItIs400PxWide
         , test "sidebar has right padding" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
@@ -857,6 +862,10 @@ iSeeADividingLineToTheRight =
 
 iSeeItIs275PxWide =
     Query.has [ style "width" "275px", style "box-sizing" "border-box" ]
+
+
+iSeeItIs400PxWide =
+    Query.has [ style "width" "400px" ]
 
 
 iAmLookingAtTheTeam =
@@ -1635,7 +1644,13 @@ myBrowserListensForSideBarStates =
 myBrowserReadSideBarState =
     Tuple.first
         >> Application.handleDelivery
-            (Subscription.SideBarStateReceived (Ok { isOpen = True }))
+            (Subscription.SideBarStateReceived (Ok { isOpen = True, width = 275 }))
+
+
+myBrowserReceives400PxWideSideBarState =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.SideBarStateReceived (Ok { isOpen = True, width = 400 }))
 
 
 myBrowserFetchesSideBarState =

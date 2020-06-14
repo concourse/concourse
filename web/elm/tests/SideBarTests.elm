@@ -44,6 +44,7 @@ model =
     , hovered = HoverState.NoHover
     , sideBarState =
         { isOpen = True
+        , width = 275
         }
     , screenSize = ScreenSize.Desktop
     }

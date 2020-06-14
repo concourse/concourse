@@ -684,6 +684,7 @@ sampleSession =
     , hovered = HoverState.NoHover
     , sideBarState =
         { isOpen = False
+        , width = 275
         }
     , notFoundImgSrc = ""
     , pipelineRunningKeyframes = ""

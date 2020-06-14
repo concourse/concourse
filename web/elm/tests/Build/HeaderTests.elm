@@ -350,6 +350,7 @@ session =
     , hovered = HoverState.NoHover
     , sideBarState =
         { isOpen = False
+        , width = 275
         }
     , screenSize = ScreenSize.Desktop
     , userState = UserState.UserStateLoggedOut

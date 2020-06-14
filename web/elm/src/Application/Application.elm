@@ -76,6 +76,7 @@ init flags url =
             , pipelines = RemoteData.NotAsked
             , sideBarState =
                 { isOpen = False
+                , width = 275
                 }
             , screenSize = ScreenSize.Desktop
             , timeZone = Time.utc
