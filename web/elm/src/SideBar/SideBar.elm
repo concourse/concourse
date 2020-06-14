@@ -24,6 +24,7 @@ import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
 import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
+import SideBar.State exposing (SideBarState)
 import SideBar.Styles as Styles
 import SideBar.Team as Team
 import SideBar.Views as Views
@@ -36,7 +37,7 @@ type alias Model m =
         { m
             | expandedTeams : Set String
             , pipelines : WebData (List Concourse.Pipeline)
-            , isSideBarOpen : Bool
+            , sideBarState : SideBarState
             , screenSize : ScreenSize.ScreenSize
         }
 
@@ -52,8 +53,15 @@ update : Message -> Model m -> ( Model m, List Effects.Effect )
 update message model =
     case message of
         Click HamburgerMenu ->
-            ( { model | isSideBarOpen = not model.isSideBarOpen }
-            , [ Effects.SaveSideBarState <| not model.isSideBarOpen ]
+            let
+                oldState =
+                    model.sideBarState
+
+                newState =
+                    { oldState | isOpen = not oldState.isOpen }
+            in
+            ( { model | sideBarState = newState }
+            , [ Effects.SaveSideBarState newState ]
             )
 
         Click (SideBarTeam teamName) ->
@@ -123,8 +131,8 @@ handleCallback callback currentPipeline ( model, effects ) =
 handleDelivery : Delivery -> ET (Model m)
 handleDelivery delivery ( model, effects ) =
     case delivery of
-        SideBarStateReceived (Ok True) ->
-            ( { model | isSideBarOpen = True }, effects )
+        SideBarStateReceived (Ok state) ->
+            ( { model | sideBarState = state }, effects )
 
         _ ->
             ( model, effects )
@@ -133,7 +141,7 @@ handleDelivery delivery ( model, effects ) =
 view : Model m -> Maybe (PipelineScoped a) -> Html Message
 view model currentPipeline =
     if
-        model.isSideBarOpen
+        model.sideBarState.isOpen
             && not
                 (RemoteData.map List.isEmpty model.pipelines
                     |> RemoteData.withDefault True
@@ -188,7 +196,7 @@ hamburgerMenu :
     { a
         | screenSize : ScreenSize
         , pipelines : WebData (List Concourse.Pipeline)
-        , isSideBarOpen : Bool
+        , sideBarState : SideBarState
         , hovered : HoverState.HoverState
     }
     -> Html Message
@@ -205,7 +213,7 @@ hamburgerMenu model =
         Html.div
             (id "hamburger-menu"
                 :: Styles.hamburgerMenu
-                    { isSideBarOpen = model.isSideBarOpen
+                    { isSideBarOpen = model.sideBarState.isOpen
                     , isClickable = isHamburgerClickable
                     }
                 ++ [ onMouseEnter <| Hover <| Just HamburgerMenu
@@ -225,7 +233,7 @@ hamburgerMenu model =
                     { isHovered =
                         isHamburgerClickable
                             && HoverState.isHovered HamburgerMenu model.hovered
-                    , isActive = model.isSideBarOpen
+                    , isActive = model.sideBarState.isOpen
                     }
                 )
             ]

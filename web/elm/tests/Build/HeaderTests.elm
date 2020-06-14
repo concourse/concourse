@@ -348,7 +348,9 @@ session =
     { expandedTeams = Set.empty
     , pipelines = RemoteData.NotAsked
     , hovered = HoverState.NoHover
-    , isSideBarOpen = False
+    , sideBarState =
+        { isOpen = False
+        }
     , screenSize = ScreenSize.Desktop
     , userState = UserState.UserStateLoggedOut
     , clusterName = ""

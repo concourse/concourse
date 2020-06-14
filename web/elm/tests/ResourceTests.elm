@@ -3896,7 +3896,9 @@ session =
     , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
     , expandedTeams = Set.empty
     , pipelines = RemoteData.NotAsked
-    , isSideBarOpen = False
+    , sideBarState =
+        { isOpen = False
+        }
     , screenSize = ScreenSize.Desktop
     , timeZone = Time.utc
     }

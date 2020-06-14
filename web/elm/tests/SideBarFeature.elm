@@ -149,7 +149,7 @@ hasSideBar iAmLookingAtThePage =
             }
         , test "browser saves sidebar state on click" <|
             when iHaveAnOpenSideBar_
-                >> then_ myBrowserSavesSideBarState True
+                >> then_ myBrowserSavesSideBarState { isOpen = True }
         , test "background becomes lighter on click" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheHamburgerMenu
@@ -161,7 +161,7 @@ hasSideBar iAmLookingAtThePage =
         , test "browser toggles sidebar state on click" <|
             when iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
-                >> then_ myBrowserSavesSideBarState False
+                >> then_ myBrowserSavesSideBarState { isOpen = False }
         , test "background toggles back to dark" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -1635,7 +1635,7 @@ myBrowserListensForSideBarStates =
 myBrowserReadSideBarState =
     Tuple.first
         >> Application.handleDelivery
-            (Subscription.SideBarStateReceived (Ok True))
+            (Subscription.SideBarStateReceived (Ok { isOpen = True }))
 
 
 myBrowserFetchesSideBarState =

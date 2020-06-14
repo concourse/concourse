@@ -42,6 +42,7 @@ import Message.Storage
         )
 import Process
 import Routes
+import SideBar.State exposing (SideBarState, encodeSideBarState)
 import Task
 import Time
 import Views.Styles
@@ -171,7 +172,7 @@ type Effect
     | ChangeVisibility VisibilityAction Concourse.PipelineIdentifier
     | SaveToken String
     | LoadToken
-    | SaveSideBarState Bool
+    | SaveSideBarState SideBarState
     | LoadSideBarState
     | SaveCachedJobs (List Concourse.Job)
     | LoadCachedJobs
@@ -588,8 +589,8 @@ runEffect effect key csrfToken =
         LoadToken ->
             loadFromLocalStorage tokenKey
 
-        SaveSideBarState isOpen ->
-            saveToSessionStorage ( sideBarStateKey, Json.Encode.bool isOpen )
+        SaveSideBarState state ->
+            saveToSessionStorage ( sideBarStateKey, encodeSideBarState state )
 
         LoadSideBarState ->
             loadFromSessionStorage sideBarStateKey

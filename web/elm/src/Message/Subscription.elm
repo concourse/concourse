@@ -26,6 +26,7 @@ import Message.Storage as Storage
         , tokenKey
         )
 import Routes
+import SideBar.State exposing (SideBarState, decodeSideBarState)
 import Time
 import Url
 
@@ -83,7 +84,7 @@ type Delivery
     | ElementVisible ( String, Bool )
     | TokenSentToFly RawHttpResponse
     | TokenReceived (Result Json.Decode.Error String)
-    | SideBarStateReceived (Result Json.Decode.Error Bool)
+    | SideBarStateReceived (Result Json.Decode.Error SideBarState)
     | CachedJobsReceived (Result Json.Decode.Error (List Concourse.Job))
     | CachedPipelinesReceived (Result Json.Decode.Error (List Concourse.Pipeline))
     | CachedTeamsReceived (Result Json.Decode.Error (List Concourse.Team))
@@ -156,7 +157,7 @@ runSubscription s =
         OnSideBarStateReceived ->
             receivedFromSessionStorage <|
                 decodeStorageResponse sideBarStateKey
-                    Json.Decode.bool
+                    decodeSideBarState
                     SideBarStateReceived
 
         OnCachedJobsReceived ->
