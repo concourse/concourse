@@ -286,7 +286,7 @@ handleDelivery delivery ( model, effects ) =
                 effects
             )
 
-        Moused ->
+        Moused _ ->
             ( { model | hideLegend = False, hideLegendCounter = 0 }, effects )
 
         ClockTicked OneSecond _ ->

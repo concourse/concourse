@@ -46,6 +46,12 @@ port rawHttpResponse : (String -> msg) -> Sub msg
 port scrolledToId : (( String, String ) -> msg) -> Sub msg
 
 
+type alias Position =
+    { x : Float
+    , y : Float
+    }
+
+
 type RawHttpResponse
     = Success
     | Timeout
@@ -74,7 +80,7 @@ type Subscription
 type Delivery
     = KeyDown Keyboard.KeyEvent
     | KeyUp Keyboard.KeyEvent
-    | Moused
+    | Moused Position
     | ClockTicked Interval Time.Posix
     | WindowResized Float Float
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
@@ -106,8 +112,8 @@ runSubscription s =
 
         OnMouse ->
             Sub.batch
-                [ onMouseMove (Json.Decode.succeed Moused)
-                , onClick (Json.Decode.succeed Moused)
+                [ onMouseMove (Json.Decode.map Moused decodePosition)
+                , onClick (Json.Decode.map Moused decodePosition)
                 ]
 
         OnKeyDown ->
@@ -186,6 +192,13 @@ runSubscription s =
 
         OnScrolledToId ->
             scrolledToId ScrolledToId
+
+
+decodePosition : Json.Decode.Decoder Position
+decodePosition =
+    Json.Decode.map2 Position
+        (Json.Decode.field "pageX" Json.Decode.float)
+        (Json.Decode.field "pageY" Json.Decode.float)
 
 
 decodeStorageResponse : Storage.Key -> Json.Decode.Decoder a -> (Result Json.Decode.Error a -> Delivery) -> ( Storage.Key, Storage.Value ) -> Delivery
