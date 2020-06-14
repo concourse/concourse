@@ -8,7 +8,15 @@ port module Message.Subscription exposing
     )
 
 import Browser
-import Browser.Events exposing (onClick, onKeyDown, onKeyUp, onMouseMove, onResize)
+import Browser.Events
+    exposing
+        ( onClick
+        , onKeyDown
+        , onKeyUp
+        , onMouseMove
+        , onMouseUp
+        , onResize
+        )
 import Build.StepTree.Models exposing (BuildEventEnvelope)
 import Concourse exposing (decodeJob, decodePipeline, decodeTeam)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
@@ -62,6 +70,7 @@ type RawHttpResponse
 type Subscription
     = OnClockTick Interval
     | OnMouse
+    | OnMouseUp
     | OnKeyDown
     | OnKeyUp
     | OnWindowResize
@@ -81,6 +90,7 @@ type Delivery
     = KeyDown Keyboard.KeyEvent
     | KeyUp Keyboard.KeyEvent
     | Moused Position
+    | MouseUp
     | ClockTicked Interval Time.Posix
     | WindowResized Float Float
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
@@ -115,6 +125,9 @@ runSubscription s =
                 [ onMouseMove (Json.Decode.map Moused decodePosition)
                 , onClick (Json.Decode.map Moused decodePosition)
                 ]
+
+        OnMouseUp ->
+            onMouseUp <| Json.Decode.succeed MouseUp
 
         OnKeyDown ->
             onKeyDown (Keyboard.decodeKeyEvent |> Json.Decode.map KeyDown)

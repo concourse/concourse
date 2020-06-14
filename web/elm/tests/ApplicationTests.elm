@@ -5,6 +5,7 @@ import Browser
 import Common exposing (queryView)
 import Expect
 import Message.Effects as Effects
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Message.TopLevelMessage as Msgs
 import Test exposing (..)
@@ -73,4 +74,17 @@ all =
                     |> .session
                     |> .csrfToken
                     |> Expect.equal "real-token"
+        , test "subscribes to mouse events when dragging the side bar handle" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j"
+                    |> Application.update
+                        (Msgs.Update <|
+                            Click SideBarResizeHandle
+                        )
+                    |> Tuple.first
+                    |> Application.subscriptions
+                    |> Expect.all
+                        [ Common.contains Subscription.OnMouse
+                        , Common.contains Subscription.OnMouseUp
+                        ]
         ]

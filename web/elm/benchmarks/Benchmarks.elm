@@ -686,6 +686,7 @@ sampleSession =
         { isOpen = False
         , width = 275
         }
+    , draggingSideBar = False
     , notFoundImgSrc = ""
     , pipelineRunningKeyframes = ""
     , pipelines = RemoteData.NotAsked

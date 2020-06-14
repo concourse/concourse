@@ -3900,6 +3900,7 @@ session =
         { isOpen = False
         , width = 275
         }
+    , draggingSideBar = False
     , screenSize = ScreenSize.Desktop
     , timeZone = Time.utc
     }

@@ -46,6 +46,7 @@ model =
         { isOpen = True
         , width = 275
         }
+    , draggingSideBar = False
     , screenSize = ScreenSize.Desktop
     }
 

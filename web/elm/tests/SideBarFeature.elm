@@ -250,6 +250,21 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItHasAResizeHandle
+        , test "dragging resize handle resizes sidebar" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo400Px
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItIs400PxWide
+        , test "resize handle ignores mouse events when no longer dragging" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo400Px
+                >> given iMoveMyMouseTo500Px
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItIs400PxWide
+        , test "dragging resize handle saves the side bar state" <|
+            given iHaveAnOpenSideBar_
+                >> when iDragTheSideBarHandleTo400Px
+                >> then_ myBrowserSavesSideBarState { isOpen = True, width = 400 }
         , test "toggles away" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -809,6 +824,24 @@ itIsClickable domID =
         ]
 
 
+iDragTheSideBarHandleTo400Px =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <| Message.Click Message.SideBarResizeHandle)
+        >> Tuple.first
+        >> Application.handleDelivery
+            (Subscription.Moused { x = 400, y = 0 })
+        >> Tuple.first
+        >> Application.handleDelivery
+            Subscription.MouseUp
+
+
+iMoveMyMouseTo500Px =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.Moused { x = 500, y = 0 })
+
+
 iClickedTheHamburgerIcon =
     Tuple.first
         >> Application.update
@@ -858,6 +891,10 @@ iSeeTheUsualDashboardContentsScrollingIndependently =
 
 iAmLookingAtTheSideBar =
     iAmLookingAtThePageBelowTheTopBar >> Query.children [] >> Query.first
+
+
+iAmLookingAtTheSideBarHandle =
+    iAmLookingAtTheSideBar >> Query.find [ style "cursor" "ew-resize" ]
 
 
 iSeeADividingLineBelow =

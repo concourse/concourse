@@ -15,7 +15,7 @@ import EffectTransformer exposing (ET)
 import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (id)
-import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
@@ -38,6 +38,7 @@ type alias Model m =
             | expandedTeams : Set String
             , pipelines : WebData (List Concourse.Pipeline)
             , sideBarState : SideBarState
+            , draggingSideBar : Bool
             , screenSize : ScreenSize.ScreenSize
         }
 
@@ -75,6 +76,9 @@ update message model =
               }
             , []
             )
+
+        Click SideBarResizeHandle ->
+            ( { model | draggingSideBar = True }, [] )
 
         Hover (Just (SideBarPipeline pipelineID)) ->
             ( model
@@ -134,6 +138,31 @@ handleDelivery delivery ( model, effects ) =
         SideBarStateReceived (Ok state) ->
             ( { model | sideBarState = state }, effects )
 
+        Moused pos ->
+            if model.draggingSideBar then
+                let
+                    oldState =
+                        model.sideBarState
+
+                    newState =
+                        { oldState | width = pos.x }
+                in
+                ( { model | sideBarState = newState }
+                , effects
+                )
+
+            else
+                ( model, effects )
+
+        MouseUp ->
+            ( { model | draggingSideBar = False }
+            , if model.draggingSideBar then
+                [ Effects.SaveSideBarState model.sideBarState ]
+
+              else
+                []
+            )
+
         _ ->
             ( model, effects )
 
@@ -166,7 +195,12 @@ view model currentPipeline =
                             |> Views.viewTeam
                     )
              )
-                ++ [ Html.div (Styles.sideBarHandle model.sideBarState) [] ]
+                ++ [ Html.div
+                        (Styles.sideBarHandle model.sideBarState
+                            ++ [ onMouseDown <| Click SideBarResizeHandle ]
+                        )
+                        []
+                   ]
             )
 
     else
