@@ -237,7 +237,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given myBrowserReceives400PxWideSideBarState
                 >> when iAmLookingAtTheSideBar
-                >> then_ iSeeItIs400PxWide
+                >> then_ iSeeItHasWidth 400
         , test "sidebar has right padding" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
@@ -252,19 +252,29 @@ hasSideBar iAmLookingAtThePage =
                 >> then_ iSeeItHasAResizeHandle
         , test "dragging resize handle resizes sidebar" <|
             given iHaveAnOpenSideBar_
-                >> given iDragTheSideBarHandleTo400Px
+                >> given iDragTheSideBarHandleTo 400
                 >> when iAmLookingAtTheSideBar
-                >> then_ iSeeItIs400PxWide
+                >> then_ iSeeItHasWidth 400
         , test "resize handle ignores mouse events when no longer dragging" <|
             given iHaveAnOpenSideBar_
-                >> given iDragTheSideBarHandleTo400Px
-                >> given iMoveMyMouseTo500Px
+                >> given iDragTheSideBarHandleTo 400
+                >> given iMoveMyMouseXTo 500
                 >> when iAmLookingAtTheSideBar
-                >> then_ iSeeItIs400PxWide
+                >> then_ iSeeItHasWidth 400
         , test "dragging resize handle saves the side bar state" <|
             given iHaveAnOpenSideBar_
-                >> when iDragTheSideBarHandleTo400Px
+                >> when iDragTheSideBarHandleTo 400
                 >> then_ myBrowserSavesSideBarState { isOpen = True, width = 400 }
+        , test "max sidebar width is 600px" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo 700
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 600
+        , test "min sidebar width is 100px" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo 50
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 100
         , test "toggles away" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -824,22 +834,22 @@ itIsClickable domID =
         ]
 
 
-iDragTheSideBarHandleTo400Px =
+iDragTheSideBarHandleTo x =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <| Message.Click Message.SideBarResizeHandle)
         >> Tuple.first
         >> Application.handleDelivery
-            (Subscription.Moused { x = 400, y = 0 })
+            (Subscription.Moused { x = x, y = 0 })
         >> Tuple.first
         >> Application.handleDelivery
             Subscription.MouseUp
 
 
-iMoveMyMouseTo500Px =
+iMoveMyMouseXTo x =
     Tuple.first
         >> Application.handleDelivery
-            (Subscription.Moused { x = 500, y = 0 })
+            (Subscription.Moused { x = x, y = 0 })
 
 
 iClickedTheHamburgerIcon =
@@ -909,8 +919,8 @@ iSeeItIs275PxWide =
     Query.has [ style "width" "275px", style "box-sizing" "border-box" ]
 
 
-iSeeItIs400PxWide =
-    Query.has [ style "width" "400px" ]
+iSeeItHasWidth width =
+    Query.has [ style "width" <| String.fromFloat width ++ "px" ]
 
 
 iAmLookingAtTheTeam =

@@ -177,8 +177,15 @@ view model currentPipeline =
                 )
             && (model.screenSize /= ScreenSize.Mobile)
     then
+        let
+            oldState =
+                model.sideBarState
+
+            newState =
+                { oldState | width = clamp 100 600 oldState.width }
+        in
         Html.div
-            (id "side-bar" :: Styles.sideBar model.sideBarState)
+            (id "side-bar" :: Styles.sideBar newState)
             ((model.pipelines
                 |> RemoteData.withDefault []
                 |> List.Extra.gatherEqualsBy .teamName
@@ -196,7 +203,7 @@ view model currentPipeline =
                     )
              )
                 ++ [ Html.div
-                        (Styles.sideBarHandle model.sideBarState
+                        (Styles.sideBarHandle newState
                             ++ [ onMouseDown <| Click SideBarResizeHandle ]
                         )
                         []
