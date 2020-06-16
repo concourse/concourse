@@ -45,6 +45,38 @@ var _ = Describe("ATC Handler Jobs", func() {
 		})
 	})
 
+	Describe("team.ListAllJobs", func() {
+		var expectedJobs []atc.Job
+
+		BeforeEach(func() {
+			expectedURL := "/api/v1/jobs"
+
+			expectedJobs = []atc.Job{
+				{
+					Name:      "myjob-1",
+					NextBuild: nil,
+				},
+				{
+					Name:      "myjob-2",
+					NextBuild: nil,
+				},
+			}
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedJobs),
+				),
+			)
+		})
+
+		It("returns all jobs that belong to the account", func() {
+			jobs, err := team.ListAllJobs()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(jobs).To(Equal(expectedJobs))
+		})
+	})
+
 	Describe("Job", func() {
 		Context("when job exists", func() {
 			var (
