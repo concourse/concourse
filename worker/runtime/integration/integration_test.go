@@ -13,11 +13,9 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
-	"github.com/concourse/concourse/worker/workercmd"
 	"github.com/containerd/containerd"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/tedsuo/ifrit"
 )
 
 type IntegrationSuite struct {
@@ -26,7 +24,7 @@ type IntegrationSuite struct {
 
 	gardenBackend     runtime.GardenBackend
 	client            *libcontainerd.Client
-	containerdProcess ifrit.Process
+	containerdProcess *exec.Cmd
 	rootfs            string
 	stderr            bytes.Buffer
 	stdout            bytes.Buffer
@@ -38,9 +36,10 @@ func (s *IntegrationSuite) containerdSocket() string {
 }
 
 func (s *IntegrationSuite) startContainerd() {
-	command := exec.Command("/usr/local/concourse/bin/containerd",
+	command := exec.Command("containerd",
 		"--address="+s.containerdSocket(),
-		"--root="+filepath.Join(s.tmpDir, "containerd"),
+		"--root="+filepath.Join(s.tmpDir, "root"),
+		"--state="+filepath.Join(s.tmpDir, "state"),
 	)
 
 	command.Stdout = &s.stdout
@@ -49,7 +48,15 @@ func (s *IntegrationSuite) startContainerd() {
 		Pdeathsig: syscall.SIGKILL,
 	}
 
-	s.containerdProcess = ifrit.Invoke(workercmd.CmdRunner{command})
+	err := command.Start()
+	s.NoError(err)
+
+	s.containerdProcess = command
+}
+
+func (s *IntegrationSuite) stopContainerd() {
+	s.NoError(s.containerdProcess.Process.Signal(syscall.SIGTERM))
+	s.NoError(s.containerdProcess.Wait())
 }
 
 func (s *IntegrationSuite) SetupSuite() {
@@ -60,7 +67,7 @@ func (s *IntegrationSuite) SetupSuite() {
 	s.startContainerd()
 
 	retries := 0
-	for retries < 10 {
+	for retries < 100 {
 		c, err := containerd.New(s.containerdSocket(), containerd.WithTimeout(100*time.Millisecond))
 		if err != nil {
 			retries++
@@ -71,16 +78,17 @@ func (s *IntegrationSuite) SetupSuite() {
 		return
 	}
 
+	s.stopContainerd()
+	s.NoError(os.RemoveAll(s.tmpDir))
+
 	fmt.Println("STDOUT:", s.stdout.String())
 	fmt.Println("STDERR:", s.stderr.String())
 	s.Fail("timed out waiting for containerd to start")
 }
 
 func (s *IntegrationSuite) TearDownSuite() {
-	s.containerdProcess.Signal(syscall.SIGTERM)
-	<-s.containerdProcess.Wait()
-
-	os.RemoveAll(s.tmpDir)
+	s.stopContainerd()
+	s.NoError(os.RemoveAll(s.tmpDir))
 }
 
 func (s *IntegrationSuite) SetupTest() {
