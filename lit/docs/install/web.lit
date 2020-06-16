@@ -145,6 +145,18 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
   disk, and coordinate entirely using the database.
 
   \section{
+    \title{Reloading worker authorized key}
+
+    While \reference{web-running}, the authorized worker key files are loaded at
+    startup. During the lifecycle of a \reference{web-node} new \code{worker} key
+    might be added or removed.
+
+    The authorized key file containing \code{workers} public keys can be reloaded without
+    downtime by sending \code{SIGHUP} to the \code{web} process. The process
+    will remain running and Concourse will reload the keys to authorize.
+  }
+
+  \section{
     \title{Scaling}
 
     The \reference{web-node} can be scaled up for high availability. They'll also
