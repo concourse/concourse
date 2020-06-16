@@ -148,7 +148,7 @@ handleDelivery delivery ( model, effects ) =
                         { oldState | width = pos.x }
                 in
                 ( { model | sideBarState = newState }
-                , effects
+                , effects ++ [ Effects.GetViewportOf Dashboard ]
                 )
 
             else

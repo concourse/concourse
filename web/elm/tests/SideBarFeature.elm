@@ -265,6 +265,11 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iDragTheSideBarHandleTo 400
                 >> then_ myBrowserSavesSideBarState { isOpen = True, width = 400 }
+        , test "dragging resize handle fetches the viewport of the dashboard" <|
+            given iHaveAnOpenSideBar_
+                >> when iPressTheSideBarHandle
+                >> when iMoveMyMouseXTo 400
+                >> then_ myBrowserFetchesTheDashboardViewport
         , test "max sidebar width is 600px" <|
             given iHaveAnOpenSideBar_
                 >> given iDragTheSideBarHandleTo 700
@@ -835,21 +840,27 @@ itIsClickable domID =
 
 
 iDragTheSideBarHandleTo x =
+    iPressTheSideBarHandle
+        >> iMoveMyMouseXTo x
+        >> iReleaseTheSideBarHandle
+
+
+iPressTheSideBarHandle =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <| Message.Click Message.SideBarResizeHandle)
-        >> Tuple.first
-        >> Application.handleDelivery
-            (Subscription.Moused { x = x, y = 0 })
-        >> Tuple.first
-        >> Application.handleDelivery
-            Subscription.MouseUp
 
 
 iMoveMyMouseXTo x =
     Tuple.first
         >> Application.handleDelivery
             (Subscription.Moused { x = x, y = 0 })
+
+
+iReleaseTheSideBarHandle =
+    Tuple.first
+        >> Application.handleDelivery
+            Subscription.MouseUp
 
 
 iClickedTheHamburgerIcon =
@@ -1715,6 +1726,11 @@ myBrowserReceives400PxWideSideBarState =
 myBrowserFetchesSideBarState =
     Tuple.second
         >> Common.contains Effects.LoadSideBarState
+
+
+myBrowserFetchesTheDashboardViewport =
+    Tuple.second
+        >> Common.contains (Effects.GetViewportOf Message.Dashboard)
 
 
 myBrowserSavesSideBarState isOpen =
