@@ -179,6 +179,9 @@ handleDelivery delivery ( model, effects ) =
                 []
             )
 
+        FavoritedPipelinesReceived (Ok pipelines) ->
+            ( { model | favoritedPipelines = pipelines }, effects )
+
         _ ->
             ( model, effects )
 

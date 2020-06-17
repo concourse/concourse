@@ -25,6 +25,29 @@ all =
                         [ Common.contains Subscription.OnNonHrefLinkClicked
                         , Common.contains Subscription.OnTokenReceived
                         ]
+        , test "should subscribe to the favorited pipelines response" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/"
+                    |> Application.subscriptions
+                    |> Common.contains Subscription.OnFavoritedPipelinesReceived
+        , test "should load favorited pipelines on init" <|
+            \_ ->
+                Application.init
+                    { turbulenceImgSrc = ""
+                    , notFoundImgSrc = "notfound.svg"
+                    , csrfToken = "csrf_token"
+                    , authToken = ""
+                    , pipelineRunningKeyframes = "pipeline-running"
+                    }
+                    { protocol = Url.Http
+                    , host = ""
+                    , port_ = Nothing
+                    , path = "/teams/t/pipelines/p/"
+                    , query = Nothing
+                    , fragment = Nothing
+                    }
+                    |> Tuple.second
+                    |> Common.contains Effects.LoadFavoritedPipelines
         , test "clicking a not-automatically-linked box in the pipeline redirects" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/"

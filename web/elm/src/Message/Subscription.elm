@@ -18,14 +18,15 @@ import Browser.Events
         , onResize
         )
 import Build.StepTree.Models exposing (BuildEventEnvelope)
-import Concourse exposing (decodeJob, decodePipeline, decodeTeam)
+import Concourse exposing (decodeJob, decodePipeline, decodePipelineIdentifier, decodeTeam)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
 import Json.Encode
 import Keyboard
 import Message.Storage as Storage
     exposing
-        ( jobsKey
+        ( favoritedPipelinesKey
+        , jobsKey
         , pipelinesKey
         , receivedFromLocalStorage
         , receivedFromSessionStorage
@@ -83,6 +84,7 @@ type Subscription
     | OnCachedJobsReceived
     | OnCachedPipelinesReceived
     | OnCachedTeamsReceived
+    | OnFavoritedPipelinesReceived
     | OnScrolledToId
 
 
@@ -104,6 +106,7 @@ type Delivery
     | CachedJobsReceived (Result Json.Decode.Error (List Concourse.Job))
     | CachedPipelinesReceived (Result Json.Decode.Error (List Concourse.Pipeline))
     | CachedTeamsReceived (Result Json.Decode.Error (List Concourse.Team))
+    | FavoritedPipelinesReceived (Result Json.Decode.Error (List Concourse.PipelineIdentifier))
     | ScrolledToId ( String, String )
     | Noop
 
@@ -196,6 +199,12 @@ runSubscription s =
                 decodeStorageResponse teamsKey
                     (Json.Decode.list decodeTeam)
                     CachedTeamsReceived
+
+        OnFavoritedPipelinesReceived ->
+            receivedFromLocalStorage <|
+                decodeStorageResponse favoritedPipelinesKey
+                    (Json.Decode.list decodePipelineIdentifier)
+                    FavoritedPipelinesReceived
 
         OnElementVisible ->
             reportIsVisible ElementVisible

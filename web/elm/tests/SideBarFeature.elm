@@ -391,15 +391,24 @@ hasSideBar iAmLookingAtThePage =
                             , pipelineName = "pipeline"
                             }
                     )
-        , test "unfavorited pipeline has unfilled star icon" <|
-            given iHaveAnOpenSideBar_
-                >> given iClickedThePipelineGroup
-                >> when iAmLookingAtTheFirstPipeline
-                >> then_ iSeeUnfilledStarIcon
         , test "pipeline gets favorited when star icon is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
-                >> when iClickedTheFirstPipelineStar
+                >> given iClickedTheFirstPipelineStar
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_ iSeeFilledStarIcon
+        , test "clicked on favorited pipeline has unfilled star icon" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> given iClickedTheFirstPipelineStar
+                >> given iClickedTheFirstPipelineStar
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_ iSeeUnfilledStarIcon
+        , test "favorited pipelines are loaded from local storage" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheFirstPipelineStar
                 >> then_ iSeeFilledStarIcon
         , test "pipeline list lays out vertically" <|
             given iHaveAnOpenSideBar_
@@ -1083,8 +1092,14 @@ iClickedTheFirstPipelineStar =
                         , pipelineName = "pipeline"
                         }
             )
-        >> Tuple.first
-        >> Common.queryView
+
+
+iClickedFavoritedPipelineStar =
+    iClickedTheFirstPipelineStar
+
+
+iAmLookingAtThePreviousPipelineStar =
+    iAmLookingAtTheFirstPipeline
         >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
         >> Query.index 0
 
@@ -1391,6 +1406,15 @@ myBrowserFetchedPipelines =
                     [ Data.pipeline "team" 0 |> Data.withName "pipeline"
                     , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
                     ]
+            )
+
+
+myBrowserFetchedFavoritedPipelines =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.FavoritedPipelinesReceived <|
+                Ok
+                    [ { pipelineName = "pipeline", teamName = "team" } ]
             )
 
 
