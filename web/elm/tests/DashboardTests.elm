@@ -1840,7 +1840,7 @@ all =
                         |> Tuple.first
                         |> afterSeconds 6
                         |> Application.update
-                            (ApplicationMsgs.DeliveryReceived Moused)
+                            (ApplicationMsgs.DeliveryReceived <| Moused { x = 0, y = 0 })
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.has [ id "dashboard-info" ]

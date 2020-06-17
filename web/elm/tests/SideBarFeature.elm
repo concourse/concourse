@@ -149,7 +149,7 @@ hasSideBar iAmLookingAtThePage =
             }
         , test "browser saves sidebar state on click" <|
             when iHaveAnOpenSideBar_
-                >> then_ myBrowserSavesSideBarState True
+                >> then_ myBrowserSavesSideBarState { isOpen = True, width = 275 }
         , test "background becomes lighter on click" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheHamburgerMenu
@@ -161,7 +161,7 @@ hasSideBar iAmLookingAtThePage =
         , test "browser toggles sidebar state on click" <|
             when iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
-                >> then_ myBrowserSavesSideBarState False
+                >> then_ myBrowserSavesSideBarState { isOpen = False, width = 275 }
         , test "background toggles back to dark" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -229,14 +229,53 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItScrollsIndependently
-        , test "sidebar is 275px wide" <|
+        , test "sidebar is 275px wide by default" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItIs275PxWide
+        , test "sidebar width is determined by sidebar state" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserReceives400PxWideSideBarState
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 400
         , test "sidebar has bottom padding" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItHasBottomPadding
+        , test "sidebar has a resize handle" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasAResizeHandle
+        , test "dragging resize handle resizes sidebar" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo 400
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 400
+        , test "resize handle ignores mouse events when no longer dragging" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo 400
+                >> given iMoveMyMouseXTo 500
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 400
+        , test "dragging resize handle saves the side bar state" <|
+            given iHaveAnOpenSideBar_
+                >> when iDragTheSideBarHandleTo 400
+                >> then_ myBrowserSavesSideBarState { isOpen = True, width = 400 }
+        , test "dragging resize handle fetches the viewport of the dashboard" <|
+            given iHaveAnOpenSideBar_
+                >> when iPressTheSideBarHandle
+                >> when iMoveMyMouseXTo 400
+                >> then_ myBrowserFetchesTheDashboardViewport
+        , test "max sidebar width is 600px" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo 700
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 600
+        , test "min sidebar width is 100px" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo 50
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 100
         , test "toggles away" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -467,7 +506,7 @@ hasSideBar iAmLookingAtThePage =
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
                 >> given iClickedTheHamburgerIcon
                 >> when iAmLookingAtTheSideBar
-                >> then_ iSeeTwoChildren
+                >> then_ iSeeTwoTeams
         , test "sidebar has text content of second team's name" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
@@ -786,6 +825,30 @@ itIsClickable domID =
         ]
 
 
+iDragTheSideBarHandleTo x =
+    iPressTheSideBarHandle
+        >> iMoveMyMouseXTo x
+        >> iReleaseTheSideBarHandle
+
+
+iPressTheSideBarHandle =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <| Message.Click Message.SideBarResizeHandle)
+
+
+iMoveMyMouseXTo x =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.Moused { x = x, y = 0 })
+
+
+iReleaseTheSideBarHandle =
+    Tuple.first
+        >> Application.handleDelivery
+            Subscription.MouseUp
+
+
 iClickedTheHamburgerIcon =
     Tuple.first
         >> Application.update
@@ -802,6 +865,10 @@ iSeeADarkerBackground =
 
 iSeeTwoChildren =
     Query.children [] >> Query.count (Expect.equal 2)
+
+
+iSeeTwoTeams =
+    Query.children [ class "side-bar-team" ] >> Query.count (Expect.equal 2)
 
 
 iAmLookingAtThePageBelowTheTopBar =
@@ -833,6 +900,10 @@ iAmLookingAtTheSideBar =
     iAmLookingAtThePageBelowTheTopBar >> Query.children [] >> Query.first
 
 
+iAmLookingAtTheSideBarHandle =
+    iAmLookingAtTheSideBar >> Query.find [ style "cursor" "ew-resize" ]
+
+
 iSeeADividingLineBelow =
     Query.has [ style "border-bottom" <| "1px solid " ++ Colors.frame ]
 
@@ -843,6 +914,10 @@ iSeeADividingLineToTheRight =
 
 iSeeItIs275PxWide =
     Query.has [ style "width" "275px", style "box-sizing" "border-box" ]
+
+
+iSeeItHasWidth width =
+    Query.has [ style "width" <| String.fromFloat width ++ "px" ]
 
 
 iAmLookingAtTheTeam =
@@ -947,6 +1022,10 @@ iSeeItHasRightPadding =
 
 iSeeItHasBottomPadding =
     Query.has [ style "padding-bottom" "10px" ]
+
+
+iSeeItHasAResizeHandle =
+    Query.has [ style "cursor" "ew-resize" ]
 
 
 iClickedThePipelineGroup =
@@ -1612,12 +1691,23 @@ myBrowserListensForSideBarStates =
 myBrowserReadSideBarState =
     Tuple.first
         >> Application.handleDelivery
-            (Subscription.SideBarStateReceived (Ok True))
+            (Subscription.SideBarStateReceived (Ok { isOpen = True, width = 275 }))
+
+
+myBrowserReceives400PxWideSideBarState =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.SideBarStateReceived (Ok { isOpen = True, width = 400 }))
 
 
 myBrowserFetchesSideBarState =
     Tuple.second
         >> Common.contains Effects.LoadSideBarState
+
+
+myBrowserFetchesTheDashboardViewport =
+    Tuple.second
+        >> Common.contains (Effects.GetViewportOf Message.Dashboard)
 
 
 myBrowserSavesSideBarState isOpen =

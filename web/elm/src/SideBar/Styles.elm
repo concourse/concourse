@@ -11,6 +11,7 @@ module SideBar.Styles exposing
     , pipelineIcon
     , pipelineName
     , sideBar
+    , sideBarHandle
     , team
     , teamHeader
     , teamIcon
@@ -26,17 +27,30 @@ import Html.Attributes exposing (style)
 import Views.Icon as Icon
 
 
-sideBar : List (Html.Attribute msg)
-sideBar =
+sideBar : { r | width : Float } -> List (Html.Attribute msg)
+sideBar { width } =
     [ style "border-right" <| "1px solid " ++ Colors.frame
     , style "background-color" Colors.sideBar
-    , style "width" "275px"
+    , style "width" <| String.fromFloat width ++ "px"
     , style "overflow-y" "auto"
     , style "height" "100%"
     , style "flex-shrink" "0"
     , style "box-sizing" "border-box"
     , style "padding-bottom" "10px"
     , style "-webkit-overflow-scrolling" "touch"
+    , style "position" "relative"
+    ]
+
+
+sideBarHandle : { r | width : Float } -> List (Html.Attribute msg)
+sideBarHandle { width } =
+    [ style "position" "fixed"
+    , style "width" "10px"
+    , style "height" "100%"
+    , style "top" "0"
+    , style "left" <| String.fromFloat (width - 5) ++ "px"
+    , style "z-index" "2"
+    , style "cursor" "ew-resize"
     ]
 
 

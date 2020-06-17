@@ -53,7 +53,7 @@ handleDelivery delivery ( model, effects ) =
                     , effects
                     )
 
-        Moused ->
+        Moused _ ->
             ( { model | hideFooter = False, hideFooterCounter = 0 }, effects )
 
         ClockTicked OneSecond _ ->

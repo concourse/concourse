@@ -74,7 +74,11 @@ init flags url =
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
             , expandedTeams = Set.empty
             , pipelines = RemoteData.NotAsked
-            , isSideBarOpen = False
+            , sideBarState =
+                { isOpen = False
+                , width = 275
+                }
+            , draggingSideBar = False
             , screenSize = ScreenSize.Desktop
             , timeZone = Time.utc
             }
@@ -453,6 +457,14 @@ subscriptions model =
     , OnSideBarStateReceived
     , OnWindowResize
     ]
+        ++ (if model.session.draggingSideBar then
+                [ OnMouse
+                , OnMouseUp
+                ]
+
+            else
+                []
+           )
         ++ SubPage.subscriptions model.subModel
 
 

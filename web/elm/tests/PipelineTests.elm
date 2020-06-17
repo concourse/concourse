@@ -445,7 +445,7 @@ all =
                     \_ ->
                         Common.init "/teams/team/pipelines/pipeline"
                             |> clockTickALot 11
-                            |> Application.update (Msgs.DeliveryReceived Moused)
+                            |> Application.update (Msgs.DeliveryReceived <| Moused { x = 0, y = 0 })
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.has [ id "legend" ]

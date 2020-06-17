@@ -82,6 +82,7 @@ type DomID
     | PipelineWrapper Concourse.PipelineIdentifier
     | JobPreview Concourse.JobIdentifier
     | HamburgerMenu
+    | SideBarResizeHandle
     | SideBarTeam String
     | SideBarPipeline Concourse.PipelineIdentifier
     | Dashboard
