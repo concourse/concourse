@@ -49,7 +49,7 @@ port receivedFromSessionStorage : (( Key, Value ) -> msg) -> Sub msg
 
 sideBarStateKey : Key
 sideBarStateKey =
-    "is_sidebar_open"
+    "side_bar_state"
 
 
 tokenKey : Key

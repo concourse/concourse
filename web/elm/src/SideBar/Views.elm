@@ -2,7 +2,7 @@ module SideBar.Views exposing (Pipeline, Team, viewTeam)
 
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
-import Html.Attributes exposing (href, id)
+import Html.Attributes exposing (class, href, id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
@@ -29,7 +29,7 @@ type alias Team =
 viewTeam : Team -> Html Message
 viewTeam team =
     Html.div
-        Styles.team
+        (class "side-bar-team" :: Styles.team)
         [ Html.div
             (Styles.teamHeader
                 ++ [ onClick <| Click <| SideBarTeam team.name.text
