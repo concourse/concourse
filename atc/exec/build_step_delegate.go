@@ -14,7 +14,7 @@ import (
 
 type BuildStepDelegate interface {
 	ImageVersionDetermined(db.UsedResourceCache) error
-	ImageSourceRedaction(source atc.Source) (atc.Source, error)
+	RedactImageSource(source atc.Source) (atc.Source, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer

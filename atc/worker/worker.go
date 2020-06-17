@@ -212,11 +212,6 @@ func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Vo
 	return worker.volumeClient.LookupVolume(logger, handle)
 }
 
-func secureImageSource(delegate ImageFetchingDelegate, source atc.Source) atc.Source {
-	newSource, _ := delegate.ImageSourceRedaction(source)
-	return newSource
-}
-
 func (worker *gardenWorker) imagePolicyCheck(
 	ctx context.Context,
 	delegate ImageFetchingDelegate,
@@ -241,12 +236,12 @@ func (worker *gardenWorker) imagePolicyCheck(
 
 	if imageSpec.ImageResource != nil {
 		imageInfo["image_source_type"] = imageSpec.ImageResource.Type
-		imageInfo["image_source"] = secureImageSource(delegate, imageSpec.ImageResource.Source)
+		imageInfo["image_source"] = imageSpec.ImageResource.Source
 	} else if imageSpec.ResourceType != "" {
 		for _, rt := range resourceTypes {
 			if rt.Name == imageSpec.ResourceType {
 				imageInfo["image_source_type"] = rt.Type
-				imageInfo["image_source"] = secureImageSource(delegate, rt.Source)
+				imageInfo["image_source"] = rt.Source
 			}
 		}
 
@@ -260,10 +255,19 @@ func (worker *gardenWorker) imagePolicyCheck(
 		return true, nil
 	}
 
+	if originalSource, ok := imageInfo["image_source"].(atc.Source); ok {
+		redactedSource, err := delegate.RedactImageSource(originalSource)
+		if err != nil {
+			return false, err
+		}
+		imageInfo["image_source"] = redactedSource
+	}
+
+	teamName, pipelineName := policy.TeamAndPipelineFromContext(ctx)
 	input := policy.PolicyCheckInput{
 		Action:   policy.ActionUsingImage,
-		Team:     policy.TeamFromContext(ctx),
-		Pipeline: metadata.PipelineName,
+		Team:     teamName,
+		Pipeline: pipelineName,
 		Data:     imageInfo,
 	}
 

@@ -390,7 +390,7 @@ func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
 	return it.line
 }
 
-func (delegate *buildStepDelegate) ImageSourceRedaction(source atc.Source) (atc.Source, error) {
+func (delegate *buildStepDelegate) RedactImageSource(source atc.Source) (atc.Source, error) {
 	b, err := json.Marshal(&source)
 	if err != nil {
 		return source, err

@@ -59,13 +59,13 @@ type FakeImageFetchingDelegate struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageFetchingDelegate) ImageSourceRedaction(arg1 atc.Source) (atc.Source, error) {
+func (fake *FakeImageFetchingDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
 	fake.imageSourceRedactionMutex.Lock()
 	ret, specificReturn := fake.imageSourceRedactionReturnsOnCall[len(fake.imageSourceRedactionArgsForCall)]
 	fake.imageSourceRedactionArgsForCall = append(fake.imageSourceRedactionArgsForCall, struct {
 		arg1 atc.Source
 	}{arg1})
-	fake.recordInvocation("ImageSourceRedaction", []interface{}{arg1})
+	fake.recordInvocation("RedactImageSource", []interface{}{arg1})
 	fake.imageSourceRedactionMutex.Unlock()
 	if fake.ImageSourceRedactionStub != nil {
 		return fake.ImageSourceRedactionStub(arg1)

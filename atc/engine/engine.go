@@ -213,7 +213,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 	done := make(chan error)
 	go func() {
 		ctx := lagerctx.NewContext(ctx, logger)
-		ctx = policy.RecordTeam(ctx, b.build.TeamName())
+		ctx = policy.RecordTeamAndPipeline(ctx, b.build.TeamName(), b.build.PipelineName())
 		done <- step.Run(ctx, state)
 	}()
 
@@ -374,7 +374,7 @@ func (c *engineCheck) Run(ctx context.Context) {
 	done := make(chan error)
 	go func() {
 		ctx := lagerctx.NewContext(ctx, logger)
-		ctx = policy.RecordTeam(ctx, c.check.TeamName())
+		ctx = policy.RecordTeamAndPipeline(ctx, c.check.TeamName(), c.check.PipelineName())
 		done <- step.Run(ctx, state)
 	}()
 

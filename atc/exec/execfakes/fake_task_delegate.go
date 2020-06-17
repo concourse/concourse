@@ -162,13 +162,13 @@ func (fake *FakeTaskDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.Exi
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeTaskDelegate) ImageSourceRedaction(arg1 atc.Source) (atc.Source, error) {
+func (fake *FakeTaskDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
 	fake.imageSourceRedactionMutex.Lock()
 	ret, specificReturn := fake.imageSourceRedactionReturnsOnCall[len(fake.imageSourceRedactionArgsForCall)]
 	fake.imageSourceRedactionArgsForCall = append(fake.imageSourceRedactionArgsForCall, struct {
 		arg1 atc.Source
 	}{arg1})
-	fake.recordInvocation("ImageSourceRedaction", []interface{}{arg1})
+	fake.recordInvocation("RedactImageSource", []interface{}{arg1})
 	fake.imageSourceRedactionMutex.Unlock()
 	if fake.ImageSourceRedactionStub != nil {
 		return fake.ImageSourceRedactionStub(arg1)

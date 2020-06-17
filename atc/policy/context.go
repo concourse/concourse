@@ -4,16 +4,22 @@ import (
 	"context"
 )
 
-func RecordTeam(ctx context.Context, teamName string) context.Context {
-	return context.WithValue(ctx, teamContextKey{}, teamName)
+func RecordTeamAndPipeline(ctx context.Context, teamName, pipelineName string) context.Context {
+	newCtx := context.WithValue(ctx, teamContextKey{}, teamName)
+	return context.WithValue(newCtx, pipelineContextKey{}, pipelineName)
 }
 
-func TeamFromContext(ctx context.Context) string {
+func TeamAndPipelineFromContext(ctx context.Context) (string, string) {
 	t, ok := ctx.Value(teamContextKey{}).(string)
 	if !ok {
-		return ""
+		t = ""
 	}
-	return t
+	p, ok := ctx.Value(pipelineContextKey{}).(string)
+	if !ok {
+		p = ""
+	}
+	return t, p
 }
 
 type teamContextKey struct{}
+type pipelineContextKey struct{}
