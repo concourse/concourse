@@ -305,7 +305,7 @@ team { active, expanded, hovered, hasFavorited } =
 
         favoritedPipelines =
             if hasFavorited then
-                [ pipelineIdentifier ]
+                [ 0 ]
 
             else
                 []

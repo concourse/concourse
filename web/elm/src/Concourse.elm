@@ -52,7 +52,6 @@ module Concourse exposing
     , decodeJob
     , decodeMetadata
     , decodePipeline
-    , decodePipelineIdentifier
     , decodeResource
     , decodeTeam
     , decodeUser
@@ -62,7 +61,6 @@ module Concourse exposing
     , encodeBuild
     , encodeJob
     , encodePipeline
-    , encodePipelineIdentifier
     , encodeTeam
     , retrieveCSRFToken
     )
@@ -703,21 +701,6 @@ type alias PipelineGroup =
     , jobs : List String
     , resources : List String
     }
-
-
-encodePipelineIdentifier : PipelineIdentifier -> Json.Encode.Value
-encodePipelineIdentifier pipelineIdentifier =
-    Json.Encode.object
-        [ ( "team_name", pipelineIdentifier.teamName |> Json.Encode.string )
-        , ( "name", pipelineIdentifier.pipelineName |> Json.Encode.string )
-        ]
-
-
-decodePipelineIdentifier : Json.Decode.Decoder PipelineIdentifier
-decodePipelineIdentifier =
-    Json.Decode.succeed PipelineIdentifier
-        |> andMap (Json.Decode.field "team_name" Json.Decode.string)
-        |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
 encodePipeline : Pipeline -> Json.Encode.Value

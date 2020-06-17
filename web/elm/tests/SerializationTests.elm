@@ -52,16 +52,6 @@ all =
                     |> Concourse.encodePipeline
                     |> Json.Decode.decodeValue Concourse.decodePipeline
                     |> Expect.equal (Ok pipeline)
-        , test "pipeline identifier encoding/decoding are inverses" <|
-            \_ ->
-                let
-                    pipelineID =
-                        { pipelineName = "pipeline", teamName = "team" }
-                in
-                pipelineID
-                    |> Concourse.encodePipelineIdentifier
-                    |> Json.Decode.decodeValue Concourse.decodePipelineIdentifier
-                    |> Expect.equal (Ok pipelineID)
         , test "team encoding/decoding are inverses" <|
             \_ ->
                 let

@@ -18,7 +18,7 @@ import Browser.Events
         , onResize
         )
 import Build.StepTree.Models exposing (BuildEventEnvelope)
-import Concourse exposing (decodeJob, decodePipeline, decodePipelineIdentifier, decodeTeam)
+import Concourse exposing (decodeJob, decodePipeline, decodeTeam)
 import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
 import Json.Decode
 import Json.Encode
@@ -106,7 +106,7 @@ type Delivery
     | CachedJobsReceived (Result Json.Decode.Error (List Concourse.Job))
     | CachedPipelinesReceived (Result Json.Decode.Error (List Concourse.Pipeline))
     | CachedTeamsReceived (Result Json.Decode.Error (List Concourse.Team))
-    | FavoritedPipelinesReceived (Result Json.Decode.Error (List Concourse.PipelineIdentifier))
+    | FavoritedPipelinesReceived (Result Json.Decode.Error (List Int)) -- List of Concourse.Pipeline.id
     | ScrolledToId ( String, String )
     | Noop
 
@@ -203,7 +203,7 @@ runSubscription s =
         OnFavoritedPipelinesReceived ->
             receivedFromLocalStorage <|
                 decodeStorageResponse favoritedPipelinesKey
-                    (Json.Decode.list decodePipelineIdentifier)
+                    (Json.Decode.list Json.Decode.int)
                     FavoritedPipelinesReceived
 
         OnElementVisible ->

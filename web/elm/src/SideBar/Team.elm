@@ -21,7 +21,7 @@ team :
         | hovered : HoverState.HoverState
         , pipelines : List Concourse.Pipeline
         , currentPipeline : Maybe (PipelineScoped b)
-        , favoritedPipelines : List Concourse.PipelineIdentifier
+        , favoritedPipelines : List Int
     }
     -> { name : String, isExpanded : Bool }
     -> Views.Team

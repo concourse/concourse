@@ -40,7 +40,7 @@ type alias Model m =
             , sideBarState : SideBarState
             , draggingSideBar : Bool
             , screenSize : ScreenSize.ScreenSize
-            , favoritedPipelines : List Concourse.PipelineIdentifier
+            , favoritedPipelines : List Int
         }
 
 

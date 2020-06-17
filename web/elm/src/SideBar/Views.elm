@@ -72,10 +72,7 @@ type alias Pipeline =
         { opacity : Styles.Opacity
         , filled : Bool
         }
-    , id :
-        { teamName : String
-        , pipelineName : String
-        }
+    , id : Int
     }
 
 
