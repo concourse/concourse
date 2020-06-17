@@ -273,13 +273,13 @@ pipelineFavourite fav =
                     Assets.StarIconUnfilled
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
-    , style "height" "16px"
-    , style "width" "16px"
+    , style "height" "18px"
+    , style "width" "18px"
     , style "background-size" "contain"
-    , style "margin-left" "28px"
+    , style "background-origin" "content-box"
+    , style "padding" "0 10px"
     , style "flex-shrink" "0"
     , style "cursor" "pointer"
-    , opacityAttr fav.opacity
     , Attr.attribute "aria-label" "Favorite Icon"
     ]
 

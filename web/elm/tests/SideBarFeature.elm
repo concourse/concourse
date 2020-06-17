@@ -1052,7 +1052,7 @@ iSeeItHasAResizeHandle =
 iSeeUnfilledStarIcon =
     Query.has
         (DashboardTests.iconSelector
-            { size = "16px"
+            { size = "18px"
             , image = Assets.StarIconUnfilled
             }
         )
@@ -1061,7 +1061,7 @@ iSeeUnfilledStarIcon =
 iSeeFilledStarIcon =
     Query.has
         (DashboardTests.iconSelector
-            { size = "16px"
+            { size = "18px"
             , image = Assets.StarIconFilled
             }
         )

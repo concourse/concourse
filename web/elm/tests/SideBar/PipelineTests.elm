@@ -26,8 +26,7 @@ all =
                     \_ ->
                         pipeline
                             |> viewPipeline { active = True, hovered = True, favorited = False }
-                            |> .name
-                            |> .rectangle
+                            |> .background
                             |> Expect.equal Styles.Dark
                 , test "pipeline icon is bright" <|
                     \_ ->
@@ -60,8 +59,7 @@ all =
                     \_ ->
                         pipeline
                             |> viewPipeline { active = True, hovered = False, favorited = False }
-                            |> .name
-                            |> .rectangle
+                            |> .background
                             |> Expect.equal Styles.Dark
                 , test "pipeline icon is bright" <|
                     \_ ->
@@ -87,8 +85,7 @@ all =
                     \_ ->
                         pipeline
                             |> viewPipeline { active = False, hovered = True, favorited = False }
-                            |> .name
-                            |> .rectangle
+                            |> .background
                             |> Expect.equal Styles.Light
                 , test "pipeline icon is bright" <|
                     \_ ->
@@ -112,9 +109,8 @@ all =
                     \_ ->
                         pipeline
                             |> viewPipeline { active = False, hovered = False, favorited = False }
-                            |> .name
-                            |> .rectangle
-                            |> Expect.equal Styles.PipelineInvisible
+                            |> .background
+                            |> Expect.equal Styles.Invisible
                 , test "pipeline icon is dim" <|
                     \_ ->
                         pipeline
@@ -138,7 +134,7 @@ all =
                 \_ ->
                     pipeline
                         |> Data.withArchived True
-                        |> viewPipeline { active = True, hovered = True }
+                        |> viewPipeline { active = True, hovered = True, favorited = False }
                         |> .icon
                         |> .asset
                         |> Expect.equal Assets.ArchivedPipelineIcon

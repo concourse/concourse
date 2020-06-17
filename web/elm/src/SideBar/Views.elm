@@ -1,7 +1,6 @@
 module SideBar.Views exposing (Pipeline, Team, viewTeam)
 
 import Assets
-import Concourse exposing (PipelineIdentifier)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id)
