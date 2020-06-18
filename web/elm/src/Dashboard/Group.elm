@@ -28,6 +28,7 @@ import Ordering exposing (Ordering)
 import Time
 import UserState exposing (UserState(..))
 import Views.Spinner as Spinner
+import Views.Styles
 
 
 ordering : { a | userState : UserState } -> Ordering Group
@@ -95,7 +96,9 @@ view session params g =
             , class <| .sectionHeaderClass Effects.stickyHeaderConfig
             ]
             (Html.div
-                [ class "dashboard-team-name" ]
+                [ class "dashboard-team-name"
+                , style "font-weight" Views.Styles.fontWeightBold
+                ]
                 [ Html.text g.teamName ]
                 :: (Maybe.Extra.toList <|
                         Maybe.map (Tag.view False) (tag session g)

@@ -25,6 +25,7 @@ import Colors
 import Html
 import Html.Attributes exposing (style)
 import Views.Icon as Icon
+import Views.Styles
 
 
 sideBar : { r | width : Float } -> List (Html.Attribute msg)
@@ -132,6 +133,7 @@ teamName :
     -> List (Html.Attribute msg)
 teamName { opacity } =
     [ style "font-size" "14px"
+    , style "font-weight" Views.Styles.fontWeightBold
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
     , style "white-space" "nowrap"

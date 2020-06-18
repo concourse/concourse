@@ -6,6 +6,7 @@ module Views.Styles exposing
     , concourseLogo
     , defaultFont
     , fontFamilyDefault
+    , fontWeightBold
     , fontWeightDefault
     , fontWeightLight
     , pageBelowTopBar
@@ -45,6 +46,11 @@ fontWeightLight =
 fontWeightDefault : String
 fontWeightDefault =
     "700"
+
+
+fontWeightBold : String
+fontWeightBold =
+    "900"
 
 
 pageHeaderHeight : Float
