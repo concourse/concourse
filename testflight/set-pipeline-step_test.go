@@ -12,8 +12,12 @@ import (
 )
 
 var _ = Describe("set-pipeline Step", func() {
+	const (
+		pipelineName       = "first-sp"
+		secondPipelineName = "second-sp"
+	)
 
-	const pipeline_content = `---
+	const pipelineContent = `---
 resources:
 - name: some-resource
   type: mock
@@ -51,39 +55,53 @@ jobs:
         greetings: hello
 `
 
-	var fixture string
+	const pipelineContentWithTeam = pipelineContent + `
+      team: ` + teamName
+
+	var (
+		fixture                string
+		currentPipelineContent string
+		currentFlyTarget       string
+	)
 
 	BeforeEach(func() {
-		var err error
-
 		fixture = filepath.Join(tmp, "fixture")
 
-		err = os.MkdirAll(fixture, 0755)
+		err := os.MkdirAll(fixture, 0755)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Context("set other pipeline", func() {
-		var secondPipelineName string
-		BeforeEach(func() {
-			pipelineName = "first-sp"
-			secondPipelineName = "second-sp"
+	JustBeforeEach(func() {
+		err := ioutil.WriteFile(
+			filepath.Join(fixture, pipelineName+".yml"),
+			[]byte(fmt.Sprintf(currentPipelineContent, secondPipelineName)),
+			0755,
+		)
+		Expect(err).NotTo(HaveOccurred())
 
-			err := ioutil.WriteFile(
-				filepath.Join(fixture, pipelineName+".yml"),
-				[]byte(fmt.Sprintf(pipeline_content, secondPipelineName)),
-				0755,
-			)
-			Expect(err).NotTo(HaveOccurred())
-
+		withFlyTarget(currentFlyTarget, func() {
 			fly("set-pipeline", "-n", "-p", pipelineName, "-c", fixture+"/"+pipelineName+".yml")
 			fly("unpause-pipeline", "-p", pipelineName)
+		})
+	})
+
+	AfterEach(func() {
+		withFlyTarget(currentFlyTarget, func() {
+			fly("destroy-pipeline", "-n", "-p", pipelineName)
+		})
+	})
+
+	Context("when setting the current team's pipeline", func() {
+		BeforeEach(func() {
+			currentPipelineContent = pipelineContent
+			currentFlyTarget = testflightFlyTarget
 		})
 
 		AfterEach(func() {
 			fly("destroy-pipeline", "-n", "-p", secondPipelineName)
 		})
 
-		It("set the other pipeline", func() {
+		It("sets the other pipeline", func() {
 			By("second pipeline should initially not exist")
 			execS := spawnFly("get-pipeline", "-p", secondPipelineName)
 			<-execS.Exited
@@ -98,6 +116,42 @@ jobs:
 			By("should trigger the second pipeline job successfully")
 			execS = fly("trigger-job", "-w", "-j", secondPipelineName+"/normal-job")
 			Expect(execS.Out).To(gbytes.Say("hello world"))
+		})
+	})
+
+	Context("when setting another team's pipeline from the main team", func() {
+		BeforeEach(func() {
+			currentPipelineContent = pipelineContentWithTeam
+			currentFlyTarget = adminFlyTarget
+		})
+
+		It("sets the other pipeline", func() {
+			By("second pipeline should initially not exist")
+			withFlyTarget(testflightFlyTarget, func() {
+				execS := spawnFly("get-pipeline", "-p", secondPipelineName)
+				<-execS.Exited
+				Expect(execS).To(gexec.Exit(1))
+				Expect(execS.Err).To(gbytes.Say("pipeline not found"))
+			})
+
+			By("set-pipeline step should succeed")
+			withFlyTarget(adminFlyTarget, func() {
+				execS := fly("trigger-job", "-w", "-j", pipelineName+"/sp")
+				Expect(execS.Out).To(gbytes.Say("setting pipeline: second-sp"))
+				Expect(execS.Out).To(gbytes.Say("done"))
+			})
+
+			By("should trigger the second pipeline job successfully")
+			withFlyTarget(testflightFlyTarget, func() {
+				execS := fly("trigger-job", "-w", "-j", secondPipelineName+"/normal-job")
+				Expect(execS.Out).To(gbytes.Say("hello world"))
+			})
+		})
+
+		AfterEach(func() {
+			withFlyTarget(testflightFlyTarget, func() {
+				fly("destroy-pipeline", "-n", "-p", secondPipelineName)
+			})
 		})
 	})
 })
