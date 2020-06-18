@@ -58,6 +58,9 @@ jobs:
 	const pipelineContentWithTeam = pipelineContent + `
       team: ` + teamName
 
+	const pipelineContentWithMainTeam = pipelineContent + `
+      team: main`
+
 	var (
 		fixture                string
 		currentPipelineContent string
@@ -151,6 +154,40 @@ jobs:
 		AfterEach(func() {
 			withFlyTarget(testflightFlyTarget, func() {
 				fly("destroy-pipeline", "-n", "-p", secondPipelineName)
+			})
+		})
+	})
+
+	Context("when setting the main team's pipeline from a normal team", func() {
+		BeforeEach(func() {
+			currentPipelineContent = pipelineContentWithMainTeam
+			currentFlyTarget = testflightFlyTarget
+		})
+
+		It("fails to set the other pipeline", func() {
+			By("second pipeline should initially not exist")
+			withFlyTarget(adminFlyTarget, func() {
+				execS := spawnFly("get-pipeline", "-p", secondPipelineName)
+				<-execS.Exited
+				Expect(execS).To(gexec.Exit(1))
+				Expect(execS.Err).To(gbytes.Say("pipeline not found"))
+			})
+
+			By("set-pipeline step should fail")
+			withFlyTarget(testflightFlyTarget, func() {
+				execS := spawnFly("trigger-job", "-w", "-j", pipelineName+"/sp")
+				<-execS.Exited
+				Expect(execS).To(gexec.Exit(2))
+				Expect(execS.Out).To(gbytes.Say("only main team can set another team's pipeline"))
+				Expect(execS.Out).To(gbytes.Say("errored"))
+			})
+
+			By("second pipeline should still not exist")
+			withFlyTarget(adminFlyTarget, func() {
+				execS := spawnFly("get-pipeline", "-p", secondPipelineName)
+				<-execS.Exited
+				Expect(execS).To(gexec.Exit(1))
+				Expect(execS.Err).To(gbytes.Say("pipeline not found"))
 			})
 		})
 	})
