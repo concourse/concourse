@@ -8,7 +8,7 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-const ActionUsingImage = "UsingImage"
+const ActionUseImage = "UseImage"
 
 type PolicyCheckNotPass struct{}
 
@@ -19,7 +19,7 @@ func (e PolicyCheckNotPass) Error() string {
 type Filter struct {
 	HttpMethods   []string `long:"policy-check-filter-http-method" description:"API http method to go through policy check"`
 	Actions       []string `long:"policy-check-filter-action" description:"Actions in the list will go through policy check"`
-	ActionsToSkip []string `long:"policy-check-filter-action-skip" default:"UsingImage" description:"Actions the list will not go through policy check"`
+	ActionsToSkip []string `long:"policy-check-filter-action-skip" description:"Actions the list will not go through policy check"`
 }
 
 type PolicyCheckInput struct {

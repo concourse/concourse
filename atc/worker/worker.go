@@ -224,7 +224,7 @@ func (worker *gardenWorker) imagePolicyCheck(
 	}
 
 	// Actions in skip list will not go through policy check.
-	if worker.policyChecker.ShouldSkipAction(policy.ActionUsingImage) {
+	if !worker.policyChecker.ShouldCheckAction(policy.ActionUseImage) {
 		return true, nil
 	}
 
@@ -235,19 +235,19 @@ func (worker *gardenWorker) imagePolicyCheck(
 	}
 
 	if imageSpec.ImageResource != nil {
-		imageInfo["image_source_type"] = imageSpec.ImageResource.Type
+		imageInfo["image_type"] = imageSpec.ImageResource.Type
 		imageInfo["image_source"] = imageSpec.ImageResource.Source
 	} else if imageSpec.ResourceType != "" {
 		for _, rt := range resourceTypes {
 			if rt.Name == imageSpec.ResourceType {
-				imageInfo["image_source_type"] = rt.Type
+				imageInfo["image_type"] = rt.Type
 				imageInfo["image_source"] = rt.Source
 			}
 		}
 
 		// If resource type not found, then it should be a built-in resource
 		// type, and could skip policy check.
-		if _, ok := imageInfo["image_source_type"]; !ok {
+		if _, ok := imageInfo["image_type"]; !ok {
 			return true, nil
 		}
 	} else {
@@ -265,7 +265,7 @@ func (worker *gardenWorker) imagePolicyCheck(
 
 	teamName, pipelineName := policy.TeamAndPipelineFromContext(ctx)
 	input := policy.PolicyCheckInput{
-		Action:   policy.ActionUsingImage,
+		Action:   policy.ActionUseImage,
 		Team:     teamName,
 		Pipeline: pipelineName,
 		Data:     imageInfo,
