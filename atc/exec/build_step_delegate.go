@@ -1,17 +1,20 @@
 package exec
 
 import (
-	"github.com/concourse/concourse/vars"
 	"io"
 
 	"code.cloudfoundry.org/lager"
+
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/vars"
 )
 
 //go:generate counterfeiter . BuildStepDelegate
 
 type BuildStepDelegate interface {
 	ImageVersionDetermined(db.UsedResourceCache) error
+	RedactImageSource(source atc.Source) (atc.Source, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer

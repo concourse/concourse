@@ -274,6 +274,7 @@ var _ = Describe("Worker", func() {
 			fakeDBWorker,
 			fakeResourceCacheFactory,
 			0,
+			nil,
 		)
 	})
 

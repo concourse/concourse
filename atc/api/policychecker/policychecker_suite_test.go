@@ -1,31 +1,18 @@
-package exec_test
+package policychecker_test
 
 import (
-	"testing"
-
 	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
-
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"testing"
 )
 
-func TestExec(t *testing.T) {
+func TestAccessor(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Exec Suite")
-}
-
-type testMetadata []string
-
-func (m testMetadata) Env() []string { return m }
-
-type testTraceProvider struct{}
-
-func (ttp testTraceProvider) Tracer(name string) trace.Tracer {
-	return testtrace.NewTracer()
+	RunSpecs(t, "API PolicyChecker Suite")
 }
 
 var (

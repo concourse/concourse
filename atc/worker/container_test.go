@@ -106,6 +106,7 @@ var _ = Describe("RunScript", func() {
 			fakeDBWorker,
 			fakeResourceCacheFactory,
 			0,
+			nil,
 		)
 
 		fakeCreatedContainer.HandleReturns("some-handle")

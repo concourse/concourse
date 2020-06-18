@@ -155,7 +155,7 @@ var _ = Describe("PutStep", func() {
 		fakeResourceFactory.NewResourceReturns(fakeResource)
 
 		someExitStatus = 0
-
+		clientErr = nil
 	})
 
 	AfterEach(func() {

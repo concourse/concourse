@@ -183,6 +183,7 @@ var _ = Describe("DBProvider", func() {
 			wantWorkerVersion,
 			baggageclaimResponseHeaderTimeout,
 			gardenRequestTimeout,
+			nil,
 		)
 		baggageclaimURL = baggageclaimServer.URL()
 	})

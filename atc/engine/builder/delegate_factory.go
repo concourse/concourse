@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"encoding/json"
 	"io"
 	"strings"
 	"time"
@@ -387,6 +388,20 @@ func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
 	it := &credVarsIterator{line: str}
 	delegate.credVarsTracker.IterateInterpolatedCreds(it)
 	return it.line
+}
+
+func (delegate *buildStepDelegate) RedactImageSource(source atc.Source) (atc.Source, error) {
+	b, err := json.Marshal(&source)
+	if err != nil {
+		return source, err
+	}
+	s := delegate.buildOutputFilter(string(b))
+	newSource := atc.Source{}
+	err = json.Unmarshal([]byte(s), &newSource)
+	if err != nil {
+		return source, err
+	}
+	return newSource, nil
 }
 
 func (delegate *buildStepDelegate) Stdout() io.Writer {
