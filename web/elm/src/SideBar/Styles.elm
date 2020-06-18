@@ -1,5 +1,6 @@
 module SideBar.Styles exposing
     ( Background(..)
+    , FontWeight(..)
     , Opacity(..)
     , collapseIcon
     , column
@@ -133,7 +134,6 @@ teamName :
     -> List (Html.Attribute msg)
 teamName { opacity } =
     [ style "font-size" "14px"
-    , style "font-weight" Views.Styles.fontWeightBold
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
     , style "white-space" "nowrap"
@@ -141,6 +141,7 @@ teamName { opacity } =
     , style "text-overflow" "ellipsis"
     , style "flex-grow" "1"
     , opacityAttr opacity
+    , fontWeightAttr Bold
     ]
 
 
@@ -164,10 +165,26 @@ backgroundAttr background =
                 "inherit"
 
 
+type FontWeight
+    = Default
+    | Bold
+
+
+fontWeightAttr : FontWeight -> Html.Attribute msg
+fontWeightAttr weight =
+    style "font-weight" <|
+        case weight of
+            Default ->
+                Views.Styles.fontWeightDefault
+
+            Bold ->
+                Views.Styles.fontWeightBold
+
+
 pipelineName :
-    { a | opacity : Opacity }
+    { a | opacity : Opacity, weight : FontWeight }
     -> List (Html.Attribute msg)
-pipelineName { opacity } =
+pipelineName { opacity, weight } =
     [ style "font-size" "14px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
@@ -175,7 +192,9 @@ pipelineName { opacity } =
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
     , style "flex-grow" "1"
+    , style "color" "#FFFFFF"
     , opacityAttr opacity
+    , fontWeightAttr weight
     ]
 
 

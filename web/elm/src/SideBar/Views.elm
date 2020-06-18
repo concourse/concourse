@@ -62,6 +62,7 @@ type alias Pipeline =
     , name :
         { opacity : Styles.Opacity
         , text : String
+        , weight : Styles.FontWeight
         }
     , background : Styles.Background
     , href : String

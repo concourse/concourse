@@ -55,6 +55,13 @@ all =
                                 , opacity = Styles.Bright
                                 }
                 ]
+            , test "font weight is bold" <|
+                \_ ->
+                    pipeline
+                        |> viewPipeline { active = True, hovered = False }
+                        |> .name
+                        |> .weight
+                        |> Expect.equal Styles.Bold
             ]
         , describe "when inactive"
             [ describe "when hovered"
@@ -98,6 +105,13 @@ all =
                                 , opacity = Styles.Dim
                                 }
                 ]
+            , test "font weight is default" <|
+                \_ ->
+                    pipeline
+                        |> viewPipeline { active = False, hovered = False }
+                        |> .name
+                        |> .weight
+                        |> Expect.equal Styles.Default
             ]
         , describe "when archived"
             [ test "pipeline icon is archived" <|

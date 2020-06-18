@@ -61,6 +61,12 @@ pipeline session p =
             else
                 Styles.Dim
         , text = p.name
+        , weight =
+            if isCurrent then
+                Styles.Bold
+
+            else
+                Styles.Default
         }
     , background =
         if isCurrent then
