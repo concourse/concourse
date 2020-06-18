@@ -173,7 +173,6 @@ noPipelineCardHeader =
     , style "letter-spacing" "0.1em"
     , style "padding" "12.5px"
     , style "text-align" "center"
-    , style "-webkit-font-smoothing" "antialiased"
     ]
 
 
@@ -183,7 +182,6 @@ pipelineCardHeader =
     , style "color" Colors.dashboardText
     , style "font-size" "1.5em"
     , style "letter-spacing" "0.1em"
-    , style "-webkit-font-smoothing" "antialiased"
     , style "padding" "12.5px"
     ]
 
@@ -519,7 +517,6 @@ welcomeCard =
     [ style "background-color" Colors.card
     , style "margin" "25px"
     , style "padding" "40px"
-    , style "-webkit-font-smoothing" "antialiased"
     , style "position" "relative"
     , style "overflow" "hidden"
     , style "font-weight" "400"

@@ -22,7 +22,6 @@ card =
     , style "flex-direction" "column"
     , style "align-items" "center"
     , style "text-align" "center"
-    , style "-webkit-font-smoothing" "antialiased"
     , style "font-weight" "400"
     ]
 

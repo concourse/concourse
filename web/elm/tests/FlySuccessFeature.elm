@@ -312,16 +312,6 @@ listensForTokenResponse setup =
 
 
 
--- top bar
-
-
-topBarProperty : Property
-topBarProperty =
-    property topBar "has bold font" <|
-        Query.has [ style "font-weight" "700" ]
-
-
-
 -- card
 
 
@@ -366,11 +356,8 @@ cardLayout =
 
 cardStyle : Property
 cardStyle =
-    property successCard "has smooth, non-bold font" <|
-        Query.has
-            [ style "-webkit-font-smoothing" "antialiased"
-            , style "font-weight" "400"
-            ]
+    property successCard "has light font" <|
+        Query.has [ style "font-weight" "400" ]
 
 
 
@@ -385,11 +372,9 @@ titleText =
 
 titleStyle : Property
 titleStyle =
-    property title "has bold 18px font" <|
+    property title "has 18px font" <|
         Query.has
-            [ style "font-size" "18px"
-            , style "font-weight" "700"
-            ]
+            [ style "font-size" "18px" ]
 
 
 titleProperties : List Property
@@ -742,7 +727,6 @@ all =
     describe "Fly login success page"
         [ describe "page load"
             [ whenOnFlySuccessPage |> listensForTokenResponse ]
-        , describe "top bar" <| tests allCases [ topBarProperty ]
         , describe "card" cardTests
         , describe "title" titleTests
         , describe "token sending"

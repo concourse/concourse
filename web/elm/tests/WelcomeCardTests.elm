@@ -132,11 +132,7 @@ hasWelcomeCard setup =
             >> Tuple.first
             >> Common.queryView
             >> Query.has [ id "welcome-card" ]
-    , test "with correct antialiasing in WebKit" <|
-        subject
-            >> Query.has
-                [ style "-webkit-font-smoothing" "antialiased" ]
-    , test "with non-bold text" <|
+    , test "with light text" <|
         subject
             >> Query.has [ style "font-weight" "400" ]
     , test "title says 'welcome to concourse!'" <|

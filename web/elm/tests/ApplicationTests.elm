@@ -17,31 +17,7 @@ import Url
 all : Test
 all =
     describe "top-level application"
-        [ test "bold and antialiasing on dashboard" <|
-            \_ ->
-                Common.init "/"
-                    |> queryView
-                    |> Query.has
-                        [ style "-webkit-font-smoothing" "antialiased"
-                        , style "font-weight" "700"
-                        ]
-        , test "bold and antialiasing on resource page" <|
-            \_ ->
-                Common.init "/teams/t/pipelines/p/resources/r"
-                    |> queryView
-                    |> Query.has
-                        [ style "-webkit-font-smoothing" "antialiased"
-                        , style "font-weight" "700"
-                        ]
-        , test "bold and antialiasing everywhere else" <|
-            \_ ->
-                Common.init "/teams/team/pipelines/pipeline"
-                    |> queryView
-                    |> Query.has
-                        [ style "-webkit-font-smoothing" "antialiased"
-                        , style "font-weight" "700"
-                        ]
-        , test "should subscribe to clicks from the not-automatically-linked boxes in the pipeline, and the token return" <|
+        [ test "should subscribe to clicks from the not-automatically-linked boxes in the pipeline, and the token return" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/"
                     |> Application.subscriptions
@@ -58,7 +34,7 @@ all =
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.LoadExternal "/foo/bar" ]
-        , test "received token is passed to all subsquent requests" <|
+        , test "received token is passed to all subsequent requests" <|
             \_ ->
                 let
                     pipelineIdentifier =

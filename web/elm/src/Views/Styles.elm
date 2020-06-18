@@ -27,9 +27,7 @@ pageHeaderHeight =
 
 pageIncludingTopBar : List (Html.Attribute msg)
 pageIncludingTopBar =
-    [ style "-webkit-font-smoothing" "antialiased"
-    , style "font-weight" "700"
-    , style "height" "100%"
+    [ style "height" "100%"
     ]
 
 
@@ -88,7 +86,6 @@ topBar isPaused =
     , style "z-index" "999"
     , style "display" "flex"
     , style "justify-content" "space-between"
-    , style "font-weight" "700"
     , style "background-color" <|
         if isPaused then
             Colors.paused
