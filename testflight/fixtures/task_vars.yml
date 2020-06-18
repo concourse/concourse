@@ -50,11 +50,9 @@ jobs:
       image_resource_type: mock
       echo_text: ((.:foo))
 
-- name: task-var-is-not-used
+- name: task-var-is-defined-but-task-also-needs-vars-from-var-sources
   plan:
   - get: some-resource
-  - load_var: foo
-    file: some-resource/foo.txt
   - task: process-task-definition
     file: some-resource/task_unwrap.yml
   - task: run

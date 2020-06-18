@@ -154,7 +154,7 @@ run:
 `
 			})
 			It("successfully runs pipeline job with external task", func() {
-				execS := fly("trigger-job", "-w", "-j", pipelineName+"/task-var-is-not-used")
+				execS := fly("trigger-job", "-w", "-j", pipelineName+"/task-var-is-defined-but-task-also-needs-vars-from-var-sources")
 				Expect(execS).To(gbytes.Say("text-from-var-source"))
 			})
 		})
