@@ -67,6 +67,7 @@ import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Html
 import Html.Attributes exposing (style)
 import ScreenSize exposing (ScreenSize(..))
+import Views.Styles
 
 
 content : Bool -> List (Html.Attribute msg)
@@ -519,7 +520,7 @@ welcomeCard =
     , style "padding" "40px"
     , style "position" "relative"
     , style "overflow" "hidden"
-    , style "font-weight" "400"
+    , style "font-weight" Views.Styles.fontWeightLight
     , style "display" "flex"
     , style "flex-direction" "column"
     ]
@@ -614,7 +615,7 @@ searchInput screenSize =
     , style "border" <| "1px solid " ++ Colors.inputOutline
     , style "color" Colors.dashboardText
     , style "font-size" "1.15em"
-    , style "font-family" "Inconsolata, monospace"
+    , style "font-family" Views.Styles.fontFamilyDefault
     , style "outline" "0"
     ]
         ++ widthStyles

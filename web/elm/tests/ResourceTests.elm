@@ -54,6 +54,7 @@ import Test.Html.Selector
 import Time
 import Url
 import UserState exposing (UserState(..))
+import Views.Styles
 
 
 commentButtonBlue : String
@@ -408,14 +409,13 @@ all =
                             |> Query.children []
                             |> Query.index 0
                             |> Query.has [ text resourceName, tag "h1" ]
-                , test "the text is large and vertically centred" <|
+                , test "the text is vertically centered" <|
                     \_ ->
                         pageHeader
                             |> Query.children []
                             |> Query.index 0
                             |> Query.has
-                                [ style "font-weight" "700"
-                                , style "margin-left" "18px"
+                                [ style "margin-left" "18px"
                                 , style "display" "flex"
                                 , style "align-items" "center"
                                 , style "justify-content" "center"
@@ -1899,8 +1899,8 @@ all =
                                 textarea
                                     |> Query.has
                                         [ style "font-size" "12px"
-                                        , style "font-family" "Inconsolata, monospace"
-                                        , style "font-weight" "700"
+                                        , style "font-family" Views.Styles.fontFamilyDefault
+                                        , style "font-weight" Views.Styles.fontWeightDefault
                                         ]
                         , test "has a max height of 150px" <|
                             \_ ->

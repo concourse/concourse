@@ -25,6 +25,7 @@ import Test.Html.Selector
         , text
         )
 import Url
+import Views.Styles
 
 
 
@@ -357,7 +358,7 @@ cardLayout =
 cardStyle : Property
 cardStyle =
     property successCard "has light font" <|
-        Query.has [ style "font-weight" "400" ]
+        Query.has [ style "font-weight" Views.Styles.fontWeightLight ]
 
 
 

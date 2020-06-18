@@ -35,6 +35,7 @@ import Test.Html.Selector as Selector
         )
 import Time
 import Url
+import Views.Styles
 
 
 rspecStyleDescribe : String -> subject -> List (subject -> Test) -> Test
@@ -651,7 +652,7 @@ all =
                             [ style "border" searchBarBorder
                             , style "color" "#ffffff"
                             , style "font-size" "1.15em"
-                            , style "font-family" "Inconsolata, monospace"
+                            , style "font-family" Views.Styles.fontFamilyDefault
                             ]
                 , it "renders search with appropriate size and padding" <|
                     Query.find [ id SearchBar.searchInputId ]

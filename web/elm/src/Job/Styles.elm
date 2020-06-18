@@ -11,6 +11,7 @@ import Colors
 import Concourse.BuildStatus exposing (BuildStatus)
 import Html
 import Html.Attributes exposing (style)
+import Views.Styles
 
 
 triggerButton : Bool -> Bool -> BuildStatus -> List (Html.Attribute msg)
@@ -55,12 +56,11 @@ triggerTooltip =
     , style "top" "15px"
     , style "width" "300px"
     , style "color" Colors.buildTooltipText
-    , style "font-size" "12px"
-    , style "font-family" "Inconsolata,monospace"
     , style "padding" "10px"
     , style "text-align" "right"
     , style "pointer-events" "none"
     ]
+        ++ Views.Styles.defaultFont
 
 
 buildResourceHeader : List (Html.Attribute msg)

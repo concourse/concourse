@@ -28,6 +28,7 @@ import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.Styles exposing (striped)
 import Html
 import Html.Attributes exposing (style)
+import Views.Styles
 
 
 header : BuildStatus -> List (Html.Attribute msg)
@@ -164,9 +165,6 @@ buttonTooltip width =
     , style "width" <| String.fromInt width ++ "px"
     , style "color" Colors.text
     , style "background-color" Colors.frame
-    , style "font-size" "12px"
-    , style "font-family" "Inconsolata,monospace"
-    , style "font-weight" "700"
     , style "padding" "10px"
     , style "text-align" "right"
     , style "pointer-events" "none"
@@ -175,6 +173,7 @@ buttonTooltip width =
     -- ^ need a value greater than 0 (inherited from .fixed-header) since this
     -- element is earlier in the document than the build tabs
     ]
+        ++ Views.Styles.defaultFont
 
 
 stepHeader : StepState -> List (Html.Attribute msg)
@@ -290,7 +289,7 @@ retryTab :
 retryTab { isHovered, isCurrent, isStarted } =
     [ style "display" "inline-block"
     , style "padding" "0 5px"
-    , style "font-weight" "700"
+    , style "font-weight" Views.Styles.fontWeightDefault
     , style "cursor" "pointer"
     , style "color" Colors.retryTabText
     , style "background-color" <|

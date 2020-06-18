@@ -4,6 +4,10 @@ module Views.Styles exposing
     , breadcrumbContainer
     , breadcrumbItem
     , concourseLogo
+    , defaultFont
+    , fontFamilyDefault
+    , fontWeightDefault
+    , fontWeightLight
     , pageBelowTopBar
     , pageHeaderHeight
     , pageIncludingTopBar
@@ -18,6 +22,29 @@ import Colors
 import Html
 import Html.Attributes exposing (style)
 import Routes
+
+
+defaultFont : List (Html.Attribute msg)
+defaultFont =
+    [ style "font-size" "12px"
+    , style "font-family" fontFamilyDefault
+    , style "font-weight" fontWeightDefault
+    ]
+
+
+fontFamilyDefault : String
+fontFamilyDefault =
+    "Inconsolata,monospace"
+
+
+fontWeightLight : String
+fontWeightLight =
+    "400"
+
+
+fontWeightDefault : String
+fontWeightDefault =
+    "700"
 
 
 pageHeaderHeight : Float
