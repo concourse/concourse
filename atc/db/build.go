@@ -161,6 +161,13 @@ type Build interface {
 	SetDrained(bool) error
 
 	SpanContext() propagators.Supplier
+
+	SavePipeline(
+		pipelineName string,
+		config atc.Config,
+		from ConfigVersion,
+		initiallyPaused bool,
+	) (Pipeline, bool, error)
 }
 
 type build struct {
@@ -1477,6 +1484,16 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 
 func (b *build) SpanContext() propagators.Supplier {
 	return b.spanContext
+}
+
+func (b *build) SavePipeline(
+	pipelineName string,
+	config atc.Config,
+	from ConfigVersion,
+	initiallyPaused bool,
+) (Pipeline, bool, error) {
+	return &pipeline{}, false, nil
+
 }
 
 func createBuildEventSeq(tx Tx, buildid int) error {

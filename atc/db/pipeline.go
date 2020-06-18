@@ -40,6 +40,8 @@ type Pipeline interface {
 	Name() string
 	TeamID() int
 	TeamName() string
+	ParentJobID() int
+	ParentBuildID() int
 	Groups() atc.GroupConfigs
 	VarSources() atc.VarSourceConfigs
 	ConfigVersion() ConfigVersion
@@ -99,6 +101,8 @@ type pipeline struct {
 	name          string
 	teamID        int
 	teamName      string
+	parentJobID   int
+	parentBuildID int
 	groups        atc.GroupConfigs
 	varSources    atc.VarSourceConfigs
 	configVersion ConfigVersion
@@ -142,6 +146,8 @@ func (p *pipeline) ID() int                  { return p.id }
 func (p *pipeline) Name() string             { return p.name }
 func (p *pipeline) TeamID() int              { return p.teamID }
 func (p *pipeline) TeamName() string         { return p.teamName }
+func (p *pipeline) ParentJobID() int         { return p.parentJobID }
+func (p *pipeline) ParentBuildID() int       { return p.parentBuildID }
 func (p *pipeline) Groups() atc.GroupConfigs { return p.groups }
 
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }

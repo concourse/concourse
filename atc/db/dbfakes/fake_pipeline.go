@@ -295,6 +295,26 @@ type FakePipeline struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	ParentBuildIDStub        func() int
+	parentBuildIDMutex       sync.RWMutex
+	parentBuildIDArgsForCall []struct {
+	}
+	parentBuildIDReturns struct {
+		result1 int
+	}
+	parentBuildIDReturnsOnCall map[int]struct {
+		result1 int
+	}
+	ParentJobIDStub        func() int
+	parentJobIDMutex       sync.RWMutex
+	parentJobIDArgsForCall []struct {
+	}
+	parentJobIDReturns struct {
+		result1 int
+	}
+	parentJobIDReturnsOnCall map[int]struct {
+		result1 int
+	}
 	PauseStub        func() error
 	pauseMutex       sync.RWMutex
 	pauseArgsForCall []struct {
@@ -1873,6 +1893,110 @@ func (fake *FakePipeline) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakePipeline) ParentBuildID() int {
+	fake.parentBuildIDMutex.Lock()
+	ret, specificReturn := fake.parentBuildIDReturnsOnCall[len(fake.parentBuildIDArgsForCall)]
+	fake.parentBuildIDArgsForCall = append(fake.parentBuildIDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ParentBuildID", []interface{}{})
+	fake.parentBuildIDMutex.Unlock()
+	if fake.ParentBuildIDStub != nil {
+		return fake.ParentBuildIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.parentBuildIDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) ParentBuildIDCallCount() int {
+	fake.parentBuildIDMutex.RLock()
+	defer fake.parentBuildIDMutex.RUnlock()
+	return len(fake.parentBuildIDArgsForCall)
+}
+
+func (fake *FakePipeline) ParentBuildIDCalls(stub func() int) {
+	fake.parentBuildIDMutex.Lock()
+	defer fake.parentBuildIDMutex.Unlock()
+	fake.ParentBuildIDStub = stub
+}
+
+func (fake *FakePipeline) ParentBuildIDReturns(result1 int) {
+	fake.parentBuildIDMutex.Lock()
+	defer fake.parentBuildIDMutex.Unlock()
+	fake.ParentBuildIDStub = nil
+	fake.parentBuildIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakePipeline) ParentBuildIDReturnsOnCall(i int, result1 int) {
+	fake.parentBuildIDMutex.Lock()
+	defer fake.parentBuildIDMutex.Unlock()
+	fake.ParentBuildIDStub = nil
+	if fake.parentBuildIDReturnsOnCall == nil {
+		fake.parentBuildIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.parentBuildIDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakePipeline) ParentJobID() int {
+	fake.parentJobIDMutex.Lock()
+	ret, specificReturn := fake.parentJobIDReturnsOnCall[len(fake.parentJobIDArgsForCall)]
+	fake.parentJobIDArgsForCall = append(fake.parentJobIDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ParentJobID", []interface{}{})
+	fake.parentJobIDMutex.Unlock()
+	if fake.ParentJobIDStub != nil {
+		return fake.ParentJobIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.parentJobIDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) ParentJobIDCallCount() int {
+	fake.parentJobIDMutex.RLock()
+	defer fake.parentJobIDMutex.RUnlock()
+	return len(fake.parentJobIDArgsForCall)
+}
+
+func (fake *FakePipeline) ParentJobIDCalls(stub func() int) {
+	fake.parentJobIDMutex.Lock()
+	defer fake.parentJobIDMutex.Unlock()
+	fake.ParentJobIDStub = stub
+}
+
+func (fake *FakePipeline) ParentJobIDReturns(result1 int) {
+	fake.parentJobIDMutex.Lock()
+	defer fake.parentJobIDMutex.Unlock()
+	fake.ParentJobIDStub = nil
+	fake.parentJobIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakePipeline) ParentJobIDReturnsOnCall(i int, result1 int) {
+	fake.parentJobIDMutex.Lock()
+	defer fake.parentJobIDMutex.Unlock()
+	fake.ParentJobIDStub = nil
+	if fake.parentJobIDReturnsOnCall == nil {
+		fake.parentJobIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.parentJobIDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *FakePipeline) Pause() error {
 	fake.pauseMutex.Lock()
 	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
@@ -2908,6 +3032,10 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.loadDebugVersionsDBMutex.RUnlock()
 	fake.nameMutex.RLock()
 	defer fake.nameMutex.RUnlock()
+	fake.parentBuildIDMutex.RLock()
+	defer fake.parentBuildIDMutex.RUnlock()
+	fake.parentJobIDMutex.RLock()
+	defer fake.parentJobIDMutex.RUnlock()
 	fake.pauseMutex.RLock()
 	defer fake.pauseMutex.RUnlock()
 	fake.pausedMutex.RLock()
