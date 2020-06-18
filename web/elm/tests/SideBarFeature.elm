@@ -477,7 +477,7 @@ hasSideBar iAmLookingAtThePage =
             , unhoveredSelector =
                 { description = "grey"
                 , selector =
-                    [ style "opacity" "0.3" ]
+                    [ style "opacity" "0.4" ]
                 }
             , hoverable =
                 Message.SideBarPipeline
@@ -1052,7 +1052,7 @@ iSeeItIsGreyedOut =
 
 
 iSeeItIsDim =
-    Query.has [ style "opacity" "0.3" ]
+    Query.has [ style "opacity" "0.4" ]
 
 
 iAmLookingAtThePipelineList =

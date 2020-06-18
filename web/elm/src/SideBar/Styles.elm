@@ -95,7 +95,7 @@ opacityAttr opacity =
     style "opacity" <|
         case opacity of
             Dim ->
-                "0.3"
+                "0.4"
 
             GreyedOut ->
                 "0.7"
