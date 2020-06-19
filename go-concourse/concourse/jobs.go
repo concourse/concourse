@@ -26,9 +26,9 @@ func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
 	return jobs, err
 }
 
-func (team *team) ListAllJobs() ([]atc.Job, error) {
+func (client *client) ListAllJobs() ([]atc.Job, error) {
 	var jobs []atc.Job
-	err := team.connection.Send(internal.Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.ListAllJobs,
 	}, &internal.Response{
 		Result: &jobs,

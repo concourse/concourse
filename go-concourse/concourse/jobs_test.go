@@ -45,7 +45,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 		})
 	})
 
-	Describe("team.ListAllJobs", func() {
+	Describe("client.ListAllJobs", func() {
 		var expectedJobs []atc.Job
 
 		BeforeEach(func() {
@@ -71,7 +71,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 		})
 
 		It("returns all jobs that belong to the account", func() {
-			jobs, err := team.ListAllJobs()
+			jobs, err := client.ListAllJobs()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(jobs).To(Equal(expectedJobs))
 		})
