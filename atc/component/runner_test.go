@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/component/cmocks"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/tedsuo/ifrit"
@@ -68,11 +69,11 @@ func (s *RunnerSuite) TestEndToEnd() {
 		Schedulable: mockSchedulable,
 	}
 
-	notifications := make(chan bool, 1)
+	notifications := make(chan db.Notification, 1)
 
 	var process ifrit.Process
 	s.Run("listens for component notifications on start", func() {
-		mockBus.On("Listen", componentName).Return(notifications, nil)
+		mockBus.On("Listen", componentName, db.DontQueueNotifications).Return(notifications, nil)
 
 		process = ifrit.Background(scheduler)
 		select {
@@ -81,7 +82,7 @@ func (s *RunnerSuite) TestEndToEnd() {
 			s.Failf("process exited early", "error: %s", err)
 		}
 
-		mockBus.AssertCalled(s.T(), "Listen", componentName)
+		mockBus.AssertCalled(s.T(), "Listen", componentName, db.DontQueueNotifications)
 	})
 
 	defer func() {
@@ -100,11 +101,11 @@ func (s *RunnerSuite) TestEndToEnd() {
 	})
 
 	s.Run("runs immediately on notification bus events", func() {
-		notifications <- true
+		notifications <- db.Notification{Healthy: true}
 		s.Empty(ranPeriodically)
 		<-ranImmediately
 
-		notifications <- true
+		notifications <- db.Notification{Healthy: true}
 		s.Empty(ranPeriodically)
 		<-ranImmediately
 	})
@@ -114,7 +115,7 @@ func (s *RunnerSuite) TestEndToEnd() {
 		s.clock.WaitForWatcherAndIncrement(interval - 1)
 
 		// send a notification instead
-		notifications <- true
+		notifications <- db.Notification{Healthy: true}
 		s.Empty(ranPeriodically)
 		<-ranImmediately
 
@@ -122,10 +123,10 @@ func (s *RunnerSuite) TestEndToEnd() {
 		s.clock.WaitForWatcherAndIncrement(1)
 
 		// send few notifications to ensure a chance to fire the periodic timer
-		notifications <- true
+		notifications <- db.Notification{Healthy: true}
 		s.Empty(ranPeriodically)
 		<-ranImmediately
-		notifications <- true
+		notifications <- db.Notification{Healthy: true}
 		s.Empty(ranPeriodically)
 		<-ranImmediately
 

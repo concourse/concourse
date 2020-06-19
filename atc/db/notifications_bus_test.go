@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"errors"
+	"time"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -73,7 +74,7 @@ var _ = Describe("NotificationBus", func() {
 		)
 
 		JustBeforeEach(func() {
-			_, err = bus.Listen("some-channel")
+			_, err = bus.Listen("some-channel", db.DontQueueNotifications)
 		})
 
 		Context("when not already listening on channel", func() {
@@ -106,7 +107,7 @@ var _ = Describe("NotificationBus", func() {
 
 		Context("when already listening on the channel", func() {
 			BeforeEach(func() {
-				_, err := bus.Listen("some-channel")
+				_, err := bus.Listen("some-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -119,7 +120,7 @@ var _ = Describe("NotificationBus", func() {
 	Context("Unlisten", func() {
 		var (
 			err error
-			c   chan bool
+			c   chan db.Notification
 		)
 
 		JustBeforeEach(func() {
@@ -128,7 +129,7 @@ var _ = Describe("NotificationBus", func() {
 
 		Context("when there's only one listener", func() {
 			BeforeEach(func() {
-				c, err = bus.Listen("some-channel")
+				c, err = bus.Listen("some-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -161,10 +162,10 @@ var _ = Describe("NotificationBus", func() {
 
 		Context("when there's multiple listeners", func() {
 			BeforeEach(func() {
-				c, err = bus.Listen("some-channel")
+				c, err = bus.Listen("some-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = bus.Listen("some-channel")
+				_, err = bus.Listen("some-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -181,16 +182,16 @@ var _ = Describe("NotificationBus", func() {
 	Describe("Receiving Notifications", func() {
 		var (
 			err error
-			a   chan bool
-			b   chan bool
+			a   chan db.Notification
+			b   chan db.Notification
 		)
 
 		Context("when there are multiple listeners for the same channel", func() {
 			BeforeEach(func() {
-				a, err = bus.Listen("some-channel")
+				a, err = bus.Listen("some-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 
-				b, err = bus.Listen("some-channel")
+				b, err = bus.Listen("some-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -201,8 +202,8 @@ var _ = Describe("NotificationBus", func() {
 				})
 
 				It("delivers the notification to all listeners", func() {
-					Eventually(a).Should(Receive(Equal(true)))
-					Eventually(b).Should(Receive(Equal(true)))
+					Eventually(a).Should(Receive(Equal(db.Notification{Healthy: true})))
+					Eventually(b).Should(Receive(Equal(db.Notification{Healthy: true})))
 				})
 			})
 
@@ -213,18 +214,18 @@ var _ = Describe("NotificationBus", func() {
 				})
 
 				It("delivers the notification to all listeners", func() {
-					Eventually(a).Should(Receive(Equal(false)))
-					Eventually(b).Should(Receive(Equal(false)))
+					Eventually(a).Should(Receive(Equal(db.Notification{Healthy: false})))
+					Eventually(b).Should(Receive(Equal(db.Notification{Healthy: false})))
 				})
 			})
 		})
 
 		Context("when there are multiple listeners on different channels", func() {
 			BeforeEach(func() {
-				a, err = bus.Listen("some-channel")
+				a, err = bus.Listen("some-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 
-				b, err = bus.Listen("some-other-channel")
+				b, err = bus.Listen("some-other-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -235,7 +236,7 @@ var _ = Describe("NotificationBus", func() {
 				})
 
 				It("delivers the notification to only specific listeners", func() {
-					Eventually(a).Should(Receive(Equal(true)))
+					Eventually(a).Should(Receive(Equal(db.Notification{Healthy: true})))
 					Consistently(b).ShouldNot(Receive())
 				})
 			})
@@ -247,14 +248,86 @@ var _ = Describe("NotificationBus", func() {
 				})
 
 				It("delivers the notification to all listeners", func() {
-					Eventually(a).Should(Receive(Equal(false)))
-					Eventually(b).Should(Receive(Equal(false)))
+					Eventually(a).Should(Receive(Equal(db.Notification{Healthy: false})))
+					Eventually(b).Should(Receive(Equal(db.Notification{Healthy: false})))
+				})
+			})
+		})
+
+		Context("when the upstream notification has a payload", func() {
+			BeforeEach(func() {
+				a, err = bus.Listen("some-channel", db.DontQueueNotifications)
+				Expect(err).NotTo(HaveOccurred())
+
+				c <- &pq.Notification{Channel: "some-channel", Extra: "hello!"}
+			})
+
+			It("sends a notification with the payload", func() {
+				Eventually(a).Should(Receive(Equal(db.Notification{Healthy: true, Payload: "hello!"})))
+			})
+		})
+
+		Context("when the listener does not queue notifications", func() {
+			BeforeEach(func() {
+				a, err = bus.Listen("some-channel", db.DontQueueNotifications)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when it receives many upstream notifications", func() {
+				BeforeEach(func() {
+					for i := 0; i < 100; i++ {
+						c <- &pq.Notification{Channel: "some-channel"}
+					}
+					Eventually(c).Should(BeEmpty())
+					// TODO: this is awful, but we need to guarantee the last event has been processed
+					time.Sleep(1 * time.Second)
+				})
+
+				It("only sends one message to the Go channel", func() {
+					Eventually(a).Should(Receive())
+					Consistently(a).ShouldNot(Receive())
+				})
+
+				It("should send messages again after the channel is drained", func() {
+					<-a
+
+					c <- &pq.Notification{Channel: "some-channel"}
+					Eventually(a).Should(Receive())
+				})
+			})
+		})
+
+		Context("when the listener queues notifications", func() {
+			BeforeEach(func() {
+				a, err = bus.Listen("some-channel", db.QueueNotifications)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when it receives many upstream notifications", func() {
+				BeforeEach(func() {
+					for i := 0; i < 100; i++ {
+						c <- &pq.Notification{Channel: "some-channel"}
+					}
+				})
+
+				It("sends a message to the Go channel for every notification", func() {
+					for i := 0; i < 100; i++ {
+						Eventually(a).Should(Receive())
+					}
+				})
+
+				It("should still work after the channel is drained", func() {
+					for i := 0; i < 100; i++ {
+						<-a
+					}
+
+					c <- &pq.Notification{Channel: "some-channel"}
+					Eventually(a).Should(Receive())
 				})
 			})
 		})
 
 		Context("when the notification channel fills up while listening", func() {
-
 			BeforeEach(func() {
 				fakeListener.ListenCalls(func(_ string) error {
 					c <- &pq.Notification{Channel: "some-channel"}
@@ -265,14 +338,13 @@ var _ = Describe("NotificationBus", func() {
 			})
 
 			It("should still be able to listen for notifications", func(done Done) {
-
-				_, err := bus.Listen("some-channel")
+				_, err := bus.Listen("some-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = bus.Listen("some-other-channel")
+				_, err = bus.Listen("some-other-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = bus.Listen("some-new-channel")
+				_, err = bus.Listen("some-new-channel", db.DontQueueNotifications)
 				Expect(err).NotTo(HaveOccurred())
 
 				close(done)

@@ -10,7 +10,7 @@ type Notifier interface {
 }
 
 func newConditionNotifier(bus NotificationsBus, channel string, cond func() (bool, error)) (Notifier, error) {
-	notified, err := bus.Listen(channel)
+	notified, err := bus.Listen(channel, DontQueueNotifications)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ type conditionNotifier struct {
 	bus     NotificationsBus
 	channel string
 
-	notified chan bool
+	notified chan Notification
 	notify   chan struct{}
 
 	stop chan struct{}
@@ -73,8 +73,8 @@ func (notifier *conditionNotifier) watch() {
 			select {
 			case <-notifier.stop:
 				return
-			case ok := <-notifier.notified:
-				if ok {
+			case n := <-notifier.notified:
+				if n.Healthy {
 					notifier.sendNotification()
 				} else {
 					break dance

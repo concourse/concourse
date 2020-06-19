@@ -8,13 +8,14 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc/db"
 )
 
 var Clock = clock.NewClock()
 
 type NotificationsBus interface {
-	Listen(string) (chan bool, error)
-	Unlisten(string, chan bool) error
+	Listen(string, db.NotificationQueueMode) (chan db.Notification, error)
+	Unlisten(string, chan db.Notification) error
 }
 
 // Schedulable represents a workload that is executed normally on a periodic
@@ -40,7 +41,7 @@ func (scheduler *Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	scheduler.Logger.Debug("start")
 	defer scheduler.Logger.Debug("done")
 
-	notifier, err := scheduler.Bus.Listen(scheduler.Component.Name())
+	notifier, err := scheduler.Bus.Listen(scheduler.Component.Name(), db.DontQueueNotifications)
 	if err != nil {
 		return err
 	}
