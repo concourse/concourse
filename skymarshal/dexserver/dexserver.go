@@ -103,7 +103,7 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 	}
 
 	return server.Config{
-		PasswordConnector:      "local",
+		PasswordConnector:      "ldap",
 		SupportedResponseTypes: []string{"code", "token", "id_token"},
 		SkipApprovalScreen:     true,
 		IDTokensValidFor:       config.Expiration,
