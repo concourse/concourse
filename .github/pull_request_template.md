@@ -1,10 +1,10 @@
-<!---
+<!--
 Hi there! Thanks for submitting a pull request to Concourse!
 To help us review your PR, please fill in the following information.
 -->
 
 ## What does this PR accomplish?
-<!---
+<!--
 Choose all that apply.
 Also, mention the linked issue here.
 This will magically close the issue once the PR is merged.
@@ -14,18 +14,18 @@ Bug Fix | Feature | Documentation
 closes # .
 
 ## Changes proposed by this PR:
-<!---
+<!--
 Tell the reviewer What changed, Why, and How were you able to accomplish that?
 -->
 
 ## Notes to reviewer:
-<!---
+<!--
 Leave a message to whoever is going to review this PR.
 Mainly, pointers to review the PR, and how they can test it.
 -->
 
 ## Contributor Checklist
-<!---
+<!--
 Most of the PRs should have the following added to them,
 this doesn't apply to all PRs, so it is helpful to tell us what you did.
 -->
@@ -43,7 +43,7 @@ this doesn't apply to all PRs, so it is helpful to tell us what you did.
 [Release notes]: https://github.com/concourse/concourse/tree/master/release-notes
 
 ## Reviewer Checklist
-<!---
+<!--
 This section is intended for the reviewers only, to track review
 progress.
 -->
