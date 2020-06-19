@@ -186,6 +186,18 @@ type FakeClient struct {
 		result1 []atc.User
 		result2 error
 	}
+	ListAllJobsStub        func() ([]atc.Job, error)
+	listAllJobsMutex       sync.RWMutex
+	listAllJobsArgsForCall []struct {
+	}
+	listAllJobsReturns struct {
+		result1 []atc.Job
+		result2 error
+	}
+	listAllJobsReturnsOnCall map[int]struct {
+		result1 []atc.Job
+		result2 error
+	}
 	ListBuildArtifactsStub        func(string) ([]atc.WorkerArtifact, error)
 	listBuildArtifactsMutex       sync.RWMutex
 	listBuildArtifactsArgsForCall []struct {
@@ -1110,6 +1122,61 @@ func (fake *FakeClient) ListActiveUsersSinceReturnsOnCall(i int, result1 []atc.U
 	}{result1, result2}
 }
 
+func (fake *FakeClient) ListAllJobs() ([]atc.Job, error) {
+	fake.listAllJobsMutex.Lock()
+	ret, specificReturn := fake.listAllJobsReturnsOnCall[len(fake.listAllJobsArgsForCall)]
+	fake.listAllJobsArgsForCall = append(fake.listAllJobsArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ListAllJobs", []interface{}{})
+	fake.listAllJobsMutex.Unlock()
+	if fake.ListAllJobsStub != nil {
+		return fake.ListAllJobsStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.listAllJobsReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) ListAllJobsCallCount() int {
+	fake.listAllJobsMutex.RLock()
+	defer fake.listAllJobsMutex.RUnlock()
+	return len(fake.listAllJobsArgsForCall)
+}
+
+func (fake *FakeClient) ListAllJobsCalls(stub func() ([]atc.Job, error)) {
+	fake.listAllJobsMutex.Lock()
+	defer fake.listAllJobsMutex.Unlock()
+	fake.ListAllJobsStub = stub
+}
+
+func (fake *FakeClient) ListAllJobsReturns(result1 []atc.Job, result2 error) {
+	fake.listAllJobsMutex.Lock()
+	defer fake.listAllJobsMutex.Unlock()
+	fake.ListAllJobsStub = nil
+	fake.listAllJobsReturns = struct {
+		result1 []atc.Job
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) ListAllJobsReturnsOnCall(i int, result1 []atc.Job, result2 error) {
+	fake.listAllJobsMutex.Lock()
+	defer fake.listAllJobsMutex.Unlock()
+	fake.ListAllJobsStub = nil
+	if fake.listAllJobsReturnsOnCall == nil {
+		fake.listAllJobsReturnsOnCall = make(map[int]struct {
+			result1 []atc.Job
+			result2 error
+		})
+	}
+	fake.listAllJobsReturnsOnCall[i] = struct {
+		result1 []atc.Job
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) ListBuildArtifacts(arg1 string) ([]atc.WorkerArtifact, error) {
 	fake.listBuildArtifactsMutex.Lock()
 	ret, specificReturn := fake.listBuildArtifactsReturnsOnCall[len(fake.listBuildArtifactsArgsForCall)]
@@ -1658,6 +1725,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.landWorkerMutex.RUnlock()
 	fake.listActiveUsersSinceMutex.RLock()
 	defer fake.listActiveUsersSinceMutex.RUnlock()
+	fake.listAllJobsMutex.RLock()
+	defer fake.listAllJobsMutex.RUnlock()
 	fake.listBuildArtifactsMutex.RLock()
 	defer fake.listBuildArtifactsMutex.RUnlock()
 	fake.listPipelinesMutex.RLock()

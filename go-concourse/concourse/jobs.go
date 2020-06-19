@@ -26,6 +26,17 @@ func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
 	return jobs, err
 }
 
+func (client *client) ListAllJobs() ([]atc.Job, error) {
+	var jobs []atc.Job
+	err := client.connection.Send(internal.Request{
+		RequestName: atc.ListAllJobs,
+	}, &internal.Response{
+		Result: &jobs,
+	})
+
+	return jobs, err
+}
+
 func (team *team) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
