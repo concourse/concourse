@@ -38,6 +38,17 @@ and viewers cannot.
 
   Admins always have permission to perform any action on any team. You cannot
   assign actions to the admin role using the \code{--config-rbac} flag.
+
+  The following actions are also assigned to admins, and cannot be reconfigured:
+
+  \codeblock{yaml}{{{
+  - GetLogLevel
+  - ListActiveUsersSince
+  - SetLogLevel
+  - GetInfoCreds
+  - SetWall
+  - ClearWall
+  }}}
 }
 
 \section{
@@ -80,7 +91,6 @@ and viewers cannot.
   - PruneWorker
   - HeartbeatWorker
   - DeleteWorker
-  - SetLogLevel
   - HijackContainer
   - ReportWorkerContainers
   - ReportWorkerVolumes
@@ -163,10 +173,8 @@ and viewers cannot.
   - ListPipelineBuilds
   - PipelineBadge
   - ListWorkers
-  - GetLogLevel
   - DownloadCLI
   - GetInfo
-  - GetInfoCreds
   - ListContainers
   - GetContainer
   - ListDestroyingContainers
@@ -245,6 +253,10 @@ and viewers cannot.
     \table-row{ListBuilds                   }{\reference{fly-builds}                                            }{n/a                                    }{✓                                }{✘           }
     \table-row{MainJobBadge                 }{n/a                                                               }{n/a                                    }{✓                                }{✘           }
     \table-row{GetLogLevel                  }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
+    \table-row{SetLogLevel                  }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
+    \table-row{GetWall                      }{n/a                                                               }{n/a                                    }{✓                                }{✘           }
+    \table-row{SetWall                      }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
+    \table-row{ClearWall                    }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
     \table-row{ListActiveUsersSince         }{\reference{fly-active-users}                                      }{n/a                                    }{✘                                }{✘           }
     \table-row{GetInfoCreds                 }{n/a                                                               }{n/a                                    }{✘                                }{✘           }
     \table-row{CheckResource                }{\reference{fly-check-resource}                                    }{check button on resource page          }{✘                                }{✓           }
