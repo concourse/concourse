@@ -53,7 +53,7 @@ sideBarHandle { width } =
     , style "top" "0"
     , style "left" <| String.fromFloat (width - 5) ++ "px"
     , style "z-index" "2"
-    , style "cursor" "ew-resize"
+    , style "cursor" "col-resize"
     ]
 
 

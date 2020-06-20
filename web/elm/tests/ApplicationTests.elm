@@ -10,7 +10,7 @@ import Message.Subscription as Subscription exposing (Delivery(..))
 import Message.TopLevelMessage as Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (style)
+import Test.Html.Selector exposing (id, style)
 import Url
 
 
@@ -87,4 +87,37 @@ all =
                         [ Common.contains Subscription.OnMouse
                         , Common.contains Subscription.OnMouseUp
                         ]
+        , test "cannot select text when dragging sidebar" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j"
+                    |> Application.update
+                        (Msgs.Update <|
+                            Click SideBarResizeHandle
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has
+                        [ style "user-select" "none"
+                        , style "-ms-user-select" "none"
+                        , style "-moz-user-select" "none"
+                        , style "-khtml-user-select" "none"
+                        , style "-webkit-user-select" "none"
+                        , style "-webkit-touch-callout" "none"
+                        ]
+        , test "can select text when not dragging sidebar" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j"
+                    |> Common.queryView
+                    |> Query.hasNot [ style "user-select" "none" ]
+        , test "page-wrapper fills height" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j"
+                    |> Application.update
+                        (Msgs.Update <|
+                            Click SideBarResizeHandle
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "page-wrapper" ]
+                    |> Query.has [ style "height" "100%" ]
         ]

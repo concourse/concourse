@@ -914,10 +914,6 @@ iAmLookingAtTheSideBar =
     iAmLookingAtThePageBelowTheTopBar >> Query.children [] >> Query.first
 
 
-iAmLookingAtTheSideBarHandle =
-    iAmLookingAtTheSideBar >> Query.find [ style "cursor" "ew-resize" ]
-
-
 iSeeADividingLineBelow =
     Query.has [ style "border-bottom" <| "1px solid " ++ Colors.frame ]
 
@@ -1039,7 +1035,7 @@ iSeeItHasBottomPadding =
 
 
 iSeeItHasAResizeHandle =
-    Query.has [ style "cursor" "ew-resize" ]
+    Query.has [ style "cursor" "col-resize" ]
 
 
 iClickedThePipelineGroup =
