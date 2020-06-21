@@ -208,6 +208,18 @@ var _ = Describe("ListAllJobsWatcher", func() {
 			Eventually(getInvokedEvents).Should(ConsistOf(DeleteEvent(job1.ID()), DeleteEvent(job2.ID())))
 		})
 
+		It("notifies on pipeline exposed", func() {
+			pipeline.Expose()
+
+			Eventually(getInvokedEvents).Should(ConsistOf(PutEvent(job1), PutEvent(job2)))
+		})
+
+		It("notifies on pipeline hidden", func() {
+			pipeline.Hide()
+
+			Eventually(getInvokedEvents).Should(ConsistOf(PutEvent(job1), PutEvent(job2)))
+		})
+
 		Describe("access control for non-admins", func() {
 			BeforeEach(func() {
 				access.IsAdminReturns(false)
@@ -238,6 +250,17 @@ var _ = Describe("ListAllJobsWatcher", func() {
 					It("forwards the notification", func() {
 						pipeline.Destroy()
 						Eventually(getInvokedEvents).Should(ContainElement(DeleteEvent(job1.ID())))
+					})
+				})
+
+				Context("when the pipeline is public", func() {
+					BeforeEach(func() {
+						pipeline.Expose()
+					})
+
+					It("forwards the notification", func() {
+						job1.CreateBuild()
+						Eventually(getInvokedEvents).Should(ContainElement(PutEvent(job1)))
 					})
 				})
 			})
@@ -306,10 +329,15 @@ func toDashboardJob(job db.Job) *atc.DashboardJob {
 
 	finishedBuild, nextBuild, err := job.FinishedAndNextBuild()
 	Expect(err).ToNot(HaveOccurred())
+
+	pipeline, _, err := job.Pipeline()
+	Expect(err).ToNot(HaveOccurred())
+
 	return &atc.DashboardJob{
 		ID:              job.ID(),
 		Name:            job.Name(),
 		PipelineName:    job.PipelineName(),
+		PipelinePublic:  pipeline.Public(),
 		TeamName:        job.TeamName(),
 		Paused:          job.Paused(),
 		HasNewInputs:    job.HasNewInputs(),

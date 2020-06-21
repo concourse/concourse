@@ -10,6 +10,7 @@ type DashboardJob struct {
 	PipelineID           int
 	PipelineName         string
 	PipelineInstanceVars InstanceVars
+	PipelinePublic       bool
 	TeamName             string
 	Paused               bool
 	HasNewInputs         bool

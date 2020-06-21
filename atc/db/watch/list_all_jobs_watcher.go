@@ -234,7 +234,9 @@ func (w *ListAllJobsWatcher) hasAccessTo(access accessor.Access, evt ListAllJobs
 		// given that there's no sensitive information (just the id, which is serial anyway), I suspect this is okay
 		return true
 	}
-	// TODO: what about jobs from public pipelines?
+	if evt.Job.PipelinePublic {
+		return true
+	}
 	for _, teamName := range access.TeamNames() {
 		if evt.Job.TeamName == teamName {
 			return true
