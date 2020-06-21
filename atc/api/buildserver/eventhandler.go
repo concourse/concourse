@@ -1,14 +1,12 @@
 package buildserver
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/api/stream"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/vito/go-sse/sse"
 )
 
 const ProtocolVersionHeader = "X-ATC-Stream-Version"
@@ -29,15 +27,10 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 			eventID++
 		}
 
-		w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
-		w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
-		w.Header().Add("X-Accel-Buffering", "no")
+		stream.WriteHeaders(w)
 		w.Header().Add(ProtocolVersionHeader, CurrentProtocolVersion)
 
-		writer := eventWriter{
-			responseWriter:  w,
-			responseFlusher: w.(http.Flusher),
-		}
+		writer := stream.EventWriter{WriteFlusher: w.(stream.WriteFlusher)}
 
 		events, err := build.Events(eventID)
 		if err != nil {
@@ -69,7 +62,7 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 				return
 			}
 
-			err = writer.WriteEvent(eventID, ev)
+			err = writer.WriteEvent(eventID, "event", ev)
 			if err != nil {
 				logger.Info("failed-to-write-event", lager.Data{"error": err.Error()})
 				return
@@ -78,43 +71,4 @@ func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 			eventID++
 		}
 	})
-}
-
-type eventWriter struct {
-	responseWriter  io.Writer
-	responseFlusher http.Flusher
-}
-
-func (writer eventWriter) WriteEvent(id uint, envelope interface{}) error {
-	payload, err := json.Marshal(envelope)
-	if err != nil {
-		return err
-	}
-
-	err = sse.Event{
-		ID:   fmt.Sprintf("%d", id),
-		Name: "event",
-		Data: payload,
-	}.Write(writer.responseWriter)
-	if err != nil {
-		return err
-	}
-
-	writer.responseFlusher.Flush()
-
-	return nil
-}
-
-func (writer eventWriter) WriteEnd(id uint) error {
-	err := sse.Event{
-		ID:   fmt.Sprintf("%d", id),
-		Name: "end",
-	}.Write(writer.responseWriter)
-	if err != nil {
-		return err
-	}
-
-	writer.responseFlusher.Flush()
-
-	return nil
 }
